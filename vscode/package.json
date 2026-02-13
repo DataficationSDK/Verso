@@ -1,0 +1,101 @@
+{
+  "name": "verso-notebook",
+  "displayName": "Verso Notebook",
+  "description": "VS Code extension for Verso .NET notebooks",
+  "version": "0.1.0",
+  "publisher": "verso-contributors",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Notebooks"
+  ],
+  "activationEvents": [
+    "onNotebook:verso-notebook"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "notebooks": [
+      {
+        "type": "verso-notebook",
+        "displayName": "Verso Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.verso"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "verso.runAll",
+        "title": "Verso: Run All Cells",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "verso.runCell",
+        "title": "Verso: Run Cell",
+        "icon": "$(run)"
+      },
+      {
+        "command": "verso.clearOutputs",
+        "title": "Verso: Clear All Outputs",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "verso.restartKernel",
+        "title": "Verso: Restart Kernel",
+        "icon": "$(debug-restart)"
+      }
+    ],
+    "menus": {
+      "notebook/toolbar": [
+        {
+          "command": "verso.runAll",
+          "group": "navigation@1",
+          "when": "notebookType == verso-notebook"
+        },
+        {
+          "command": "verso.clearOutputs",
+          "group": "navigation@2",
+          "when": "notebookType == verso-notebook"
+        },
+        {
+          "command": "verso.restartKernel",
+          "group": "navigation@3",
+          "when": "notebookType == verso-notebook"
+        }
+      ],
+      "notebook/cell/title": [
+        {
+          "command": "verso.runCell",
+          "group": "inline@1",
+          "when": "notebookType == verso-notebook"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Verso Notebook",
+      "properties": {
+        "verso.hostPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Verso.Host.dll. If empty, uses bundled host."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "tsc --noEmit",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0"
+  }
+}

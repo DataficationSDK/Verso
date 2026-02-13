@@ -1,0 +1,135 @@
+import * as vscode from "vscode";
+import { HostProcess } from "../host/hostProcess";
+import {
+  CellOutputDto,
+  CellUpdateSourceParams,
+  ExecutionResultDto,
+  ExecutionRunParams,
+  ExecutionRunAllResult,
+} from "../host/protocol";
+
+export class VersoController {
+  private readonly controller: vscode.NotebookController;
+
+  constructor(private readonly host: HostProcess) {
+    this.controller = vscode.notebooks.createNotebookController(
+      "verso-kernel",
+      "verso-notebook",
+      "Verso"
+    );
+
+    this.controller.supportedLanguages = ["csharp", "markdown"];
+    this.controller.supportsExecutionOrder = true;
+    this.controller.executeHandler = this.executeHandler.bind(this);
+  }
+
+  private async executeHandler(
+    cells: vscode.NotebookCell[],
+    _notebook: vscode.NotebookDocument,
+    controller: vscode.NotebookController
+  ): Promise<void> {
+    for (const cell of cells) {
+      await this.executeCell(cell, controller);
+    }
+  }
+
+  private async executeCell(
+    cell: vscode.NotebookCell,
+    controller: vscode.NotebookController
+  ): Promise<void> {
+    const versoId = cell.metadata?.versoId as string | undefined;
+    if (!versoId) {
+      return;
+    }
+
+    const execution = controller.createNotebookCellExecution(cell);
+    execution.executionOrder = undefined;
+    execution.start(Date.now());
+
+    try {
+      // Sync source before execution
+      await this.host.sendRequest("cell/updateSource", {
+        cellId: versoId,
+        source: cell.document.getText(),
+      } satisfies CellUpdateSourceParams);
+
+      // Execute
+      const result = await this.host.sendRequest<ExecutionResultDto>(
+        "execution/run",
+        { cellId: versoId } satisfies ExecutionRunParams
+      );
+
+      execution.executionOrder = result.executionCount;
+
+      // Map outputs
+      const outputs = result.outputs.map((o) => this.mapOutput(o));
+      execution.replaceOutput(outputs);
+
+      execution.end(result.status === "completed", Date.now());
+    } catch (err) {
+      execution.replaceOutput([
+        new vscode.NotebookCellOutput([
+          vscode.NotebookCellOutputItem.error(
+            err instanceof Error ? err : new Error(String(err))
+          ),
+        ]),
+      ]);
+      execution.end(false, Date.now());
+    }
+  }
+
+  async runAll(notebook: vscode.NotebookDocument): Promise<void> {
+    // Sync all cell sources first
+    for (const cell of notebook.getCells()) {
+      const versoId = cell.metadata?.versoId as string | undefined;
+      if (versoId) {
+        await this.host.sendRequest("cell/updateSource", {
+          cellId: versoId,
+          source: cell.document.getText(),
+        } satisfies CellUpdateSourceParams);
+      }
+    }
+
+    const result = await this.host.sendRequest<ExecutionRunAllResult>(
+      "execution/runAll"
+    );
+
+    // Match results to cells and update outputs
+    for (const execResult of result.results) {
+      const cell = notebook
+        .getCells()
+        .find((c) => c.metadata?.versoId === execResult.cellId);
+      if (!cell) {
+        continue;
+      }
+
+      const execution = this.controller.createNotebookCellExecution(cell);
+      execution.executionOrder = execResult.executionCount;
+      execution.start(Date.now());
+      const outputs = execResult.outputs.map((o) => this.mapOutput(o));
+      execution.replaceOutput(outputs);
+      execution.end(execResult.status === "completed", Date.now());
+    }
+  }
+
+  private mapOutput(output: CellOutputDto): vscode.NotebookCellOutput {
+    if (output.isError) {
+      const err = new Error(output.content || output.errorName || "Error");
+      if (output.errorStackTrace) {
+        err.stack = output.errorStackTrace;
+      }
+      return new vscode.NotebookCellOutput([
+        vscode.NotebookCellOutputItem.error(err),
+      ]);
+    }
+
+    const mimeType = output.mimeType || "text/plain";
+    return new vscode.NotebookCellOutput([
+      vscode.NotebookCellOutputItem.text(output.content, mimeType),
+    ]);
+  }
+
+  dispose(): void {
+    this.controller.dispose();
+  }
+}
