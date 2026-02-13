@@ -1,0 +1,26 @@
+using Verso.Abstractions;
+using Verso.Contexts;
+using Verso.Stubs;
+
+namespace Verso.Tests.Helpers;
+
+/// <summary>
+/// Minimal <see cref="IFormatterContext"/> stub with fixed defaults for formatter tests.
+/// </summary>
+public sealed class StubFormatterContext : IFormatterContext
+{
+    public string MimeType { get; set; } = "text/html";
+    public double MaxWidth { get; set; } = 800;
+    public double MaxHeight { get; set; } = 600;
+
+    // --- IVersoContext ---
+
+    public IVariableStore Variables { get; } = new VariableStore();
+    public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+    public IThemeContext Theme { get; } = new StubThemeContext();
+    public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.None;
+    public IExtensionHostContext ExtensionHost { get; } = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
+    public INotebookMetadata NotebookMetadata { get; } = new NotebookMetadataContext(new NotebookModel());
+
+    public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
+}
