@@ -19,9 +19,10 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
         LayoutCapabilities layoutCapabilities,
         IExtensionHostContext extensionHost,
         INotebookMetadata notebookMetadata,
+        INotebookOperations notebook,
         Func<CellOutput, Task> writeOutput,
         Func<CellOutput, Task> display)
-        : base(variables, cancellationToken, theme, layoutCapabilities, extensionHost, notebookMetadata, writeOutput)
+        : base(variables, cancellationToken, theme, layoutCapabilities, extensionHost, notebookMetadata, notebook, writeOutput)
     {
         CellId = cellId;
         ExecutionCount = executionCount;

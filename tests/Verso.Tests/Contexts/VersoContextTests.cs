@@ -1,3 +1,4 @@
+using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.Stubs;
 
@@ -18,6 +19,7 @@ public sealed class VersoContextTests
         var context = new VersoContext(
             variables, cts.Token, theme,
             LayoutCapabilities.CellEdit, extensionHost, metadata,
+            new StubNotebookOperations(),
             _ => Task.CompletedTask);
 
         Assert.AreSame(variables, context.Variables);
@@ -55,8 +57,9 @@ public sealed class VersoContextTests
             CancellationToken.None,
             new StubThemeContext(),
             LayoutCapabilities.None,
-            new StubExtensionHostContext(() => Array.Empty<Verso.Abstractions.ILanguageKernel>()),
+            new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>()),
             new NotebookMetadataContext(new NotebookModel()),
+            new StubNotebookOperations(),
             writeOutput);
     }
 }

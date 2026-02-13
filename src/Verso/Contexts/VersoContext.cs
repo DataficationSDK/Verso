@@ -16,6 +16,7 @@ public class VersoContext : IVersoContext
         LayoutCapabilities layoutCapabilities,
         IExtensionHostContext extensionHost,
         INotebookMetadata notebookMetadata,
+        INotebookOperations notebook,
         Func<CellOutput, Task> writeOutput)
     {
         Variables = variables ?? throw new ArgumentNullException(nameof(variables));
@@ -24,6 +25,7 @@ public class VersoContext : IVersoContext
         LayoutCapabilities = layoutCapabilities;
         ExtensionHost = extensionHost ?? throw new ArgumentNullException(nameof(extensionHost));
         NotebookMetadata = notebookMetadata ?? throw new ArgumentNullException(nameof(notebookMetadata));
+        Notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));
         _writeOutput = writeOutput ?? throw new ArgumentNullException(nameof(writeOutput));
     }
 
@@ -44,6 +46,9 @@ public class VersoContext : IVersoContext
 
     /// <inheritdoc />
     public INotebookMetadata NotebookMetadata { get; }
+
+    /// <inheritdoc />
+    public INotebookOperations Notebook { get; }
 
     /// <inheritdoc />
     public Task WriteOutputAsync(CellOutput output)

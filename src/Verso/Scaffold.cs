@@ -18,9 +18,11 @@ public sealed class Scaffold : IAsyncDisposable
     private readonly Dictionary<Guid, int> _executionCounts = new();
     private readonly VariableStore _variables = new();
     private readonly NotebookMetadataContext _metadata;
-    private readonly StubThemeContext _theme = new();
     private readonly StubExtensionHostContext _stubExtensionHost;
     private readonly ExtensionHost? _extensionHost;
+    private ThemeEngine? _themeEngine;
+    private LayoutManager? _layoutManager;
+    private readonly NotebookOperations _notebookOps;
     private bool _disposed;
 
     public Scaffold() : this(new NotebookModel()) { }
@@ -33,10 +35,7 @@ public sealed class Scaffold : IAsyncDisposable
         _metadata = new NotebookMetadataContext(_notebook);
         _extensionHost = extensionHost;
         _stubExtensionHost = new StubExtensionHostContext(() => _kernels.Values.ToList());
-        LayoutCapabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
-                             LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
-                             LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute |
-                             LayoutCapabilities.MultiSelect;
+        _notebookOps = new NotebookOperations(this);
     }
 
     // --- Properties ---
@@ -50,10 +49,56 @@ public sealed class Scaffold : IAsyncDisposable
     public NotebookModel Notebook => _notebook;
     public string? Title { get => _notebook.Title; set => _notebook.Title = value; }
     public string? DefaultKernelId { get => _notebook.DefaultKernelId; set => _notebook.DefaultKernelId = value; }
-    public IThemeContext ThemeContext => _theme;
-    public LayoutCapabilities LayoutCapabilities { get; set; }
+
+    /// <summary>
+    /// Gets the active theme context. Delegates to the <see cref="ThemeEngine"/> if initialized,
+    /// otherwise falls back to <see cref="StubThemeContext"/>.
+    /// </summary>
+    public IThemeContext ThemeContext => _themeEngine as IThemeContext ?? new StubThemeContext();
+
+    /// <summary>
+    /// Gets the layout capabilities from the active layout, or all capabilities if no LayoutManager is active.
+    /// </summary>
+    public LayoutCapabilities LayoutCapabilities =>
+        _layoutManager?.Capabilities ?? (LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
+                             LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
+                             LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute |
+                             LayoutCapabilities.MultiSelect);
+
     public IExtensionHostContext ExtensionHostContext =>
         _extensionHost as IExtensionHostContext ?? _stubExtensionHost;
+
+    /// <summary>
+    /// Gets the <see cref="ThemeEngine"/> subsystem, or <c>null</c> if not initialized.
+    /// </summary>
+    public ThemeEngine? ThemeEngine => _themeEngine;
+
+    /// <summary>
+    /// Gets the <see cref="LayoutManager"/> subsystem, or <c>null</c> if not initialized.
+    /// </summary>
+    public LayoutManager? LayoutManager => _layoutManager;
+
+    /// <summary>
+    /// Gets the <see cref="INotebookOperations"/> implementation for this scaffold.
+    /// </summary>
+    public INotebookOperations NotebookOps => _notebookOps;
+
+    // --- Subsystem initialization ---
+
+    /// <summary>
+    /// Initializes the ThemeEngine and LayoutManager from extensions discovered by the ExtensionHost.
+    /// Call after <see cref="ExtensionHost.LoadBuiltInExtensionsAsync"/>.
+    /// </summary>
+    public void InitializeSubsystems()
+    {
+        if (_extensionHost is null) return;
+
+        var themes = _extensionHost.GetThemes();
+        var layouts = _extensionHost.GetLayouts();
+
+        _themeEngine = new ThemeEngine(themes, _notebook.PreferredThemeId);
+        _layoutManager = new LayoutManager(layouts, _notebook.ActiveLayoutId);
+    }
 
     // --- Cell CRUD ---
 
@@ -122,6 +167,18 @@ public sealed class Scaffold : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Clears all outputs from all cells in the notebook.
+    /// </summary>
+    public void ClearAllOutputs()
+    {
+        lock (_cellLock)
+        {
+            foreach (var cell in _notebook.Cells)
+                cell.Outputs.Clear();
+        }
+    }
+
     // --- Kernel Registry ---
 
     public void RegisterKernel(ILanguageKernel kernel)
@@ -163,6 +220,24 @@ public sealed class Scaffold : IAsyncDisposable
             }
             return languages.ToList();
         }
+    }
+
+    /// <summary>
+    /// Restarts a kernel: disposes it, removes from initialized set, clears variables, and re-initializes.
+    /// </summary>
+    public async Task RestartKernelAsync(string? kernelId = null)
+    {
+        var id = kernelId ?? _notebook.DefaultKernelId
+            ?? throw new InvalidOperationException("No kernel ID specified and no default kernel is configured.");
+
+        if (!_kernels.TryGetValue(id, out var kernel))
+            throw new InvalidOperationException($"No kernel registered for language '{id}'.");
+
+        await kernel.DisposeAsync().ConfigureAwait(false);
+        _initializedKernels.Remove(id);
+        _variables.Clear();
+
+        await EnsureInitialized(kernel).ConfigureAwait(false);
     }
 
     // --- Execution ---
@@ -259,10 +334,11 @@ public sealed class Scaffold : IAsyncDisposable
     {
         return new ExecutionPipeline(
             _variables,
-            _theme,
+            ThemeContext,
             LayoutCapabilities,
             ExtensionHostContext,
             _metadata,
+            _notebookOps,
             ResolveKernel,
             EnsureInitialized,
             ResolveLanguageId,

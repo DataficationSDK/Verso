@@ -273,10 +273,14 @@ public sealed class ScaffoldExecutionTests
     }
 
     [TestMethod]
-    public void Scaffold_LayoutCapabilities_IsSettable()
+    public void Scaffold_LayoutCapabilities_DefaultsToAllFlags_WhenNoLayoutManager()
     {
-        _scaffold.LayoutCapabilities = LayoutCapabilities.CellEdit;
-        Assert.AreEqual(LayoutCapabilities.CellEdit, _scaffold.LayoutCapabilities);
+        // Without a LayoutManager, all capabilities are supported
+        var allFlags = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
+                       LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
+                       LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute |
+                       LayoutCapabilities.MultiSelect;
+        Assert.AreEqual(allFlags, _scaffold.LayoutCapabilities);
     }
 
     [TestMethod]

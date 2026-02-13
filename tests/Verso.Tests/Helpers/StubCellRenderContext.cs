@@ -22,6 +22,7 @@ public sealed class StubCellRenderContext : ICellRenderContext
     public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.None;
     public IExtensionHostContext ExtensionHost { get; } = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
     public INotebookMetadata NotebookMetadata { get; } = new NotebookMetadataContext(new NotebookModel());
+    public INotebookOperations Notebook { get; } = new StubNotebookOperations();
 
     public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 }

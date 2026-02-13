@@ -73,6 +73,7 @@ public sealed class ExecutionContextTests
             LayoutCapabilities.None,
             new StubExtensionHostContext(() => Array.Empty<Verso.Abstractions.ILanguageKernel>()),
             new NotebookMetadataContext(new NotebookModel()),
+            new StubNotebookOperations(),
             writeOutput, display);
     }
 }

@@ -15,6 +15,7 @@ internal sealed class ExecutionPipeline
     private readonly LayoutCapabilities _layoutCapabilities;
     private readonly IExtensionHostContext _extensionHost;
     private readonly INotebookMetadata _notebookMetadata;
+    private readonly INotebookOperations _notebook;
     private readonly Func<string, ILanguageKernel?> _resolveKernel;
     private readonly Func<ILanguageKernel, Task> _ensureInitialized;
     private readonly Func<Guid, string?> _resolveLanguageId;
@@ -26,6 +27,7 @@ internal sealed class ExecutionPipeline
         LayoutCapabilities layoutCapabilities,
         IExtensionHostContext extensionHost,
         INotebookMetadata notebookMetadata,
+        INotebookOperations notebook,
         Func<string, ILanguageKernel?> resolveKernel,
         Func<ILanguageKernel, Task> ensureInitialized,
         Func<Guid, string?> resolveLanguageId,
@@ -36,6 +38,7 @@ internal sealed class ExecutionPipeline
         _layoutCapabilities = layoutCapabilities;
         _extensionHost = extensionHost;
         _notebookMetadata = notebookMetadata;
+        _notebook = notebook;
         _resolveKernel = resolveKernel;
         _ensureInitialized = ensureInitialized;
         _resolveLanguageId = resolveLanguageId;
@@ -85,6 +88,7 @@ internal sealed class ExecutionPipeline
                 _layoutCapabilities,
                 _extensionHost,
                 _notebookMetadata,
+                _notebook,
                 writeOutput: AppendOutput,
                 display: AppendOutput);
 

@@ -124,6 +124,7 @@ public sealed class CSharpKernelCompletionTests
         return new Verso.Contexts.ExecutionContext(
             Guid.NewGuid(), 1, variables, CancellationToken.None,
             theme, LayoutCapabilities.None, extensionHost, metadata,
+            new Verso.Stubs.StubNotebookOperations(),
             writeOutput: _ => Task.CompletedTask,
             display: _ => Task.CompletedTask);
     }

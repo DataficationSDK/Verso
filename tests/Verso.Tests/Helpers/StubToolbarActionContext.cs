@@ -5,10 +5,16 @@ using Verso.Stubs;
 namespace Verso.Tests.Helpers;
 
 /// <summary>
-/// Minimal <see cref="IVersoContext"/> stub for testing extensions that need a context.
+/// Test double for <see cref="IToolbarActionContext"/> with configurable properties.
 /// </summary>
-public sealed class StubVersoContext : IVersoContext
+public sealed class StubToolbarActionContext : IToolbarActionContext
 {
+    public IReadOnlyList<Guid> SelectedCellIds { get; set; } = Array.Empty<Guid>();
+    public IReadOnlyList<CellModel> NotebookCells { get; set; } = Array.Empty<CellModel>();
+    public string? ActiveKernelId { get; set; }
+
+    // --- IVersoContext ---
+
     public IVariableStore Variables { get; } = new VariableStore();
     public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
     public IThemeContext Theme { get; } = new StubThemeContext();

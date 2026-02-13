@@ -125,6 +125,7 @@ public sealed class ExecutionPipelineTests
 
         return new ExecutionPipeline(
             variables, theme, LayoutCapabilities.None, extensionHost, metadata,
+            new Verso.Stubs.StubNotebookOperations(),
             resolveKernel: langId => kernel?.LanguageId.Equals(langId, StringComparison.OrdinalIgnoreCase) == true ? kernel : null,
             ensureInitialized: k => k.InitializeAsync(),
             resolveLanguageId: _ => cell.Language ?? defaultKernelId,

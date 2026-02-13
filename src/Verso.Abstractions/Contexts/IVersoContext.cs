@@ -41,4 +41,9 @@ public interface IVersoContext
     /// Gets the read-only metadata for the current notebook.
     /// </summary>
     INotebookMetadata NotebookMetadata { get; }
+
+    /// <summary>
+    /// Gets the notebook operations interface for executing cells, managing outputs, and mutating the cell collection.
+    /// </summary>
+    INotebookOperations Notebook { get; }
 }
