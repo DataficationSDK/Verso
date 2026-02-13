@@ -1,6 +1,7 @@
 using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.Execution;
+using Verso.Extensions;
 using Verso.Stubs;
 
 namespace Verso;
@@ -18,16 +19,20 @@ public sealed class Scaffold : IAsyncDisposable
     private readonly VariableStore _variables = new();
     private readonly NotebookMetadataContext _metadata;
     private readonly StubThemeContext _theme = new();
-    private readonly StubExtensionHostContext _extensionHost;
+    private readonly StubExtensionHostContext _stubExtensionHost;
+    private readonly ExtensionHost? _extensionHost;
     private bool _disposed;
 
     public Scaffold() : this(new NotebookModel()) { }
 
-    public Scaffold(NotebookModel notebook)
+    public Scaffold(NotebookModel notebook) : this(notebook, extensionHost: null) { }
+
+    public Scaffold(NotebookModel notebook, ExtensionHost? extensionHost)
     {
         _notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));
         _metadata = new NotebookMetadataContext(_notebook);
-        _extensionHost = new StubExtensionHostContext(() => _kernels.Values.ToList());
+        _extensionHost = extensionHost;
+        _stubExtensionHost = new StubExtensionHostContext(() => _kernels.Values.ToList());
         LayoutCapabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
                              LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
                              LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute |
@@ -47,7 +52,8 @@ public sealed class Scaffold : IAsyncDisposable
     public string? DefaultKernelId { get => _notebook.DefaultKernelId; set => _notebook.DefaultKernelId = value; }
     public IThemeContext ThemeContext => _theme;
     public LayoutCapabilities LayoutCapabilities { get; set; }
-    public IExtensionHostContext ExtensionHostContext => _extensionHost;
+    public IExtensionHostContext ExtensionHostContext =>
+        _extensionHost as IExtensionHostContext ?? _stubExtensionHost;
 
     // --- Cell CRUD ---
 
@@ -137,10 +143,27 @@ public sealed class Scaffold : IAsyncDisposable
     public ILanguageKernel? GetKernel(string languageId)
     {
         ArgumentNullException.ThrowIfNull(languageId);
-        return _kernels.TryGetValue(languageId, out var kernel) ? kernel : null;
+        if (_kernels.TryGetValue(languageId, out var kernel))
+            return kernel;
+
+        // Fall back to ExtensionHost-discovered kernels
+        return _extensionHost?.GetKernels()
+            .FirstOrDefault(k => string.Equals(k.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
     }
 
-    public IReadOnlyList<string> RegisteredLanguages => _kernels.Keys.ToList();
+    public IReadOnlyList<string> RegisteredLanguages
+    {
+        get
+        {
+            var languages = new HashSet<string>(_kernels.Keys, StringComparer.OrdinalIgnoreCase);
+            if (_extensionHost is not null)
+            {
+                foreach (var k in _extensionHost.GetKernels())
+                    languages.Add(k.LanguageId);
+            }
+            return languages.ToList();
+        }
+    }
 
     // --- Execution ---
 
@@ -189,6 +212,9 @@ public sealed class Scaffold : IAsyncDisposable
         }
         _kernels.Clear();
         _initializedKernels.Clear();
+
+        if (_extensionHost is not null)
+            await _extensionHost.DisposeAsync().ConfigureAwait(false);
     }
 
     // --- Private helpers ---
@@ -220,15 +246,24 @@ public sealed class Scaffold : IAsyncDisposable
         _initializedKernels.Add(kernel.LanguageId);
     }
 
+    private ILanguageKernel? ResolveKernel(string languageId)
+    {
+        if (_kernels.TryGetValue(languageId, out var k))
+            return k;
+
+        return _extensionHost?.GetKernels()
+            .FirstOrDefault(ek => string.Equals(ek.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
+    }
+
     private ExecutionPipeline BuildPipeline()
     {
         return new ExecutionPipeline(
             _variables,
             _theme,
             LayoutCapabilities,
-            _extensionHost,
+            ExtensionHostContext,
             _metadata,
-            languageId => _kernels.TryGetValue(languageId, out var k) ? k : null,
+            ResolveKernel,
             EnsureInitialized,
             ResolveLanguageId,
             GetExecutionCount);
