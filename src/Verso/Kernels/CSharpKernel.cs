@@ -1,0 +1,224 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Scripting;
+using Verso.Abstractions;
+
+using VersoDiagnostic = Verso.Abstractions.Diagnostic;
+
+namespace Verso.Kernels;
+
+/// <summary>
+/// Built-in C# language kernel powered by Roslyn. Executes C# code in notebook cells
+/// with chained state, code completions, diagnostics, and hover information.
+/// </summary>
+[VersoExtension]
+public sealed class CSharpKernel : ILanguageKernel
+{
+    private readonly CSharpKernelOptions _options;
+    private readonly SemaphoreSlim _executionLock = new(1, 1);
+    private ScriptStateManager? _stateManager;
+    private RoslynWorkspaceManager? _workspaceManager;
+    private bool _initialized;
+    private bool _disposed;
+
+    public CSharpKernel() : this(new CSharpKernelOptions()) { }
+
+    public CSharpKernel(CSharpKernelOptions options)
+    {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+    }
+
+    // --- IExtension ---
+
+    public string ExtensionId => "verso.kernel.csharp";
+    public string Name => "C# (Roslyn)";
+    public string Version => "0.1.0";
+    public string? Author => "Verso Contributors";
+    public string? Description => "C# language kernel powered by Roslyn scripting.";
+
+    // --- ILanguageKernel ---
+
+    public string LanguageId => "csharp";
+    public string DisplayName => "C# (Roslyn)";
+    public IReadOnlyList<string> FileExtensions { get; } = new[] { ".cs", ".csx" };
+
+    public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+    public Task OnUnloadedAsync() => Task.CompletedTask;
+
+    public Task InitializeAsync()
+    {
+        if (_initialized) return Task.CompletedTask;
+
+        var imports = _options.DefaultImports ?? CSharpKernelOptions.StandardImports;
+        var references = BuildDefaultReferences();
+
+        var scriptOptions = ScriptOptions.Default
+            .AddImports(imports)
+            .AddReferences(references);
+
+        _stateManager = new ScriptStateManager(scriptOptions);
+        _workspaceManager = new RoslynWorkspaceManager(imports, references.Select(r => (MetadataReference)r));
+        _initialized = true;
+
+        return Task.CompletedTask;
+    }
+
+    public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+    {
+        ThrowIfDisposed();
+        EnsureInitialized();
+
+        if (string.IsNullOrWhiteSpace(code))
+            return Array.Empty<CellOutput>();
+
+        await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+        var originalOut = Console.Out;
+        try
+        {
+            var consoleWriter = new StringWriter();
+            Console.SetOut(consoleWriter);
+
+            var scriptState = await _stateManager!.RunAsync(code, context.CancellationToken)
+                .ConfigureAwait(false);
+
+            var outputs = new List<CellOutput>();
+
+            // Capture console output
+            var consoleOutput = consoleWriter.ToString();
+            if (!string.IsNullOrEmpty(consoleOutput))
+            {
+                var consoleCell = new CellOutput("text/plain", consoleOutput);
+                await context.WriteOutputAsync(consoleCell).ConfigureAwait(false);
+                outputs.Add(consoleCell);
+            }
+
+            // Capture return value
+            if (scriptState.ReturnValue is not null)
+            {
+                var returnOutput = new CellOutput("text/plain", scriptState.ReturnValue.ToString() ?? "");
+                await context.WriteOutputAsync(returnOutput).ConfigureAwait(false);
+                outputs.Add(returnOutput);
+            }
+
+            // Publish variables to the shared variable store
+            var variables = _stateManager.GetVariables();
+            foreach (var kvp in variables)
+            {
+                if (kvp.Value is not null)
+                {
+                    context.Variables.Set(kvp.Key, kvp.Value);
+                }
+            }
+
+            // Append to workspace for future intellisense
+            _workspaceManager!.AppendExecutedCode(code);
+
+            return outputs;
+        }
+        catch (CompilationErrorException ex)
+        {
+            var message = string.Join(Environment.NewLine, ex.Diagnostics.Select(d => d.ToString()));
+            var errorOutput = new CellOutput(
+                "text/plain",
+                message,
+                IsError: true,
+                ErrorName: "CompilationError");
+            return new[] { errorOutput };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var errorOutput = new CellOutput(
+                "text/plain",
+                $"{ex.Message}{Environment.NewLine}{ex.StackTrace}",
+                IsError: true,
+                ErrorName: ex.GetType().Name,
+                ErrorStackTrace: ex.StackTrace);
+            return new[] { errorOutput };
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            _executionLock.Release();
+        }
+    }
+
+    public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+    {
+        ThrowIfDisposed();
+        EnsureInitialized();
+        return await _workspaceManager!.GetCompletionsAsync(code, cursorPosition).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<VersoDiagnostic>> GetDiagnosticsAsync(string code)
+    {
+        ThrowIfDisposed();
+        EnsureInitialized();
+        return await _workspaceManager!.GetDiagnosticsAsync(code).ConfigureAwait(false);
+    }
+
+    public async Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
+    {
+        ThrowIfDisposed();
+        EnsureInitialized();
+        return await _workspaceManager!.GetHoverInfoAsync(code, cursorPosition).ConfigureAwait(false);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        if (_stateManager is not null)
+            await _stateManager.DisposeAsync().ConfigureAwait(false);
+
+        _workspaceManager?.Dispose();
+        _executionLock.Dispose();
+    }
+
+    private void EnsureInitialized()
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("Kernel has not been initialized. Call InitializeAsync first.");
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(CSharpKernel));
+    }
+
+    private List<PortableExecutableReference> BuildDefaultReferences()
+    {
+        var references = new List<PortableExecutableReference>();
+
+        // Core runtime assemblies
+        var trustedPlatformAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
+        if (trustedPlatformAssemblies is not null)
+        {
+            var separator = OperatingSystem.IsWindows() ? ';' : ':';
+            foreach (var path in trustedPlatformAssemblies.Split(separator))
+            {
+                var fileName = Path.GetFileNameWithoutExtension(path);
+                if (fileName.StartsWith("System", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.Equals("netstandard", StringComparison.OrdinalIgnoreCase))
+                {
+                    references.Add(MetadataReference.CreateFromFile(path));
+                }
+            }
+        }
+
+        // Additional references from options
+        if (_options.DefaultReferences is not null)
+        {
+            foreach (var refPath in _options.DefaultReferences)
+            {
+                if (File.Exists(refPath))
+                {
+                    references.Add(MetadataReference.CreateFromFile(refPath));
+                }
+            }
+        }
+
+        return references;
+    }
+}
