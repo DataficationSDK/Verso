@@ -24,10 +24,17 @@ public sealed class StubToolbarActionContext : IToolbarActionContext
     public INotebookOperations Notebook { get; set; } = new StubNotebookOperations();
 
     public List<CellOutput> WrittenOutputs { get; } = new();
+    public List<(string FileName, string ContentType, byte[] Data)> DownloadedFiles { get; } = new();
 
     public Task WriteOutputAsync(CellOutput output)
     {
         WrittenOutputs.Add(output);
+        return Task.CompletedTask;
+    }
+
+    public Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data)
+    {
+        DownloadedFiles.Add((fileName, contentType, data));
         return Task.CompletedTask;
     }
 }

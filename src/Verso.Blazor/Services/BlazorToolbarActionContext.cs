@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using Verso.Abstractions;
 
 namespace Verso.Blazor.Services;
@@ -9,11 +10,18 @@ namespace Verso.Blazor.Services;
 public sealed class BlazorToolbarActionContext : IToolbarActionContext
 {
     private readonly Scaffold _scaffold;
+    private readonly IJSRuntime? _jsRuntime;
 
     public BlazorToolbarActionContext(Scaffold scaffold, IReadOnlyList<Guid> selectedCellIds)
+        : this(scaffold, selectedCellIds, null)
+    {
+    }
+
+    public BlazorToolbarActionContext(Scaffold scaffold, IReadOnlyList<Guid> selectedCellIds, IJSRuntime? jsRuntime)
     {
         _scaffold = scaffold ?? throw new ArgumentNullException(nameof(scaffold));
         SelectedCellIds = selectedCellIds;
+        _jsRuntime = jsRuntime;
     }
 
     public IReadOnlyList<Guid> SelectedCellIds { get; }
@@ -28,6 +36,15 @@ public sealed class BlazorToolbarActionContext : IToolbarActionContext
     public INotebookOperations Notebook => _scaffold.NotebookOps;
 
     public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
+
+    public async Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data)
+    {
+        if (_jsRuntime is null)
+            throw new NotSupportedException("File download requires JS interop but no IJSRuntime was provided.");
+
+        var base64 = Convert.ToBase64String(data);
+        await _jsRuntime.InvokeVoidAsync("versoFileDownload.triggerDownload", fileName, contentType, base64);
+    }
 
     private sealed class BlazorNotebookMetadata : INotebookMetadata
     {

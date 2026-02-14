@@ -1154,6 +1154,69 @@ html, body {
     font-size: 12px;
 }
 
+/* === Metadata Panel === */
+
+.verso-metadata-field {
+    margin-bottom: 12px;
+}
+
+.verso-metadata-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-bottom: 4px;
+}
+
+.verso-metadata-value {
+    font-size: 12px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-metadata-input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-editor-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.verso-metadata-input:focus {
+    border-color: var(--verso-border-focused, #0078D4);
+}
+
+.verso-metadata-select {
+    width: 100%;
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 4px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-editor-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.verso-metadata-select:focus {
+    border-color: var(--verso-border-focused, #0078D4);
+}
+
+.verso-metadata-separator {
+    border: none;
+    border-top: 1px solid var(--verso-border-default, #E0E0E0);
+    margin: 16px 0;
+}
+
 /* === Responsive === */
 
 @media (max-width: 768px) {

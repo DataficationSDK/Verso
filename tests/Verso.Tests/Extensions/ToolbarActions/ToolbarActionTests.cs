@@ -206,6 +206,92 @@ public sealed class ToolbarActionTests
         Assert.AreEqual(40, action.Order);
     }
 
+    // --- ExportHtmlAction ---
+
+    [TestMethod]
+    public async Task ExportHtml_IsEnabled_WhenHasCells()
+    {
+        var action = new ExportHtmlAction();
+        var context = CreateContext(cells: new[] { new CellModel() });
+
+        Assert.IsTrue(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public async Task ExportHtml_IsDisabled_WhenNoCells()
+    {
+        var action = new ExportHtmlAction();
+        var context = CreateContext(cells: Array.Empty<CellModel>());
+
+        Assert.IsFalse(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public void ExportHtml_Metadata_IsCorrect()
+    {
+        var action = new ExportHtmlAction();
+        Assert.AreEqual("verso.action.export-html", action.ActionId);
+        Assert.AreEqual(ToolbarPlacement.MainToolbar, action.Placement);
+        Assert.AreEqual(60, action.Order);
+    }
+
+    [TestMethod]
+    public async Task ExportHtml_Execute_CallsRequestFileDownload()
+    {
+        var action = new ExportHtmlAction();
+        var context = CreateContext(cells: new[] { new CellModel { Type = "code", Source = "x" } });
+
+        await action.ExecuteAsync(context);
+
+        Assert.AreEqual(1, context.DownloadedFiles.Count);
+        Assert.IsTrue(context.DownloadedFiles[0].FileName.EndsWith(".html"));
+        Assert.AreEqual("text/html", context.DownloadedFiles[0].ContentType);
+        Assert.IsTrue(context.DownloadedFiles[0].Data.Length > 0);
+    }
+
+    // --- ExportMarkdownAction ---
+
+    [TestMethod]
+    public async Task ExportMarkdown_IsEnabled_WhenHasCells()
+    {
+        var action = new ExportMarkdownAction();
+        var context = CreateContext(cells: new[] { new CellModel() });
+
+        Assert.IsTrue(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public async Task ExportMarkdown_IsDisabled_WhenNoCells()
+    {
+        var action = new ExportMarkdownAction();
+        var context = CreateContext(cells: Array.Empty<CellModel>());
+
+        Assert.IsFalse(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public void ExportMarkdown_Metadata_IsCorrect()
+    {
+        var action = new ExportMarkdownAction();
+        Assert.AreEqual("verso.action.export-markdown", action.ActionId);
+        Assert.AreEqual(ToolbarPlacement.MainToolbar, action.Placement);
+        Assert.AreEqual(65, action.Order);
+    }
+
+    [TestMethod]
+    public async Task ExportMarkdown_Execute_CallsRequestFileDownload()
+    {
+        var action = new ExportMarkdownAction();
+        var context = CreateContext(cells: new[] { new CellModel { Type = "code", Source = "x" } });
+
+        await action.ExecuteAsync(context);
+
+        Assert.AreEqual(1, context.DownloadedFiles.Count);
+        Assert.IsTrue(context.DownloadedFiles[0].FileName.EndsWith(".md"));
+        Assert.AreEqual("text/markdown", context.DownloadedFiles[0].ContentType);
+        Assert.IsTrue(context.DownloadedFiles[0].Data.Length > 0);
+    }
+
     // --- Helper ---
 
     private static StubToolbarActionContext CreateContext(

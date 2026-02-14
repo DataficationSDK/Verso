@@ -46,4 +46,16 @@ public interface IVersoContext
     /// Gets the notebook operations interface for executing cells, managing outputs, and mutating the cell collection.
     /// </summary>
     INotebookOperations Notebook { get; }
+
+    /// <summary>
+    /// Requests that the host deliver a file download to the user.
+    /// </summary>
+    /// <param name="fileName">The suggested file name for the download.</param>
+    /// <param name="contentType">The MIME content type of the file.</param>
+    /// <param name="data">The file contents as a byte array.</param>
+    /// <returns>A task that completes when the download has been initiated.</returns>
+    Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data)
+    {
+        throw new NotSupportedException("File download is not supported by this host.");
+    }
 }

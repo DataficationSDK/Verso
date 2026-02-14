@@ -91,6 +91,10 @@
             {
                 <div class="verso-sidebar">
                     <div class="verso-sidebar-tabs">
+                        <button class="verso-sidebar-tab @(_sidebarTab == "metadata" ? "verso-sidebar-tab--active" : "")"
+                                @onclick='() => _sidebarTab = "metadata"'>
+                            Metadata
+                        </button>
                         <button class="verso-sidebar-tab @(_sidebarTab == "extensions" ? "verso-sidebar-tab--active" : "")"
                                 @onclick='() => _sidebarTab = "extensions"'>
                             Extensions
@@ -101,7 +105,11 @@
                         </button>
                     </div>
 
-                    @if (_sidebarTab == "extensions")
+                    @if (_sidebarTab == "metadata")
+                    {
+                        <MetadataPanel Service="Service" />
+                    }
+                    else if (_sidebarTab == "extensions")
                     {
                         <ExtensionPanel Service="Service" />
                     }
@@ -122,7 +130,7 @@
     private string? _statusMessage;
     private CancellationTokenSource? _statusCts;
     private bool _sidebarOpen;
-    private string _sidebarTab = "extensions";
+    private string _sidebarTab = "metadata";
 
     private bool ShouldCollapseInput(CellModel cell)
     {

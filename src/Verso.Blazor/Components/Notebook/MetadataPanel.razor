@@ -1,0 +1,66 @@
+<div class="verso-sidebar-panel">
+    @if (Service?.Scaffold is not null)
+    {
+        <div class="verso-metadata-field">
+            <label class="verso-metadata-label">Title</label>
+            <input class="verso-metadata-input"
+                   type="text"
+                   value="@Service.Scaffold.Title"
+                   @onchange="HandleTitleChanged"
+                   placeholder="Untitled" />
+        </div>
+
+        <div class="verso-metadata-field">
+            <label class="verso-metadata-label">Default Kernel</label>
+            <select class="verso-metadata-select"
+                    value="@Service.Scaffold.DefaultKernelId"
+                    @onchange="HandleKernelChanged">
+                @foreach (var lang in Service.Scaffold.RegisteredLanguages)
+                {
+                    <option value="@lang">@lang</option>
+                }
+            </select>
+        </div>
+
+        <hr class="verso-metadata-separator" />
+
+        <div class="verso-metadata-field">
+            <span class="verso-metadata-label">File Path</span>
+            <span class="verso-metadata-value">@(Service.FilePath ?? "(unsaved)")</span>
+        </div>
+
+        <div class="verso-metadata-field">
+            <span class="verso-metadata-label">Created</span>
+            <span class="verso-metadata-value">@FormatDate(Service.Scaffold.Notebook.Created)</span>
+        </div>
+
+        <div class="verso-metadata-field">
+            <span class="verso-metadata-label">Modified</span>
+            <span class="verso-metadata-value">@FormatDate(Service.Scaffold.Notebook.Modified)</span>
+        </div>
+
+        <div class="verso-metadata-field">
+            <span class="verso-metadata-label">Format Version</span>
+            <span class="verso-metadata-value">@Service.Scaffold.Notebook.FormatVersion</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public NotebookService Service { get; set; } = default!;
+
+    private void HandleTitleChanged(ChangeEventArgs e)
+    {
+        if (Service?.Scaffold is not null)
+            Service.Scaffold.Title = e.Value?.ToString();
+    }
+
+    private void HandleKernelChanged(ChangeEventArgs e)
+    {
+        if (Service?.Scaffold is not null)
+            Service.Scaffold.DefaultKernelId = e.Value?.ToString();
+    }
+
+    private static string FormatDate(DateTimeOffset? date)
+        => date?.ToString("yyyy-MM-dd HH:mm") ?? "\u2014";
+}

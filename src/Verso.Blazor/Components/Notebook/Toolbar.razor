@@ -1,4 +1,5 @@
 @using Verso.Extensions
+@using Microsoft.JSInterop
 
 <div class="verso-toolbar">
     <div class="verso-toolbar-group">
@@ -109,6 +110,35 @@
         </div>
     }
 
+    @if (_exportActions.Count > 0)
+    {
+        <div class="verso-toolbar-separator"></div>
+
+        <div class="verso-toolbar-dropdown" @onfocusout="OnExportDropdownFocusOut" tabindex="-1">
+            <button class="verso-toolbar-btn"
+                    disabled="@(!Service.IsLoaded || _exportActions.Count == 0)"
+                    title="Export Notebook"
+                    @onclick="ToggleExportDropdown">
+                Export &#9662;
+            </button>
+            @if (_showExportDropdown)
+            {
+                <div class="verso-toolbar-dropdown-popup">
+                    @foreach (var action in _exportActions)
+                    {
+                        var a = action;
+                        var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
+                        <button class="verso-toolbar-btn"
+                                disabled="@(!isEnabled)"
+                                @onclick="() => ExecuteExportAsync(a)">
+                            @a.DisplayName
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+
     <div class="verso-toolbar-separator"></div>
 
     <button class="verso-toolbar-btn" @onclick="OnToggleSidebar" disabled="@(!Service.IsLoaded)" title="Toggle Panels">
@@ -128,8 +158,11 @@
     [Parameter] public EventCallback<string> OnError { get; set; }
     [Parameter] public EventCallback OnToggleSidebar { get; set; }
 
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
     private List<IToolbarAction> _mainToolbarActions = new();
     private List<IToolbarAction> _filteredToolbarActions = new();
+    private List<IToolbarAction> _exportActions = new();
     private Dictionary<string, bool> _enabledStates = new();
     private List<Verso.Abstractions.ILayoutEngine> _availableLayouts = new();
     private string? _activeLayoutId;
@@ -139,11 +172,20 @@
     private string _openFilePath = "";
     private bool _showLayoutDropdown;
     private bool _showThemeDropdown;
+    private bool _showExportDropdown;
 
     private static readonly HashSet<string> _excludedActionIds = new(StringComparer.OrdinalIgnoreCase)
     {
         "verso.switchLayout",
-        "verso.switchTheme"
+        "verso.switchTheme",
+        "verso.action.export-html",
+        "verso.action.export-markdown"
+    };
+
+    private static readonly HashSet<string> _exportActionIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "verso.action.export-html",
+        "verso.action.export-markdown"
     };
 
     private string ActiveLayoutName =>
@@ -163,6 +205,10 @@
 
             _filteredToolbarActions = _mainToolbarActions
                 .Where(a => !_excludedActionIds.Contains(a.ActionId))
+                .ToList();
+
+            _exportActions = _mainToolbarActions
+                .Where(a => _exportActionIds.Contains(a.ActionId))
                 .ToList();
 
             _availableLayouts = Service.ExtensionHost?.GetLayouts()?.ToList()
@@ -206,7 +252,7 @@
             ? new List<Guid> { SelectedCellId.Value }
             : new List<Guid>();
 
-        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds);
+        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds, JSRuntime);
 
         foreach (var action in _mainToolbarActions)
         {
@@ -222,7 +268,7 @@
             ? new List<Guid> { SelectedCellId.Value }
             : new List<Guid>();
 
-        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds);
+        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds, JSRuntime);
 
         try
         {
@@ -289,12 +335,29 @@
     {
         _showLayoutDropdown = !_showLayoutDropdown;
         _showThemeDropdown = false;
+        _showExportDropdown = false;
     }
 
     private void ToggleThemeDropdown()
     {
         _showThemeDropdown = !_showThemeDropdown;
         _showLayoutDropdown = false;
+        _showExportDropdown = false;
+    }
+
+    private void ToggleExportDropdown()
+    {
+        _showExportDropdown = !_showExportDropdown;
+        _showLayoutDropdown = false;
+        _showThemeDropdown = false;
+    }
+
+    private void OnExportDropdownFocusOut() => _showExportDropdown = false;
+
+    private async Task ExecuteExportAsync(IToolbarAction action)
+    {
+        _showExportDropdown = false;
+        await ExecuteActionAsync(action);
     }
 
     private async Task SelectLayout(string layoutId)
