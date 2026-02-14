@@ -30,22 +30,30 @@
     "commands": [
       {
         "command": "verso.runAll",
-        "title": "Verso: Run All Cells",
+        "title": "Run All Cells",
+        "shortTitle": "Run All",
+        "category": "Verso",
         "icon": "$(run-all)"
       },
       {
         "command": "verso.runCell",
-        "title": "Verso: Run Cell",
+        "title": "Run Cell",
+        "shortTitle": "Run",
+        "category": "Verso",
         "icon": "$(run)"
       },
       {
         "command": "verso.clearOutputs",
-        "title": "Verso: Clear All Outputs",
+        "title": "Clear All Outputs",
+        "shortTitle": "Clear Outputs",
+        "category": "Verso",
         "icon": "$(clear-all)"
       },
       {
         "command": "verso.restartKernel",
-        "title": "Verso: Restart Kernel",
+        "title": "Restart Kernel",
+        "shortTitle": "Restart",
+        "category": "Verso",
         "icon": "$(debug-restart)"
       }
     ],

@@ -46,6 +46,9 @@ export function registerToolbarActions(
         return;
       }
       await host.sendRequest("kernel/restart");
+      controller.resetNotebookState();
+      // Re-open the notebook so it's ready for the next execution
+      await controller.ensureNotebookOpen(notebook);
       vscode.window.showInformationMessage("Verso kernel restarted.");
     })
   );
