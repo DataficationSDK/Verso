@@ -190,6 +190,29 @@ public sealed class NotebookService : IAsyncDisposable
         return !hasRenderer;
     }
 
+    /// <summary>Insert a new cell at the specified index.</summary>
+    public CellModel InsertCell(int index, string type = "code", string? language = null)
+    {
+        if (_scaffold is null)
+            throw new InvalidOperationException("No notebook is loaded.");
+
+        var effectiveLanguage = language;
+        if (effectiveLanguage is null)
+        {
+            var cellType = _extensionHost?.GetCellTypes()
+                .FirstOrDefault(t => string.Equals(t.CellTypeId, type, StringComparison.OrdinalIgnoreCase));
+
+            if (cellType is not null)
+                effectiveLanguage = cellType.Kernel?.LanguageId;
+            else if (HasKernelOrNoRenderer(type))
+                effectiveLanguage = _scaffold.DefaultKernelId ?? "csharp";
+        }
+
+        var cell = _scaffold.InsertCell(index, type, effectiveLanguage);
+        OnNotebookChanged?.Invoke();
+        return cell;
+    }
+
     /// <summary>Remove a cell by ID.</summary>
     public bool RemoveCell(Guid cellId)
     {

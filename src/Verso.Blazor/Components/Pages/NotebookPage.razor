@@ -76,6 +76,17 @@
                                       OnMoveDown="HandleMoveDown"
                                       OnSourceChanged="HandleSourceChanged" />
                             </div>
+
+                            @if (index < cells.Count - 1)
+                            {
+                                var insertIndex = index + 1;
+                                <div class="verso-insert-cell-row @(cell.Id == _selectedCellId ? "verso-insert-cell-row--visible" : "")">
+                                    <div class="verso-insert-cell-line"></div>
+                                    <button class="verso-insert-cell-btn" @onclick='() => HandleInsertCell(insertIndex, "code")'>+ Code</button>
+                                    <button class="verso-insert-cell-btn" @onclick='() => HandleInsertCell(insertIndex, "markdown")'>+ Markdown</button>
+                                    <div class="verso-insert-cell-line"></div>
+                                </div>
+                            }
                         }
 
                         <div class="verso-add-cell-row">
@@ -340,6 +351,14 @@
             StateHasChanged();
         }
         catch (TaskCanceledException) { }
+    }
+
+    private Task HandleInsertCell(int index, string type)
+    {
+        var language = type == "markdown" ? null : "csharp";
+        var cell = Service.InsertCell(index, type, language);
+        _selectedCellId = cell.Id;
+        return Task.CompletedTask;
     }
 
     private Task HandleAddCell(string type)

@@ -656,6 +656,76 @@ html, body {
     background: var(--verso-cell-hover-background, #F8F8F8);
 }
 
+/* === Inline Insert Cell Row === */
+
+.verso-insert-cell-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 2px 0;
+    height: 0;
+    overflow: visible;
+    position: relative;
+    transition: height 0.15s;
+}
+
+/* Transparent hover-target zone spanning the gap between cells */
+.verso-insert-cell-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 16px;
+    top: -8px;
+}
+
+/* Children hidden by default */
+.verso-insert-cell-row .verso-insert-cell-line,
+.verso-insert-cell-row .verso-insert-cell-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+
+/* Expand and reveal on hover or when selected cell is above */
+.verso-insert-cell-row:hover,
+.verso-insert-cell-row--visible {
+    height: 32px;
+}
+
+.verso-insert-cell-row:hover .verso-insert-cell-line,
+.verso-insert-cell-row:hover .verso-insert-cell-btn,
+.verso-insert-cell-row--visible .verso-insert-cell-line,
+.verso-insert-cell-row--visible .verso-insert-cell-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.verso-insert-cell-line {
+    flex: 1;
+    height: 1px;
+    background: var(--verso-border-default, #E0E0E0);
+}
+
+.verso-insert-cell-btn {
+    padding: 2px 12px;
+    border: 1px dashed var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-line-number, #858585);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.verso-insert-cell-btn:hover {
+    border-color: var(--verso-accent-primary, #0078D4);
+    color: var(--verso-accent-primary, #0078D4);
+    background: var(--verso-cell-hover-background, #F8F8F8);
+}
+
 /* === Spinner === */
 
 .verso-spinner {
