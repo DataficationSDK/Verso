@@ -91,6 +91,10 @@ public sealed class NotebookService : IAsyncDisposable
     {
         if (_scaffold is null) return;
 
+        // Flush layout metadata (grid positions, etc.) into the notebook model
+        if (_scaffold.LayoutManager is { } lm)
+            await lm.SaveMetadataAsync(_scaffold.Notebook);
+
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
         var serializer = new VersoSerializer();
         var json = await serializer.SerializeAsync(_scaffold.Notebook);
