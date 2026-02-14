@@ -1,0 +1,127 @@
+@using Verso.Extensions
+
+<div class="verso-toolbar">
+    <div class="verso-toolbar-group">
+        <button class="verso-toolbar-btn" @onclick="OnNew" title="New Notebook">New</button>
+        <button class="verso-toolbar-btn" @onclick="OnOpenClick" title="Open File">Open</button>
+        <button class="verso-toolbar-btn" @onclick="OnSave" disabled="@(!Service.IsLoaded)" title="Save">Save</button>
+    </div>
+
+    @if (_showOpenInput)
+    {
+        <div class="verso-toolbar-group">
+            <input class="verso-toolbar-input" @bind="_openFilePath" placeholder="File path..." @onkeydown="OnOpenKeyDown" />
+            <button class="verso-toolbar-btn" @onclick="OnOpenFile">Go</button>
+            <button class="verso-toolbar-btn" @onclick="() => _showOpenInput = false">Cancel</button>
+        </div>
+    }
+
+    <div class="verso-toolbar-separator"></div>
+
+    @foreach (var action in _mainToolbarActions)
+    {
+        var a = action;
+        var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
+        <button class="verso-toolbar-btn"
+                disabled="@(!isEnabled)"
+                title="@a.DisplayName"
+                @onclick="() => ExecuteActionAsync(a)">
+            @a.DisplayName
+        </button>
+    }
+
+    <div class="verso-toolbar-separator"></div>
+
+    <div class="verso-toolbar-group">
+        <button class="verso-toolbar-btn" @onclick="OnAddCodeCell" disabled="@(!Service.IsLoaded)" title="Add Code Cell">+ Code</button>
+        <button class="verso-toolbar-btn" @onclick="OnAddMarkdownCell" disabled="@(!Service.IsLoaded)" title="Add Markdown Cell">+ Markdown</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public NotebookService Service { get; set; } = default!;
+    [Parameter] public Guid? SelectedCellId { get; set; }
+    [Parameter] public EventCallback OnNewNotebook { get; set; }
+    [Parameter] public EventCallback<string> OnOpenNotebook { get; set; }
+    [Parameter] public EventCallback OnSaveNotebook { get; set; }
+    [Parameter] public EventCallback<string> OnAddCell { get; set; }
+    [Parameter] public EventCallback OnActionExecuted { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+
+    private List<IToolbarAction> _mainToolbarActions = new();
+    private Dictionary<string, bool> _enabledStates = new();
+    private bool _showOpenInput;
+    private string _openFilePath = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Service.ExtensionHost is not null)
+        {
+            _mainToolbarActions = Service.ExtensionHost.GetToolbarActions()
+                .Where(a => a.Placement == ToolbarPlacement.MainToolbar)
+                .OrderBy(a => a.Order)
+                .ToList();
+
+            await RefreshEnabledStatesAsync();
+        }
+    }
+
+    private async Task RefreshEnabledStatesAsync()
+    {
+        if (Service.Scaffold is null) return;
+
+        var selectedIds = SelectedCellId.HasValue
+            ? new List<Guid> { SelectedCellId.Value }
+            : new List<Guid>();
+
+        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds);
+
+        foreach (var action in _mainToolbarActions)
+        {
+            _enabledStates[action.ActionId] = await action.IsEnabledAsync(context);
+        }
+    }
+
+    private async Task ExecuteActionAsync(IToolbarAction action)
+    {
+        if (Service.Scaffold is null) return;
+
+        var selectedIds = SelectedCellId.HasValue
+            ? new List<Guid> { SelectedCellId.Value }
+            : new List<Guid>();
+
+        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds);
+
+        try
+        {
+            await action.ExecuteAsync(context);
+            await OnActionExecuted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync($"{action.DisplayName} failed: {ex.Message}");
+        }
+    }
+
+    private async Task OnNew() => await OnNewNotebook.InvokeAsync();
+    private void OnOpenClick() => _showOpenInput = !_showOpenInput;
+
+    private async Task OnOpenKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await OnOpenFile();
+    }
+
+    private async Task OnOpenFile()
+    {
+        if (!string.IsNullOrWhiteSpace(_openFilePath))
+        {
+            await OnOpenNotebook.InvokeAsync(_openFilePath.Trim());
+            _showOpenInput = false;
+            _openFilePath = "";
+        }
+    }
+
+    private async Task OnSave() => await OnSaveNotebook.InvokeAsync();
+    private async Task OnAddCodeCell() => await OnAddCell.InvokeAsync("code");
+    private async Task OnAddMarkdownCell() => await OnAddCell.InvokeAsync("markdown");
+}

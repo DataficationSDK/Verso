@@ -5,8 +5,11 @@ using Verso.Contexts;
 namespace Verso.Execution;
 
 /// <summary>
-/// Encapsulates the single-cell execution workflow: resolve kernel, build context,
-/// execute, capture outputs, handle errors.
+/// Encapsulates the single-cell execution workflow. Per specification §5.3, execution is routed
+/// based on the cell type: if a matching <see cref="ICellType"/> has a non-null <see cref="ICellType.Kernel"/>,
+/// the cell is executed via that kernel; otherwise it is rendered via an <see cref="ICellRenderer"/>.
+/// Cells with no matching cell type fall back to kernel resolution by language, and then to renderer
+/// resolution by cell type string.
 /// </summary>
 internal sealed class ExecutionPipeline
 {
@@ -53,63 +56,58 @@ internal sealed class ExecutionPipeline
 
         try
         {
-            var languageId = _resolveLanguageId(cellId);
-            if (string.IsNullOrEmpty(languageId))
-                throw new InvalidOperationException(
-                    $"No language specified for cell {cellId} and no default kernel is configured.");
+            // §5.3: Check ICellType registry first — cell types declare whether they have a kernel.
+            var cellType = _extensionHost.GetCellTypes()
+                .FirstOrDefault(t => string.Equals(t.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
 
-            var kernel = _resolveKernel(languageId)
-                ?? throw new InvalidOperationException(
-                    $"No kernel registered for language '{languageId}'.");
-
-            await _ensureInitialized(kernel).ConfigureAwait(false);
-
-            cell.Outputs.Clear();
-
-            var outputLock = new object();
-            var streamedOutputs = new HashSet<CellOutput>(ReferenceEqualityComparer.Instance);
-
-            Task AppendOutput(CellOutput output)
+            if (cellType is not null)
             {
-                lock (outputLock)
+                if (cellType.Kernel is not null)
                 {
-                    cell.Outputs.Add(output);
-                    streamedOutputs.Add(output);
+                    // Cell type has a kernel — execute via that kernel.
+                    return await ExecuteWithKernelAsync(cell, cellType.Kernel, ct, stopwatch, executionCount)
+                        .ConfigureAwait(false);
                 }
-                return Task.CompletedTask;
+
+                // Cell type has no kernel — render only via its renderer.
+                return await RenderCellAsync(cell, cellType.Renderer, ct, stopwatch, executionCount)
+                    .ConfigureAwait(false);
             }
 
-            var context = new Contexts.ExecutionContext(
-                cellId,
-                executionCount,
-                _variables,
-                ct,
-                _theme,
-                _layoutCapabilities,
-                _extensionHost,
-                _notebookMetadata,
-                _notebook,
-                writeOutput: AppendOutput,
-                display: AppendOutput);
-
-            ct.ThrowIfCancellationRequested();
-
-            var returnedOutputs = await kernel.ExecuteAsync(cell.Source, context).ConfigureAwait(false);
-
-            if (returnedOutputs is { Count: > 0 })
+            // No ICellType match — use the cell's own Language and Type to decide.
+            // Try kernel only if the cell has an explicit language set.
+            if (!string.IsNullOrEmpty(cell.Language))
             {
-                lock (outputLock)
+                var kernel = _resolveKernel(cell.Language);
+                if (kernel is not null)
                 {
-                    foreach (var output in returnedOutputs)
-                    {
-                        if (!streamedOutputs.Contains(output))
-                            cell.Outputs.Add(output);
-                    }
+                    return await ExecuteWithKernelAsync(cell, kernel, ct, stopwatch, executionCount)
+                        .ConfigureAwait(false);
                 }
             }
 
-            stopwatch.Stop();
-            return ExecutionResult.Success(cellId, executionCount, stopwatch.Elapsed);
+            // Try to find a renderer matching the cell type string.
+            var renderer = _extensionHost.GetRenderers()
+                .FirstOrDefault(r => string.Equals(r.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+
+            if (renderer is not null)
+            {
+                return await RenderCellAsync(cell, renderer, ct, stopwatch, executionCount)
+                    .ConfigureAwait(false);
+            }
+
+            // Last resort: try the notebook's default kernel.
+            var defaultLanguageId = _resolveLanguageId(cellId);
+            var defaultKernel = !string.IsNullOrEmpty(defaultLanguageId) ? _resolveKernel(defaultLanguageId) : null;
+
+            if (defaultKernel is not null)
+            {
+                return await ExecuteWithKernelAsync(cell, defaultKernel, ct, stopwatch, executionCount)
+                    .ConfigureAwait(false);
+            }
+
+            throw new InvalidOperationException(
+                $"No kernel or renderer found for cell {cellId} (type='{cell.Type}', language='{cell.Language}').");
         }
         catch (OperationCanceledException)
         {
@@ -130,5 +128,85 @@ internal sealed class ExecutionPipeline
             }
             return ExecutionResult.Failed(cellId, executionCount, stopwatch.Elapsed, ex);
         }
+    }
+
+    private async Task<ExecutionResult> ExecuteWithKernelAsync(
+        CellModel cell, ILanguageKernel kernel, CancellationToken ct,
+        Stopwatch stopwatch, int executionCount)
+    {
+        await _ensureInitialized(kernel).ConfigureAwait(false);
+
+        cell.Outputs.Clear();
+
+        var outputLock = new object();
+        var streamedOutputs = new HashSet<CellOutput>(ReferenceEqualityComparer.Instance);
+
+        Task AppendOutput(CellOutput output)
+        {
+            lock (outputLock)
+            {
+                cell.Outputs.Add(output);
+                streamedOutputs.Add(output);
+            }
+            return Task.CompletedTask;
+        }
+
+        var context = new Contexts.ExecutionContext(
+            cell.Id,
+            executionCount,
+            _variables,
+            ct,
+            _theme,
+            _layoutCapabilities,
+            _extensionHost,
+            _notebookMetadata,
+            _notebook,
+            writeOutput: AppendOutput,
+            display: AppendOutput);
+
+        ct.ThrowIfCancellationRequested();
+
+        var returnedOutputs = await kernel.ExecuteAsync(cell.Source, context).ConfigureAwait(false);
+
+        if (returnedOutputs is { Count: > 0 })
+        {
+            lock (outputLock)
+            {
+                foreach (var output in returnedOutputs)
+                {
+                    if (!streamedOutputs.Contains(output))
+                        cell.Outputs.Add(output);
+                }
+            }
+        }
+
+        stopwatch.Stop();
+        return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
+    }
+
+    private async Task<ExecutionResult> RenderCellAsync(
+        CellModel cell, ICellRenderer renderer, CancellationToken ct,
+        Stopwatch stopwatch, int executionCount)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        cell.Outputs.Clear();
+
+        var renderContext = new CellRenderContext(
+            cell.Id,
+            cell.Metadata,
+            _variables,
+            ct,
+            _theme,
+            _layoutCapabilities,
+            _extensionHost,
+            _notebookMetadata,
+            _notebook);
+
+        var result = await renderer.RenderInputAsync(cell.Source, renderContext).ConfigureAwait(false);
+        cell.Outputs.Add(new CellOutput(result.MimeType, result.Content));
+
+        stopwatch.Stop();
+        return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
     }
 }

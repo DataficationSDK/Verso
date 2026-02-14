@@ -1,0 +1,88 @@
+<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "")">
+    <div class="verso-cell-gutter">
+        <span class="verso-cell-index">[@(Index + 1)]</span>
+    </div>
+
+    <div class="verso-cell-content">
+        <div class="verso-cell-toolbar">
+            <span class="verso-cell-type-badge">@CellData.Type</span>
+            @if (CellData.Type == "code" && CellData.Language is not null)
+            {
+                <span class="verso-cell-language">@CellData.Language</span>
+            }
+            <div class="verso-cell-toolbar-actions">
+                @if (Index > 0)
+                {
+                    <button class="verso-cell-btn" @onclick="() => OnMoveUp.InvokeAsync(CellData.Id)" title="Move Up">&#x25B2;</button>
+                }
+                @if (!IsLast)
+                {
+                    <button class="verso-cell-btn" @onclick="() => OnMoveDown.InvokeAsync(CellData.Id)" title="Move Down">&#x25BC;</button>
+                }
+                <button class="verso-cell-btn verso-cell-btn--run" @onclick="() => OnRunCell.InvokeAsync(CellData.Id)" title="Run" disabled="@IsExecuting">
+                    @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
+                </button>
+                <button class="verso-cell-btn verso-cell-btn--delete" @onclick="() => OnDeleteCell.InvokeAsync(CellData.Id)" title="Delete">&#x2715;</button>
+            </div>
+        </div>
+
+        <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
+            <MonacoEditor Value="@CellData.Source"
+                          Language="@EditorLanguage"
+                          OnValueChanged="HandleSourceChanged" />
+        </div>
+
+        @if (CellData.Outputs.Count > 0)
+        {
+            <div class="verso-cell-outputs">
+                @foreach (var output in CellData.Outputs)
+                {
+                    @if (output.IsError)
+                    {
+                        <div class="verso-output verso-output--error">
+                            <div class="verso-output-error-name">@(output.ErrorName ?? "Error")</div>
+                            <pre class="verso-output-error-content">@output.Content</pre>
+                            @if (output.ErrorStackTrace is not null)
+                            {
+                                <pre class="verso-output-error-stack">@output.ErrorStackTrace</pre>
+                            }
+                        </div>
+                    }
+                    else if (output.MimeType == "text/html")
+                    {
+                        <div class="verso-output verso-output--html">
+                            @((MarkupString)output.Content)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="verso-output verso-output--text">
+                            <pre>@output.Content</pre>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public CellModel CellData { get; set; } = default!;
+    [Parameter] public bool IsSelected { get; set; }
+    [Parameter] public bool IsExecuting { get; set; }
+    [Parameter] public int Index { get; set; }
+    [Parameter] public bool IsLast { get; set; }
+    [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
+    [Parameter] public EventCallback<Guid> OnDeleteCell { get; set; }
+    [Parameter] public EventCallback<Guid> OnSelect { get; set; }
+    [Parameter] public EventCallback<Guid> OnMoveUp { get; set; }
+    [Parameter] public EventCallback<Guid> OnMoveDown { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
+
+    private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
+
+    private async Task HandleSourceChanged(string newSource)
+    {
+        await OnSourceChanged.InvokeAsync((CellData.Id, newSource));
+    }
+}

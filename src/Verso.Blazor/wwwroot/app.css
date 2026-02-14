@@ -1,0 +1,441 @@
+/* Verso Blazor — Application Styles */
+
+/* === Reset & Base === */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    font-family: var(--verso-ui-font-family, 'Segoe UI', sans-serif);
+    font-size: var(--verso-ui-font-size, 13px);
+    font-weight: var(--verso-ui-font-weight, 400);
+    line-height: var(--verso-ui-font-line-height, 1.4);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    background: var(--verso-editor-background, #FFFFFF);
+}
+
+/* === App Shell === */
+
+.verso-app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.verso-notebook {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* === Toolbar === */
+
+.verso-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: var(--verso-toolbar-height, 40px);
+    min-height: var(--verso-toolbar-height, 40px);
+    padding: 0 var(--verso-content-margin-horizontal, 24px);
+    background: var(--verso-toolbar-background, #F3F3F3);
+    color: var(--verso-toolbar-foreground, #1E1E1E);
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    flex-shrink: 0;
+}
+
+.verso-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.verso-toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: var(--verso-toolbar-separator, #D4D4D4);
+    margin: 0 6px;
+}
+
+.verso-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-toolbar-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.verso-toolbar-btn:hover:not(:disabled) {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-toolbar-btn:disabled {
+    color: var(--verso-toolbar-disabled-foreground, #A0A0A0);
+    cursor: default;
+}
+
+.verso-toolbar-input {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    font-family: inherit;
+    font-size: 12px;
+    min-width: 280px;
+    outline: none;
+}
+
+.verso-toolbar-input:focus {
+    border-color: var(--verso-border-focused, #0078D4);
+}
+
+/* === Welcome Screen === */
+
+.verso-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    text-align: center;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-welcome h1 {
+    font-size: var(--verso-h1-font-size, 32px);
+    font-weight: var(--verso-h1-font-weight, 700);
+}
+
+.verso-welcome p {
+    font-size: var(--verso-prose-font-size, 16px);
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-welcome code {
+    font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
+    background: var(--verso-cell-output-background, #F5F5F5);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.verso-welcome-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.verso-welcome-btn:hover {
+    background: var(--verso-accent-secondary, #005A9E);
+}
+
+/* === Error Banner === */
+
+.verso-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px var(--verso-content-margin-horizontal, 24px);
+    background: var(--verso-cell-error-background, #FDE7E9);
+    color: var(--verso-cell-error-foreground, #A1260D);
+    font-size: 13px;
+    border-bottom: 1px solid var(--verso-status-error, #DC3545);
+}
+
+.verso-error-banner button {
+    margin-left: auto;
+    padding: 2px 10px;
+    border: 1px solid var(--verso-cell-error-foreground, #A1260D);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* === Cell List === */
+
+.verso-cell-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--verso-content-margin-vertical, 16px) var(--verso-content-margin-horizontal, 24px);
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* === Cell === */
+
+.verso-cell {
+    display: flex;
+    gap: 8px;
+    margin-bottom: var(--verso-cell-gap, 8px);
+    border: 1px solid var(--verso-cell-border, #E0E0E0);
+    border-radius: var(--verso-cell-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+    transition: border-color 0.15s;
+}
+
+.verso-cell:hover {
+    background: var(--verso-cell-hover-background, #F8F8F8);
+}
+
+.verso-cell--selected {
+    border-color: var(--verso-cell-active-border, #0078D4);
+    border-width: 2px;
+}
+
+.verso-cell--executing {
+    border-color: var(--verso-cell-running-indicator, #0078D4);
+}
+
+/* Cell gutter */
+
+.verso-cell-gutter {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 40px;
+    min-width: 40px;
+    padding-top: var(--verso-cell-padding, 12px);
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 11px;
+    font-family: var(--verso-editor-font-family, monospace);
+    user-select: none;
+}
+
+/* Cell content */
+
+.verso-cell-content {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Cell toolbar */
+
+.verso-cell-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px var(--verso-cell-padding, 12px) 0;
+    font-size: 11px;
+}
+
+.verso-cell-type-badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+.verso-cell-language {
+    color: var(--verso-accent-primary, #0078D4);
+    font-size: 11px;
+}
+
+.verso-cell-toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+}
+
+.verso-cell-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-line-number, #858585);
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.verso-cell-btn:hover:not(:disabled) {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-cell-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.verso-cell-btn--run {
+    color: var(--verso-status-success, #28A745);
+}
+
+.verso-cell-btn--delete {
+    color: var(--verso-status-error, #DC3545);
+}
+
+/* Cell editor container */
+
+.verso-cell-editor {
+    padding: 0 var(--verso-cell-padding, 12px);
+}
+
+.verso-monaco-editor {
+    min-height: 60px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: 2px;
+}
+
+/* === Cell Outputs === */
+
+.verso-cell-outputs {
+    padding: var(--verso-output-padding, 8px) var(--verso-cell-padding, 12px) var(--verso-cell-padding, 12px);
+}
+
+.verso-output {
+    margin-top: 4px;
+    border-radius: 2px;
+}
+
+.verso-output--text {
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-cell-output-foreground, #1E1E1E);
+    padding: var(--verso-output-padding, 8px);
+}
+
+.verso-output--text pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--verso-code-output-font-family, 'Cascadia Mono', monospace);
+    font-size: var(--verso-code-output-font-size, 13px);
+    line-height: var(--verso-code-output-font-line-height, 1.4);
+}
+
+.verso-output--html {
+    padding: var(--verso-output-padding, 8px);
+    font-family: var(--verso-prose-font-family, Georgia, serif);
+    font-size: var(--verso-prose-font-size, 16px);
+    line-height: var(--verso-prose-font-line-height, 1.6);
+}
+
+.verso-output--error {
+    background: var(--verso-cell-error-background, #FDE7E9);
+    color: var(--verso-cell-error-foreground, #A1260D);
+    padding: var(--verso-output-padding, 8px);
+}
+
+.verso-output-error-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.verso-output-error-content {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--verso-code-output-font-family, 'Cascadia Mono', monospace);
+    font-size: var(--verso-code-output-font-size, 13px);
+}
+
+.verso-output-error-stack {
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--verso-code-output-font-family, 'Cascadia Mono', monospace);
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+/* === Add Cell Row === */
+
+.verso-add-cell-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 0;
+}
+
+.verso-add-cell-btn {
+    padding: 6px 16px;
+    border: 1px dashed var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-line-number, #858585);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.verso-add-cell-btn:hover {
+    border-color: var(--verso-accent-primary, #0078D4);
+    color: var(--verso-accent-primary, #0078D4);
+    background: var(--verso-cell-hover-background, #F8F8F8);
+}
+
+/* === Spinner === */
+
+.verso-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--verso-cell-running-indicator, #0078D4);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: verso-spin 0.6s linear infinite;
+}
+
+@keyframes verso-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* === Scrollbar === */
+
+::-webkit-scrollbar {
+    width: var(--verso-scrollbar-width, 10px);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--verso-scrollbar-track, #F1F1F1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--verso-scrollbar-thumb, #C1C1C1);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--verso-scrollbar-thumb-hover, #A8A8A8);
+}
+
+/* === Responsive === */
+
+@media (max-width: 768px) {
+    .verso-cell-list {
+        padding: 8px 12px;
+    }
+
+    .verso-toolbar {
+        padding: 0 12px;
+        overflow-x: auto;
+    }
+}

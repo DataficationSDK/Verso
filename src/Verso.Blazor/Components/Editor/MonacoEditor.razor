@@ -1,0 +1,68 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div id="@_elementId" class="verso-monaco-editor"></div>
+
+@code {
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string Language { get; set; } = "csharp";
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public EventCallback<string> OnValueChanged { get; set; }
+
+    private readonly string _elementId = $"monaco-{Guid.NewGuid():N}";
+    private DotNetObjectReference<MonacoEditor>? _dotnetRef;
+    private bool _initialized;
+    private string? _lastSetValue;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("versoMonaco.create", _elementId, new
+            {
+                value = Value,
+                language = Language,
+                readOnly = ReadOnly,
+                theme = "vs"
+            }, _dotnetRef);
+            _initialized = true;
+            _lastSetValue = Value;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_initialized) return;
+
+        if (Value != _lastSetValue)
+        {
+            _lastSetValue = Value;
+            await JS.InvokeVoidAsync("versoMonaco.setValue", _elementId, Value);
+        }
+
+        await JS.InvokeVoidAsync("versoMonaco.setLanguage", _elementId, Language);
+    }
+
+    [JSInvokable]
+    public async Task OnContentChanged(string newValue)
+    {
+        _lastSetValue = newValue;
+        await ValueChanged.InvokeAsync(newValue);
+        await OnValueChanged.InvokeAsync(newValue);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_initialized)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("versoMonaco.dispose", _elementId);
+            }
+            catch (JSDisconnectedException) { }
+        }
+        _dotnetRef?.Dispose();
+    }
+}

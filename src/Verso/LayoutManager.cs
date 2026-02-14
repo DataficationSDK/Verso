@@ -30,9 +30,14 @@ public sealed class LayoutManager
     public IReadOnlyList<ILayoutEngine> AvailableLayouts => _availableLayouts;
 
     /// <summary>
-    /// Gets the capabilities supported by the active layout, or <see cref="LayoutCapabilities.None"/> if no layout is active.
+    /// Gets the capabilities supported by the active layout.
+    /// When no layout is active, all capabilities are granted so that the notebook is fully functional.
     /// </summary>
-    public LayoutCapabilities Capabilities => _activeLayout?.Capabilities ?? LayoutCapabilities.None;
+    public LayoutCapabilities Capabilities => _activeLayout?.Capabilities ??
+        (LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
+         LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
+         LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute |
+         LayoutCapabilities.MultiSelect);
 
     /// <summary>
     /// Switches the active layout by layout ID.

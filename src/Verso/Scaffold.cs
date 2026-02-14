@@ -230,8 +230,8 @@ public sealed class Scaffold : IAsyncDisposable
         var id = kernelId ?? _notebook.DefaultKernelId
             ?? throw new InvalidOperationException("No kernel ID specified and no default kernel is configured.");
 
-        if (!_kernels.TryGetValue(id, out var kernel))
-            throw new InvalidOperationException($"No kernel registered for language '{id}'.");
+        var kernel = ResolveKernel(id)
+            ?? throw new InvalidOperationException($"No kernel registered for language '{id}'.");
 
         await kernel.DisposeAsync().ConfigureAwait(false);
         _initializedKernels.Remove(id);

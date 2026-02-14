@@ -1,0 +1,200 @@
+@page "/"
+@implements IDisposable
+@inject NotebookService Service
+
+<PageTitle>Verso Notebook</PageTitle>
+
+<ThemeProvider ThemeEngine="@Service.Scaffold?.ThemeEngine" />
+
+<div class="verso-notebook">
+    <Toolbar Service="Service"
+             SelectedCellId="_selectedCellId"
+             OnNewNotebook="HandleNew"
+             OnOpenNotebook="HandleOpen"
+             OnSaveNotebook="HandleSave"
+             OnAddCell="HandleAddCell"
+             OnActionExecuted="HandleActionExecuted"
+             OnError="HandleError" />
+
+    @if (_error is not null)
+    {
+        <div class="verso-error-banner">
+            <span>@_error</span>
+            <button @onclick="() => _error = null">Dismiss</button>
+        </div>
+    }
+
+    @if (!Service.IsLoaded)
+    {
+        <div class="verso-welcome">
+            <h1>Verso Notebook</h1>
+            <p>Create a new notebook or open an existing <code>.verso</code> file to get started.</p>
+            <button class="verso-welcome-btn" @onclick="HandleNew">New Notebook</button>
+        </div>
+    }
+    else
+    {
+        <div class="verso-cell-list">
+            @{ var cells = Service.Scaffold!.Cells; }
+            @for (int i = 0; i < cells.Count; i++)
+            {
+                var cell = cells[i];
+                var index = i;
+                <Cell CellData="cell"
+                      IsSelected="cell.Id == _selectedCellId"
+                      IsExecuting="cell.Id == _executingCellId"
+                      Index="index"
+                      IsLast="index == cells.Count - 1"
+                      OnRunCell="HandleRunCell"
+                      OnDeleteCell="HandleDeleteCell"
+                      OnSelect="HandleSelectCell"
+                      OnMoveUp="HandleMoveUp"
+                      OnMoveDown="HandleMoveDown"
+                      OnSourceChanged="HandleSourceChanged" />
+            }
+
+            <div class="verso-add-cell-row">
+                <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("code")'>+ Code Cell</button>
+                <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("markdown")'>+ Markdown Cell</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid? _selectedCellId;
+    private Guid? _executingCellId;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        Service.OnCellExecuted += StateHasChanged;
+        Service.OnNotebookChanged += StateHasChanged;
+    }
+
+    private async Task HandleNew()
+    {
+        try
+        {
+            _error = null;
+            await Service.NewNotebookAsync();
+            _selectedCellId = Service.Scaffold?.Cells.FirstOrDefault()?.Id;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to create notebook: {ex.Message}";
+        }
+    }
+
+    private async Task HandleOpen(string filePath)
+    {
+        try
+        {
+            _error = null;
+            await Service.OpenAsync(filePath);
+            _selectedCellId = Service.Scaffold?.Cells.FirstOrDefault()?.Id;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to open file: {ex.Message}";
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            _error = null;
+            var path = Service.FilePath ?? "notebook.verso";
+            await Service.SaveAsync(path);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to save: {ex.Message}";
+        }
+    }
+
+    private Task HandleAddCell(string type)
+    {
+        var language = type == "markdown" ? null : "csharp";
+        var cell = Service.AddCell(type, language);
+        _selectedCellId = cell.Id;
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleRunCell(Guid cellId)
+    {
+        _executingCellId = cellId;
+        StateHasChanged();
+
+        try
+        {
+            await Service.ExecuteCellAsync(cellId);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Execution error: {ex.Message}";
+        }
+        finally
+        {
+            _executingCellId = null;
+        }
+    }
+
+    private Task HandleDeleteCell(Guid cellId)
+    {
+        Service.RemoveCell(cellId);
+        if (_selectedCellId == cellId)
+            _selectedCellId = Service.Scaffold?.Cells.FirstOrDefault()?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSelectCell(Guid cellId)
+    {
+        _selectedCellId = cellId;
+        return Task.CompletedTask;
+    }
+
+    private Task HandleMoveUp(Guid cellId)
+    {
+        var cells = Service.Scaffold?.Cells;
+        if (cells is null) return Task.CompletedTask;
+        var index = cells.ToList().FindIndex(c => c.Id == cellId);
+        if (index > 0) Service.MoveCellAsync(index, index - 1);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleMoveDown(Guid cellId)
+    {
+        var cells = Service.Scaffold?.Cells;
+        if (cells is null) return Task.CompletedTask;
+        var cellList = cells.ToList();
+        var index = cellList.FindIndex(c => c.Id == cellId);
+        if (index >= 0 && index < cellList.Count - 1) Service.MoveCellAsync(index, index + 1);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSourceChanged((Guid CellId, string Source) args)
+    {
+        Service.UpdateCellSource(args.CellId, args.Source);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleActionExecuted()
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleError(string message)
+    {
+        _error = message;
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        Service.OnCellExecuted -= StateHasChanged;
+        Service.OnNotebookChanged -= StateHasChanged;
+    }
+}

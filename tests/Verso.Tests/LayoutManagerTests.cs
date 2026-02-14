@@ -43,10 +43,13 @@ public sealed class LayoutManagerTests
     }
 
     [TestMethod]
-    public void Capabilities_NoneWhenNoActiveLayout()
+    public void Capabilities_AllWhenNoActiveLayout()
     {
         var manager = new LayoutManager(new ILayoutEngine[] { new NotebookLayout() });
-        Assert.AreEqual(LayoutCapabilities.None, manager.Capabilities);
+        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellExecute));
+        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
+        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
     }
 
     [TestMethod]
@@ -78,17 +81,18 @@ public sealed class LayoutManagerTests
     }
 
     [TestMethod]
-    public void SwitchLayout_ChangesCapabilities()
+    public void SwitchLayout_UsesLayoutCapabilities()
     {
         var notebook = new NotebookLayout();
         var manager = new LayoutManager(new ILayoutEngine[] { notebook });
 
-        Assert.AreEqual(LayoutCapabilities.None, manager.Capabilities);
+        // Before setting active layout, all capabilities are granted
+        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellExecute));
 
         manager.SetActiveLayout("notebook");
 
-        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellExecute));
-        Assert.IsTrue(manager.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+        // After setting active layout, capabilities come from the layout
+        Assert.AreEqual(notebook.Capabilities, manager.Capabilities);
     }
 
     [TestMethod]
