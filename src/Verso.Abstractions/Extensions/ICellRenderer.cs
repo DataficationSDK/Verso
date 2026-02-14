@@ -38,4 +38,11 @@ public interface ICellRenderer : IExtension
     /// </summary>
     /// <returns>An editor language identifier, or <c>null</c>.</returns>
     string? GetEditorLanguage();
+
+    /// <summary>
+    /// Indicates whether the cell's input editor should be collapsed (hidden) after
+    /// execution, showing only the rendered output. Clicking the output re-selects the
+    /// cell and reveals the editor. Defaults to <c>false</c>.
+    /// </summary>
+    bool CollapsesInputOnExecute => false;
 }

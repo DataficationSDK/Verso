@@ -25,6 +25,7 @@ public sealed class MarkdownRenderer : ICellRenderer
 
     public string CellTypeId => "markdown";
     public string DisplayName => "Markdown";
+    public bool CollapsesInputOnExecute => true;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

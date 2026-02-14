@@ -10,7 +10,7 @@
     @if (_showOpenInput)
     {
         <div class="verso-toolbar-group">
-            <input class="verso-toolbar-input" @bind="_openFilePath" placeholder="File path or URL..." @onkeydown="OnOpenKeyDown" />
+            <input class="verso-toolbar-input" @bind="_openFilePath" @bind:event="oninput" placeholder="File path or URL..." @onkeydown="OnOpenKeyDown" />
             <button class="verso-toolbar-btn" @onclick="OnOpenFile">Go</button>
             <label class="verso-toolbar-btn verso-toolbar-btn--browse">
                 Browse
@@ -124,7 +124,7 @@
     [Parameter] public EventCallback<(string FileName, string Content)> OnBrowseNotebook { get; set; }
     [Parameter] public EventCallback OnSaveNotebook { get; set; }
     [Parameter] public EventCallback<string> OnAddCell { get; set; }
-    [Parameter] public EventCallback OnActionExecuted { get; set; }
+    [Parameter] public EventCallback<string> OnActionExecuted { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
     [Parameter] public EventCallback OnToggleSidebar { get; set; }
 
@@ -227,7 +227,7 @@
         try
         {
             await action.ExecuteAsync(context);
-            await OnActionExecuted.InvokeAsync();
+            await OnActionExecuted.InvokeAsync(action.ActionId);
         }
         catch (Exception ex)
         {
@@ -258,7 +258,7 @@
         Service.SwitchLayout(layoutId);
         _activeLayoutId = layoutId;
         await RefreshEnabledStatesAsync();
-        await OnActionExecuted.InvokeAsync();
+        await OnActionExecuted.InvokeAsync("verso.switchLayout");
     }
 
     private async Task SwitchTheme(string themeId)
@@ -266,7 +266,7 @@
         Service.SwitchTheme(themeId);
         _activeThemeId = themeId;
         await RefreshEnabledStatesAsync();
-        await OnActionExecuted.InvokeAsync();
+        await OnActionExecuted.InvokeAsync("verso.switchTheme");
     }
 
     private async Task CycleLayout()

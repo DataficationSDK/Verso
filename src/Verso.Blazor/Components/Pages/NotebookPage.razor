@@ -7,7 +7,8 @@
 
 <ThemeProvider ThemeEngine="@Service.Scaffold?.ThemeEngine" />
 
-<div class="verso-notebook @(_sidebarOpen ? "verso-notebook--sidebar-open" : "")">
+<div class="verso-notebook @(_sidebarOpen ? "verso-notebook--sidebar-open" : "")"
+     tabindex="0" @onkeydown="HandleKeyDown">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
              OnNewNotebook="HandleNew"
@@ -56,23 +57,26 @@
                 }
                 else
                 {
-                    <div class="verso-cell-list">
+                    <div class="verso-cell-list" @onclick="HandleCellListClick">
                         @{ var cells = Service.Scaffold!.Cells; }
                         @for (int i = 0; i < cells.Count; i++)
                         {
                             var cell = cells[i];
                             var index = i;
-                            <Cell CellData="cell"
-                                  IsSelected="cell.Id == _selectedCellId"
-                                  IsExecuting="cell.Id == _executingCellId"
-                                  Index="index"
-                                  IsLast="index == cells.Count - 1"
-                                  OnRunCell="HandleRunCell"
-                                  OnDeleteCell="HandleDeleteCell"
-                                  OnSelect="HandleSelectCell"
-                                  OnMoveUp="HandleMoveUp"
-                                  OnMoveDown="HandleMoveDown"
-                                  OnSourceChanged="HandleSourceChanged" />
+                            <div @onclick:stopPropagation="true">
+                                <Cell CellData="cell"
+                                      IsSelected="cell.Id == _selectedCellId"
+                                      IsExecuting="cell.Id == _executingCellId"
+                                      Index="index"
+                                      IsLast="index == cells.Count - 1"
+                                      CollapsesInput="ShouldCollapseInput(cell)"
+                                      OnRunCell="HandleRunCell"
+                                      OnDeleteCell="HandleDeleteCell"
+                                      OnSelect="HandleSelectCell"
+                                      OnMoveUp="HandleMoveUp"
+                                      OnMoveDown="HandleMoveDown"
+                                      OnSourceChanged="HandleSourceChanged" />
+                            </div>
                         }
 
                         <div class="verso-add-cell-row">
@@ -119,6 +123,13 @@
     private CancellationTokenSource? _statusCts;
     private bool _sidebarOpen;
     private string _sidebarTab = "extensions";
+
+    private bool ShouldCollapseInput(CellModel cell)
+    {
+        var renderer = Service.ExtensionHost?.GetRenderers()
+            .FirstOrDefault(r => string.Equals(r.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+        return renderer?.CollapsesInputOnExecute ?? false;
+    }
 
     private bool IsDashboardLayout =>
         Service.Scaffold?.LayoutManager?.ActiveLayout?.RequiresCustomRenderer == true;
@@ -293,6 +304,17 @@
         return Task.CompletedTask;
     }
 
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            _selectedCellId = null;
+    }
+
+    private void HandleCellListClick()
+    {
+        _selectedCellId = null;
+    }
+
     private Task HandleMoveUp(Guid cellId)
     {
         var cells = Service.Scaffold?.Cells;
@@ -318,8 +340,11 @@
         return Task.CompletedTask;
     }
 
-    private Task HandleActionExecuted()
+    private Task HandleActionExecuted(string actionId)
     {
+        if (string.Equals(actionId, "verso.action.run-all", StringComparison.OrdinalIgnoreCase))
+            _selectedCellId = null;
+
         StateHasChanged();
         return Task.CompletedTask;
     }

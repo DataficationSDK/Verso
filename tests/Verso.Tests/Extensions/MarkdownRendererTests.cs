@@ -142,4 +142,8 @@ public sealed class MarkdownRendererTests
         Assert.AreEqual("text/plain", result.MimeType);
         Assert.AreEqual("hello world", result.Content);
     }
+
+    [TestMethod]
+    public void CollapsesInputOnExecute_IsTrue()
+        => Assert.IsTrue(_renderer.CollapsesInputOnExecute);
 }

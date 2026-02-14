@@ -76,4 +76,12 @@ public class InterfaceContractTests
         Assert.IsTrue(prop!.CanRead);
         Assert.IsTrue(prop.CanWrite, "SuppressExecution must have a setter");
     }
+
+    [TestMethod]
+    public void ICellRenderer_DefinesCollapsesInputOnExecute()
+    {
+        var prop = typeof(ICellRenderer).GetProperty(nameof(ICellRenderer.CollapsesInputOnExecute));
+        Assert.IsNotNull(prop, "ICellRenderer should define CollapsesInputOnExecute property");
+        Assert.AreEqual(typeof(bool), prop!.PropertyType);
+    }
 }

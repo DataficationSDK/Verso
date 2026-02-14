@@ -118,6 +118,7 @@ html, body {
 .verso-welcome h1 {
     font-size: var(--verso-h1-font-size, 32px);
     font-weight: var(--verso-h1-font-weight, 700);
+    outline: none;
 }
 
 .verso-welcome p {
@@ -224,6 +225,18 @@ html, body {
 
 .verso-cell--executing {
     border-color: var(--verso-cell-running-indicator, #0078D4);
+}
+
+/* Preview mode (collapsed input) */
+
+.verso-cell-outputs--clickable {
+    cursor: pointer;
+    border-radius: var(--verso-cell-border-radius, 4px);
+    transition: background-color 0.15s;
+}
+
+.verso-cell-outputs--clickable:hover {
+    background-color: var(--verso-cell-hover-background, #F8F8F8);
 }
 
 /* Cell gutter */

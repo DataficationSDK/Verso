@@ -25,6 +25,7 @@ public sealed class FakeCellRenderer : ICellRenderer
 
     public string CellTypeId => "fake";
     public string DisplayName => Name;
+    public bool CollapsesInputOnExecute => false;
 
     public int OnLoadedCallCount { get; private set; }
     public int OnUnloadedCallCount { get; private set; }

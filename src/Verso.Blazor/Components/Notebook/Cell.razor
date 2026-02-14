@@ -1,4 +1,4 @@
-<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "")">
+<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "")">
     <div class="verso-cell-gutter">
         <span class="verso-cell-index">[@(Index + 1)]</span>
     </div>
@@ -26,15 +26,19 @@
             </div>
         </div>
 
-        <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
-            <MonacoEditor Value="@CellData.Source"
-                          Language="@EditorLanguage"
-                          OnValueChanged="HandleSourceChanged" />
-        </div>
+        @if (!IsInPreviewMode)
+        {
+            <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
+                <MonacoEditor Value="@CellData.Source"
+                              Language="@EditorLanguage"
+                              OnValueChanged="HandleSourceChanged" />
+            </div>
+        }
 
         @if (CellData.Outputs.Count > 0)
         {
-            <div class="verso-cell-outputs">
+            <div class="verso-cell-outputs @(IsInPreviewMode ? "verso-cell-outputs--clickable" : "")"
+                 @onclick="HandleOutputClick">
                 @foreach (var output in CellData.Outputs)
                 {
                     @if (output.IsError)
@@ -78,11 +82,22 @@
     [Parameter] public EventCallback<Guid> OnMoveUp { get; set; }
     [Parameter] public EventCallback<Guid> OnMoveDown { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
+    [Parameter] public bool CollapsesInput { get; set; }
+
+    private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected;
 
     private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
 
     private async Task HandleSourceChanged(string newSource)
     {
         await OnSourceChanged.InvokeAsync((CellData.Id, newSource));
+    }
+
+    private async Task HandleOutputClick()
+    {
+        if (IsInPreviewMode)
+        {
+            await OnSelect.InvokeAsync(CellData.Id);
+        }
     }
 }

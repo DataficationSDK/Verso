@@ -127,16 +127,6 @@
     "menus": {
       "notebook/toolbar": [
         {
-          "command": "verso.runAll",
-          "group": "navigation@1",
-          "when": "notebookType == verso-notebook"
-        },
-        {
-          "command": "verso.clearOutputs",
-          "group": "navigation@2",
-          "when": "notebookType == verso-notebook"
-        },
-        {
           "command": "verso.restartKernel",
           "group": "navigation@3",
           "when": "notebookType == verso-notebook"
