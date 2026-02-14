@@ -108,6 +108,12 @@
             }
         </div>
     }
+
+    <div class="verso-toolbar-separator"></div>
+
+    <button class="verso-toolbar-btn" @onclick="OnToggleSidebar" disabled="@(!Service.IsLoaded)" title="Toggle Panels">
+        Panels
+    </button>
 </div>
 
 @code {
@@ -120,6 +126,7 @@
     [Parameter] public EventCallback<string> OnAddCell { get; set; }
     [Parameter] public EventCallback OnActionExecuted { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
+    [Parameter] public EventCallback OnToggleSidebar { get; set; }
 
     private List<IToolbarAction> _mainToolbarActions = new();
     private List<IToolbarAction> _filteredToolbarActions = new();
@@ -158,13 +165,34 @@
                 .Where(a => !_excludedActionIds.Contains(a.ActionId))
                 .ToList();
 
-            _availableLayouts = Service.Scaffold?.LayoutManager?.AvailableLayouts?.ToList()
+            _availableLayouts = Service.ExtensionHost?.GetLayouts()?.ToList()
                 ?? new List<Verso.Abstractions.ILayoutEngine>();
             _activeLayoutId = Service.Scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
 
-            _availableThemes = Service.Scaffold?.ThemeEngine?.AvailableThemes?.ToList()
+            _availableThemes = Service.ExtensionHost?.GetThemes()?.ToList()
                 ?? new List<Verso.Abstractions.ITheme>();
             _activeThemeId = Service.Scaffold?.ThemeEngine?.ActiveTheme?.ThemeId;
+
+            // If the active layout/theme was disabled, fall back to first available
+            if (_activeLayoutId is not null && !_availableLayouts.Any(l =>
+                string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase)))
+            {
+                var fallback = _availableLayouts.FirstOrDefault();
+                if (fallback is not null)
+                    await SwitchLayout(fallback.LayoutId);
+                else
+                    _activeLayoutId = null;
+            }
+
+            if (_activeThemeId is not null && !_availableThemes.Any(t =>
+                string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase)))
+            {
+                var fallback = _availableThemes.FirstOrDefault();
+                if (fallback is not null)
+                    await SwitchTheme(fallback.ThemeId);
+                else
+                    _activeThemeId = null;
+            }
 
             await RefreshEnabledStatesAsync();
         }

@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Contexts;
 using Verso.Execution;
 using Verso.Extensions;
 using Verso.Serializers;
@@ -32,6 +33,12 @@ public sealed class NotebookService : IAsyncDisposable
     /// <summary>Raised when the active theme changes.</summary>
     public event Action? OnThemeChanged;
 
+    /// <summary>Raised when an extension is enabled or disabled.</summary>
+    public event Action? OnExtensionStatusChanged;
+
+    /// <summary>Raised when variables in the store change.</summary>
+    public event Action? OnVariablesChanged;
+
     /// <summary>Open and deserialize a notebook file (.verso, .ipynb, etc.).</summary>
     public async Task OpenAsync(string filePath)
     {
@@ -52,6 +59,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
         _filePath = filePath;
+        SubscribeToEngineEvents();
 
         OnNotebookChanged?.Invoke();
     }
@@ -73,6 +81,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
         _filePath = null; // No on-disk path — opened from browser upload
+        SubscribeToEngineEvents();
 
         OnNotebookChanged?.Invoke();
     }
@@ -109,6 +118,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold.InitializeSubsystems();
         _scaffold.AddCell("code", "csharp");
         _filePath = null;
+        SubscribeToEngineEvents();
 
         OnNotebookChanged?.Invoke();
     }
@@ -230,8 +240,51 @@ public sealed class NotebookService : IAsyncDisposable
         await _scaffold.RestartKernelAsync();
     }
 
+    /// <summary>Enable an extension by ID.</summary>
+    public async Task EnableExtensionAsync(string extensionId)
+    {
+        if (_extensionHost is null) return;
+        await _extensionHost.EnableExtensionAsync(extensionId);
+    }
+
+    /// <summary>Disable an extension by ID.</summary>
+    public async Task DisableExtensionAsync(string extensionId)
+    {
+        if (_extensionHost is null) return;
+        await _extensionHost.DisableExtensionAsync(extensionId);
+    }
+
+    private void SubscribeToEngineEvents()
+    {
+        if (_extensionHost is not null)
+            _extensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
+
+        if (_scaffold?.Variables is VariableStore vs)
+            vs.OnVariablesChanged += HandleVariablesChanged;
+    }
+
+    private void UnsubscribeFromEngineEvents()
+    {
+        if (_extensionHost is not null)
+            _extensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+
+        if (_scaffold?.Variables is VariableStore vs)
+            vs.OnVariablesChanged -= HandleVariablesChanged;
+    }
+
+    private void HandleExtensionStatusChanged(string extensionId, ExtensionStatus status)
+    {
+        OnExtensionStatusChanged?.Invoke();
+    }
+
+    private void HandleVariablesChanged()
+    {
+        OnVariablesChanged?.Invoke();
+    }
+
     private async Task DisposeCurrentAsync()
     {
+        UnsubscribeFromEngineEvents();
         if (_scaffold is not null)
         {
             await _scaffold.DisposeAsync();

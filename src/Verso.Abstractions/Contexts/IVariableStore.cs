@@ -6,6 +6,10 @@ namespace Verso.Abstractions;
 public interface IVariableStore
 {
     /// <summary>
+    /// Raised when the variable store contents change (after Set, Remove, or Clear).
+    /// </summary>
+    event Action? OnVariablesChanged;
+    /// <summary>
     /// Stores a variable with the specified name, replacing any existing variable with the same name.
     /// </summary>
     /// <param name="name">The name of the variable.</param>

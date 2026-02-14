@@ -38,4 +38,13 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
 
     /// <inheritdoc />
     public IReadOnlyList<ITheme> GetThemes() => Array.Empty<ITheme>();
+
+    /// <inheritdoc />
+    public IReadOnlyList<ExtensionInfo> GetExtensionInfos() => Array.Empty<ExtensionInfo>();
+
+    /// <inheritdoc />
+    public Task EnableExtensionAsync(string extensionId) => Task.CompletedTask;
+
+    /// <inheritdoc />
+    public Task DisableExtensionAsync(string extensionId) => Task.CompletedTask;
 }

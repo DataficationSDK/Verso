@@ -7,7 +7,7 @@
 
 <ThemeProvider ThemeEngine="@Service.Scaffold?.ThemeEngine" />
 
-<div class="verso-notebook">
+<div class="verso-notebook @(_sidebarOpen ? "verso-notebook--sidebar-open" : "")">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
              OnNewNotebook="HandleNew"
@@ -16,7 +16,8 @@
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
-             OnError="HandleError" />
+             OnError="HandleError"
+             OnToggleSidebar="ToggleSidebar" />
 
     @if (_error is not null)
     {
@@ -41,39 +42,71 @@
             <button class="verso-welcome-btn" @onclick="HandleNew">New Notebook</button>
         </div>
     }
-    else if (IsDashboardLayout)
-    {
-        <DashboardGrid Service="Service"
-                       Cells="Service.Scaffold!.Cells"
-                       ExecutingCellId="_executingCellId"
-                       OnRunCell="HandleRunCell"
-                       OnSourceChanged="HandleSourceChanged" />
-    }
     else
     {
-        <div class="verso-cell-list">
-            @{ var cells = Service.Scaffold!.Cells; }
-            @for (int i = 0; i < cells.Count; i++)
-            {
-                var cell = cells[i];
-                var index = i;
-                <Cell CellData="cell"
-                      IsSelected="cell.Id == _selectedCellId"
-                      IsExecuting="cell.Id == _executingCellId"
-                      Index="index"
-                      IsLast="index == cells.Count - 1"
-                      OnRunCell="HandleRunCell"
-                      OnDeleteCell="HandleDeleteCell"
-                      OnSelect="HandleSelectCell"
-                      OnMoveUp="HandleMoveUp"
-                      OnMoveDown="HandleMoveDown"
-                      OnSourceChanged="HandleSourceChanged" />
-            }
+        <div class="verso-notebook-body">
+            <div class="verso-notebook-main">
+                @if (IsDashboardLayout)
+                {
+                    <DashboardGrid Service="Service"
+                                   Cells="Service.Scaffold!.Cells"
+                                   ExecutingCellId="_executingCellId"
+                                   OnRunCell="HandleRunCell"
+                                   OnSourceChanged="HandleSourceChanged" />
+                }
+                else
+                {
+                    <div class="verso-cell-list">
+                        @{ var cells = Service.Scaffold!.Cells; }
+                        @for (int i = 0; i < cells.Count; i++)
+                        {
+                            var cell = cells[i];
+                            var index = i;
+                            <Cell CellData="cell"
+                                  IsSelected="cell.Id == _selectedCellId"
+                                  IsExecuting="cell.Id == _executingCellId"
+                                  Index="index"
+                                  IsLast="index == cells.Count - 1"
+                                  OnRunCell="HandleRunCell"
+                                  OnDeleteCell="HandleDeleteCell"
+                                  OnSelect="HandleSelectCell"
+                                  OnMoveUp="HandleMoveUp"
+                                  OnMoveDown="HandleMoveDown"
+                                  OnSourceChanged="HandleSourceChanged" />
+                        }
 
-            <div class="verso-add-cell-row">
-                <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("code")'>+ Code Cell</button>
-                <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("markdown")'>+ Markdown Cell</button>
+                        <div class="verso-add-cell-row">
+                            <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("code")'>+ Code Cell</button>
+                            <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("markdown")'>+ Markdown Cell</button>
+                        </div>
+                    </div>
+                }
             </div>
+
+            @if (_sidebarOpen)
+            {
+                <div class="verso-sidebar">
+                    <div class="verso-sidebar-tabs">
+                        <button class="verso-sidebar-tab @(_sidebarTab == "extensions" ? "verso-sidebar-tab--active" : "")"
+                                @onclick='() => _sidebarTab = "extensions"'>
+                            Extensions
+                        </button>
+                        <button class="verso-sidebar-tab @(_sidebarTab == "variables" ? "verso-sidebar-tab--active" : "")"
+                                @onclick='() => _sidebarTab = "variables"'>
+                            Variables
+                        </button>
+                    </div>
+
+                    @if (_sidebarTab == "extensions")
+                    {
+                        <ExtensionPanel Service="Service" />
+                    }
+                    else
+                    {
+                        <VariableExplorer Service="Service" />
+                    }
+                </div>
+            }
         </div>
     }
 </div>
@@ -84,6 +117,8 @@
     private string? _error;
     private string? _statusMessage;
     private CancellationTokenSource? _statusCts;
+    private bool _sidebarOpen;
+    private string _sidebarTab = "extensions";
 
     private bool IsDashboardLayout =>
         Service.Scaffold?.LayoutManager?.ActiveLayout?.RequiresCustomRenderer == true;
@@ -98,6 +133,8 @@
         Service.OnNotebookChanged += StateHasChanged;
         Service.OnLayoutChanged += StateHasChanged;
         Service.OnThemeChanged += HandleThemeChanged;
+        Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
+        Service.OnVariablesChanged += HandleVariablesChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -112,6 +149,16 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void HandleExtensionStatusChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleVariablesChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task SyncMonacoThemeAsync()
     {
         try
@@ -120,6 +167,11 @@
         }
         catch (JSDisconnectedException) { }
         catch (JSException) { }
+    }
+
+    private void ToggleSidebar()
+    {
+        _sidebarOpen = !_sidebarOpen;
     }
 
     private async Task HandleNew()
@@ -286,5 +338,7 @@
         Service.OnNotebookChanged -= StateHasChanged;
         Service.OnLayoutChanged -= StateHasChanged;
         Service.OnThemeChanged -= HandleThemeChanged;
+        Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+        Service.OnVariablesChanged -= HandleVariablesChanged;
     }
 }

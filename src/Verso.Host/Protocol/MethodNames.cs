@@ -47,4 +47,13 @@ public static class MethodNames
     // Theme
     public const string ThemeGetThemes = "theme/getThemes";
     public const string ThemeSwitch = "theme/switch";
+
+    // Extension management
+    public const string ExtensionList = "extension/list";
+    public const string ExtensionEnable = "extension/enable";
+    public const string ExtensionDisable = "extension/disable";
+
+    // Variable explorer
+    public const string VariableList = "variable/list";
+    public const string VariableInspect = "variable/inspect";
 }

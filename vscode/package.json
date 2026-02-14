@@ -27,6 +27,29 @@
         ]
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "verso-explorer",
+          "title": "Verso",
+          "icon": "$(notebook)"
+        }
+      ]
+    },
+    "views": {
+      "verso-explorer": [
+        {
+          "id": "verso.extensions",
+          "name": "Extensions",
+          "when": "verso.notebookOpen"
+        },
+        {
+          "id": "verso.variables",
+          "name": "Variables",
+          "when": "verso.notebookOpen"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "verso.runAll",
@@ -69,6 +92,36 @@
         "shortTitle": "Theme",
         "category": "Verso",
         "icon": "$(symbol-color)"
+      },
+      {
+        "command": "verso.enableExtension",
+        "title": "Enable Extension",
+        "category": "Verso",
+        "icon": "$(check)"
+      },
+      {
+        "command": "verso.disableExtension",
+        "title": "Disable Extension",
+        "category": "Verso",
+        "icon": "$(circle-slash)"
+      },
+      {
+        "command": "verso.refreshExtensions",
+        "title": "Refresh Extensions",
+        "category": "Verso",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "verso.refreshVariables",
+        "title": "Refresh Variables",
+        "category": "Verso",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "verso.inspectVariable",
+        "title": "Inspect Variable",
+        "category": "Verso",
+        "icon": "$(eye)"
       }
     ],
     "menus": {
@@ -104,6 +157,35 @@
           "command": "verso.runCell",
           "group": "inline@1",
           "when": "notebookType == verso-notebook"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "verso.refreshExtensions",
+          "when": "view == verso.extensions",
+          "group": "navigation"
+        },
+        {
+          "command": "verso.refreshVariables",
+          "when": "view == verso.variables",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "verso.enableExtension",
+          "when": "view == verso.extensions && viewItem == disabled",
+          "group": "inline"
+        },
+        {
+          "command": "verso.disableExtension",
+          "when": "view == verso.extensions && viewItem == enabled",
+          "group": "inline"
+        },
+        {
+          "command": "verso.inspectVariable",
+          "when": "view == verso.variables",
+          "group": "inline"
         }
       ]
     },

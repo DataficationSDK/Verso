@@ -287,3 +287,47 @@ export interface ThemeListItemDto {
 export interface ThemeSwitchParams {
   themeId: string;
 }
+
+// --- Extension Management DTOs ---
+
+export interface ExtensionListResult {
+  extensions: ExtensionInfoDto[];
+}
+
+export interface ExtensionInfoDto {
+  extensionId: string;
+  name: string;
+  version: string;
+  author?: string;
+  description?: string;
+  status: string;
+  capabilities: string[];
+}
+
+export interface ExtensionToggleParams {
+  extensionId: string;
+}
+
+// --- Variable Explorer DTOs ---
+
+export interface VariableListResult {
+  variables: VariableEntryDto[];
+}
+
+export interface VariableEntryDto {
+  name: string;
+  typeName: string;
+  valuePreview: string;
+  isExpandable: boolean;
+}
+
+export interface VariableInspectParams {
+  name: string;
+}
+
+export interface VariableInspectResult {
+  name: string;
+  typeName: string;
+  mimeType: string;
+  content: string;
+}

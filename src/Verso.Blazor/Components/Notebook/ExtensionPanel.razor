@@ -1,0 +1,125 @@
+@using Verso.Extensions
+
+<div class="verso-sidebar-panel">
+    @if (Service?.ExtensionHost is not null)
+    {
+        var infos = Service.ExtensionHost.GetExtensionInfos();
+        var grouped = GroupByCategory(infos);
+        @foreach (var group in grouped)
+        {
+            var category = group.Key;
+            var isOpen = _expandedCategories.Contains(category);
+            <div class="verso-extension-group">
+                <button class="verso-extension-group-header" @onclick="() => ToggleCategory(category)">
+                    <span class="verso-extension-group-chevron @(isOpen ? "verso-extension-group-chevron--open" : "")">&#9654;</span>
+                    <span class="verso-extension-group-label">@category</span>
+                    <span class="verso-extension-group-count">@group.Value.Count</span>
+                </button>
+                @if (isOpen)
+                {
+                    @foreach (var ext in group.Value)
+                    {
+                        var e = ext;
+                        <div class="verso-extension-item">
+                            <div class="verso-extension-header">
+                                <div class="verso-extension-name">@e.Name</div>
+                                <div class="verso-extension-version">@e.Version</div>
+                                <button class="verso-extension-toggle @(e.Status == ExtensionStatus.Enabled ? "verso-extension-toggle--enabled" : "")"
+                                        title="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
+                                        @onclick="() => ToggleExtensionAsync(e.ExtensionId, e.Status)">
+                                    @(e.Status == ExtensionStatus.Enabled ? "On" : "Off")
+                                </button>
+                            </div>
+                            @if (e.Author is not null)
+                            {
+                                <div class="verso-extension-author">@e.Author</div>
+                            }
+                            @if (e.Description is not null)
+                            {
+                                <div class="verso-extension-description">@e.Description</div>
+                            }
+                            @if (e.Capabilities.Count > 1)
+                            {
+                                <div class="verso-extension-caps">
+                                    @foreach (var cap in e.Capabilities)
+                                    {
+                                        <span class="verso-extension-cap-badge">@CategoryDisplayNames.GetValueOrDefault(cap, cap)</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public NotebookService Service { get; set; } = default!;
+
+    private readonly HashSet<string> _expandedCategories = new();
+
+    private static readonly Dictionary<string, string> CategoryDisplayNames = new()
+    {
+        ["LanguageKernel"] = "Language Kernels",
+        ["CellRenderer"] = "Cell Renderers",
+        ["DataFormatter"] = "Data Formatters",
+        ["CellType"] = "Cell Types",
+        ["NotebookSerializer"] = "Serializers",
+        ["Theme"] = "Themes",
+        ["LayoutEngine"] = "Layout Engines",
+        ["ToolbarAction"] = "Toolbar Actions",
+        ["MagicCommand"] = "Magic Commands",
+    };
+
+    private static readonly List<string> CategoryOrder = new()
+    {
+        "LanguageKernel", "Theme", "LayoutEngine", "CellType",
+        "CellRenderer", "DataFormatter", "NotebookSerializer",
+        "ToolbarAction", "MagicCommand",
+    };
+
+    private static List<KeyValuePair<string, List<ExtensionInfo>>> GroupByCategory(
+        IReadOnlyList<ExtensionInfo> infos)
+    {
+        var groups = new Dictionary<string, List<ExtensionInfo>>();
+
+        foreach (var ext in infos)
+        {
+            var primary = ext.Capabilities.Count > 0 ? ext.Capabilities[0] : "Other";
+            var displayName = CategoryDisplayNames.GetValueOrDefault(primary, primary);
+
+            if (!groups.TryGetValue(displayName, out var list))
+            {
+                list = new List<ExtensionInfo>();
+                groups[displayName] = list;
+            }
+            list.Add(ext);
+        }
+
+        return groups
+            .OrderBy(g =>
+            {
+                var idx = CategoryOrder.FindIndex(c => CategoryDisplayNames.GetValueOrDefault(c, c) == g.Key);
+                return idx >= 0 ? idx : CategoryOrder.Count;
+            })
+            .ToList();
+    }
+
+    private void ToggleCategory(string category)
+    {
+        if (!_expandedCategories.Remove(category))
+            _expandedCategories.Add(category);
+    }
+
+    private async Task ToggleExtensionAsync(string extensionId, ExtensionStatus currentStatus)
+    {
+        if (Service is null) return;
+
+        if (currentStatus == ExtensionStatus.Enabled)
+            await Service.DisableExtensionAsync(extensionId);
+        else
+            await Service.EnableExtensionAsync(extensionId);
+    }
+}

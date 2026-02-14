@@ -27,7 +27,11 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IToolbarAction> _toolbarActions = new();
     private readonly List<IMagicCommand> _magicCommands = new();
     private readonly List<ExtensionLoadContext> _loadContexts = new();
+    private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
+
+    /// <summary>Raised when an extension is enabled or disabled.</summary>
+    public event Action<string, ExtensionStatus>? OnExtensionStatusChanged;
 
     // --- IExtensionHostContext ---
 
@@ -38,49 +42,100 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
 
     public IReadOnlyList<ILanguageKernel> GetKernels()
     {
-        lock (_lock) { return _kernels.ToList(); }
+        lock (_lock) { return _kernels.Where(k => IsEnabled(k)).ToList(); }
     }
 
     public IReadOnlyList<ICellRenderer> GetRenderers()
     {
-        lock (_lock) { return _renderers.ToList(); }
+        lock (_lock) { return _renderers.Where(r => IsEnabled(r)).ToList(); }
     }
 
     public IReadOnlyList<IDataFormatter> GetFormatters()
     {
-        lock (_lock) { return _formatters.ToList(); }
+        lock (_lock) { return _formatters.Where(f => IsEnabled(f)).ToList(); }
     }
 
     public IReadOnlyList<ICellType> GetCellTypes()
     {
-        lock (_lock) { return _cellTypes.ToList(); }
+        lock (_lock) { return _cellTypes.Where(c => IsEnabled(c)).ToList(); }
     }
 
     public IReadOnlyList<INotebookSerializer> GetSerializers()
     {
-        lock (_lock) { return _serializers.ToList(); }
+        lock (_lock) { return _serializers.Where(s => IsEnabled(s)).ToList(); }
     }
 
     // --- Additional typed queries ---
 
     public IReadOnlyList<ITheme> GetThemes()
     {
-        lock (_lock) { return _themes.ToList(); }
+        lock (_lock) { return _themes.Where(t => IsEnabled(t)).ToList(); }
     }
 
     public IReadOnlyList<ILayoutEngine> GetLayouts()
     {
-        lock (_lock) { return _layouts.ToList(); }
+        lock (_lock) { return _layouts.Where(l => IsEnabled(l)).ToList(); }
     }
 
     public IReadOnlyList<IToolbarAction> GetToolbarActions()
     {
-        lock (_lock) { return _toolbarActions.ToList(); }
+        lock (_lock) { return _toolbarActions.Where(a => IsEnabled(a)).ToList(); }
     }
 
     public IReadOnlyList<IMagicCommand> GetMagicCommands()
     {
-        lock (_lock) { return _magicCommands.ToList(); }
+        lock (_lock) { return _magicCommands.Where(m => IsEnabled(m)).ToList(); }
+    }
+
+    // --- Enable / Disable ---
+
+    public IReadOnlyList<ExtensionInfo> GetExtensionInfos()
+    {
+        lock (_lock)
+        {
+            return _extensions.Select(e => new ExtensionInfo(
+                e.ExtensionId,
+                e.Name,
+                e.Version,
+                e.Author,
+                e.Description,
+                _disabledExtensionIds.Contains(e.ExtensionId) ? ExtensionStatus.Disabled : ExtensionStatus.Enabled,
+                GetCapabilityList(e)
+            )).ToList();
+        }
+    }
+
+    public Task EnableExtensionAsync(string extensionId)
+    {
+        ArgumentNullException.ThrowIfNull(extensionId);
+        lock (_lock)
+        {
+            if (!_extensions.Any(e => string.Equals(e.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Extension '{extensionId}' is not loaded.");
+
+            _disabledExtensionIds.Remove(extensionId);
+        }
+        OnExtensionStatusChanged?.Invoke(extensionId, ExtensionStatus.Enabled);
+        return Task.CompletedTask;
+    }
+
+    public Task DisableExtensionAsync(string extensionId)
+    {
+        ArgumentNullException.ThrowIfNull(extensionId);
+        lock (_lock)
+        {
+            if (!_extensions.Any(e => string.Equals(e.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Extension '{extensionId}' is not loaded.");
+
+            _disabledExtensionIds.Add(extensionId);
+        }
+        OnExtensionStatusChanged?.Invoke(extensionId, ExtensionStatus.Disabled);
+        return Task.CompletedTask;
+    }
+
+    public bool IsEnabled(IExtension extension)
+    {
+        return !_disabledExtensionIds.Contains(extension.ExtensionId);
     }
 
     // --- Discovery & Loading ---
@@ -317,6 +372,21 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             or ILayoutEngine
             or IToolbarAction
             or IMagicCommand;
+    }
+
+    private static IReadOnlyList<string> GetCapabilityList(IExtension extension)
+    {
+        var caps = new List<string>();
+        if (extension is ILanguageKernel) caps.Add("LanguageKernel");
+        if (extension is ICellRenderer) caps.Add("CellRenderer");
+        if (extension is IDataFormatter) caps.Add("DataFormatter");
+        if (extension is ICellType) caps.Add("CellType");
+        if (extension is INotebookSerializer) caps.Add("NotebookSerializer");
+        if (extension is ITheme) caps.Add("Theme");
+        if (extension is ILayoutEngine) caps.Add("LayoutEngine");
+        if (extension is IToolbarAction) caps.Add("ToolbarAction");
+        if (extension is IMagicCommand) caps.Add("MagicCommand");
+        return caps;
     }
 
     private void ThrowIfDisposed()

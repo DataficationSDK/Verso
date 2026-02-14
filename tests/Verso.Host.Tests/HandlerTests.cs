@@ -223,4 +223,57 @@ public class HandlerTests
         Assert.AreEqual("second", session.Scaffold!.Cells[0].Source);
         Assert.AreEqual("first", session.Scaffold!.Cells[1].Source);
     }
+
+    [TestMethod]
+    public async Task ExtensionList_ReturnsLoadedExtensions()
+    {
+        var session = await CreateOpenSession();
+
+        var result = ExtensionHandler.HandleList(session);
+
+        Assert.IsTrue(result.Extensions.Count > 0);
+        Assert.IsTrue(result.Extensions.All(e => !string.IsNullOrEmpty(e.ExtensionId)));
+        Assert.IsTrue(result.Extensions.All(e => e.Status == "Enabled"));
+    }
+
+    [TestMethod]
+    public async Task ExtensionDisable_SetsStatusToDisabled()
+    {
+        var session = await CreateOpenSession();
+        var extensions = ExtensionHandler.HandleList(session);
+        var firstId = extensions.Extensions[0].ExtensionId;
+
+        var disableParams = JsonSerializer.SerializeToElement(
+            new ExtensionToggleParams { ExtensionId = firstId },
+            JsonRpcMessage.SerializerOptions);
+
+        var result = await ExtensionHandler.HandleDisableAsync(session, disableParams);
+
+        var disabled = result.Extensions.First(e => e.ExtensionId == firstId);
+        Assert.AreEqual("Disabled", disabled.Status);
+    }
+
+    [TestMethod]
+    public async Task VariableList_ReturnsEmptyWhenNoVariables()
+    {
+        var session = await CreateOpenSession();
+
+        var result = VariableHandler.HandleList(session);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.Variables.Count);
+    }
+
+    [TestMethod]
+    public async Task VariableList_ReturnsVariablesAfterSet()
+    {
+        var session = await CreateOpenSession();
+        session.Scaffold!.Variables.Set("myVar", 42);
+
+        var result = VariableHandler.HandleList(session);
+
+        Assert.AreEqual(1, result.Variables.Count);
+        Assert.AreEqual("myVar", result.Variables[0].Name);
+        Assert.AreEqual("Int32", result.Variables[0].TypeName);
+    }
 }

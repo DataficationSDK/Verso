@@ -11,11 +11,15 @@ public sealed class VariableStore : IVariableStore
     private readonly ConcurrentDictionary<string, object> _variables = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
+    public event Action? OnVariablesChanged;
+
+    /// <inheritdoc />
     public void Set(string name, object value)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(value);
         _variables[name] = value;
+        OnVariablesChanged?.Invoke();
     }
 
     /// <inheritdoc />
@@ -52,9 +56,16 @@ public sealed class VariableStore : IVariableStore
     public bool Remove(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        return _variables.TryRemove(name, out _);
+        var removed = _variables.TryRemove(name, out _);
+        if (removed)
+            OnVariablesChanged?.Invoke();
+        return removed;
     }
 
     /// <inheritdoc />
-    public void Clear() => _variables.Clear();
+    public void Clear()
+    {
+        _variables.Clear();
+        OnVariablesChanged?.Invoke();
+    }
 }

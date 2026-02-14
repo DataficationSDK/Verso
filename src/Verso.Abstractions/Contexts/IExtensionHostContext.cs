@@ -52,4 +52,22 @@ public interface IExtensionHostContext
     /// </summary>
     /// <returns>A read-only list of <see cref="ITheme"/> instances.</returns>
     IReadOnlyList<ITheme> GetThemes();
+
+    /// <summary>
+    /// Returns metadata for all loaded extensions, including their current status and capabilities.
+    /// </summary>
+    /// <returns>A read-only list of <see cref="ExtensionInfo"/> describing each loaded extension.</returns>
+    IReadOnlyList<ExtensionInfo> GetExtensionInfos();
+
+    /// <summary>
+    /// Enables a previously disabled extension, restoring its capabilities to query results.
+    /// </summary>
+    /// <param name="extensionId">The unique identifier of the extension to enable.</param>
+    Task EnableExtensionAsync(string extensionId);
+
+    /// <summary>
+    /// Disables an extension, removing its capabilities from query results without unloading it.
+    /// </summary>
+    /// <param name="extensionId">The unique identifier of the extension to disable.</param>
+    Task DisableExtensionAsync(string extensionId);
 }

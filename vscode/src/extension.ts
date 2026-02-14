@@ -6,9 +6,23 @@ import { VersoController } from "./notebook/versoController";
 import { VersoCompletionProvider } from "./providers/completionProvider";
 import { VersoDiagnosticsProvider } from "./providers/diagnosticsProvider";
 import { VersoHoverProvider } from "./providers/hoverProvider";
+import {
+  ExtensionTreeProvider,
+  ExtensionTreeItem,
+} from "./providers/extensionTreeProvider";
+import {
+  VariableTreeProvider,
+  VariableTreeItem,
+} from "./providers/variableTreeProvider";
 import { registerToolbarActions } from "./toolbar/toolbarActions";
 import { DashboardPanel } from "./layout/dashboardPanel";
 import { applyEngineTheme } from "./theme/themeMapper";
+import {
+  ExtensionListResult,
+  ExtensionToggleParams,
+  VariableInspectParams,
+  VariableInspectResult,
+} from "./host/protocol";
 
 let host: HostProcess | undefined;
 
@@ -86,6 +100,110 @@ export async function activate(
 
   // Apply engine theme (best-effort)
   applyEngineTheme(host);
+
+  // --- Extension and Variable tree views ---
+
+  const extensionTreeProvider = new ExtensionTreeProvider(host);
+  const variableTreeProvider = new VariableTreeProvider(host);
+
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "verso.extensions",
+      extensionTreeProvider
+    )
+  );
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "verso.variables",
+      variableTreeProvider
+    )
+  );
+
+  // Set context for tree view visibility
+  vscode.commands.executeCommand("setContext", "verso.notebookOpen", true);
+
+  // Register extension management commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("verso.refreshExtensions", () => {
+      extensionTreeProvider.refresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("verso.refreshVariables", () => {
+      variableTreeProvider.refresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "verso.enableExtension",
+      async (item: ExtensionTreeItem) => {
+        try {
+          await host!.sendRequest<ExtensionListResult>("extension/enable", {
+            extensionId: item.info.extensionId,
+          } satisfies ExtensionToggleParams);
+          extensionTreeProvider.refresh();
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Failed to enable extension: ${err instanceof Error ? err.message : err}`
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "verso.disableExtension",
+      async (item: ExtensionTreeItem) => {
+        try {
+          await host!.sendRequest<ExtensionListResult>("extension/disable", {
+            extensionId: item.info.extensionId,
+          } satisfies ExtensionToggleParams);
+          extensionTreeProvider.refresh();
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Failed to disable extension: ${err instanceof Error ? err.message : err}`
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "verso.inspectVariable",
+      async (item: VariableTreeItem) => {
+        try {
+          const result = await host!.sendRequest<VariableInspectResult>(
+            "variable/inspect",
+            { name: item.entry.name } satisfies VariableInspectParams
+          );
+
+          const doc = await vscode.workspace.openTextDocument({
+            content: result.content,
+            language:
+              result.mimeType === "text/html" ? "html" : "plaintext",
+          });
+          await vscode.window.showTextDocument(doc, { preview: true });
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Failed to inspect variable: ${err instanceof Error ? err.message : err}`
+          );
+        }
+      }
+    )
+  );
+
+  // Auto-refresh variables on cell execution completion
+  host.onNotification("cell/executionState", () => {
+    variableTreeProvider.refresh();
+  });
+
+  // Initial refresh
+  extensionTreeProvider.refresh();
+  variableTreeProvider.refresh();
 }
 
 export function deactivate(): void {

@@ -630,6 +630,285 @@ html, body {
     border-radius: 2px;
 }
 
+/* === Sidebar Layout === */
+
+.verso-notebook-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.verso-notebook-main {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.verso-sidebar {
+    width: var(--verso-sidebar-width, 300px);
+    min-width: 240px;
+    border-left: 1px solid var(--verso-border-default, #E0E0E0);
+    background: var(--verso-editor-background, #FFFFFF);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.verso-sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    background: var(--verso-toolbar-background, #F3F3F3);
+    flex-shrink: 0;
+}
+
+.verso-sidebar-tab {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: var(--verso-editor-line-number, #858585);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.verso-sidebar-tab:hover {
+    color: var(--verso-editor-foreground, #1E1E1E);
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-sidebar-tab--active {
+    color: var(--verso-accent-primary, #0078D4);
+    border-bottom-color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-sidebar-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+/* === Extension Panel === */
+
+.verso-extension-group {
+    margin-bottom: 2px;
+}
+
+.verso-extension-group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+.verso-extension-group-header:hover {
+    background: var(--verso-cell-output-background, #F5F5F5);
+}
+
+.verso-extension-group-chevron {
+    font-size: 8px;
+    transition: transform 0.15s ease;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-extension-group-chevron--open {
+    transform: rotate(90deg);
+}
+
+.verso-extension-group-label {
+    flex: 1;
+    text-align: left;
+}
+
+.verso-extension-group-count {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--verso-editor-line-number, #858585);
+    background: var(--verso-cell-output-background, #F5F5F5);
+    padding: 0 6px;
+    border-radius: 8px;
+}
+
+.verso-extension-item {
+    padding: 8px;
+    margin: 0 0 4px 16px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+}
+
+.verso-extension-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.verso-extension-name {
+    font-weight: 600;
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.verso-extension-version {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-extension-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: 10px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.verso-extension-toggle--enabled {
+    background: var(--verso-status-success, #28A745);
+    color: #FFFFFF;
+    border-color: var(--verso-status-success, #28A745);
+}
+
+.verso-extension-author {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-top: 2px;
+}
+
+.verso-extension-description {
+    font-size: 11px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    margin-top: 4px;
+}
+
+.verso-extension-caps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 6px;
+}
+
+.verso-extension-cap-badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 10px;
+    letter-spacing: 0.3px;
+}
+
+/* === Variable Explorer === */
+
+.verso-variable-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding-bottom: 4px;
+}
+
+.verso-variable-empty {
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 12px;
+    text-align: center;
+    padding: 24px 0;
+}
+
+.verso-variable-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.verso-variable-table th {
+    text-align: left;
+    padding: 4px 6px;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.verso-variable-row {
+    cursor: pointer;
+}
+
+.verso-variable-row td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
+}
+
+.verso-variable-row:hover {
+    background: var(--verso-cell-hover-background, #F8F8F8);
+}
+
+.verso-variable-row--selected {
+    background: var(--verso-cell-hover-background, #F8F8F8);
+    border-left: 2px solid var(--verso-accent-primary, #0078D4);
+}
+
+.verso-variable-preview {
+    font-family: var(--verso-code-output-font-family, 'Cascadia Mono', monospace);
+    font-size: 11px;
+}
+
+.verso-variable-inspect-panel {
+    margin-top: 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-output-background, #F5F5F5);
+}
+
+.verso-variable-inspect-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+}
+
+.verso-variable-inspect-body {
+    padding: 8px;
+    overflow: auto;
+    max-height: 300px;
+    font-size: 12px;
+}
+
+.verso-variable-inspect-body pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--verso-code-output-font-family, 'Cascadia Mono', monospace);
+    font-size: 12px;
+}
+
 /* === Responsive === */
 
 @media (max-width: 768px) {
