@@ -5,7 +5,6 @@
     <div class="verso-toolbar-group">
         <button class="verso-toolbar-btn" @onclick="OnNew" title="New Notebook">New</button>
         <button class="verso-toolbar-btn" @onclick="OnOpenClick" title="Open File">Open</button>
-        <button class="verso-toolbar-btn" @onclick="OnSave" disabled="@(!Service.IsLoaded)" title="Save">Save</button>
     </div>
 
     @if (_showOpenInput)
@@ -21,129 +20,131 @@
         </div>
     }
 
-    <div class="verso-toolbar-separator"></div>
-
-    @foreach (var action in _filteredToolbarActions)
+    @if (Service.IsLoaded)
     {
-        var a = action;
-        var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
-        <button class="verso-toolbar-btn"
-                disabled="@(!isEnabled)"
-                title="@a.DisplayName"
-                @onclick="() => ExecuteActionAsync(a)">
-            @a.DisplayName
+        <div class="verso-toolbar-separator"></div>
+
+        <button class="verso-toolbar-btn" @onclick="OnSave" title="Save">Save</button>
+
+        <div class="verso-toolbar-separator"></div>
+
+        @foreach (var action in _filteredToolbarActions)
+        {
+            var a = action;
+            var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
+            <button class="verso-toolbar-btn"
+                    disabled="@(!isEnabled)"
+                    title="@a.DisplayName"
+                    @onclick="() => ExecuteActionAsync(a)">
+                @a.DisplayName
+            </button>
+        }
+
+        <div class="verso-toolbar-separator"></div>
+
+        <div class="verso-toolbar-group">
+            <button class="verso-toolbar-btn" @onclick="OnAddCodeCell" title="Add Code Cell">+ Code</button>
+            <button class="verso-toolbar-btn" @onclick="OnAddMarkdownCell" title="Add Markdown Cell">+ Markdown</button>
+        </div>
+
+        @if (_availableLayouts.Count > 1)
+        {
+            <div class="verso-toolbar-separator"></div>
+
+            <div class="verso-toolbar-dropdown" @onfocusout="OnLayoutDropdownFocusOut" tabindex="-1">
+                <button class="verso-toolbar-btn"
+                        title="Switch Layout"
+                        @onclick="CycleLayout">
+                    @ActiveLayoutName
+                </button>
+                <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
+                        @onclick="ToggleLayoutDropdown"
+                        @onclick:stopPropagation="true">
+                    &#9662;
+                </button>
+                @if (_showLayoutDropdown)
+                {
+                    <div class="verso-toolbar-dropdown-popup">
+                        @foreach (var layout in _availableLayouts)
+                        {
+                            var l = layout;
+                            var isActive = string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase);
+                            <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
+                                    @onclick="() => SelectLayout(l.LayoutId)">
+                                @l.DisplayName
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_availableThemes.Count > 1)
+        {
+            <div class="verso-toolbar-separator"></div>
+
+            <div class="verso-toolbar-dropdown" @onfocusout="OnThemeDropdownFocusOut" tabindex="-1">
+                <button class="verso-toolbar-btn"
+                        title="Switch Theme"
+                        @onclick="CycleTheme">
+                    @ActiveThemeName
+                </button>
+                <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
+                        @onclick="ToggleThemeDropdown"
+                        @onclick:stopPropagation="true">
+                    &#9662;
+                </button>
+                @if (_showThemeDropdown)
+                {
+                    <div class="verso-toolbar-dropdown-popup">
+                        @foreach (var theme in _availableThemes)
+                        {
+                            var t = theme;
+                            var isActive = string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase);
+                            <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
+                                    @onclick="() => SelectTheme(t.ThemeId)">
+                                @t.DisplayName
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_exportActions.Count > 0)
+        {
+            <div class="verso-toolbar-separator"></div>
+
+            <div class="verso-toolbar-dropdown" @onfocusout="OnExportDropdownFocusOut" tabindex="-1">
+                <button class="verso-toolbar-btn"
+                        title="Export Notebook"
+                        @onclick="ToggleExportDropdown">
+                    Export &#9662;
+                </button>
+                @if (_showExportDropdown)
+                {
+                    <div class="verso-toolbar-dropdown-popup">
+                        @foreach (var action in _exportActions)
+                        {
+                            var a = action;
+                            var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
+                            <button class="verso-toolbar-btn"
+                                    disabled="@(!isEnabled)"
+                                    @onclick="() => ExecuteExportAsync(a)">
+                                @a.DisplayName
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="verso-toolbar-separator"></div>
+
+        <button class="verso-toolbar-btn" @onclick="OnToggleSidebar" title="Toggle Panels">
+            Panels
         </button>
     }
-
-    <div class="verso-toolbar-separator"></div>
-
-    <div class="verso-toolbar-group">
-        <button class="verso-toolbar-btn" @onclick="OnAddCodeCell" disabled="@(!Service.IsLoaded)" title="Add Code Cell">+ Code</button>
-        <button class="verso-toolbar-btn" @onclick="OnAddMarkdownCell" disabled="@(!Service.IsLoaded)" title="Add Markdown Cell">+ Markdown</button>
-    </div>
-
-    @if (_availableLayouts.Count > 1)
-    {
-        <div class="verso-toolbar-separator"></div>
-
-        <div class="verso-toolbar-dropdown" @onfocusout="OnLayoutDropdownFocusOut" tabindex="-1">
-            <button class="verso-toolbar-btn"
-                    disabled="@(!Service.IsLoaded)"
-                    title="Switch Layout"
-                    @onclick="CycleLayout">
-                @ActiveLayoutName
-            </button>
-            <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
-                    disabled="@(!Service.IsLoaded)"
-                    @onclick="ToggleLayoutDropdown"
-                    @onclick:stopPropagation="true">
-                &#9662;
-            </button>
-            @if (_showLayoutDropdown)
-            {
-                <div class="verso-toolbar-dropdown-popup">
-                    @foreach (var layout in _availableLayouts)
-                    {
-                        var l = layout;
-                        var isActive = string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase);
-                        <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
-                                @onclick="() => SelectLayout(l.LayoutId)">
-                            @l.DisplayName
-                        </button>
-                    }
-                </div>
-            }
-        </div>
-    }
-
-    @if (_availableThemes.Count > 1)
-    {
-        <div class="verso-toolbar-separator"></div>
-
-        <div class="verso-toolbar-dropdown" @onfocusout="OnThemeDropdownFocusOut" tabindex="-1">
-            <button class="verso-toolbar-btn"
-                    disabled="@(!Service.IsLoaded)"
-                    title="Switch Theme"
-                    @onclick="CycleTheme">
-                @ActiveThemeName
-            </button>
-            <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
-                    disabled="@(!Service.IsLoaded)"
-                    @onclick="ToggleThemeDropdown"
-                    @onclick:stopPropagation="true">
-                &#9662;
-            </button>
-            @if (_showThemeDropdown)
-            {
-                <div class="verso-toolbar-dropdown-popup">
-                    @foreach (var theme in _availableThemes)
-                    {
-                        var t = theme;
-                        var isActive = string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase);
-                        <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
-                                @onclick="() => SelectTheme(t.ThemeId)">
-                            @t.DisplayName
-                        </button>
-                    }
-                </div>
-            }
-        </div>
-    }
-
-    @if (_exportActions.Count > 0)
-    {
-        <div class="verso-toolbar-separator"></div>
-
-        <div class="verso-toolbar-dropdown" @onfocusout="OnExportDropdownFocusOut" tabindex="-1">
-            <button class="verso-toolbar-btn"
-                    disabled="@(!Service.IsLoaded || _exportActions.Count == 0)"
-                    title="Export Notebook"
-                    @onclick="ToggleExportDropdown">
-                Export &#9662;
-            </button>
-            @if (_showExportDropdown)
-            {
-                <div class="verso-toolbar-dropdown-popup">
-                    @foreach (var action in _exportActions)
-                    {
-                        var a = action;
-                        var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
-                        <button class="verso-toolbar-btn"
-                                disabled="@(!isEnabled)"
-                                @onclick="() => ExecuteExportAsync(a)">
-                            @a.DisplayName
-                        </button>
-                    }
-                </div>
-            }
-        </div>
-    }
-
-    <div class="verso-toolbar-separator"></div>
-
-    <button class="verso-toolbar-btn" @onclick="OnToggleSidebar" disabled="@(!Service.IsLoaded)" title="Toggle Panels">
-        Panels
-    </button>
 </div>
 
 @code {

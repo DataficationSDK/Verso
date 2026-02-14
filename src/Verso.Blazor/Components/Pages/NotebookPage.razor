@@ -244,6 +244,11 @@
         {
             _error = null;
             var path = Service.FilePath ?? "notebook.verso";
+
+            // Always save as .verso — don't overwrite imported formats like .ipynb
+            if (!path.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
+                path = System.IO.Path.ChangeExtension(path, ".verso");
+
             await Service.SaveAsync(path);
             await ShowStatusAsync($"Saved to {System.IO.Path.GetFileName(path)}");
         }
