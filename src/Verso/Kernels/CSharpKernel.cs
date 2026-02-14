@@ -81,22 +81,30 @@ public sealed class CSharpKernel : ILanguageKernel
         try
         {
             // Process #r "nuget:" directives
-            var (cleanedCode, nugetAssemblyPaths) = await ProcessNuGetReferencesAsync(
+            var (cleanedCode, nugetResults) = await ProcessNuGetReferencesAsync(
                 code, context.CancellationToken).ConfigureAwait(false);
 
-            // Check for assemblies from #!nuget magic command
-            if (context.Variables.TryGet<List<string>>(NuGetMagicCommand.AssemblyStoreKey, out var magicPaths)
-                && magicPaths is { Count: > 0 })
+            // Check for resolved packages from #!nuget magic command
+            if (context.Variables.TryGet<List<NuGetResolveResult>>(NuGetMagicCommand.ResolvedPackagesStoreKey, out var magicResults)
+                && magicResults is { Count: > 0 })
             {
-                nugetAssemblyPaths.AddRange(magicPaths);
-                context.Variables.Remove(NuGetMagicCommand.AssemblyStoreKey);
+                nugetResults.AddRange(magicResults);
+                context.Variables.Remove(NuGetMagicCommand.ResolvedPackagesStoreKey);
             }
 
             // Add references if any
+            var nugetAssemblyPaths = nugetResults.SelectMany(r => r.AssemblyPaths).ToList();
             if (nugetAssemblyPaths.Count > 0)
             {
                 _stateManager!.AddReferences(nugetAssemblyPaths);
                 _workspaceManager!.AddReferences(nugetAssemblyPaths);
+            }
+
+            // Write "Installed Packages" feedback
+            if (nugetResults.Count > 0)
+            {
+                var html = FormatInstalledPackagesHtml(nugetResults);
+                await context.WriteOutputAsync(new CellOutput("text/html", html)).ConfigureAwait(false);
             }
 
             var consoleWriter = new StringWriter();
@@ -199,14 +207,14 @@ public sealed class CSharpKernel : ILanguageKernel
         _executionLock.Dispose();
     }
 
-    private async Task<(string CleanedCode, List<string> AssemblyPaths)> ProcessNuGetReferencesAsync(
+    private async Task<(string CleanedCode, List<NuGetResolveResult> Results)> ProcessNuGetReferencesAsync(
         string code, CancellationToken ct)
     {
         var matches = NuGetReferenceRegex.Matches(code);
         if (matches.Count == 0)
-            return (code, new List<string>());
+            return (code, new List<NuGetResolveResult>());
 
-        var assemblyPaths = new List<string>();
+        var results = new List<NuGetResolveResult>();
         var resolver = new NuGetPackageResolver();
 
         foreach (Match match in matches)
@@ -215,14 +223,21 @@ public sealed class CSharpKernel : ILanguageKernel
             var parsed = NuGetPackageResolver.ParseNuGetReference(directive);
             if (parsed is null) continue;
 
-            var paths = await resolver.ResolvePackageAsync(parsed.Value.PackageId, parsed.Value.Version, ct)
+            var result = await resolver.ResolvePackageAsync(parsed.Value.PackageId, parsed.Value.Version, ct)
                 .ConfigureAwait(false);
-            assemblyPaths.AddRange(paths);
+            results.Add(result);
         }
 
         // Remove the #r "nuget:" lines from the code
         var cleanedCode = NuGetReferenceRegex.Replace(code, "").Trim();
-        return (cleanedCode, assemblyPaths);
+        return (cleanedCode, results);
+    }
+
+    private static string FormatInstalledPackagesHtml(List<NuGetResolveResult> packages)
+    {
+        var items = string.Join("",
+            packages.Select(p => $"<li><span>{p.PackageId}, {p.ResolvedVersion}</span></li>"));
+        return $"<div><b>Installed Packages</b><ul>{items}</ul></div>";
     }
 
     private void EnsureInitialized()

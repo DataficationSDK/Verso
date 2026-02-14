@@ -26,17 +26,22 @@ public sealed class NotebookService : IAsyncDisposable
     /// <summary>Raised when the notebook structure changes (add, remove, move, new, open).</summary>
     public event Action? OnNotebookChanged;
 
-    /// <summary>Open and deserialize a .verso file.</summary>
+    /// <summary>Open and deserialize a notebook file (.verso, .ipynb, etc.).</summary>
     public async Task OpenAsync(string filePath)
     {
         await DisposeCurrentAsync();
 
-        var content = await File.ReadAllTextAsync(filePath);
-        var serializer = new VersoSerializer();
-        var notebook = await serializer.DeserializeAsync(content);
-
         _extensionHost = new ExtensionHost();
         await _extensionHost.LoadBuiltInExtensionsAsync();
+
+        var content = await File.ReadAllTextAsync(filePath);
+
+        // Select the right serializer based on file extension
+        var serializer = _extensionHost.GetSerializers()
+            .FirstOrDefault(s => s.CanImport(filePath))
+            ?? (INotebookSerializer)new VersoSerializer();
+
+        var notebook = await serializer.DeserializeAsync(content);
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();

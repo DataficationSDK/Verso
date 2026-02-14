@@ -8,6 +8,11 @@ using NuGet.Versioning;
 namespace Verso.Kernels;
 
 /// <summary>
+/// Result of resolving a NuGet package, including the resolved version and assembly paths.
+/// </summary>
+internal sealed record NuGetResolveResult(string PackageId, string ResolvedVersion, IReadOnlyList<string> AssemblyPaths);
+
+/// <summary>
 /// Downloads NuGet packages and extracts DLLs from the appropriate TFM folder.
 /// Caches packages in a temp directory.
 /// </summary>
@@ -50,9 +55,9 @@ internal sealed class NuGetPackageResolver
     }
 
     /// <summary>
-    /// Resolves a NuGet package, downloading it if not cached, and returns paths to the extracted DLLs.
+    /// Resolves a NuGet package, downloading it if not cached, and returns the resolved version and assembly paths.
     /// </summary>
-    public async Task<IReadOnlyList<string>> ResolvePackageAsync(
+    public async Task<NuGetResolveResult> ResolvePackageAsync(
         string packageId, string? version, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(packageId);
@@ -86,7 +91,7 @@ internal sealed class NuGetPackageResolver
         {
             var cachedDlls = Directory.GetFiles(packageDir, "*.dll");
             if (cachedDlls.Length > 0)
-                return cachedDlls;
+                return new NuGetResolveResult(packageId, resolvedVersion.ToString(), cachedDlls);
         }
 
         Directory.CreateDirectory(packageDir);
@@ -148,6 +153,6 @@ internal sealed class NuGetPackageResolver
         // Clean up nupkg
         try { File.Delete(tempNupkg); } catch { /* best effort */ }
 
-        return assemblyPaths;
+        return new NuGetResolveResult(packageId, resolvedVersion.ToString(), assemblyPaths);
     }
 }

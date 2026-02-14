@@ -11,6 +11,7 @@ namespace Verso.MagicCommands;
 public sealed class NuGetMagicCommand : IMagicCommand
 {
     internal const string AssemblyStoreKey = "__verso_nuget_assemblies";
+    internal const string ResolvedPackagesStoreKey = "__verso_nuget_resolved_packages";
 
     // --- IExtension (explicit for descriptive Name) ---
 
@@ -60,7 +61,7 @@ public sealed class NuGetMagicCommand : IMagicCommand
         try
         {
             var resolver = new NuGetPackageResolver();
-            var assemblyPaths = await resolver.ResolvePackageAsync(packageId, version, context.CancellationToken)
+            var result = await resolver.ResolvePackageAsync(packageId, version, context.CancellationToken)
                 .ConfigureAwait(false);
 
             // Store assembly paths in variable store for the kernel to pick up
@@ -68,12 +69,20 @@ public sealed class NuGetMagicCommand : IMagicCommand
             if (context.Variables.TryGet<List<string>>(AssemblyStoreKey, out var existing) && existing is not null)
                 existingPaths.AddRange(existing);
 
-            existingPaths.AddRange(assemblyPaths);
+            existingPaths.AddRange(result.AssemblyPaths);
             context.Variables.Set(AssemblyStoreKey, existingPaths);
+
+            // Store resolved package info for "Installed Packages" display
+            var existingResults = new List<NuGetResolveResult>();
+            if (context.Variables.TryGet<List<NuGetResolveResult>>(ResolvedPackagesStoreKey, out var existingRes) && existingRes is not null)
+                existingResults.AddRange(existingRes);
+
+            existingResults.Add(result);
+            context.Variables.Set(ResolvedPackagesStoreKey, existingResults);
 
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Installed '{packageId}' with {assemblyPaths.Count} assembl{(assemblyPaths.Count == 1 ? "y" : "ies")}."))
+                $"Installed '{result.PackageId}', {result.ResolvedVersion}"))
                 .ConfigureAwait(false);
         }
         catch (Exception ex)

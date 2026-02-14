@@ -24,7 +24,15 @@ public static class NotebookHandler
         }
         else
         {
-            var serializer = new VersoSerializer();
+            // Select serializer based on file path hint, falling back to VersoSerializer
+            INotebookSerializer serializer = new VersoSerializer();
+            if (!string.IsNullOrEmpty(p.FilePath))
+            {
+                serializer = extensionHost.GetSerializers()
+                    .FirstOrDefault(s => s.CanImport(p.FilePath))
+                    ?? serializer;
+            }
+
             notebook = await serializer.DeserializeAsync(p.Content);
         }
 

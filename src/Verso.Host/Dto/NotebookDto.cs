@@ -5,6 +5,7 @@ namespace Verso.Host.Dto;
 public sealed class NotebookOpenParams
 {
     public string Content { get; set; } = "";
+    public string? FilePath { get; set; }
 }
 
 public sealed class NotebookOpenResult
