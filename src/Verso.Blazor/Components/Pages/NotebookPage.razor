@@ -7,7 +7,7 @@
 
 <ThemeProvider ThemeEngine="@Service.Scaffold?.ThemeEngine" />
 
-<div class="verso-notebook @(_sidebarOpen ? "verso-notebook--sidebar-open" : "")"
+<div class="verso-notebook"
      tabindex="0" @onkeydown="HandleKeyDown">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
@@ -17,8 +17,7 @@
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
-             OnError="HandleError"
-             OnToggleSidebar="ToggleSidebar" />
+             OnError="HandleError" />
 
     @if (_error is not null)
     {
@@ -87,38 +86,62 @@
                 }
             </div>
 
-            @if (_sidebarOpen)
-            {
-                <div class="verso-sidebar">
-                    <div class="verso-sidebar-tabs">
-                        <button class="verso-sidebar-tab @(_sidebarTab == "metadata" ? "verso-sidebar-tab--active" : "")"
-                                @onclick='() => _sidebarTab = "metadata"'>
-                            Metadata
-                        </button>
-                        <button class="verso-sidebar-tab @(_sidebarTab == "extensions" ? "verso-sidebar-tab--active" : "")"
-                                @onclick='() => _sidebarTab = "extensions"'>
-                            Extensions
-                        </button>
-                        <button class="verso-sidebar-tab @(_sidebarTab == "variables" ? "verso-sidebar-tab--active" : "")"
-                                @onclick='() => _sidebarTab = "variables"'>
-                            Variables
-                        </button>
+            <div class="verso-panel-container">
+                @if (_activePanel is not null)
+                {
+                    <div class="verso-panel-content" @ref="_panelContentEl" style="width:@(_panelWidth)px">
+                        <div class="verso-panel-resize-handle" @ref="_resizeHandle"></div>
+                        <div class="verso-panel-header">
+                            <span class="verso-panel-title">@PanelDisplayName(_activePanel)</span>
+                            <button class="verso-panel-minimize" @onclick="CollapsePanel" title="Collapse panel">&#x203A;</button>
+                        </div>
+                        <div class="verso-panel-body">
+                            @if (_activePanel == "metadata")
+                            {
+                                <MetadataPanel Service="Service" />
+                            }
+                            else if (_activePanel == "extensions")
+                            {
+                                <ExtensionPanel Service="Service" />
+                            }
+                            else if (_activePanel == "variables")
+                            {
+                                <VariableExplorer Service="Service" />
+                            }
+                        </div>
                     </div>
+                }
 
-                    @if (_sidebarTab == "metadata")
-                    {
-                        <MetadataPanel Service="Service" />
-                    }
-                    else if (_sidebarTab == "extensions")
-                    {
-                        <ExtensionPanel Service="Service" />
-                    }
-                    else
-                    {
-                        <VariableExplorer Service="Service" />
-                    }
+                <div class="verso-panel-strip">
+                    <button class="verso-panel-strip-tab @(_activePanel == "metadata" ? "verso-panel-strip-tab--active" : "")"
+                            @onclick='() => TogglePanel("metadata")' title="Metadata">
+                        <svg class="verso-panel-strip-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="1.5" width="10" height="13" rx="1"/>
+                            <line x1="5.5" y1="5" x2="10.5" y2="5"/>
+                            <line x1="5.5" y1="7.5" x2="10.5" y2="7.5"/>
+                            <line x1="5.5" y1="10" x2="8.5" y2="10"/>
+                        </svg>
+                        <span>Metadata</span>
+                    </button>
+                    <button class="verso-panel-strip-tab @(_activePanel == "extensions" ? "verso-panel-strip-tab--active" : "")"
+                            @onclick='() => TogglePanel("extensions")' title="Extensions">
+                        <svg class="verso-panel-strip-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6.5 2.5h3v3h3v3h-3v3h-3v-3h-3v-3h3z"/>
+                        </svg>
+                        <span>Extensions</span>
+                    </button>
+                    <button class="verso-panel-strip-tab @(_activePanel == "variables" ? "verso-panel-strip-tab--active" : "")"
+                            @onclick='() => TogglePanel("variables")' title="Variables">
+                        <svg class="verso-panel-strip-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4.5 2.5c-1.5 0-2 1-2 2s1 1.5 1 2.5-.5 1-1 1.5c.5.5 1 .5 1 1.5s-1 1.5-1 2.5.5 2 2 2"/>
+                            <path d="M11.5 2.5c1.5 0 2 1 2 2s-1 1.5-1 2.5.5 1 1 1.5c-.5.5-1 .5-1 1.5s1 1.5 1 2.5-.5 2-2 2"/>
+                            <line x1="6.5" y1="6" x2="9.5" y2="10"/>
+                            <line x1="6.5" y1="10" x2="9.5" y2="6"/>
+                        </svg>
+                        <span>Variables</span>
+                    </button>
                 </div>
-            }
+            </div>
         </div>
     }
 </div>
@@ -129,8 +152,12 @@
     private string? _error;
     private string? _statusMessage;
     private CancellationTokenSource? _statusCts;
-    private bool _sidebarOpen;
-    private string _sidebarTab = "metadata";
+    private string? _activePanel;
+    private int _panelWidth = 300;
+    private DotNetObjectReference<NotebookPage>? _panelResizeRef;
+    private ElementReference _resizeHandle;
+    private ElementReference _panelContentEl;
+    private bool _panelResizeInitialized;
 
     private bool ShouldCollapseInput(CellModel cell)
     {
@@ -160,6 +187,22 @@
     {
         if (firstRender)
             await SyncMonacoThemeAsync();
+
+        if (_activePanel is not null && !_panelResizeInitialized)
+        {
+            _panelResizeInitialized = true;
+            _panelResizeRef ??= DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("versoPanel.initResize", _resizeHandle, _panelContentEl, _panelResizeRef, 200, 600);
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
+        }
+        else if (_activePanel is null)
+        {
+            _panelResizeInitialized = false;
+        }
     }
 
     private async void HandleThemeChanged()
@@ -188,9 +231,32 @@
         catch (JSException) { }
     }
 
-    private void ToggleSidebar()
+    private void TogglePanel(string panelId)
     {
-        _sidebarOpen = !_sidebarOpen;
+        if (_activePanel == panelId)
+            _activePanel = null;
+        else
+            _activePanel = panelId;
+    }
+
+    private void CollapsePanel()
+    {
+        _activePanel = null;
+    }
+
+    private static string PanelDisplayName(string panelId) => panelId switch
+    {
+        "metadata" => "METADATA",
+        "extensions" => "EXTENSIONS",
+        "variables" => "VARIABLES",
+        _ => panelId.ToUpperInvariant()
+    };
+
+    [JSInvokable]
+    public void OnPanelResized(int width)
+    {
+        _panelWidth = width;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleNew()
@@ -372,6 +438,7 @@
     {
         _statusCts?.Cancel();
         _statusCts?.Dispose();
+        _panelResizeRef?.Dispose();
         Service.OnCellExecuted -= StateHasChanged;
         Service.OnNotebookChanged -= StateHasChanged;
         Service.OnLayoutChanged -= StateHasChanged;

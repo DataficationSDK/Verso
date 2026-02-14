@@ -139,11 +139,6 @@
             </div>
         }
 
-        <div class="verso-toolbar-separator"></div>
-
-        <button class="verso-toolbar-btn" @onclick="OnToggleSidebar" title="Toggle Panels">
-            Panels
-        </button>
     }
 </div>
 
@@ -157,7 +152,7 @@
     [Parameter] public EventCallback<string> OnAddCell { get; set; }
     [Parameter] public EventCallback<string> OnActionExecuted { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
-    [Parameter] public EventCallback OnToggleSidebar { get; set; }
+
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
