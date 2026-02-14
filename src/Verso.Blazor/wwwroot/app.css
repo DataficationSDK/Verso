@@ -365,9 +365,186 @@ html, body {
 
 .verso-output--html {
     padding: var(--verso-output-padding, 8px);
-    font-family: var(--verso-prose-font-family, Georgia, serif);
+    font-family: var(--verso-prose-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif);
     font-size: var(--verso-prose-font-size, 16px);
     line-height: var(--verso-prose-font-line-height, 1.6);
+    color: var(--verso-editor-foreground, #1F2328);
+    word-wrap: break-word;
+}
+
+/* Markdown prose — headings */
+
+.verso-output--html h1,
+.verso-output--html h2,
+.verso-output--html h3,
+.verso-output--html h4,
+.verso-output--html h5,
+.verso-output--html h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.verso-output--html h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid var(--verso-border-default, #D1D9E0); }
+.verso-output--html h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--verso-border-default, #D1D9E0); }
+.verso-output--html h3 { font-size: 1.25em; }
+.verso-output--html h4 { font-size: 1em; }
+.verso-output--html h5 { font-size: 0.875em; }
+.verso-output--html h6 { font-size: 0.85em; color: var(--verso-editor-line-number, #858585); }
+
+.verso-output--html h1:first-child,
+.verso-output--html h2:first-child,
+.verso-output--html h3:first-child,
+.verso-output--html h4:first-child,
+.verso-output--html h5:first-child,
+.verso-output--html h6:first-child {
+    margin-top: 0;
+}
+
+/* Markdown prose — paragraphs and block elements */
+
+.verso-output--html p,
+.verso-output--html blockquote,
+.verso-output--html ul,
+.verso-output--html ol,
+.verso-output--html dl,
+.verso-output--html table,
+.verso-output--html pre {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+/* Markdown prose — lists */
+
+.verso-output--html ul,
+.verso-output--html ol {
+    padding-left: 2em;
+}
+
+.verso-output--html li {
+    margin-top: 0.25em;
+}
+
+.verso-output--html li + li {
+    margin-top: 0.25em;
+}
+
+.verso-output--html li > p {
+    margin-top: 16px;
+}
+
+/* Markdown prose — blockquotes */
+
+.verso-output--html blockquote {
+    padding: 0 1em;
+    color: var(--verso-editor-line-number, #656D76);
+    border-left: 0.25em solid var(--verso-border-default, #D1D9E0);
+}
+
+.verso-output--html blockquote > :first-child { margin-top: 0; }
+.verso-output--html blockquote > :last-child { margin-bottom: 0; }
+
+/* Markdown prose — inline code */
+
+.verso-output--html code {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    white-space: break-spaces;
+    background: var(--verso-code-inline-background, rgba(175, 184, 193, 0.2));
+    border-radius: 6px;
+    font-family: var(--verso-editor-font-family, 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace);
+}
+
+/* Markdown prose — fenced code blocks */
+
+.verso-output--html pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    background: var(--verso-cell-output-background, #F6F8FA);
+    border-radius: 6px;
+}
+
+.verso-output--html pre code {
+    padding: 0;
+    margin: 0;
+    font-size: 100%;
+    white-space: pre;
+    background: transparent;
+    border-radius: 0;
+    line-height: inherit;
+    word-wrap: normal;
+}
+
+/* Markdown prose — tables */
+
+.verso-output--html table {
+    border-spacing: 0;
+    border-collapse: collapse;
+    width: auto;
+    max-width: 100%;
+    overflow: auto;
+    display: block;
+}
+
+.verso-output--html table th,
+.verso-output--html table td {
+    padding: 6px 13px;
+    border: 1px solid var(--verso-border-default, #D1D9E0);
+}
+
+.verso-output--html table th {
+    font-weight: 600;
+    background: var(--verso-cell-output-background, #F6F8FA);
+}
+
+.verso-output--html table tr:nth-child(2n) {
+    background: var(--verso-cell-output-background, #F6F8FA);
+}
+
+/* Markdown prose — horizontal rules */
+
+.verso-output--html hr {
+    height: 0.25em;
+    padding: 0;
+    margin: 24px 0;
+    background-color: var(--verso-border-default, #D1D9E0);
+    border: 0;
+}
+
+/* Markdown prose — images */
+
+.verso-output--html img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+/* Markdown prose — links */
+
+.verso-output--html a {
+    color: var(--verso-accent-primary, #0969DA);
+    text-decoration: none;
+}
+
+.verso-output--html a:hover {
+    text-decoration: underline;
+}
+
+/* Markdown prose — task lists */
+
+.verso-output--html .task-list-item {
+    list-style-type: none;
+    position: relative;
+    padding-left: 0;
+}
+
+.verso-output--html input[type="checkbox"] {
+    margin: 0 0.35em 0.25em -1.4em;
+    vertical-align: middle;
 }
 
 .verso-output--error {
