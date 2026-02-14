@@ -59,6 +59,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
+        await RestoreLayoutMetadataAsync();
         _filePath = filePath;
         SubscribeToEngineEvents();
 
@@ -82,6 +83,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
+        await RestoreLayoutMetadataAsync();
         _filePath = null; // No on-disk path — opened from browser upload
         SubscribeToEngineEvents();
 
@@ -259,6 +261,19 @@ public sealed class NotebookService : IAsyncDisposable
     {
         if (_extensionHost is null) return;
         await _extensionHost.DisableExtensionAsync(extensionId);
+    }
+
+    /// <summary>
+    /// Restores saved layout metadata (e.g. dashboard grid positions) from the notebook model
+    /// into the matching layout engines.
+    /// </summary>
+    private async Task RestoreLayoutMetadataAsync()
+    {
+        if (_scaffold?.LayoutManager is not { } lm) return;
+        if (_scaffold.Notebook.Layouts.Count == 0) return;
+
+        var context = new BlazorToolbarActionContext(_scaffold, Array.Empty<Guid>());
+        await lm.RestoreMetadataAsync(_scaffold.Notebook, context);
     }
 
     /// <summary>
