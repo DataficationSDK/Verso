@@ -58,6 +58,7 @@ public sealed class NotebookService : IAsyncDisposable
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
+        EnsureDefaults();
         _filePath = filePath;
         SubscribeToEngineEvents();
 
@@ -80,6 +81,7 @@ public sealed class NotebookService : IAsyncDisposable
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
+        EnsureDefaults();
         _filePath = null; // No on-disk path — opened from browser upload
         SubscribeToEngineEvents();
 
@@ -120,6 +122,7 @@ public sealed class NotebookService : IAsyncDisposable
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
+        EnsureDefaults();
         _scaffold.AddCell("code", "csharp");
         _filePath = null;
         SubscribeToEngineEvents();
@@ -256,6 +259,33 @@ public sealed class NotebookService : IAsyncDisposable
     {
         if (_extensionHost is null) return;
         await _extensionHost.DisableExtensionAsync(extensionId);
+    }
+
+    /// <summary>
+    /// Ensures the scaffold has a default active layout and theme so the toolbar
+    /// displays the correct names from the very first render.
+    /// </summary>
+    private void EnsureDefaults()
+    {
+        if (_scaffold is null || _extensionHost is null) return;
+
+        // Default layout: prefer the first non-custom-renderer layout (i.e. "notebook")
+        if (_scaffold.LayoutManager is { ActiveLayout: null } lm)
+        {
+            var defaultLayout = lm.AvailableLayouts
+                .FirstOrDefault(l => !l.RequiresCustomRenderer)
+                ?? lm.AvailableLayouts.FirstOrDefault();
+            if (defaultLayout is not null)
+                lm.SetActiveLayout(defaultLayout.LayoutId);
+        }
+
+        // Default theme: first available
+        if (_scaffold.ThemeEngine is { ActiveTheme: null } te)
+        {
+            var defaultTheme = _extensionHost.GetThemes().FirstOrDefault();
+            if (defaultTheme is not null)
+                te.SetActiveTheme(defaultTheme.ThemeId);
+        }
     }
 
     private void SubscribeToEngineEvents()
