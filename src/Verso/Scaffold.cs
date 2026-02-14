@@ -330,6 +330,12 @@ public sealed class Scaffold : IAsyncDisposable
             .FirstOrDefault(ek => string.Equals(ek.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
     }
 
+    private IMagicCommand? ResolveMagicCommand(string name)
+    {
+        return _extensionHost?.GetMagicCommands()
+            .FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
     private ExecutionPipeline BuildPipeline()
     {
         return new ExecutionPipeline(
@@ -342,6 +348,7 @@ public sealed class Scaffold : IAsyncDisposable
             ResolveKernel,
             EnsureInitialized,
             ResolveLanguageId,
-            GetExecutionCount);
+            GetExecutionCount,
+            ResolveMagicCommand);
     }
 }

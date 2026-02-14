@@ -57,6 +57,23 @@ internal sealed class RoslynWorkspaceManager : IDisposable
     }
 
     /// <summary>
+    /// Adds metadata references from assembly paths so that future intellisense operations
+    /// can resolve types from those assemblies.
+    /// </summary>
+    public void AddReferences(IEnumerable<string> assemblyPaths)
+    {
+        var refs = assemblyPaths
+            .Where(File.Exists)
+            .Select(p => MetadataReference.CreateFromFile(p))
+            .ToArray();
+
+        if (refs.Length == 0) return;
+
+        var solution = _workspace.CurrentSolution.AddMetadataReferences(_projectId, refs);
+        _workspace.TryApplyChanges(solution);
+    }
+
+    /// <summary>
     /// Records a successfully executed cell source for future intellisense context.
     /// </summary>
     public void AppendExecutedCode(string code)

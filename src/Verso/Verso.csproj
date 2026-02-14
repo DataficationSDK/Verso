@@ -23,6 +23,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.12.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="4.12.0" />
+    <PackageReference Include="NuGet.Protocol" Version="6.9.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using Verso.Abstractions;
+using Verso.MagicCommands;
 
 using VersoDiagnostic = Verso.Abstractions.Diagnostic;
 
@@ -13,6 +15,10 @@ namespace Verso.Kernels;
 [VersoExtension]
 public sealed class CSharpKernel : ILanguageKernel
 {
+    private static readonly Regex NuGetReferenceRegex = new(
+        @"^#r\s+""nuget:\s*([^""]+)""",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
     private readonly CSharpKernelOptions _options;
     private readonly SemaphoreSlim _executionLock = new(1, 1);
     private ScriptStateManager? _stateManager;
@@ -74,10 +80,29 @@ public sealed class CSharpKernel : ILanguageKernel
         var originalOut = Console.Out;
         try
         {
+            // Process #r "nuget:" directives
+            var (cleanedCode, nugetAssemblyPaths) = await ProcessNuGetReferencesAsync(
+                code, context.CancellationToken).ConfigureAwait(false);
+
+            // Check for assemblies from #!nuget magic command
+            if (context.Variables.TryGet<List<string>>(NuGetMagicCommand.AssemblyStoreKey, out var magicPaths)
+                && magicPaths is { Count: > 0 })
+            {
+                nugetAssemblyPaths.AddRange(magicPaths);
+                context.Variables.Remove(NuGetMagicCommand.AssemblyStoreKey);
+            }
+
+            // Add references if any
+            if (nugetAssemblyPaths.Count > 0)
+            {
+                _stateManager!.AddReferences(nugetAssemblyPaths);
+                _workspaceManager!.AddReferences(nugetAssemblyPaths);
+            }
+
             var consoleWriter = new StringWriter();
             Console.SetOut(consoleWriter);
 
-            var scriptState = await _stateManager!.RunAsync(code, context.CancellationToken)
+            var scriptState = await _stateManager!.RunAsync(cleanedCode, context.CancellationToken)
                 .ConfigureAwait(false);
 
             var outputs = new List<CellOutput>();
@@ -172,6 +197,32 @@ public sealed class CSharpKernel : ILanguageKernel
 
         _workspaceManager?.Dispose();
         _executionLock.Dispose();
+    }
+
+    private async Task<(string CleanedCode, List<string> AssemblyPaths)> ProcessNuGetReferencesAsync(
+        string code, CancellationToken ct)
+    {
+        var matches = NuGetReferenceRegex.Matches(code);
+        if (matches.Count == 0)
+            return (code, new List<string>());
+
+        var assemblyPaths = new List<string>();
+        var resolver = new NuGetPackageResolver();
+
+        foreach (Match match in matches)
+        {
+            var directive = match.Groups[1].Value;
+            var parsed = NuGetPackageResolver.ParseNuGetReference(directive);
+            if (parsed is null) continue;
+
+            var paths = await resolver.ResolvePackageAsync(parsed.Value.PackageId, parsed.Value.Version, ct)
+                .ConfigureAwait(false);
+            assemblyPaths.AddRange(paths);
+        }
+
+        // Remove the #r "nuget:" lines from the code
+        var cleanedCode = NuGetReferenceRegex.Replace(code, "").Trim();
+        return (cleanedCode, assemblyPaths);
     }
 
     private void EnsureInitialized()

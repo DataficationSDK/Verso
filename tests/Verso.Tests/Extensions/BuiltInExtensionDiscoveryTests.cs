@@ -7,13 +7,13 @@ namespace Verso.Tests.Extensions;
 public sealed class BuiltInExtensionDiscoveryTests
 {
     [TestMethod]
-    public async Task LoadBuiltInExtensions_Discovers15Extensions()
+    public async Task LoadBuiltInExtensions_Discovers20Extensions()
     {
         await using var host = new ExtensionHost();
         await host.LoadBuiltInExtensionsAsync();
 
         var all = host.GetLoadedExtensions();
-        Assert.AreEqual(15, all.Count, $"Expected 15 extensions, got {all.Count}: {string.Join(", ", all.Select(e => e.ExtensionId))}");
+        Assert.AreEqual(20, all.Count, $"Expected 20 extensions, got {all.Count}: {string.Join(", ", all.Select(e => e.ExtensionId))}");
     }
 
     [TestMethod]

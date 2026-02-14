@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
@@ -9,7 +10,7 @@ namespace Verso.Kernels;
 /// </summary>
 internal sealed class ScriptStateManager : IAsyncDisposable
 {
-    private readonly ScriptOptions _baseOptions;
+    private ScriptOptions _baseOptions;
     private ScriptState<object>? _lastState;
 
     public ScriptStateManager(ScriptOptions baseOptions)
@@ -52,6 +53,20 @@ internal sealed class ScriptStateManager : IAsyncDisposable
             dict[variable.Name] = variable.Value;
         }
         return dict;
+    }
+
+    /// <summary>
+    /// Adds metadata references from assembly paths so that subsequent executions can use those types.
+    /// </summary>
+    public void AddReferences(IEnumerable<string> assemblyPaths)
+    {
+        var refs = assemblyPaths
+            .Where(File.Exists)
+            .Select(p => MetadataReference.CreateFromFile(p))
+            .ToArray();
+
+        if (refs.Length > 0)
+            _baseOptions = _baseOptions.AddReferences(refs);
     }
 
     public ValueTask DisposeAsync()

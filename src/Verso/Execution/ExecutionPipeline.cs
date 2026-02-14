@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Verso.Abstractions;
 using Verso.Contexts;
+using Verso.MagicCommands;
 
 namespace Verso.Execution;
 
@@ -23,6 +24,7 @@ internal sealed class ExecutionPipeline
     private readonly Func<ILanguageKernel, Task> _ensureInitialized;
     private readonly Func<Guid, string?> _resolveLanguageId;
     private readonly Func<Guid, int> _getExecutionCount;
+    private readonly Func<string, IMagicCommand?> _resolveMagicCommand;
 
     public ExecutionPipeline(
         IVariableStore variables,
@@ -34,7 +36,8 @@ internal sealed class ExecutionPipeline
         Func<string, ILanguageKernel?> resolveKernel,
         Func<ILanguageKernel, Task> ensureInitialized,
         Func<Guid, string?> resolveLanguageId,
-        Func<Guid, int> getExecutionCount)
+        Func<Guid, int> getExecutionCount,
+        Func<string, IMagicCommand?>? resolveMagicCommand = null)
     {
         _variables = variables;
         _theme = theme;
@@ -46,6 +49,7 @@ internal sealed class ExecutionPipeline
         _ensureInitialized = ensureInitialized;
         _resolveLanguageId = resolveLanguageId;
         _getExecutionCount = getExecutionCount;
+        _resolveMagicCommand = resolveMagicCommand ?? (_ => null);
     }
 
     public async Task<ExecutionResult> ExecuteAsync(CellModel cell, CancellationToken ct)
@@ -151,6 +155,43 @@ internal sealed class ExecutionPipeline
             return Task.CompletedTask;
         }
 
+        // --- Magic command interception ---
+        var parseResult = MagicCommandParser.Parse(cell.Source);
+        bool reportElapsedTime = false;
+
+        if (parseResult.IsMagicCommand)
+        {
+            var magicCommand = _resolveMagicCommand(parseResult.CommandName!);
+            if (magicCommand is not null)
+            {
+                var magicContext = new MagicCommandContext(
+                    parseResult.RemainingCode,
+                    _variables,
+                    ct,
+                    _theme,
+                    _layoutCapabilities,
+                    _extensionHost,
+                    _notebookMetadata,
+                    _notebook,
+                    AppendOutput);
+
+                await magicCommand.ExecuteAsync(parseResult.Arguments ?? "", magicContext).ConfigureAwait(false);
+
+                if (magicContext.SuppressExecution || string.IsNullOrWhiteSpace(parseResult.RemainingCode))
+                {
+                    stopwatch.Stop();
+                    return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
+                }
+
+                reportElapsedTime = magicContext.ReportElapsedTime;
+            }
+        }
+
+        // Determine the code to execute: if magic command was found, use remaining code; otherwise full source
+        var codeToExecute = parseResult.IsMagicCommand && _resolveMagicCommand(parseResult.CommandName!) is not null
+            ? parseResult.RemainingCode
+            : cell.Source;
+
         var context = new Contexts.ExecutionContext(
             cell.Id,
             executionCount,
@@ -166,7 +207,7 @@ internal sealed class ExecutionPipeline
 
         ct.ThrowIfCancellationRequested();
 
-        var returnedOutputs = await kernel.ExecuteAsync(cell.Source, context).ConfigureAwait(false);
+        var returnedOutputs = await kernel.ExecuteAsync(codeToExecute, context).ConfigureAwait(false);
 
         if (returnedOutputs is { Count: > 0 })
         {
@@ -181,6 +222,16 @@ internal sealed class ExecutionPipeline
         }
 
         stopwatch.Stop();
+
+        if (reportElapsedTime)
+        {
+            var elapsedOutput = new CellOutput("text/plain", $"Wall time: {stopwatch.Elapsed.TotalMilliseconds:F1}ms");
+            lock (outputLock)
+            {
+                cell.Outputs.Add(elapsedOutput);
+            }
+        }
+
         return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
     }
 
