@@ -51,4 +51,24 @@ public interface INotebookOperations
     /// Moves a cell to a new position in the notebook.
     /// </summary>
     Task MoveCellAsync(Guid cellId, int newIndex);
+
+    /// <summary>
+    /// Gets the identifier of the currently active layout.
+    /// </summary>
+    string? ActiveLayoutId { get; }
+
+    /// <summary>
+    /// Switches the active layout engine by its layout identifier.
+    /// </summary>
+    void SetActiveLayout(string layoutId);
+
+    /// <summary>
+    /// Gets the identifier of the currently active theme.
+    /// </summary>
+    string? ActiveThemeId { get; }
+
+    /// <summary>
+    /// Switches the active theme by its theme identifier.
+    /// </summary>
+    void SetActiveTheme(string themeId);
 }

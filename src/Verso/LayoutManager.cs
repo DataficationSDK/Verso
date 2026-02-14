@@ -30,6 +30,16 @@ public sealed class LayoutManager
     public IReadOnlyList<ILayoutEngine> AvailableLayouts => _availableLayouts;
 
     /// <summary>
+    /// Raised when the active layout changes.
+    /// </summary>
+    public event Action<ILayoutEngine>? OnLayoutChanged;
+
+    /// <summary>
+    /// Gets whether the active layout requires a custom renderer.
+    /// </summary>
+    public bool RequiresCustomRenderer => _activeLayout?.RequiresCustomRenderer ?? false;
+
+    /// <summary>
     /// Gets the capabilities supported by the active layout.
     /// When no layout is active, all capabilities are granted so that the notebook is fully functional.
     /// </summary>
@@ -49,6 +59,7 @@ public sealed class LayoutManager
             l => string.Equals(l.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"Layout '{layoutId}' not found.");
         _activeLayout = layout;
+        OnLayoutChanged?.Invoke(layout);
     }
 
     /// <summary>

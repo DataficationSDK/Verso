@@ -197,6 +197,46 @@ public sealed class RangeDto
     public int EndColumn { get; set; }
 }
 
+// --- Layout ---
+
+public sealed class LayoutsResult
+{
+    public List<LayoutDto> Layouts { get; set; } = new();
+}
+
+public sealed class LayoutDto
+{
+    public string Id { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string? Icon { get; set; }
+    public bool RequiresCustomRenderer { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class LayoutSwitchParams
+{
+    public string LayoutId { get; set; } = "";
+}
+
+public sealed class LayoutRenderResult
+{
+    public string Html { get; set; } = "";
+}
+
+public sealed class LayoutUpdateCellParams
+{
+    public string CellId { get; set; } = "";
+    public int Row { get; set; }
+    public int Col { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+}
+
+public sealed class LayoutSetEditModeParams
+{
+    public bool EditMode { get; set; }
+}
+
 // --- Theme ---
 
 public sealed class ThemeResult
@@ -238,4 +278,17 @@ public sealed class ThemeSpacingDto
     public double ButtonBorderRadius { get; set; }
     public double OutputPadding { get; set; }
     public double ScrollbarWidth { get; set; }
+}
+
+public sealed class ThemesResult
+{
+    public List<ThemeListItemDto> Themes { get; set; } = new();
+}
+
+public sealed class ThemeListItemDto
+{
+    public string Id { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string ThemeKind { get; set; } = "";
+    public bool IsActive { get; set; }
 }

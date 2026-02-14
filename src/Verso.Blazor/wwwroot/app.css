@@ -171,6 +171,25 @@ html, body {
     font-size: 12px;
 }
 
+/* === Status Banner === */
+
+.verso-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px var(--verso-content-margin-horizontal, 24px);
+    background: var(--verso-cell-success-background, #DFF6DD);
+    color: var(--verso-cell-success-foreground, #1E7B34);
+    font-size: 13px;
+    border-bottom: 1px solid var(--verso-status-success, #28A745);
+}
+
+/* === Browse Button === */
+
+.verso-toolbar-btn--browse {
+    cursor: pointer;
+}
+
 /* === Cell List === */
 
 .verso-cell-list {
@@ -425,6 +444,190 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--verso-scrollbar-thumb-hover, #A8A8A8);
+}
+
+/* === Dashboard Grid Layout === */
+
+.verso-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: 50px;
+    gap: var(--verso-cell-gap, 8px);
+    padding: var(--verso-content-margin-vertical, 16px) var(--verso-content-margin-horizontal, 24px);
+    align-content: start;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.verso-dashboard-cell {
+    position: relative;
+    border: 1px solid var(--verso-cell-border, #E0E0E0);
+    border-radius: var(--verso-cell-border-radius, 6px);
+    background: var(--verso-cell-background, #FFFFFF);
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.verso-dashboard-cell:hover {
+    border-color: var(--verso-cell-active-border, #0078D4);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.verso-dashboard-cell-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--verso-toolbar-background, #F5F5F5);
+    border-bottom: 1px solid var(--verso-cell-border, #E0E0E0);
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.verso-dashboard-cell:hover .verso-dashboard-cell-toolbar {
+    opacity: 1;
+}
+
+.verso-dashboard-cell-output {
+    flex: 1;
+    overflow: auto;
+    padding: 10px 12px;
+}
+
+.verso-dashboard-cell-output pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.verso-dashboard-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+}
+
+.verso-dashboard-resize-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--verso-editor-line-number, #858585);
+    border-bottom: 2px solid var(--verso-editor-line-number, #858585);
+}
+
+.verso-dashboard-cell:hover .verso-dashboard-resize-handle {
+    opacity: 1;
+}
+
+.verso-dashboard-cell.verso-resizing {
+    opacity: 0.7;
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.verso-dashboard-cell.verso-dragging {
+    opacity: 0.3;
+}
+
+.verso-dashboard-drag-handle {
+    cursor: grab;
+}
+
+.verso-dashboard-drag-handle:active {
+    cursor: grabbing;
+}
+
+.verso-dashboard-drag-icon {
+    margin-left: auto;
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 14px;
+    cursor: grab;
+    user-select: none;
+}
+
+.verso-dashboard-edit-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 8px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-line-number, #858585);
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.verso-dashboard-edit-toggle:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-dashboard-edit-modal {
+    margin: 0 12px 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: 2px;
+}
+
+/* Layout switcher active button */
+
+.verso-toolbar-btn--active {
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+}
+
+.verso-toolbar-btn--active:hover:not(:disabled) {
+    background: var(--verso-accent-secondary, #005A9E);
+}
+
+/* Toolbar dropdown toggle */
+
+.verso-toolbar-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.verso-toolbar-dropdown-chevron {
+    padding: 0 4px;
+    font-size: 10px;
+    min-width: 20px;
+}
+
+.verso-toolbar-dropdown-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+    background: var(--verso-toolbar-background, #F3F3F3);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 100;
+    padding: 2px;
+}
+
+.verso-toolbar-dropdown-popup .verso-toolbar-btn {
+    justify-content: flex-start;
+    width: 100%;
+    border-radius: 2px;
 }
 
 /* === Responsive === */

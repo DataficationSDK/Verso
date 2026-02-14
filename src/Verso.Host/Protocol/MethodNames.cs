@@ -36,4 +36,15 @@ public static class MethodNames
 
     // Output
     public const string OutputClearAll = "output/clearAll";
+
+    // Layout
+    public const string LayoutGetLayouts = "layout/getLayouts";
+    public const string LayoutSwitch = "layout/switch";
+    public const string LayoutRender = "layout/render";
+    public const string LayoutUpdateCell = "layout/updateCell";
+    public const string LayoutSetEditMode = "layout/setEditMode";
+
+    // Theme
+    public const string ThemeGetThemes = "theme/getThemes";
+    public const string ThemeSwitch = "theme/switch";
 }

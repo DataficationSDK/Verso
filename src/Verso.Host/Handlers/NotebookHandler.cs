@@ -56,6 +56,9 @@ public static class NotebookHandler
     public static async Task<NotebookSaveResult> HandleSaveAsync(HostSession session)
     {
         session.EnsureSession();
+        // Flush layout metadata (grid positions, etc.) into the notebook model
+        if (session.Scaffold!.LayoutManager is { } lm)
+            await lm.SaveMetadataAsync(session.Scaffold!.Notebook);
         var serializer = new VersoSerializer();
         var content = await serializer.SerializeAsync(session.Scaffold!.Notebook);
         return new NotebookSaveResult { Content = content };

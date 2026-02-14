@@ -1,6 +1,7 @@
 @page "/"
 @implements IDisposable
 @inject NotebookService Service
+@inject IJSRuntime JS
 
 <PageTitle>Verso Notebook</PageTitle>
 
@@ -11,6 +12,7 @@
              SelectedCellId="_selectedCellId"
              OnNewNotebook="HandleNew"
              OnOpenNotebook="HandleOpen"
+             OnBrowseNotebook="HandleBrowse"
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
@@ -24,6 +26,13 @@
         </div>
     }
 
+    @if (_statusMessage is not null)
+    {
+        <div class="verso-status-banner">
+            <span>@_statusMessage</span>
+        </div>
+    }
+
     @if (!Service.IsLoaded)
     {
         <div class="verso-welcome">
@@ -31,6 +40,14 @@
             <p>Create a new notebook or open an existing <code>.verso</code> or <code>.ipynb</code> file to get started.</p>
             <button class="verso-welcome-btn" @onclick="HandleNew">New Notebook</button>
         </div>
+    }
+    else if (IsDashboardLayout)
+    {
+        <DashboardGrid Service="Service"
+                       Cells="Service.Scaffold!.Cells"
+                       ExecutingCellId="_executingCellId"
+                       OnRunCell="HandleRunCell"
+                       OnSourceChanged="HandleSourceChanged" />
     }
     else
     {
@@ -65,11 +82,44 @@
     private Guid? _selectedCellId;
     private Guid? _executingCellId;
     private string? _error;
+    private string? _statusMessage;
+    private CancellationTokenSource? _statusCts;
+
+    private bool IsDashboardLayout =>
+        Service.Scaffold?.LayoutManager?.ActiveLayout?.RequiresCustomRenderer == true;
+
+    private string MonacoThemeName =>
+        Service.Scaffold?.ThemeEngine?.ActiveTheme?.ThemeKind == Verso.Abstractions.ThemeKind.Dark
+            ? "vs-dark" : "vs";
 
     protected override void OnInitialized()
     {
         Service.OnCellExecuted += StateHasChanged;
         Service.OnNotebookChanged += StateHasChanged;
+        Service.OnLayoutChanged += StateHasChanged;
+        Service.OnThemeChanged += HandleThemeChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await SyncMonacoThemeAsync();
+    }
+
+    private async void HandleThemeChanged()
+    {
+        await SyncMonacoThemeAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SyncMonacoThemeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoMonaco.setTheme", MonacoThemeName);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     private async Task HandleNew()
@@ -79,6 +129,7 @@
             _error = null;
             await Service.NewNotebookAsync();
             _selectedCellId = Service.Scaffold?.Cells.FirstOrDefault()?.Id;
+            await SyncMonacoThemeAsync();
         }
         catch (Exception ex)
         {
@@ -93,6 +144,22 @@
             _error = null;
             await Service.OpenAsync(filePath);
             _selectedCellId = Service.Scaffold?.Cells.FirstOrDefault()?.Id;
+            await SyncMonacoThemeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to open file: {ex.Message}";
+        }
+    }
+
+    private async Task HandleBrowse((string FileName, string Content) args)
+    {
+        try
+        {
+            _error = null;
+            await Service.OpenFromContentAsync(args.FileName, args.Content);
+            _selectedCellId = Service.Scaffold?.Cells.FirstOrDefault()?.Id;
+            await SyncMonacoThemeAsync();
         }
         catch (Exception ex)
         {
@@ -107,11 +174,30 @@
             _error = null;
             var path = Service.FilePath ?? "notebook.verso";
             await Service.SaveAsync(path);
+            await ShowStatusAsync($"Saved to {System.IO.Path.GetFileName(path)}");
         }
         catch (Exception ex)
         {
             _error = $"Failed to save: {ex.Message}";
         }
+    }
+
+    private async Task ShowStatusAsync(string message)
+    {
+        _statusCts?.Cancel();
+        _statusCts = new CancellationTokenSource();
+        var token = _statusCts.Token;
+
+        _statusMessage = message;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(3000, token);
+            _statusMessage = null;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
     }
 
     private Task HandleAddCell(string type)
@@ -194,7 +280,11 @@
 
     public void Dispose()
     {
+        _statusCts?.Cancel();
+        _statusCts?.Dispose();
         Service.OnCellExecuted -= StateHasChanged;
         Service.OnNotebookChanged -= StateHasChanged;
+        Service.OnLayoutChanged -= StateHasChanged;
+        Service.OnThemeChanged -= HandleThemeChanged;
     }
 }

@@ -27,6 +27,12 @@ public interface ILayoutEngine : IExtension
     LayoutCapabilities Capabilities { get; }
 
     /// <summary>
+    /// Indicates whether this layout requires a custom renderer (e.g. a webview panel)
+    /// instead of the standard notebook cell-by-cell rendering.
+    /// </summary>
+    bool RequiresCustomRenderer { get; }
+
+    /// <summary>
     /// Renders the full layout for the given cells.
     /// </summary>
     /// <param name="cells">The ordered list of cell models to arrange.</param>

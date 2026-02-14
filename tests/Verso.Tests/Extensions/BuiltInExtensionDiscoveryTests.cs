@@ -13,7 +13,8 @@ public sealed class BuiltInExtensionDiscoveryTests
         await host.LoadBuiltInExtensionsAsync();
 
         var all = host.GetLoadedExtensions();
-        Assert.AreEqual(20, all.Count, $"Expected 20 extensions, got {all.Count}: {string.Join(", ", all.Select(e => e.ExtensionId))}");
+        Assert.AreEqual(24, all.Count, $"Expected 24 extensions, got {all.Count}: {string.Join(", ", all.Select(e => e.ExtensionId))}");
+
     }
 
     [TestMethod]
@@ -65,7 +66,7 @@ public sealed class BuiltInExtensionDiscoveryTests
         await using var host = new ExtensionHost();
         await host.LoadBuiltInExtensionsAsync();
 
-        Assert.AreEqual(5, host.GetFormatters().Count);
+        Assert.AreEqual(6, host.GetFormatters().Count);
     }
 
     [TestMethod]
@@ -83,6 +84,6 @@ public sealed class BuiltInExtensionDiscoveryTests
         await using var host = new ExtensionHost();
         await host.LoadBuiltInExtensionsAsync();
 
-        Assert.AreEqual(1, host.GetLayouts().Count);
+        Assert.AreEqual(2, host.GetLayouts().Count);
     }
 }

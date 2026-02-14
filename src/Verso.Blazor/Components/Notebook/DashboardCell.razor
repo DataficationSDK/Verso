@@ -1,0 +1,128 @@
+@using Verso.Abstractions
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="verso-dashboard-cell"
+     id="@_elementId"
+     style="grid-column:@((int)Position.X + 1)/span @((int)Position.Width);grid-row:@((int)Position.Y + 1)/span @((int)Position.Height);">
+
+    <div class="verso-dashboard-cell-toolbar verso-dashboard-drag-handle">
+        <button class="verso-cell-btn verso-cell-btn--run"
+                @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
+                disabled="@IsExecuting"
+                title="Run">
+            @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
+        </button>
+        <button class="verso-dashboard-edit-toggle"
+                @onclick="ToggleEdit"
+                title="Toggle Code">
+            @(_showCode ? "Hide Code" : "Edit")
+        </button>
+        <span class="verso-dashboard-drag-icon" title="Drag to move">&#x2630;</span>
+    </div>
+
+    @if (_showCode)
+    {
+        <div class="verso-dashboard-edit-modal">
+            <MonacoEditor Value="@CellData.Source"
+                          Language="@EditorLanguage"
+                          OnValueChanged="HandleSourceChanged" />
+        </div>
+    }
+
+    <div class="verso-dashboard-cell-output">
+        @if (CellData.Outputs.Count > 0)
+        {
+            @foreach (var output in CellData.Outputs)
+            {
+                @if (output.IsError)
+                {
+                    <div class="verso-output verso-output--error">
+                        <div class="verso-output-error-name">@(output.ErrorName ?? "Error")</div>
+                        <pre class="verso-output-error-content">@output.Content</pre>
+                    </div>
+                }
+                else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
+                {
+                    <div class="verso-output verso-output--html">
+                        @((MarkupString)output.Content)
+                    </div>
+                }
+                else
+                {
+                    <div class="verso-output verso-output--text">
+                        <pre>@output.Content</pre>
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            <div class="verso-output verso-output--text">
+                <pre>@CellData.Source</pre>
+            </div>
+        }
+    </div>
+
+    <div class="verso-dashboard-resize-handle" data-cell-id="@CellData.Id"></div>
+</div>
+
+@code {
+    [Parameter] public CellModel CellData { get; set; } = default!;
+    [Parameter] public CellContainerInfo Position { get; set; } = default!;
+    [Parameter] public bool IsExecuting { get; set; }
+    [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, int ColSpan, int RowSpan)> OnResized { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, int Col, int Row)> OnMoved { get; set; }
+
+    private bool _showCode;
+    private bool _jsInitialized;
+    private DotNetObjectReference<DashboardCell>? _dotnetRef;
+
+    private string _elementId => $"verso-cell-{CellData.Id}";
+    private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
+
+    private void ToggleEdit() => _showCode = !_showCode;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || !_jsInitialized)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("versoDashboard.initResizable", _elementId, _dotnetRef);
+                await JS.InvokeVoidAsync("versoDashboard.initDraggable", _elementId, _dotnetRef);
+                _jsInitialized = true;
+            }
+            catch (JSException)
+            {
+                // JS not yet loaded
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnResizeComplete(int colSpan, int rowSpan)
+    {
+        await OnResized.InvokeAsync((CellData.Id, colSpan, rowSpan));
+    }
+
+    [JSInvokable]
+    public async Task OnMoveComplete(int col, int row)
+    {
+        await OnMoved.InvokeAsync((CellData.Id, col, row));
+    }
+
+    private async Task HandleSourceChanged(string newSource)
+    {
+        await OnSourceChanged.InvokeAsync((CellData.Id, newSource));
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _dotnetRef?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

@@ -10,15 +10,19 @@
     @if (_showOpenInput)
     {
         <div class="verso-toolbar-group">
-            <input class="verso-toolbar-input" @bind="_openFilePath" placeholder="File path..." @onkeydown="OnOpenKeyDown" />
+            <input class="verso-toolbar-input" @bind="_openFilePath" placeholder="File path or URL..." @onkeydown="OnOpenKeyDown" />
             <button class="verso-toolbar-btn" @onclick="OnOpenFile">Go</button>
+            <label class="verso-toolbar-btn verso-toolbar-btn--browse">
+                Browse
+                <InputFile accept=".verso,.ipynb" OnChange="OnFileSelected" style="display:none" />
+            </label>
             <button class="verso-toolbar-btn" @onclick="() => _showOpenInput = false">Cancel</button>
         </div>
     }
 
     <div class="verso-toolbar-separator"></div>
 
-    @foreach (var action in _mainToolbarActions)
+    @foreach (var action in _filteredToolbarActions)
     {
         var a = action;
         var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
@@ -36,6 +40,74 @@
         <button class="verso-toolbar-btn" @onclick="OnAddCodeCell" disabled="@(!Service.IsLoaded)" title="Add Code Cell">+ Code</button>
         <button class="verso-toolbar-btn" @onclick="OnAddMarkdownCell" disabled="@(!Service.IsLoaded)" title="Add Markdown Cell">+ Markdown</button>
     </div>
+
+    @if (_availableLayouts.Count > 1)
+    {
+        <div class="verso-toolbar-separator"></div>
+
+        <div class="verso-toolbar-dropdown" @onfocusout="OnLayoutDropdownFocusOut" tabindex="-1">
+            <button class="verso-toolbar-btn"
+                    disabled="@(!Service.IsLoaded)"
+                    title="Switch Layout"
+                    @onclick="CycleLayout">
+                @ActiveLayoutName
+            </button>
+            <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
+                    disabled="@(!Service.IsLoaded)"
+                    @onclick="ToggleLayoutDropdown"
+                    @onclick:stopPropagation="true">
+                &#9662;
+            </button>
+            @if (_showLayoutDropdown)
+            {
+                <div class="verso-toolbar-dropdown-popup">
+                    @foreach (var layout in _availableLayouts)
+                    {
+                        var l = layout;
+                        var isActive = string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase);
+                        <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
+                                @onclick="() => SelectLayout(l.LayoutId)">
+                            @l.DisplayName
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (_availableThemes.Count > 1)
+    {
+        <div class="verso-toolbar-separator"></div>
+
+        <div class="verso-toolbar-dropdown" @onfocusout="OnThemeDropdownFocusOut" tabindex="-1">
+            <button class="verso-toolbar-btn"
+                    disabled="@(!Service.IsLoaded)"
+                    title="Switch Theme"
+                    @onclick="CycleTheme">
+                @ActiveThemeName
+            </button>
+            <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
+                    disabled="@(!Service.IsLoaded)"
+                    @onclick="ToggleThemeDropdown"
+                    @onclick:stopPropagation="true">
+                &#9662;
+            </button>
+            @if (_showThemeDropdown)
+            {
+                <div class="verso-toolbar-dropdown-popup">
+                    @foreach (var theme in _availableThemes)
+                    {
+                        var t = theme;
+                        var isActive = string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase);
+                        <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
+                                @onclick="() => SelectTheme(t.ThemeId)">
+                            @t.DisplayName
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
 </div>
 
 @code {
@@ -43,15 +115,35 @@
     [Parameter] public Guid? SelectedCellId { get; set; }
     [Parameter] public EventCallback OnNewNotebook { get; set; }
     [Parameter] public EventCallback<string> OnOpenNotebook { get; set; }
+    [Parameter] public EventCallback<(string FileName, string Content)> OnBrowseNotebook { get; set; }
     [Parameter] public EventCallback OnSaveNotebook { get; set; }
     [Parameter] public EventCallback<string> OnAddCell { get; set; }
     [Parameter] public EventCallback OnActionExecuted { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
 
     private List<IToolbarAction> _mainToolbarActions = new();
+    private List<IToolbarAction> _filteredToolbarActions = new();
     private Dictionary<string, bool> _enabledStates = new();
+    private List<Verso.Abstractions.ILayoutEngine> _availableLayouts = new();
+    private string? _activeLayoutId;
+    private List<Verso.Abstractions.ITheme> _availableThemes = new();
+    private string? _activeThemeId;
     private bool _showOpenInput;
     private string _openFilePath = "";
+    private bool _showLayoutDropdown;
+    private bool _showThemeDropdown;
+
+    private static readonly HashSet<string> _excludedActionIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "verso.switchLayout",
+        "verso.switchTheme"
+    };
+
+    private string ActiveLayoutName =>
+        _availableLayouts.FirstOrDefault(l => string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Layout";
+
+    private string ActiveThemeName =>
+        _availableThemes.FirstOrDefault(t => string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Theme";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -61,6 +153,18 @@
                 .Where(a => a.Placement == ToolbarPlacement.MainToolbar)
                 .OrderBy(a => a.Order)
                 .ToList();
+
+            _filteredToolbarActions = _mainToolbarActions
+                .Where(a => !_excludedActionIds.Contains(a.ActionId))
+                .ToList();
+
+            _availableLayouts = Service.Scaffold?.LayoutManager?.AvailableLayouts?.ToList()
+                ?? new List<Verso.Abstractions.ILayoutEngine>();
+            _activeLayoutId = Service.Scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
+
+            _availableThemes = Service.Scaffold?.ThemeEngine?.AvailableThemes?.ToList()
+                ?? new List<Verso.Abstractions.ITheme>();
+            _activeThemeId = Service.Scaffold?.ThemeEngine?.ActiveTheme?.ThemeId;
 
             await RefreshEnabledStatesAsync();
         }
@@ -118,6 +222,85 @@
             await OnOpenNotebook.InvokeAsync(_openFilePath.Trim());
             _showOpenInput = false;
             _openFilePath = "";
+        }
+    }
+
+    private async Task SwitchLayout(string layoutId)
+    {
+        Service.SwitchLayout(layoutId);
+        _activeLayoutId = layoutId;
+        await RefreshEnabledStatesAsync();
+        await OnActionExecuted.InvokeAsync();
+    }
+
+    private async Task SwitchTheme(string themeId)
+    {
+        Service.SwitchTheme(themeId);
+        _activeThemeId = themeId;
+        await RefreshEnabledStatesAsync();
+        await OnActionExecuted.InvokeAsync();
+    }
+
+    private async Task CycleLayout()
+    {
+        if (_availableLayouts.Count < 2) return;
+        var currentIndex = _availableLayouts.FindIndex(l => string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase));
+        var nextIndex = (currentIndex + 1) % _availableLayouts.Count;
+        await SwitchLayout(_availableLayouts[nextIndex].LayoutId);
+    }
+
+    private async Task CycleTheme()
+    {
+        if (_availableThemes.Count < 2) return;
+        var currentIndex = _availableThemes.FindIndex(t => string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase));
+        var nextIndex = (currentIndex + 1) % _availableThemes.Count;
+        await SwitchTheme(_availableThemes[nextIndex].ThemeId);
+    }
+
+    private void ToggleLayoutDropdown()
+    {
+        _showLayoutDropdown = !_showLayoutDropdown;
+        _showThemeDropdown = false;
+    }
+
+    private void ToggleThemeDropdown()
+    {
+        _showThemeDropdown = !_showThemeDropdown;
+        _showLayoutDropdown = false;
+    }
+
+    private async Task SelectLayout(string layoutId)
+    {
+        _showLayoutDropdown = false;
+        await SwitchLayout(layoutId);
+    }
+
+    private async Task SelectTheme(string themeId)
+    {
+        _showThemeDropdown = false;
+        await SwitchTheme(themeId);
+    }
+
+    private void OnLayoutDropdownFocusOut() => _showLayoutDropdown = false;
+    private void OnThemeDropdownFocusOut() => _showThemeDropdown = false;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024); // 50 MB
+            using var reader = new System.IO.StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+            await OnBrowseNotebook.InvokeAsync((file.Name, content));
+            _showOpenInput = false;
+            _openFilePath = "";
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync($"Failed to read file: {ex.Message}");
         }
     }
 

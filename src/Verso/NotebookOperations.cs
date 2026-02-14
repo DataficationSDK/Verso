@@ -110,4 +110,20 @@ internal sealed class NotebookOperations : INotebookOperations
         _scaffold.MoveCell(fromIndex, newIndex);
         return Task.CompletedTask;
     }
+
+    public string? ActiveLayoutId => _scaffold.LayoutManager?.ActiveLayout?.LayoutId;
+
+    public void SetActiveLayout(string layoutId)
+    {
+        _scaffold.LayoutManager?.SetActiveLayout(layoutId);
+        _scaffold.Notebook.ActiveLayoutId = layoutId;
+    }
+
+    public string? ActiveThemeId => _scaffold.ThemeEngine?.ActiveTheme?.ThemeId;
+
+    public void SetActiveTheme(string themeId)
+    {
+        _scaffold.ThemeEngine?.SetActiveTheme(themeId);
+        _scaffold.Notebook.PreferredThemeId = themeId;
+    }
 }

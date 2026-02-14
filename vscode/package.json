@@ -55,6 +55,20 @@
         "shortTitle": "Restart",
         "category": "Verso",
         "icon": "$(debug-restart)"
+      },
+      {
+        "command": "verso.switchLayout",
+        "title": "Switch Layout",
+        "shortTitle": "Layout",
+        "category": "Verso",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "verso.switchTheme",
+        "title": "Switch Theme",
+        "shortTitle": "Theme",
+        "category": "Verso",
+        "icon": "$(symbol-color)"
       }
     ],
     "menus": {
@@ -72,6 +86,16 @@
         {
           "command": "verso.restartKernel",
           "group": "navigation@3",
+          "when": "notebookType == verso-notebook"
+        },
+        {
+          "command": "verso.switchLayout",
+          "group": "navigation@4",
+          "when": "notebookType == verso-notebook"
+        },
+        {
+          "command": "verso.switchTheme",
+          "group": "navigation@5",
           "when": "notebookType == verso-notebook"
         }
       ],

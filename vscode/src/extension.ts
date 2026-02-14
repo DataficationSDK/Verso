@@ -7,6 +7,7 @@ import { VersoCompletionProvider } from "./providers/completionProvider";
 import { VersoDiagnosticsProvider } from "./providers/diagnosticsProvider";
 import { VersoHoverProvider } from "./providers/hoverProvider";
 import { registerToolbarActions } from "./toolbar/toolbarActions";
+import { DashboardPanel } from "./layout/dashboardPanel";
 import { applyEngineTheme } from "./theme/themeMapper";
 
 let host: HostProcess | undefined;
@@ -76,8 +77,12 @@ export async function activate(
   const diagnosticsProvider = new VersoDiagnosticsProvider(host);
   context.subscriptions.push(diagnosticsProvider);
 
+  // Register dashboard panel for custom layout rendering
+  const dashboardPanel = new DashboardPanel(host);
+  context.subscriptions.push(dashboardPanel);
+
   // Register toolbar commands
-  registerToolbarActions(context, host, controller);
+  registerToolbarActions(context, host, controller, dashboardPanel);
 
   // Apply engine theme (best-effort)
   applyEngineTheme(host);

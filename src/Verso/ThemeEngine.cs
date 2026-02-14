@@ -36,6 +36,11 @@ public sealed class ThemeEngine : IThemeContext
     public IReadOnlyList<ITheme> AvailableThemes => _availableThemes;
 
     /// <summary>
+    /// Raised when the active theme changes.
+    /// </summary>
+    public event Action<ITheme>? OnThemeChanged;
+
+    /// <summary>
     /// Switches the active theme by theme ID.
     /// </summary>
     public void SetActiveTheme(string themeId)
@@ -45,6 +50,7 @@ public sealed class ThemeEngine : IThemeContext
             t => string.Equals(t.ThemeId, themeId, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"Theme '{themeId}' not found.");
         _activeTheme = theme;
+        OnThemeChanged?.Invoke(theme);
     }
 
     // --- IThemeContext ---

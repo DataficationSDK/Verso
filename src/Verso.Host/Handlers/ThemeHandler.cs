@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Host.Dto;
 
@@ -76,6 +77,33 @@ public static class ThemeHandler
                 ScrollbarWidth = spacing.ScrollbarWidth
             }
         };
+    }
+
+    public static ThemesResult HandleGetThemes(HostSession session)
+    {
+        session.EnsureSession();
+        var themes = session.Scaffold!.ThemeEngine?.AvailableThemes ?? Array.Empty<Verso.Abstractions.ITheme>();
+        var activeId = session.Scaffold!.ThemeEngine?.ActiveTheme?.ThemeId;
+        return new ThemesResult
+        {
+            Themes = themes.Select(t => new ThemeListItemDto
+            {
+                Id = t.ThemeId,
+                DisplayName = t.DisplayName,
+                ThemeKind = t.ThemeKind.ToString(),
+                IsActive = string.Equals(t.ThemeId, activeId, StringComparison.OrdinalIgnoreCase)
+            }).ToList()
+        };
+    }
+
+    public static ThemeResult? HandleSwitchTheme(HostSession session, JsonElement? @params)
+    {
+        session.EnsureSession();
+        var themeId = @params?.GetProperty("themeId").GetString()
+            ?? throw new JsonException("Missing themeId");
+        session.Scaffold!.ThemeEngine!.SetActiveTheme(themeId);
+        session.Scaffold.Notebook.PreferredThemeId = themeId;
+        return HandleGetTheme(session);
     }
 
     private static void AddColorToken(Dictionary<string, string> dict, string key, string value)

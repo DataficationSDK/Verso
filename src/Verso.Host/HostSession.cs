@@ -72,6 +72,13 @@ public sealed class HostSession : IAsyncDisposable
                 MethodNames.KernelGetDiagnostics => await KernelHandler.HandleGetDiagnosticsAsync(this, @params),
                 MethodNames.KernelGetHoverInfo => await KernelHandler.HandleGetHoverInfoAsync(this, @params),
                 MethodNames.OutputClearAll => OutputHandler.HandleClearAll(this),
+                MethodNames.LayoutGetLayouts => LayoutHandler.HandleGetLayouts(this),
+                MethodNames.LayoutSwitch => LayoutHandler.HandleSwitch(this, @params),
+                MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(this),
+                MethodNames.LayoutUpdateCell => LayoutHandler.HandleUpdateCell(this, @params),
+                MethodNames.LayoutSetEditMode => LayoutHandler.HandleSetEditMode(this, @params),
+                MethodNames.ThemeGetThemes => ThemeHandler.HandleGetThemes(this),
+                MethodNames.ThemeSwitch => ThemeHandler.HandleSwitchTheme(this, @params),
                 _ => throw new InvalidOperationException($"Unknown method: {method}")
             };
             return JsonRpcMessage.Response(id, result);

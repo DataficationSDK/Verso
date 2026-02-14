@@ -198,6 +198,40 @@ export interface RangeDto {
   endColumn: number;
 }
 
+// --- Layout DTOs ---
+
+export interface LayoutsResult {
+  layouts: LayoutDto[];
+}
+
+export interface LayoutDto {
+  id: string;
+  displayName: string;
+  icon?: string;
+  requiresCustomRenderer: boolean;
+  isActive: boolean;
+}
+
+export interface LayoutSwitchParams {
+  layoutId: string;
+}
+
+export interface LayoutRenderResult {
+  html: string;
+}
+
+export interface LayoutUpdateCellParams {
+  cellId: string;
+  row: number;
+  col: number;
+  width: number;
+  height: number;
+}
+
+export interface LayoutSetEditModeParams {
+  editMode: boolean;
+}
+
 // --- Theme DTOs ---
 
 export interface ThemeResult {
@@ -235,4 +269,21 @@ export interface ThemeSpacingDto {
   buttonBorderRadius: number;
   outputPadding: number;
   scrollbarWidth: number;
+}
+
+// --- Theme Switching DTOs ---
+
+export interface ThemesResult {
+  themes: ThemeListItemDto[];
+}
+
+export interface ThemeListItemDto {
+  id: string;
+  displayName: string;
+  themeKind: string;
+  isActive: boolean;
+}
+
+export interface ThemeSwitchParams {
+  themeId: string;
 }

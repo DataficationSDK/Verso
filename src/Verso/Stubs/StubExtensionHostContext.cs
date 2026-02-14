@@ -32,4 +32,10 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
 
     /// <inheritdoc />
     public IReadOnlyList<INotebookSerializer> GetSerializers() => Array.Empty<INotebookSerializer>();
+
+    /// <inheritdoc />
+    public IReadOnlyList<ILayoutEngine> GetLayouts() => Array.Empty<ILayoutEngine>();
+
+    /// <inheritdoc />
+    public IReadOnlyList<ITheme> GetThemes() => Array.Empty<ITheme>();
 }

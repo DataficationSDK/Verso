@@ -1,0 +1,68 @@
+@using Verso.Abstractions
+@using Verso.Extensions.Layouts
+
+<div class="verso-dashboard-grid">
+    @foreach (var cell in Cells)
+    {
+        var pos = GetPosition(cell.Id);
+        <DashboardCell CellData="cell"
+                       Position="pos"
+                       IsExecuting="cell.Id == ExecutingCellId"
+                       OnRunCell="OnRunCell"
+                       OnSourceChanged="OnSourceChanged"
+                       OnResized="HandleCellResized"
+                       OnMoved="HandleCellMoved" />
+    }
+</div>
+
+@code {
+    [Parameter] public NotebookService Service { get; set; } = default!;
+    [Parameter] public IReadOnlyList<CellModel> Cells { get; set; } = Array.Empty<CellModel>();
+    [Parameter] public Guid? ExecutingCellId { get; set; }
+    [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
+
+    private CellContainerInfo GetPosition(Guid cellId)
+    {
+        var layout = Service.Scaffold?.LayoutManager?.ActiveLayout;
+        if (layout is null)
+            return new CellContainerInfo(cellId, 0, 0, 6, 4);
+
+        var context = new Verso.Blazor.Services.BlazorToolbarActionContext(Service.Scaffold!, new List<Guid>());
+        return layout.GetCellContainerAsync(cellId, context).GetAwaiter().GetResult();
+    }
+
+    private Task HandleCellResized((Guid CellId, int ColSpan, int RowSpan) args)
+    {
+        var layout = Service.Scaffold?.LayoutManager?.ActiveLayout;
+        if (layout is DashboardLayout dashboard)
+        {
+            var current = GetPosition(args.CellId);
+            dashboard.UpdateCellPosition(
+                args.CellId,
+                (int)current.Y,     // preserve row
+                (int)current.X,     // preserve column
+                args.ColSpan,
+                args.RowSpan);
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task HandleCellMoved((Guid CellId, int Col, int Row) args)
+    {
+        var layout = Service.Scaffold?.LayoutManager?.ActiveLayout;
+        if (layout is DashboardLayout dashboard)
+        {
+            var current = GetPosition(args.CellId);
+            dashboard.UpdateCellPosition(
+                args.CellId,
+                args.Row,
+                args.Col,
+                (int)current.Width,   // preserve width
+                (int)current.Height); // preserve height
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
+    }
+}

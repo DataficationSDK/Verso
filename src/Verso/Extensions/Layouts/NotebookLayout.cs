@@ -33,6 +33,8 @@ public sealed class NotebookLayout : ILayoutEngine
         LayoutCapabilities.CellExecute |
         LayoutCapabilities.MultiSelect;
 
+    public bool RequiresCustomRenderer => false;
+
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 

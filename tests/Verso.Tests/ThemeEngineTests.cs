@@ -178,4 +178,35 @@ public sealed class ThemeEngineTests
         var engine = new ThemeEngine(themes);
         Assert.AreEqual(2, engine.AvailableThemes.Count);
     }
+
+    [TestMethod]
+    public void SetActiveTheme_RaisesOnThemeChanged()
+    {
+        var light = new VersoLightTheme();
+        var dark = new VersoDarkTheme();
+        var engine = new ThemeEngine(new ITheme[] { light, dark });
+
+        var raised = false;
+        engine.OnThemeChanged += _ => raised = true;
+
+        engine.SetActiveTheme("verso-dark");
+        Assert.IsTrue(raised);
+    }
+
+    [TestMethod]
+    public void OnThemeChanged_ReceivesCorrectTheme()
+    {
+        var light = new VersoLightTheme();
+        var dark = new VersoDarkTheme();
+        var engine = new ThemeEngine(new ITheme[] { light, dark });
+
+        ITheme? received = null;
+        engine.OnThemeChanged += t => received = t;
+
+        engine.SetActiveTheme("verso-dark");
+        Assert.AreSame(dark, received);
+
+        engine.SetActiveTheme("verso-light");
+        Assert.AreSame(light, received);
+    }
 }

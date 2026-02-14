@@ -26,6 +26,12 @@ public sealed class NotebookService : IAsyncDisposable
     /// <summary>Raised when the notebook structure changes (add, remove, move, new, open).</summary>
     public event Action? OnNotebookChanged;
 
+    /// <summary>Raised when the active layout changes.</summary>
+    public event Action? OnLayoutChanged;
+
+    /// <summary>Raised when the active theme changes.</summary>
+    public event Action? OnThemeChanged;
+
     /// <summary>Open and deserialize a notebook file (.verso, .ipynb, etc.).</summary>
     public async Task OpenAsync(string filePath)
     {
@@ -46,6 +52,27 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
         _filePath = filePath;
+
+        OnNotebookChanged?.Invoke();
+    }
+
+    /// <summary>Open a notebook from in-memory content (e.g. from a file browser upload).</summary>
+    public async Task OpenFromContentAsync(string fileName, string content)
+    {
+        await DisposeCurrentAsync();
+
+        _extensionHost = new ExtensionHost();
+        await _extensionHost.LoadBuiltInExtensionsAsync();
+
+        var serializer = _extensionHost.GetSerializers()
+            .FirstOrDefault(s => s.CanImport(fileName))
+            ?? (INotebookSerializer)new VersoSerializer();
+
+        var notebook = await serializer.DeserializeAsync(content);
+
+        _scaffold = new Scaffold(notebook, _extensionHost);
+        _scaffold.InitializeSubsystems();
+        _filePath = null; // No on-disk path — opened from browser upload
 
         OnNotebookChanged?.Invoke();
     }
@@ -174,6 +201,26 @@ public sealed class NotebookService : IAsyncDisposable
     {
         _scaffold?.ClearAllOutputs();
         OnCellExecuted?.Invoke();
+    }
+
+    /// <summary>Switch the active layout engine by layout ID.</summary>
+    public void SwitchLayout(string layoutId)
+    {
+        if (_scaffold?.LayoutManager is null) return;
+
+        _scaffold.LayoutManager.SetActiveLayout(layoutId);
+        _scaffold.Notebook.ActiveLayoutId = layoutId;
+        OnLayoutChanged?.Invoke();
+    }
+
+    /// <summary>Switch the active theme by theme ID.</summary>
+    public void SwitchTheme(string themeId)
+    {
+        if (_scaffold?.ThemeEngine is null) return;
+
+        _scaffold.ThemeEngine.SetActiveTheme(themeId);
+        _scaffold.Notebook.PreferredThemeId = themeId;
+        OnThemeChanged?.Invoke();
     }
 
     /// <summary>Restart the active kernel.</summary>

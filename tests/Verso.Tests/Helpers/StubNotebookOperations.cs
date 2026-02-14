@@ -70,4 +70,20 @@ public sealed class StubNotebookOperations : INotebookOperations
         MovedCells.Add((cellId, newIndex));
         return Task.CompletedTask;
     }
+
+    public string? ActiveLayoutId { get; set; }
+
+    public void SetActiveLayout(string layoutId)
+    {
+        ActiveLayoutId = layoutId;
+    }
+
+    public string? ActiveThemeId { get; set; }
+    public List<string> SwitchedThemeIds { get; } = new();
+
+    public void SetActiveTheme(string themeId)
+    {
+        ActiveThemeId = themeId;
+        SwitchedThemeIds.Add(themeId);
+    }
 }

@@ -48,7 +48,7 @@
                             }
                         </div>
                     }
-                    else if (output.MimeType == "text/html")
+                    else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
                     {
                         <div class="verso-output verso-output--html">
                             @((MarkupString)output.Content)

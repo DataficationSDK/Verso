@@ -3,6 +3,7 @@ window.versoMonaco = (function () {
     const editors = {};
     let monacoReady = false;
     let readyCallbacks = [];
+    let _currentTheme = 'vs';
 
     // Initialize Monaco AMD loader
     function ensureMonaco(callback) {
@@ -30,14 +31,14 @@ window.versoMonaco = (function () {
                 const editor = monaco.editor.create(container, {
                     value: options.value || '',
                     language: options.language || 'csharp',
-                    theme: options.theme || 'vs',
+                    theme: _currentTheme,
                     readOnly: options.readOnly || false,
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     lineNumbers: 'on',
                     glyphMargin: false,
                     folding: false,
-                    lineDecorationsWidth: 0,
+                    lineDecorationsWidth: 10,
                     lineNumbersMinChars: 3,
                     renderLineHighlight: 'line',
                     automaticLayout: true,
@@ -104,6 +105,13 @@ window.versoMonaco = (function () {
                 if (model && monaco.editor.getModel(model.uri)) {
                     monaco.editor.setModelLanguage(model, language);
                 }
+            }
+        },
+
+        setTheme: function (theme) {
+            _currentTheme = theme || 'vs';
+            if (monacoReady) {
+                monaco.editor.setTheme(_currentTheme);
             }
         }
     };

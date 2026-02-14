@@ -40,4 +40,16 @@ public interface IExtensionHostContext
     /// </summary>
     /// <returns>A read-only list of <see cref="INotebookSerializer"/> instances.</returns>
     IReadOnlyList<INotebookSerializer> GetSerializers();
+
+    /// <summary>
+    /// Returns all registered layout engines.
+    /// </summary>
+    /// <returns>A read-only list of <see cref="ILayoutEngine"/> instances.</returns>
+    IReadOnlyList<ILayoutEngine> GetLayouts();
+
+    /// <summary>
+    /// Returns all registered themes.
+    /// </summary>
+    /// <returns>A read-only list of <see cref="ITheme"/> instances.</returns>
+    IReadOnlyList<ITheme> GetThemes();
 }
