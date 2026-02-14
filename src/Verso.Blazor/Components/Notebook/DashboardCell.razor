@@ -120,9 +120,16 @@
         await OnSourceChanged.InvokeAsync((CellData.Id, newSource));
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        if (_jsInitialized)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("versoDashboard.dispose", _elementId);
+            }
+            catch (JSException) { }
+        }
         _dotnetRef?.Dispose();
-        return ValueTask.CompletedTask;
     }
 }

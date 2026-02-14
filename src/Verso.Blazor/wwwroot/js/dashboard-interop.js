@@ -1,6 +1,5 @@
 // Dashboard drag/resize interop for Blazor
 window.versoDashboard = {
-    _initialized: new Set(),
 
     _getGridMetrics: function (el) {
         const grid = el.closest('.verso-dashboard-grid');
@@ -14,16 +13,25 @@ window.versoDashboard = {
         return { grid, gap, paddingLeft, paddingTop, colWidth, rowHeight };
     },
 
-    initResizable: function (elementId, dotnetRef) {
-        if (this._initialized.has('resize-' + elementId)) return;
+    dispose: function (elementId) {
+        const el = document.getElementById(elementId);
+        if (el) {
+            delete el.dataset.resizeInit;
+            delete el.dataset.dragInit;
+        }
+    },
 
+    initResizable: function (elementId, dotnetRef) {
         const el = document.getElementById(elementId);
         if (!el) return;
+
+        // Skip if this exact DOM node is already initialized
+        if (el.dataset.resizeInit) return;
 
         const handle = el.querySelector('.verso-dashboard-resize-handle');
         if (!handle) return;
 
-        this._initialized.add('resize-' + elementId);
+        el.dataset.resizeInit = 'true';
         const self = this;
 
         handle.addEventListener('mousedown', function (e) {
@@ -89,15 +97,16 @@ window.versoDashboard = {
     },
 
     initDraggable: function (elementId, dotnetRef) {
-        if (this._initialized.has('drag-' + elementId)) return;
-
         const el = document.getElementById(elementId);
         if (!el) return;
+
+        // Skip if this exact DOM node is already initialized
+        if (el.dataset.dragInit) return;
 
         const dragHandle = el.querySelector('.verso-dashboard-drag-handle');
         if (!dragHandle) return;
 
-        this._initialized.add('drag-' + elementId);
+        el.dataset.dragInit = 'true';
         const self = this;
 
         dragHandle.addEventListener('mousedown', function (e) {

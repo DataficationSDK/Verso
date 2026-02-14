@@ -208,35 +208,72 @@ html, body {
     display: flex;
     gap: 8px;
     margin-bottom: var(--verso-cell-gap, 8px);
-    border: 1px solid var(--verso-cell-border, #E0E0E0);
+    border: 1px solid transparent;
+    border-left-width: 3px;
     border-radius: var(--verso-cell-border-radius, 4px);
     background: var(--verso-cell-background, #FFFFFF);
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background-color 0.15s;
 }
 
 .verso-cell:hover {
+    border-color: var(--verso-cell-border, #E0E0E0);
     background: var(--verso-cell-hover-background, #F8F8F8);
 }
 
 .verso-cell--selected {
-    border-color: var(--verso-cell-active-border, #0078D4);
-    border-width: 2px;
+    border-color: var(--verso-cell-border, #E0E0E0);
+    border-left-color: var(--verso-cell-active-border, #0078D4);
+}
+
+.verso-cell--selected:hover {
+    background: var(--verso-cell-hover-background, #F8F8F8);
 }
 
 .verso-cell--executing {
     border-color: var(--verso-cell-running-indicator, #0078D4);
 }
 
-/* Preview mode (collapsed input) */
+.verso-cell--executing.verso-cell--selected {
+    border-color: var(--verso-cell-running-indicator, #0078D4);
+    border-left-color: var(--verso-cell-active-border, #0078D4);
+}
+
+/* Preview mode: chromeless rendered content */
+
+.verso-cell--preview {
+    border-color: transparent;
+    background: transparent;
+}
+
+.verso-cell--preview .verso-cell-toolbar,
+.verso-cell--preview:hover .verso-cell-toolbar {
+    opacity: 0;
+    pointer-events: none;
+    max-height: 0;
+}
+
+.verso-cell--preview:hover {
+    background: var(--verso-cell-hover-background, #F8F8F8);
+    border-left-color: var(--verso-cell-border, #E0E0E0);
+}
+
+/* Defensive: if preview cell is executing, show full chrome */
+.verso-cell--preview.verso-cell--executing {
+    border-color: var(--verso-cell-running-indicator, #0078D4);
+}
+
+.verso-cell--preview.verso-cell--executing .verso-cell-toolbar {
+    opacity: 1;
+    pointer-events: auto;
+    max-height: 40px;
+    padding: 4px var(--verso-cell-padding, 12px) 0;
+}
+
+/* Clickable outputs */
 
 .verso-cell-outputs--clickable {
     cursor: pointer;
     border-radius: var(--verso-cell-border-radius, 4px);
-    transition: background-color 0.15s;
-}
-
-.verso-cell-outputs--clickable:hover {
-    background-color: var(--verso-cell-hover-background, #F8F8F8);
 }
 
 /* Cell gutter */
@@ -254,6 +291,10 @@ html, body {
     user-select: none;
 }
 
+.verso-cell--preview .verso-cell-gutter {
+    display: none;
+}
+
 /* Cell content */
 
 .verso-cell-content {
@@ -268,8 +309,22 @@ html, body {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px var(--verso-cell-padding, 12px) 0;
     font-size: 11px;
+    opacity: 0;
+    pointer-events: none;
+    max-height: 0;
+    padding: 0 var(--verso-cell-padding, 12px);
+    overflow: hidden;
+    transition: opacity 0.15s, max-height 0.15s;
+}
+
+.verso-cell:hover .verso-cell-toolbar,
+.verso-cell--selected .verso-cell-toolbar,
+.verso-cell--executing .verso-cell-toolbar {
+    opacity: 1;
+    pointer-events: auto;
+    max-height: 40px;
+    padding: 4px var(--verso-cell-padding, 12px) 0;
 }
 
 .verso-cell-type-badge {
