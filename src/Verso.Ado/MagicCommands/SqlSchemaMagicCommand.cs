@@ -2,6 +2,7 @@ using System.Data;
 using System.Net;
 using System.Text;
 using Verso.Abstractions;
+using Verso.Ado.Formatters;
 using Verso.Ado.Helpers;
 using Verso.Ado.Kernel;
 
@@ -112,63 +113,61 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
 
     private static string RenderTableList(string connectionName, List<TableInfo> tables, IThemeContext? theme)
     {
-        var bg = theme?.GetColor("CellOutputBackground") ?? "#1e1e1e";
-        var fg = theme?.GetColor("CellOutputForeground") ?? "#d4d4d4";
-        var border = theme?.GetColor("BorderColor") ?? "#404040";
-
         var sb = new StringBuilder();
-        sb.AppendLine($"<div style=\"font-family:monospace;color:{fg};background:{bg};padding:8px;\">");
-        sb.AppendLine($"<div style=\"margin-bottom:8px;\"><strong>Schema for connection: {WebUtility.HtmlEncode(connectionName)}</strong> ({tables.Count} tables/views)</div>");
-        sb.AppendLine($"<table style=\"border-collapse:collapse;width:100%;\">");
-        sb.AppendLine($"<thead><tr style=\"border-bottom:2px solid {border};\">");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Name</th>");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Schema</th>");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Type</th>");
-        sb.AppendLine("</tr></thead><tbody>");
+        ResultSetFormatter.AppendStyles(sb, theme);
+
+        sb.Append("<div class=\"verso-sql-result\">");
+        sb.Append("<div class=\"verso-sql-header\"><strong>Schema for connection: ")
+          .Append(WebUtility.HtmlEncode(connectionName))
+          .Append("</strong> <span class=\"verso-sql-badge\">(")
+          .Append(tables.Count)
+          .Append(" tables/views)</span></div>");
+
+        sb.Append("<table><thead><tr>");
+        sb.Append("<th>Name</th><th>Schema</th><th>Type</th>");
+        sb.Append("</tr></thead><tbody>");
 
         foreach (var table in tables)
         {
-            sb.AppendLine($"<tr style=\"border-bottom:1px solid {border};\">");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{WebUtility.HtmlEncode(table.Name)}</td>");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{WebUtility.HtmlEncode(table.Schema ?? "")}</td>");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{WebUtility.HtmlEncode(table.TableType)}</td>");
-            sb.AppendLine("</tr>");
+            sb.Append("<tr>");
+            sb.Append("<td>").Append(WebUtility.HtmlEncode(table.Name)).Append("</td>");
+            sb.Append("<td>").Append(WebUtility.HtmlEncode(table.Schema ?? "")).Append("</td>");
+            sb.Append("<td>").Append(WebUtility.HtmlEncode(table.TableType)).Append("</td>");
+            sb.Append("</tr>");
         }
 
-        sb.AppendLine("</tbody></table></div>");
+        sb.Append("</tbody></table></div>");
         return sb.ToString();
     }
 
     private static string RenderColumnTable(string tableLabel, List<ColumnInfo> columns, IThemeContext? theme)
     {
-        var bg = theme?.GetColor("CellOutputBackground") ?? "#1e1e1e";
-        var fg = theme?.GetColor("CellOutputForeground") ?? "#d4d4d4";
-        var border = theme?.GetColor("BorderColor") ?? "#404040";
-
         var sb = new StringBuilder();
-        sb.AppendLine($"<div style=\"font-family:monospace;color:{fg};background:{bg};padding:8px;\">");
-        sb.AppendLine($"<div style=\"margin-bottom:8px;\"><strong>{WebUtility.HtmlEncode(tableLabel)}</strong> ({columns.Count} columns)</div>");
-        sb.AppendLine($"<table style=\"border-collapse:collapse;width:100%;\">");
-        sb.AppendLine($"<thead><tr style=\"border-bottom:2px solid {border};\">");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Name</th>");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Type</th>");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Nullable</th>");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Default</th>");
-        sb.AppendLine($"<th style=\"text-align:left;padding:4px 8px;\">Key</th>");
-        sb.AppendLine("</tr></thead><tbody>");
+        ResultSetFormatter.AppendStyles(sb, theme);
+
+        sb.Append("<div class=\"verso-sql-result\">");
+        sb.Append("<div class=\"verso-sql-header\"><strong>")
+          .Append(WebUtility.HtmlEncode(tableLabel))
+          .Append("</strong> <span class=\"verso-sql-badge\">(")
+          .Append(columns.Count)
+          .Append(" columns)</span></div>");
+
+        sb.Append("<table><thead><tr>");
+        sb.Append("<th>Name</th><th>Type</th><th>Nullable</th><th>Default</th><th>Key</th>");
+        sb.Append("</tr></thead><tbody>");
 
         foreach (var col in columns)
         {
-            sb.AppendLine($"<tr style=\"border-bottom:1px solid {border};\">");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{WebUtility.HtmlEncode(col.Name)}</td>");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{WebUtility.HtmlEncode(col.DataType)}</td>");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{(col.IsNullable ? "YES" : "NO")}</td>");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{WebUtility.HtmlEncode(col.DefaultValue ?? "")}</td>");
-            sb.AppendLine($"<td style=\"padding:4px 8px;\">{(col.IsPrimaryKey ? "PK" : "")}</td>");
-            sb.AppendLine("</tr>");
+            sb.Append("<tr>");
+            sb.Append("<td>").Append(WebUtility.HtmlEncode(col.Name)).Append("</td>");
+            sb.Append("<td>").Append(WebUtility.HtmlEncode(col.DataType)).Append("</td>");
+            sb.Append("<td>").Append(col.IsNullable ? "YES" : "NO").Append("</td>");
+            sb.Append("<td>").Append(WebUtility.HtmlEncode(col.DefaultValue ?? "")).Append("</td>");
+            sb.Append("<td>").Append(col.IsPrimaryKey ? "<span class=\"verso-sql-pk\">PK</span>" : "").Append("</td>");
+            sb.Append("</tr>");
         }
 
-        sb.AppendLine("</tbody></table></div>");
+        sb.Append("</tbody></table></div>");
         return sb.ToString();
     }
 }

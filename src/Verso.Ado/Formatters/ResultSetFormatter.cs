@@ -175,23 +175,61 @@ public sealed class ResultSetFormatter : IDataFormatter
 
     // --- Private rendering helpers ---
 
-    private static void AppendStyles(StringBuilder sb, IThemeContext? theme)
+    /// <summary>
+    /// Emits the shared CSS block used by all SQL output tables (results, schema, etc.).
+    /// Colours are resolved at render time via CSS custom properties with a three-tier
+    /// fallback chain so the same HTML adapts to any host environment:
+    /// <list type="number">
+    ///   <item><c>--vscode-*</c> — VS Code notebook output webview</item>
+    ///   <item><c>--verso-*</c>  — Blazor shell / HTML export (set by ThemeProvider / ThemeCssGenerator)</item>
+    ///   <item>literal value     — safety net for isolated HTML</item>
+    /// </list>
+    /// The <paramref name="theme"/> parameter is retained for API compatibility but
+    /// is no longer consulted; all colour decisions happen client-side.
+    /// </summary>
+    internal static void AppendStyles(StringBuilder sb, IThemeContext? theme)
     {
-        var bg = theme?.GetColor("CellOutputBackground") ?? "#ffffff";
-        var fg = theme?.GetColor("CellOutputForeground") ?? "#1e1e1e";
-        var border = theme?.GetColor("BorderColor") ?? "#e0e0e0";
-        var headerBg = theme?.GetColor("CellBackground") ?? "#f5f5f5";
-
         sb.Append("<style>");
-        sb.Append(".verso-sql-result { font-family: monospace; font-size: 13px; }");
-        sb.Append(".verso-sql-result table { border-collapse: collapse; width: 100%; background: ").Append(bg).Append("; color: ").Append(fg).Append("; }");
-        sb.Append(".verso-sql-result th { background: ").Append(headerBg).Append("; text-align: left; padding: 4px 8px; border: 1px solid ").Append(border).Append("; }");
-        sb.Append(".verso-sql-result td { padding: 4px 8px; border: 1px solid ").Append(border).Append("; }");
-        sb.Append(".verso-sql-null { color: #999; font-style: italic; }");
-        sb.Append(".verso-sql-pager { padding: 6px 0; }");
-        sb.Append(".verso-sql-pager button { margin-right: 4px; }");
-        sb.Append(".verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }");
-        sb.Append(".verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }");
+
+        // Scoped custom-property definitions
+        sb.Append(".verso-sql-result{");
+        sb.Append("--sql-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));");
+        sb.Append("--sql-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));");
+        sb.Append("--sql-border:var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));");
+        sb.Append("--sql-header-bg:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));");
+        sb.Append("--sql-hover:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0));");
+        sb.Append("--sql-accent:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4));");
+        sb.Append("--sql-muted:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));");
+        sb.Append("--sql-warn-bg:var(--vscode-inputValidation-warningBackground,var(--verso-highlight-background,#fff3cd));");
+        sb.Append("--sql-warn-fg:var(--vscode-editorWarning-foreground,var(--verso-highlight-foreground,#664d03));");
+        sb.Append("--sql-warn-border:var(--vscode-inputValidation-warningBorder,var(--verso-status-warning,#ffc107));");
+        sb.Append("font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--sql-fg);}");
+
+        // Table
+        sb.Append(".verso-sql-result table{border-collapse:collapse;width:auto;background:var(--sql-bg);color:var(--sql-fg);}");
+        sb.Append(".verso-sql-result th{text-align:left;padding:6px 12px;border-bottom:2px solid var(--sql-border);background:var(--sql-header-bg);font-weight:600;}");
+        sb.Append(".verso-sql-result td{padding:5px 12px;border-bottom:1px solid var(--sql-border);}");
+        sb.Append(".verso-sql-result tbody tr:hover{background:var(--sql-hover);}");
+
+        // Special elements
+        sb.Append(".verso-sql-result .verso-sql-null{color:var(--sql-muted);font-style:italic;}");
+        sb.Append(".verso-sql-result .verso-sql-pk{color:var(--sql-accent);font-weight:600;}");
+
+        // Header / badge
+        sb.Append(".verso-sql-result .verso-sql-header{margin-bottom:6px;font-size:13px;}");
+        sb.Append(".verso-sql-result .verso-sql-header strong{font-size:14px;}");
+        sb.Append(".verso-sql-result .verso-sql-header .verso-sql-badge{opacity:0.7;font-weight:normal;}");
+
+        // Pager controls
+        sb.Append(".verso-sql-pager{padding:6px 0;}");
+        sb.Append(".verso-sql-pager button{margin-right:4px;padding:2px 10px;background:var(--sql-header-bg);color:var(--sql-fg);border:1px solid var(--sql-border);border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;}");
+        sb.Append(".verso-sql-pager button:hover:not(:disabled){background:var(--sql-hover);}");
+        sb.Append(".verso-sql-pager button:disabled{opacity:0.4;cursor:default;}");
+
+        // Footer & truncation warning
+        sb.Append(".verso-sql-footer{padding:6px 0;color:var(--sql-muted);font-size:12px;}");
+        sb.Append(".verso-sql-truncation{padding:6px 8px;margin-top:4px;background:var(--sql-warn-bg);color:var(--sql-warn-fg);border:1px solid var(--sql-warn-border);border-radius:4px;font-size:12px;}");
+
         sb.Append("</style>");
     }
 
