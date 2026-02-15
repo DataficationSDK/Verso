@@ -6,8 +6,7 @@
       "version": "lts"
     }
   },
-  "postCreateCommand": "bash .devcontainer/setup.sh",
-  "postAttachCommand": "code --install-extension vscode/verso-notebook-0.5.0.vsix --force && code samples/sample.verso",
+  "postAttachCommand": "dotnet build Verso.sln && cd vscode && npm install && npm run build && npm run package && cd .. && code --install-extension vscode/verso-notebook-0.5.0.vsix --force && code samples/sample.verso",
   "customizations": {
     "vscode": {
       "settings": {
