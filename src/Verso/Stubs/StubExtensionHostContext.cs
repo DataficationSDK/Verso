@@ -40,6 +40,9 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
     public IReadOnlyList<ITheme> GetThemes() => Array.Empty<ITheme>();
 
     /// <inheritdoc />
+    public IReadOnlyList<INotebookPostProcessor> GetPostProcessors() => Array.Empty<INotebookPostProcessor>();
+
+    /// <inheritdoc />
     public IReadOnlyList<ExtensionInfo> GetExtensionInfos() => Array.Empty<ExtensionInfo>();
 
     /// <inheritdoc />

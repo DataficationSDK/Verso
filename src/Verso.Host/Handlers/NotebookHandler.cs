@@ -34,6 +34,13 @@ public static class NotebookHandler
             }
 
             notebook = await serializer.DeserializeAsync(p.Content);
+
+            // Run post-processors after deserialization
+            var postProcessors = extensionHost.GetPostProcessors()
+                .Where(pp => pp.CanProcess(p.FilePath, serializer.FormatId))
+                .OrderBy(pp => pp.Priority);
+            foreach (var pp in postProcessors)
+                notebook = await pp.PostDeserializeAsync(notebook, p.FilePath);
         }
 
         var scaffold = new Scaffold(notebook, extensionHost);
@@ -59,8 +66,16 @@ public static class NotebookHandler
         // Flush layout metadata (grid positions, etc.) into the notebook model
         if (session.Scaffold!.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(session.Scaffold!.Notebook);
+        // Run post-processors before serialization
+        var notebook = session.Scaffold!.Notebook;
+        var postProcessors = session.ExtensionHost!.GetPostProcessors()
+            .Where(pp => pp.CanProcess(null, "verso-native"))
+            .OrderBy(pp => pp.Priority);
+        foreach (var pp in postProcessors)
+            notebook = await pp.PreSerializeAsync(notebook, null);
+
         var serializer = new VersoSerializer();
-        var content = await serializer.SerializeAsync(session.Scaffold!.Notebook);
+        var content = await serializer.SerializeAsync(notebook);
         return new NotebookSaveResult { Content = content };
     }
 

@@ -245,6 +245,29 @@ public class ExtensionHostTests
         Assert.AreEqual(0, _host.GetRenderers().Count);
     }
 
+    // --- INotebookPostProcessor ---
+
+    [TestMethod]
+    public async Task LoadExtension_PostProcessor_RegisteredInPostProcessorsList()
+    {
+        var pp = new FakePostProcessor();
+        await _host.LoadExtensionAsync(pp);
+
+        var postProcessors = _host.GetPostProcessors();
+        Assert.AreEqual(1, postProcessors.Count);
+        Assert.AreSame(pp, postProcessors[0]);
+    }
+
+    [TestMethod]
+    public async Task GetPostProcessors_ReturnsOnlyEnabled()
+    {
+        var pp = new FakePostProcessor();
+        await _host.LoadExtensionAsync(pp);
+        await _host.DisableExtensionAsync(pp.ExtensionId);
+
+        Assert.AreEqual(0, _host.GetPostProcessors().Count);
+    }
+
     // --- Helper: kernel that tracks unload order ---
 
     private sealed class TrackingKernel : ILanguageKernel
@@ -285,5 +308,25 @@ public class ExtensionHostTests
         public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
             => Task.FromResult<HoverInfo?>(null);
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    // --- Helper: fake post-processor ---
+
+    private sealed class FakePostProcessor : INotebookPostProcessor
+    {
+        public string ExtensionId => "com.test.fake.postprocessor";
+        public string Name => "Fake Post Processor";
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+        public int Priority => 100;
+
+        public bool CanProcess(string? filePath, string formatId) => true;
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+        public Task<NotebookModel> PostDeserializeAsync(NotebookModel notebook, string? filePath)
+            => Task.FromResult(notebook);
+        public Task<NotebookModel> PreSerializeAsync(NotebookModel notebook, string? filePath)
+            => Task.FromResult(notebook);
     }
 }

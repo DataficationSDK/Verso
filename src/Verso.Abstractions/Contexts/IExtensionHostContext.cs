@@ -54,6 +54,12 @@ public interface IExtensionHostContext
     IReadOnlyList<ITheme> GetThemes();
 
     /// <summary>
+    /// Returns all registered notebook post-processors.
+    /// </summary>
+    /// <returns>A read-only list of <see cref="INotebookPostProcessor"/> instances.</returns>
+    IReadOnlyList<INotebookPostProcessor> GetPostProcessors();
+
+    /// <summary>
     /// Returns metadata for all loaded extensions, including their current status and capabilities.
     /// </summary>
     /// <returns>A read-only list of <see cref="ExtensionInfo"/> describing each loaded extension.</returns>

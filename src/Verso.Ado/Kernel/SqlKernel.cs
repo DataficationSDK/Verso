@@ -24,6 +24,9 @@ public sealed class SqlKernel : ILanguageKernel
     internal const int DefaultMaxFetchRows = 10_000;
     private const int DefaultDisplayPageSize = 50;
 
+    private IVariableStore? _lastVariableStore;
+    private readonly SchemaCache _schemaCache = SchemaCache.Instance;
+
     // --- IExtension ---
     public string ExtensionId => "verso.ado.kernel.sql";
     string IExtension.Name => "SQL Kernel";
@@ -42,6 +45,9 @@ public sealed class SqlKernel : ILanguageKernel
 
     public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
     {
+        // Capture variable store for language service methods
+        _lastVariableStore = context.Variables;
+
         var outputs = new List<CellOutput>();
 
         // Parse directives
@@ -54,7 +60,7 @@ public sealed class SqlKernel : ILanguageKernel
         }
 
         // Resolve connection
-        var connInfo = ResolveConnection(directives, context.Variables);
+        var connInfo = ConnectionResolver.Resolve(directives.ConnectionName, context.Variables);
         if (connInfo is null)
         {
             outputs.Add(new CellOutput("text/plain",
@@ -144,37 +150,358 @@ public sealed class SqlKernel : ILanguageKernel
         return outputs;
     }
 
-    public Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
-        => Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
+    // --- Completions ---
+
+    public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+    {
+        var completions = new List<Completion>();
+        var partial = ExtractPartialWord(code, cursorPosition);
+        var context = DetermineSqlContext(code, cursorPosition);
+
+        // Schema-based completions (tables, columns)
+        SchemaCacheEntry? schemaEntry = null;
+        if (_lastVariableStore is not null)
+        {
+            var connInfo = ResolveDefaultConnection(_lastVariableStore);
+            if (connInfo?.Connection is not null && connInfo.Connection.State == ConnectionState.Open)
+            {
+                try
+                {
+                    schemaEntry = await _schemaCache.GetOrRefreshAsync(
+                        connInfo.Name, connInfo.Connection).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Graceful degradation — keywords only
+                }
+            }
+        }
+
+        // Table completions
+        if (schemaEntry is not null)
+        {
+            foreach (var table in schemaEntry.Tables)
+            {
+                if (MatchesPrefix(table.Name, partial))
+                {
+                    completions.Add(new Completion(
+                        table.Name,
+                        table.Name,
+                        "Class",
+                        $"{table.TableType}: {(table.Schema is not null ? $"{table.Schema}.{table.Name}" : table.Name)}",
+                        $"0_{table.Name}"));
+                }
+            }
+
+            // Column completions
+            foreach (var (tableName, columns) in schemaEntry.Columns)
+            {
+                foreach (var col in columns)
+                {
+                    if (MatchesPrefix(col.Name, partial))
+                    {
+                        completions.Add(new Completion(
+                            col.Name,
+                            col.Name,
+                            "Property",
+                            $"{col.DataType} ({tableName}){(col.IsPrimaryKey ? " [PK]" : "")}{(col.IsNullable ? " NULL" : " NOT NULL")}",
+                            $"0_{col.Name}"));
+                    }
+                }
+            }
+        }
+
+        // @variable completions
+        if (_lastVariableStore is not null)
+        {
+            foreach (var v in _lastVariableStore.GetAll())
+            {
+                if (v.Name.StartsWith("__verso_", StringComparison.Ordinal))
+                    continue;
+
+                var varName = $"@{v.Name}";
+                if (MatchesPrefix(varName, partial) || MatchesPrefix(v.Name, partial))
+                {
+                    completions.Add(new Completion(
+                        varName,
+                        varName,
+                        "Variable",
+                        $"{v.Type.Name}: {TruncateValue(v.Value)}",
+                        $"2_{v.Name}"));
+                }
+            }
+        }
+
+        // SQL keyword completions
+        foreach (var kw in SqlKeywords)
+        {
+            if (MatchesPrefix(kw, partial))
+            {
+                completions.Add(new Completion(
+                    kw, kw, "Keyword", null, $"1_{kw}"));
+            }
+        }
+
+        return completions;
+    }
+
+    // --- Diagnostics ---
 
     public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
-        => Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
+    {
+        var diagnostics = new List<Diagnostic>();
+
+        var (directives, sqlCode) = SqlDirectives.Parse(code);
+
+        // Check for missing connection
+        if (_lastVariableStore is not null)
+        {
+            var connInfo = ConnectionResolver.Resolve(directives.ConnectionName, _lastVariableStore);
+            if (connInfo is null)
+            {
+                diagnostics.Add(new Diagnostic(
+                    DiagnosticSeverity.Error,
+                    directives.ConnectionName is not null
+                        ? $"Connection '{directives.ConnectionName}' not found. Use #!sql-connect to establish a connection."
+                        : "No database connection. Use #!sql-connect to establish a connection.",
+                    0, 0, 0, 0));
+            }
+        }
+        else
+        {
+            diagnostics.Add(new Diagnostic(
+                DiagnosticSeverity.Error,
+                "No database connection. Use #!sql-connect to establish a connection.",
+                0, 0, 0, 0));
+        }
+
+        // Check for unresolved @parameters
+        var matches = ParamPattern.Matches(code);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (Match match in matches)
+        {
+            var paramName = match.Groups[1].Value;
+            if (!seen.Add(paramName))
+                continue;
+
+            bool resolved = false;
+            if (_lastVariableStore is not null)
+            {
+                var allVars = _lastVariableStore.GetAll();
+                resolved = allVars.Any(v =>
+                    string.Equals(v.Name, paramName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!resolved)
+            {
+                var (startLine, startCol) = OffsetToLineCol(code, match.Index);
+                var (endLine, endCol) = OffsetToLineCol(code, match.Index + match.Length);
+
+                diagnostics.Add(new Diagnostic(
+                    DiagnosticSeverity.Warning,
+                    $"Unresolved parameter '@{paramName}'. No matching variable found in the variable store.",
+                    startLine, startCol, endLine, endCol));
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<Diagnostic>>(diagnostics);
+    }
+
+    // --- Hover ---
 
     public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
-        => Task.FromResult<HoverInfo?>(null);
+    {
+        var (word, wordStart, wordEnd) = ExtractWordAtCursor(code, cursorPosition);
+        if (string.IsNullOrEmpty(word))
+            return Task.FromResult<HoverInfo?>(null);
+
+        var (startLine, startCol) = OffsetToLineCol(code, wordStart);
+        var (endLine, endCol) = OffsetToLineCol(code, wordEnd);
+        var range = (startLine, startCol, endLine, endCol);
+
+        // Check @variable
+        if (word.StartsWith('@') && _lastVariableStore is not null)
+        {
+            var varName = word.Substring(1);
+            var allVars = _lastVariableStore.GetAll();
+            var descriptor = allVars.FirstOrDefault(v =>
+                string.Equals(v.Name, varName, StringComparison.OrdinalIgnoreCase));
+
+            if (descriptor is not null)
+            {
+                var content = $"Variable @{descriptor.Name}\nType: {descriptor.Type.Name}\nValue: {TruncateValue(descriptor.Value)}";
+                return Task.FromResult<HoverInfo?>(new HoverInfo(content, "text/plain", range));
+            }
+        }
+
+        var lookup = word.StartsWith('@') ? word.Substring(1) : word;
+
+        // Check keyword
+        if (KeywordDescriptions.TryGetValue(lookup.ToUpperInvariant(), out var kwDescription))
+        {
+            return Task.FromResult<HoverInfo?>(new HoverInfo(kwDescription, "text/plain", range));
+        }
+
+        // Check schema cache for table/column
+        if (_lastVariableStore is not null)
+        {
+            var connInfo = ResolveDefaultConnection(_lastVariableStore);
+            if (connInfo is not null)
+            {
+                if (_schemaCache.TryGetCached(connInfo.Name, out var entry) && entry is not null)
+                {
+                    // Check table name
+                    var table = entry.Tables.FirstOrDefault(t =>
+                        string.Equals(t.Name, lookup, StringComparison.OrdinalIgnoreCase));
+                    if (table is not null)
+                    {
+                        var sb = new StringBuilder();
+                        sb.AppendLine($"{table.TableType}: {(table.Schema is not null ? $"{table.Schema}.{table.Name}" : table.Name)}");
+                        if (entry.Columns.TryGetValue(table.Name, out var cols))
+                        {
+                            sb.AppendLine("Columns:");
+                            foreach (var col in cols)
+                            {
+                                sb.AppendLine($"  {col.Name} {col.DataType}{(col.IsPrimaryKey ? " [PK]" : "")}{(col.IsNullable ? " NULL" : " NOT NULL")}");
+                            }
+                        }
+                        return Task.FromResult<HoverInfo?>(new HoverInfo(sb.ToString().TrimEnd(), "text/plain", range));
+                    }
+
+                    // Check column name across all tables
+                    foreach (var (tableName, columns) in entry.Columns)
+                    {
+                        var col = columns.FirstOrDefault(c =>
+                            string.Equals(c.Name, lookup, StringComparison.OrdinalIgnoreCase));
+                        if (col is not null)
+                        {
+                            var content = $"Column: {col.Name}\nType: {col.DataType}\nTable: {tableName}\nNullable: {(col.IsNullable ? "YES" : "NO")}{(col.IsPrimaryKey ? "\nPrimary Key" : "")}";
+                            return Task.FromResult<HoverInfo?>(new HoverInfo(content, "text/plain", range));
+                        }
+                    }
+                }
+            }
+        }
+
+        return Task.FromResult<HoverInfo?>(null);
+    }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // --- Private helpers ---
 
-    private static SqlConnectionInfo? ResolveConnection(SqlDirectives directives, IVariableStore variables)
+    private static SqlConnectionInfo? ResolveDefaultConnection(IVariableStore variables)
     {
-        var connections = variables.Get<Dictionary<string, SqlConnectionInfo>>(
-            SqlConnectMagicCommand.ConnectionsStoreKey);
+        return ConnectionResolver.Resolve(null, variables);
+    }
 
-        if (connections is null || connections.Count == 0)
-            return null;
+    private static string ExtractPartialWord(string code, int cursorPosition)
+    {
+        if (cursorPosition <= 0 || cursorPosition > code.Length)
+            return "";
 
-        string? connectionName = directives.ConnectionName;
-        if (string.IsNullOrWhiteSpace(connectionName))
+        int start = cursorPosition - 1;
+        while (start >= 0 && IsWordChar(code[start]))
+            start--;
+
+        start++;
+        return code.Substring(start, cursorPosition - start);
+    }
+
+    private static (string Word, int Start, int End) ExtractWordAtCursor(string code, int cursorPosition)
+    {
+        if (cursorPosition < 0 || cursorPosition > code.Length || code.Length == 0)
+            return ("", 0, 0);
+
+        // Adjust if cursor is at end or past a non-word character
+        int pos = cursorPosition < code.Length ? cursorPosition : cursorPosition - 1;
+        if (pos < 0 || (!IsWordChar(code[pos]) && code[pos] != '@'))
         {
-            connectionName = variables.Get<string>(SqlConnectMagicCommand.DefaultConnectionStoreKey);
+            // Try one position back
+            pos = cursorPosition - 1;
+            if (pos < 0 || (!IsWordChar(code[pos]) && code[pos] != '@'))
+                return ("", 0, 0);
         }
 
-        if (connectionName is not null && connections.TryGetValue(connectionName, out var connInfo))
-            return connInfo;
+        int start = pos;
+        int end = pos;
 
-        return null;
+        // Scan backwards
+        while (start > 0 && (IsWordChar(code[start - 1]) || code[start - 1] == '@'))
+            start--;
+
+        // Scan forwards
+        while (end < code.Length - 1 && IsWordChar(code[end + 1]))
+            end++;
+
+        return (code.Substring(start, end - start + 1), start, end + 1);
+    }
+
+    private static bool IsWordChar(char c) =>
+        char.IsLetterOrDigit(c) || c == '_' || c == '@' || c == '.';
+
+    private static string DetermineSqlContext(string code, int cursorPosition)
+    {
+        // Find the nearest preceding keyword to determine context
+        var beforeCursor = code.Substring(0, Math.Min(cursorPosition, code.Length));
+        var upper = beforeCursor.ToUpperInvariant();
+
+        // Scan backwards for keywords
+        string[] tableContextKeywords = { "FROM", "JOIN", "INTO", "UPDATE", "TABLE" };
+        string[] columnContextKeywords = { "SELECT", "WHERE", "ON", "ORDER BY", "GROUP BY", "SET", "HAVING" };
+
+        int lastTableKw = -1;
+        int lastColKw = -1;
+
+        foreach (var kw in tableContextKeywords)
+        {
+            int idx = upper.LastIndexOf(kw, StringComparison.Ordinal);
+            if (idx > lastTableKw) lastTableKw = idx;
+        }
+
+        foreach (var kw in columnContextKeywords)
+        {
+            int idx = upper.LastIndexOf(kw, StringComparison.Ordinal);
+            if (idx > lastColKw) lastColKw = idx;
+        }
+
+        if (lastTableKw > lastColKw) return "table";
+        if (lastColKw > lastTableKw) return "column";
+        return "general";
+    }
+
+    private static bool MatchesPrefix(string candidate, string prefix)
+    {
+        if (string.IsNullOrEmpty(prefix))
+            return true;
+        return candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static (int Line, int Column) OffsetToLineCol(string text, int offset)
+    {
+        int line = 0;
+        int col = 0;
+        for (int i = 0; i < offset && i < text.Length; i++)
+        {
+            if (text[i] == '\n')
+            {
+                line++;
+                col = 0;
+            }
+            else
+            {
+                col++;
+            }
+        }
+        return (line, col);
+    }
+
+    private static string TruncateValue(object? value, int maxLength = 100)
+    {
+        if (value is null) return "null";
+        var str = value.ToString() ?? "null";
+        return str.Length > maxLength ? str.Substring(0, maxLength) + "..." : str;
     }
 
     private static void BindParameters(
@@ -284,4 +611,62 @@ public sealed class SqlKernel : ILanguageKernel
 
         return dt;
     }
+
+    // --- SQL Keywords ---
+
+    internal static readonly string[] SqlKeywords = new[]
+    {
+        "SELECT", "FROM", "WHERE", "INSERT", "INTO", "VALUES", "UPDATE", "SET", "DELETE",
+        "CREATE", "ALTER", "DROP", "TABLE", "INDEX", "VIEW", "DATABASE",
+        "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "CROSS", "ON",
+        "GROUP", "BY", "ORDER", "ASC", "DESC", "HAVING",
+        "AND", "OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS", "NULL",
+        "AS", "DISTINCT", "TOP", "LIMIT", "OFFSET", "FETCH", "NEXT",
+        "UNION", "ALL", "INTERSECT", "EXCEPT",
+        "CASE", "WHEN", "THEN", "ELSE", "END",
+        "COUNT", "SUM", "AVG", "MIN", "MAX",
+        "BEGIN", "COMMIT", "ROLLBACK", "TRANSACTION",
+        "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "CONSTRAINT",
+        "WITH", "RECURSIVE", "OVER", "PARTITION", "ROW_NUMBER", "RANK"
+    };
+
+    internal static readonly Dictionary<string, string> KeywordDescriptions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["SELECT"] = "SELECT — Retrieves rows from one or more tables or views.",
+        ["FROM"] = "FROM — Specifies the source tables or views for a query.",
+        ["WHERE"] = "WHERE — Filters rows based on a condition.",
+        ["INSERT"] = "INSERT — Adds new rows to a table.",
+        ["INTO"] = "INTO — Specifies the target table for INSERT.",
+        ["VALUES"] = "VALUES — Specifies literal values for INSERT.",
+        ["UPDATE"] = "UPDATE — Modifies existing rows in a table.",
+        ["SET"] = "SET — Specifies columns and values for UPDATE.",
+        ["DELETE"] = "DELETE — Removes rows from a table.",
+        ["CREATE"] = "CREATE — Creates a new database object (table, view, index, etc.).",
+        ["ALTER"] = "ALTER — Modifies an existing database object.",
+        ["DROP"] = "DROP — Removes a database object.",
+        ["TABLE"] = "TABLE — Refers to a database table.",
+        ["JOIN"] = "JOIN — Combines rows from two or more tables based on a related column.",
+        ["INNER"] = "INNER — Returns rows that have matching values in both tables.",
+        ["LEFT"] = "LEFT — Returns all rows from the left table and matching rows from the right.",
+        ["RIGHT"] = "RIGHT — Returns all rows from the right table and matching rows from the left.",
+        ["GROUP"] = "GROUP BY — Groups rows sharing a property for aggregate functions.",
+        ["ORDER"] = "ORDER BY — Sorts the result set by one or more columns.",
+        ["HAVING"] = "HAVING — Filters groups created by GROUP BY.",
+        ["AND"] = "AND — Logical AND operator; both conditions must be true.",
+        ["OR"] = "OR — Logical OR operator; either condition must be true.",
+        ["NOT"] = "NOT — Logical NOT operator; negates a condition.",
+        ["IN"] = "IN — Tests whether a value matches any value in a list or subquery.",
+        ["EXISTS"] = "EXISTS — Tests for the existence of rows in a subquery.",
+        ["BETWEEN"] = "BETWEEN — Tests whether a value is within a range.",
+        ["LIKE"] = "LIKE — Pattern matching with wildcards (% and _).",
+        ["NULL"] = "NULL — Represents a missing or unknown value.",
+        ["DISTINCT"] = "DISTINCT — Removes duplicate rows from the result set.",
+        ["UNION"] = "UNION — Combines result sets of two or more SELECT statements.",
+        ["CASE"] = "CASE — Conditional expression; returns a value based on conditions.",
+        ["COUNT"] = "COUNT — Aggregate function that returns the number of rows.",
+        ["SUM"] = "SUM — Aggregate function that returns the total of a numeric column.",
+        ["AVG"] = "AVG — Aggregate function that returns the average of a numeric column.",
+        ["MIN"] = "MIN — Aggregate function that returns the minimum value.",
+        ["MAX"] = "MAX — Aggregate function that returns the maximum value.",
+    };
 }

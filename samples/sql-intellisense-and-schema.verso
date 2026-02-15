@@ -1,0 +1,708 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "SQL IntelliSense, Schema Inspection, and Jupyter Import",
+    "created": "2026-02-15T16:00:00+00:00",
+    "modified": "2026-02-15T16:27:46.689709+00:00",
+    "defaultKernel": "csharp",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "10000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# SQL IntelliSense, Schema Inspection, and Jupyter Import\n\nThis notebook demonstrates the Phase 1C features of Verso.Ado:\n\n- **SQL completions** \u2014 keyword, table, column, and @variable suggestions as you type\n- **SQL diagnostics** \u2014 warnings for missing connections and unresolved parameters\n- **SQL hover** \u2014 inline documentation for keywords, tables, columns, and variables\n- **\u0060#!sql-schema\u0060** \u2014 magic command for browsing database schema\n- **Jupyter import** \u2014 automatic conversion of Polyglot Notebooks SQL patterns",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch1 id=\u0022sql-intellisense-schema-inspection-and-jupyter-import\u0022\u003ESQL IntelliSense, Schema Inspection, and Jupyter Import\u003C/h1\u003E\n\u003Cp\u003EThis notebook demonstrates the Phase 1C features of Verso.Ado:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003ESQL completions\u003C/strong\u003E \u2014 keyword, table, column, and @variable suggestions as you type\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESQL diagnostics\u003C/strong\u003E \u2014 warnings for missing connections and unresolved parameters\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESQL hover\u003C/strong\u003E \u2014 inline documentation for keywords, tables, columns, and variables\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003E\u003Ccode\u003E#!sql-schema\u003C/code\u003E\u003C/strong\u003E \u2014 magic command for browsing database schema\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EJupyter import\u003C/strong\u003E \u2014 automatic conversion of Polyglot Notebooks SQL patterns\u003C/li\u003E\n\u003C/ul\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## 1. Setup: Connect and Create Tables\n\nFirst, load the SQLite provider and establish a connection.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022setup-connect-and-create-tables\u0022\u003E1. Setup: Connect and Create Tables\u003C/h2\u003E\n\u003Cp\u003EFirst, load the SQLite provider and establish a connection.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "#r \u0022nuget: Microsoft.Data.Sqlite, 8.0.8\u0022",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv\u003E\u003Cb\u003EInstalled Packages\u003C/b\u003E\u003Cul\u003E\u003Cli\u003E\u003Cspan\u003EMicrosoft.Data.Sqlite, 8.0.8\u003C/span\u003E\u003C/li\u003E\u003C/ul\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-connect --name demo --connection-string \u0022Data Source=:memory:\u0022 --provider Microsoft.Data.Sqlite --default",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Connected \u0027demo\u0027 (default) using Microsoft.Data.Sqlite \u2014 database: main\n  Connection string: Data Source=:memory:"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000005",
+      "type": "sql",
+      "source": "CREATE TABLE Employees (\n    Id         INTEGER PRIMARY KEY,\n    FirstName  TEXT    NOT NULL,\n    LastName   TEXT    NOT NULL,\n    Department TEXT    NOT NULL,\n    Salary     REAL    NOT NULL,\n    HireDate   TEXT    NOT NULL\n)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E0 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(17 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000006",
+      "type": "sql",
+      "source": "CREATE TABLE Departments (\n    Id    INTEGER PRIMARY KEY,\n    Name  TEXT    NOT NULL,\n    Floor INTEGER,\n    Budget REAL\n)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E0 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000007",
+      "type": "sql",
+      "source": "CREATE VIEW EmployeeSummary AS\nSELECT\n    e.FirstName || \u0027 \u0027 || e.LastName AS FullName,\n    e.Department,\n    e.Salary\nFROM Employees e",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E0 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000008",
+      "type": "sql",
+      "source": "INSERT INTO Departments VALUES (1, \u0027Engineering\u0027, 3, 500000.00);\nINSERT INTO Departments VALUES (2, \u0027Marketing\u0027,   2, 200000.00);\nINSERT INTO Departments VALUES (3, \u0027Sales\u0027,       1, 300000.00);\n\nINSERT INTO Employees VALUES (1, \u0027Alice\u0027,   \u0027Chen\u0027,      \u0027Engineering\u0027, 120000, \u00272022-01-15\u0027);\nINSERT INTO Employees VALUES (2, \u0027Bob\u0027,     \u0027Martinez\u0027,  \u0027Marketing\u0027,    95000, \u00272022-03-20\u0027);\nINSERT INTO Employees VALUES (3, \u0027Carla\u0027,   \u0027Rossi\u0027,     \u0027Engineering\u0027, 115000, \u00272023-06-01\u0027);\nINSERT INTO Employees VALUES (4, \u0027David\u0027,   \u0027Park\u0027,      \u0027Sales\u0027,        88000, \u00272023-09-10\u0027);\nINSERT INTO Employees VALUES (5, \u0027Emma\u0027,    \u0027Johansson\u0027, \u0027Engineering\u0027, 130000, \u00272021-11-05\u0027);\nINSERT INTO Employees VALUES (6, \u0027Frank\u0027,   \u0027Liu\u0027,       \u0027Marketing\u0027,    92000, \u00272024-01-08\u0027);\nINSERT INTO Employees VALUES (7, \u0027Grace\u0027,   \u0027Kim\u0027,       \u0027Sales\u0027,        91000, \u00272023-04-22\u0027)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000010",
+      "type": "markdown",
+      "source": "---\n\n## 2. Schema Inspection with \u0060#!sql-schema\u0060\n\nThe \u0060#!sql-schema\u0060 magic command lets you browse your database schema without writing SQL. It queries \u0060INFORMATION_SCHEMA\u0060 (or \u0060sqlite_master\u0060 for SQLite) and renders the results as HTML tables.\n\n### List all tables and views\n\nWith no arguments, \u0060#!sql-schema\u0060 lists every table and view in the connected database.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Chr /\u003E\n\u003Ch2 id=\u0022schema-inspection-with-sql-schema\u0022\u003E2. Schema Inspection with \u003Ccode\u003E#!sql-schema\u003C/code\u003E\u003C/h2\u003E\n\u003Cp\u003EThe \u003Ccode\u003E#!sql-schema\u003C/code\u003E magic command lets you browse your database schema without writing SQL. It queries \u003Ccode\u003EINFORMATION_SCHEMA\u003C/code\u003E (or \u003Ccode\u003Esqlite_master\u003C/code\u003E for SQLite) and renders the results as HTML tables.\u003C/p\u003E\n\u003Ch3 id=\u0022list-all-tables-and-views\u0022\u003EList all tables and views\u003C/h3\u003E\n\u003Cp\u003EWith no arguments, \u003Ccode\u003E#!sql-schema\u003C/code\u003E lists every table and view in the connected database.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000011",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-schema",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv style=\u0022font-family:monospace;color:#1E1E1E;background:#F5F5F5;padding:8px;\u0022\u003E\n\u003Cdiv style=\u0022margin-bottom:8px;\u0022\u003E\u003Cstrong\u003ESchema for connection: demo\u003C/strong\u003E (3 tables/views)\u003C/div\u003E\n\u003Ctable style=\u0022border-collapse:collapse;width:100%;\u0022\u003E\n\u003Cthead\u003E\u003Ctr style=\u0022border-bottom:2px solid ;\u0022\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EName\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003ESchema\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EType\u003C/th\u003E\n\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EDepartments\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETABLE\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EEmployeeSummary\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EVIEW\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EEmployees\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETABLE\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\u003C/table\u003E\u003C/div\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000012",
+      "type": "markdown",
+      "source": "### Inspect a specific table\n\nUse \u0060--table \u003Cname\u003E\u0060 to see column definitions, types, nullability, defaults, and primary keys.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022inspect-a-specific-table\u0022\u003EInspect a specific table\u003C/h3\u003E\n\u003Cp\u003EUse \u003Ccode\u003E--table \u0026lt;name\u0026gt;\u003C/code\u003E to see column definitions, types, nullability, defaults, and primary keys.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000013",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-schema --table Employees",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv style=\u0022font-family:monospace;color:#1E1E1E;background:#F5F5F5;padding:8px;\u0022\u003E\n\u003Cdiv style=\u0022margin-bottom:8px;\u0022\u003E\u003Cstrong\u003ETABLE: Employees\u003C/strong\u003E (6 columns)\u003C/div\u003E\n\u003Ctable style=\u0022border-collapse:collapse;width:100%;\u0022\u003E\n\u003Cthead\u003E\u003Ctr style=\u0022border-bottom:2px solid ;\u0022\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EName\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EType\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003ENullable\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EDefault\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EKey\u003C/th\u003E\n\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EId\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EINTEGER\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EYES\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EPK\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EFirstName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ELastName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EDepartment\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ESalary\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EREAL\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EHireDate\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\u003C/table\u003E\u003C/div\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000014",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-schema --table Departments",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv style=\u0022font-family:monospace;color:#1E1E1E;background:#F5F5F5;padding:8px;\u0022\u003E\n\u003Cdiv style=\u0022margin-bottom:8px;\u0022\u003E\u003Cstrong\u003ETABLE: Departments\u003C/strong\u003E (4 columns)\u003C/div\u003E\n\u003Ctable style=\u0022border-collapse:collapse;width:100%;\u0022\u003E\n\u003Cthead\u003E\u003Ctr style=\u0022border-bottom:2px solid ;\u0022\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EName\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EType\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003ENullable\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EDefault\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EKey\u003C/th\u003E\n\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EId\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EINTEGER\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EYES\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EPK\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EFloor\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EINTEGER\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EYES\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EBudget\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EREAL\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EYES\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\u003C/table\u003E\u003C/div\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000015",
+      "type": "markdown",
+      "source": "### Refresh the schema cache\n\nSchema metadata is cached for 5 minutes (300 seconds) to keep completions fast. If you modify the schema (add a table, alter columns), use \u0060--refresh\u0060 to force a reload.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022refresh-the-schema-cache\u0022\u003ERefresh the schema cache\u003C/h3\u003E\n\u003Cp\u003ESchema metadata is cached for 5 minutes (300 seconds) to keep completions fast. If you modify the schema (add a table, alter columns), use \u003Ccode\u003E--refresh\u003C/code\u003E to force a reload.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000016",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-schema --refresh",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv style=\u0022font-family:monospace;color:#1E1E1E;background:#F5F5F5;padding:8px;\u0022\u003E\n\u003Cdiv style=\u0022margin-bottom:8px;\u0022\u003E\u003Cstrong\u003ESchema for connection: demo\u003C/strong\u003E (3 tables/views)\u003C/div\u003E\n\u003Ctable style=\u0022border-collapse:collapse;width:100%;\u0022\u003E\n\u003Cthead\u003E\u003Ctr style=\u0022border-bottom:2px solid ;\u0022\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EName\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003ESchema\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EType\u003C/th\u003E\n\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EDepartments\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETABLE\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EEmployeeSummary\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EVIEW\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EEmployees\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETABLE\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\u003C/table\u003E\u003C/div\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000017",
+      "type": "markdown",
+      "source": "### Target a specific connection\n\nIf you have multiple database connections, use \u0060--connection \u003Cname\u003E\u0060 to inspect a specific one.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022target-a-specific-connection\u0022\u003ETarget a specific connection\u003C/h3\u003E\n\u003Cp\u003EIf you have multiple database connections, use \u003Ccode\u003E--connection \u0026lt;name\u0026gt;\u003C/code\u003E to inspect a specific one.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000018",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-schema --connection demo --table Employees",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv style=\u0022font-family:monospace;color:#1E1E1E;background:#F5F5F5;padding:8px;\u0022\u003E\n\u003Cdiv style=\u0022margin-bottom:8px;\u0022\u003E\u003Cstrong\u003ETABLE: Employees\u003C/strong\u003E (6 columns)\u003C/div\u003E\n\u003Ctable style=\u0022border-collapse:collapse;width:100%;\u0022\u003E\n\u003Cthead\u003E\u003Ctr style=\u0022border-bottom:2px solid ;\u0022\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EName\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EType\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003ENullable\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EDefault\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EKey\u003C/th\u003E\n\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EId\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EINTEGER\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EYES\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EPK\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EFirstName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ELastName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EDepartment\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ESalary\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EREAL\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EHireDate\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\u003C/table\u003E\u003C/div\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000020",
+      "type": "markdown",
+      "source": "---\n\n## 3. SQL IntelliSense\n\nOnce a connection is active and a SQL cell has been executed, the SQL kernel provides three language services that power the editing experience:\n\n### Completions\n\nAs you type in a SQL cell, Verso suggests:\n\n| Context | What you get |\n|---|---|\n| General typing | SQL keywords (\u0060SELECT\u0060, \u0060FROM\u0060, \u0060JOIN\u0060, \u0060WHERE\u0060, ...) |\n| After \u0060FROM\u0060 or \u0060JOIN\u0060 | Table and view names from the schema cache |\n| After \u0060SELECT\u0060, \u0060WHERE\u0060, \u0060ON\u0060 | Column names from all tables |\n| After \u0060@\u0060 | Variables from the shared variable store |\n\nCompletions are prefix-filtered and sorted so that schema objects (tables, columns) appear before keywords. Try typing in the cell below \u2014 place your cursor after \u0060FROM \u0060 and you should see \u0060Employees\u0060, \u0060Departments\u0060, and \u0060EmployeeSummary\u0060 suggested.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Chr /\u003E\n\u003Ch2 id=\u0022sql-intellisense\u0022\u003E3. SQL IntelliSense\u003C/h2\u003E\n\u003Cp\u003EOnce a connection is active and a SQL cell has been executed, the SQL kernel provides three language services that power the editing experience:\u003C/p\u003E\n\u003Ch3 id=\u0022completions\u0022\u003ECompletions\u003C/h3\u003E\n\u003Cp\u003EAs you type in a SQL cell, Verso suggests:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EContext\u003C/th\u003E\n\u003Cth\u003EWhat you get\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EGeneral typing\u003C/td\u003E\n\u003Ctd\u003ESQL keywords (\u003Ccode\u003ESELECT\u003C/code\u003E, \u003Ccode\u003EFROM\u003C/code\u003E, \u003Ccode\u003EJOIN\u003C/code\u003E, \u003Ccode\u003EWHERE\u003C/code\u003E, ...)\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAfter \u003Ccode\u003EFROM\u003C/code\u003E or \u003Ccode\u003EJOIN\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003ETable and view names from the schema cache\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAfter \u003Ccode\u003ESELECT\u003C/code\u003E, \u003Ccode\u003EWHERE\u003C/code\u003E, \u003Ccode\u003EON\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EColumn names from all tables\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAfter \u003Ccode\u003E@\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EVariables from the shared variable store\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Cp\u003ECompletions are prefix-filtered and sorted so that schema objects (tables, columns) appear before keywords. Try typing in the cell below \u2014 place your cursor after \u003Ccode\u003EFROM \u003C/code\u003E and you should see \u003Ccode\u003EEmployees\u003C/code\u003E, \u003Ccode\u003EDepartments\u003C/code\u003E, and \u003Ccode\u003EEmployeeSummary\u003C/code\u003E suggested.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000021",
+      "type": "sql",
+      "source": "SELECT FirstName, LastName, Department\nFROM Employees\nWHERE Department = \u0027Engineering\u0027\nORDER BY LastName",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EFirstName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ELastName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EDepartment\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EAlice\u003C/td\u003E\u003Ctd\u003EChen\u003C/td\u003E\u003Ctd\u003EEngineering\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EEmma\u003C/td\u003E\u003Ctd\u003EJohansson\u003C/td\u003E\u003Ctd\u003EEngineering\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003ECarla\u003C/td\u003E\u003Ctd\u003ERossi\u003C/td\u003E\u003Ctd\u003EEngineering\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-3 of 3 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000030",
+      "type": "markdown",
+      "source": "### Diagnostics\n\nThe SQL kernel analyzes your code and reports problems:\n\n- **Error**: No database connection (appears if you haven\u0027t run \u0060#!sql-connect\u0060)\n- **Warning**: Unresolved \u0060@paramName\u0060 \u2014 the parameter has no matching variable in the store\n\nIn the cell below, \u0060@unknownParam\u0060 will produce a warning squiggle because no variable with that name exists.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022diagnostics\u0022\u003EDiagnostics\u003C/h3\u003E\n\u003Cp\u003EThe SQL kernel analyzes your code and reports problems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003EError\u003C/strong\u003E: No database connection (appears if you haven\u0027t run \u003Ccode\u003E#!sql-connect\u003C/code\u003E)\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EWarning\u003C/strong\u003E: Unresolved \u003Ccode\u003E@paramName\u003C/code\u003E \u2014 the parameter has no matching variable in the store\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn the cell below, \u003Ccode\u003E@unknownParam\u003C/code\u003E will produce a warning squiggle because no variable with that name exists.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000031",
+      "type": "sql",
+      "source": "SELECT * FROM Employees WHERE Salary \u003E @unknownParam",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Warning: No variable \u0027@unknownParam\u0027 found for parameter binding."
+        },
+        {
+          "mimeType": "text/plain",
+          "content": "SQL error: Must add values for the following parameters: ",
+          "isError": true
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000032",
+      "type": "markdown",
+      "source": "Now define the variable in C# and the warning goes away:",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cp\u003ENow define the variable in C# and the warning goes away:\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000033",
+      "type": "code",
+      "language": "csharp",
+      "source": "var minSalary = 100000.0;"
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000034",
+      "type": "sql",
+      "source": "SELECT FirstName, LastName, Salary\nFROM Employees\nWHERE Salary \u003E= @minSalary\nORDER BY Salary DESC",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EFirstName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ELastName\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003ESalary\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EEmma\u003C/td\u003E\u003Ctd\u003EJohansson\u003C/td\u003E\u003Ctd\u003E130000\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EAlice\u003C/td\u003E\u003Ctd\u003EChen\u003C/td\u003E\u003Ctd\u003E120000\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003ECarla\u003C/td\u003E\u003Ctd\u003ERossi\u003C/td\u003E\u003Ctd\u003E115000\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-3 of 3 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000040",
+      "type": "markdown",
+      "source": "### Hover Information\n\nHover your cursor over any of these in a SQL cell to see a tooltip:\n\n| Hover target | Tooltip shows |\n|---|---|\n| SQL keyword (e.g. \u0060SELECT\u0060) | Brief description of the keyword |\n| Table name (e.g. \u0060Employees\u0060) | Table type, full column list with types |\n| Column name (e.g. \u0060Salary\u0060) | Data type, which table it belongs to, nullability |\n| \u0060@variable\u0060 (e.g. \u0060@minSalary\u0060) | CLR type and current value |",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022hover-information\u0022\u003EHover Information\u003C/h3\u003E\n\u003Cp\u003EHover your cursor over any of these in a SQL cell to see a tooltip:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EHover target\u003C/th\u003E\n\u003Cth\u003ETooltip shows\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ESQL keyword (e.g. \u003Ccode\u003ESELECT\u003C/code\u003E)\u003C/td\u003E\n\u003Ctd\u003EBrief description of the keyword\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ETable name (e.g. \u003Ccode\u003EEmployees\u003C/code\u003E)\u003C/td\u003E\n\u003Ctd\u003ETable type, full column list with types\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EColumn name (e.g. \u003Ccode\u003ESalary\u003C/code\u003E)\u003C/td\u003E\n\u003Ctd\u003EData type, which table it belongs to, nullability\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E@variable\u003C/code\u003E (e.g. \u003Ccode\u003E@minSalary\u003C/code\u003E)\u003C/td\u003E\n\u003Ctd\u003ECLR type and current value\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000041",
+      "type": "sql",
+      "source": "-- Hover over keywords, table names, column names, and @minSalary below:\nSELECT\n    e.FirstName,\n    e.LastName,\n    e.Department,\n    e.Salary\nFROM Employees e\nWHERE e.Salary \u003E @minSalary\nORDER BY e.Salary DESC",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EFirstName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ELastName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EDepartment\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003ESalary\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EEmma\u003C/td\u003E\u003Ctd\u003EJohansson\u003C/td\u003E\u003Ctd\u003EEngineering\u003C/td\u003E\u003Ctd\u003E130000\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EAlice\u003C/td\u003E\u003Ctd\u003EChen\u003C/td\u003E\u003Ctd\u003EEngineering\u003C/td\u003E\u003Ctd\u003E120000\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003ECarla\u003C/td\u003E\u003Ctd\u003ERossi\u003C/td\u003E\u003Ctd\u003EEngineering\u003C/td\u003E\u003Ctd\u003E115000\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-3 of 3 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000050",
+      "type": "markdown",
+      "source": "---\n\n## 4. Jupyter Import Hook\n\nWhen you open a \u0060.ipynb\u0060 file that uses **Polyglot Notebooks** SQL patterns, Verso automatically converts them to native SQL cells. This means you can migrate existing notebooks without manual editing.\n\n### What gets converted\n\n| Polyglot pattern | Verso equivalent |\n|---|---|\n| \u0060#!connect mssql --kernel-name db \u0022connStr\u0022\u0060 | \u0060#!sql-connect --name db --connection-string \u0022connStr\u0022 --provider Microsoft.Data.SqlClient\u0060 |\n| \u0060#!connect postgresql --kernel-name db \u0022connStr\u0022\u0060 | Same, with \u0060--provider Npgsql\u0060 |\n| \u0060#!connect mysql --kernel-name db \u0022connStr\u0022\u0060 | Same, with \u0060--provider MySql.Data.MySqlClient\u0060 |\n| \u0060#!connect sqlite --kernel-name db \u0022connStr\u0022\u0060 | Same, with \u0060--provider Microsoft.Data.Sqlite\u0060 |\n| \u0060#!sql\u0060 \u002B SQL code | Cell type changed to SQL |\n| \u0060#!\u003CkernelName\u003E\u0060 \u002B SQL code | SQL cell with \u0060--connection \u003CkernelName\u003E\u0060 directive |\n| \u0060--create-dbcontext\u0060 flag | Separate \u0060#!sql-scaffold --connection \u003Cname\u003E\u0060 cell |\n\nThe import hook also:\n- Inserts \u0060#r \u0022nuget: \u003Cpackage\u003E\u0022\u0060 cells for the appropriate ADO.NET provider (with deduplication)\n- Adds \u0060verso.ado\u0060 to the notebook\u0027s \u0060requiredExtensions\u0060\n\nThis conversion happens transparently when you open a \u0060.ipynb\u0060 file \u2014 no action needed.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Chr /\u003E\n\u003Ch2 id=\u0022jupyter-import-hook\u0022\u003E4. Jupyter Import Hook\u003C/h2\u003E\n\u003Cp\u003EWhen you open a \u003Ccode\u003E.ipynb\u003C/code\u003E file that uses \u003Cstrong\u003EPolyglot Notebooks\u003C/strong\u003E SQL patterns, Verso automatically converts them to native SQL cells. This means you can migrate existing notebooks without manual editing.\u003C/p\u003E\n\u003Ch3 id=\u0022what-gets-converted\u0022\u003EWhat gets converted\u003C/h3\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EPolyglot pattern\u003C/th\u003E\n\u003Cth\u003EVerso equivalent\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!connect mssql --kernel-name db \u0026quot;connStr\u0026quot;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!sql-connect --name db --connection-string \u0026quot;connStr\u0026quot; --provider Microsoft.Data.SqlClient\u003C/code\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!connect postgresql --kernel-name db \u0026quot;connStr\u0026quot;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003ESame, with \u003Ccode\u003E--provider Npgsql\u003C/code\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!connect mysql --kernel-name db \u0026quot;connStr\u0026quot;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003ESame, with \u003Ccode\u003E--provider MySql.Data.MySqlClient\u003C/code\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!connect sqlite --kernel-name db \u0026quot;connStr\u0026quot;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003ESame, with \u003Ccode\u003E--provider Microsoft.Data.Sqlite\u003C/code\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!sql\u003C/code\u003E \u002B SQL code\u003C/td\u003E\n\u003Ctd\u003ECell type changed to SQL\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!\u0026lt;kernelName\u0026gt;\u003C/code\u003E \u002B SQL code\u003C/td\u003E\n\u003Ctd\u003ESQL cell with \u003Ccode\u003E--connection \u0026lt;kernelName\u0026gt;\u003C/code\u003E directive\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--create-dbcontext\u003C/code\u003E flag\u003C/td\u003E\n\u003Ctd\u003ESeparate \u003Ccode\u003E#!sql-scaffold --connection \u0026lt;name\u0026gt;\u003C/code\u003E cell\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Cp\u003EThe import hook also:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInserts \u003Ccode\u003E#r \u0026quot;nuget: \u0026lt;package\u0026gt;\u0026quot;\u003C/code\u003E cells for the appropriate ADO.NET provider (with deduplication)\u003C/li\u003E\n\u003Cli\u003EAdds \u003Ccode\u003Everso.ado\u003C/code\u003E to the notebook\u0027s \u003Ccode\u003ErequiredExtensions\u003C/code\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThis conversion happens transparently when you open a \u003Ccode\u003E.ipynb\u003C/code\u003E file \u2014 no action needed.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000060",
+      "type": "markdown",
+      "source": "---\n\n## 5. Putting It All Together\n\nHere\u0027s a realistic workflow that exercises completions, parameter binding, schema inspection, and cross-language variable sharing.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Chr /\u003E\n\u003Ch2 id=\u0022putting-it-all-together\u0022\u003E5. Putting It All Together\u003C/h2\u003E\n\u003Cp\u003EHere\u0027s a realistic workflow that exercises completions, parameter binding, schema inspection, and cross-language variable sharing.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000061",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Define filter parameters in C#\nvar department = \u0022Engineering\u0022;\nvar salaryFloor = 110000.0;"
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000062",
+      "type": "sql",
+      "source": "--name teamReport\nSELECT\n    FirstName || \u0027 \u0027 || LastName AS Name,\n    Salary,\n    HireDate\nFROM Employees\nWHERE Department = @department\n  AND Salary \u003E= @salaryFloor\nORDER BY HireDate",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EName\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003ESalary\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EHireDate\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EEmma Johansson\u003C/td\u003E\u003Ctd\u003E130000\u003C/td\u003E\u003Ctd\u003E2021-11-05\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EAlice Chen\u003C/td\u003E\u003Ctd\u003E120000\u003C/td\u003E\u003Ctd\u003E2022-01-15\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003ECarla Rossi\u003C/td\u003E\u003Ctd\u003E115000\u003C/td\u003E\u003Ctd\u003E2023-06-01\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-3 of 3 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000063",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Access the SQL results as a DataTable in C#\nvar teamReport = Variables.Get\u003CSystem.Data.DataTable\u003E(\u0022teamReport\u0022)!;\n\nConsole.WriteLine($\u0022Found {teamReport.Rows.Count} employee(s) in {department} earning \u003E= ${salaryFloor:N0}:\u0022);\nforeach (System.Data.DataRow row in teamReport.Rows)\n{\n    Console.WriteLine($\u0022  {row[\u0022Name\u0022],-20} ${row[\u0022Salary\u0022],-10:N0} (hired {row[\u0022HireDate\u0022]})\u0022);\n}",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Found 3 employee(s) in Engineering earning \u003E= $110,000:\n  Emma Johansson       $130,000    (hired 2021-11-05)\n  Alice Chen           $120,000    (hired 2022-01-15)\n  Carla Rossi          $115,000    (hired 2023-06-01)\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000064",
+      "type": "markdown",
+      "source": "### Verify the schema one more time",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022verify-the-schema-one-more-time\u0022\u003EVerify the schema one more time\u003C/h3\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000065",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-schema --table Employees",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv style=\u0022font-family:monospace;color:#1E1E1E;background:#F5F5F5;padding:8px;\u0022\u003E\n\u003Cdiv style=\u0022margin-bottom:8px;\u0022\u003E\u003Cstrong\u003ETABLE: Employees\u003C/strong\u003E (6 columns)\u003C/div\u003E\n\u003Ctable style=\u0022border-collapse:collapse;width:100%;\u0022\u003E\n\u003Cthead\u003E\u003Ctr style=\u0022border-bottom:2px solid ;\u0022\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EName\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EType\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003ENullable\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EDefault\u003C/th\u003E\n\u003Cth style=\u0022text-align:left;padding:4px 8px;\u0022\u003EKey\u003C/th\u003E\n\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EId\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EINTEGER\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EYES\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EPK\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EFirstName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ELastName\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EDepartment\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ESalary\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EREAL\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr style=\u0022border-bottom:1px solid ;\u0022\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003EHireDate\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ETEXT\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003ENO\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003Ctd style=\u0022padding:4px 8px;\u0022\u003E\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\u003C/table\u003E\u003C/div\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000070",
+      "type": "markdown",
+      "source": "---\n\n## Cleanup",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Chr /\u003E\n\u003Ch2 id=\u0022cleanup\u0022\u003ECleanup\u003C/h2\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000071",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-disconnect --name demo",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Disconnected \u0027demo\u0027."
+        }
+      ]
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000080",
+      "type": "markdown",
+      "source": "## Summary\n\n| Feature | How to use it |\n|---|---|\n| **Completions** | Type in a SQL cell \u2014 keywords, tables, columns, and @variables are suggested automatically |\n| **Diagnostics** | Missing connections and unresolved @parameters show inline warnings |\n| **Hover** | Hover over any keyword, table, column, or @variable for a tooltip |\n| **Schema browse** | \u0060#!sql-schema\u0060 lists tables; \u0060--table \u003Cname\u003E\u0060 shows columns; \u0060--refresh\u0060 reloads |\n| **Jupyter import** | Open a \u0060.ipynb\u0060 with Polyglot SQL patterns \u2014 cells are converted automatically |",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022summary\u0022\u003ESummary\u003C/h2\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EFeature\u003C/th\u003E\n\u003Cth\u003EHow to use it\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ECompletions\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EType in a SQL cell \u2014 keywords, tables, columns, and @variables are suggested automatically\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EDiagnostics\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EMissing connections and unresolved @parameters show inline warnings\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EHover\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EHover over any keyword, table, column, or @variable for a tooltip\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ESchema browse\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003E\u003Ccode\u003E#!sql-schema\u003C/code\u003E lists tables; \u003Ccode\u003E--table \u0026lt;name\u0026gt;\u003C/code\u003E shows columns; \u003Ccode\u003E--refresh\u003C/code\u003E reloads\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EJupyter import\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EOpen a \u003Ccode\u003E.ipynb\u003C/code\u003E with Polyglot SQL patterns \u2014 cells are converted automatically\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n"
+        }
+      ]
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "10000001-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000002": {
+          "row": 0,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000003": {
+          "row": 4,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000004": {
+          "row": 4,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000005": {
+          "row": 8,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000006": {
+          "row": 8,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000007": {
+          "row": 12,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000008": {
+          "row": 12,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000010": {
+          "row": 16,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000011": {
+          "row": 16,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000012": {
+          "row": 20,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000013": {
+          "row": 20,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000014": {
+          "row": 24,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000015": {
+          "row": 24,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000016": {
+          "row": 28,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000017": {
+          "row": 28,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000018": {
+          "row": 32,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000020": {
+          "row": 32,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000021": {
+          "row": 36,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000030": {
+          "row": 36,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000031": {
+          "row": 40,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000032": {
+          "row": 40,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000033": {
+          "row": 44,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000034": {
+          "row": 44,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000040": {
+          "row": 48,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000041": {
+          "row": 48,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000050": {
+          "row": 52,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000060": {
+          "row": 52,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000061": {
+          "row": 56,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000062": {
+          "row": 56,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000063": {
+          "row": 60,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000064": {
+          "row": 60,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000065": {
+          "row": 64,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000070": {
+          "row": 64,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000071": {
+          "row": 68,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "10000001-0001-0001-0001-000000000080": {
+          "row": 68,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        }
+      }
+    }
+  }
+}

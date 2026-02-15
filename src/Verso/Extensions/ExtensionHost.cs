@@ -26,6 +26,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<ILayoutEngine> _layouts = new();
     private readonly List<IToolbarAction> _toolbarActions = new();
     private readonly List<IMagicCommand> _magicCommands = new();
+    private readonly List<INotebookPostProcessor> _postProcessors = new();
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
@@ -85,6 +86,11 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     public IReadOnlyList<IMagicCommand> GetMagicCommands()
     {
         lock (_lock) { return _magicCommands.Where(m => IsEnabled(m)).ToList(); }
+    }
+
+    public IReadOnlyList<INotebookPostProcessor> GetPostProcessors()
+    {
+        lock (_lock) { return _postProcessors.Where(p => IsEnabled(p)).ToList(); }
     }
 
     // --- Enable / Disable ---
@@ -361,6 +367,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _layouts.Clear();
             _toolbarActions.Clear();
             _magicCommands.Clear();
+            _postProcessors.Clear();
 
             foreach (var ctx in _loadContexts)
                 ctx.Unload();
@@ -397,6 +404,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _toolbarActions.Add(action);
         if (extension is IMagicCommand magic)
             _magicCommands.Add(magic);
+        if (extension is INotebookPostProcessor postProcessor)
+            _postProcessors.Add(postProcessor);
     }
 
     private static bool HasCapabilityInterface(IExtension extension)
@@ -409,7 +418,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             or ITheme
             or ILayoutEngine
             or IToolbarAction
-            or IMagicCommand;
+            or IMagicCommand
+            or INotebookPostProcessor;
     }
 
     private static IReadOnlyList<string> GetCapabilityList(IExtension extension)
@@ -424,6 +434,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         if (extension is ILayoutEngine) caps.Add("LayoutEngine");
         if (extension is IToolbarAction) caps.Add("ToolbarAction");
         if (extension is IMagicCommand) caps.Add("MagicCommand");
+        if (extension is INotebookPostProcessor) caps.Add("NotebookPostProcessor");
         return caps;
     }
 

@@ -304,6 +304,80 @@ public sealed class SqlIntegrationTests
         await DisposeConnectionsAsync(connections);
     }
 
+    [TestMethod]
+    public async Task EndToEnd_SchemaCompletions_ReturnTableAndColumnNames()
+    {
+        var (execCtx, connections) = await SetupConnectionAsync();
+
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("CREATE TABLE Products (Id INTEGER PRIMARY KEY, Name TEXT, Price REAL)", execCtx);
+        await kernel.ExecuteAsync("INSERT INTO Products VALUES (1, 'Widget', 9.99)", execCtx);
+
+        // Execute a SELECT to populate _lastVariableStore and schema cache
+        await kernel.ExecuteAsync("SELECT * FROM Products", execCtx);
+
+        // Now test completions
+        var completions = await kernel.GetCompletionsAsync("SELECT * FROM P", 16);
+
+        Assert.IsTrue(completions.Any(c => c.DisplayText == "Products" && c.Kind == "Class"),
+            "Should include Products table in completions.");
+
+        var colCompletions = await kernel.GetCompletionsAsync("SELECT N", 8);
+        Assert.IsTrue(colCompletions.Any(c => c.DisplayText == "Name" && c.Kind == "Property"),
+            "Should include Name column in completions.");
+
+        await DisposeConnectionsAsync(connections);
+    }
+
+    [TestMethod]
+    public async Task EndToEnd_JupyterImport_TransformsSqlCells()
+    {
+        var hook = new Verso.Ado.Import.JupyterSqlImportHook();
+
+        var notebook = new Verso.Abstractions.NotebookModel
+        {
+            Cells = new List<Verso.Abstractions.CellModel>
+            {
+                new Verso.Abstractions.CellModel
+                {
+                    Type = "code",
+                    Language = "csharp",
+                    Source = "#!connect mssql --kernel-name mydb \"Server=localhost;Database=test\""
+                },
+                new Verso.Abstractions.CellModel
+                {
+                    Type = "code",
+                    Language = "csharp",
+                    Source = "#!mydb\nSELECT * FROM Products"
+                },
+                new Verso.Abstractions.CellModel
+                {
+                    Type = "code",
+                    Language = "csharp",
+                    Source = "#!sql\nSELECT COUNT(*) FROM Orders"
+                }
+            }
+        };
+
+        var result = await hook.PostDeserializeAsync(notebook, "test.ipynb");
+
+        // Verify connect cell was transformed
+        Assert.IsTrue(result.Cells.Any(c => c.Source.Contains("#!sql-connect")));
+
+        // Verify #!mydb cell was transformed to SQL with --connection directive
+        var mydbCell = result.Cells.FirstOrDefault(c =>
+            c.Language == "sql" && c.Source.Contains("--connection mydb"));
+        Assert.IsNotNull(mydbCell);
+
+        // Verify #!sql cell was transformed to SQL cell type
+        var sqlCell = result.Cells.FirstOrDefault(c =>
+            c.Language == "sql" && c.Source.Contains("SELECT COUNT(*)"));
+        Assert.IsNotNull(sqlCell);
+
+        // Verify verso.ado is in required extensions
+        Assert.IsTrue(result.RequiredExtensions.Contains("verso.ado"));
+    }
+
     // --- Shared test setup helpers ---
 
     private static async Task<(StubExecutionContext ExecCtx, Dictionary<string, SqlConnectionInfo> Connections)> SetupConnectionAsync()

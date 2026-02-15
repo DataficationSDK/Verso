@@ -198,32 +198,34 @@ public sealed class SqlKernelTests
     }
 
     [TestMethod]
-    public async Task GetCompletionsAsync_ReturnsEmptyList()
+    public async Task GetCompletionsAsync_ReturnsKeywords()
     {
         var kernel = new SqlKernel();
 
         var completions = await kernel.GetCompletionsAsync("SELECT", 6);
 
-        Assert.AreEqual(0, completions.Count);
+        Assert.IsTrue(completions.Count > 0, "Should return keyword completions.");
+        Assert.IsTrue(completions.Any(c => c.Kind == "Keyword"));
     }
 
     [TestMethod]
-    public async Task GetDiagnosticsAsync_ReturnsEmptyList()
+    public async Task GetDiagnosticsAsync_WithoutConnection_ReturnsDiagnostics()
     {
         var kernel = new SqlKernel();
 
-        var diagnostics = await kernel.GetDiagnosticsAsync("SELECT");
+        var diagnostics = await kernel.GetDiagnosticsAsync("SELECT 1");
 
-        Assert.AreEqual(0, diagnostics.Count);
+        Assert.IsTrue(diagnostics.Count > 0, "Should return missing-connection diagnostic.");
     }
 
     [TestMethod]
-    public async Task GetHoverInfoAsync_ReturnsNull()
+    public async Task GetHoverInfoAsync_OnKeyword_ReturnsHoverInfo()
     {
         var kernel = new SqlKernel();
 
-        var hover = await kernel.GetHoverInfoAsync("SELECT", 0);
+        var hover = await kernel.GetHoverInfoAsync("SELECT * FROM T", 3);
 
-        Assert.IsNull(hover);
+        Assert.IsNotNull(hover, "Should return hover info for SQL keyword.");
+        Assert.IsTrue(hover!.Content.Contains("SELECT"));
     }
 }

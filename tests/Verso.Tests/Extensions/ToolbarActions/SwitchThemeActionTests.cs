@@ -137,6 +137,7 @@ public sealed class SwitchThemeActionTests
         public IReadOnlyList<INotebookSerializer> GetSerializers() => Array.Empty<INotebookSerializer>();
         public IReadOnlyList<ILayoutEngine> GetLayouts() => Array.Empty<ILayoutEngine>();
         public IReadOnlyList<ITheme> GetThemes() => _themes;
+        public IReadOnlyList<INotebookPostProcessor> GetPostProcessors() => Array.Empty<INotebookPostProcessor>();
         public IReadOnlyList<ExtensionInfo> GetExtensionInfos() => Array.Empty<ExtensionInfo>();
         public Task EnableExtensionAsync(string extensionId) => Task.CompletedTask;
         public Task DisableExtensionAsync(string extensionId) => Task.CompletedTask;
