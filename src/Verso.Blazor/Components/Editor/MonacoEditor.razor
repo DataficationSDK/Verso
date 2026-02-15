@@ -9,6 +9,8 @@
     [Parameter] public string Language { get; set; } = "csharp";
     [Parameter] public bool ReadOnly { get; set; }
     [Parameter] public EventCallback<string> OnValueChanged { get; set; }
+    [Parameter] public Func<string, int, Task<object?>>? OnGetHoverInfo { get; set; }
+    [Parameter] public Func<string, int, Task<object?>>? OnGetCompletions { get; set; }
 
     private readonly string _elementId = $"monaco-{Guid.NewGuid():N}";
     private DotNetObjectReference<MonacoEditor>? _dotnetRef;
@@ -50,6 +52,30 @@
         _lastSetValue = newValue;
         await ValueChanged.InvokeAsync(newValue);
         await OnValueChanged.InvokeAsync(newValue);
+    }
+
+    [JSInvokable]
+    public async Task<object?> GetHoverInfo(string code, int cursorPosition)
+    {
+        try
+        {
+            return OnGetHoverInfo is not null
+                ? await OnGetHoverInfo(code, cursorPosition)
+                : null;
+        }
+        catch { return null; }
+    }
+
+    [JSInvokable]
+    public async Task<object?> GetCompletions(string code, int cursorPosition)
+    {
+        try
+        {
+            return OnGetCompletions is not null
+                ? await OnGetCompletions(code, cursorPosition)
+                : null;
+        }
+        catch { return null; }
     }
 
     public async ValueTask DisposeAsync()

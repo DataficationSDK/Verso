@@ -1,0 +1,357 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "SQL Scaffolding: From Database to LINQ",
+    "created": "2026-02-15T16:00:00+00:00",
+    "modified": "2026-02-15T20:30:26.16396+00:00",
+    "defaultKernel": "csharp",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "00000003-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# SQL Scaffolding: From Database to LINQ\n\nThe \u0060#!sql-scaffold\u0060 command generates **EF Core entity classes** and a **DbContext** from a live database connection. Once scaffolded, you can write LINQ queries in C# cells against your database schema \u2014 with full IntelliSense.\n\nThis notebook demonstrates the full workflow using an in-memory SQLite database:\n1. Connect and create a schema with relationships\n2. Scaffold entities and DbContext\n3. Query with LINQ\n\n\u003E **Coming from Polyglot Notebooks?** This is the Verso equivalent of \u0060--create-dbcontext\u0060. When importing \u0060.dib\u0060 files, Verso automatically converts \u0060#!sql-scaffold\u0060 cells.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch1 id=\u0022sql-scaffolding-from-database-to-linq\u0022\u003ESQL Scaffolding: From Database to LINQ\u003C/h1\u003E\n\u003Cp\u003EThe \u003Ccode\u003E#!sql-scaffold\u003C/code\u003E command generates \u003Cstrong\u003EEF Core entity classes\u003C/strong\u003E and a \u003Cstrong\u003EDbContext\u003C/strong\u003E from a live database connection. Once scaffolded, you can write LINQ queries in C# cells against your database schema \u2014 with full IntelliSense.\u003C/p\u003E\n\u003Cp\u003EThis notebook demonstrates the full workflow using an in-memory SQLite database:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EConnect and create a schema with relationships\u003C/li\u003E\n\u003Cli\u003EScaffold entities and DbContext\u003C/li\u003E\n\u003Cli\u003EQuery with LINQ\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003E\u003Cstrong\u003EComing from Polyglot Notebooks?\u003C/strong\u003E This is the Verso equivalent of \u003Ccode\u003E--create-dbcontext\u003C/code\u003E. When importing \u003Ccode\u003E.dib\u003C/code\u003E files, Verso automatically converts \u003Ccode\u003E#!sql-scaffold\u003C/code\u003E cells.\u003C/p\u003E\n\u003C/blockquote\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## 1. Install Packages\n\nYou need the **SQLite ADO.NET provider** and the **EF Core SQLite provider**. For other databases, swap in the appropriate packages (e.g., \u0060Microsoft.EntityFrameworkCore.SqlServer\u0060 for SQL Server).",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022install-packages\u0022\u003E1. Install Packages\u003C/h2\u003E\n\u003Cp\u003EYou need the \u003Cstrong\u003ESQLite ADO.NET provider\u003C/strong\u003E and the \u003Cstrong\u003EEF Core SQLite provider\u003C/strong\u003E. For other databases, swap in the appropriate packages (e.g., \u003Ccode\u003EMicrosoft.EntityFrameworkCore.SqlServer\u003C/code\u003E for SQL Server).\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "#r \u0022nuget: Microsoft.Data.Sqlite, 8.0.8\u0022\n#r \u0022nuget: Microsoft.EntityFrameworkCore.Sqlite, 8.0.8\u0022",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv\u003E\u003Cb\u003EInstalled Packages\u003C/b\u003E\u003Cul\u003E\u003Cli\u003E\u003Cspan\u003EMicrosoft.Data.Sqlite, 8.0.8\u003C/span\u003E\u003C/li\u003E\u003Cli\u003E\u003Cspan\u003EMicrosoft.EntityFrameworkCore.Sqlite, 8.0.8\u003C/span\u003E\u003C/li\u003E\u003C/ul\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000004",
+      "type": "markdown",
+      "source": "## 2. Connect to the Database\n\nEstablish a named connection. The \u0060--default\u0060 flag makes it the active connection for SQL cells.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022connect-to-the-database\u0022\u003E2. Connect to the Database\u003C/h2\u003E\n\u003Cp\u003EEstablish a named connection. The \u003Ccode\u003E--default\u003C/code\u003E flag makes it the active connection for SQL cells.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000005",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-connect --name shop --connection-string \u0022Data Source=:memory:\u0022 --provider Microsoft.Data.Sqlite --default",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Connected \u0027shop\u0027 (default) using Microsoft.Data.Sqlite \u2014 database: main\n  Connection string: Data Source=:memory:"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000006",
+      "type": "markdown",
+      "source": "## 3. Create a Schema with Relationships\n\nWe\u0027ll build a small e-commerce schema: **Categories**, **Products**, and **Orders**. Products reference Categories via a foreign key, and Orders reference Products.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022create-a-schema-with-relationships\u0022\u003E3. Create a Schema with Relationships\u003C/h2\u003E\n\u003Cp\u003EWe\u0027ll build a small e-commerce schema: \u003Cstrong\u003ECategories\u003C/strong\u003E, \u003Cstrong\u003EProducts\u003C/strong\u003E, and \u003Cstrong\u003EOrders\u003C/strong\u003E. Products reference Categories via a foreign key, and Orders reference Products.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000007",
+      "type": "sql",
+      "language": "sql",
+      "source": "CREATE TABLE Categories (\n    Id    INTEGER PRIMARY KEY,\n    Name  TEXT NOT NULL\n);\n\nCREATE TABLE Products (\n    Id          INTEGER PRIMARY KEY,\n    Name        TEXT    NOT NULL,\n    CategoryId  INTEGER NOT NULL REFERENCES Categories(Id),\n    Price       REAL    NOT NULL,\n    InStock     INTEGER NOT NULL DEFAULT 1\n);\n\nCREATE TABLE Orders (\n    Id         INTEGER PRIMARY KEY,\n    ProductId  INTEGER NOT NULL REFERENCES Products(Id),\n    Quantity   INTEGER NOT NULL,\n    Customer   TEXT    NOT NULL,\n    OrderDate  TEXT    NOT NULL\n)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result{--sql-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));--sql-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));--sql-border:var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));--sql-header-bg:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));--sql-hover:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0));--sql-accent:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4));--sql-muted:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));--sql-warn-bg:var(--vscode-inputValidation-warningBackground,var(--verso-highlight-background,#fff3cd));--sql-warn-fg:var(--vscode-editorWarning-foreground,var(--verso-highlight-foreground,#664d03));--sql-warn-border:var(--vscode-inputValidation-warningBorder,var(--verso-status-warning,#ffc107));font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--sql-fg);}.verso-sql-result table{border-collapse:collapse;width:auto;background:var(--sql-bg);color:var(--sql-fg);}.verso-sql-result th{text-align:left;padding:6px 12px;border-bottom:2px solid var(--sql-border);background:var(--sql-header-bg);font-weight:600;}.verso-sql-result td{padding:5px 12px;border-bottom:1px solid var(--sql-border);}.verso-sql-result tbody tr:hover{background:var(--sql-hover);}.verso-sql-result .verso-sql-null{color:var(--sql-muted);font-style:italic;}.verso-sql-result .verso-sql-pk{color:var(--sql-accent);font-weight:600;}.verso-sql-result .verso-sql-header{margin-bottom:6px;font-size:13px;}.verso-sql-result .verso-sql-header strong{font-size:14px;}.verso-sql-result .verso-sql-header .verso-sql-badge{opacity:0.7;font-weight:normal;}.verso-sql-pager{padding:6px 0;}.verso-sql-pager button{margin-right:4px;padding:2px 10px;background:var(--sql-header-bg);color:var(--sql-fg);border:1px solid var(--sql-border);border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;}.verso-sql-pager button:hover:not(:disabled){background:var(--sql-hover);}.verso-sql-pager button:disabled{opacity:0.4;cursor:default;}.verso-sql-footer{padding:6px 0;color:var(--sql-muted);font-size:12px;}.verso-sql-truncation{padding:6px 8px;margin-top:4px;background:var(--sql-warn-bg);color:var(--sql-warn-fg);border:1px solid var(--sql-warn-border);border-radius:4px;font-size:12px;}\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E0 row(s) affected (3 statements) \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(16 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000008",
+      "type": "markdown",
+      "source": "## 4. Seed Sample Data",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022seed-sample-data\u0022\u003E4. Seed Sample Data\u003C/h2\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000009",
+      "type": "sql",
+      "language": "sql",
+      "source": "INSERT INTO Categories VALUES (1, \u0027Electronics\u0027);\nINSERT INTO Categories VALUES (2, \u0027Accessories\u0027);\nINSERT INTO Categories VALUES (3, \u0027Software\u0027);\n\nINSERT INTO Products VALUES (1, \u0027Laptop\u0027,        1, 1299.99, 1);\nINSERT INTO Products VALUES (2, \u0027Wireless Mouse\u0027, 2,   29.99, 1);\nINSERT INTO Products VALUES (3, \u0027USB-C Hub\u0027,      2,   49.99, 1);\nINSERT INTO Products VALUES (4, \u0027IDE License\u0027,    3,  199.99, 1);\nINSERT INTO Products VALUES (5, \u0027Monitor\u0027,        1,  549.99, 0);\nINSERT INTO Products VALUES (6, \u0027Keyboard\u0027,       2,   89.99, 1);\n\nINSERT INTO Orders VALUES (1, 1, 1, \u0027Alice\u0027,  \u00272024-06-01\u0027);\nINSERT INTO Orders VALUES (2, 2, 2, \u0027Alice\u0027,  \u00272024-06-01\u0027);\nINSERT INTO Orders VALUES (3, 4, 1, \u0027Bob\u0027,    \u00272024-06-15\u0027);\nINSERT INTO Orders VALUES (4, 1, 1, \u0027Carla\u0027,  \u00272024-07-03\u0027);\nINSERT INTO Orders VALUES (5, 6, 3, \u0027Bob\u0027,    \u00272024-07-10\u0027);\nINSERT INTO Orders VALUES (6, 3, 1, \u0027Carla\u0027,  \u00272024-07-20\u0027);\nINSERT INTO Orders VALUES (7, 5, 2, \u0027Alice\u0027,  \u00272024-08-05\u0027)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result{--sql-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));--sql-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));--sql-border:var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));--sql-header-bg:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));--sql-hover:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0));--sql-accent:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4));--sql-muted:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));--sql-warn-bg:var(--vscode-inputValidation-warningBackground,var(--verso-highlight-background,#fff3cd));--sql-warn-fg:var(--vscode-editorWarning-foreground,var(--verso-highlight-foreground,#664d03));--sql-warn-border:var(--vscode-inputValidation-warningBorder,var(--verso-status-warning,#ffc107));font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--sql-fg);}.verso-sql-result table{border-collapse:collapse;width:auto;background:var(--sql-bg);color:var(--sql-fg);}.verso-sql-result th{text-align:left;padding:6px 12px;border-bottom:2px solid var(--sql-border);background:var(--sql-header-bg);font-weight:600;}.verso-sql-result td{padding:5px 12px;border-bottom:1px solid var(--sql-border);}.verso-sql-result tbody tr:hover{background:var(--sql-hover);}.verso-sql-result .verso-sql-null{color:var(--sql-muted);font-style:italic;}.verso-sql-result .verso-sql-pk{color:var(--sql-accent);font-weight:600;}.verso-sql-result .verso-sql-header{margin-bottom:6px;font-size:13px;}.verso-sql-result .verso-sql-header strong{font-size:14px;}.verso-sql-result .verso-sql-header .verso-sql-badge{opacity:0.7;font-weight:normal;}.verso-sql-pager{padding:6px 0;}.verso-sql-pager button{margin-right:4px;padding:2px 10px;background:var(--sql-header-bg);color:var(--sql-fg);border:1px solid var(--sql-border);border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;}.verso-sql-pager button:hover:not(:disabled){background:var(--sql-hover);}.verso-sql-pager button:disabled{opacity:0.4;cursor:default;}.verso-sql-footer{padding:6px 0;color:var(--sql-muted);font-size:12px;}.verso-sql-truncation{padding:6px 8px;margin-top:4px;background:var(--sql-warn-bg);color:var(--sql-warn-fg);border:1px solid var(--sql-warn-border);border-radius:4px;font-size:12px;}\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E16 row(s) affected (16 statements) \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000010",
+      "type": "markdown",
+      "source": "Quick sanity check \u2014 verify the data and foreign keys are in place:",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cp\u003EQuick sanity check \u2014 verify the data and foreign keys are in place:\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000011",
+      "type": "sql",
+      "language": "sql",
+      "source": "SELECT p.Name AS Product, c.Name AS Category, p.Price\nFROM Products p\nJOIN Categories c ON c.Id = p.CategoryId\nORDER BY c.Name, p.Price DESC",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result{--sql-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));--sql-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));--sql-border:var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));--sql-header-bg:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));--sql-hover:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0));--sql-accent:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4));--sql-muted:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));--sql-warn-bg:var(--vscode-inputValidation-warningBackground,var(--verso-highlight-background,#fff3cd));--sql-warn-fg:var(--vscode-editorWarning-foreground,var(--verso-highlight-foreground,#664d03));--sql-warn-border:var(--vscode-inputValidation-warningBorder,var(--verso-status-warning,#ffc107));font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--sql-fg);}.verso-sql-result table{border-collapse:collapse;width:auto;background:var(--sql-bg);color:var(--sql-fg);}.verso-sql-result th{text-align:left;padding:6px 12px;border-bottom:2px solid var(--sql-border);background:var(--sql-header-bg);font-weight:600;}.verso-sql-result td{padding:5px 12px;border-bottom:1px solid var(--sql-border);}.verso-sql-result tbody tr:hover{background:var(--sql-hover);}.verso-sql-result .verso-sql-null{color:var(--sql-muted);font-style:italic;}.verso-sql-result .verso-sql-pk{color:var(--sql-accent);font-weight:600;}.verso-sql-result .verso-sql-header{margin-bottom:6px;font-size:13px;}.verso-sql-result .verso-sql-header strong{font-size:14px;}.verso-sql-result .verso-sql-header .verso-sql-badge{opacity:0.7;font-weight:normal;}.verso-sql-pager{padding:6px 0;}.verso-sql-pager button{margin-right:4px;padding:2px 10px;background:var(--sql-header-bg);color:var(--sql-fg);border:1px solid var(--sql-border);border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;}.verso-sql-pager button:hover:not(:disabled){background:var(--sql-hover);}.verso-sql-pager button:disabled{opacity:0.4;cursor:default;}.verso-sql-footer{padding:6px 0;color:var(--sql-muted);font-size:12px;}.verso-sql-truncation{padding:6px 8px;margin-top:4px;background:var(--sql-warn-bg);color:var(--sql-warn-fg);border:1px solid var(--sql-warn-border);border-radius:4px;font-size:12px;}\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EProduct\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ECategory\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003EPrice\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EKeyboard\u003C/td\u003E\u003Ctd\u003EAccessories\u003C/td\u003E\u003Ctd\u003E89.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EUSB-C Hub\u003C/td\u003E\u003Ctd\u003EAccessories\u003C/td\u003E\u003Ctd\u003E49.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003EWireless Mouse\u003C/td\u003E\u003Ctd\u003EAccessories\u003C/td\u003E\u003Ctd\u003E29.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00223\u0022\u003E\u003Ctd\u003ELaptop\u003C/td\u003E\u003Ctd\u003EElectronics\u003C/td\u003E\u003Ctd\u003E1299.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00224\u0022\u003E\u003Ctd\u003EMonitor\u003C/td\u003E\u003Ctd\u003EElectronics\u003C/td\u003E\u003Ctd\u003E549.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00225\u0022\u003E\u003Ctd\u003EIDE License\u003C/td\u003E\u003Ctd\u003ESoftware\u003C/td\u003E\u003Ctd\u003E199.99\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-6 of 6 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000012",
+      "type": "markdown",
+      "source": "## 5. Scaffold EF Core Entities\n\nThis is the key step. \u0060#!sql-scaffold\u0060 inspects the database schema and generates:\n- **Entity classes** (one per table) with typed properties, primary key conventions, and navigation properties for foreign keys\n- A **DbContext** subclass wired to the active connection\n- An **instantiated context variable** ready for LINQ queries\n\n| Flag | Purpose |\n|---|---|\n| \u0060--connection\u0060 | Which named connection to scaffold from |\n| \u0060--tables\u0060 | Optional comma-separated list to scaffold only specific tables |\n| \u0060--schema\u0060 | Optional schema filter (for databases with multiple schemas) |",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022scaffold-ef-core-entities\u0022\u003E5. Scaffold EF Core Entities\u003C/h2\u003E\n\u003Cp\u003EThis is the key step. \u003Ccode\u003E#!sql-scaffold\u003C/code\u003E inspects the database schema and generates:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003EEntity classes\u003C/strong\u003E (one per table) with typed properties, primary key conventions, and navigation properties for foreign keys\u003C/li\u003E\n\u003Cli\u003EA \u003Cstrong\u003EDbContext\u003C/strong\u003E subclass wired to the active connection\u003C/li\u003E\n\u003Cli\u003EAn \u003Cstrong\u003Einstantiated context variable\u003C/strong\u003E ready for LINQ queries\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EFlag\u003C/th\u003E\n\u003Cth\u003EPurpose\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--connection\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EWhich named connection to scaffold from\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--tables\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EOptional comma-separated list to scaffold only specific tables\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--schema\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EOptional schema filter (for databases with multiple schemas)\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000013",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-scaffold --connection shop",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Scaffolded 3 entities (2 relationships) into ShopContext\n\nEntities: Category, Order, Product\nContext variable: shopContext\n\nUsage in C# cells:\n  var items = shopContext.Categories.ToList();\n"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdetails\u003E\n\u003Csummary\u003EGenerated C# code\u003C/summary\u003E\n\n\u003Cpre\u003E\u003Ccode\u003Eusing System;\nusing System.Collections.Generic;\nusing System.ComponentModel.DataAnnotations;\nusing System.ComponentModel.DataAnnotations.Schema;\nusing Microsoft.EntityFrameworkCore;\n\n[Table(\u0026quot;Categories\u0026quot;)]\npublic class Category\n{\n    public int? Id { get; set; }\n    public string Name { get; set; } = default!;\n\n    public virtual ICollection\u0026lt;Product\u0026gt; Products { get; set; } = new List\u0026lt;Product\u0026gt;();\n}\n\n[Table(\u0026quot;Orders\u0026quot;)]\npublic class Order\n{\n    public int? Id { get; set; }\n    public int ProductId { get; set; }\n    public int Quantity { get; set; }\n    public string Customer { get; set; } = default!;\n    public string OrderDate { get; set; } = default!;\n\n    [ForeignKey(\u0026quot;ProductId\u0026quot;)]\n    public virtual Product? Product { get; set; }\n}\n\n[Table(\u0026quot;Products\u0026quot;)]\npublic class Product\n{\n    public int? Id { get; set; }\n    public string Name { get; set; } = default!;\n    public int CategoryId { get; set; }\n    public float Price { get; set; }\n    public int InStock { get; set; }\n\n    [ForeignKey(\u0026quot;CategoryId\u0026quot;)]\n    public virtual Category? Category { get; set; }\n\n    public virtual ICollection\u0026lt;Order\u0026gt; Orders { get; set; } = new List\u0026lt;Order\u0026gt;();\n}\n\npublic class ShopContext : DbContext\n{\n    public DbSet\u0026lt;Category\u0026gt; Categories { get; set; } = default!;\n    public DbSet\u0026lt;Order\u0026gt; Orders { get; set; } = default!;\n    public DbSet\u0026lt;Product\u0026gt; Products { get; set; } = default!;\n\n    public ShopContext(DbContextOptions\u0026lt;ShopContext\u0026gt; options) : base(options) { }\n}\n\nvar __verso_builder = new DbContextOptionsBuilder\u0026lt;ShopContext\u0026gt;();\nvar __verso_conn = Variables.Get\u0026lt;System.Data.Common.DbConnection\u0026gt;(\u0026quot;__verso_scaffold_shop_connection\u0026quot;);\nif (__verso_conn != null)\n    __verso_builder.UseSqlite(__verso_conn);\nelse\n    __verso_builder.UseSqlite(\u0026quot;Data Source=:memory:\u0026quot;);\nvar shopContext = new ShopContext(__verso_builder.Options);\n\u003C/code\u003E\u003C/pre\u003E\n\u003C/details\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000014",
+      "type": "markdown",
+      "source": "The output above shows the scaffolded entities and generated code. Expand the **Generated C# code** section to inspect the entity classes, DbContext, and \u0060OnConfiguring\u0060 wiring.\n\nThe context is now available as \u0060shopContext\u0060 in C# cells.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cp\u003EThe output above shows the scaffolded entities and generated code. Expand the \u003Cstrong\u003EGenerated C# code\u003C/strong\u003E section to inspect the entity classes, DbContext, and \u003Ccode\u003EOnConfiguring\u003C/code\u003E wiring.\u003C/p\u003E\n\u003Cp\u003EThe context is now available as \u003Ccode\u003EshopContext\u003C/code\u003E in C# cells.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000015",
+      "type": "markdown",
+      "source": "## 6. Query with LINQ\n\nWith the scaffolded \u0060shopContext\u0060, you get full IntelliSense on entity properties and can use LINQ instead of raw SQL.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022query-with-linq\u0022\u003E6. Query with LINQ\u003C/h2\u003E\n\u003Cp\u003EWith the scaffolded \u003Ccode\u003EshopContext\u003C/code\u003E, you get full IntelliSense on entity properties and can use LINQ instead of raw SQL.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000016",
+      "type": "markdown",
+      "source": "### Simple queries",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022simple-queries\u0022\u003ESimple queries\u003C/h3\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000017",
+      "type": "code",
+      "language": "csharp",
+      "source": "// List all products over $100\nvar expensiveProducts = shopContext.Products\n    .Where(p =\u003E p.Price \u003E 100)\n    .OrderByDescending(p =\u003E p.Price)\n    .ToList();\n\nforeach (var p in expensiveProducts)\n    Console.WriteLine($\u0022{p.Name,-20} ${p.Price:F2}\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Laptop               $1299.99\nMonitor              $549.99\nIDE License          $199.99\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000018",
+      "type": "markdown",
+      "source": "### Navigation properties and JOINs\n\nForeign keys become navigation properties. Use \u0060Include()\u0060 for eager loading, or navigate directly.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022navigation-properties-and-joins\u0022\u003ENavigation properties and JOINs\u003C/h3\u003E\n\u003Cp\u003EForeign keys become navigation properties. Use \u003Ccode\u003EInclude()\u003C/code\u003E for eager loading, or navigate directly.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000019",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Products with their category names (via navigation property)\nvar productsWithCategory = shopContext.Products\n    .Include(p =\u003E p.Category)\n    .OrderBy(p =\u003E p.Category!.Name)\n    .ThenBy(p =\u003E p.Name)\n    .ToList();\n\nConsole.WriteLine($\u0022{\u0022Product\u0022,-20}{\u0022Category\u0022,-16}{\u0022Price\u0022,10}\u0022);\nConsole.WriteLine(new string(\u0027-\u0027, 46));\nforeach (var p in productsWithCategory)\n    Console.WriteLine($\u0022{p.Name,-20}{p.Category?.Name,-16}{p.Price,10:C}\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Product             Category             Price\n----------------------------------------------\nKeyboard            Accessories         $89.99\nUSB-C Hub           Accessories         $49.99\nWireless Mouse      Accessories         $29.99\nLaptop              Electronics      $1,299.99\nMonitor             Electronics        $549.99\nIDE License         Software           $199.99\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000020",
+      "type": "markdown",
+      "source": "### Aggregation",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022aggregation\u0022\u003EAggregation\u003C/h3\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000021",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Revenue by customer\nvar customerSpending = shopContext.Orders\n    .Include(o =\u003E o.Product)\n    .GroupBy(o =\u003E o.Customer)\n    .Select(g =\u003E new\n    {\n        Customer = g.Key,\n        OrderCount = g.Count(),\n        TotalSpent = g.Sum(o =\u003E o.Quantity * o.Product!.Price)\n    })\n    .OrderByDescending(x =\u003E x.TotalSpent)\n    .ToList();\n\nforeach (var c in customerSpending)\n    Console.WriteLine($\u0022{c.Customer,-10} {c.OrderCount} orders   ${c.TotalSpent:F2}\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Alice      3 orders   $2459.95\nCarla      2 orders   $1349.98\nBob        2 orders   $469.96\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000022",
+      "type": "markdown",
+      "source": "### Mixing SQL and LINQ\n\nYou can still use SQL cells alongside LINQ. Use SQL for complex queries and LINQ for in-memory processing.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch3 id=\u0022mixing-sql-and-linq\u0022\u003EMixing SQL and LINQ\u003C/h3\u003E\n\u003Cp\u003EYou can still use SQL cells alongside LINQ. Use SQL for complex queries and LINQ for in-memory processing.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000023",
+      "type": "sql",
+      "language": "sql",
+      "source": "--name recentOrders\nSELECT o.Id, p.Name AS Product, o.Customer, o.Quantity, o.OrderDate\nFROM Orders o\nJOIN Products p ON p.Id = o.ProductId\nWHERE o.OrderDate \u003E= \u00272024-07-01\u0027\nORDER BY o.OrderDate",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result{--sql-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));--sql-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));--sql-border:var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));--sql-header-bg:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));--sql-hover:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0));--sql-accent:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4));--sql-muted:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));--sql-warn-bg:var(--vscode-inputValidation-warningBackground,var(--verso-highlight-background,#fff3cd));--sql-warn-fg:var(--vscode-editorWarning-foreground,var(--verso-highlight-foreground,#664d03));--sql-warn-border:var(--vscode-inputValidation-warningBorder,var(--verso-status-warning,#ffc107));font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--sql-fg);}.verso-sql-result table{border-collapse:collapse;width:auto;background:var(--sql-bg);color:var(--sql-fg);}.verso-sql-result th{text-align:left;padding:6px 12px;border-bottom:2px solid var(--sql-border);background:var(--sql-header-bg);font-weight:600;}.verso-sql-result td{padding:5px 12px;border-bottom:1px solid var(--sql-border);}.verso-sql-result tbody tr:hover{background:var(--sql-hover);}.verso-sql-result .verso-sql-null{color:var(--sql-muted);font-style:italic;}.verso-sql-result .verso-sql-pk{color:var(--sql-accent);font-weight:600;}.verso-sql-result .verso-sql-header{margin-bottom:6px;font-size:13px;}.verso-sql-result .verso-sql-header strong{font-size:14px;}.verso-sql-result .verso-sql-header .verso-sql-badge{opacity:0.7;font-weight:normal;}.verso-sql-pager{padding:6px 0;}.verso-sql-pager button{margin-right:4px;padding:2px 10px;background:var(--sql-header-bg);color:var(--sql-fg);border:1px solid var(--sql-border);border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;}.verso-sql-pager button:hover:not(:disabled){background:var(--sql-hover);}.verso-sql-pager button:disabled{opacity:0.4;cursor:default;}.verso-sql-footer{padding:6px 0;color:var(--sql-muted);font-size:12px;}.verso-sql-truncation{padding:6px 8px;margin-top:4px;background:var(--sql-warn-bg);color:var(--sql-warn-fg);border:1px solid var(--sql-warn-border);border-radius:4px;font-size:12px;}\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022INTEGER\u0022\u003EId\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EProduct\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ECustomer\u003C/th\u003E\u003Cth title=\u0022INTEGER\u0022\u003EQuantity\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EOrderDate\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003E4\u003C/td\u003E\u003Ctd\u003ELaptop\u003C/td\u003E\u003Ctd\u003ECarla\u003C/td\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003E2024-07-03\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003E5\u003C/td\u003E\u003Ctd\u003EKeyboard\u003C/td\u003E\u003Ctd\u003EBob\u003C/td\u003E\u003Ctd\u003E3\u003C/td\u003E\u003Ctd\u003E2024-07-10\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003E6\u003C/td\u003E\u003Ctd\u003EUSB-C Hub\u003C/td\u003E\u003Ctd\u003ECarla\u003C/td\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003E2024-07-20\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00223\u0022\u003E\u003Ctd\u003E7\u003C/td\u003E\u003Ctd\u003EMonitor\u003C/td\u003E\u003Ctd\u003EAlice\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E2024-08-05\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-4 of 4 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000024",
+      "type": "code",
+      "language": "csharp",
+      "source": "// The SQL result is in the \u0027recentOrders\u0027 DataTable, and the\n// scaffolded context is still available for LINQ queries.\nvar outOfStock = shopContext.Products\n    .Where(p =\u003E p.InStock == 0)\n    .ToList();\n\nvar recentOrders = Variables.Get\u003CSystem.Data.DataTable\u003E(\u0022recentOrders\u0022)!;\nConsole.WriteLine($\u0022Out of stock: {string.Join(\u0022, \u0022, outOfStock.Select(p =\u003E p.Name))}\u0022);\nConsole.WriteLine($\u0022Recent SQL orders: {recentOrders.Rows.Count} rows\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Out of stock: Monitor\nRecent SQL orders: 4 rows\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000025",
+      "type": "markdown",
+      "source": "## 7. Scaffolding Specific Tables\n\nUse \u0060--tables\u0060 to scaffold only the tables you need. This is useful for large databases.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022scaffolding-specific-tables\u0022\u003E7. Scaffolding Specific Tables\u003C/h2\u003E\n\u003Cp\u003EUse \u003Ccode\u003E--tables\u003C/code\u003E to scaffold only the tables you need. This is useful for large databases.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000026",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-scaffold --connection shop --tables Categories,Products",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Scaffolded 2 entities (1 relationship) into ShopContext\n\nEntities: Category, Product\nContext variable: shopContext\n\nUsage in C# cells:\n  var items = shopContext.Categories.ToList();\n"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdetails\u003E\n\u003Csummary\u003EGenerated C# code\u003C/summary\u003E\n\n\u003Cpre\u003E\u003Ccode\u003Eusing System;\nusing System.Collections.Generic;\nusing System.ComponentModel.DataAnnotations;\nusing System.ComponentModel.DataAnnotations.Schema;\nusing Microsoft.EntityFrameworkCore;\n\n[Table(\u0026quot;Categories\u0026quot;)]\npublic class Category\n{\n    public int? Id { get; set; }\n    public string Name { get; set; } = default!;\n\n    public virtual ICollection\u0026lt;Product\u0026gt; Products { get; set; } = new List\u0026lt;Product\u0026gt;();\n}\n\n[Table(\u0026quot;Products\u0026quot;)]\npublic class Product\n{\n    public int? Id { get; set; }\n    public string Name { get; set; } = default!;\n    public int CategoryId { get; set; }\n    public float Price { get; set; }\n    public int InStock { get; set; }\n\n    [ForeignKey(\u0026quot;CategoryId\u0026quot;)]\n    public virtual Category? Category { get; set; }\n}\n\npublic class ShopContext : DbContext\n{\n    public DbSet\u0026lt;Category\u0026gt; Categories { get; set; } = default!;\n    public DbSet\u0026lt;Product\u0026gt; Products { get; set; } = default!;\n\n    public ShopContext(DbContextOptions\u0026lt;ShopContext\u0026gt; options) : base(options) { }\n}\n\nvar __verso_builder = new DbContextOptionsBuilder\u0026lt;ShopContext\u0026gt;();\nvar __verso_conn = Variables.Get\u0026lt;System.Data.Common.DbConnection\u0026gt;(\u0026quot;__verso_scaffold_shop_connection\u0026quot;);\nif (__verso_conn != null)\n    __verso_builder.UseSqlite(__verso_conn);\nelse\n    __verso_builder.UseSqlite(\u0026quot;Data Source=:memory:\u0026quot;);\nvar shopContext = new ShopContext(__verso_builder.Options);\n\u003C/code\u003E\u003C/pre\u003E\n\u003C/details\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000027",
+      "type": "markdown",
+      "source": "## Next Steps\n\n- **Real databases**: Replace the SQLite connection string with SQL Server, PostgreSQL, or MySQL\n- **Complex schemas**: \u0060#!sql-scaffold\u0060 handles composite keys, nullable columns, and multi-table foreign keys\n- **Iterate**: Change your schema, re-run \u0060#!sql-scaffold\u0060, and the context is regenerated\n- **Export**: Combine LINQ queries with \u0060--name\u0060 SQL directives to build data pipelines that mix both paradigms",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022next-steps\u0022\u003ENext Steps\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003EReal databases\u003C/strong\u003E: Replace the SQLite connection string with SQL Server, PostgreSQL, or MySQL\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EComplex schemas\u003C/strong\u003E: \u003Ccode\u003E#!sql-scaffold\u003C/code\u003E handles composite keys, nullable columns, and multi-table foreign keys\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EIterate\u003C/strong\u003E: Change your schema, re-run \u003Ccode\u003E#!sql-scaffold\u003C/code\u003E, and the context is regenerated\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EExport\u003C/strong\u003E: Combine LINQ queries with \u003Ccode\u003E--name\u003C/code\u003E SQL directives to build data pipelines that mix both paradigms\u003C/li\u003E\n\u003C/ul\u003E\n"
+        }
+      ]
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "00000003-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 12,
+          "height": 4,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000011": {
+          "row": 4,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000023": {
+          "row": 4,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        }
+      }
+    }
+  }
+}

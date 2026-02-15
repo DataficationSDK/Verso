@@ -89,6 +89,11 @@ public sealed class SqlKernel : ILanguageKernel
         {
             SqlResultSet? lastResultSet = null;
 
+            // Accumulate consecutive non-query results into a single summary
+            int pendingAffected = 0;
+            int pendingStatements = 0;
+            long pendingElapsedMs = 0;
+
             foreach (var statement in statements)
             {
                 var sw = Stopwatch.StartNew();
@@ -105,6 +110,9 @@ public sealed class SqlKernel : ILanguageKernel
 
                 if (reader.HasRows || reader.FieldCount > 0)
                 {
+                    // Flush any pending non-query summary before showing query results
+                    FlushNonQuerySummary(outputs, ref pendingAffected, ref pendingStatements, ref pendingElapsedMs, directives, context);
+
                     var resultSet = await ReadResultSetAsync(reader, maxRows, context.CancellationToken)
                         .ConfigureAwait(false);
                     lastResultSet = resultSet;
@@ -118,13 +126,17 @@ public sealed class SqlKernel : ILanguageKernel
                 else
                 {
                     var affected = reader.RecordsAffected;
-                    if (!directives.NoDisplay && affected >= 0)
+                    if (affected >= 0)
                     {
-                        var html = ResultSetFormatter.FormatNonQueryHtml(affected, sw.ElapsedMilliseconds, context.Theme);
-                        outputs.Add(new CellOutput("text/html", html));
+                        pendingAffected += affected;
+                        pendingStatements++;
+                        pendingElapsedMs += sw.ElapsedMilliseconds;
                     }
                 }
             }
+
+            // Flush any remaining non-query summary
+            FlushNonQuerySummary(outputs, ref pendingAffected, ref pendingStatements, ref pendingElapsedMs, directives, context);
 
             // Publish last result to variable store as DataTable and SqlResultSet
             if (lastResultSet is not null)
@@ -148,6 +160,30 @@ public sealed class SqlKernel : ILanguageKernel
         }
 
         return outputs;
+    }
+
+    private static void FlushNonQuerySummary(
+        List<CellOutput> outputs,
+        ref int pendingAffected,
+        ref int pendingStatements,
+        ref long pendingElapsedMs,
+        SqlDirectives directives,
+        IExecutionContext context)
+    {
+        if (pendingStatements == 0 || directives.NoDisplay)
+        {
+            pendingAffected = 0;
+            pendingStatements = 0;
+            pendingElapsedMs = 0;
+            return;
+        }
+
+        var html = ResultSetFormatter.FormatNonQueryHtml(pendingAffected, pendingStatements, pendingElapsedMs, context.Theme);
+        outputs.Add(new CellOutput("text/html", html));
+
+        pendingAffected = 0;
+        pendingStatements = 0;
+        pendingElapsedMs = 0;
     }
 
     // --- Completions ---
@@ -504,6 +540,23 @@ public sealed class SqlKernel : ILanguageKernel
         return str.Length > maxLength ? str.Substring(0, maxLength) + "..." : str;
     }
 
+    private static bool IsInsideStringLiteral(string sql, int position)
+    {
+        bool inString = false;
+        for (int i = 0; i < position && i < sql.Length; i++)
+        {
+            if (sql[i] == '\'')
+            {
+                // Handle escaped single quotes ('')
+                if (inString && i + 1 < sql.Length && sql[i + 1] == '\'')
+                    i++; // skip the escaped quote
+                else
+                    inString = !inString;
+            }
+        }
+        return inString;
+    }
+
     private static void BindParameters(
         DbCommand cmd, string sql, IVariableStore variables, List<CellOutput> outputs)
     {
@@ -512,6 +565,10 @@ public sealed class SqlKernel : ILanguageKernel
 
         foreach (Match match in matches)
         {
+            // Skip @params that appear inside single-quoted string literals
+            if (IsInsideStringLiteral(sql, match.Index))
+                continue;
+
             var paramName = match.Groups[1].Value;
             if (!seen.Add(paramName))
                 continue;

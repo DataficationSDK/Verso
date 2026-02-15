@@ -102,8 +102,26 @@ public sealed class SqlKernelTests
 
         Assert.IsTrue(outputs.Count > 0);
         Assert.IsFalse(outputs[0].IsError);
-        Assert.IsTrue(outputs[0].Content.Contains("Gadget"));
-        Assert.IsFalse(outputs[0].Content.Contains("Widget"));
+
+        // Verify via the DataTable result (HTML may contain "Widget" in CSS variable names
+        // like --vscode-editorWidget-background, so substring checks on HTML are unreliable)
+        Assert.IsTrue(ctx.Variables.TryGet<DataTable>("lastSqlResult", out var dt));
+        Assert.IsNotNull(dt);
+        Assert.AreEqual(1, dt!.Rows.Count);
+        Assert.AreEqual("Gadget", dt.Rows[0]["Name"]);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_AtSignInStringLiteral_NoParameterWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+
+        await kernel.ExecuteAsync("CREATE TABLE Emails (Addr TEXT)", ctx);
+        var outputs = await kernel.ExecuteAsync("INSERT INTO Emails VALUES ('alice@example.com')", ctx);
+
+        // Should not produce a "No variable '@example'" warning
+        Assert.IsFalse(outputs.Any(o => o.Content.Contains("No variable '@example'")));
     }
 
     [TestMethod]
@@ -152,6 +170,24 @@ public sealed class SqlKernelTests
 
         // Should have outputs for inserts and select
         Assert.IsTrue(outputs.Count > 0);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ConsecutiveNonQueries_ConsolidatesOutput()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+
+        await kernel.ExecuteAsync("CREATE TABLE T3b (X INTEGER)", ctx);
+
+        var outputs = await kernel.ExecuteAsync(
+            "INSERT INTO T3b VALUES (1); INSERT INTO T3b VALUES (2); INSERT INTO T3b VALUES (3)", ctx);
+
+        // Three inserts should produce a single consolidated output, not three separate ones
+        var nonQueryOutputs = outputs.Where(o => o.Content.Contains("row(s) affected")).ToList();
+        Assert.AreEqual(1, nonQueryOutputs.Count);
+        Assert.IsTrue(nonQueryOutputs[0].Content.Contains("3 row(s) affected"));
+        Assert.IsTrue(nonQueryOutputs[0].Content.Contains("3 statements"));
     }
 
     [TestMethod]

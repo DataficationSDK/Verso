@@ -162,12 +162,17 @@ public sealed class ResultSetFormatter : IDataFormatter
     }
 
     internal static string FormatNonQueryHtml(int rowsAffected, long elapsedMs, IThemeContext? theme)
+        => FormatNonQueryHtml(rowsAffected, 1, elapsedMs, theme);
+
+    internal static string FormatNonQueryHtml(int rowsAffected, int statementCount, long elapsedMs, IThemeContext? theme)
     {
         var sb = new StringBuilder();
         AppendStyles(sb, theme);
         sb.Append("<div class=\"verso-sql-result\">");
         sb.Append("<div class=\"verso-sql-footer\">");
         sb.Append(rowsAffected.ToString("N0")).Append(" row(s) affected");
+        if (statementCount > 1)
+            sb.Append(" (").Append(statementCount).Append(" statements)");
         sb.Append(" <span style=\"opacity:0.7;\">(").Append(elapsedMs).Append(" ms)</span>");
         sb.Append("</div></div>");
         return sb.ToString();

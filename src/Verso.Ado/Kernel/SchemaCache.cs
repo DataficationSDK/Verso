@@ -13,9 +13,17 @@ internal sealed record ColumnInfo(
     bool IsPrimaryKey,
     int OrdinalPosition);
 
+internal sealed record ForeignKeyInfo(
+    string ConstraintName,
+    string FromTable,
+    string FromColumn,
+    string ToTable,
+    string ToColumn);
+
 internal sealed record SchemaCacheEntry(
     List<TableInfo> Tables,
     Dictionary<string, List<ColumnInfo>> Columns,
+    Dictionary<string, List<ForeignKeyInfo>> ForeignKeys,
     DateTimeOffset LoadedAt);
 
 /// <summary>
@@ -78,15 +86,23 @@ internal sealed class SchemaCache
             : await LoadInformationSchemaTablesAsync(connection, ct).ConfigureAwait(false);
 
         var columns = new Dictionary<string, List<ColumnInfo>>(StringComparer.OrdinalIgnoreCase);
+        var foreignKeys = new Dictionary<string, List<ForeignKeyInfo>>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var table in tables)
         {
             var cols = isSqlite
                 ? await LoadSqliteColumnsAsync(connection, table.Name, ct).ConfigureAwait(false)
                 : await LoadInformationSchemaColumnsAsync(connection, table.Name, table.Schema, ct).ConfigureAwait(false);
             columns[table.Name] = cols;
+
+            var fks = isSqlite
+                ? await LoadSqliteForeignKeysAsync(connection, table.Name, ct).ConfigureAwait(false)
+                : await LoadInformationSchemaForeignKeysAsync(connection, table.Name, table.Schema, ct).ConfigureAwait(false);
+            if (fks.Count > 0)
+                foreignKeys[table.Name] = fks;
         }
 
-        return new SchemaCacheEntry(tables, columns, DateTimeOffset.UtcNow);
+        return new SchemaCacheEntry(tables, columns, foreignKeys, DateTimeOffset.UtcNow);
     }
 
     private static bool IsSqlite(DbConnection connection)
@@ -153,6 +169,82 @@ internal sealed class SchemaCache
         }
 
         return tables;
+    }
+
+    private static async Task<List<ForeignKeyInfo>> LoadSqliteForeignKeysAsync(
+        DbConnection connection, string tableName, CancellationToken ct)
+    {
+        var fks = new List<ForeignKeyInfo>();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            // PRAGMA foreign_key_list returns: id, seq, table, from, to, on_update, on_delete, match
+            cmd.CommandText = $"PRAGMA foreign_key_list([{tableName}])";
+
+            using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                var id = reader.GetInt32(0);
+                var toTable = reader.GetString(2);
+                var fromColumn = reader.GetString(3);
+                var toColumn = reader.IsDBNull(4) ? "Id" : reader.GetString(4);
+
+                fks.Add(new ForeignKeyInfo(
+                    $"FK_{tableName}_{toTable}_{id}",
+                    tableName,
+                    fromColumn,
+                    toTable,
+                    toColumn));
+            }
+        }
+        catch (DbException)
+        {
+            // foreign_key_list may not be available
+        }
+
+        return fks;
+    }
+
+    private static async Task<List<ForeignKeyInfo>> LoadInformationSchemaForeignKeysAsync(
+        DbConnection connection, string tableName, string? schema, CancellationToken ct)
+    {
+        var fks = new List<ForeignKeyInfo>();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = schema is not null
+                ? @"SELECT rc.CONSTRAINT_NAME, kcu.COLUMN_NAME, kcu2.TABLE_NAME, kcu2.COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+                    JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+                      ON rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME AND rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+                    JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu2
+                      ON rc.UNIQUE_CONSTRAINT_NAME = kcu2.CONSTRAINT_NAME AND rc.UNIQUE_CONSTRAINT_SCHEMA = kcu2.CONSTRAINT_SCHEMA
+                    WHERE kcu.TABLE_NAME = '" + tableName + "' AND kcu.TABLE_SCHEMA = '" + schema + "'"
+                : @"SELECT rc.CONSTRAINT_NAME, kcu.COLUMN_NAME, kcu2.TABLE_NAME, kcu2.COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+                    JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+                      ON rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+                    JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu2
+                      ON rc.UNIQUE_CONSTRAINT_NAME = kcu2.CONSTRAINT_NAME
+                    WHERE kcu.TABLE_NAME = '" + tableName + "'";
+
+            using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                fks.Add(new ForeignKeyInfo(
+                    reader.GetString(0),
+                    tableName,
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetString(3)));
+            }
+        }
+        catch (DbException)
+        {
+            // REFERENTIAL_CONSTRAINTS may not be available on all providers
+        }
+
+        return fks;
     }
 
     private static async Task<List<ColumnInfo>> LoadInformationSchemaColumnsAsync(

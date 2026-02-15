@@ -50,7 +50,9 @@
             <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
                 <MonacoEditor Value="@CellData.Source"
                               Language="@EditorLanguage"
-                              OnValueChanged="HandleSourceChanged" />
+                              OnValueChanged="HandleSourceChanged"
+                              OnGetHoverInfo="HandleGetHoverInfo"
+                              OnGetCompletions="HandleGetCompletions" />
             </div>
         }
 
@@ -175,5 +177,40 @@
         {
             await OnSelect.InvokeAsync(CellData.Id);
         }
+    }
+
+    private async Task<object?> HandleGetHoverInfo(string code, int position)
+    {
+        if (CellData.Language is null || Service.Scaffold is null) return null;
+        var kernel = Service.Scaffold.GetKernel(CellData.Language);
+        if (kernel is null) return null;
+
+        var info = await kernel.GetHoverInfoAsync(code, position);
+        if (info is null) return null;
+
+        if (info.Range is { } r)
+            return new { content = info.Content, range = new { startLine = r.StartLine, startColumn = r.StartColumn, endLine = r.EndLine, endColumn = r.EndColumn } };
+
+        return new { content = info.Content };
+    }
+
+    private async Task<object?> HandleGetCompletions(string code, int position)
+    {
+        if (CellData.Language is null || Service.Scaffold is null) return null;
+        var kernel = Service.Scaffold.GetKernel(CellData.Language);
+        if (kernel is null) return null;
+
+        var completions = await kernel.GetCompletionsAsync(code, position);
+        return new
+        {
+            items = completions.Select(c => new
+            {
+                displayText = c.DisplayText,
+                insertText = c.InsertText,
+                kind = c.Kind,
+                description = c.Description,
+                sortText = c.SortText
+            }).ToArray()
+        };
     }
 }
