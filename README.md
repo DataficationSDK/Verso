@@ -43,6 +43,8 @@ Every built-in feature uses the same public interfaces available to extension au
 
 Full notebook experience in the browser, independent of any IDE. Includes the Monaco editor for code cells, a variable explorer, extension management, and toolbar actions. Deploy as a Blazor Server application.
 
+![Verso Blazor application running in the browser](images/blazor-app-0.5.0.png)
+
 ### Comprehensive Theming
 
 Design token system covering editor colors, cell styling, UI components, syntax highlighting, typography, and spacing. Two built-in themes (Light and Dark) ship out of the box. Hot-swap themes at runtime. Create your own by implementing `ITheme`.
