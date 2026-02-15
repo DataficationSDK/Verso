@@ -6,13 +6,10 @@ import {
   ExecutionResultDto,
   ExecutionRunParams,
   ExecutionRunAllResult,
-  NotebookOpenParams,
-  NotebookOpenResult,
 } from "../host/protocol";
 
 export class VersoController {
   private readonly controller: vscode.NotebookController;
-  private notebookOpenedUri: string | undefined;
 
   constructor(private readonly host: HostProcess) {
     this.controller = vscode.notebooks.createNotebookController(
@@ -30,31 +27,11 @@ export class VersoController {
     this.controller.executeHandler = this.executeHandler.bind(this);
   }
 
-  /** Ensure the notebook is open on the host. Re-opens from disk if needed. */
-  async ensureNotebookOpen(notebook: vscode.NotebookDocument): Promise<void> {
-    if (this.notebookOpenedUri === notebook.uri.toString()) {
-      return;
-    }
-    const fileContent = new TextDecoder().decode(
-      await vscode.workspace.fs.readFile(notebook.uri)
-    );
-    await this.host.sendRequest<NotebookOpenResult>("notebook/open", {
-      content: fileContent,
-    } satisfies NotebookOpenParams);
-    this.notebookOpenedUri = notebook.uri.toString();
-  }
-
-  /** Mark the notebook as needing re-open (e.g. after kernel restart). */
-  resetNotebookState(): void {
-    this.notebookOpenedUri = undefined;
-  }
-
   private async executeHandler(
     cells: vscode.NotebookCell[],
     notebook: vscode.NotebookDocument,
     controller: vscode.NotebookController
   ): Promise<void> {
-    await this.ensureNotebookOpen(notebook);
     for (const cell of cells) {
       await this.executeCell(cell, controller);
     }
@@ -106,8 +83,6 @@ export class VersoController {
   }
 
   async runAll(notebook: vscode.NotebookDocument): Promise<void> {
-    await this.ensureNotebookOpen(notebook);
-
     // Sync all cell sources first
     for (const cell of notebook.getCells()) {
       const versoId = cell.metadata?.versoId as string | undefined;
@@ -143,11 +118,15 @@ export class VersoController {
 
   private mapOutput(output: CellOutputDto): vscode.NotebookCellOutput {
     if (output.isError) {
-      const err = new Error(output.content || output.errorName || "Error");
-      // Always override the stack to prevent the JS extension stack trace
-      // from leaking into the notebook output.  When the host provides a
-      // .NET stack trace, use it; otherwise show only the message.
-      err.stack = output.errorStackTrace || err.message;
+      const errorName = output.errorName || "Error";
+      const message = output.content || errorName;
+      const err = new Error(message);
+      err.name = errorName;
+      // Format stack in JS convention ("Name: message\n  at ...") so VS Code
+      // renders the error name and message above the stack frames.
+      err.stack = output.errorStackTrace
+        ? `${errorName}: ${message}\n${output.errorStackTrace}`
+        : `${errorName}: ${message}`;
       return new vscode.NotebookCellOutput([
         vscode.NotebookCellOutputItem.error(err),
       ]);

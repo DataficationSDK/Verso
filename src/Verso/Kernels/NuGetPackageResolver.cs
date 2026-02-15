@@ -33,9 +33,11 @@ internal sealed class NuGetPackageResolver
 
     /// <summary>
     /// Maximum depth for transitive dependency resolution. Prevents runaway expansion
-    /// in deep dependency trees.
+    /// in deep dependency trees.  Depth 6 covers packages like EF Core whose transitive
+    /// chain (e.g. EF.Sqlite → EF.Sqlite.Core → EF.Relational → EF → Extensions.Logging
+    /// → Extensions.Logging.Abstractions) requires at least 5 hops.
     /// </summary>
-    private const int MaxDependencyDepth = 4;
+    private const int MaxDependencyDepth = 6;
 
     /// <summary>
     /// Parses a NuGet reference string in the format "PackageId, Version" or "PackageId".
@@ -392,15 +394,52 @@ internal sealed class NuGetPackageResolver
     }
 
     /// <summary>
+    /// Assembly names present in the Trusted Platform Assemblies list, built lazily on
+    /// first access.  Packages whose primary assembly is already in the TPA can be
+    /// skipped because the runtime will resolve them from the shared framework.
+    /// </summary>
+    private static readonly Lazy<HashSet<string>> TpaAssemblyNames = new(BuildTpaAssemblyNames);
+
+    private static HashSet<string> BuildTpaAssemblyNames()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var tpa = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
+        if (tpa is not null)
+        {
+            var separator = OperatingSystem.IsWindows() ? ';' : ':';
+            foreach (var path in tpa.Split(separator))
+                set.Add(Path.GetFileNameWithoutExtension(path));
+        }
+        return set;
+    }
+
+    /// <summary>
     /// Returns <c>true</c> if the package is part of the .NET shared framework and
     /// should not be downloaded (already available at runtime).
+    /// <para>
+    /// Core runtime packages (<c>Microsoft.NETCore.*</c>, <c>NETStandard.*</c>) are
+    /// always skipped.  For <c>System.*</c> and <c>Microsoft.Extensions.*</c> packages,
+    /// we check the TPA list so they are correctly downloaded when running in a plain
+    /// console host (where they are NOT in the shared framework) but skipped in ASP.NET
+    /// Core hosts (where they are).
+    /// </para>
     /// </summary>
-    private static bool IsFrameworkPackage(string packageId) =>
-        packageId.StartsWith("System.", StringComparison.OrdinalIgnoreCase) ||
-        packageId.StartsWith("Microsoft.NETCore.", StringComparison.OrdinalIgnoreCase) ||
-        packageId.StartsWith("Microsoft.Extensions.", StringComparison.OrdinalIgnoreCase) ||
-        packageId.StartsWith("NETStandard.", StringComparison.OrdinalIgnoreCase) ||
-        packageId.Equals("NETStandard.Library", StringComparison.OrdinalIgnoreCase);
+    private static bool IsFrameworkPackage(string packageId)
+    {
+        // Always skip core runtime meta-packages
+        if (packageId.StartsWith("Microsoft.NETCore.", StringComparison.OrdinalIgnoreCase) ||
+            packageId.StartsWith("NETStandard.", StringComparison.OrdinalIgnoreCase) ||
+            packageId.Equals("NETStandard.Library", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // For System.* and Microsoft.Extensions.* packages, only skip if the assembly
+        // is already present in the TPA (i.e. the shared framework provides it).
+        if (packageId.StartsWith("System.", StringComparison.OrdinalIgnoreCase) ||
+            packageId.StartsWith("Microsoft.Extensions.", StringComparison.OrdinalIgnoreCase))
+            return TpaAssemblyNames.Value.Contains(packageId);
+
+        return false;
+    }
 
     /// <summary>
     /// Writes the dependency list to a simple cache file so meta-packages (0 DLLs)

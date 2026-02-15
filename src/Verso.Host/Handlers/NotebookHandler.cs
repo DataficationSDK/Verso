@@ -46,9 +46,12 @@ public static class NotebookHandler
         var scaffold = new Scaffold(notebook, extensionHost);
         scaffold.InitializeSubsystems();
 
-        // Register discovered kernels
-        foreach (var kernel in extensionHost.GetKernels())
-            scaffold.RegisterKernel(kernel);
+        // Diagnostic: log loaded extensions to stderr (captured by VS Code extension host)
+        var kernels = extensionHost.GetKernels();
+        var magicCommands = extensionHost.GetMagicCommands();
+        Console.Error.WriteLine($"[Verso] notebook/open: {scaffold.Cells.Count} cells, " +
+            $"{kernels.Count} kernels ({string.Join(", ", kernels.Select(k => k.LanguageId))}), " +
+            $"{magicCommands.Count} magic commands ({string.Join(", ", magicCommands.Select(m => m.Name))})");
 
         session.SetSession(scaffold, extensionHost);
 

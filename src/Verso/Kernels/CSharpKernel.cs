@@ -171,9 +171,19 @@ public sealed class CSharpKernel : ILanguageKernel
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Build a complete error message including inner exceptions so the
+            // actual root cause is visible (e.g. TypeLoadException inside UseSqlite).
+            var message = $"{ex.GetType().FullName}: {ex.Message}";
+            var inner = ex.InnerException;
+            while (inner is not null)
+            {
+                message += $"{Environment.NewLine}  ---> {inner.GetType().FullName}: {inner.Message}";
+                inner = inner.InnerException;
+            }
+
             var errorOutput = new CellOutput(
                 "text/plain",
-                $"{ex.Message}{Environment.NewLine}{ex.StackTrace}",
+                message,
                 IsError: true,
                 ErrorName: ex.GetType().Name,
                 ErrorStackTrace: ex.StackTrace);

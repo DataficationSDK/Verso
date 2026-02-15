@@ -150,6 +150,10 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
             {
                 compilationSucceeded = false;
 
+                // Surface the actual compilation errors so they are visible in cell output
+                foreach (var errorOutput in execOutputs.Where(o => o.IsError))
+                    await context.WriteOutputAsync(errorOutput).ConfigureAwait(false);
+
                 // Check if it looks like a missing EF Core reference
                 var errorContent = string.Join("\n", execOutputs.Where(o => o.IsError).Select(o => o.Content));
                 if (errorContent.Contains("DbContext") || errorContent.Contains("EntityFrameworkCore"))
@@ -160,6 +164,13 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
                         IsError: true)).ConfigureAwait(false);
                 }
             }
+        }
+        else
+        {
+            compilationSucceeded = false;
+            await context.WriteOutputAsync(new CellOutput("text/plain",
+                "Error: C# kernel not found. Cannot execute scaffolded code.",
+                IsError: true)).ConfigureAwait(false);
         }
 
         if (!compilationSucceeded)
