@@ -198,7 +198,7 @@
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "lint": "tsc --noEmit",
-    "package": "vsce package"
+    "package": "vsce package --skip-license"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
