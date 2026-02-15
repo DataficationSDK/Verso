@@ -57,13 +57,13 @@ public class JsonRpcMessageTests
     [TestMethod]
     public void Notification_HasNoId()
     {
-        var json = JsonRpcMessage.Notification("host/ready", new { version = "0.1.0" });
+        var json = JsonRpcMessage.Notification("host/ready", new { version = "0.5.0" });
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
         Assert.AreEqual("2.0", root.GetProperty("jsonrpc").GetString());
         Assert.AreEqual("host/ready", root.GetProperty("method").GetString());
-        Assert.AreEqual("0.1.0", root.GetProperty("params").GetProperty("version").GetString());
+        Assert.AreEqual("0.5.0", root.GetProperty("params").GetProperty("version").GetString());
         Assert.IsFalse(root.TryGetProperty("id", out _));
     }
 
@@ -91,7 +91,7 @@ public class JsonRpcMessageTests
     [TestMethod]
     public void Parse_Notification_HasNullId()
     {
-        var json = @"{""jsonrpc"":""2.0"",""method"":""host/ready"",""params"":{""version"":""0.1.0""}}";
+        var json = @"{""jsonrpc"":""2.0"",""method"":""host/ready"",""params"":{""version"":""0.5.0""}}";
         var (id, method, @params) = JsonRpcMessage.Parse(json);
 
         Assert.IsNull(id);

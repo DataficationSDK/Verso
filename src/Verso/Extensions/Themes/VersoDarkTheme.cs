@@ -12,7 +12,7 @@ public sealed class VersoDarkTheme : ITheme
 
     public string ExtensionId => "verso.theme.dark";
     public string Name => "Verso Dark";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Default dark theme for Verso notebooks.";
 

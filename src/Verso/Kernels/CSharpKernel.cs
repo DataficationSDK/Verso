@@ -37,7 +37,7 @@ public sealed class CSharpKernel : ILanguageKernel
 
     public string ExtensionId => "verso.kernel.csharp";
     public string Name => "C# (Roslyn)";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "C# language kernel powered by Roslyn scripting.";
 

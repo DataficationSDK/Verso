@@ -12,7 +12,7 @@ public sealed class SwitchThemeAction : IToolbarAction
 
     public string ExtensionId => "verso.action.switch-theme";
     public string Name => "Switch Theme";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Cycles between available themes.";
 

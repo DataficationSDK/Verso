@@ -40,7 +40,7 @@ public sealed class CSharpKernelLifecycleTests
     public void Metadata_Version_IsSet()
     {
         var kernel = new CSharpKernel();
-        Assert.AreEqual("0.1.0", kernel.Version);
+        Assert.AreEqual("0.5.0", kernel.Version);
     }
 
     [TestMethod]

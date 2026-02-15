@@ -220,7 +220,7 @@ public sealed class VersoSerializerTests
     public void IExtension_Metadata_IsValid()
     {
         Assert.AreEqual("Verso Serializer", _serializer.Name);
-        Assert.AreEqual("0.1.0", _serializer.Version);
+        Assert.AreEqual("0.5.0", _serializer.Version);
         Assert.AreEqual("Verso Contributors", _serializer.Author);
         Assert.IsNotNull(_serializer.Description);
     }

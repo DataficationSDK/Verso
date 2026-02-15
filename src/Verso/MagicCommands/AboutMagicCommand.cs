@@ -13,7 +13,7 @@ public sealed class AboutMagicCommand : IMagicCommand
 
     public string ExtensionId => "verso.magic.about";
     string IExtension.Name => "About Magic Command";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
 
     // --- IMagicCommand ---
@@ -29,7 +29,7 @@ public sealed class AboutMagicCommand : IMagicCommand
     {
         context.SuppressExecution = true;
 
-        var versoVersion = typeof(AboutMagicCommand).Assembly.GetName().Version?.ToString() ?? "0.1.0";
+        var versoVersion = typeof(AboutMagicCommand).Assembly.GetName().Version?.ToString() ?? "0.5.0";
         var framework = RuntimeInformation.FrameworkDescription;
         var os = RuntimeInformation.OSDescription;
 

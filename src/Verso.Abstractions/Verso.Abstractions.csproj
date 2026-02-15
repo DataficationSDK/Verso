@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Abstractions</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Verso Contributors</Authors>
     <Description>Pure interfaces and types for the Verso extensible notebook platform.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

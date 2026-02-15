@@ -27,7 +27,7 @@ public sealed class PrimitiveFormatter : IDataFormatter
 
     public string ExtensionId => "verso.formatter.primitive";
     public string Name => "Primitive Formatter";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Formats primitive and common value types as plain text.";
 

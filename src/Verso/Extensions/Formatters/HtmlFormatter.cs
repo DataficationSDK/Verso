@@ -13,7 +13,7 @@ public sealed class HtmlFormatter : IDataFormatter
 
     public string ExtensionId => "verso.formatter.html";
     public string Name => "HTML Formatter";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Formats objects with a ToHtml() method as HTML.";
 

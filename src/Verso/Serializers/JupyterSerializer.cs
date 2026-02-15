@@ -19,7 +19,7 @@ public sealed class JupyterSerializer : INotebookSerializer
 
     public string ExtensionId => "verso.serializer.jupyter";
     public string Name => "Jupyter Serializer";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Import-only serializer for Jupyter .ipynb notebooks.";
 

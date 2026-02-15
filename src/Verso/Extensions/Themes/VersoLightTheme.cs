@@ -12,7 +12,7 @@ public sealed class VersoLightTheme : ITheme
 
     public string ExtensionId => "verso.theme.light";
     public string Name => "Verso Light";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Default light theme for Verso notebooks.";
 

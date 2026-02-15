@@ -13,7 +13,7 @@ public sealed class ExportHtmlAction : IToolbarAction
 
     public string ExtensionId => "verso.action.export-html";
     public string Name => "Export HTML";
-    public string Version => "0.1.0";
+    public string Version => "0.5.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Exports the notebook as a self-contained HTML document.";
 

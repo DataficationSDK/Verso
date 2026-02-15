@@ -49,7 +49,7 @@ public sealed class MagicCommandTests
 
         Assert.AreEqual("time", command.Name);
         Assert.AreEqual("verso.magic.time", command.ExtensionId);
-        Assert.AreEqual("0.1.0", command.Version);
+        Assert.AreEqual("0.5.0", command.Version);
     }
 
     // --- #!about ---

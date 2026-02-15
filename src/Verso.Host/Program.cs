@@ -5,7 +5,7 @@ using Verso.Host.Protocol;
 var session = new HostSession(SendLine);
 
 // Emit ready signal
-SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "0.1.0" }));
+SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "0.5.0" }));
 
 await foreach (var line in ReadLinesAsync(Console.In))
 {

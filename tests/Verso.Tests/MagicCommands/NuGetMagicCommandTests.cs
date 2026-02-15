@@ -13,7 +13,7 @@ public sealed class NuGetMagicCommandTests
 
         Assert.AreEqual("nuget", command.Name);
         Assert.AreEqual("verso.magic.nuget", command.ExtensionId);
-        Assert.AreEqual("0.1.0", command.Version);
+        Assert.AreEqual("0.5.0", command.Version);
     }
 
     [TestMethod]
