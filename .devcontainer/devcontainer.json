@@ -10,7 +10,10 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "verso.hostPath": "${containerWorkspaceFolder}/src/Verso.Host/bin/Debug/net8.0/Verso.Host.dll"
+        "verso.hostPath": "${containerWorkspaceFolder}/src/Verso.Host/bin/Debug/net8.0/Verso.Host.dll",
+        "dotnet.server.suppressLspErrorToasts": true,
+        "csharp.suppressDotnetInstallWarning": true,
+        "extensions.ignoreRecommendations": true
       }
     }
   }

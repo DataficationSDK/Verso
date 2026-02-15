@@ -144,9 +144,10 @@ export class VersoController {
   private mapOutput(output: CellOutputDto): vscode.NotebookCellOutput {
     if (output.isError) {
       const err = new Error(output.content || output.errorName || "Error");
-      if (output.errorStackTrace) {
-        err.stack = output.errorStackTrace;
-      }
+      // Always override the stack to prevent the JS extension stack trace
+      // from leaking into the notebook output.  When the host provides a
+      // .NET stack trace, use it; otherwise show only the message.
+      err.stack = output.errorStackTrace || err.message;
       return new vscode.NotebookCellOutput([
         vscode.NotebookCellOutputItem.error(err),
       ]);
