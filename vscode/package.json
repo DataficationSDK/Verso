@@ -5,6 +5,10 @@
   "version": "0.5.0",
   "publisher": "verso-contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DataficationSDK/Verso"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
