@@ -23,6 +23,7 @@ public sealed class CSharpKernel : ILanguageKernel
     private readonly SemaphoreSlim _executionLock = new(1, 1);
     private ScriptStateManager? _stateManager;
     private RoslynWorkspaceManager? _workspaceManager;
+    private ScriptGlobals? _globals;
     private bool _initialized;
     private bool _disposed;
 
@@ -98,6 +99,14 @@ public sealed class CSharpKernel : ILanguageKernel
             {
                 _stateManager!.AddReferences(nugetAssemblyPaths);
                 _workspaceManager!.AddReferences(nugetAssemblyPaths);
+
+                // Persist assembly paths to the variable store so other extensions
+                // (e.g. #!sql-connect provider discovery) can load them at runtime
+                var existingPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (context.Variables.TryGet<List<string>>(NuGetMagicCommand.AssemblyStoreKey, out var prior) && prior is not null)
+                    existingPaths.UnionWith(prior);
+                existingPaths.UnionWith(nugetAssemblyPaths);
+                context.Variables.Set(NuGetMagicCommand.AssemblyStoreKey, existingPaths.ToList());
             }
 
             // Write "Installed Packages" feedback
@@ -110,7 +119,10 @@ public sealed class CSharpKernel : ILanguageKernel
             var consoleWriter = new StringWriter();
             Console.SetOut(consoleWriter);
 
-            var scriptState = await _stateManager!.RunAsync(cleanedCode, context.CancellationToken)
+            // Create globals on first execution so C# cells can access the shared variable store
+            _globals ??= new ScriptGlobals(context.Variables);
+
+            var scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)
                 .ConfigureAwait(false);
 
             var outputs = new List<CellOutput>();

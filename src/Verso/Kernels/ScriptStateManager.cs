@@ -20,19 +20,24 @@ internal sealed class ScriptStateManager : IAsyncDisposable
 
     /// <summary>
     /// Executes code, chaining onto the previous state if one exists.
+    /// On the first execution, <paramref name="globals"/> is passed to Roslyn so its
+    /// public properties become top-level identifiers in user scripts.
     /// </summary>
-    public async Task<ScriptState<object>> RunAsync(string code, CancellationToken cancellationToken = default)
+    public async Task<ScriptState<object>> RunAsync(
+        string code, object? globals = null, CancellationToken cancellationToken = default)
     {
         ScriptState<object> state;
 
         if (_lastState is null)
         {
-            state = await CSharpScript.RunAsync(code, _baseOptions, cancellationToken: cancellationToken)
+            state = await CSharpScript.RunAsync(code, _baseOptions,
+                    globals: globals, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
         else
         {
-            state = await _lastState.ContinueWithAsync(code, _baseOptions, cancellationToken: cancellationToken)
+            state = await _lastState.ContinueWithAsync(code, _baseOptions,
+                    cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
 

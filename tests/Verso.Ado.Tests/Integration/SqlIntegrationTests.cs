@@ -1,10 +1,12 @@
 using System.Data;
 using System.Data.Common;
+using System.Text;
 using Microsoft.Data.Sqlite;
 using Verso.Ado.Kernel;
 using Verso.Ado.MagicCommands;
 using Verso.Ado.Models;
 using Verso.Ado.Tests.Helpers;
+using Verso.Ado.ToolbarActions;
 
 namespace Verso.Ado.Tests.Integration;
 
@@ -200,5 +202,132 @@ public sealed class SqlIntegrationTests
 
         var outputs = await kernel.ExecuteAsync("SELECT 1", execCtx);
         Assert.IsTrue(outputs.Any(o => o.IsError && o.Content.Contains("No database connection")));
+    }
+
+    [TestMethod]
+    public async Task EndToEnd_SqlKernel_ProducesHtmlOutput()
+    {
+        var (execCtx, connections) = await SetupConnectionAsync();
+
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("CREATE TABLE HtmlTest (Id INTEGER, Name TEXT)", execCtx);
+        await kernel.ExecuteAsync("INSERT INTO HtmlTest VALUES (1, 'Row1')", execCtx);
+
+        var outputs = await kernel.ExecuteAsync("SELECT * FROM HtmlTest", execCtx);
+
+        Assert.IsFalse(outputs.Any(o => o.IsError));
+        var htmlOutput = outputs.FirstOrDefault(o => o.MimeType == "text/html");
+        Assert.IsNotNull(htmlOutput);
+        Assert.IsTrue(htmlOutput!.Content.Contains("<table>"));
+        Assert.IsTrue(htmlOutput.Content.Contains("Row1"));
+
+        await DisposeConnectionsAsync(connections);
+    }
+
+    [TestMethod]
+    public async Task EndToEnd_StoresResultSetInVariableStore()
+    {
+        var (execCtx, connections) = await SetupConnectionAsync();
+
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("CREATE TABLE VarTest (Id INTEGER, Val TEXT)", execCtx);
+        await kernel.ExecuteAsync("INSERT INTO VarTest VALUES (1, 'test')", execCtx);
+        await kernel.ExecuteAsync("SELECT * FROM VarTest", execCtx);
+
+        // Verify DataTable
+        Assert.IsTrue(execCtx.Variables.TryGet<DataTable>("lastSqlResult", out var dt));
+        Assert.IsNotNull(dt);
+        Assert.AreEqual(1, dt!.Rows.Count);
+
+        // Verify SqlResultSet
+        Assert.IsTrue(execCtx.Variables.TryGet<SqlResultSet>("lastSqlResult__resultset", out var rs));
+        Assert.IsNotNull(rs);
+        Assert.AreEqual(1, rs!.Rows.Count);
+        Assert.AreEqual(2, rs.Columns.Count);
+
+        await DisposeConnectionsAsync(connections);
+    }
+
+    [TestMethod]
+    public async Task EndToEnd_ExportCsv_ProducesValidFile()
+    {
+        var (execCtx, connections) = await SetupConnectionAsync();
+
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("CREATE TABLE CsvTest (Name TEXT, Price REAL)", execCtx);
+        await kernel.ExecuteAsync("INSERT INTO CsvTest VALUES ('Widget', 9.99)", execCtx);
+        await kernel.ExecuteAsync("INSERT INTO CsvTest VALUES ('Gadget', 19.99)", execCtx);
+        await kernel.ExecuteAsync("SELECT * FROM CsvTest", execCtx);
+
+        // Set up toolbar action context sharing the same variable store
+        var actionCtx = new StubToolbarActionContext
+        {
+            SelectedCellIds = new[] { execCtx.CellId }
+        };
+
+        // Copy variables from execution context to action context
+        foreach (var v in execCtx.Variables.GetAll())
+            actionCtx.Variables.Set(v.Name, v.Value!);
+
+        var csvAction = new ExportCsvAction();
+        Assert.IsTrue(await csvAction.IsEnabledAsync(actionCtx));
+
+        await csvAction.ExecuteAsync(actionCtx);
+
+        Assert.AreEqual(1, actionCtx.DownloadedFiles.Count);
+        Assert.AreEqual("text/csv", actionCtx.DownloadedFiles[0].ContentType);
+
+        var csv = Encoding.UTF8.GetString(actionCtx.DownloadedFiles[0].Data);
+        Assert.IsTrue(csv.Contains("Name"));
+        Assert.IsTrue(csv.Contains("Widget"));
+        Assert.IsTrue(csv.Contains("Gadget"));
+
+        await DisposeConnectionsAsync(connections);
+    }
+
+    [TestMethod]
+    public async Task EndToEnd_NonQuery_ReturnsHtmlRowsAffected()
+    {
+        var (execCtx, connections) = await SetupConnectionAsync();
+
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("CREATE TABLE NqTest (Id INTEGER)", execCtx);
+
+        var outputs = await kernel.ExecuteAsync("INSERT INTO NqTest VALUES (1)", execCtx);
+
+        Assert.IsFalse(outputs.Any(o => o.IsError));
+        var htmlOutput = outputs.FirstOrDefault(o => o.MimeType == "text/html");
+        Assert.IsNotNull(htmlOutput);
+        Assert.IsTrue(htmlOutput!.Content.Contains("row(s) affected"));
+        Assert.IsTrue(htmlOutput.Content.Contains("ms"));
+
+        await DisposeConnectionsAsync(connections);
+    }
+
+    // --- Shared test setup helpers ---
+
+    private static async Task<(StubExecutionContext ExecCtx, Dictionary<string, SqlConnectionInfo> Connections)> SetupConnectionAsync()
+    {
+        var connectCmd = new SqlConnectMagicCommand();
+        var magicCtx = new StubMagicCommandContext();
+
+        await connectCmd.ExecuteAsync(
+            "--name testdb --connection-string \"Data Source=:memory:\" --provider Microsoft.Data.Sqlite --default",
+            magicCtx);
+
+        var execCtx = new StubExecutionContext();
+        var connections = magicCtx.Variables.Get<Dictionary<string, SqlConnectionInfo>>(
+            SqlConnectMagicCommand.ConnectionsStoreKey)!;
+        execCtx.Variables.Set(SqlConnectMagicCommand.ConnectionsStoreKey, connections);
+        execCtx.Variables.Set(SqlConnectMagicCommand.DefaultConnectionStoreKey, "testdb");
+
+        return (execCtx, connections);
+    }
+
+    private static async Task DisposeConnectionsAsync(Dictionary<string, SqlConnectionInfo> connections)
+    {
+        foreach (var conn in connections.Values)
+            if (conn.Connection is not null)
+                await conn.Connection.DisposeAsync();
     }
 }

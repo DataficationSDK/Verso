@@ -141,14 +141,52 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     // --- Discovery & Loading ---
 
     /// <summary>
-    /// Scans the Verso assembly for types marked with <see cref="VersoExtensionAttribute"/>,
-    /// instantiates them, validates, and auto-registers by capability interface.
+    /// Scans the Verso assembly and any co-located <c>Verso.*.dll</c> assemblies for types
+    /// marked with <see cref="VersoExtensionAttribute"/>, instantiates them, validates, and
+    /// auto-registers by capability interface. First-party extension assemblies (e.g.
+    /// <c>Verso.Ado.dll</c>) are loaded into the default assembly context so their types
+    /// share identity with the host.
     /// </summary>
     public async Task LoadBuiltInExtensionsAsync()
     {
         ThrowIfDisposed();
 
-        var assembly = typeof(ExtensionHost).Assembly;
+        // 1. Scan the core Verso assembly
+        await ScanAssemblyForExtensionsAsync(typeof(ExtensionHost).Assembly).ConfigureAwait(false);
+
+        // 2. Discover co-located Verso.*.dll assemblies in the app base directory
+        var baseDir = AppContext.BaseDirectory;
+        var coreAssemblyName = typeof(ExtensionHost).Assembly.GetName().Name;
+
+        foreach (var dll in Directory.GetFiles(baseDir, "Verso.*.dll"))
+        {
+            var fileName = Path.GetFileNameWithoutExtension(dll);
+
+            // Skip assemblies we've already scanned or that aren't extensions
+            if (string.Equals(fileName, coreAssemblyName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(fileName, "Verso.Abstractions", StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            try
+            {
+                // LoadFrom uses the default load context and handles deduplication
+                // if the assembly is already loaded (e.g. via a direct type reference).
+                var assembly = Assembly.LoadFrom(Path.GetFullPath(dll));
+                await ScanAssemblyForExtensionsAsync(assembly).ConfigureAwait(false);
+            }
+            catch (BadImageFormatException)
+            {
+                // Skip non-.NET DLLs (native libraries, etc.)
+            }
+        }
+    }
+
+    private async Task ScanAssemblyForExtensionsAsync(Assembly assembly)
+    {
         var extensionTypes = assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract &&
                         t.GetCustomAttribute<VersoExtensionAttribute>() is not null &&

@@ -70,4 +70,62 @@ public sealed class ProviderDiscoveryTests
         Assert.IsNotNull(error);
         Assert.IsNull(factory);
     }
+
+    [TestMethod]
+    public void Discover_WithNuGetAssemblyPaths_LoadsAndFindsProvider()
+    {
+        // Unregister to ensure DbProviderFactories won't find it
+        try { DbProviderFactories.UnregisterFactory("Microsoft.Data.Sqlite"); } catch { }
+
+        // Get the actual assembly path for Microsoft.Data.Sqlite (it's already loaded in the test process,
+        // but this validates the nugetAssemblyPaths parameter is accepted and processed)
+        var sqliteAssembly = typeof(Microsoft.Data.Sqlite.SqliteFactory).Assembly;
+        var assemblyPath = sqliteAssembly.Location;
+
+        var (factory, providerName, error) = ProviderDiscovery.Discover(
+            "Data Source=:memory:",
+            explicitProvider: "Microsoft.Data.Sqlite",
+            nugetAssemblyPaths: new[] { assemblyPath });
+
+        Assert.IsNull(error, error);
+        Assert.IsNotNull(factory);
+        Assert.AreEqual("Microsoft.Data.Sqlite", providerName);
+
+        // Cleanup auto-registration
+        try { DbProviderFactories.UnregisterFactory("Microsoft.Data.Sqlite"); } catch { }
+    }
+
+    [TestMethod]
+    public void Discover_WithNuGetPaths_NonexistentPaths_DoesNotThrow()
+    {
+        // Passing nonexistent paths should be handled gracefully
+        var (factory, _, error) = ProviderDiscovery.Discover(
+            "SomeCustomDriver=value",
+            explicitProvider: "Completely.Fake.Provider.ZZZZZ",
+            nugetAssemblyPaths: new[] { "/nonexistent/path/Fake.dll", "/another/bad/path.dll" });
+
+        Assert.IsNotNull(error);
+        Assert.IsNull(factory);
+    }
+
+    [TestMethod]
+    public void Discover_WithNuGetPaths_NullPaths_DoesNotThrow()
+    {
+        // Null paths should be handled gracefully
+        DbProviderFactories.RegisterFactory("Microsoft.Data.Sqlite",
+            Microsoft.Data.Sqlite.SqliteFactory.Instance);
+        try
+        {
+            var (factory, providerName, error) = ProviderDiscovery.Discover(
+                "Data Source=:memory:",
+                nugetAssemblyPaths: null);
+
+            Assert.IsNull(error, error);
+            Assert.IsNotNull(factory);
+        }
+        finally
+        {
+            DbProviderFactories.UnregisterFactory("Microsoft.Data.Sqlite");
+        }
+    }
 }

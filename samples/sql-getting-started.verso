@@ -1,0 +1,414 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "SQL in Verso: Getting Started",
+    "created": "2026-02-15T10:00:00+00:00",
+    "modified": "2026-02-15T15:43:33.418771+00:00",
+    "defaultKernel": "csharp",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "00000002-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# SQL in Verso: Getting Started\n\nVerso.Ado brings first-class SQL support to Verso notebooks. You can connect to any ADO.NET database, write SQL in dedicated cells with syntax highlighting, and get rich HTML result tables with paging, type tooltips, and CSV/JSON export.\n\nThis notebook walks through the essentials using an **in-memory SQLite** database \u2014 no server required.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch1 id=\u0022sql-in-verso-getting-started\u0022\u003ESQL in Verso: Getting Started\u003C/h1\u003E\n\u003Cp\u003EVerso.Ado brings first-class SQL support to Verso notebooks. You can connect to any ADO.NET database, write SQL in dedicated cells with syntax highlighting, and get rich HTML result tables with paging, type tooltips, and CSV/JSON export.\u003C/p\u003E\n\u003Cp\u003EThis notebook walks through the essentials using an \u003Cstrong\u003Ein-memory SQLite\u003C/strong\u003E database \u2014 no server required.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## 1. Connect to a Database\n\nFirst, load the SQLite provider package with \u0060#r\u0060. Then use \u0060#!sql-connect\u0060 to establish a connection. The \u0060--default\u0060 flag makes it the active connection for all SQL cells.\n\n| Flag | Purpose |\n|---|---|\n| \u0060--name\u0060 | Friendly name for this connection |\n| \u0060--connection-string\u0060 | ADO.NET connection string |\n| \u0060--provider\u0060 | Provider factory name (registered or built-in) |\n| \u0060--default\u0060 | Set as the active connection |",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022connect-to-a-database\u0022\u003E1. Connect to a Database\u003C/h2\u003E\n\u003Cp\u003EFirst, load the SQLite provider package with \u003Ccode\u003E#r\u003C/code\u003E. Then use \u003Ccode\u003E#!sql-connect\u003C/code\u003E to establish a connection. The \u003Ccode\u003E--default\u003C/code\u003E flag makes it the active connection for all SQL cells.\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EFlag\u003C/th\u003E\n\u003Cth\u003EPurpose\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--name\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EFriendly name for this connection\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--connection-string\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EADO.NET connection string\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--provider\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EProvider factory name (registered or built-in)\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--default\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003ESet as the active connection\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000030",
+      "type": "code",
+      "language": "csharp",
+      "source": "#r \u0022nuget: Microsoft.Data.Sqlite, 8.0.8\u0022",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cdiv\u003E\u003Cb\u003EInstalled Packages\u003C/b\u003E\u003Cul\u003E\u003Cli\u003E\u003Cspan\u003EMicrosoft.Data.Sqlite, 8.0.8\u003C/span\u003E\u003C/li\u003E\u003C/ul\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-connect --name demo --connection-string \u0022Data Source=:memory:\u0022 --provider Microsoft.Data.Sqlite --default",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Connected \u0027demo\u0027 (default) using Microsoft.Data.Sqlite \u2014 database: main\n  Connection string: Data Source=:memory:"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000004",
+      "type": "markdown",
+      "source": "## 2. Create Tables\n\nSwitch to a **SQL** cell and write DDL directly. Non-query statements show rows affected and execution time.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022create-tables\u0022\u003E2. Create Tables\u003C/h2\u003E\n\u003Cp\u003ESwitch to a \u003Cstrong\u003ESQL\u003C/strong\u003E cell and write DDL directly. Non-query statements show rows affected and execution time.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000005",
+      "type": "sql",
+      "source": "CREATE TABLE Customers (\n    Id       INTEGER PRIMARY KEY,\n    Name     TEXT    NOT NULL,\n    Email    TEXT,\n    Country  TEXT,\n    Joined   TEXT    NOT NULL\n)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E0 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(17 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000006",
+      "type": "sql",
+      "source": "CREATE TABLE Orders (\n    Id          INTEGER PRIMARY KEY,\n    CustomerId  INTEGER NOT NULL REFERENCES Customers(Id),\n    Product     TEXT    NOT NULL,\n    Quantity    INTEGER NOT NULL,\n    Price       REAL    NOT NULL,\n    OrderDate   TEXT    NOT NULL\n)",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E0 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## 3. Insert Sample Data\n\nSeed some rows. You can put multiple statements in one cell \u2014 they execute sequentially.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022insert-sample-data\u0022\u003E3. Insert Sample Data\u003C/h2\u003E\n\u003Cp\u003ESeed some rows. You can put multiple statements in one cell \u2014 they execute sequentially.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000008",
+      "type": "sql",
+      "source": "INSERT INTO Customers VALUES (1, \u0027Alice Chen\u0027,    \u0027alice@example.com\u0027,   \u0027Canada\u0027,    \u00272024-01-15\u0027);\nINSERT INTO Customers VALUES (2, \u0027Bob Martinez\u0027,  \u0027bob@example.com\u0027,     \u0027USA\u0027,       \u00272024-02-20\u0027);\nINSERT INTO Customers VALUES (3, \u0027Carla Rossi\u0027,   \u0027carla@example.com\u0027,   \u0027Italy\u0027,     \u00272024-03-10\u0027);\nINSERT INTO Customers VALUES (4, \u0027David Park\u0027,    \u0027david@example.com\u0027,   \u0027Korea\u0027,     \u00272024-04-05\u0027);\nINSERT INTO Customers VALUES (5, \u0027Emma Johansson\u0027, NULL,                  \u0027Sweden\u0027,    \u00272024-05-22\u0027);\n\nINSERT INTO Orders VALUES (1,  1, \u0027Laptop\u0027,       1, 1299.99, \u00272024-06-01\u0027);\nINSERT INTO Orders VALUES (2,  1, \u0027Mouse\u0027,        2,   29.99, \u00272024-06-01\u0027);\nINSERT INTO Orders VALUES (3,  2, \u0027Keyboard\u0027,     1,   89.99, \u00272024-06-15\u0027);\nINSERT INTO Orders VALUES (4,  3, \u0027Monitor\u0027,      2,  549.99, \u00272024-07-03\u0027);\nINSERT INTO Orders VALUES (5,  3, \u0027USB Hub\u0027,      1,   34.99, \u00272024-07-03\u0027);\nINSERT INTO Orders VALUES (6,  4, \u0027Laptop\u0027,       1, 1299.99, \u00272024-07-20\u0027);\nINSERT INTO Orders VALUES (7,  4, \u0027Headphones\u0027,   1,  199.99, \u00272024-07-20\u0027);\nINSERT INTO Orders VALUES (8,  5, \u0027Webcam\u0027,       1,   79.99, \u00272024-08-10\u0027);\nINSERT INTO Orders VALUES (9,  2, \u0027Monitor\u0027,      1,  549.99, \u00272024-08-25\u0027);\nINSERT INTO Orders VALUES (10, 1, \u0027Keyboard\u0027,     1,   89.99, \u00272024-09-12\u0027);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Warning: No variable \u0027@example\u0027 found for parameter binding."
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(1 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/plain",
+          "content": "Warning: No variable \u0027@example\u0027 found for parameter binding."
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/plain",
+          "content": "Warning: No variable \u0027@example\u0027 found for parameter binding."
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/plain",
+          "content": "Warning: No variable \u0027@example\u0027 found for parameter binding."
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        },
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003E1 row(s) affected \u003Cspan style=\u0022opacity:0.7;\u0022\u003E(0 ms)\u003C/span\u003E\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000009",
+      "type": "markdown",
+      "source": "## 4. Query Data\n\nSELECT results render as HTML tables. Hover over column headers to see their SQL data type.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022query-data\u0022\u003E4. Query Data\u003C/h2\u003E\n\u003Cp\u003ESELECT results render as HTML tables. Hover over column headers to see their SQL data type.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000010",
+      "type": "sql",
+      "source": "SELECT * FROM Customers ORDER BY Name",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022INTEGER\u0022\u003EId\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EEmail\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ECountry\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EJoined\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003EAlice Chen\u003C/td\u003E\u003Ctd\u003Ealice@example.com\u003C/td\u003E\u003Ctd\u003ECanada\u003C/td\u003E\u003Ctd\u003E2024-01-15\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003EBob Martinez\u003C/td\u003E\u003Ctd\u003Ebob@example.com\u003C/td\u003E\u003Ctd\u003EUSA\u003C/td\u003E\u003Ctd\u003E2024-02-20\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003E3\u003C/td\u003E\u003Ctd\u003ECarla Rossi\u003C/td\u003E\u003Ctd\u003Ecarla@example.com\u003C/td\u003E\u003Ctd\u003EItaly\u003C/td\u003E\u003Ctd\u003E2024-03-10\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00223\u0022\u003E\u003Ctd\u003E4\u003C/td\u003E\u003Ctd\u003EDavid Park\u003C/td\u003E\u003Ctd\u003Edavid@example.com\u003C/td\u003E\u003Ctd\u003EKorea\u003C/td\u003E\u003Ctd\u003E2024-04-05\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00224\u0022\u003E\u003Ctd\u003E5\u003C/td\u003E\u003Ctd\u003EEmma Johansson\u003C/td\u003E\u003Ctd\u003E\u003Cspan class=\u0022verso-sql-null\u0022\u003ENULL\u003C/span\u003E\u003C/td\u003E\u003Ctd\u003ESweden\u003C/td\u003E\u003Ctd\u003E2024-05-22\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-5 of 5 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000011",
+      "type": "markdown",
+      "source": "## 5. JOINs and Aggregation\n\nStandard SQL works as expected. Here\u0027s a summary of each customer\u0027s total spending.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022joins-and-aggregation\u0022\u003E5. JOINs and Aggregation\u003C/h2\u003E\n\u003Cp\u003EStandard SQL works as expected. Here\u0027s a summary of each customer\u0027s total spending.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000012",
+      "type": "sql",
+      "source": "SELECT\n    c.Name,\n    c.Country,\n    COUNT(o.Id)                    AS OrderCount,\n    ROUND(SUM(o.Quantity * o.Price), 2) AS TotalSpent\nFROM Customers c\nJOIN Orders o ON o.CustomerId = c.Id\nGROUP BY c.Id, c.Name, c.Country\nORDER BY TotalSpent DESC",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ECountry\u003C/th\u003E\u003Cth title=\u0022INTEGER\u0022\u003EOrderCount\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003ETotalSpent\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EDavid Park\u003C/td\u003E\u003Ctd\u003EKorea\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E1499.98\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EAlice Chen\u003C/td\u003E\u003Ctd\u003ECanada\u003C/td\u003E\u003Ctd\u003E3\u003C/td\u003E\u003Ctd\u003E1449.96\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003ECarla Rossi\u003C/td\u003E\u003Ctd\u003EItaly\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E1134.97\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00223\u0022\u003E\u003Ctd\u003EBob Martinez\u003C/td\u003E\u003Ctd\u003EUSA\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E639.98\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00224\u0022\u003E\u003Ctd\u003EEmma Johansson\u003C/td\u003E\u003Ctd\u003ESweden\u003C/td\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003E79.99\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-5 of 5 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000013",
+      "type": "markdown",
+      "source": "## 6. NULL Handling\n\nNULL values are styled distinctly in the result table so they stand out from empty strings.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022null-handling\u0022\u003E6. NULL Handling\u003C/h2\u003E\n\u003Cp\u003ENULL values are styled distinctly in the result table so they stand out from empty strings.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000014",
+      "type": "sql",
+      "source": "SELECT Name, Email, Country\nFROM Customers\nWHERE Email IS NULL",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003EEmail\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ECountry\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EEmma Johansson\u003C/td\u003E\u003Ctd\u003E\u003Cspan class=\u0022verso-sql-null\u0022\u003ENULL\u003C/span\u003E\u003C/td\u003E\u003Ctd\u003ESweden\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-1 of 1 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000015",
+      "type": "markdown",
+      "source": "## 7. Parameter Binding\n\nDefine a variable in C# and reference it as \u0060@variableName\u0060 in SQL. Verso automatically binds it as a typed parameter \u2014 no string interpolation, no injection risk.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022parameter-binding\u0022\u003E7. Parameter Binding\u003C/h2\u003E\n\u003Cp\u003EDefine a variable in C# and reference it as \u003Ccode\u003E@variableName\u003C/code\u003E in SQL. Verso automatically binds it as a typed parameter \u2014 no string interpolation, no injection risk.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000016",
+      "type": "code",
+      "language": "csharp",
+      "source": "var minSpend = 500.0;\nvar targetCountry = \u0022Canada\u0022;"
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000017",
+      "type": "sql",
+      "source": "SELECT\n    c.Name,\n    c.Country,\n    ROUND(SUM(o.Quantity * o.Price), 2) AS TotalSpent\nFROM Customers c\nJOIN Orders o ON o.CustomerId = c.Id\nWHERE c.Country = @targetCountry\nGROUP BY c.Id, c.Name, c.Country\nHAVING TotalSpent \u003E @minSpend",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EName\u003C/th\u003E\u003Cth title=\u0022TEXT\u0022\u003ECountry\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003ETotalSpent\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003EAlice Chen\u003C/td\u003E\u003Ctd\u003ECanada\u003C/td\u003E\u003Ctd\u003E1449.96\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-1 of 1 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000018",
+      "type": "markdown",
+      "source": "## 8. Directives\n\nSQL cells support directives on the first line:\n\n| Directive | Effect |\n|---|---|\n| \u0060--connection \u003Cname\u003E\u0060 | Use a specific named connection |\n| \u0060--name \u003Cvar\u003E\u0060 | Store the result DataTable in a custom variable |\n| \u0060--no-display\u0060 | Execute silently (no output) |\n| \u0060--page-size \u003Cn\u003E\u0060 | Maximum rows to fetch |",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022directives\u0022\u003E8. Directives\u003C/h2\u003E\n\u003Cp\u003ESQL cells support directives on the first line:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EDirective\u003C/th\u003E\n\u003Cth\u003EEffect\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--connection \u0026lt;name\u0026gt;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EUse a specific named connection\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--name \u0026lt;var\u0026gt;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EStore the result DataTable in a custom variable\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--no-display\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EExecute silently (no output)\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Ccode\u003E--page-size \u0026lt;n\u0026gt;\u003C/code\u003E\u003C/td\u003E\n\u003Ctd\u003EMaximum rows to fetch\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000019",
+      "type": "sql",
+      "source": "--name topProducts\nSELECT\n    Product,\n    SUM(Quantity) AS TotalSold,\n    ROUND(SUM(Quantity * Price), 2) AS Revenue\nFROM Orders\nGROUP BY Product\nORDER BY Revenue DESC",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Cstyle\u003E.verso-sql-result { font-family: monospace; font-size: 13px; }.verso-sql-result table { border-collapse: collapse; width: 100%; background: #F5F5F5; color: #1E1E1E; }.verso-sql-result th { background: #FFFFFF; text-align: left; padding: 4px 8px; border: 1px solid ; }.verso-sql-result td { padding: 4px 8px; border: 1px solid ; }.verso-sql-null { color: #999; font-style: italic; }.verso-sql-pager { padding: 6px 0; }.verso-sql-pager button { margin-right: 4px; }.verso-sql-footer { padding: 6px 0; opacity: 0.8; font-size: 12px; }.verso-sql-truncation { padding: 6px 8px; margin-top: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; }\u003C/style\u003E\u003Cdiv class=\u0022verso-sql-result\u0022\u003E\u003Ctable\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth title=\u0022TEXT\u0022\u003EProduct\u003C/th\u003E\u003Cth title=\u0022INTEGER\u0022\u003ETotalSold\u003C/th\u003E\u003Cth title=\u0022REAL\u0022\u003ERevenue\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody id=\u0022verso-sql-tbody\u0022\u003E\u003Ctr data-row-index=\u00220\u0022\u003E\u003Ctd\u003ELaptop\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E2599.98\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00221\u0022\u003E\u003Ctd\u003EMonitor\u003C/td\u003E\u003Ctd\u003E3\u003C/td\u003E\u003Ctd\u003E1649.97\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00222\u0022\u003E\u003Ctd\u003EHeadphones\u003C/td\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003E199.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00223\u0022\u003E\u003Ctd\u003EKeyboard\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E179.98\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00224\u0022\u003E\u003Ctd\u003EWebcam\u003C/td\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003E79.99\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00225\u0022\u003E\u003Ctd\u003EMouse\u003C/td\u003E\u003Ctd\u003E2\u003C/td\u003E\u003Ctd\u003E59.98\u003C/td\u003E\u003C/tr\u003E\u003Ctr data-row-index=\u00226\u0022\u003E\u003Ctd\u003EUSB Hub\u003C/td\u003E\u003Ctd\u003E1\u003C/td\u003E\u003Ctd\u003E34.99\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E\u003Cdiv class=\u0022verso-sql-footer\u0022\u003EShowing 1-7 of 7 rows\u003C/div\u003E\u003C/div\u003E"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000020",
+      "type": "markdown",
+      "source": "## 9. Using SQL Results in C#\n\nThe last query result is always available as a \u0060DataTable\u0060. Use the \u0060--name\u0060 directive to choose the variable name, then access it from C#.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022using-sql-results-in-c\u0022\u003E9. Using SQL Results in C#\u003C/h2\u003E\n\u003Cp\u003EThe last query result is always available as a \u003Ccode\u003EDataTable\u003C/code\u003E. Use the \u003Ccode\u003E--name\u003C/code\u003E directive to choose the variable name, then access it from C#.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000021",
+      "type": "code",
+      "language": "csharp",
+      "source": "// The \u0027topProducts\u0027 DataTable was stored by the previous SQL cell\nvar topProducts = Variables.Get\u003CSystem.Data.DataTable\u003E(\u0022topProducts\u0022)!;\n\nConsole.WriteLine($\u0022Top product: {topProducts.Rows[0][\u0022Product\u0022]}\u0022);\nConsole.WriteLine($\u0022Revenue:     ${topProducts.Rows[0][\u0022Revenue\u0022]}\u0022);\nConsole.WriteLine($\u0022Total products tracked: {topProducts.Rows.Count}\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Top product: Laptop\nRevenue:     $2599.98\nTotal products tracked: 7\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000022",
+      "type": "markdown",
+      "source": "## 10. Export\n\nAfter running a SQL cell, use the **CSV** or **JSON** buttons in the cell toolbar to download the result set as a file. This works with any query that returns rows.\n\n---\n\n## Disconnecting\n\nClean up connections when you\u0027re done with \u0060#!sql-disconnect\u0060.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022export\u0022\u003E10. Export\u003C/h2\u003E\n\u003Cp\u003EAfter running a SQL cell, use the \u003Cstrong\u003ECSV\u003C/strong\u003E or \u003Cstrong\u003EJSON\u003C/strong\u003E buttons in the cell toolbar to download the result set as a file. This works with any query that returns rows.\u003C/p\u003E\n\u003Chr /\u003E\n\u003Ch2 id=\u0022disconnecting\u0022\u003EDisconnecting\u003C/h2\u003E\n\u003Cp\u003EClean up connections when you\u0027re done with \u003Ccode\u003E#!sql-disconnect\u003C/code\u003E.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000023",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!sql-disconnect --name demo",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Disconnected \u0027demo\u0027."
+        }
+      ]
+    },
+    {
+      "id": "00000002-0001-0001-0001-000000000024",
+      "type": "markdown",
+      "source": "## Next Steps\n\n- **Multiple connections**: Connect to several databases and target each one with \u0060--connection \u003Cname\u003E\u0060\n- **Real databases**: Swap the connection string for SQL Server, PostgreSQL, MySQL, or any ADO.NET provider\n- **Mix C# and SQL**: Build hybrid workflows where SQL cells query data and C# cells process, chart, or export it\n- **Variable store**: Everything lives in a shared variable store \u2014 SQL results, C# objects, and parameters flow freely between cells",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022next-steps\u0022\u003ENext Steps\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003EMultiple connections\u003C/strong\u003E: Connect to several databases and target each one with \u003Ccode\u003E--connection \u0026lt;name\u0026gt;\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EReal databases\u003C/strong\u003E: Swap the connection string for SQL Server, PostgreSQL, MySQL, or any ADO.NET provider\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EMix C# and SQL\u003C/strong\u003E: Build hybrid workflows where SQL cells query data and C# cells process, chart, or export it\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EVariable store\u003C/strong\u003E: Everything lives in a shared variable store \u2014 SQL results, C# objects, and parameters flow freely between cells\u003C/li\u003E\n\u003C/ul\u003E\n"
+        }
+      ]
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "00000002-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 12,
+          "height": 4,
+          "visible": true
+        },
+        "00000002-0001-0001-0001-000000000002": {
+          "row": 4,
+          "col": 0,
+          "width": 12,
+          "height": 4,
+          "visible": true
+        },
+        "00000002-0001-0001-0001-000000000003": {
+          "row": 8,
+          "col": 0,
+          "width": 12,
+          "height": 2,
+          "visible": true
+        },
+        "00000002-0001-0001-0001-000000000010": {
+          "row": 10,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000002-0001-0001-0001-000000000012": {
+          "row": 10,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000002-0001-0001-0001-000000000014": {
+          "row": 14,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000002-0001-0001-0001-000000000019": {
+          "row": 14,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        }
+      }
+    }
+  }
+}

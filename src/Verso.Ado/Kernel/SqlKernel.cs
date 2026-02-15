@@ -1,8 +1,10 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Ado.Formatters;
 using Verso.Ado.Helpers;
 using Verso.Ado.MagicCommands;
 using Verso.Ado.Models;
@@ -12,14 +14,15 @@ namespace Verso.Ado.Kernel;
 /// <summary>
 /// Language kernel for executing SQL against ADO.NET database connections.
 /// Results are published as <see cref="DataTable"/> to the variable store.
+/// Accessed through <see cref="CellType.SqlCellType"/>; not independently registered.
 /// </summary>
-[VersoExtension]
 public sealed class SqlKernel : ILanguageKernel
 {
     private static readonly Regex ParamPattern = new(@"@(\w+)", RegexOptions.Compiled);
     private readonly SemaphoreSlim _executionLock = new(1, 1);
 
     internal const int DefaultMaxFetchRows = 10_000;
+    private const int DefaultDisplayPageSize = 50;
 
     // --- IExtension ---
     public string ExtensionId => "verso.ado.kernel.sql";
@@ -73,6 +76,7 @@ public sealed class SqlKernel : ILanguageKernel
         var statements = SqlStatementSplitter.Split(sqlCode, handleGoBatches: isSqlServer);
 
         int maxRows = directives.PageSize ?? DefaultMaxFetchRows;
+        int displayPageSize = DefaultDisplayPageSize;
 
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         try
@@ -81,6 +85,8 @@ public sealed class SqlKernel : ILanguageKernel
 
             foreach (var statement in statements)
             {
+                var sw = Stopwatch.StartNew();
+
                 using var cmd = connInfo.Connection.CreateCommand();
                 cmd.CommandText = statement;
 
@@ -88,6 +94,8 @@ public sealed class SqlKernel : ILanguageKernel
                 BindParameters(cmd, statement, context.Variables, outputs);
 
                 using var reader = await cmd.ExecuteReaderAsync(context.CancellationToken).ConfigureAwait(false);
+
+                sw.Stop();
 
                 if (reader.HasRows || reader.FieldCount > 0)
                 {
@@ -97,7 +105,8 @@ public sealed class SqlKernel : ILanguageKernel
 
                     if (!directives.NoDisplay)
                     {
-                        outputs.Add(new CellOutput("text/plain", FormatResultSet(resultSet)));
+                        var html = ResultSetFormatter.FormatResultSetHtml(resultSet, context.Theme, displayPageSize);
+                        outputs.Add(new CellOutput("text/html", html));
                     }
                 }
                 else
@@ -105,17 +114,22 @@ public sealed class SqlKernel : ILanguageKernel
                     var affected = reader.RecordsAffected;
                     if (!directives.NoDisplay && affected >= 0)
                     {
-                        outputs.Add(new CellOutput("text/plain", $"{affected} row(s) affected."));
+                        var html = ResultSetFormatter.FormatNonQueryHtml(affected, sw.ElapsedMilliseconds, context.Theme);
+                        outputs.Add(new CellOutput("text/html", html));
                     }
                 }
             }
 
-            // Publish last result to variable store as DataTable
+            // Publish last result to variable store as DataTable and SqlResultSet
             if (lastResultSet is not null)
             {
                 var variableName = directives.VariableName ?? "lastSqlResult";
                 var dataTable = ToDataTable(lastResultSet);
                 context.Variables.Set(variableName, dataTable);
+                context.Variables.Set($"{variableName}__resultset", lastResultSet);
+
+                // Store cell-to-variable mapping for export actions
+                context.Variables.Set($"__verso_ado_cellvar_{context.CellId}", variableName);
             }
         }
         catch (Exception ex)
@@ -245,78 +259,6 @@ public sealed class SqlKernel : ILanguageKernel
         }
 
         return new SqlResultSet(columns, rows, totalCount, wasTruncated);
-    }
-
-    private static string FormatResultSet(SqlResultSet resultSet)
-    {
-        if (resultSet.Columns.Count == 0)
-            return "(no columns)";
-
-        // Calculate column widths
-        var widths = new int[resultSet.Columns.Count];
-        for (int i = 0; i < resultSet.Columns.Count; i++)
-        {
-            widths[i] = resultSet.Columns[i].Name.Length;
-        }
-
-        foreach (var row in resultSet.Rows)
-        {
-            for (int i = 0; i < row.Length; i++)
-            {
-                var display = FormatValue(row[i]);
-                widths[i] = Math.Max(widths[i], display.Length);
-            }
-        }
-
-        var sb = new StringBuilder();
-
-        // Header
-        for (int i = 0; i < resultSet.Columns.Count; i++)
-        {
-            if (i > 0) sb.Append(" | ");
-            sb.Append(resultSet.Columns[i].Name.PadRight(widths[i]));
-        }
-        sb.AppendLine();
-
-        // Separator
-        for (int i = 0; i < resultSet.Columns.Count; i++)
-        {
-            if (i > 0) sb.Append("-+-");
-            sb.Append(new string('-', widths[i]));
-        }
-        sb.AppendLine();
-
-        // Rows
-        foreach (var row in resultSet.Rows)
-        {
-            for (int i = 0; i < row.Length; i++)
-            {
-                if (i > 0) sb.Append(" | ");
-                sb.Append(FormatValue(row[i]).PadRight(widths[i]));
-            }
-            sb.AppendLine();
-        }
-
-        // Truncation notice
-        if (resultSet.WasTruncated)
-        {
-            sb.AppendLine();
-            sb.AppendLine($"({resultSet.Rows.Count} of {resultSet.TotalRowCount} rows shown)");
-        }
-        else
-        {
-            sb.AppendLine();
-            sb.AppendLine($"({resultSet.Rows.Count} row(s))");
-        }
-
-        return sb.ToString();
-    }
-
-    private static string FormatValue(object? value)
-    {
-        if (value is null) return "NULL";
-        if (value is DBNull) return "NULL";
-        return value.ToString() ?? "NULL";
     }
 
     private static DataTable ToDataTable(SqlResultSet resultSet)

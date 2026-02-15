@@ -69,9 +69,10 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
             return;
         }
 
-        // Discover provider
+        // Discover provider (pass NuGet assembly paths so unloaded packages can be found)
         args.TryGetValue("provider", out var explicitProvider);
-        var (factory, providerName, providerError) = ProviderDiscovery.Discover(resolvedCs!, explicitProvider);
+        context.Variables.TryGet<List<string>>("__verso_nuget_assemblies", out var nugetPaths);
+        var (factory, providerName, providerError) = ProviderDiscovery.Discover(resolvedCs!, explicitProvider, nugetPaths);
         if (providerError is not null)
         {
             await context.WriteOutputAsync(new CellOutput(

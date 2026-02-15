@@ -1,12 +1,12 @@
 namespace Verso.Ado.Models;
 
-internal sealed record SqlResultSet(
+public sealed record SqlResultSet(
     IReadOnlyList<SqlColumnMetadata> Columns,
     IReadOnlyList<object?[]> Rows,
     int TotalRowCount,
     bool WasTruncated);
 
-internal sealed record SqlColumnMetadata(
+public sealed record SqlColumnMetadata(
     string Name,
     string DataTypeName,
     Type ClrType,

@@ -3,11 +3,11 @@ using Verso.Abstractions;
 namespace Verso.Ado;
 
 /// <summary>
-/// Entry point extension for Verso.Ado — SQL database connectivity for Verso notebooks.
-/// Individual components (kernel, magic commands) are discovered via their own
-/// <see cref="VersoExtensionAttribute"/> markers.
+/// Metadata descriptor for the Verso.Ado extension package. Individual components
+/// (cell type, formatter, magic commands, toolbar actions) are discovered via their
+/// own <see cref="VersoExtensionAttribute"/> markers. This class is not auto-loaded
+/// by the host; it exists for programmatic package-level metadata queries.
 /// </summary>
-[VersoExtension]
 public sealed class SqlAdoExtension : IExtension
 {
     public string ExtensionId => "verso.ado";
