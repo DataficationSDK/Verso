@@ -69,6 +69,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000005",
       "type": "sql",
+      "language": "sql",
       "source": "CREATE TABLE Customers (\n    Id       INTEGER PRIMARY KEY,\n    Name     TEXT    NOT NULL,\n    Email    TEXT,\n    Country  TEXT,\n    Joined   TEXT    NOT NULL\n)",
       "outputs": [
         {
@@ -80,6 +81,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000006",
       "type": "sql",
+      "language": "sql",
       "source": "CREATE TABLE Orders (\n    Id          INTEGER PRIMARY KEY,\n    CustomerId  INTEGER NOT NULL REFERENCES Customers(Id),\n    Product     TEXT    NOT NULL,\n    Quantity    INTEGER NOT NULL,\n    Price       REAL    NOT NULL,\n    OrderDate   TEXT    NOT NULL\n)",
       "outputs": [
         {
@@ -102,6 +104,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000008",
       "type": "sql",
+      "language": "sql",
       "source": "INSERT INTO Customers VALUES (1, \u0027Alice Chen\u0027,    \u0027alice@example.com\u0027,   \u0027Canada\u0027,    \u00272024-01-15\u0027);\nINSERT INTO Customers VALUES (2, \u0027Bob Martinez\u0027,  \u0027bob@example.com\u0027,     \u0027USA\u0027,       \u00272024-02-20\u0027);\nINSERT INTO Customers VALUES (3, \u0027Carla Rossi\u0027,   \u0027carla@example.com\u0027,   \u0027Italy\u0027,     \u00272024-03-10\u0027);\nINSERT INTO Customers VALUES (4, \u0027David Park\u0027,    \u0027david@example.com\u0027,   \u0027Korea\u0027,     \u00272024-04-05\u0027);\nINSERT INTO Customers VALUES (5, \u0027Emma Johansson\u0027, NULL,                  \u0027Sweden\u0027,    \u00272024-05-22\u0027);\n\nINSERT INTO Orders VALUES (1,  1, \u0027Laptop\u0027,       1, 1299.99, \u00272024-06-01\u0027);\nINSERT INTO Orders VALUES (2,  1, \u0027Mouse\u0027,        2,   29.99, \u00272024-06-01\u0027);\nINSERT INTO Orders VALUES (3,  2, \u0027Keyboard\u0027,     1,   89.99, \u00272024-06-15\u0027);\nINSERT INTO Orders VALUES (4,  3, \u0027Monitor\u0027,      2,  549.99, \u00272024-07-03\u0027);\nINSERT INTO Orders VALUES (5,  3, \u0027USB Hub\u0027,      1,   34.99, \u00272024-07-03\u0027);\nINSERT INTO Orders VALUES (6,  4, \u0027Laptop\u0027,       1, 1299.99, \u00272024-07-20\u0027);\nINSERT INTO Orders VALUES (7,  4, \u0027Headphones\u0027,   1,  199.99, \u00272024-07-20\u0027);\nINSERT INTO Orders VALUES (8,  5, \u0027Webcam\u0027,       1,   79.99, \u00272024-08-10\u0027);\nINSERT INTO Orders VALUES (9,  2, \u0027Monitor\u0027,      1,  549.99, \u00272024-08-25\u0027);\nINSERT INTO Orders VALUES (10, 1, \u0027Keyboard\u0027,     1,   89.99, \u00272024-09-12\u0027);",
       "outputs": [
         {
@@ -196,6 +199,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000010",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT * FROM Customers ORDER BY Name",
       "outputs": [
         {
@@ -218,6 +222,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000012",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT\n    c.Name,\n    c.Country,\n    COUNT(o.Id)                    AS OrderCount,\n    ROUND(SUM(o.Quantity * o.Price), 2) AS TotalSpent\nFROM Customers c\nJOIN Orders o ON o.CustomerId = c.Id\nGROUP BY c.Id, c.Name, c.Country\nORDER BY TotalSpent DESC",
       "outputs": [
         {
@@ -240,6 +245,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000014",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT Name, Email, Country\nFROM Customers\nWHERE Email IS NULL",
       "outputs": [
         {
@@ -268,6 +274,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000017",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT\n    c.Name,\n    c.Country,\n    ROUND(SUM(o.Quantity * o.Price), 2) AS TotalSpent\nFROM Customers c\nJOIN Orders o ON o.CustomerId = c.Id\nWHERE c.Country = @targetCountry\nGROUP BY c.Id, c.Name, c.Country\nHAVING TotalSpent \u003E @minSpend",
       "outputs": [
         {
@@ -290,6 +297,7 @@
     {
       "id": "00000002-0001-0001-0001-000000000019",
       "type": "sql",
+      "language": "sql",
       "source": "--name topProducts\nSELECT\n    Product,\n    SUM(Quantity) AS TotalSold,\n    ROUND(SUM(Quantity * Price), 2) AS Revenue\nFROM Orders\nGROUP BY Product\nORDER BY Revenue DESC",
       "outputs": [
         {

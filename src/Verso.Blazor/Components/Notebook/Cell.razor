@@ -1,3 +1,6 @@
+@inject NotebookService Service
+@inject IJSRuntime JS
+
 <div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "")">
     <div class="verso-cell-gutter">
         <span class="verso-cell-index">[@(Index + 1)]</span>
@@ -11,6 +14,22 @@
                 <span class="verso-cell-language">@CellData.Language</span>
             }
             <div class="verso-cell-toolbar-actions">
+                @foreach (var action in _enabledCellActions)
+                {
+                    var act = action;
+                    <button class="verso-cell-btn verso-cell-btn--action"
+                            @onclick="() => ExecuteCellActionAsync(act)"
+                            title="Export @act.DisplayName">
+                        @if (act.Icon is not null)
+                        {
+                            @((MarkupString)act.Icon)
+                        }
+                        else
+                        {
+                            @act.DisplayName
+                        }
+                    </button>
+                }
                 @if (Index > 0)
                 {
                     <button class="verso-cell-btn" @onclick="() => OnMoveUp.InvokeAsync(CellData.Id)" title="Move Up">&#x25B2;</button>
@@ -84,9 +103,66 @@
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
 
+    private List<IToolbarAction> _enabledCellActions = new();
+
+    // Actions already represented by hardcoded buttons in the cell toolbar
+    private static readonly HashSet<string> _hardcodedActionIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "verso.action.run-cell"
+    };
+
     private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected;
 
     private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var host = Service.ExtensionHost;
+        var scaffold = Service.Scaffold;
+        if (host is null || scaffold is null)
+        {
+            _enabledCellActions = new();
+            return;
+        }
+
+        var cellActions = host.GetToolbarActions()
+            .Where(a => a.Placement == ToolbarPlacement.CellToolbar
+                        && !_hardcodedActionIds.Contains(a.ActionId))
+            .OrderBy(a => a.Order)
+            .ToList();
+
+        if (cellActions.Count == 0)
+        {
+            _enabledCellActions = new();
+            return;
+        }
+
+        var context = new BlazorToolbarActionContext(
+            scaffold,
+            new List<Guid> { CellData.Id },
+            JS);
+
+        var enabled = new List<IToolbarAction>();
+        foreach (var action in cellActions)
+        {
+            if (await action.IsEnabledAsync(context))
+                enabled.Add(action);
+        }
+
+        _enabledCellActions = enabled;
+    }
+
+    private async Task ExecuteCellActionAsync(IToolbarAction action)
+    {
+        if (Service.Scaffold is null) return;
+
+        var context = new BlazorToolbarActionContext(
+            Service.Scaffold,
+            new List<Guid> { CellData.Id },
+            JS);
+
+        await action.ExecuteAsync(context);
+    }
 
     private async Task HandleSourceChanged(string newSource)
     {

@@ -58,6 +58,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000005",
       "type": "sql",
+      "language": "sql",
       "source": "CREATE TABLE Employees (\n    Id         INTEGER PRIMARY KEY,\n    FirstName  TEXT    NOT NULL,\n    LastName   TEXT    NOT NULL,\n    Department TEXT    NOT NULL,\n    Salary     REAL    NOT NULL,\n    HireDate   TEXT    NOT NULL\n)",
       "outputs": [
         {
@@ -69,6 +70,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000006",
       "type": "sql",
+      "language": "sql",
       "source": "CREATE TABLE Departments (\n    Id    INTEGER PRIMARY KEY,\n    Name  TEXT    NOT NULL,\n    Floor INTEGER,\n    Budget REAL\n)",
       "outputs": [
         {
@@ -80,6 +82,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000007",
       "type": "sql",
+      "language": "sql",
       "source": "CREATE VIEW EmployeeSummary AS\nSELECT\n    e.FirstName || \u0027 \u0027 || e.LastName AS FullName,\n    e.Department,\n    e.Salary\nFROM Employees e",
       "outputs": [
         {
@@ -91,6 +94,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000008",
       "type": "sql",
+      "language": "sql",
       "source": "INSERT INTO Departments VALUES (1, \u0027Engineering\u0027, 3, 500000.00);\nINSERT INTO Departments VALUES (2, \u0027Marketing\u0027,   2, 200000.00);\nINSERT INTO Departments VALUES (3, \u0027Sales\u0027,       1, 300000.00);\n\nINSERT INTO Employees VALUES (1, \u0027Alice\u0027,   \u0027Chen\u0027,      \u0027Engineering\u0027, 120000, \u00272022-01-15\u0027);\nINSERT INTO Employees VALUES (2, \u0027Bob\u0027,     \u0027Martinez\u0027,  \u0027Marketing\u0027,    95000, \u00272022-03-20\u0027);\nINSERT INTO Employees VALUES (3, \u0027Carla\u0027,   \u0027Rossi\u0027,     \u0027Engineering\u0027, 115000, \u00272023-06-01\u0027);\nINSERT INTO Employees VALUES (4, \u0027David\u0027,   \u0027Park\u0027,      \u0027Sales\u0027,        88000, \u00272023-09-10\u0027);\nINSERT INTO Employees VALUES (5, \u0027Emma\u0027,    \u0027Johansson\u0027, \u0027Engineering\u0027, 130000, \u00272021-11-05\u0027);\nINSERT INTO Employees VALUES (6, \u0027Frank\u0027,   \u0027Liu\u0027,       \u0027Marketing\u0027,    92000, \u00272024-01-08\u0027);\nINSERT INTO Employees VALUES (7, \u0027Grace\u0027,   \u0027Kim\u0027,       \u0027Sales\u0027,        91000, \u00272023-04-22\u0027)",
       "outputs": [
         {
@@ -253,6 +257,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000021",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT FirstName, LastName, Department\nFROM Employees\nWHERE Department = \u0027Engineering\u0027\nORDER BY LastName",
       "outputs": [
         {
@@ -275,6 +280,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000031",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT * FROM Employees WHERE Salary \u003E @unknownParam",
       "outputs": [
         {
@@ -308,6 +314,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000034",
       "type": "sql",
+      "language": "sql",
       "source": "SELECT FirstName, LastName, Salary\nFROM Employees\nWHERE Salary \u003E= @minSalary\nORDER BY Salary DESC",
       "outputs": [
         {
@@ -330,6 +337,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000041",
       "type": "sql",
+      "language": "sql",
       "source": "-- Hover over keywords, table names, column names, and @minSalary below:\nSELECT\n    e.FirstName,\n    e.LastName,\n    e.Department,\n    e.Salary\nFROM Employees e\nWHERE e.Salary \u003E @minSalary\nORDER BY e.Salary DESC",
       "outputs": [
         {
@@ -369,6 +377,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000062",
       "type": "sql",
+      "language": "sql",
       "source": "--name teamReport\nSELECT\n    FirstName || \u0027 \u0027 || LastName AS Name,\n    Salary,\n    HireDate\nFROM Employees\nWHERE Department = @department\n  AND Salary \u003E= @salaryFloor\nORDER BY HireDate",
       "outputs": [
         {
