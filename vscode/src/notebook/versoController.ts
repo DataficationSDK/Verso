@@ -22,7 +22,10 @@ export class VersoController {
     );
 
     this.controller.description = ".NET Notebook Engine";
-    this.controller.supportedLanguages = ["csharp", "markdown"];
+    // Don't restrict languages — the engine handles routing cells to the
+    // correct kernel or cell type.  Setting this to undefined lets VS Code
+    // pass all code cells to the controller regardless of language.
+    this.controller.supportedLanguages = undefined;
     this.controller.supportsExecutionOrder = true;
     this.controller.executeHandler = this.executeHandler.bind(this);
   }

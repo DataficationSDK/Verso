@@ -85,17 +85,32 @@ public static class NotebookHandler
         var scaffold = session.Scaffold!;
         var extensionHost = session.ExtensionHost!;
 
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var languages = new List<LanguageDto>();
 
         // From registered kernels on scaffold
         foreach (var langId in scaffold.RegisteredLanguages)
         {
+            if (!seen.Add(langId)) continue;
             var kernel = scaffold.GetKernel(langId);
             languages.Add(new LanguageDto
             {
                 Id = langId,
                 DisplayName = kernel?.DisplayName ?? langId
             });
+        }
+
+        // From cell types that have an embedded kernel (e.g. SqlCellType)
+        foreach (var cellType in extensionHost.GetCellTypes())
+        {
+            if (cellType.Kernel is not null && seen.Add(cellType.Kernel.LanguageId))
+            {
+                languages.Add(new LanguageDto
+                {
+                    Id = cellType.Kernel.LanguageId,
+                    DisplayName = cellType.Kernel.DisplayName ?? cellType.Kernel.LanguageId
+                });
+            }
         }
 
         return new LanguagesResult { Languages = languages };
