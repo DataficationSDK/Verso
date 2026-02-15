@@ -1,0 +1,167 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Exploring Data with Verso",
+    "created": "2026-02-14T10:00:00+00:00",
+    "modified": "2026-02-15T01:40:38.590051+00:00",
+    "defaultKernel": "csharp",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "00000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Exploring Data with Verso\n\nVerso is an open-source interactive notebook platform for .NET. Every cell shares state, so variables defined in one cell are available in the next.\n\nThis notebook walks through a small data analysis using **C# 12**, **LINQ**, and **string interpolation**.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch1 id=\u0022exploring-data-with-verso\u0022\u003EExploring Data with Verso\u003C/h1\u003E\n\u003Cp\u003EVerso is an open-source interactive notebook platform for .NET. Every cell shares state, so variables defined in one cell are available in the next.\u003C/p\u003E\n\u003Cp\u003EThis notebook walks through a small data analysis using \u003Cstrong\u003EC# 12\u003C/strong\u003E, \u003Cstrong\u003ELINQ\u003C/strong\u003E, and \u003Cstrong\u003Estring interpolation\u003C/strong\u003E.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Define a record and seed some sample data\nrecord City(string Name, string Country, int Population, double Area);\n\nvar cities = new List\u003CCity\u003E\n{\n    new(\u0022Tokyo\u0022,      \u0022Japan\u0022,   13_960_000, 2_194),\n    new(\u0022London\u0022,     \u0022UK\u0022,       8_982_000, 1_572),\n    new(\u0022New York\u0022,   \u0022USA\u0022,      8_336_000,   783),\n    new(\u0022Paris\u0022,      \u0022France\u0022,   2_161_000,   105),\n    new(\u0022Singapore\u0022,  \u0022Singapore\u0022,5_454_000,   733),\n    new(\u0022Sydney\u0022,     \u0022Australia\u0022,5_312_000, 12_368),\n    new(\u0022Toronto\u0022,    \u0022Canada\u0022,   2_794_000,   630),\n    new(\u0022Berlin\u0022,     \u0022Germany\u0022,  3_645_000,   892)\n};\n\nConsole.WriteLine($\u0022Loaded {cities.Count} cities\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Loaded 8 cities\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000003",
+      "type": "markdown",
+      "source": "## Population Density\n\nWith the \u0060cities\u0060 list still in scope, we can compute density and rank the results. LINQ makes this concise.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022population-density\u0022\u003EPopulation Density\u003C/h2\u003E\n\u003Cp\u003EWith the \u003Ccode\u003Ecities\u003C/code\u003E list still in scope, we can compute density and rank the results. LINQ makes this concise.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "var ranked = cities\n    .Select(c =\u003E new\n    {\n        c.Name,\n        c.Country,\n        Density = c.Population / c.Area\n    })\n    .OrderByDescending(c =\u003E c.Density)\n    .ToList();\n\nConsole.WriteLine($\u0022{\u0022City\u0022,-14}{\u0022Country\u0022,-14}{\u0022Density (per km\u00B2)\u0022,18}\u0022);\nConsole.WriteLine(new string(\u0027\u2500\u0027, 46));\n\nforeach (var c in ranked)\n{\n    Console.WriteLine($\u0022{c.Name,-14}{c.Country,-14}{c.Density,18:N0}\u0022);\n}",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "City          Country        Density (per km\u00B2)\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nParis         France                    20,581\nNew York      USA                       10,646\nSingapore     Singapore                  7,441\nTokyo         Japan                      6,363\nLondon        UK                         5,714\nToronto       Canada                     4,435\nBerlin        Germany                    4,086\nSydney        Australia                    429\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Aggregate Statistics\n\nGrouping, filtering, and summarizing in a single expression.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022aggregate-statistics\u0022\u003EAggregate Statistics\u003C/h2\u003E\n\u003Cp\u003EGrouping, filtering, and summarizing in a single expression.\u003C/p\u003E\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "csharp",
+      "source": "var totalPop  = cities.Sum(c =\u003E c.Population);\nvar avgPop    = cities.Average(c =\u003E c.Population);\nvar largest   = cities.MaxBy(c =\u003E c.Population)!;\nvar smallest  = cities.MinBy(c =\u003E c.Population)!;\n\nConsole.WriteLine($\u0022Total population:   {totalPop:N0}\u0022);\nConsole.WriteLine($\u0022Average population: {avgPop:N0}\u0022);\nConsole.WriteLine($\u0022Largest city:       {largest.Name} ({largest.Population:N0})\u0022);\nConsole.WriteLine($\u0022Smallest city:      {smallest.Name} ({smallest.Population:N0})\u0022);",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Total population:   50,644,000\nAverage population: 6,330,500\nLargest city:       Tokyo (13,960,000)\nSmallest city:      Paris (2,161,000)\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000007",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Pattern matching on density tiers\nstring Classify(double density) =\u003E density switch\n{\n    \u003E 10_000 =\u003E \u0022Ultra-dense\u0022,\n    \u003E 5_000  =\u003E \u0022Dense\u0022,\n    \u003E 1_000  =\u003E \u0022Moderate\u0022,\n    _        =\u003E \u0022Spread out\u0022\n};\n\nvar tiers = ranked\n    .GroupBy(c =\u003E Classify(c.Density))\n    .OrderByDescending(g =\u003E g.Count());\n\nforeach (var tier in tiers)\n{\n    var names = string.Join(\u0022, \u0022, tier.Select(c =\u003E c.Name));\n    Console.WriteLine($\u0022{tier.Key,-14} ({tier.Count()}): {names}\u0022);\n}",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Dense          (3): Singapore, Tokyo, London\nUltra-dense    (2): Paris, New York\nModerate       (2): Toronto, Berlin\nSpread out     (1): Sydney\n"
+        }
+      ]
+    },
+    {
+      "id": "00000001-0001-0001-0001-000000000008",
+      "type": "markdown",
+      "source": "## What\u0027s Next?\n\nTry editing the \u0060cities\u0060 list, adding your own columns, or importing a NuGet package:\n\n\u0060\u0060\u0060\n#!nuget Newtonsoft.Json\n\u0060\u0060\u0060\n\nEvery built-in feature in Verso is an extension. The same interfaces used to build the C# kernel, the themes, and the layout engines are available to you.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "\u003Ch2 id=\u0022whats-next\u0022\u003EWhat\u0027s Next?\u003C/h2\u003E\n\u003Cp\u003ETry editing the \u003Ccode\u003Ecities\u003C/code\u003E list, adding your own columns, or importing a NuGet package:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003E#!nuget Newtonsoft.Json\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EEvery built-in feature in Verso is an extension. The same interfaces used to build the C# kernel, the themes, and the layout engines are available to you.\u003C/p\u003E\n"
+        }
+      ]
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "00000001-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000002": {
+          "row": 0,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000003": {
+          "row": 4,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000004": {
+          "row": 4,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000005": {
+          "row": 8,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000006": {
+          "row": 8,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000007": {
+          "row": 12,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000001-0001-0001-0001-000000000008": {
+          "row": 12,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        }
+      }
+    }
+  }
+}
