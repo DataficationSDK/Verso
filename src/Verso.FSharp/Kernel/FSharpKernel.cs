@@ -1,5 +1,13 @@
+using FSharp.Compiler.CodeAnalysis;
+using FSharp.Compiler.EditorServices;
+using FSharp.Compiler.Symbols;
+using FSharp.Compiler.Tokenization;
+using Microsoft.FSharp.Collections;
+using Microsoft.FSharp.Core;
 using Verso.Abstractions;
 using Verso.FSharp.Helpers;
+
+using FcsDiagnostic = FSharp.Compiler.Diagnostics.FSharpDiagnostic;
 
 namespace Verso.FSharp.Kernel;
 
@@ -10,10 +18,19 @@ namespace Verso.FSharp.Kernel;
 [VersoExtension]
 public sealed class FSharpKernel : ILanguageKernel
 {
+    private const string VirtualFileName = "/verso/notebook.fsx";
+
+    /// <summary>
+    /// FCS diagnostic codes to suppress in IntelliSense (incomplete-input noise in notebook context).
+    /// </summary>
+    private static readonly HashSet<int> SuppressedDiagnosticCodes = new() { 10, 588, 3118 };
+
     private readonly FSharpKernelOptions _options;
     private SemaphoreSlim _executionLock = new(1, 1);
     private FsiSessionManager? _sessionManager;
     private VariableBridge? _variableBridge;
+    private FSharpCheckerManager? _checkerManager;
+    private FSharpProjectContext? _projectContext;
     private bool _variablesInjected;
     private bool _initialized;
     private bool _disposed;
@@ -69,6 +86,15 @@ public sealed class FSharpKernel : ILanguageKernel
         _variableBridge = new VariableBridge(_options);
         _variablesInjected = false;
         _executionLock = new SemaphoreSlim(1, 1);
+
+        // Initialize IntelliSense infrastructure
+        _checkerManager = new FSharpCheckerManager();
+        _checkerManager.Initialize();
+
+        _projectContext = new FSharpProjectContext(
+            opens,
+            _sessionManager.ResolvedArgs);
+
         _initialized = true;
 
         return Task.CompletedTask;
@@ -162,6 +188,14 @@ public sealed class FSharpKernel : ILanguageKernel
             // 7. Publish variables to the shared store
             _variableBridge!.PublishVariables(_sessionManager!, context.Variables);
 
+            // 8. Record executed source and pre-warm IntelliSense cache
+            _projectContext?.AppendExecutedCode(code);
+            if (_projectContext is not null && _checkerManager is not null)
+            {
+                var (sourceText, _, options) = _projectContext.BuildDocument("");
+                _checkerManager.TriggerBackgroundCheck(VirtualFileName, sourceText, options);
+            }
+
             return outputs;
         }
         catch (OperationCanceledException)
@@ -178,24 +212,169 @@ public sealed class FSharpKernel : ILanguageKernel
         }
     }
 
-    // --- IntelliSense stubs (Phase 2) ---
+    // --- IntelliSense ---
 
-    public Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+    public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
     {
         ThrowIfDisposed();
-        return Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
+
+        if (!_initialized || _projectContext is null || _checkerManager is null)
+            return Array.Empty<Completion>();
+
+        try
+        {
+            var (sourceText, prefixLineCount, options) = _projectContext.BuildDocument(code);
+
+            var (line, column) = OffsetToLineColumn(code, cursorPosition);
+            // FCS uses 1-based lines
+            int adjustedLine = prefixLineCount + line + 1;
+
+            var result = await _checkerManager.ParseAndCheckAsync(VirtualFileName, sourceText, options)
+                .ConfigureAwait(false);
+            if (result is null) return Array.Empty<Completion>();
+
+            var (parseResults, checkResults) = result.Value;
+
+            // Get the line text at the adjusted position in the combined source
+            var sourceLines = sourceText.Split('\n');
+            var lineIndex = adjustedLine - 1; // 0-based index into source lines
+            if (lineIndex < 0 || lineIndex >= sourceLines.Length)
+                return Array.Empty<Completion>();
+            var lineText = sourceLines[lineIndex];
+
+            // Get partial name info for completion
+            var partialName = QuickParse.GetPartialLongNameEx(lineText, column - 1);
+
+            var declInfo = checkResults.GetDeclarationListInfo(
+                FSharpOption<FSharpParseFileResults>.Some(parseResults),
+                adjustedLine,
+                lineText,
+                partialName,
+                FSharpOption<FSharpFunc<Unit, FSharpList<AssemblySymbol>>>.None,
+                (FSharpOption<Tuple<global::FSharp.Compiler.Text.Position, FSharpOption<CompletionContext>?>>?)null);
+
+            var completions = new List<Completion>();
+            foreach (var item in declInfo.Items)
+            {
+                completions.Add(new Completion(
+                    DisplayText: item.NameInList,
+                    InsertText: item.NameInCode,
+                    Kind: GlyphMapper.MapGlyph(item.Glyph)));
+            }
+
+            return completions;
+        }
+        catch
+        {
+            return Array.Empty<Completion>();
+        }
     }
 
-    public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
+    public async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
     {
         ThrowIfDisposed();
-        return Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
+
+        if (!_initialized || _projectContext is null || _checkerManager is null)
+            return Array.Empty<Diagnostic>();
+
+        try
+        {
+            var (sourceText, prefixLineCount, options) = _projectContext.BuildDocument(code);
+            int cellLineCount = CountLines(code);
+
+            var result = await _checkerManager.ParseAndCheckAsync(VirtualFileName, sourceText, options)
+                .ConfigureAwait(false);
+            if (result is null) return Array.Empty<Diagnostic>();
+
+            var (parseResults, checkResults) = result.Value;
+
+            // Collect diagnostics from both parse and check results
+            var allDiagnostics = new List<FcsDiagnostic>();
+            allDiagnostics.AddRange(parseResults.Diagnostics);
+            allDiagnostics.AddRange(checkResults.Diagnostics);
+
+            var seen = new HashSet<(string Message, int StartLine, int StartColumn)>();
+            var diagnostics = new List<Diagnostic>();
+
+            foreach (var diag in allDiagnostics)
+            {
+                // Skip suppressed codes (incomplete-input noise)
+                if (SuppressedDiagnosticCodes.Contains(diag.ErrorNumber))
+                    continue;
+
+                var mapped = DiagnosticMapper.MapDiagnostic(diag, prefixLineCount, cellLineCount);
+                if (mapped is null) continue;
+
+                // Deduplicate by (message, startLine, startColumn)
+                var key = (mapped.Message, mapped.StartLine, mapped.StartColumn);
+                if (!seen.Add(key)) continue;
+
+                diagnostics.Add(mapped);
+            }
+
+            return diagnostics;
+        }
+        catch
+        {
+            return Array.Empty<Diagnostic>();
+        }
     }
 
-    public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
+    public async Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
     {
         ThrowIfDisposed();
-        return Task.FromResult<HoverInfo?>(null);
+
+        if (!_initialized || _projectContext is null || _checkerManager is null)
+            return null;
+
+        if (string.IsNullOrWhiteSpace(code) || cursorPosition < 0 || cursorPosition >= code.Length)
+            return null;
+
+        try
+        {
+            var (sourceText, prefixLineCount, options) = _projectContext.BuildDocument(code);
+
+            var (line, column) = OffsetToLineColumn(code, cursorPosition);
+            // FCS uses 1-based lines
+            int adjustedLine = prefixLineCount + line + 1;
+
+            var result = await _checkerManager.ParseAndCheckAsync(VirtualFileName, sourceText, options)
+                .ConfigureAwait(false);
+            if (result is null) return null;
+
+            var (_, checkResults) = result.Value;
+
+            // Get the line text at the adjusted position
+            var sourceLines = sourceText.Split('\n');
+            var lineIndex = adjustedLine - 1;
+            if (lineIndex < 0 || lineIndex >= sourceLines.Length) return null;
+            var lineText = sourceLines[lineIndex];
+
+            // Find the identifier at the cursor position
+            var identInfo = FindIdentifierAtPosition(lineText, column);
+            if (identInfo is null) return null;
+
+            var (names, colAtEnd) = identInfo.Value;
+
+            var fsharpNames = ListModule.OfArray(names);
+            var toolTip = checkResults.GetToolTip(
+                adjustedLine, colAtEnd, lineText, fsharpNames, FSharpTokenTag.Identifier,
+                FSharpOption<int>.None);
+
+            var content = FormatToolTip(toolTip);
+            if (string.IsNullOrWhiteSpace(content)) return null;
+
+            // Calculate cell-local range for the identifier
+            var identStart = FindIdentifierStart(lineText, column);
+            var identEnd = FindIdentifierEnd(lineText, column);
+            var range = (StartLine: line, StartColumn: identStart, EndLine: line, EndColumn: identEnd);
+
+            return new HoverInfo(content, Range: range);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public ValueTask DisposeAsync()
@@ -203,6 +382,11 @@ public sealed class FSharpKernel : ILanguageKernel
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
         _initialized = false;
+
+        _checkerManager?.Dispose();
+        _checkerManager = null;
+        _projectContext?.Reset();
+        _projectContext = null;
 
         _sessionManager?.Dispose();
         _sessionManager = null;
@@ -212,6 +396,170 @@ public sealed class FSharpKernel : ILanguageKernel
         _executionLock.Dispose();
 
         return ValueTask.CompletedTask;
+    }
+
+    // --- Private helpers ---
+
+    /// <summary>
+    /// Converts a character offset in text to a (line, column) pair, both 0-based.
+    /// </summary>
+    private static (int Line, int Column) OffsetToLineColumn(string text, int offset)
+    {
+        int line = 0;
+        int col = 0;
+        int clampedOffset = Math.Min(offset, text.Length);
+
+        for (int i = 0; i < clampedOffset; i++)
+        {
+            if (text[i] == '\n')
+            {
+                line++;
+                col = 0;
+            }
+            else
+            {
+                col++;
+            }
+        }
+
+        return (line, col);
+    }
+
+    /// <summary>
+    /// Counts the number of lines in a string (minimum 1).
+    /// </summary>
+    private static int CountLines(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 1;
+        int count = 1;
+        foreach (char c in text)
+        {
+            if (c == '\n') count++;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Finds the qualified identifier at a column position in a line of text.
+    /// Returns the name parts and the column at the end of the identifier.
+    /// </summary>
+    private static (string[] Names, int ColAtEnd)? FindIdentifierAtPosition(string lineText, int column)
+    {
+        if (string.IsNullOrEmpty(lineText) || column < 0 || column >= lineText.Length)
+            return null;
+
+        if (!IsIdentChar(lineText[column]))
+            return null;
+
+        // Find the end of the current identifier
+        int end = column;
+        while (end < lineText.Length && IsIdentChar(lineText[end]))
+            end++;
+
+        // Find the start of the (potentially qualified) identifier
+        int start = column;
+        while (start > 0)
+        {
+            char c = lineText[start - 1];
+            if (IsIdentChar(c) || c == '.')
+                start--;
+            else
+                break;
+        }
+
+        if (start == end) return null;
+
+        var text = lineText.Substring(start, end - start);
+        var parts = text.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return null;
+
+        return (parts, end - 1);
+    }
+
+    private static int FindIdentifierStart(string lineText, int column)
+    {
+        int start = column;
+        while (start > 0 && IsIdentChar(lineText[start - 1]))
+            start--;
+        return start;
+    }
+
+    private static int FindIdentifierEnd(string lineText, int column)
+    {
+        int end = column;
+        while (end < lineText.Length && IsIdentChar(lineText[end]))
+            end++;
+        return end;
+    }
+
+    private static bool IsIdentChar(char c) => char.IsLetterOrDigit(c) || c == '_' || c == '\'';
+
+    /// <summary>
+    /// Formats a <see cref="ToolTipText"/> into a plain-text string for hover display.
+    /// </summary>
+    private static string FormatToolTip(ToolTipText toolTip)
+    {
+        var parts = new List<string>();
+
+        foreach (var element in toolTip.Item)
+        {
+            if (element is ToolTipElement.Group group)
+            {
+                int overloadIndex = 0;
+                foreach (var data in group.elements)
+                {
+                    overloadIndex++;
+                    var mainDesc = string.Join("", data.MainDescription.Select(t => t.Text));
+                    if (!string.IsNullOrWhiteSpace(mainDesc))
+                    {
+                        if (group.elements.Length > 1)
+                            parts.Add($"({overloadIndex}/{group.elements.Length}) {mainDesc}");
+                        else
+                            parts.Add(mainDesc);
+                    }
+
+                    // Extract XML doc summary if available
+                    var xmlDoc = FormatXmlDoc(data.XmlDoc);
+                    if (!string.IsNullOrWhiteSpace(xmlDoc))
+                    {
+                        parts.Add(xmlDoc);
+                    }
+                }
+            }
+        }
+
+        return string.Join("\n", parts);
+    }
+
+    /// <summary>
+    /// Extracts a summary string from FSharpXmlDoc.
+    /// </summary>
+    private static string FormatXmlDoc(FSharpXmlDoc xmlDoc)
+    {
+        if (xmlDoc is FSharpXmlDoc.FromXmlText fromXml)
+        {
+            var xml = fromXml.Item.GetXmlText();
+            return ExtractXmlSummary(xml);
+        }
+        return "";
+    }
+
+    private static string ExtractXmlSummary(string xml)
+    {
+        try
+        {
+            var startTag = "<summary>";
+            var endTag = "</summary>";
+            var start = xml.IndexOf(startTag, StringComparison.Ordinal);
+            var end = xml.IndexOf(endTag, StringComparison.Ordinal);
+            if (start < 0 || end < 0) return "";
+            start += startTag.Length;
+            return xml.Substring(start, end - start).Trim();
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     private static CellOutput FormatException(Exception ex)

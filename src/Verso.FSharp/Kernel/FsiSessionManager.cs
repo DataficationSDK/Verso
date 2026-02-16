@@ -12,7 +12,14 @@ internal sealed class FsiSessionManager : IDisposable
     private FsiEvaluationSession? _session;
     private StringWriter? _fsiOut;
     private StringWriter? _fsiErr;
+    private string[]? _resolvedArgs;
     private bool _disposed;
+
+    /// <summary>
+    /// The resolved compiler arguments (flags + assembly references) used to initialize the session.
+    /// Available after <see cref="Initialize"/> has been called.
+    /// </summary>
+    public string[] ResolvedArgs => _resolvedArgs ?? Array.Empty<string>();
 
     /// <summary>
     /// Structured result from an FSI evaluation.
@@ -72,9 +79,11 @@ internal sealed class FsiSessionManager : IDisposable
             }
         }
 
+        _resolvedArgs = additionalArgs.ToArray();
+
         _session = FsiEvaluationSession.Create(
             fsiConfig,
-            additionalArgs.ToArray(),
+            _resolvedArgs,
             new StringReader(""),
             _fsiOut,
             _fsiErr,
