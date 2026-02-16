@@ -22,6 +22,7 @@ public sealed class Scaffold : IAsyncDisposable
     private readonly ExtensionHost? _extensionHost;
     private ThemeEngine? _themeEngine;
     private LayoutManager? _layoutManager;
+    private SettingsManager? _settingsManager;
     private readonly NotebookOperations _notebookOps;
     private bool _disposed;
 
@@ -79,6 +80,11 @@ public sealed class Scaffold : IAsyncDisposable
     public LayoutManager? LayoutManager => _layoutManager;
 
     /// <summary>
+    /// Gets the <see cref="SettingsManager"/> subsystem, or <c>null</c> if not initialized.
+    /// </summary>
+    public SettingsManager? SettingsManager => _settingsManager;
+
+    /// <summary>
     /// Gets the <see cref="INotebookOperations"/> implementation for this scaffold.
     /// </summary>
     public INotebookOperations NotebookOps => _notebookOps;
@@ -107,6 +113,9 @@ public sealed class Scaffold : IAsyncDisposable
 
         _themeEngine = new ThemeEngine(themes, _notebook.PreferredThemeId);
         _layoutManager = new LayoutManager(layouts, _notebook.ActiveLayoutId);
+
+        var settable = _extensionHost.GetSettableExtensions();
+        _settingsManager = new SettingsManager(settable);
     }
 
     // --- Cell CRUD ---

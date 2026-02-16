@@ -27,6 +27,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IToolbarAction> _toolbarActions = new();
     private readonly List<IMagicCommand> _magicCommands = new();
     private readonly List<INotebookPostProcessor> _postProcessors = new();
+    private readonly List<IExtensionSettings> _settableExtensions = new();
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
@@ -91,6 +92,11 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     public IReadOnlyList<INotebookPostProcessor> GetPostProcessors()
     {
         lock (_lock) { return _postProcessors.Where(p => IsEnabled(p)).ToList(); }
+    }
+
+    public IReadOnlyList<IExtensionSettings> GetSettableExtensions()
+    {
+        lock (_lock) { return _settableExtensions.Where(s => s is IExtension ext && IsEnabled(ext)).ToList(); }
     }
 
     // --- Enable / Disable ---
@@ -368,6 +374,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _toolbarActions.Clear();
             _magicCommands.Clear();
             _postProcessors.Clear();
+            _settableExtensions.Clear();
 
             foreach (var ctx in _loadContexts)
                 ctx.Unload();
@@ -406,6 +413,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _magicCommands.Add(magic);
         if (extension is INotebookPostProcessor postProcessor)
             _postProcessors.Add(postProcessor);
+        if (extension is IExtensionSettings settable)
+            _settableExtensions.Add(settable);
     }
 
     private static bool HasCapabilityInterface(IExtension extension)
@@ -435,6 +444,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         if (extension is IToolbarAction) caps.Add("ToolbarAction");
         if (extension is IMagicCommand) caps.Add("MagicCommand");
         if (extension is INotebookPostProcessor) caps.Add("NotebookPostProcessor");
+        if (extension is IExtensionSettings) caps.Add("ExtensionSettings");
         return caps;
     }
 

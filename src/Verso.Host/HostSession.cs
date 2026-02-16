@@ -83,6 +83,10 @@ public sealed class HostSession : IAsyncDisposable
                 MethodNames.ExtensionList => ExtensionHandler.HandleList(this),
                 MethodNames.ExtensionEnable => await ExtensionHandler.HandleEnableAsync(this, @params),
                 MethodNames.ExtensionDisable => await ExtensionHandler.HandleDisableAsync(this, @params),
+                MethodNames.SettingsGetDefinitions => SettingsHandler.HandleGetDefinitions(this),
+                MethodNames.SettingsGet => SettingsHandler.HandleGet(this, @params),
+                MethodNames.SettingsUpdate => await SettingsHandler.HandleUpdateAsync(this, @params),
+                MethodNames.SettingsReset => await SettingsHandler.HandleResetAsync(this, @params),
                 MethodNames.VariableList => VariableHandler.HandleList(this),
                 MethodNames.VariableInspect => await VariableHandler.HandleInspectAsync(this, @params),
                 _ => throw new InvalidOperationException($"Unknown method: {method}")

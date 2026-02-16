@@ -1,0 +1,155 @@
+@using Verso.Abstractions
+
+<div class="verso-sidebar-panel">
+    @if (Service?.Scaffold?.SettingsManager is { } manager)
+    {
+        var allDefinitions = manager.GetAllDefinitions();
+        @if (allDefinitions.Count == 0)
+        {
+            <div class="verso-settings-empty">
+                <p>No extensions with configurable settings are loaded.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var (extensionId, definitions) in allDefinitions)
+            {
+                var extId = extensionId;
+                var isOpen = _expandedExtensions.Contains(extId);
+                var extInfo = Service.ExtensionHost?.GetExtensionInfos()
+                    .FirstOrDefault(e => string.Equals(e.ExtensionId, extId, StringComparison.OrdinalIgnoreCase));
+                var displayName = extInfo?.Name ?? extId;
+
+                <div class="verso-settings-group">
+                    <button class="verso-settings-group-header" @onclick="() => ToggleExtension(extId)">
+                        <span class="verso-settings-group-chevron @(isOpen ? "verso-settings-group-chevron--open" : "")">&#9654;</span>
+                        <span class="verso-settings-group-label">@displayName</span>
+                        <span class="verso-settings-group-count">@definitions.Count</span>
+                    </button>
+                    @if (isOpen)
+                    {
+                        var grouped = definitions.OrderBy(d => d.Order).GroupBy(d => d.Category ?? "General");
+                        @foreach (var category in grouped)
+                        {
+                            <div class="verso-settings-category">
+                                <div class="verso-settings-category-label">@category.Key</div>
+                                @foreach (var def in category)
+                                {
+                                    var d = def;
+                                    var currentValue = GetCurrentValue(extId, d);
+                                    <div class="verso-settings-item">
+                                        <label class="verso-settings-label">@d.DisplayName</label>
+                                        <div class="verso-settings-description">@d.Description</div>
+                                        <div class="verso-settings-control">
+                                            @switch (d.SettingType)
+                                            {
+                                                case SettingType.Boolean:
+                                                    <input type="checkbox"
+                                                           checked="@(currentValue is true)"
+                                                           @onchange="e => HandleChange(extId, d.Name, e.Value)" />
+                                                    break;
+
+                                                case SettingType.Integer:
+                                                    <input type="number"
+                                                           value="@currentValue"
+                                                           step="1"
+                                                           min="@(d.Constraints?.MinValue)"
+                                                           max="@(d.Constraints?.MaxValue)"
+                                                           @onchange="e => HandleIntChange(extId, d.Name, e.Value)" />
+                                                    break;
+
+                                                case SettingType.Double:
+                                                    <input type="number"
+                                                           value="@currentValue"
+                                                           step="0.1"
+                                                           min="@(d.Constraints?.MinValue)"
+                                                           max="@(d.Constraints?.MaxValue)"
+                                                           @onchange="e => HandleDoubleChange(extId, d.Name, e.Value)" />
+                                                    break;
+
+                                                case SettingType.StringChoice:
+                                                    <select value="@currentValue"
+                                                            @onchange="e => HandleChange(extId, d.Name, e.Value)">
+                                                        @if (d.Constraints?.Choices is { } choices)
+                                                        {
+                                                            @foreach (var choice in choices)
+                                                            {
+                                                                <option value="@choice" selected="@(string.Equals(choice, currentValue?.ToString(), StringComparison.Ordinal))">@choice</option>
+                                                            }
+                                                        }
+                                                    </select>
+                                                    break;
+
+                                                default:
+                                                    <input type="text"
+                                                           value="@currentValue"
+                                                           maxlength="@(d.Constraints?.MaxLength)"
+                                                           @onchange="e => HandleChange(extId, d.Name, e.Value)" />
+                                                    break;
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <div class="verso-settings-empty">
+            <p>No notebook is open.</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public NotebookService Service { get; set; } = default!;
+
+    private readonly HashSet<string> _expandedExtensions = new();
+
+    private void ToggleExtension(string extensionId)
+    {
+        if (!_expandedExtensions.Remove(extensionId))
+            _expandedExtensions.Add(extensionId);
+    }
+
+    private object? GetCurrentValue(string extensionId, SettingDefinition definition)
+    {
+        var settable = Service.Scaffold?.SettingsManager?.GetAllDefinitions()
+            .FirstOrDefault(d => string.Equals(d.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase));
+
+        // Try to get the current value from the extension's settable interface
+        var ext = Service.ExtensionHost?.GetSettableExtensions()
+            .FirstOrDefault(e => e is Verso.Abstractions.IExtension ie &&
+                string.Equals(ie.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase));
+
+        if (ext is not null)
+        {
+            var values = ext.GetSettingValues();
+            if (values.TryGetValue(definition.Name, out var val))
+                return val;
+        }
+
+        return definition.DefaultValue;
+    }
+
+    private async Task HandleChange(string extensionId, string settingName, object? value)
+    {
+        await Service.UpdateSettingAsync(extensionId, settingName, value);
+    }
+
+    private async Task HandleIntChange(string extensionId, string settingName, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out var intVal))
+            await Service.UpdateSettingAsync(extensionId, settingName, intVal);
+    }
+
+    private async Task HandleDoubleChange(string extensionId, string settingName, object? value)
+    {
+        if (double.TryParse(value?.ToString(), out var dblVal))
+            await Service.UpdateSettingAsync(extensionId, settingName, dblVal);
+    }
+}

@@ -59,4 +59,9 @@ public sealed class NotebookModel
     /// Gets or sets named layout definitions that control how cells are arranged in the notebook UI.
     /// </summary>
     public Dictionary<string, object> Layouts { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets per-extension settings keyed by extension ID. Only overridden values (not defaults) are persisted.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, object?>> ExtensionSettings { get; set; } = new();
 }

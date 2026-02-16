@@ -54,6 +54,13 @@ public static class MethodNames
     public const string ExtensionEnable = "extension/enable";
     public const string ExtensionDisable = "extension/disable";
 
+    // Settings
+    public const string SettingsGetDefinitions = "settings/getDefinitions";
+    public const string SettingsGet = "settings/get";
+    public const string SettingsUpdate = "settings/update";
+    public const string SettingsReset = "settings/reset";
+    public const string SettingsChanged = "settings/changed";
+
     // Variable explorer
     public const string VariableList = "variable/list";
     public const string VariableInspect = "variable/inspect";

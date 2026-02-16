@@ -21,6 +21,7 @@ import {
   ExtensionListResult,
   ExtensionToggleParams,
   NotebookSetFilePathParams,
+  SettingsGetDefinitionsResult,
   VariableInspectParams,
   VariableInspectResult,
 } from "./host/protocol";
@@ -215,6 +216,39 @@ export async function activate(
         }
       }
     )
+  );
+
+  // Register settings command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("verso.openSettings", async () => {
+      try {
+        const result = await host!.sendRequest<SettingsGetDefinitionsResult>(
+          "settings/getDefinitions"
+        );
+
+        if (result.extensions.length === 0) {
+          vscode.window.showInformationMessage(
+            "No extensions with configurable settings are loaded."
+          );
+          return;
+        }
+
+        // Show a quick summary of available settings
+        const items = result.extensions.map((ext) => ({
+          label: ext.extensionName,
+          description: `${ext.definitions.length} setting(s)`,
+          detail: ext.extensionId,
+        }));
+
+        await vscode.window.showQuickPick(items, {
+          placeHolder: "Extension settings (read-only preview)",
+        });
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `Failed to load settings: ${err instanceof Error ? err.message : err}`
+        );
+      }
+    })
   );
 
   // Auto-refresh variables on cell execution completion

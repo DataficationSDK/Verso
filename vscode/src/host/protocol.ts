@@ -312,6 +312,65 @@ export interface ExtensionToggleParams {
   extensionId: string;
 }
 
+// --- Settings DTOs ---
+
+export interface SettingsGetDefinitionsResult {
+  extensions: ExtensionSettingsDto[];
+}
+
+export interface ExtensionSettingsDto {
+  extensionId: string;
+  extensionName: string;
+  definitions: SettingDefinitionDto[];
+  currentValues: Record<string, unknown>;
+}
+
+export interface SettingDefinitionDto {
+  name: string;
+  displayName: string;
+  description: string;
+  settingType: string;
+  defaultValue?: unknown;
+  category?: string;
+  constraints?: SettingConstraintsDto;
+  order: number;
+}
+
+export interface SettingConstraintsDto {
+  minValue?: number;
+  maxValue?: number;
+  pattern?: string;
+  choices?: string[];
+  maxLength?: number;
+  maxItems?: number;
+}
+
+export interface SettingsGetResult {
+  extensionId: string;
+  values: Record<string, unknown>;
+}
+
+export interface SettingsUpdateParams {
+  extensionId: string;
+  name: string;
+  value?: unknown;
+}
+
+export interface SettingsResetParams {
+  extensionId: string;
+  name: string;
+}
+
+export interface SettingsGetParams {
+  extensionId: string;
+}
+
+export interface SettingsChangedNotification {
+  extensionId: string;
+  name: string;
+  value?: unknown;
+}
+
 // --- Variable Explorer DTOs ---
 
 export interface VariableListResult {

@@ -86,7 +86,10 @@ public sealed class VersoSerializer : INotebookSerializer
                     : null,
                 Metadata = c.Metadata.Count > 0 ? SerializeMetadata(c.Metadata) : null
             }).ToList(),
-            Layouts = notebook.Layouts.Count > 0 ? SerializeLayouts(notebook.Layouts) : null
+            Layouts = notebook.Layouts.Count > 0 ? SerializeLayouts(notebook.Layouts) : null,
+            ExtensionSettings = notebook.ExtensionSettings.Count > 0
+                ? SerializeExtensionSettings(notebook.ExtensionSettings)
+                : null
         };
 
         var json = JsonSerializer.Serialize(doc, WriteOptions);
@@ -150,6 +153,11 @@ public sealed class VersoSerializer : INotebookSerializer
         if (doc.Layouts is not null)
         {
             notebook.Layouts = DeserializeLayouts(doc.Layouts);
+        }
+
+        if (doc.ExtensionSettings is not null)
+        {
+            notebook.ExtensionSettings = DeserializeExtensionSettings(doc.ExtensionSettings);
         }
 
         return Task.FromResult(notebook);
@@ -234,6 +242,41 @@ public sealed class VersoSerializer : INotebookSerializer
         return list;
     }
 
+    // --- Extension settings serialization helpers ---
+
+    private static Dictionary<string, Dictionary<string, JsonElement>>? SerializeExtensionSettings(
+        Dictionary<string, Dictionary<string, object?>> extensionSettings)
+    {
+        var result = new Dictionary<string, Dictionary<string, JsonElement>>();
+        foreach (var (extId, settings) in extensionSettings)
+        {
+            var serialized = new Dictionary<string, JsonElement>();
+            foreach (var (key, value) in settings)
+            {
+                serialized[key] = JsonSerializer.SerializeToElement(value, WriteOptions);
+            }
+            if (serialized.Count > 0)
+                result[extId] = serialized;
+        }
+        return result.Count > 0 ? result : null;
+    }
+
+    private static Dictionary<string, Dictionary<string, object?>> DeserializeExtensionSettings(
+        Dictionary<string, Dictionary<string, JsonElement>> elements)
+    {
+        var result = new Dictionary<string, Dictionary<string, object?>>();
+        foreach (var (extId, settings) in elements)
+        {
+            var deserialized = new Dictionary<string, object?>();
+            foreach (var (key, element) in settings)
+            {
+                deserialized[key] = element.ValueKind == JsonValueKind.Null ? null : ConvertJsonElement(element);
+            }
+            result[extId] = deserialized;
+        }
+        return result;
+    }
+
     // --- Internal DTOs ---
 
     private sealed class VersoDocument
@@ -242,6 +285,7 @@ public sealed class VersoSerializer : INotebookSerializer
         public VersoMetadata? Metadata { get; set; }
         public List<VersoCell>? Cells { get; set; }
         public Dictionary<string, JsonElement>? Layouts { get; set; }
+        public Dictionary<string, Dictionary<string, JsonElement>>? ExtensionSettings { get; set; }
     }
 
     private sealed class VersoMetadata

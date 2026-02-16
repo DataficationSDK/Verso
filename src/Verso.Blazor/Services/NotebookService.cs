@@ -39,6 +39,9 @@ public sealed class NotebookService : IAsyncDisposable
     /// <summary>Raised when variables in the store change.</summary>
     public event Action? OnVariablesChanged;
 
+    /// <summary>Raised when an extension setting changes.</summary>
+    public event Action? OnSettingsChanged;
+
     /// <summary>Open and deserialize a notebook file (.verso, .ipynb, etc.).</summary>
     public async Task OpenAsync(string filePath)
     {
@@ -60,6 +63,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
         await RestoreLayoutMetadataAsync();
+        await RestoreSettingsAsync();
         _filePath = filePath;
         SubscribeToEngineEvents();
 
@@ -84,6 +88,7 @@ public sealed class NotebookService : IAsyncDisposable
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
         await RestoreLayoutMetadataAsync();
+        await RestoreSettingsAsync();
         _filePath = null; // No on-disk path — opened from browser upload
         SubscribeToEngineEvents();
 
@@ -98,6 +103,10 @@ public sealed class NotebookService : IAsyncDisposable
         // Flush layout metadata (grid positions, etc.) into the notebook model
         if (_scaffold.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(_scaffold.Notebook);
+
+        // Flush extension settings into the notebook model
+        if (_scaffold.SettingsManager is { } sm)
+            await sm.SaveSettingsAsync(_scaffold.Notebook);
 
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
         var serializer = new VersoSerializer();
@@ -286,6 +295,13 @@ public sealed class NotebookService : IAsyncDisposable
         await _extensionHost.DisableExtensionAsync(extensionId);
     }
 
+    /// <summary>Update a single extension setting.</summary>
+    public async Task UpdateSettingAsync(string extensionId, string settingName, object? value)
+    {
+        if (_scaffold?.SettingsManager is null) return;
+        await _scaffold.SettingsManager.UpdateSettingAsync(extensionId, settingName, value);
+    }
+
     /// <summary>
     /// Restores saved layout metadata (e.g. dashboard grid positions) from the notebook model
     /// into the matching layout engines.
@@ -326,6 +342,17 @@ public sealed class NotebookService : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Restores persisted extension settings from the notebook model into matching extensions.
+    /// </summary>
+    private async Task RestoreSettingsAsync()
+    {
+        if (_scaffold?.SettingsManager is not { } sm) return;
+        if (_scaffold.Notebook.ExtensionSettings.Count == 0) return;
+
+        await sm.RestoreSettingsAsync(_scaffold.Notebook);
+    }
+
     private void SubscribeToEngineEvents()
     {
         if (_extensionHost is not null)
@@ -333,6 +360,9 @@ public sealed class NotebookService : IAsyncDisposable
 
         if (_scaffold?.Variables is VariableStore vs)
             vs.OnVariablesChanged += HandleVariablesChanged;
+
+        if (_scaffold?.SettingsManager is { } sm)
+            sm.OnSettingsChanged += HandleSettingsChanged;
     }
 
     private void UnsubscribeFromEngineEvents()
@@ -342,6 +372,9 @@ public sealed class NotebookService : IAsyncDisposable
 
         if (_scaffold?.Variables is VariableStore vs)
             vs.OnVariablesChanged -= HandleVariablesChanged;
+
+        if (_scaffold?.SettingsManager is { } sm)
+            sm.OnSettingsChanged -= HandleSettingsChanged;
     }
 
     private void HandleExtensionStatusChanged(string extensionId, ExtensionStatus status)
@@ -352,6 +385,11 @@ public sealed class NotebookService : IAsyncDisposable
     private void HandleVariablesChanged()
     {
         OnVariablesChanged?.Invoke();
+    }
+
+    private void HandleSettingsChanged(string extensionId, string settingName, object? value)
+    {
+        OnSettingsChanged?.Invoke();
     }
 
     private async Task DisposeCurrentAsync()
