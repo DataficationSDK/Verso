@@ -15,6 +15,46 @@
     <script src="js/dashboard-interop.js"></script>
     <script src="js/panel-resize-interop.js"></script>
     <script src="js/file-download-interop.js"></script>
-    <script src="_framework/blazor.web.js"></script>
+    <div id="verso-reconnect-overlay" style="display:none">
+        <div class="verso-reconnect-box">
+            <div class="verso-spinner verso-spinner--large"></div>
+            <h3 id="verso-reconnect-title">Reconnecting...</h3>
+            <p id="verso-reconnect-message">Your session is still active. Attempting to reconnect.</p>
+            <button id="verso-reconnect-reload" style="display:none" onclick="location.reload()">Reload page</button>
+        </div>
+    </div>
+
+    <script src="_framework/blazor.web.js" autostart="false"></script>
+    <script>
+        (() => {
+            const overlay = document.getElementById('verso-reconnect-overlay');
+            const title = document.getElementById('verso-reconnect-title');
+            const message = document.getElementById('verso-reconnect-message');
+            const reloadBtn = document.getElementById('verso-reconnect-reload');
+
+            Blazor.start({
+                circuit: {
+                    reconnectionOptions: {
+                        maxRetries: 360,
+                        retryIntervalMilliseconds: (previousAttempts, maxRetries) =>
+                            previousAttempts < 10 ? 1000
+                            : previousAttempts < 30 ? 5000
+                            : 10000
+                    },
+                    reconnectionHandler: {
+                        onConnectionDown(options, error) {
+                            overlay.style.display = 'flex';
+                            title.textContent = 'Reconnecting...';
+                            message.textContent = 'Your session is still active. Attempting to reconnect.';
+                            reloadBtn.style.display = 'none';
+                        },
+                        onConnectionUp() {
+                            overlay.style.display = 'none';
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

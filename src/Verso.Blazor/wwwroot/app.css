@@ -194,8 +194,6 @@ html, body {
 /* === Cell List === */
 
 .verso-cell-list {
-    flex: 1;
-    overflow-y: auto;
     padding: var(--verso-content-margin-vertical, 16px) var(--verso-content-margin-horizontal, 24px);
     max-width: 960px;
     margin: 0 auto;
@@ -1371,6 +1369,65 @@ html, body {
     border: none;
     border-top: 1px solid var(--verso-border-default, #E0E0E0);
     margin: 16px 0;
+}
+
+/* === Reconnect Overlay === */
+
+#verso-reconnect-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+}
+
+.verso-reconnect-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 48px;
+    background: var(--verso-editor-background, #FFFFFF);
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.verso-reconnect-box h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-reconnect-box p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-spinner--large {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+}
+
+#verso-reconnect-reload {
+    padding: 8px 20px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#verso-reconnect-reload:hover {
+    background: var(--verso-accent-secondary, #005A9E);
 }
 
 /* === Responsive === */

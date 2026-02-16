@@ -80,7 +80,7 @@
         var previewService = new VariablePreviewService(Service.ExtensionHost);
         var variables = Service.Scaffold.Variables.GetAll();
 
-        _entries = variables.Select(v => new VariableExplorerEntry(
+        _entries = variables.Where(v => !v.Name.StartsWith("__")).Select(v => new VariableExplorerEntry(
             v.Name,
             v.Type.Name,
             previewService.GetPreview(v.Value),
