@@ -53,6 +53,7 @@ public sealed class HostSession : IAsyncDisposable
             {
                 MethodNames.HostShutdown => HandleShutdown(),
                 MethodNames.NotebookOpen => await NotebookHandler.HandleOpenAsync(this, @params),
+                MethodNames.NotebookSetFilePath => NotebookHandler.HandleSetFilePath(this, @params),
                 MethodNames.NotebookSave => await NotebookHandler.HandleSaveAsync(this),
                 MethodNames.NotebookGetLanguages => NotebookHandler.HandleGetLanguages(this),
                 MethodNames.NotebookGetToolbarActions => NotebookHandler.HandleGetToolbarActions(this),

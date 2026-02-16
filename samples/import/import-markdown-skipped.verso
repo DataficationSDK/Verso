@@ -1,0 +1,28 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Import Markdown Skip Test",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "10000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Import Markdown Skip Test\n\nThis notebook imports `markdown-heavy.verso`, which contains mostly markdown cells and only one code cell. The import should skip all markdown cells and execute only the single code cell."
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!import ./markdown-heavy.verso"
+    },
+    {
+      "id": "10000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Verify the single code cell from markdown-heavy.verso was executed\nConsole.WriteLine($\"Magic number is: {magicNumber}\");"
+    }
+  ]
+}

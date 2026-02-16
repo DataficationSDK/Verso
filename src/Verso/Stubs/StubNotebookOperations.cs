@@ -17,6 +17,8 @@ public sealed class StubNotebookOperations : INotebookOperations
         => Task.FromResult(Guid.NewGuid().ToString());
     public Task RemoveCellAsync(Guid cellId) => Task.CompletedTask;
     public Task MoveCellAsync(Guid cellId, int newIndex) => Task.CompletedTask;
+    public Task ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
+        => Task.CompletedTask;
     public string? ActiveLayoutId => null;
     public void SetActiveLayout(string layoutId) { }
     public string? ActiveThemeId { get; set; }

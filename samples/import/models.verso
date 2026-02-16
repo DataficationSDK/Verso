@@ -1,0 +1,22 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Shared Models",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "c0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Shared Models\n\nRecord types and seed data used by other notebooks."
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "record Product(string Name, string Category, decimal Price, int Stock);\n\nvar catalog = new List<Product>\n{\n    new(\"Keyboard\",    \"Electronics\", 79.99m,  150),\n    new(\"Mouse\",       \"Electronics\", 39.99m,  300),\n    new(\"Monitor\",     \"Electronics\", 349.99m,  45),\n    new(\"Desk Lamp\",   \"Office\",      29.99m, 200),\n    new(\"Notebook\",    \"Office\",       5.99m, 500),\n    new(\"Headphones\",  \"Electronics\", 149.99m,  80),\n    new(\"Pen Set\",     \"Office\",      12.99m, 350),\n    new(\"Webcam\",      \"Electronics\",  69.99m, 120)\n};\n\nConsole.WriteLine($\"Catalog loaded: {catalog.Count} products\");"
+    }
+  ]
+}

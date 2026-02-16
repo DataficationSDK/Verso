@@ -1,0 +1,28 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Import Error Test - Unsupported Format",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "f0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Import Error Test - Unsupported Format\n\nThis notebook tests the error case when `#!import` references a file with an unsupported extension (.dib). Expected: a \"No serializer\" error."
+    },
+    {
+      "id": "f0000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!import ./somefile.dib"
+    },
+    {
+      "id": "f0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Execution should continue after the unsupported format error\nConsole.WriteLine(\"Execution continues after unsupported format error.\");"
+    }
+  ]
+}

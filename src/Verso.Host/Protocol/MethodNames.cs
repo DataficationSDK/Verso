@@ -12,6 +12,7 @@ public static class MethodNames
     public const string NotebookGetLanguages = "notebook/getLanguages";
     public const string NotebookGetToolbarActions = "notebook/getToolbarActions";
     public const string NotebookGetTheme = "notebook/getTheme";
+    public const string NotebookSetFilePath = "notebook/setFilePath";
 
     // Cell operations
     public const string CellAdd = "cell/add";

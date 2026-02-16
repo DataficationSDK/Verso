@@ -15,6 +15,11 @@ public sealed class NotebookOpenResult
     public string? DefaultKernel { get; set; }
 }
 
+public sealed class NotebookSetFilePathParams
+{
+    public string? FilePath { get; set; }
+}
+
 public sealed class NotebookSaveResult
 {
     public string Content { get; set; } = "";

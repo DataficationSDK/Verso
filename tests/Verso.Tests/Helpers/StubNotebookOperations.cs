@@ -16,6 +16,7 @@ public sealed class StubNotebookOperations : INotebookOperations
     public List<(int Index, string Type, string? Language)> InsertedCells { get; } = new();
     public List<Guid> RemovedCellIds { get; } = new();
     public List<(Guid CellId, int NewIndex)> MovedCells { get; } = new();
+    public List<(string Code, string? Language)> ExecutedCodeCalls { get; } = new();
 
     public Task ExecuteCellAsync(Guid cellId)
     {
@@ -68,6 +69,12 @@ public sealed class StubNotebookOperations : INotebookOperations
     public Task MoveCellAsync(Guid cellId, int newIndex)
     {
         MovedCells.Add((cellId, newIndex));
+        return Task.CompletedTask;
+    }
+
+    public Task ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
+    {
+        ExecutedCodeCalls.Add((code, language));
         return Task.CompletedTask;
     }
 

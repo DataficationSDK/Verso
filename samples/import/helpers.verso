@@ -1,0 +1,28 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Shared Helpers",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "a0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Shared Helpers\n\nThis notebook defines utility functions and data intended to be imported by other notebooks via `#!import`."
+    },
+    {
+      "id": "a0000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Utility: format a number with thousand separators\nstring FormatNumber(double value) => value.ToString(\"N0\");\n\n// Utility: simple statistical helpers\ndouble Mean(IEnumerable<double> values) => values.Average();\ndouble Median(IEnumerable<double> values)\n{\n    var sorted = values.OrderBy(v => v).ToList();\n    int mid = sorted.Count / 2;\n    return sorted.Count % 2 == 0\n        ? (sorted[mid - 1] + sorted[mid]) / 2.0\n        : sorted[mid];\n}\n\nConsole.WriteLine(\"Helpers loaded: FormatNumber, Mean, Median\");"
+    },
+    {
+      "id": "a0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Shared data: sample temperatures (Celsius) for a week\nvar temperatures = new List<double> { 18.5, 22.1, 19.8, 25.3, 23.7, 20.4, 17.9 };\nvar dayNames = new[] { \"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\" };\n\nConsole.WriteLine($\"Temperature data loaded: {temperatures.Count} days\");"
+    }
+  ]
+}

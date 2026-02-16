@@ -29,10 +29,10 @@ public sealed class Scaffold : IAsyncDisposable
 
     public Scaffold(NotebookModel notebook) : this(notebook, extensionHost: null) { }
 
-    public Scaffold(NotebookModel notebook, ExtensionHost? extensionHost)
+    public Scaffold(NotebookModel notebook, ExtensionHost? extensionHost, string? filePath = null)
     {
         _notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));
-        _metadata = new NotebookMetadataContext(_notebook);
+        _metadata = new NotebookMetadataContext(_notebook, filePath);
         _extensionHost = extensionHost;
         _stubExtensionHost = new StubExtensionHostContext(() => _kernels.Values.ToList());
         _notebookOps = new NotebookOperations(this);
@@ -82,6 +82,15 @@ public sealed class Scaffold : IAsyncDisposable
     /// Gets the <see cref="INotebookOperations"/> implementation for this scaffold.
     /// </summary>
     public INotebookOperations NotebookOps => _notebookOps;
+
+    /// <summary>
+    /// Updates the notebook file path used for resolving relative paths (e.g. in <c>#!import</c>).
+    /// This is called after construction when the file path is not available at open time.
+    /// </summary>
+    public void SetFilePath(string? filePath)
+    {
+        _metadata.FilePath = filePath;
+    }
 
     // --- Subsystem initialization ---
 
@@ -272,6 +281,18 @@ public sealed class Scaffold : IAsyncDisposable
             results.Add(await ExecuteCellAsync(id, ct).ConfigureAwait(false));
         }
         return results;
+    }
+
+    public async Task<ExecutionResult> ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
+    {
+        var transientCell = new CellModel
+        {
+            Type = "code",
+            Language = language ?? _notebook.DefaultKernelId,
+            Source = code
+        };
+        var pipeline = BuildPipeline();
+        return await pipeline.ExecuteAsync(transientCell, ct).ConfigureAwait(false);
     }
 
     // --- Lifecycle ---

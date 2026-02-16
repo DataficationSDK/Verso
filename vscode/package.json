@@ -27,6 +27,9 @@
         "selector": [
           {
             "filenamePattern": "*.verso"
+          },
+          {
+            "filenamePattern": "*.ipynb"
           }
         ]
       }

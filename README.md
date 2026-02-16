@@ -59,7 +59,21 @@ Go beyond code and markdown. Define domain-specific cell types with their own re
 
 ### Magic Commands
 
-`#!time`, `#!nuget`, `#!restart`, and `#!about` ship built in. Add your own through `IMagicCommand`. Magic commands can suppress normal code execution or augment it, and they receive full context including the variable store and extension host.
+`#!time`, `#!nuget`, `#!restart`, `#!about`, and `#!import` ship built in. Add your own through `IMagicCommand`. Magic commands can suppress normal code execution or augment it, and they receive full context including the variable store and extension host.
+
+### Notebook Import (`#!import`)
+
+Import and execute code from another notebook:
+
+    #!import ./helpers/setup.verso
+    #!import ../shared/utilities.ipynb
+    #!import /absolute/path/to/notebook.verso
+
+Reads the target notebook, deserializes it (.verso or .ipynb), and executes all code cells
+in the current kernel session. Variables, functions, and state become available in subsequent
+cells. Markdown and raw cells are skipped. Paths resolve relative to the current notebook's
+directory. Polyglot Notebooks `#!import` syntax is compatible — existing .ipynb files with
+`#!import` directives work automatically.
 
 ### .verso File Format
 
@@ -172,7 +186,7 @@ What ships out of the box:
 | **Data Formatters** | Primitives, Collections (HTML tables, up to 100 rows), HTML (`ToHtml()`), Images (PNG/JPEG/GIF/BMP/WebP), SVG, Exceptions (structured with inner exception support) |
 | **Themes** | Verso Light, Verso Dark |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid with drag handles and bin-packing) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!restart`, `#!about` |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!restart`, `#!about`, `#!import` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart Kernel, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Serializers** | `.verso` native (JSON, pretty-printed, camelCase), `.ipynb` import (nbformat v4+) |
 

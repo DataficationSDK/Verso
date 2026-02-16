@@ -87,6 +87,11 @@ internal sealed class NotebookOperations : INotebookOperations
         return Task.CompletedTask;
     }
 
+    public async Task ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
+    {
+        await _scaffold.ExecuteCodeAsync(code, language, ct).ConfigureAwait(false);
+    }
+
     public Task MoveCellAsync(Guid cellId, int newIndex)
     {
         var capabilities = _scaffold.LayoutCapabilities;

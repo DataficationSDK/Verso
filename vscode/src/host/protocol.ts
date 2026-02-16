@@ -32,6 +32,10 @@ export interface NotebookOpenParams {
   content: string;
 }
 
+export interface NotebookSetFilePathParams {
+  filePath: string;
+}
+
 export interface NotebookOpenResult {
   title?: string;
   cells: CellDto[];

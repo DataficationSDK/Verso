@@ -1,0 +1,34 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Chained Import Test",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "d0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Chained Import Test\n\nThis notebook imports two separate notebooks — `helpers.verso` and `models.verso` — then combines their definitions in a single analysis. This tests that multiple `#!import` commands compose correctly."
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!import ./helpers.verso"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!import ./models.verso"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Use FormatNumber from helpers.verso with data from models.verso\nvar totalValue = catalog.Sum(p => p.Price * p.Stock);\nConsole.WriteLine($\"Total catalog value: ${FormatNumber((double)totalValue)}\");\n\n// Use Mean from helpers.verso on prices from models.verso\nvar avgPrice = Mean(catalog.Select(p => (double)p.Price));\nConsole.WriteLine($\"Average price: ${avgPrice:F2}\");\n\n// Group by category\nvar byCategory = catalog.GroupBy(p => p.Category);\nforeach (var group in byCategory)\n{\n    var catTotal = group.Sum(p => p.Price * p.Stock);\n    Console.WriteLine($\"{group.Key}: {group.Count()} products, ${FormatNumber((double)catTotal)} value\");\n}"
+    }
+  ]
+}

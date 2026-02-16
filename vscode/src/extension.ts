@@ -20,6 +20,7 @@ import { applyEngineTheme } from "./theme/themeMapper";
 import {
   ExtensionListResult,
   ExtensionToggleParams,
+  NotebookSetFilePathParams,
   VariableInspectParams,
   VariableInspectResult,
 } from "./host/protocol";
@@ -46,6 +47,26 @@ export async function activate(
   context.subscriptions.push(
     vscode.workspace.registerNotebookSerializer("verso-notebook", serializer, {
       transientOutputs: false,
+    })
+  );
+
+  // Send the notebook file path to the host after deserialization completes.
+  // The NotebookSerializer API does not provide the URI during deserializeNotebook,
+  // so we send it as a follow-up once the document is available.
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenNotebookDocument(async (doc) => {
+      if (doc.notebookType !== "verso-notebook") {
+        return;
+      }
+      if (doc.uri.scheme === "file") {
+        try {
+          await host!.sendRequest("notebook/setFilePath", {
+            filePath: doc.uri.fsPath,
+          } satisfies NotebookSetFilePathParams);
+        } catch {
+          // Host may not be running yet — ignore
+        }
+      }
     })
   );
 

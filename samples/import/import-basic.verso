@@ -1,0 +1,34 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Basic Import Test",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "b0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Basic Import Test\n\nThis notebook tests `#!import` by importing shared helpers from `helpers.verso` using a relative path, then using the imported functions and data."
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!import ./helpers.verso"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Use the imported FormatNumber function\nConsole.WriteLine($\"Formatted: {FormatNumber(1234567.89)}\");\n\n// Use the imported Mean and Median functions with the imported temperature data\nConsole.WriteLine($\"Mean temperature: {Mean(temperatures):F1}\u00B0C\");\nConsole.WriteLine($\"Median temperature: {Median(temperatures):F1}\u00B0C\");"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Use the imported dayNames and temperatures together\nfor (int i = 0; i < dayNames.Length; i++)\n{\n    Console.WriteLine($\"{dayNames[i]}: {temperatures[i]:F1}\u00B0C\");\n}"
+    }
+  ]
+}

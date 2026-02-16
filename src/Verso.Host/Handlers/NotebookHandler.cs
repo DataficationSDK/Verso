@@ -24,12 +24,18 @@ public static class NotebookHandler
         }
         else
         {
-            // Select serializer based on file path hint, falling back to VersoSerializer
+            // Select serializer based on file path hint, content sniffing, or default to VersoSerializer
             INotebookSerializer serializer = new VersoSerializer();
             if (!string.IsNullOrEmpty(p.FilePath))
             {
                 serializer = extensionHost.GetSerializers()
                     .FirstOrDefault(s => s.CanImport(p.FilePath))
+                    ?? serializer;
+            }
+            else if (LooksLikeJupyterNotebook(p.Content))
+            {
+                serializer = extensionHost.GetSerializers()
+                    .FirstOrDefault(s => s.CanImport("notebook.ipynb"))
                     ?? serializer;
             }
 
@@ -43,7 +49,7 @@ public static class NotebookHandler
                 notebook = await pp.PostDeserializeAsync(notebook, p.FilePath);
         }
 
-        var scaffold = new Scaffold(notebook, extensionHost);
+        var scaffold = new Scaffold(notebook, extensionHost, p.FilePath);
         scaffold.InitializeSubsystems();
 
         // Diagnostic: log loaded extensions to stderr (captured by VS Code extension host)
@@ -61,6 +67,16 @@ public static class NotebookHandler
             DefaultKernel = notebook.DefaultKernelId,
             Cells = scaffold.Cells.Select(MapCell).ToList()
         };
+    }
+
+    public static object? HandleSetFilePath(HostSession session, JsonElement? @params)
+    {
+        session.EnsureSession();
+        var p = @params?.Deserialize<NotebookSetFilePathParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for notebook/setFilePath");
+
+        session.Scaffold!.SetFilePath(p.FilePath);
+        return null;
     }
 
     public static async Task<NotebookSaveResult> HandleSaveAsync(HostSession session)
@@ -158,5 +174,25 @@ public static class NotebookHandler
             ErrorName = output.ErrorName,
             ErrorStackTrace = output.ErrorStackTrace
         };
+    }
+
+    /// <summary>
+    /// Quick content sniff to detect Jupyter .ipynb format when no file path is available.
+    /// Checks for the <c>"nbformat"</c> top-level key which is present in all valid ipynb files.
+    /// </summary>
+    private static bool LooksLikeJupyterNotebook(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            return doc.RootElement.TryGetProperty("nbformat", out _);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

@@ -1,0 +1,28 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Import Error Test - Missing File",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "e0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Import Error Test - Missing File\n\nThis notebook tests the error case when `#!import` references a file that does not exist. Expected: an error output with \"File not found\"."
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!import ./does-not-exist.verso"
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// This cell should still execute normally after the import error\nConsole.WriteLine(\"Execution continues after failed import.\");"
+    }
+  ]
+}

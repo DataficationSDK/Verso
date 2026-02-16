@@ -56,7 +56,7 @@ public sealed class NotebookService : IAsyncDisposable
 
         var notebook = await serializer.DeserializeAsync(content);
 
-        _scaffold = new Scaffold(notebook, _extensionHost);
+        _scaffold = new Scaffold(notebook, _extensionHost, filePath);
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
         await RestoreLayoutMetadataAsync();

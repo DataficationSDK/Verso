@@ -53,6 +53,12 @@ public interface INotebookOperations
     Task MoveCellAsync(Guid cellId, int newIndex);
 
     /// <summary>
+    /// Executes arbitrary code in the specified language kernel without adding a visible cell.
+    /// Variables and state persist in the kernel session and variable store.
+    /// </summary>
+    Task ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default);
+
+    /// <summary>
     /// Gets the identifier of the currently active layout.
     /// </summary>
     string? ActiveLayoutId { get; }

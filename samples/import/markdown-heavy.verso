@@ -1,0 +1,32 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Markdown Heavy Notebook",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "csharp"
+  },
+  "cells": [
+    {
+      "id": "20000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Section One\n\nThis is documentation that should be skipped during import."
+    },
+    {
+      "id": "20000001-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## Section Two\n\nMore documentation that should be skipped."
+    },
+    {
+      "id": "20000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "var magicNumber = 42;\nConsole.WriteLine($\"Magic number defined: {magicNumber}\");"
+    },
+    {
+      "id": "20000001-0001-0001-0001-000000000004",
+      "type": "markdown",
+      "source": "## Section Three\n\nFinal documentation block, also skipped."
+    }
+  ]
+}
