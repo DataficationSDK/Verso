@@ -570,13 +570,15 @@
         return Task.CompletedTask;
     }
 
-    private Task HandleActionExecuted(string actionId)
+    private async Task HandleActionExecuted(string actionId)
     {
         if (string.Equals(actionId, "verso.action.run-all", StringComparison.OrdinalIgnoreCase))
             _selectedCellId = null;
 
+        if (string.Equals(actionId, "verso.action.restart-kernel", StringComparison.OrdinalIgnoreCase))
+            await ShowStatusAsync("Kernel restarted");
+
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
     private Task HandleError(string message)

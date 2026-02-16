@@ -20,7 +20,7 @@ public sealed class CSharpKernel : ILanguageKernel
         RegexOptions.Compiled | RegexOptions.Multiline);
 
     private readonly CSharpKernelOptions _options;
-    private readonly SemaphoreSlim _executionLock = new(1, 1);
+    private SemaphoreSlim _executionLock = new(1, 1);
     private ScriptStateManager? _stateManager;
     private RoslynWorkspaceManager? _workspaceManager;
     private ScriptGlobals? _globals;
@@ -55,6 +55,9 @@ public sealed class CSharpKernel : ILanguageKernel
     {
         if (_initialized) return Task.CompletedTask;
 
+        // Support re-initialization after disposal (kernel restart)
+        _disposed = false;
+
         var imports = _options.DefaultImports ?? CSharpKernelOptions.StandardImports;
         var references = BuildDefaultReferences();
 
@@ -64,6 +67,8 @@ public sealed class CSharpKernel : ILanguageKernel
 
         _stateManager = new ScriptStateManager(scriptOptions);
         _workspaceManager = new RoslynWorkspaceManager(imports, references.Select(r => (MetadataReference)r));
+        _executionLock = new SemaphoreSlim(1, 1);
+        _globals = null;
         _initialized = true;
 
         return Task.CompletedTask;
@@ -221,11 +226,15 @@ public sealed class CSharpKernel : ILanguageKernel
     {
         if (_disposed) return;
         _disposed = true;
+        _initialized = false;
 
         if (_stateManager is not null)
             await _stateManager.DisposeAsync().ConfigureAwait(false);
 
+        _stateManager = null;
         _workspaceManager?.Dispose();
+        _workspaceManager = null;
+        _globals = null;
         _executionLock.Dispose();
     }
 
