@@ -73,6 +73,15 @@ public sealed class NotebookService : IAsyncDisposable
     /// <summary>Open a notebook from in-memory content (e.g. from a file browser upload).</summary>
     public async Task OpenFromContentAsync(string fileName, string content)
     {
+        // Blazor Server runs locally — try to find the actual file on disk so that
+        // relative imports (e.g. #!import ./helpers.verso) resolve correctly.
+        var resolvedPath = await TryResolveFilePathAsync(fileName, content);
+        if (resolvedPath is not null)
+        {
+            await OpenAsync(resolvedPath);
+            return;
+        }
+
         await DisposeCurrentAsync();
 
         _extensionHost = new ExtensionHost();
@@ -93,6 +102,55 @@ public sealed class NotebookService : IAsyncDisposable
         SubscribeToEngineEvents();
 
         OnNotebookChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Searches the local filesystem for a file matching the given name and content.
+    /// Starts from the last-opened directory (if any), then falls back to CWD.
+    /// Returns the full path if found, or null.
+    /// </summary>
+    private async Task<string?> TryResolveFilePathAsync(string fileName, string content)
+    {
+        var searchRoots = new List<string>();
+
+        // Prefer the directory of the last-opened file (most likely location)
+        if (_filePath is not null)
+        {
+            var lastDir = Path.GetDirectoryName(_filePath);
+            if (lastDir is not null && Directory.Exists(lastDir))
+                searchRoots.Add(lastDir);
+        }
+
+        // Fall back to the current working directory
+        var cwd = Directory.GetCurrentDirectory();
+        if (!searchRoots.Contains(cwd, StringComparer.Ordinal))
+            searchRoots.Add(cwd);
+
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            MaxRecursionDepth = 5,
+            IgnoreInaccessible = true
+        };
+
+        foreach (var root in searchRoots)
+        {
+            foreach (var candidate in Directory.EnumerateFiles(root, fileName, options))
+            {
+                try
+                {
+                    var diskContent = await File.ReadAllTextAsync(candidate);
+                    if (string.Equals(diskContent, content, StringComparison.Ordinal))
+                        return Path.GetFullPath(candidate);
+                }
+                catch (IOException)
+                {
+                    // File locked or inaccessible — skip
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Serialize current notebook to a .verso file.</summary>
