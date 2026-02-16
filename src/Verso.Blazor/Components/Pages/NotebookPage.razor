@@ -74,7 +74,8 @@
                                       OnSelect="HandleSelectCell"
                                       OnMoveUp="HandleMoveUp"
                                       OnMoveDown="HandleMoveDown"
-                                      OnSourceChanged="HandleSourceChanged" />
+                                      OnSourceChanged="HandleSourceChanged"
+                                      OnCellAction="HandleCellAction" />
                             </div>
 
                             @if (index < cells.Count - 1)
@@ -402,10 +403,141 @@
         return Task.CompletedTask;
     }
 
-    private void HandleKeyDown(KeyboardEventArgs e)
+    private async Task HandleCellAction((Guid CellId, string Action) args)
     {
+        var (cellId, action) = args;
+        switch (action)
+        {
+            case "run-and-stay":
+                await HandleRunCell(cellId);
+                break;
+            case "run-and-select-below":
+                await HandleRunCell(cellId);
+                SelectNextCell(cellId, addIfLast: true);
+                break;
+            case "run-and-insert-below":
+                await HandleRunCell(cellId);
+                InsertAndSelectBelow(cellId);
+                break;
+            case "escape":
+                _selectedCellId = cellId;
+                break;
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        // Ctrl+Alt+Enter → run all (works with or without selection)
+        if (e.Key == "Enter" && e.CtrlKey && e.AltKey)
+        {
+            await HandleRunAll();
+            return;
+        }
+
         if (e.Key == "Escape")
+        {
             _selectedCellId = null;
+            return;
+        }
+
+        // All remaining shortcuts require a selected cell
+        if (_selectedCellId is not { } selectedId) return;
+
+        switch (e.Key)
+        {
+            case "ArrowUp" when e.AltKey:
+                await HandleMoveUp(selectedId);
+                break;
+            case "ArrowDown" when e.AltKey:
+                await HandleMoveDown(selectedId);
+                break;
+            case "ArrowUp":
+                SelectPreviousCell(selectedId);
+                break;
+            case "ArrowDown":
+                SelectNextCell(selectedId);
+                break;
+            case "Enter" when e.ShiftKey:
+                await HandleRunCell(selectedId);
+                SelectNextCell(selectedId, addIfLast: true);
+                break;
+            case "Enter" when e.CtrlKey:
+                await HandleRunCell(selectedId);
+                break;
+            case "Enter" when e.AltKey:
+                await HandleRunCell(selectedId);
+                InsertAndSelectBelow(selectedId);
+                break;
+            case "Enter":
+                await FocusSelectedEditor();
+                break;
+        }
+    }
+
+    private async Task HandleRunAll()
+    {
+        var cells = Service.Scaffold?.Cells;
+        if (cells is null) return;
+
+        foreach (var cell in cells.ToList())
+        {
+            if (cell.Type == "code")
+                await HandleRunCell(cell.Id);
+        }
+    }
+
+    private void SelectNextCell(Guid currentId, bool addIfLast = false)
+    {
+        var cells = Service.Scaffold?.Cells;
+        if (cells is null) return;
+        var cellList = cells.ToList();
+        var index = cellList.FindIndex(c => c.Id == currentId);
+        if (index < 0) return;
+
+        if (index < cellList.Count - 1)
+        {
+            _selectedCellId = cellList[index + 1].Id;
+        }
+        else if (addIfLast)
+        {
+            var newCell = Service.AddCell("code", "csharp");
+            _selectedCellId = newCell.Id;
+        }
+    }
+
+    private void SelectPreviousCell(Guid currentId)
+    {
+        var cells = Service.Scaffold?.Cells;
+        if (cells is null) return;
+        var cellList = cells.ToList();
+        var index = cellList.FindIndex(c => c.Id == currentId);
+        if (index > 0)
+            _selectedCellId = cellList[index - 1].Id;
+    }
+
+    private void InsertAndSelectBelow(Guid currentId)
+    {
+        var cells = Service.Scaffold?.Cells;
+        if (cells is null) return;
+        var cellList = cells.ToList();
+        var index = cellList.FindIndex(c => c.Id == currentId);
+        if (index < 0) return;
+
+        var newCell = Service.InsertCell(index + 1, "code", "csharp");
+        _selectedCellId = newCell.Id;
+    }
+
+    private async Task FocusSelectedEditor()
+    {
+        if (_selectedCellId is null) return;
+        try
+        {
+            // Find the Monaco editor within the selected cell's container
+            await JS.InvokeVoidAsync("versoMonaco.focusByContainer",
+                $".verso-cell--selected .verso-cell-editor");
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     private void HandleCellListClick()

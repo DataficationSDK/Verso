@@ -51,6 +51,7 @@
                 <MonacoEditor Value="@CellData.Source"
                               Language="@EditorLanguage"
                               OnValueChanged="HandleSourceChanged"
+                              OnEditorAction="HandleEditorAction"
                               OnGetHoverInfo="HandleGetHoverInfo"
                               OnGetCompletions="HandleGetCompletions" />
             </div>
@@ -103,6 +104,7 @@
     [Parameter] public EventCallback<Guid> OnMoveUp { get; set; }
     [Parameter] public EventCallback<Guid> OnMoveDown { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string Action)> OnCellAction { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
 
     private List<IToolbarAction> _enabledCellActions = new();
@@ -164,6 +166,11 @@
             JS);
 
         await action.ExecuteAsync(context);
+    }
+
+    private async Task HandleEditorAction(string action)
+    {
+        await OnCellAction.InvokeAsync((CellData.Id, action));
     }
 
     private async Task HandleSourceChanged(string newSource)

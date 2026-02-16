@@ -183,6 +183,13 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "verso.runAll",
+        "key": "ctrl+alt+enter",
+        "when": "notebookType == verso-notebook"
+      }
+    ],
     "configuration": {
       "title": "Verso Notebook",
       "properties": {

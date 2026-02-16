@@ -168,6 +168,26 @@ window.versoMonaco = (function () {
                 });
 
                 updateHeight();
+                // Register keyboard shortcuts that call back to .NET
+                if (dotnetRef) {
+                    editor.addCommand(
+                        monaco.KeyMod.Shift | monaco.KeyCode.Enter,
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-select-below'); }
+                    );
+                    editor.addCommand(
+                        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-stay'); }
+                    );
+                    editor.addCommand(
+                        monaco.KeyMod.Alt | monaco.KeyCode.Enter,
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-insert-below'); }
+                    );
+                    editor.addCommand(
+                        monaco.KeyCode.Escape,
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'escape'); }
+                    );
+                }
+
                 editors[elementId] = editor;
 
                 // Store dotnetRef keyed by model URI for hover/completion routing
@@ -218,6 +238,24 @@ window.versoMonaco = (function () {
             _currentTheme = theme || 'vs';
             if (monacoReady) {
                 monaco.editor.setTheme(_currentTheme);
+            }
+        },
+
+        focus: function (elementId) {
+            const editor = editors[elementId];
+            if (editor) {
+                editor.focus();
+            }
+        },
+
+        focusByContainer: function (containerSelector) {
+            const container = document.querySelector(containerSelector);
+            if (!container) return;
+            const editorEl = container.querySelector('.verso-monaco-editor');
+            if (!editorEl) return;
+            const editor = editors[editorEl.id];
+            if (editor) {
+                editor.focus();
             }
         }
     };

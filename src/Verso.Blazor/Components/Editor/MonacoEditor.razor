@@ -11,6 +11,7 @@
     [Parameter] public EventCallback<string> OnValueChanged { get; set; }
     [Parameter] public Func<string, int, Task<object?>>? OnGetHoverInfo { get; set; }
     [Parameter] public Func<string, int, Task<object?>>? OnGetCompletions { get; set; }
+    [Parameter] public EventCallback<string> OnEditorAction { get; set; }
 
     private readonly string _elementId = $"monaco-{Guid.NewGuid():N}";
     private DotNetObjectReference<MonacoEditor>? _dotnetRef;
@@ -52,6 +53,12 @@
         _lastSetValue = newValue;
         await ValueChanged.InvokeAsync(newValue);
         await OnValueChanged.InvokeAsync(newValue);
+    }
+
+    [JSInvokable]
+    public async Task OnEditorActionShortcut(string action)
+    {
+        await OnEditorAction.InvokeAsync(action);
     }
 
     [JSInvokable]
