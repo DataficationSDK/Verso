@@ -27,9 +27,6 @@
         "selector": [
           {
             "filenamePattern": "*.verso"
-          },
-          {
-            "filenamePattern": "*.ipynb"
           }
         ]
       }
@@ -47,16 +44,26 @@
       "verso-explorer": [
         {
           "id": "verso.extensions",
-          "name": "Extensions",
-          "when": "verso.notebookOpen"
+          "name": "Extensions"
         },
         {
           "id": "verso.variables",
-          "name": "Variables",
-          "when": "verso.notebookOpen"
+          "name": "Variables"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "verso.extensions",
+        "contents": "Open a .verso notebook to see loaded extensions.",
+        "when": "!verso.notebookOpen"
+      },
+      {
+        "view": "verso.variables",
+        "contents": "Run cells in a .verso notebook to see variables here.",
+        "when": "!verso.notebookOpen"
+      }
+    ],
     "commands": [
       {
         "command": "verso.runAll",
