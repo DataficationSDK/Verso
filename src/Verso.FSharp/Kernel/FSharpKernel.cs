@@ -4,8 +4,10 @@ using FSharp.Compiler.Symbols;
 using FSharp.Compiler.Tokenization;
 using Microsoft.FSharp.Collections;
 using Microsoft.FSharp.Core;
+using System.Reflection;
 using Verso.Abstractions;
 using Verso.FSharp.Helpers;
+using Verso.FSharp.NuGet;
 
 using FcsDiagnostic = FSharp.Compiler.Diagnostics.FSharpDiagnostic;
 
@@ -31,6 +33,8 @@ public sealed class FSharpKernel : ILanguageKernel
     private VariableBridge? _variableBridge;
     private FSharpCheckerManager? _checkerManager;
     private FSharpProjectContext? _projectContext;
+    private NuGetReferenceProcessor? _nugetProcessor;
+    private ScriptDirectiveProcessor? _scriptDirectiveProcessor;
     private bool _variablesInjected;
     private bool _initialized;
     private bool _disposed;
@@ -95,6 +99,11 @@ public sealed class FSharpKernel : ILanguageKernel
             opens,
             _sessionManager.ResolvedArgs);
 
+        // Initialize NuGet and script directive processors
+        _nugetProcessor = new NuGetReferenceProcessor();
+        _nugetProcessor.ProbeNuGetSupport(_sessionManager);
+        _scriptDirectiveProcessor = new ScriptDirectiveProcessor();
+
         _initialized = true;
 
         return Task.CompletedTask;
@@ -118,9 +127,76 @@ public sealed class FSharpKernel : ILanguageKernel
                 _variablesInjected = true;
             }
 
-            var result = _sessionManager!.EvalInteraction(code, context.CancellationToken);
-
             var outputs = new List<CellOutput>();
+            var processedCode = code;
+
+            // --- NuGet: check magic command results ---
+            var magicPaths = _nugetProcessor!.CheckMagicCommandResults(context.Variables);
+            foreach (var path in magicPaths)
+            {
+                _sessionManager!.EvalSilent($"#r \"{path}\"");
+                _projectContext?.AddReference(path);
+            }
+
+            // --- NuGet: process inline #r "nuget:" directives ---
+            var nugetResult = await _nugetProcessor.ProcessAsync(
+                processedCode, _sessionManager!, context.CancellationToken).ConfigureAwait(false);
+            processedCode = nugetResult.ProcessedCode;
+
+            foreach (var path in nugetResult.NewAssemblyPaths)
+            {
+                _projectContext?.AddReference(path);
+            }
+
+            if (nugetResult.ResolvedPackages.Count > 0)
+            {
+                var html = FormatInstalledPackagesHtml(nugetResult.ResolvedPackages);
+                await context.WriteOutputAsync(new CellOutput("text/html", html)).ConfigureAwait(false);
+            }
+
+            // --- Script directives: #r, #load, #I, #nowarn, #time ---
+            processedCode = _scriptDirectiveProcessor!.ProcessDirectives(processedCode, context.NotebookMetadata);
+            foreach (var path in _scriptDirectiveProcessor.ResolvedAssemblyPaths)
+            {
+                _projectContext?.AddReference(path);
+            }
+
+            // Add #load file contents to IntelliSense context
+            foreach (var loadedPath in _scriptDirectiveProcessor.LoadedFilePaths)
+            {
+                try
+                {
+                    var loadedSource = File.ReadAllText(loadedPath);
+                    _projectContext?.AppendExecutedCode(loadedSource);
+                }
+                catch { /* best effort — FSI will report its own error */ }
+            }
+
+            // --- Snapshot assemblies for FSI-native NuGet detection ---
+            HashSet<string>? preEvalAssemblies = null;
+            if (_nugetProcessor.UsesFsiNuGet && NuGetReferenceProcessor.ContainsNuGetDirectives(code))
+            {
+                preEvalAssemblies = new HashSet<string>(
+                    AppDomain.CurrentDomain.GetAssemblies()
+                        .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                        .Select(a => a.Location),
+                    StringComparer.OrdinalIgnoreCase);
+            }
+
+            var result = _sessionManager!.EvalInteraction(processedCode, context.CancellationToken);
+
+            // --- Detect newly loaded assemblies (FSI-native NuGet path) ---
+            if (preEvalAssemblies is not null)
+            {
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location)
+                        && !preEvalAssemblies.Contains(asm.Location))
+                    {
+                        _projectContext?.AddReference(asm.Location);
+                    }
+                }
+            }
 
             // 1. FSI output (val bindings, type annotations, etc.)
             if (!string.IsNullOrEmpty(result.FsiOutput))
@@ -302,6 +378,11 @@ public sealed class FSharpKernel : ILanguageKernel
                 if (SuppressedDiagnosticCodes.Contains(diag.ErrorNumber))
                     continue;
 
+                // Skip warnings suppressed by #nowarn directives
+                if (_scriptDirectiveProcessor is not null
+                    && _scriptDirectiveProcessor.SuppressedWarnings.Contains(diag.ErrorNumber))
+                    continue;
+
                 var mapped = DiagnosticMapper.MapDiagnostic(diag, prefixLineCount, cellLineCount);
                 if (mapped is null) continue;
 
@@ -392,6 +473,8 @@ public sealed class FSharpKernel : ILanguageKernel
         _sessionManager = null;
         _variableBridge?.Reset();
         _variableBridge = null;
+        _nugetProcessor = null;
+        _scriptDirectiveProcessor = null;
         _variablesInjected = false;
         _executionLock.Dispose();
 
@@ -610,6 +693,13 @@ public sealed class FSharpKernel : ILanguageKernel
             IsError: true,
             ErrorName: ex.GetType().Name,
             ErrorStackTrace: ex.StackTrace);
+    }
+
+    private static string FormatInstalledPackagesHtml(List<FSharpNuGetResolveResult> packages)
+    {
+        var items = string.Join("",
+            packages.Select(p => $"<li><span>{p.PackageId}, {p.ResolvedVersion}</span></li>"));
+        return $"<div><b>Installed Packages</b><ul>{items}</ul></div>";
     }
 
     private void EnsureInitialized()

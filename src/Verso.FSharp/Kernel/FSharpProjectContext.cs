@@ -48,7 +48,8 @@ internal sealed class FSharpProjectContext
     /// </summary>
     public void AddReference(string assemblyPath)
     {
-        _additionalReferences.Add(assemblyPath);
+        if (!_additionalReferences.Contains(assemblyPath, StringComparer.OrdinalIgnoreCase))
+            _additionalReferences.Add(assemblyPath);
     }
 
     /// <summary>

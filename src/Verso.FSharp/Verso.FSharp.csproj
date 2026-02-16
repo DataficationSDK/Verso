@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
+    <PackageReference Include="NuGet.Protocol" Version="6.9.1" />
   </ItemGroup>
 
   <ItemGroup>
