@@ -375,16 +375,14 @@
 
     private Task HandleInsertCell(int index, string type)
     {
-        var language = type == "markdown" ? null : "csharp";
-        var cell = Service.InsertCell(index, type, language);
+        var cell = Service.InsertCell(index, type);
         _selectedCellId = cell.Id;
         return Task.CompletedTask;
     }
 
     private Task HandleAddCell(string type)
     {
-        var language = type == "markdown" ? null : "csharp";
-        var cell = Service.AddCell(type, language);
+        var cell = Service.AddCell(type);
         _selectedCellId = cell.Id;
         return Task.CompletedTask;
     }
@@ -519,7 +517,7 @@
         }
         else if (addIfLast)
         {
-            var newCell = Service.AddCell("code", "csharp");
+            var newCell = Service.AddCell("code");
             _selectedCellId = newCell.Id;
         }
     }
@@ -542,7 +540,7 @@
         var index = cellList.FindIndex(c => c.Id == currentId);
         if (index < 0) return;
 
-        var newCell = Service.InsertCell(index + 1, "code", "csharp");
+        var newCell = Service.InsertCell(index + 1, "code");
         _selectedCellId = newCell.Id;
     }
 
