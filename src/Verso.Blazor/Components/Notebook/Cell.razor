@@ -154,17 +154,22 @@
             return;
         }
 
-        // Build available cell types: hardcoded + extension-registered
-        var types = new List<CellTypeChoice>
+        // Build available cell types: code is always present, others depend on extensions
+        var types = new List<CellTypeChoice> { new("code", "Code") };
+
+        var hasMarkdown = host.GetCellTypes()
+            .Any(ct => string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
+            || host.GetRenderers()
+            .Any(r => string.Equals(r.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
+        if (hasMarkdown)
+            types.Add(new("markdown", "Markdown"));
+
+        foreach (var ct in host.GetCellTypes())
         {
-            new("code", "Code"),
-            new("markdown", "Markdown")
-        };
-        var registeredTypes = host.GetCellTypes()
-            .Where(ct => !string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
-                      && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
-        foreach (var ct in registeredTypes)
-            types.Add(new CellTypeChoice(ct.CellTypeId, ct.DisplayName));
+            if (!string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
+                types.Add(new CellTypeChoice(ct.CellTypeId, ct.DisplayName));
+        }
         _availableCellTypes = types;
 
         var cellActions = host.GetToolbarActions()

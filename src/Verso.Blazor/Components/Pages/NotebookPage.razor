@@ -57,7 +57,10 @@
                 else
                 {
                     <div class="verso-cell-list" @onclick="HandleCellListClick">
-                        @{ var cells = Service.Scaffold!.Cells; }
+                        @{
+                            var cells = Service.Scaffold!.Cells;
+                            var cellTypes = GetAvailableCellTypes();
+                        }
                         @for (int i = 0; i < cells.Count; i++)
                         {
                             var cell = cells[i];
@@ -84,16 +87,23 @@
                                 var insertIndex = index + 1;
                                 <div class="verso-insert-cell-row @(cell.Id == _selectedCellId ? "verso-insert-cell-row--visible" : "")">
                                     <div class="verso-insert-cell-line"></div>
-                                    <button class="verso-insert-cell-btn" @onclick='() => HandleInsertCell(insertIndex, "code")'>+ Code</button>
-                                    <button class="verso-insert-cell-btn" @onclick='() => HandleInsertCell(insertIndex, "markdown")'>+ Markdown</button>
+                                    @foreach (var ct in cellTypes)
+                                    {
+                                        var idx = insertIndex;
+                                        var typeId = ct.Id;
+                                        <button class="verso-insert-cell-btn" @onclick="() => HandleInsertCell(idx, typeId)">+ @ct.DisplayName</button>
+                                    }
                                     <div class="verso-insert-cell-line"></div>
                                 </div>
                             }
                         }
 
                         <div class="verso-add-cell-row">
-                            <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("code")'>+ Code Cell</button>
-                            <button class="verso-add-cell-btn" @onclick='() => HandleAddCell("markdown")'>+ Markdown Cell</button>
+                            @foreach (var ct in cellTypes)
+                            {
+                                var typeId = ct.Id;
+                                <button class="verso-add-cell-btn" @onclick="() => HandleAddCell(typeId)">+ @ct.DisplayName Cell</button>
+                            }
                         </div>
                     </div>
                 }
@@ -183,6 +193,33 @@
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
+
+    private record CellTypeInfo(string Id, string DisplayName);
+
+    private List<CellTypeInfo> GetAvailableCellTypes()
+    {
+        var host = Service.ExtensionHost;
+        var types = new List<CellTypeInfo> { new("code", "Code") };
+
+        if (host is not null)
+        {
+            var hasMarkdown = host.GetCellTypes()
+                .Any(ct => string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
+                || host.GetRenderers()
+                .Any(r => string.Equals(r.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
+            if (hasMarkdown)
+                types.Add(new("markdown", "Markdown"));
+
+            foreach (var ct in host.GetCellTypes())
+            {
+                if (!string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
+                    types.Add(new CellTypeInfo(ct.CellTypeId, ct.DisplayName));
+            }
+        }
+
+        return types;
+    }
 
     private bool ShouldCollapseInput(CellModel cell)
     {
