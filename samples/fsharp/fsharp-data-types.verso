@@ -1,0 +1,245 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "F# Data Types and Formatting",
+    "created": "2026-02-16T10:00:00+00:00",
+    "modified": "2026-02-16T10:00:00+00:00",
+    "defaultKernel": "fsharp",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light",
+    "verso.fsharp": {
+      "warningLevel": 3,
+      "langVersion": "preview",
+      "publishPrivateBindings": false,
+      "maxCollectionDisplay": 100
+    }
+  },
+  "cells": [
+    {
+      "id": "fd000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# F# Data Types and Rich Formatting\n\nVerso includes a dedicated data formatter for F# types. Records, discriminated unions, options, results, maps, sets, and tuples are all rendered as styled HTML with theme-aware colors.\n\nThis notebook showcases each type with the formatter's output.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## Records\n\nF# records are displayed as two-column tables showing field names and values.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Simple record\ntype Book = {\n    Title: string\n    Author: string\n    Year: int\n    Pages: int\n}\n\nlet dune = { Title = \"Dune\"; Author = \"Frank Herbert\"; Year = 1965; Pages = 412 }\nVariables.Set(\"dune\", dune)",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Nested records\ntype Address = { Street: string; City: string; Country: string }\ntype Person = { Name: string; Age: int; Address: Address }\n\nlet alice = {\n    Name = \"Alice\"\n    Age = 30\n    Address = { Street = \"123 Elm St\"; City = \"London\"; Country = \"UK\" }\n}\n\nVariables.Set(\"alice\", alice)",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Discriminated Unions\n\nDU values show the case name and any associated data. Fieldless cases render as simple labels.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// DU with data fields\ntype Shape =\n    | Circle of radius: float\n    | Rectangle of width: float * height: float\n    | Triangle of a: float * b: float * c: float\n\nlet myCircle = Circle 5.0\nlet myRect = Rectangle(3.0, 4.0)\n\nVariables.Set(\"myCircle\", myCircle)\nVariables.Set(\"myRect\", myRect)",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000007",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Fieldless DU (enum-like)\ntype Color = Red | Green | Blue | Yellow\n\nVariables.Set(\"color\", Red)\n\n// Nested DU\ntype Expr =\n    | Num of int\n    | Add of Expr * Expr\n    | Mul of Expr * Expr\n    | Neg of Expr\n\nlet expr = Add(Mul(Num 2, Num 3), Neg(Num 4))\nVariables.Set(\"expr\", expr)",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000008",
+      "type": "markdown",
+      "source": "## Option Type\n\n`Some` values display their inner content. `None` renders as a styled indicator.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000009",
+      "type": "code",
+      "language": "fsharp",
+      "source": "let someValue: int option = Some 42\nlet noneValue: int option = None\nlet someRecord: Book option = Some { Title = \"Foundation\"; Author = \"Asimov\"; Year = 1951; Pages = 244 }\n\nprintfn \"Some: %A\" someValue\nprintfn \"None: %A\" noneValue\nprintfn \"Some record: %A\" someRecord\n\n// Publish Some values to the variable store for rich formatting\nVariables.Set(\"someValue\", someValue)\nVariables.Set(\"someRecord\", someRecord)\n// None is null in .NET interop and cannot be stored in the variable store",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000010",
+      "type": "markdown",
+      "source": "## Result Type\n\n`Ok` values get a success style. `Error` values get an error style with distinct coloring.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000011",
+      "type": "code",
+      "language": "fsharp",
+      "source": "type ValidationError =\n    | Required of fieldName: string\n    | OutOfRange of fieldName: string * min: int * max: int\n    | InvalidFormat of fieldName: string * expected: string\n\nlet validate (name: string) (age: int) (email: string) =\n    if String.IsNullOrEmpty(name) then Error (Required \"name\")\n    elif age < 0 || age > 150 then Error (OutOfRange(\"age\", 0, 150))\n    elif not (email.Contains(\"@\")) then Error (InvalidFormat(\"email\", \"user@domain.com\"))\n    else Ok {| Name = name; Age = age; Email = email |}\n\nlet success = validate \"Alice\" 30 \"alice@example.com\"\nlet failure = validate \"\" 30 \"alice@example.com\"\nlet rangeError = validate \"Bob\" 200 \"bob@example.com\"\n\nprintfn \"Success: %A\" success\nprintfn \"Failure: %A\" failure\nprintfn \"Range:   %A\" rangeError\n\nVariables.Set(\"success\", box success)\nVariables.Set(\"failure\", box failure)\nVariables.Set(\"rangeError\", box rangeError)",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000012",
+      "type": "markdown",
+      "source": "## Maps\n\nF# `Map<'K, 'V>` renders as a two-column table with Key and Value headers.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000013",
+      "type": "code",
+      "language": "fsharp",
+      "source": "let scores =\n    [ \"Alice\", 95\n      \"Bob\", 87\n      \"Charlie\", 92\n      \"Diana\", 98\n      \"Eve\", 73 ]\n    |> Map.ofList\n\nVariables.Set(\"scores\", scores)\nprintfn \"Scores: %A\" scores",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000014",
+      "type": "markdown",
+      "source": "## Sets\n\nSmall sets render inline (`set [1; 2; 3]`). Larger sets render as single-column tables.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000015",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Small set \u2014 renders inline\nlet smallSet = Set.ofList [1; 2; 3; 4; 5]\nVariables.Set(\"smallSet\", smallSet)\n\n// Larger set \u2014 renders as table\nlet largeSet = Set.ofList [1 .. 25]\nVariables.Set(\"largeSet\", largeSet)\n\nprintfn \"Small: %A\" smallSet\nprintfn \"Large: %d items\" largeSet.Count",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000016",
+      "type": "markdown",
+      "source": "## Tuples\n\nTuples render as parenthesized, comma-separated values.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000017",
+      "type": "code",
+      "language": "fsharp",
+      "source": "let pair = (\"hello\", 42)\nlet triple = (\"Alice\", 30, true)\nlet nested = ((1, 2), (3, 4))\n\nVariables.Set(\"pair\", pair)\nVariables.Set(\"triple\", triple)\nVariables.Set(\"nested\", nested)\n\nprintfn \"Pair: %A\" pair\nprintfn \"Triple: %A\" triple\nprintfn \"Nested: %A\" nested",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000018",
+      "type": "markdown",
+      "source": "## Lists of Records\n\nWhen a list contains record elements, the formatter renders a table with property columns \u2014 similar to a DataFrame view.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000019",
+      "type": "code",
+      "language": "fsharp",
+      "source": "type Planet = {\n    Name: string\n    DistanceFromSun: float  // AU\n    Diameter: int           // km\n    HasRings: bool\n}\n\nlet planets = [\n    { Name = \"Mercury\"; DistanceFromSun = 0.39;  Diameter = 4_879;   HasRings = false }\n    { Name = \"Venus\";   DistanceFromSun = 0.72;  Diameter = 12_104;  HasRings = false }\n    { Name = \"Earth\";   DistanceFromSun = 1.00;  Diameter = 12_756;  HasRings = false }\n    { Name = \"Mars\";    DistanceFromSun = 1.52;  Diameter = 6_792;   HasRings = false }\n    { Name = \"Jupiter\"; DistanceFromSun = 5.20;  Diameter = 142_984; HasRings = true }\n    { Name = \"Saturn\";  DistanceFromSun = 9.58;  Diameter = 120_536; HasRings = true }\n    { Name = \"Uranus\";  DistanceFromSun = 19.18; Diameter = 51_118;  HasRings = true }\n    { Name = \"Neptune\"; DistanceFromSun = 30.07; Diameter = 49_528;  HasRings = true }\n]\n\nVariables.Set(\"planets\", planets)\nprintfn \"Loaded %d planets\" planets.Length",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000020",
+      "type": "markdown",
+      "source": "## Collection Truncation\n\nLarge collections are automatically truncated at the `maxCollectionDisplay` limit (default: 100) with a \"Showing N of M\" footer.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000021",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// A list that exceeds the default display limit\nlet largeList = [1 .. 150]\nVariables.Set(\"largeList\", largeList)\nprintfn \"List has %d items (display will truncate at 100)\" largeList.Length",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000022",
+      "type": "markdown",
+      "source": "## HTML Safety\n\nAll user data is HTML-encoded before rendering. Special characters like `<`, `>`, and `&` are safely escaped.",
+      "outputs": []
+    },
+    {
+      "id": "fd000001-0001-0001-0001-000000000023",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Strings containing HTML are safely encoded\nlet safeBook = {\n    Title = \"<script>alert('xss')</script>\"\n    Author = \"O'Brien & Sons\"\n    Year = 2024\n    Pages = 100\n}\n\nVariables.Set(\"safeBook\", safeBook)\nprintfn \"Title is safely encoded in HTML output\"",
+      "outputs": []
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "fd000001-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 12,
+          "height": 3,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000003": {
+          "row": 3,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000004": {
+          "row": 3,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000006": {
+          "row": 7,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000007": {
+          "row": 7,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000009": {
+          "row": 11,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000011": {
+          "row": 11,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000013": {
+          "row": 15,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000015": {
+          "row": 15,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "fd000001-0001-0001-0001-000000000019": {
+          "row": 19,
+          "col": 0,
+          "width": 12,
+          "height": 5,
+          "visible": true
+        }
+      }
+    }
+  }
+}

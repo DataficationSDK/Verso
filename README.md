@@ -79,6 +79,21 @@ directory. Polyglot Notebooks `#!import` syntax is compatible — existing .ipyn
 
 JSON-based format that stores notebook metadata, cell content and outputs, layout positioning, theme preferences, and extension requirements. Human-readable, diff-friendly, and versioned with a format identifier (`"verso": "1.0"`).
 
+### F# Kernel (Verso.FSharp)
+
+Full F# scripting powered by FSharp.Compiler.Service. Latest F# language version (preview), persistent state across cells, IntelliSense completions, real-time diagnostics, hover information, and NuGet package references via `#r "nuget: PackageName"`. Includes a dedicated data formatter that renders discriminated unions, records, options, results, maps, sets, tuples, and collections as styled HTML tables with theme-aware CSS.
+
+- **F# Interactive session** with configurable warning level, language version, and default opens
+- **Bidirectional variable sharing** between F# and other kernels via `Variables.Set`/`Variables.Get` and a `tryGetVar<'T>` helper
+- **IntelliSense** powered by `FSharpChecker`: dot-completion, type signatures, documentation, and error diagnostics
+- **NuGet references** via `#r "nuget: PackageName"` with dual-path resolution (FSI built-in or Verso fallback)
+- **Script directives** including `#r`, `#load`, `#I`, `#nowarn`, and `#time`
+- **Rich data formatting** for F# types: records as field tables, DUs with case names and fields, options, results with Ok/Error styling, maps as key-value tables, sets, tuples, and collection truncation
+- **Configurable settings** via `IExtensionSettings`: warning level, language version, private binding visibility, and collection display limits
+- **Polyglot Notebooks migration** — automatic conversion of `#!fsharp`/`#!f#` magic, `#!set`, and `#!share` patterns during `.ipynb` import
+
+Verso.FSharp references only `Verso.Abstractions` and `FSharp.Compiler.Service`.
+
 ### SQL Database Support (Verso.Ado)
 
 Provider-agnostic SQL connectivity built as a first-party extension on the public `Verso.Abstractions` interfaces. Connect to any ADO.NET database, execute SQL with paginated result tables, share variables bidirectionally between SQL and C# cells, inspect schema metadata, and scaffold EF Core DbContext and entity classes at runtime.
@@ -96,7 +111,7 @@ Verso.Ado references only `Verso.Abstractions` and `System.Data.Common`. Users s
 
 ### Jupyter Import
 
-One-way `.ipynb` import for migration from existing Jupyter notebooks. Supports nbformat v4+, maps code/markdown/raw cell types, and preserves execution count metadata. When Verso.Ado is loaded, Polyglot Notebooks SQL patterns (`#!connect`, `#!sql`) are automatically converted to native Verso SQL cells with the appropriate provider directives.
+One-way `.ipynb` import for migration from existing Jupyter notebooks. Supports nbformat v4+, maps code/markdown/raw cell types, and preserves execution count metadata. When Verso.Ado is loaded, Polyglot Notebooks SQL patterns (`#!connect`, `#!sql`) are automatically converted to native Verso SQL cells. When Verso.FSharp is loaded, Polyglot Notebooks F# patterns (`#!fsharp`, `#!f#`, `#!set`, `#!share`) are automatically converted to native F# cells.
 
 ## Architecture Overview
 
@@ -107,6 +122,7 @@ Verso uses a layered architecture that separates concerns cleanly:
 - **Verso.Host**: Console application that wraps the engine in a JSON-RPC 2.0 protocol over stdin/stdout, enabling communication with the VS Code extension.
 - **Verso.VSCode**: Thin TypeScript adapter for the VS Code Notebook API. Handles UI concerns only; all logic lives in the engine.
 - **Verso.Blazor**: Standalone Blazor Server web application with Monaco editor integration, variable explorer, and extension management.
+- **Verso.FSharp**: First-party extension providing an F# language kernel with IntelliSense, NuGet/script directives, rich data formatting for F# types, configurable settings, and Polyglot Notebooks F# import. References only `Verso.Abstractions` and `FSharp.Compiler.Service`.
 - **Verso.Ado**: First-party extension providing SQL database connectivity, result set formatting, schema inspection, EF Core scaffolding, and Polyglot Notebooks SQL import. References only `Verso.Abstractions`.
 
 ```
@@ -128,6 +144,10 @@ Verso uses a layered architecture that separates concerns cleanly:
   │  C# Kernel | Markdown | Formatters             │
   │  Light/Dark Themes | Notebook/Dashboard Layout │
   ├────────────────────────────────────────────────┤
+  │  Verso.FSharp (first-party extension package)  │
+  │  F# Kernel | IntelliSense | NuGet/Scripts      │
+  │  Data Formatter | Settings | F# Import         │
+  ├────────────────────────────────────────────────┤
   │  Verso.Ado (first-party extension package)     │
   │  SQL Kernel | Connection Mgmt | Schema Cache   │
   │  Result Formatter | EF Scaffold | SQL Import   │
@@ -147,6 +167,7 @@ Verso uses a layered architecture that separates concerns cleanly:
                     │
   Verso.Blazor ─────┘
 
+  Verso.FSharp ──────────▶ Verso.Abstractions (+ FSharp.Compiler.Service)
   Verso.Ado ─────────────▶ Verso.Abstractions (only)
   Third-Party Extensions ──▶ Verso.Abstractions (only)
 ```
@@ -181,7 +202,7 @@ What ships out of the box:
 
 | Category | Extensions |
 |----------|-----------|
-| **Kernel** | C# (Roslyn), latest language version, persistent state, IntelliSense, diagnostics, hover, NuGet |
+| **Kernel** | C# (Roslyn), latest language version, persistent state, IntelliSense, diagnostics, hover, NuGet; F# (FSharp.Compiler.Service) via Verso.FSharp |
 | **Renderer** | Markdown (Markdig with advanced extensions) |
 | **Data Formatters** | Primitives, Collections (HTML tables, up to 100 rows), HTML (`ToHtml()`), Images (PNG/JPEG/GIF/BMP/WebP), SVG, Exceptions (structured with inner exception support) |
 | **Themes** | Verso Light, Verso Dark |
@@ -189,6 +210,17 @@ What ships out of the box:
 | **Magic Commands** | `#!time`, `#!nuget`, `#!restart`, `#!about`, `#!import` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart Kernel, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Serializers** | `.verso` native (JSON, pretty-printed, camelCase), `.ipynb` import (nbformat v4+) |
+
+### Verso.FSharp Extensions
+
+The Verso.FSharp package adds F# language support as a first-party extension:
+
+| Category | Extensions |
+|----------|-----------|
+| **Kernel** | F# (FSharp.Compiler.Service), IntelliSense completions, diagnostics, hover, NuGet references, script directives (`#r`, `#load`, `#I`, `#nowarn`, `#time`) |
+| **Data Formatter** | Rich HTML rendering for discriminated unions, records, options, results, maps, sets, tuples, and collections with theme-aware CSS |
+| **Settings** | `warningLevel`, `langVersion`, `publishPrivateBindings`, `maxCollectionDisplay` via `IExtensionSettings` |
+| **Serializer** | Jupyter F# import hook (converts Polyglot Notebooks `#!fsharp`/`#!f#`, `#!set`, `#!share` patterns) |
 
 ### Verso.Ado Extensions
 
@@ -252,6 +284,8 @@ Install the generated `.vsix` file in VS Code, then open any `.verso` file or im
 | Blazor application, VS Code extension, JSON-RPC host, variable explorer, toolbar actions, export | | |
 | **Verso.Ado: SQL Database Support** | v0.5 | Complete |
 | SQL kernel, connection management, paginated result tables, schema inspection, CSV/JSON export, EF Core scaffolding, Polyglot Notebooks SQL import | | |
+| **Verso.FSharp: F# Language Support** | v0.6 | Complete |
+| F# kernel, IntelliSense, NuGet/script directives, rich data formatting, configurable settings, Polyglot Notebooks F# import | | |
 | **Phase 3: Ecosystem** | v1.0 | In progress |
 | Extension authoring toolkit, CI/CD pipeline, WCAG 2.1 AA accessibility, community governance | | |
 

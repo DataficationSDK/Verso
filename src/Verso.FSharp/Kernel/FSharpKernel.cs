@@ -18,7 +18,7 @@ namespace Verso.FSharp.Kernel;
 /// Powered by FSharp.Compiler.Service (<c>FsiEvaluationSession</c>).
 /// </summary>
 [VersoExtension]
-public sealed class FSharpKernel : ILanguageKernel
+public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
 {
     private const string VirtualFileName = "/verso/notebook.fsx";
 
@@ -27,7 +27,7 @@ public sealed class FSharpKernel : ILanguageKernel
     /// </summary>
     private static readonly HashSet<int> SuppressedDiagnosticCodes = new() { 10, 588, 3118 };
 
-    private readonly FSharpKernelOptions _options;
+    private FSharpKernelOptions _options;
     private SemaphoreSlim _executionLock = new(1, 1);
     private FsiSessionManager? _sessionManager;
     private VariableBridge? _variableBridge;
@@ -62,6 +62,69 @@ public sealed class FSharpKernel : ILanguageKernel
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
+
+    // --- IExtensionSettings ---
+
+    public IReadOnlyList<SettingDefinition> SettingDefinitions { get; } = new[]
+    {
+        new SettingDefinition("warningLevel", "Warning Level",
+            "F# compiler warning level (0\u20135).",
+            SettingType.Integer, 3, "Compiler",
+            new SettingConstraints(MinValue: 0, MaxValue: 5)),
+        new SettingDefinition("langVersion", "Language Version",
+            "F# language version for the session.",
+            SettingType.StringChoice, "preview", "Compiler",
+            new SettingConstraints(Choices: new[] { "default", "latest", "latestmajor", "preview", "5.0", "6.0", "7.0", "8.0", "9.0" })),
+        new SettingDefinition("publishPrivateBindings", "Publish Private Bindings",
+            "Whether to publish underscore-prefixed bindings to the variable store.",
+            SettingType.Boolean, false, "Variables"),
+        new SettingDefinition("maxCollectionDisplay", "Max Collection Display",
+            "Maximum number of collection elements to display in formatted output.",
+            SettingType.Integer, 100, "Display",
+            new SettingConstraints(MinValue: 10, MaxValue: 10000)),
+    };
+
+    public IReadOnlyDictionary<string, object?> GetSettingValues()
+    {
+        var values = new Dictionary<string, object?>();
+        if (_options.WarningLevel != 3) values["warningLevel"] = _options.WarningLevel;
+        if (_options.LangVersion != "preview") values["langVersion"] = _options.LangVersion;
+        if (_options.PublishPrivateBindings) values["publishPrivateBindings"] = true;
+        if (_options.MaxCollectionDisplay != 100) values["maxCollectionDisplay"] = _options.MaxCollectionDisplay;
+        return values;
+    }
+
+    public Task ApplySettingsAsync(IReadOnlyDictionary<string, object?> values)
+    {
+        _options = ApplyValues(_options, values);
+        return Task.CompletedTask;
+    }
+
+    public Task OnSettingChangedAsync(string name, object? value)
+    {
+        _options = ApplyValues(_options, new Dictionary<string, object?> { [name] = value });
+        return Task.CompletedTask;
+    }
+
+    private static FSharpKernelOptions ApplyValues(
+        FSharpKernelOptions current, IReadOnlyDictionary<string, object?> values)
+    {
+        var result = current;
+
+        if (values.TryGetValue("warningLevel", out var wl) && wl is not null)
+            result = result with { WarningLevel = Math.Clamp(Convert.ToInt32(wl), 0, 5) };
+
+        if (values.TryGetValue("langVersion", out var lv) && lv is not null)
+            result = result with { LangVersion = lv.ToString()! };
+
+        if (values.TryGetValue("publishPrivateBindings", out var ppb) && ppb is not null)
+            result = result with { PublishPrivateBindings = Convert.ToBoolean(ppb) };
+
+        if (values.TryGetValue("maxCollectionDisplay", out var mcd) && mcd is not null)
+            result = result with { MaxCollectionDisplay = Math.Clamp(Convert.ToInt32(mcd), 10, 10000) };
+
+        return result;
+    }
 
     public Task InitializeAsync()
     {
