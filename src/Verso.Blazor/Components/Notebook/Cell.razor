@@ -8,7 +8,26 @@
 
     <div class="verso-cell-content">
         <div class="verso-cell-toolbar">
-            <span class="verso-cell-type-badge">@CellData.Type</span>
+            <div class="verso-cell-type-dropdown" @onfocusout="OnTypeDropdownFocusOut" tabindex="-1">
+                <button class="verso-cell-type-badge" @onclick="ToggleTypeDropdown">
+                    @CellData.Type
+                    <span class="verso-cell-type-chevron">&#9662;</span>
+                </button>
+                @if (_showTypeDropdown)
+                {
+                    <div class="verso-cell-type-popup">
+                        @foreach (var ct in _availableCellTypes)
+                        {
+                            var t = ct;
+                            var isActive = string.Equals(t.Id, CellData.Type, StringComparison.OrdinalIgnoreCase);
+                            <button class="verso-cell-type-option @(isActive ? "verso-cell-type-option--active" : "")"
+                                    @onclick="() => SelectCellType(t.Id)">
+                                @t.DisplayName
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
             @if (CellData.Type == "code" && CellData.Language is not null)
             {
                 <span class="verso-cell-language">@CellData.Language</span>
@@ -105,9 +124,14 @@
     [Parameter] public EventCallback<Guid> OnMoveDown { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Action)> OnCellAction { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string NewType)> OnCellTypeChanged { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
 
+    private record CellTypeChoice(string Id, string DisplayName);
+
     private List<IToolbarAction> _enabledCellActions = new();
+    private bool _showTypeDropdown;
+    private List<CellTypeChoice> _availableCellTypes = new();
 
     // Actions already represented by hardcoded buttons in the cell toolbar
     private static readonly HashSet<string> _hardcodedActionIds = new(StringComparer.OrdinalIgnoreCase)
@@ -126,8 +150,22 @@
         if (host is null || scaffold is null)
         {
             _enabledCellActions = new();
+            _availableCellTypes = new();
             return;
         }
+
+        // Build available cell types: hardcoded + extension-registered
+        var types = new List<CellTypeChoice>
+        {
+            new("code", "Code"),
+            new("markdown", "Markdown")
+        };
+        var registeredTypes = host.GetCellTypes()
+            .Where(ct => !string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
+                      && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
+        foreach (var ct in registeredTypes)
+            types.Add(new CellTypeChoice(ct.CellTypeId, ct.DisplayName));
+        _availableCellTypes = types;
 
         var cellActions = host.GetToolbarActions()
             .Where(a => a.Placement == ToolbarPlacement.CellToolbar
@@ -219,5 +257,23 @@
                 sortText = c.SortText
             }).ToArray()
         };
+    }
+
+    private void ToggleTypeDropdown()
+    {
+        _showTypeDropdown = !_showTypeDropdown;
+    }
+
+    private async Task OnTypeDropdownFocusOut()
+    {
+        await Task.Delay(150);
+        _showTypeDropdown = false;
+    }
+
+    private async Task SelectCellType(string typeId)
+    {
+        _showTypeDropdown = false;
+        if (!string.Equals(typeId, CellData.Type, StringComparison.OrdinalIgnoreCase))
+            await OnCellTypeChanged.InvokeAsync((CellData.Id, typeId));
     }
 }

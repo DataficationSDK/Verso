@@ -290,6 +290,35 @@ public sealed class NotebookService : IAsyncDisposable
         return result;
     }
 
+    /// <summary>Change the type (and resolved language) of an existing cell.</summary>
+    public void ChangeCellType(Guid cellId, string newType)
+    {
+        if (_scaffold is null)
+            throw new InvalidOperationException("No notebook is loaded.");
+
+        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null) return;
+
+        if (string.Equals(cell.Type, newType, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // Resolve effective language using the same logic as AddCell
+        string? effectiveLanguage = null;
+        var cellType = _extensionHost?.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, newType, StringComparison.OrdinalIgnoreCase));
+
+        if (cellType is not null)
+            effectiveLanguage = cellType.Kernel?.LanguageId;
+        else if (HasKernelOrNoRenderer(newType))
+            effectiveLanguage = _scaffold.DefaultKernelId ?? "csharp";
+
+        cell.Type = newType;
+        cell.Language = effectiveLanguage;
+        cell.Outputs.Clear();
+
+        OnNotebookChanged?.Invoke();
+    }
+
     /// <summary>Move a cell from one position to another.</summary>
     public void MoveCellAsync(int fromIndex, int toIndex)
     {

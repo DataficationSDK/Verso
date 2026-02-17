@@ -75,7 +75,8 @@
                                       OnMoveUp="HandleMoveUp"
                                       OnMoveDown="HandleMoveDown"
                                       OnSourceChanged="HandleSourceChanged"
-                                      OnCellAction="HandleCellAction" />
+                                      OnCellAction="HandleCellAction"
+                                      OnCellTypeChanged="HandleCellTypeChanged" />
                             </div>
 
                             @if (index < cells.Count - 1)
@@ -585,6 +586,11 @@
     {
         Service.UpdateCellSource(args.CellId, args.Source);
         return Task.CompletedTask;
+    }
+
+    private void HandleCellTypeChanged((Guid CellId, string NewType) args)
+    {
+        Service.ChangeCellType(args.CellId, args.NewType);
     }
 
     private async Task HandleActionExecuted(string actionId)
