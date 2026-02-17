@@ -2,6 +2,15 @@
 
 > Tracked issues and workarounds for the Verso notebook engine.
 
+| # | Issue | Status | Affected |
+|---|-------|--------|----------|
+| [VERSO-001](#verso-001-browse-file-picker-breaks-relative-imports-in-blazor) | Browse file picker breaks relative imports in Blazor | Fixed | Verso.Blazor |
+| [VERSO-002](#verso-002-cell-type-switching-and-registered-cell-types-not-exposed-in-blazor-ui) | Cell type switching not exposed in Blazor UI | In Development | Verso.Blazor |
+| [VERSO-003](#verso-003-f-none-values-cannot-be-stored-in-the-variable-store) | F# `None` values cannot be stored in the variable store | By Design | Verso.FSharp |
+| [VERSO-004](#verso-004-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Open | Verso.FSharp |
+| [VERSO-005](#verso-005-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
+| [VERSO-006](#verso-006-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
+
 ---
 
 ## VERSO-001: Browse file picker breaks relative imports in Blazor
