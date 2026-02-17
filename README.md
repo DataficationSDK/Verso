@@ -29,15 +29,45 @@ The core engine is a headless library with no UI dependencies. Two thin front-en
 
 Full C# scripting powered by Microsoft.CodeAnalysis. Latest C# language version, persistent state across cells, IntelliSense completions, real-time diagnostics, hover information, and NuGet package references via `#r "nuget: PackageName/Version"`.
 
+### F# Kernel (Verso.FSharp) Powered by FSharp.Compiler.Service
+
+Full F# scripting powered by FSharp.Compiler.Service. Latest F# language version (preview), persistent state across cells, IntelliSense completions, real-time diagnostics, hover information, and NuGet package references via `#r "nuget: PackageName"`. Includes a dedicated data formatter that renders discriminated unions, records, options, results, maps, sets, tuples, and collections as styled HTML tables with theme-aware CSS.
+
+- **F# Interactive session** with configurable warning level, language version, and default opens
+- **Bidirectional variable sharing** between F# and other kernels via `Variables.Set`/`Variables.Get` and a `tryGetVar<'T>` helper
+- **IntelliSense** powered by `FSharpChecker`: dot-completion, type signatures, documentation, and error diagnostics
+- **NuGet references** via `#r "nuget: PackageName"` with dual-path resolution (FSI built-in or Verso fallback)
+- **Script directives** including `#r`, `#load`, `#I`, `#nowarn`, and `#time`
+- **Rich data formatting** for F# types: records as field tables, DUs with case names and fields, options, results with Ok/Error styling, maps as key-value tables, sets, tuples, and collection truncation
+- **Configurable settings** via `IExtensionSettings`: warning level, language version, private binding visibility, and collection display limits
+- **Polyglot Notebooks migration** — automatic conversion of `#!fsharp`/`#!f#` magic, `#!set`, and `#!share` patterns during `.ipynb` import
+
+Verso.FSharp references only `Verso.Abstractions` and `FSharp.Compiler.Service`.
+
+### SQL Database Support (Verso.Ado)
+
+Provider-agnostic SQL connectivity built as a first-party extension on the public `Verso.Abstractions` interfaces. Connect to any ADO.NET database, execute SQL with paginated result tables, share variables bidirectionally between SQL and C# cells, inspect schema metadata, and scaffold EF Core DbContext and entity classes at runtime.
+
+- **Connection management** via `#!sql-connect` and `#!sql-disconnect` magic commands with named connections, provider auto-discovery, and credential security (`$env:`, `$secret:`)
+- **SQL kernel** with execution, `@parameter` binding from C# variables, `GO` batch separators, and row limiting
+- **IntelliSense** for SQL: keyword completions, table/column names from cached schema, `@variable` suggestions, and hover information
+- **Paginated HTML result tables** with column type tooltips, NULL styling, and truncation warnings
+- **CSV and JSON export** toolbar actions on SQL result cells
+- **Schema inspection** via `#!sql-schema` with per-connection caching
+- **EF Core scaffolding** via `#!sql-scaffold` — generates DbContext and entity classes from a live database, compiles at runtime, and registers in the variable store for LINQ queries
+- **Polyglot Notebooks migration** — automatic conversion of `#!connect` and `#!sql` patterns during `.ipynb` import
+
+Verso.Ado references only `Verso.Abstractions` and `System.Data.Common`. Users supply their own ADO.NET provider via `#r "nuget:"`.
+
+### Ten Extension Interfaces
+
+Every built-in feature uses the same public interfaces available to extension authors. There are no hidden internal APIs. If a built-in feature can't be built on the public interfaces, the interfaces are incomplete.
+
 ### Pluggable Layout Engines
 
 View the same notebook as a linear document or a 12-column grid dashboard. Switch layouts at runtime. Each layout declares capability flags (`CellInsert`, `CellDelete`, `CellReorder`, `CellResize`, `CellExecute`, `MultiSelect`) that the engine enforces. Build your own by implementing `ILayoutEngine`.
 
 ![Side-by-side comparison of Notebook Layout and Dashboard Layout](images/notebook-dashboard-side-by-side.png)
-
-### Nine Extension Interfaces
-
-Every built-in feature uses the same public interfaces available to extension authors. There are no hidden internal APIs. If a built-in feature can't be built on the public interfaces, the interfaces are incomplete.
 
 ### Standalone Blazor App
 
@@ -78,36 +108,6 @@ directory. Polyglot Notebooks `#!import` syntax is compatible — existing .ipyn
 ### .verso File Format
 
 JSON-based format that stores notebook metadata, cell content and outputs, layout positioning, theme preferences, and extension requirements. Human-readable, diff-friendly, and versioned with a format identifier (`"verso": "1.0"`).
-
-### F# Kernel (Verso.FSharp)
-
-Full F# scripting powered by FSharp.Compiler.Service. Latest F# language version (preview), persistent state across cells, IntelliSense completions, real-time diagnostics, hover information, and NuGet package references via `#r "nuget: PackageName"`. Includes a dedicated data formatter that renders discriminated unions, records, options, results, maps, sets, tuples, and collections as styled HTML tables with theme-aware CSS.
-
-- **F# Interactive session** with configurable warning level, language version, and default opens
-- **Bidirectional variable sharing** between F# and other kernels via `Variables.Set`/`Variables.Get` and a `tryGetVar<'T>` helper
-- **IntelliSense** powered by `FSharpChecker`: dot-completion, type signatures, documentation, and error diagnostics
-- **NuGet references** via `#r "nuget: PackageName"` with dual-path resolution (FSI built-in or Verso fallback)
-- **Script directives** including `#r`, `#load`, `#I`, `#nowarn`, and `#time`
-- **Rich data formatting** for F# types: records as field tables, DUs with case names and fields, options, results with Ok/Error styling, maps as key-value tables, sets, tuples, and collection truncation
-- **Configurable settings** via `IExtensionSettings`: warning level, language version, private binding visibility, and collection display limits
-- **Polyglot Notebooks migration** — automatic conversion of `#!fsharp`/`#!f#` magic, `#!set`, and `#!share` patterns during `.ipynb` import
-
-Verso.FSharp references only `Verso.Abstractions` and `FSharp.Compiler.Service`.
-
-### SQL Database Support (Verso.Ado)
-
-Provider-agnostic SQL connectivity built as a first-party extension on the public `Verso.Abstractions` interfaces. Connect to any ADO.NET database, execute SQL with paginated result tables, share variables bidirectionally between SQL and C# cells, inspect schema metadata, and scaffold EF Core DbContext and entity classes at runtime.
-
-- **Connection management** via `#!sql-connect` and `#!sql-disconnect` magic commands with named connections, provider auto-discovery, and credential security (`$env:`, `$secret:`)
-- **SQL kernel** with execution, `@parameter` binding from C# variables, `GO` batch separators, and row limiting
-- **IntelliSense** for SQL: keyword completions, table/column names from cached schema, `@variable` suggestions, and hover information
-- **Paginated HTML result tables** with column type tooltips, NULL styling, and truncation warnings
-- **CSV and JSON export** toolbar actions on SQL result cells
-- **Schema inspection** via `#!sql-schema` with per-connection caching
-- **EF Core scaffolding** via `#!sql-scaffold` — generates DbContext and entity classes from a live database, compiles at runtime, and registers in the variable store for LINQ queries
-- **Polyglot Notebooks migration** — automatic conversion of `#!connect` and `#!sql` patterns during `.ipynb` import
-
-Verso.Ado references only `Verso.Abstractions` and `System.Data.Common`. Users supply their own ADO.NET provider via `#r "nuget:"`.
 
 ### Jupyter Import
 
@@ -249,7 +249,7 @@ The Verso.Ado package adds SQL database support as a first-party extension:
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/DataficationSDK/Verso
 cd Verso
 
 # Build the solution

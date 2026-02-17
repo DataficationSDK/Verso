@@ -10,7 +10,7 @@
     {
       "id": "d0000001-0001-0001-0001-000000000001",
       "type": "markdown",
-      "source": "# Chained Import Test\n\nThis notebook imports two separate notebooks — `helpers.verso` and `models.verso` — then combines their definitions in a single analysis. This tests that multiple `#!import` commands compose correctly."
+      "source": "# Chained Import Test\n\nThis notebook imports two separate notebooks (`helpers.verso` and `models.verso`) then combines their definitions in a single analysis. This tests that multiple `#!import` commands compose correctly."
     },
     {
       "id": "d0000001-0001-0001-0001-000000000002",
