@@ -4,15 +4,23 @@
     @if (Service?.Scaffold?.SettingsManager is { } manager)
     {
         var allDefinitions = manager.GetAllDefinitions();
-        @if (allDefinitions.Count == 0)
+        var enabledExtensionIds = Service.ExtensionHost?.GetExtensionInfos()
+            .Where(e => e.Status == ExtensionStatus.Enabled)
+            .Select(e => e.ExtensionId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ?? new HashSet<string>();
+        var visibleDefinitions = allDefinitions
+            .Where(d => enabledExtensionIds.Contains(d.ExtensionId))
+            .ToList();
+        @if (visibleDefinitions.Count == 0)
         {
             <div class="verso-settings-empty">
-                <p>No extensions with configurable settings are loaded.</p>
+                <p>No enabled extensions with configurable settings.</p>
             </div>
         }
         else
         {
-            @foreach (var (extensionId, definitions) in allDefinitions)
+            @foreach (var (extensionId, definitions) in visibleDefinitions)
             {
                 var extId = extensionId;
                 var isOpen = _expandedExtensions.Contains(extId);
