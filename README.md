@@ -176,7 +176,7 @@ Extension authors never reference the engine or either front-end. They depend so
 
 ## The Extension Model
 
-The extension model is the heart of Verso. Nine interfaces define every point of extensibility:
+The extension model is the heart of Verso. Ten interfaces define every point of extensibility:
 
 | Interface | Purpose |
 |-----------|---------|
@@ -189,6 +189,9 @@ The extension model is the heart of Verso. Nine interfaces define every point of
 | `ITheme` | Provide a complete visual theme with colors, typography, spacing, and syntax colors |
 | `ILayoutEngine` | Manage spatial arrangement of cells (linear, grid, or anything custom) |
 | `INotebookSerializer` | Serialize and deserialize notebooks to file formats |
+| `INotebookPostProcessor` | Transform notebooks after deserialization or before serialization (e.g. migrate legacy formats, inject metadata) |
+
+A supplementary augmentation interface, `IExtensionSettings`, can be co-implemented alongside any primary capability to expose configurable settings to the UI.
 
 All interfaces inherit from `IExtension`, which provides identity, metadata, and lifecycle hooks (`OnLoadedAsync`, `OnUnloadedAsync`).
 
