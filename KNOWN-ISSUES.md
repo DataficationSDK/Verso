@@ -5,11 +5,10 @@
 | # | Issue | Status | Affected |
 |---|-------|--------|----------|
 | [VERSO-001](#verso-001-browse-file-picker-breaks-relative-imports-in-blazor) | Browse file picker breaks relative imports in Blazor | Fixed | Verso.Blazor |
-| [VERSO-002](#verso-002-cell-type-switching-and-registered-cell-types-not-exposed-in-blazor-ui) | Cell type switching not exposed in Blazor UI | In Development | Verso.Blazor |
-| [VERSO-003](#verso-003-f-none-values-cannot-be-stored-in-the-variable-store) | F# `None` values cannot be stored in the variable store | By Design | Verso.FSharp |
-| [VERSO-004](#verso-004-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Open | Verso.FSharp |
-| [VERSO-005](#verso-005-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
-| [VERSO-006](#verso-006-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
+| [VERSO-002](#verso-002-f-none-values-cannot-be-stored-in-the-variable-store) | F# `None` values cannot be stored in the variable store | By Design | Verso.FSharp |
+| [VERSO-003](#verso-003-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Open | Verso.FSharp |
+| [VERSO-004](#verso-004-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
+| [VERSO-005](#verso-005-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
 
 ---
 
@@ -46,33 +45,7 @@ Paste or type the full file path into the "Open" text input instead of using "Br
 
 ---
 
-## VERSO-002: Cell type switching and registered cell types not exposed in Blazor UI
-
-| | |
-|---|---|
-| **Status** | In Development |
-| **Affected** | Verso.Blazor |
-| **Severity** | Low |
-
-### Symptom
-
-The Blazor toolbar only offers "+ Code" and "+ Markdown" buttons. Cell types registered through extensions (e.g. SQL via `Verso.Ado`) cannot be created from the UI — they can only be loaded by opening a `.verso` file that already contains them. Additionally, there is no way to change a cell's type after creation.
-
-### Root cause
-
-The toolbar in `Toolbar.razor` hard-codes two buttons that emit `"code"` and `"markdown"` type strings. There is no dynamic cell type picker that queries the `ICellType` registry from `ExtensionHost.GetCellTypes()`, and no cell-conversion UI exists.
-
-### Planned fix
-
-A cell type dropdown/picker that enumerates all registered `ICellType` extensions at runtime, including the ability to switch an existing cell's type.
-
-### Workaround
-
-Extension-specific cell types (e.g. SQL) can be authored in `.verso` files directly or added programmatically via `NotebookService.AddCell("sql")`.
-
----
-
-## VERSO-003: F# `None` values cannot be stored in the variable store
+## VERSO-002: F# `None` values cannot be stored in the variable store
 
 | | |
 |---|---|
@@ -102,7 +75,7 @@ The F# kernel's automatic variable publishing already handles this — `None` bi
 
 ---
 
-## VERSO-004: F# anonymous records not recognized by data formatter
+## VERSO-003: F# anonymous records not recognized by data formatter
 
 | | |
 |---|---|
@@ -128,7 +101,7 @@ Use named record types for rich formatting, or call `printfn "%A" value` for str
 
 ---
 
-## VERSO-005: F# compiler settings changes require kernel restart
+## VERSO-004: F# compiler settings changes require kernel restart
 
 | | |
 |---|---|
@@ -150,7 +123,7 @@ After changing compiler settings, restart the F# kernel via `#!restart` or the t
 
 ---
 
-## VERSO-006: Jupyter F# import `#!share` uses untyped variable binding
+## VERSO-005: Jupyter F# import `#!share` uses untyped variable binding
 
 | | |
 |---|---|
