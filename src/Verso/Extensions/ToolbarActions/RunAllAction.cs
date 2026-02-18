@@ -23,7 +23,7 @@ public sealed class RunAllAction : IToolbarAction
 
     public string ActionId => "verso.action.run-all";
     public string DisplayName => "Run All";
-    public string? Icon => null;
+    public string? Icon => "<svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"currentColor\"><path d=\"M2 3v10l5-5z\"/><path d=\"M8 3v10l5-5z\"/></svg>";
     public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;
     public int Order => 10;
 

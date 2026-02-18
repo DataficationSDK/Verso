@@ -1,4 +1,5 @@
 using Verso.Blazor.Services;
+using Verso.Blazor.Shared.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +9,7 @@ builder.Services.AddRazorComponents()
         options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromHours(1);
     });
 
-builder.Services.AddScoped<NotebookService>();
+builder.Services.AddScoped<INotebookService, ServerNotebookService>();
 
 var app = builder.Build();
 

@@ -1,6 +1,3 @@
-@using Verso.Contexts
-@using Verso.Extensions
-
 <div class="verso-sidebar-panel">
     <div class="verso-variable-toolbar">
         <button class="verso-cell-btn" title="Refresh" @onclick="Refresh">&#8635;</button>
@@ -57,9 +54,9 @@
 </div>
 
 @code {
-    [Parameter] public NotebookService Service { get; set; } = default!;
+    [Parameter] public INotebookService Service { get; set; } = default!;
 
-    private List<VariableExplorerEntry> _entries = new();
+    private List<VariableEntryDto> _entries = new();
     private string? _inspecting;
     private string? _inspectContent;
     private string _inspectMimeType = "text/plain";
@@ -71,62 +68,23 @@
 
     private void Refresh()
     {
-        if (Service?.Scaffold is null || Service.ExtensionHost is null)
-        {
-            _entries = new();
-            return;
-        }
-
-        var previewService = new VariablePreviewService(Service.ExtensionHost);
-        var variables = Service.Scaffold.Variables.GetAll();
-
-        _entries = variables.Where(v => !v.Name.StartsWith("__")).Select(v => new VariableExplorerEntry(
-            v.Name,
-            v.Type.Name,
-            previewService.GetPreview(v.Value),
-            v.Value is not null && v.Value is not string && (v.Value is System.Collections.IEnumerable || v.Value.GetType().GetProperties().Length > 0)
-        )).ToList();
+        _entries = Service.GetVariables().ToList();
     }
 
     private async Task InspectAsync(string name)
     {
-        if (Service?.Scaffold is null || Service.ExtensionHost is null) return;
-
         _inspecting = name;
 
-        var variables = Service.Scaffold.Variables;
-        var all = variables.GetAll();
-        var descriptor = all.FirstOrDefault(v =>
-            string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase));
-
-        if (descriptor?.Value is null)
+        var result = await Service.InspectVariableAsync(name);
+        if (result is null)
         {
             _inspectContent = "null";
             _inspectMimeType = "text/plain";
             return;
         }
 
-        // Try formatters
-        var formatters = Service.ExtensionHost.GetFormatters();
-        var context = new SimpleFormatterContext(Service.ExtensionHost, variables);
-
-        foreach (var formatter in formatters.OrderByDescending(f => f.Priority))
-        {
-            if (formatter.CanFormat(descriptor.Value, context))
-            {
-                try
-                {
-                    var output = await formatter.FormatAsync(descriptor.Value, context);
-                    _inspectMimeType = output.MimeType;
-                    _inspectContent = output.Content;
-                    return;
-                }
-                catch { /* fall through */ }
-            }
-        }
-
-        _inspectMimeType = "text/plain";
-        _inspectContent = descriptor.Value.ToString() ?? "null";
+        _inspectMimeType = result.MimeType;
+        _inspectContent = result.Content;
     }
 
     private void CloseInspect()

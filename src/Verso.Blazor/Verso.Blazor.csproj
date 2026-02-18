@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Verso\Verso.csproj" />
     <ProjectReference Include="..\Verso.Ado\Verso.Ado.csproj" />
     <ProjectReference Include="..\Verso.FSharp\Verso.FSharp.csproj" />
+    <ProjectReference Include="..\Verso.Blazor.Shared\Verso.Blazor.Shared.csproj" />
   </ItemGroup>
 
 </Project>

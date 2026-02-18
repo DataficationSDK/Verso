@@ -371,6 +371,22 @@ export interface SettingsChangedNotification {
   value?: unknown;
 }
 
+// --- Toolbar DTOs ---
+
+export interface ToolbarGetEnabledStatesParams {
+  placement: string;
+  selectedCellIds: string[];
+}
+
+export interface ToolbarGetEnabledStatesResult {
+  states: Record<string, boolean>;
+}
+
+export interface ToolbarExecuteParams {
+  actionId: string;
+  selectedCellIds: string[];
+}
+
 // --- Variable Explorer DTOs ---
 
 export interface VariableListResult {

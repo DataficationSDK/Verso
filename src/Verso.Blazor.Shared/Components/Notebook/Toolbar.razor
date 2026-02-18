@@ -1,30 +1,42 @@
-@using Verso.Extensions
-@using Microsoft.JSInterop
-
 <div class="verso-toolbar">
-    <div class="verso-toolbar-group">
-        <button class="verso-toolbar-btn" @onclick="OnNew" title="New Notebook">New</button>
-        <button class="verso-toolbar-btn" @onclick="OnOpenClick" title="Open File">Open</button>
-    </div>
-
-    @if (_showOpenInput)
+    @if (!Service.IsEmbedded)
     {
         <div class="verso-toolbar-group">
-            <input class="verso-toolbar-input" @bind="_openFilePath" @bind:event="oninput" placeholder="File path or URL..." @onkeydown="OnOpenKeyDown" />
-            <button class="verso-toolbar-btn" @onclick="OnOpenFile">Go</button>
-            <label class="verso-toolbar-btn verso-toolbar-btn--browse">
-                Browse
-                <InputFile accept=".verso,.ipynb" OnChange="OnFileSelected" style="display:none" />
-            </label>
-            <button class="verso-toolbar-btn" @onclick="() => _showOpenInput = false">Cancel</button>
+            <button class="verso-toolbar-btn" @onclick="OnNew" title="New Notebook">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z"/><path d="M9 2v4h4"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="6" y1="11" x2="10" y2="11"/></svg>
+                New
+            </button>
+            <button class="verso-toolbar-btn" @onclick="OnOpenClick" title="Open File">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H8L6.5 3.5 6 3H3a1 1 0 0 0-1 1z"/></svg>
+                Open
+            </button>
         </div>
+
+        @if (_showOpenInput)
+        {
+            <div class="verso-toolbar-group">
+                <input class="verso-toolbar-input" @bind="_openFilePath" @bind:event="oninput" placeholder="File path or URL..." @onkeydown="OnOpenKeyDown" />
+                <button class="verso-toolbar-btn" @onclick="OnOpenFile">Go</button>
+                <label class="verso-toolbar-btn verso-toolbar-btn--browse">
+                    Browse
+                    <InputFile accept=".verso,.ipynb" OnChange="OnFileSelected" style="display:none" />
+                </label>
+                <button class="verso-toolbar-btn" @onclick="() => _showOpenInput = false">Cancel</button>
+            </div>
+        }
     }
 
     @if (Service.IsLoaded)
     {
-        <div class="verso-toolbar-separator"></div>
+        @if (!Service.IsEmbedded)
+        {
+            <div class="verso-toolbar-separator"></div>
+        }
 
-        <button class="verso-toolbar-btn" @onclick="OnSave" title="Save">Save</button>
+        <button class="verso-toolbar-btn" @onclick="OnSave" title="Save">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h8l2 2v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M5 2v3h4V2"/><path d="M5 10h6v4H5z"/></svg>
+            Save
+        </button>
 
         <div class="verso-toolbar-separator"></div>
 
@@ -36,6 +48,10 @@
                     disabled="@(!isEnabled)"
                     title="@a.DisplayName"
                     @onclick="() => ExecuteActionAsync(a)">
+                @if (a.Icon is not null)
+                {
+                    @((MarkupString)a.Icon)
+                }
                 @a.DisplayName
             </button>
         }
@@ -47,7 +63,7 @@
             <button class="verso-toolbar-btn" @onclick="OnAddMarkdownCell" title="Add Markdown Cell">+ Markdown</button>
         </div>
 
-        @if (_availableLayouts.Count > 1)
+        @if (Service.AvailableLayouts.Count > 1)
         {
             <div class="verso-toolbar-separator"></div>
 
@@ -55,6 +71,7 @@
                 <button class="verso-toolbar-btn"
                         title="Switch Layout"
                         @onclick="CycleLayout">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="1"/><line x1="6" y1="1.5" x2="6" y2="14.5"/><line x1="6" y1="8" x2="14.5" y2="8"/></svg>
                     @ActiveLayoutName
                 </button>
                 <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
@@ -65,10 +82,10 @@
                 @if (_showLayoutDropdown)
                 {
                     <div class="verso-toolbar-dropdown-popup">
-                        @foreach (var layout in _availableLayouts)
+                        @foreach (var layout in Service.AvailableLayouts)
                         {
                             var l = layout;
-                            var isActive = string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase);
+                            var isActive = string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase);
                             <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
                                     @onclick="() => SelectLayout(l.LayoutId)">
                                 @l.DisplayName
@@ -79,7 +96,7 @@
             </div>
         }
 
-        @if (_availableThemes.Count > 1)
+        @if (Service.AvailableThemes.Count > 1 && !Service.IsEmbedded)
         {
             <div class="verso-toolbar-separator"></div>
 
@@ -87,6 +104,7 @@
                 <button class="verso-toolbar-btn"
                         title="Switch Theme"
                         @onclick="CycleTheme">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><circle cx="5.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
                     @ActiveThemeName
                 </button>
                 <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
@@ -97,10 +115,10 @@
                 @if (_showThemeDropdown)
                 {
                     <div class="verso-toolbar-dropdown-popup">
-                        @foreach (var theme in _availableThemes)
+                        @foreach (var theme in Service.AvailableThemes)
                         {
                             var t = theme;
-                            var isActive = string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase);
+                            var isActive = string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase);
                             <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
                                     @onclick="() => SelectTheme(t.ThemeId)">
                                 @t.DisplayName
@@ -111,7 +129,7 @@
             </div>
         }
 
-        @if (_exportActions.Count > 0)
+        @if (_exportActions.Count > 0 && !Service.IsEmbedded)
         {
             <div class="verso-toolbar-separator"></div>
 
@@ -119,6 +137,7 @@
                 <button class="verso-toolbar-btn"
                         title="Export Notebook"
                         @onclick="ToggleExportDropdown">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3"/><polyline points="5.5 5 8 2.5 10.5 5"/><line x1="8" y1="2.5" x2="8" y2="10"/></svg>
                     Export &#9662;
                 </button>
                 @if (_showExportDropdown)
@@ -143,7 +162,7 @@
 </div>
 
 @code {
-    [Parameter] public NotebookService Service { get; set; } = default!;
+    [Parameter] public INotebookService Service { get; set; } = default!;
     [Parameter] public Guid? SelectedCellId { get; set; }
     [Parameter] public EventCallback OnNewNotebook { get; set; }
     [Parameter] public EventCallback<string> OnOpenNotebook { get; set; }
@@ -153,17 +172,9 @@
     [Parameter] public EventCallback<string> OnActionExecuted { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
 
-
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-
-    private List<IToolbarAction> _mainToolbarActions = new();
-    private List<IToolbarAction> _filteredToolbarActions = new();
-    private List<IToolbarAction> _exportActions = new();
+    private List<ToolbarActionInfo> _filteredToolbarActions = new();
+    private List<ToolbarActionInfo> _exportActions = new();
     private Dictionary<string, bool> _enabledStates = new();
-    private List<Verso.Abstractions.ILayoutEngine> _availableLayouts = new();
-    private string? _activeLayoutId;
-    private List<Verso.Abstractions.ITheme> _availableThemes = new();
-    private string? _activeThemeId;
     private bool _showOpenInput;
     private string _openFilePath = "";
     private bool _showLayoutDropdown;
@@ -185,56 +196,24 @@
     };
 
     private string ActiveLayoutName =>
-        _availableLayouts.FirstOrDefault(l => string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Layout";
+        Service.AvailableLayouts.FirstOrDefault(l => string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Layout";
 
     private string ActiveThemeName =>
-        _availableThemes.FirstOrDefault(t => string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Theme";
+        Service.AvailableThemes.FirstOrDefault(t => string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Theme";
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Service.ExtensionHost is not null)
+        if (Service.IsLoaded)
         {
-            _mainToolbarActions = Service.ExtensionHost.GetToolbarActions()
-                .Where(a => a.Placement == ToolbarPlacement.MainToolbar)
-                .OrderBy(a => a.Order)
-                .ToList();
+            var allMainActions = Service.GetToolbarActions(ToolbarPlacement.MainToolbar);
 
-            _filteredToolbarActions = _mainToolbarActions
+            _filteredToolbarActions = allMainActions
                 .Where(a => !_excludedActionIds.Contains(a.ActionId))
                 .ToList();
 
-            _exportActions = _mainToolbarActions
+            _exportActions = allMainActions
                 .Where(a => _exportActionIds.Contains(a.ActionId))
                 .ToList();
-
-            _availableLayouts = Service.ExtensionHost?.GetLayouts()?.ToList()
-                ?? new List<Verso.Abstractions.ILayoutEngine>();
-            _activeLayoutId = Service.Scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
-
-            _availableThemes = Service.ExtensionHost?.GetThemes()?.ToList()
-                ?? new List<Verso.Abstractions.ITheme>();
-            _activeThemeId = Service.Scaffold?.ThemeEngine?.ActiveTheme?.ThemeId;
-
-            // If the active layout/theme was disabled, fall back to first available
-            if (_activeLayoutId is not null && !_availableLayouts.Any(l =>
-                string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase)))
-            {
-                var fallback = _availableLayouts.FirstOrDefault();
-                if (fallback is not null)
-                    await SwitchLayout(fallback.LayoutId);
-                else
-                    _activeLayoutId = null;
-            }
-
-            if (_activeThemeId is not null && !_availableThemes.Any(t =>
-                string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase)))
-            {
-                var fallback = _availableThemes.FirstOrDefault();
-                if (fallback is not null)
-                    await SwitchTheme(fallback.ThemeId);
-                else
-                    _activeThemeId = null;
-            }
 
             await RefreshEnabledStatesAsync();
         }
@@ -242,33 +221,23 @@
 
     private async Task RefreshEnabledStatesAsync()
     {
-        if (Service.Scaffold is null) return;
-
         var selectedIds = SelectedCellId.HasValue
             ? new List<Guid> { SelectedCellId.Value }
             : new List<Guid>();
 
-        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds, JSRuntime);
-
-        foreach (var action in _mainToolbarActions)
-        {
-            _enabledStates[action.ActionId] = await action.IsEnabledAsync(context);
-        }
+        _enabledStates = await Service.GetActionEnabledStatesAsync(
+            ToolbarPlacement.MainToolbar, selectedIds);
     }
 
-    private async Task ExecuteActionAsync(IToolbarAction action)
+    private async Task ExecuteActionAsync(ToolbarActionInfo action)
     {
-        if (Service.Scaffold is null) return;
-
         var selectedIds = SelectedCellId.HasValue
             ? new List<Guid> { SelectedCellId.Value }
             : new List<Guid>();
-
-        var context = new BlazorToolbarActionContext(Service.Scaffold, selectedIds, JSRuntime);
 
         try
         {
-            await action.ExecuteAsync(context);
+            await Service.ExecuteActionAsync(action.ActionId, selectedIds);
             await OnActionExecuted.InvokeAsync(action.ActionId);
         }
         catch (Exception ex)
@@ -297,34 +266,34 @@
 
     private async Task SwitchLayout(string layoutId)
     {
-        Service.SwitchLayout(layoutId);
-        _activeLayoutId = layoutId;
+        await Service.SwitchLayoutAsync(layoutId);
         await RefreshEnabledStatesAsync();
         await OnActionExecuted.InvokeAsync("verso.switchLayout");
     }
 
     private async Task SwitchTheme(string themeId)
     {
-        Service.SwitchTheme(themeId);
-        _activeThemeId = themeId;
+        await Service.SwitchThemeAsync(themeId);
         await RefreshEnabledStatesAsync();
         await OnActionExecuted.InvokeAsync("verso.switchTheme");
     }
 
     private async Task CycleLayout()
     {
-        if (_availableLayouts.Count < 2) return;
-        var currentIndex = _availableLayouts.FindIndex(l => string.Equals(l.LayoutId, _activeLayoutId, StringComparison.OrdinalIgnoreCase));
-        var nextIndex = (currentIndex + 1) % _availableLayouts.Count;
-        await SwitchLayout(_availableLayouts[nextIndex].LayoutId);
+        var layouts = Service.AvailableLayouts;
+        if (layouts.Count < 2) return;
+        var currentIndex = layouts.ToList().FindIndex(l => string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase));
+        var nextIndex = (currentIndex + 1) % layouts.Count;
+        await SwitchLayout(layouts[nextIndex].LayoutId);
     }
 
     private async Task CycleTheme()
     {
-        if (_availableThemes.Count < 2) return;
-        var currentIndex = _availableThemes.FindIndex(t => string.Equals(t.ThemeId, _activeThemeId, StringComparison.OrdinalIgnoreCase));
-        var nextIndex = (currentIndex + 1) % _availableThemes.Count;
-        await SwitchTheme(_availableThemes[nextIndex].ThemeId);
+        var themes = Service.AvailableThemes;
+        if (themes.Count < 2) return;
+        var currentIndex = themes.ToList().FindIndex(t => string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase));
+        var nextIndex = (currentIndex + 1) % themes.Count;
+        await SwitchTheme(themes[nextIndex].ThemeId);
     }
 
     private void ToggleLayoutDropdown()
@@ -350,7 +319,7 @@
 
     private void OnExportDropdownFocusOut() => _showExportDropdown = false;
 
-    private async Task ExecuteExportAsync(IToolbarAction action)
+    private async Task ExecuteExportAsync(ToolbarActionInfo action)
     {
         _showExportDropdown = false;
         await ExecuteActionAsync(action);

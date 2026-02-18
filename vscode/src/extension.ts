@@ -16,6 +16,7 @@ import {
 } from "./providers/variableTreeProvider";
 import { registerToolbarActions } from "./toolbar/toolbarActions";
 import { DashboardPanel } from "./layout/dashboardPanel";
+import { BlazorEditorProvider } from "./blazor/blazorEditorProvider";
 import { applyEngineTheme } from "./theme/themeMapper";
 import {
   ExtensionListResult,
@@ -83,6 +84,16 @@ export async function activate(
     );
     return;
   }
+
+  // Register Blazor WASM custom editor (available via "Open With...")
+  const blazorProvider = new BlazorEditorProvider(context, host);
+  context.subscriptions.push(
+    vscode.window.registerCustomEditorProvider(
+      BlazorEditorProvider.viewType,
+      blazorProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }
+    )
+  );
 
   // Register notebook controller
   const controller = new VersoController(host);
@@ -276,26 +287,31 @@ function resolveHostPath(context: vscode.ExtensionContext): string {
     return configured;
   }
 
-  // Search workspace folders for the Verso.Host.dll
+  // Search workspace folders for the Verso.Host.dll (check Release first, then Debug)
+  const configs = ["Release", "Debug"];
   const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
   for (const folder of workspaceFolders) {
-    const candidates = [
-      // Direct workspace is the Verso project
-      path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", "Debug", "net8.0", "Verso.Host.dll"),
-      // Workspace is a parent (e.g., Datafication.DataIntegration)
-      path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", "Debug", "net8.0", "Verso.Host.dll"),
-    ];
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) {
-        return candidate;
+    for (const cfg of configs) {
+      const candidates = [
+        // Direct workspace is the Verso project
+        path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
+        // Workspace is a parent (e.g., Datafication.DataIntegration)
+        path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
+      ];
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
       }
     }
   }
 
   // Fallback: relative to extension path (works in dev host / local install)
-  const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", "Debug", "net8.0", "Verso.Host.dll");
-  if (fs.existsSync(extensionRelative)) {
-    return extensionRelative;
+  for (const cfg of configs) {
+    const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll");
+    if (fs.existsSync(extensionRelative)) {
+      return extensionRelative;
+    }
   }
 
   // Nothing found — return the configured value (or empty) so the error is clear

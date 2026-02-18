@@ -25,6 +25,17 @@ public sealed class NotebookSaveResult
     public string Content { get; set; } = "";
 }
 
+public sealed class CellTypesResult
+{
+    public List<CellTypeDto> CellTypes { get; set; } = new();
+}
+
+public sealed class CellTypeDto
+{
+    public string Id { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+}
+
 public sealed class LanguagesResult
 {
     public List<LanguageDto> Languages { get; set; } = new();
@@ -100,6 +111,12 @@ public sealed class CellUpdateSourceParams
 {
     public string CellId { get; set; } = "";
     public string Source { get; set; } = "";
+}
+
+public sealed class CellChangeTypeParams
+{
+    public string CellId { get; set; } = "";
+    public string Type { get; set; } = "code";
 }
 
 public sealed class CellGetParams
@@ -228,6 +245,19 @@ public sealed class LayoutRenderResult
     public string Html { get; set; } = "";
 }
 
+public sealed class LayoutGetCellContainerParams
+{
+    public string CellId { get; set; } = "";
+}
+
+public sealed class LayoutGetCellContainerResult
+{
+    public int Row { get; set; }
+    public int Col { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+}
+
 public sealed class LayoutUpdateCellParams
 {
     public string CellId { get; set; } = "";
@@ -296,4 +326,23 @@ public sealed class ThemeListItemDto
     public string DisplayName { get; set; } = "";
     public string ThemeKind { get; set; } = "";
     public bool IsActive { get; set; }
+}
+
+// --- Toolbar ---
+
+public sealed class ToolbarGetEnabledStatesParams
+{
+    public string Placement { get; set; } = "";
+    public List<string> SelectedCellIds { get; set; } = new();
+}
+
+public sealed class ToolbarGetEnabledStatesResult
+{
+    public Dictionary<string, bool> States { get; set; } = new();
+}
+
+public sealed class ToolbarExecuteParams
+{
+    public string ActionId { get; set; } = "";
+    public List<string> SelectedCellIds { get; set; } = new();
 }

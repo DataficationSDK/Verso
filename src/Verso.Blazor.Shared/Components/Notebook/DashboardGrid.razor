@@ -1,0 +1,59 @@
+<div class="verso-dashboard-grid">
+    @foreach (var cell in Cells)
+    {
+        var pos = _positions.GetValueOrDefault(cell.Id, new CellContainerInfo(cell.Id, 0, 0, 6, 4));
+        <DashboardCell CellData="cell"
+                       Position="pos"
+                       IsExecuting="cell.Id == ExecutingCellId"
+                       OnRunCell="OnRunCell"
+                       OnSourceChanged="OnSourceChanged"
+                       OnResized="HandleCellResized"
+                       OnMoved="HandleCellMoved" />
+    }
+</div>
+
+@code {
+    [Parameter] public INotebookService Service { get; set; } = default!;
+    [Parameter] public IReadOnlyList<CellModel> Cells { get; set; } = Array.Empty<CellModel>();
+    [Parameter] public Guid? ExecutingCellId { get; set; }
+    [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
+
+    private Dictionary<Guid, CellContainerInfo> _positions = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var positions = new Dictionary<Guid, CellContainerInfo>();
+        foreach (var cell in Cells)
+        {
+            positions[cell.Id] = await Service.GetCellContainerAsync(cell.Id);
+        }
+        _positions = positions;
+    }
+
+    private async Task HandleCellResized((Guid CellId, int ColSpan, int RowSpan) args)
+    {
+        var current = _positions.GetValueOrDefault(args.CellId, new CellContainerInfo(args.CellId, 0, 0, 6, 4));
+        await Service.UpdateCellPositionAsync(
+            args.CellId,
+            (int)current.Y,     // preserve row
+            (int)current.X,     // preserve column
+            args.ColSpan,
+            args.RowSpan);
+        _positions[args.CellId] = await Service.GetCellContainerAsync(args.CellId);
+        StateHasChanged();
+    }
+
+    private async Task HandleCellMoved((Guid CellId, int Col, int Row) args)
+    {
+        var current = _positions.GetValueOrDefault(args.CellId, new CellContainerInfo(args.CellId, 0, 0, 6, 4));
+        await Service.UpdateCellPositionAsync(
+            args.CellId,
+            args.Row,
+            args.Col,
+            (int)current.Width,   // preserve width
+            (int)current.Height); // preserve height
+        _positions[args.CellId] = await Service.GetCellContainerAsync(args.CellId);
+        StateHasChanged();
+    }
+}

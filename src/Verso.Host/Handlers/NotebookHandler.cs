@@ -102,7 +102,6 @@ public static class NotebookHandler
     {
         session.EnsureSession();
         var scaffold = session.Scaffold!;
-        var extensionHost = session.ExtensionHost!;
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var languages = new List<LanguageDto>();
@@ -119,20 +118,31 @@ public static class NotebookHandler
             });
         }
 
-        // From cell types that have an embedded kernel (e.g. SqlCellType)
-        foreach (var cellType in extensionHost.GetCellTypes())
+        return new LanguagesResult { Languages = languages };
+    }
+
+    public static CellTypesResult HandleGetCellTypes(HostSession session)
+    {
+        session.EnsureSession();
+        var types = new List<CellTypeDto> { new() { Id = "code", DisplayName = "Code" } };
+
+        var extHost = session.ExtensionHost!;
+
+        var hasMarkdown = extHost.GetCellTypes()
+            .Any(ct => string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
+            || extHost.GetRenderers()
+            .Any(r => string.Equals(r.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
+        if (hasMarkdown)
+            types.Add(new() { Id = "markdown", DisplayName = "Markdown" });
+
+        foreach (var ct in extHost.GetCellTypes())
         {
-            if (cellType.Kernel is not null && seen.Add(cellType.Kernel.LanguageId))
-            {
-                languages.Add(new LanguageDto
-                {
-                    Id = cellType.Kernel.LanguageId,
-                    DisplayName = cellType.Kernel.DisplayName ?? cellType.Kernel.LanguageId
-                });
-            }
+            if (!string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
+                types.Add(new() { Id = ct.CellTypeId, DisplayName = ct.DisplayName });
         }
 
-        return new LanguagesResult { Languages = languages };
+        return new CellTypesResult { CellTypes = types };
     }
 
     public static ToolbarActionsResult HandleGetToolbarActions(HostSession session)

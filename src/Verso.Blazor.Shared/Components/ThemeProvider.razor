@@ -1,3 +1,4 @@
+@using System.Diagnostics.CodeAnalysis
 @using System.Reflection
 @using System.Text
 
@@ -7,7 +8,7 @@
 }
 
 @code {
-    [Parameter] public ThemeEngine? ThemeEngine { get; set; }
+    [Parameter] public ThemeData? Theme { get; set; }
 
     private string? _css;
 
@@ -16,15 +17,16 @@
         _css = BuildCss();
     }
 
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ThemeColorTokens))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ThemeTypography))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ThemeSpacing))]
     private string BuildCss()
     {
         var sb = new StringBuilder();
         sb.AppendLine(":root {");
 
-        var theme = ThemeEngine?.ActiveTheme;
-
         // Color tokens
-        var colors = theme?.Colors ?? new ThemeColorTokens();
+        var colors = Theme?.Colors ?? new ThemeColorTokens();
         foreach (var prop in typeof(ThemeColorTokens).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (prop.PropertyType != typeof(string)) continue;
@@ -34,7 +36,7 @@
         }
 
         // Typography tokens
-        var typography = theme?.Typography ?? new ThemeTypography();
+        var typography = Theme?.Typography ?? new ThemeTypography();
         foreach (var prop in typeof(ThemeTypography).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (prop.PropertyType != typeof(FontDescriptor)) continue;
@@ -48,7 +50,7 @@
         }
 
         // Spacing tokens
-        var spacing = theme?.Spacing ?? new ThemeSpacing();
+        var spacing = Theme?.Spacing ?? new ThemeSpacing();
         foreach (var prop in typeof(ThemeSpacing).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (prop.PropertyType != typeof(double)) continue;

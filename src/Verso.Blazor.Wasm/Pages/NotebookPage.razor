@@ -1,19 +1,15 @@
 @page "/"
 @implements IDisposable
 @inject INotebookService Service
+@inject VsCodeBridge Bridge
 @inject IJSRuntime JS
 
-<PageTitle>Verso Notebook</PageTitle>
-
-<ThemeProvider Theme="@Service.ActiveThemeData" />
+@* VS Code webview theme is driven by --vscode-* CSS variables mapped in the webview HTML *@
 
 <div class="verso-notebook"
      tabindex="0" @onkeydown="HandleKeyDown">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
-             OnNewNotebook="HandleNew"
-             OnOpenNotebook="HandleOpen"
-             OnBrowseNotebook="HandleBrowse"
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
@@ -37,9 +33,10 @@
     @if (!Service.IsLoaded)
     {
         <div class="verso-welcome">
-            <h1>Verso Notebook</h1>
-            <p>Create a new notebook or open an existing <code>.verso</code> or <code>.ipynb</code> file to get started.</p>
-            <button class="verso-welcome-btn" @onclick="HandleNew">New Notebook</button>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="verso-spinner"></div>
+                <span>Waiting for notebook content...</span>
+            </div>
         </div>
     }
     else
@@ -194,13 +191,22 @@
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
 
-    private string MonacoThemeName =>
-        Service.ActiveThemeKind == ThemeKind.Dark ? "vs-dark" : "vs";
+    private string _monacoThemeName = "vs";
+
+    private async Task<string> DetectMonacoThemeAsync()
+    {
+        try
+        {
+            var kind = await JS.InvokeAsync<string>("vscodeBridge.getThemeKind");
+            return kind == "dark" ? "vs-dark" : "vs";
+        }
+        catch { return "vs"; }
+    }
 
     protected override void OnInitialized()
     {
         Service.OnCellExecuted += StateHasChanged;
-        Service.OnNotebookChanged += StateHasChanged;
+        Service.OnNotebookChanged += HandleNotebookChanged;
         Service.OnLayoutChanged += StateHasChanged;
         Service.OnThemeChanged += HandleThemeChanged;
         Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
@@ -211,7 +217,15 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
+            // Initialize the bridge notification handler
+            await Bridge.InitializeAsync();
+
+            // Listen for the initial notebook content from VS Code
+            Bridge.OnNotification += HandleBridgeNotification;
+
             await SyncMonacoThemeAsync();
+        }
 
         if (_activePanel is not null && !_panelResizeInitialized)
         {
@@ -221,13 +235,27 @@
             {
                 await JS.InvokeVoidAsync("versoPanel.initResize", _resizeHandle, _panelContentEl, _panelResizeRef, 200, 600);
             }
-            catch (JSDisconnectedException) { }
             catch (JSException) { }
         }
         else if (_activePanel is null)
         {
             _panelResizeInitialized = false;
         }
+    }
+
+    private async void HandleBridgeNotification(string method, string? paramsJson)
+    {
+        if (method == "notebook/opened")
+        {
+            // The extension opened the file and sent its content through
+            // The RemoteNotebookService handles this internally
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async void HandleNotebookChanged()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void HandleThemeChanged()
@@ -255,9 +283,9 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("versoMonaco.setTheme", MonacoThemeName);
+            _monacoThemeName = await DetectMonacoThemeAsync();
+            await JS.InvokeVoidAsync("versoMonaco.setTheme", _monacoThemeName);
         }
-        catch (JSDisconnectedException) { }
         catch (JSException) { }
     }
 
@@ -290,63 +318,13 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private async Task HandleNew()
-    {
-        try
-        {
-            _error = null;
-            await Service.NewNotebookAsync();
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
-            await SyncMonacoThemeAsync();
-        }
-        catch (Exception ex)
-        {
-            _error = $"Failed to create notebook: {ex.Message}";
-        }
-    }
-
-    private async Task HandleOpen(string filePath)
-    {
-        try
-        {
-            _error = null;
-            await Service.OpenAsync(filePath);
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
-            await SyncMonacoThemeAsync();
-        }
-        catch (Exception ex)
-        {
-            _error = $"Failed to open file: {ex.Message}";
-        }
-    }
-
-    private async Task HandleBrowse((string FileName, string Content) args)
-    {
-        try
-        {
-            _error = null;
-            await Service.OpenFromContentAsync(args.FileName, args.Content);
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
-            await SyncMonacoThemeAsync();
-        }
-        catch (Exception ex)
-        {
-            _error = $"Failed to open file: {ex.Message}";
-        }
-    }
-
     private async Task HandleSave()
     {
         try
         {
             _error = null;
-            var path = Service.FilePath ?? "notebook.verso";
-
-            if (!path.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
-                path = System.IO.Path.ChangeExtension(path, ".verso");
-
-            await Service.SaveAsync(path);
-            await ShowStatusAsync($"Saved to {System.IO.Path.GetFileName(path)}");
+            await Service.SaveAsync(Service.FilePath ?? "notebook.verso");
+            await ShowStatusAsync("Saved");
         }
         catch (Exception ex)
         {
@@ -541,7 +519,6 @@
             await JS.InvokeVoidAsync("versoMonaco.focusByContainer",
                 $".verso-cell--selected .verso-cell-editor");
         }
-        catch (JSDisconnectedException) { }
         catch (JSException) { }
     }
 
@@ -597,8 +574,9 @@
         _statusCts?.Cancel();
         _statusCts?.Dispose();
         _panelResizeRef?.Dispose();
+        Bridge.OnNotification -= HandleBridgeNotification;
         Service.OnCellExecuted -= StateHasChanged;
-        Service.OnNotebookChanged -= StateHasChanged;
+        Service.OnNotebookChanged -= HandleNotebookChanged;
         Service.OnLayoutChanged -= StateHasChanged;
         Service.OnThemeChanged -= HandleThemeChanged;
         Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;

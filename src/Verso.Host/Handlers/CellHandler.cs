@@ -56,6 +56,40 @@ public static class CellHandler
         return new { success = true };
     }
 
+    public static object HandleChangeType(HostSession session, JsonElement? @params)
+    {
+        session.EnsureSession();
+        var p = @params?.Deserialize<CellChangeTypeParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for cell/changeType");
+
+        var cellId = Guid.Parse(p.CellId);
+        var cell = session.Scaffold!.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null)
+            return new { success = false };
+
+        if (!string.Equals(cell.Type, p.Type, StringComparison.OrdinalIgnoreCase))
+        {
+            var extHost = session.ExtensionHost!;
+            var cellType = extHost.GetCellTypes()
+                .FirstOrDefault(t => string.Equals(t.CellTypeId, p.Type, StringComparison.OrdinalIgnoreCase));
+
+            string? language = cellType?.Kernel?.LanguageId;
+            if (language is null)
+            {
+                var hasRenderer = extHost.GetRenderers()
+                    .Any(r => string.Equals(r.CellTypeId, p.Type, StringComparison.OrdinalIgnoreCase));
+                if (!hasRenderer)
+                    language = session.Scaffold!.DefaultKernelId ?? "csharp";
+            }
+
+            cell.Type = p.Type;
+            cell.Language = language;
+            cell.Outputs.Clear();
+        }
+
+        return new { success = true };
+    }
+
     public static CellDto? HandleGet(HostSession session, JsonElement? @params)
     {
         session.EnsureSession();

@@ -44,3 +44,6 @@ TestResult.xml
 coverage/
 *.coverage
 *.coveragexml
+
+## VS Code extension — Blazor WASM publish output
+vscode/blazor-wasm/

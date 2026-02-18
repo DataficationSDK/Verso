@@ -1,14 +1,11 @@
-@using Verso.Abstractions
-
 <div class="verso-sidebar-panel">
-    @if (Service?.Scaffold?.SettingsManager is { } manager)
+    @if (Service.IsLoaded)
     {
-        var allDefinitions = manager.GetAllDefinitions();
-        var enabledExtensionIds = Service.ExtensionHost?.GetExtensionInfos()
+        var allDefinitions = Service.GetSettingDefinitions();
+        var enabledExtensionIds = Service.Extensions
             .Where(e => e.Status == ExtensionStatus.Enabled)
             .Select(e => e.ExtensionId)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase)
-            ?? new HashSet<string>();
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var visibleDefinitions = allDefinitions
             .Where(d => enabledExtensionIds.Contains(d.ExtensionId))
             .ToList();
@@ -20,11 +17,12 @@
         }
         else
         {
-            @foreach (var (extensionId, definitions) in visibleDefinitions)
+            @foreach (var group in visibleDefinitions)
             {
-                var extId = extensionId;
+                var extId = group.ExtensionId;
+                var definitions = group.Definitions;
                 var isOpen = _expandedExtensions.Contains(extId);
-                var extInfo = Service.ExtensionHost?.GetExtensionInfos()
+                var extInfo = Service.Extensions
                     .FirstOrDefault(e => string.Equals(e.ExtensionId, extId, StringComparison.OrdinalIgnoreCase));
                 var displayName = extInfo?.Name ?? extId;
 
@@ -44,7 +42,7 @@
                                 @foreach (var def in category)
                                 {
                                     var d = def;
-                                    var currentValue = GetCurrentValue(extId, d);
+                                    var currentValue = Service.GetSettingValue(extId, d.Name) ?? d.DefaultValue;
                                     <div class="verso-settings-item">
                                         <label class="verso-settings-label">@d.DisplayName</label>
                                         <div class="verso-settings-description">@d.Description</div>
@@ -114,7 +112,7 @@
 </div>
 
 @code {
-    [Parameter] public NotebookService Service { get; set; } = default!;
+    [Parameter] public INotebookService Service { get; set; } = default!;
 
     private readonly HashSet<string> _expandedExtensions = new();
 
@@ -122,26 +120,6 @@
     {
         if (!_expandedExtensions.Remove(extensionId))
             _expandedExtensions.Add(extensionId);
-    }
-
-    private object? GetCurrentValue(string extensionId, SettingDefinition definition)
-    {
-        var settable = Service.Scaffold?.SettingsManager?.GetAllDefinitions()
-            .FirstOrDefault(d => string.Equals(d.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase));
-
-        // Try to get the current value from the extension's settable interface
-        var ext = Service.ExtensionHost?.GetSettableExtensions()
-            .FirstOrDefault(e => e is Verso.Abstractions.IExtension ie &&
-                string.Equals(ie.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase));
-
-        if (ext is not null)
-        {
-            var values = ext.GetSettingValues();
-            if (values.TryGetValue(definition.Name, out var val))
-                return val;
-        }
-
-        return definition.DefaultValue;
     }
 
     private async Task HandleChange(string extensionId, string settingName, object? value)

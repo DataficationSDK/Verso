@@ -15,6 +15,20 @@ Interactive `.verso` notebooks in VS Code and Cursor, with C# and SQL execution,
 
 3. Open any `.verso` file to activate the extension.
 
+## Editor Modes
+
+The extension provides two ways to open `.verso` files:
+
+### Native Notebook (default)
+
+The default editor uses VS Code's built-in notebook API with native cell rendering, IntelliSense, and diagnostics. This is the standard experience when you open a `.verso` file.
+
+### Blazor Editor (Open With...)
+
+Right-click a `.verso` file and choose **Open With... > Verso Notebook (Experimental)** to open it in the full Blazor UI. This mode runs the same Razor components used by the standalone Blazor web application inside a VS Code webview via WebAssembly. It includes the full notebook toolbar, side panels (metadata, extensions, variables, settings), dashboard layout, and theme switching.
+
+The Blazor editor communicates with the Verso engine through a postMessage/JSON-RPC bridge — the engine runs in the `Verso.Host` process, not in WASM.
+
 ## Features
 
 ### Notebook Editing
@@ -171,3 +185,23 @@ Missing `#r "nuget:"` directives for detected providers are inserted automatical
 | Verso: Restart Kernel | Restart the .NET runtime |
 | Verso: Switch Layout | Choose between linear and dashboard layouts |
 | Verso: Switch Theme | Apply a different notebook theme |
+
+## Building from Source
+
+```bash
+# From the vscode/ directory:
+
+# Install dependencies
+npm install
+
+# Build TypeScript only (native notebook mode)
+npm run build
+
+# Build TypeScript + Blazor WASM (includes Blazor editor)
+npm run build:all
+
+# Package the extension
+npm run package
+```
+
+The `build:all` script runs `dotnet publish` on `Verso.Blazor.Wasm` and outputs the WASM files to `blazor-wasm/`, then bundles the TypeScript.

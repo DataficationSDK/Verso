@@ -1,9 +1,7 @@
-@using Verso.Extensions
-
 <div class="verso-sidebar-panel">
-    @if (Service?.ExtensionHost is not null)
+    @if (Service.IsLoaded)
     {
-        var infos = Service.ExtensionHost.GetExtensionInfos();
+        var infos = Service.Extensions;
         var grouped = GroupByCategory(infos);
         @foreach (var group in grouped)
         {
@@ -56,7 +54,7 @@
 </div>
 
 @code {
-    [Parameter] public NotebookService Service { get; set; } = default!;
+    [Parameter] public INotebookService Service { get; set; } = default!;
 
     private readonly HashSet<string> _expandedCategories = new();
 
@@ -115,8 +113,6 @@
 
     private async Task ToggleExtensionAsync(string extensionId, ExtensionStatus currentStatus)
     {
-        if (Service is null) return;
-
         if (currentStatus == ExtensionStatus.Enabled)
             await Service.DisableExtensionAsync(extensionId);
         else

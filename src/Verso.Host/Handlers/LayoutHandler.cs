@@ -59,6 +59,30 @@ public static class LayoutHandler
         return new LayoutRenderResult { Html = result.Content };
     }
 
+    public static async Task<LayoutGetCellContainerResult> HandleGetCellContainerAsync(HostSession session, JsonElement? @params)
+    {
+        session.EnsureSession();
+        var p = @params?.Deserialize<LayoutGetCellContainerParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/getCellContainer");
+
+        if (!Guid.TryParse(p.CellId, out var cellId))
+            throw new JsonException($"Invalid cell ID: {p.CellId}");
+
+        var layout = session.Scaffold!.LayoutManager?.ActiveLayout
+            ?? throw new InvalidOperationException("No active layout.");
+
+        var context = new HostVersoContext(session.Scaffold!);
+        var info = await layout.GetCellContainerAsync(cellId, context).ConfigureAwait(false);
+
+        return new LayoutGetCellContainerResult
+        {
+            Row = (int)info.Y,
+            Col = (int)info.X,
+            Width = (int)info.Width,
+            Height = (int)info.Height
+        };
+    }
+
     public static object? HandleUpdateCell(HostSession session, JsonElement? @params)
     {
         session.EnsureSession();

@@ -14,7 +14,7 @@ Verso is an open-source, extensible interactive notebook platform for .NET. It s
 
 Microsoft deprecated Polyglot Notebooks on February 11, 2026, with a sunset date of March 27, 2026. Verso exists because the .NET ecosystem deserves a community-owned notebook platform that isn't subject to a single vendor's priorities.
 
-The core engine is a headless library with no UI dependencies. Two thin front-ends consume it: a VS Code extension and a standalone Blazor web application. The architecture ensures that all notebook logic lives in one place, and any front-end can use it.
+The core engine is a headless library with no UI dependencies. Front-ends consume it through two channels: a VS Code extension (native notebook API or embedded Blazor WebAssembly) and a standalone Blazor Server web application. All UI components live in a shared Razor class library, and all notebook logic lives in the engine.
 
 ## Why Verso?
 
@@ -71,9 +71,19 @@ View the same notebook as a linear document or a 12-column grid dashboard. Switc
 
 ### Standalone Blazor App
 
-Full notebook experience in the browser, independent of any IDE. Includes the Monaco editor for code cells, a variable explorer, extension management, and toolbar actions. Deploy as a Blazor Server application.
+Full notebook experience in the browser, independent of any IDE. Includes the Monaco editor for code cells, a variable explorer, extension management, and toolbar actions. Deploy as a Blazor Server application or embed in VS Code via WebAssembly.
 
+The Blazor UI is split into a shared Razor component library (`Verso.Blazor.Shared`) consumed by two hosts:
+- **Blazor Server** (`Verso.Blazor`) — standalone web app with in-process engine access
+- **Blazor WebAssembly** (`Verso.Blazor.Wasm`) — runs inside a VS Code webview, communicating with the engine via a postMessage/JSON-RPC bridge
+
+Both hosts implement the same `INotebookService` interface, so a single set of Razor components powers every front-end.
+
+**Blazor Standalone Server:**
 ![Verso Blazor application running in the browser](images/blazor-app-0.5.0.png)
+
+**Blazor WebAssembly in VS Code:**
+![Verso Blazor WebAssembly running in VS Code](images/blazor-vscode-0.5.0.png)
 
 ### Comprehensive Theming
 
@@ -121,16 +131,25 @@ Verso uses a layered architecture that separates concerns cleanly:
 - **Verso**: Headless engine library containing the Scaffold Layer, Extension Host, Theme Engine, Layout Manager, Execution Pipeline, and all built-in extensions. Depends on Roslyn, Markdig, and NuGet.Protocol.
 - **Verso.Host**: Console application that wraps the engine in a JSON-RPC 2.0 protocol over stdin/stdout, enabling communication with the VS Code extension.
 - **Verso.VSCode**: Thin TypeScript adapter for the VS Code Notebook API. Handles UI concerns only; all logic lives in the engine.
-- **Verso.Blazor**: Standalone Blazor Server web application with Monaco editor integration, variable explorer, and extension management.
+- **Verso.Blazor.Shared**: Razor class library containing all shared UI components (cells, toolbar, panels, editor, theme provider) and the `INotebookService` abstraction. Depends only on `Verso.Abstractions`.
+- **Verso.Blazor**: Standalone Blazor Server web application. Implements `INotebookService` in-process via `ServerNotebookService`, with direct access to the engine.
+- **Verso.Blazor.Wasm**: Blazor WebAssembly project that runs inside a VS Code webview. Implements `INotebookService` remotely via `RemoteNotebookService`, communicating through a postMessage/JSON-RPC bridge. References only `Verso.Abstractions` and `Verso.Blazor.Shared` (no engine dependencies).
 - **Verso.FSharp**: First-party extension providing an F# language kernel with IntelliSense, NuGet/script directives, rich data formatting for F# types, configurable settings, and Polyglot Notebooks F# import. References only `Verso.Abstractions` and `FSharp.Compiler.Service`.
 - **Verso.Ado**: First-party extension providing SQL database connectivity, result set formatting, schema inspection, EF Core scaffolding, and Polyglot Notebooks SQL import. References only `Verso.Abstractions`.
 
 ```
-  Front-Ends (thin UI consumers, separate packages)
+  Front-Ends
   ┌───────────────────────┐  ┌───────────────────────┐
   │  Verso.VSCode         │  │  Verso.Blazor         │
-  │  (VS Code Adapter)    │  │  (Blazor Shell)       │
+  │  (VS Code Adapter)    │  │  (Blazor Server)      │
+  │  + Verso.Blazor.Wasm  │  │                       │
+  │    (Webview WASM)     │  │                       │
   └───────────┬───────────┘  └───────────┬───────────┘
+              │                          │
+  ┌──────────────────────────────────────────────────┐
+  │  Verso.Blazor.Shared (Razor Class Library)       │
+  │  INotebookService | Components | Interop JS      │
+  └──────────────────────────────────────────────────┘
               │                          │
   ════════════════════════════════════════════════════
   Verso Engine (headless NuGet library)
@@ -162,10 +181,12 @@ Verso uses a layered architecture that separates concerns cleanly:
 
 ```
   Verso.VSCode ─────┐
-                    │
-                    ├──▶ Verso (Engine) ──▶ Verso.Abstractions
-                    │
-  Verso.Blazor ─────┘
+  + Verso.Blazor.Wasm│
+    (WASM webview)  ├──▶ Verso (Engine) ──▶ Verso.Abstractions
+                    │          ▲
+  Verso.Blazor ─────┘          │
+                    Verso.Blazor.Shared ──▶ Verso.Abstractions
+                    (shared components)
 
   Verso.FSharp ──────────▶ Verso.Abstractions (+ FSharp.Compiler.Service)
   Verso.Ado ─────────────▶ Verso.Abstractions (only)
@@ -268,14 +289,14 @@ dotnet test Verso.sln
 # Build the host
 dotnet build src/Verso.Host
 
-# Package the extension
+# Package the extension (includes Blazor WASM build)
 cd vscode
 npm install
-npm run build
-npx vsce package
+npm run build:all
+npx vsce package --skip-license
 ```
 
-Install the generated `.vsix` file in VS Code, then open any `.verso` file or import a `.ipynb` notebook.
+Install the generated `.vsix` file in VS Code, then open any `.verso` file or import a `.ipynb` notebook. Use "Open With..." to choose between the native notebook view and the Blazor-powered editor.
 
 ## Roadmap
 

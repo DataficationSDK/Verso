@@ -12,6 +12,7 @@ public static class MethodNames
     public const string NotebookGetLanguages = "notebook/getLanguages";
     public const string NotebookGetToolbarActions = "notebook/getToolbarActions";
     public const string NotebookGetTheme = "notebook/getTheme";
+    public const string NotebookGetCellTypes = "notebook/getCellTypes";
     public const string NotebookSetFilePath = "notebook/setFilePath";
 
     // Cell operations
@@ -20,6 +21,7 @@ public static class MethodNames
     public const string CellRemove = "cell/remove";
     public const string CellMove = "cell/move";
     public const string CellUpdateSource = "cell/updateSource";
+    public const string CellChangeType = "cell/changeType";
     public const string CellGet = "cell/get";
     public const string CellList = "cell/list";
 
@@ -42,6 +44,7 @@ public static class MethodNames
     public const string LayoutGetLayouts = "layout/getLayouts";
     public const string LayoutSwitch = "layout/switch";
     public const string LayoutRender = "layout/render";
+    public const string LayoutGetCellContainer = "layout/getCellContainer";
     public const string LayoutUpdateCell = "layout/updateCell";
     public const string LayoutSetEditMode = "layout/setEditMode";
 
@@ -61,7 +64,14 @@ public static class MethodNames
     public const string SettingsReset = "settings/reset";
     public const string SettingsChanged = "settings/changed";
 
+    // Toolbar actions
+    public const string ToolbarGetEnabledStates = "toolbar/getEnabledStates";
+    public const string ToolbarExecute = "toolbar/execute";
+
     // Variable explorer
     public const string VariableList = "variable/list";
     public const string VariableInspect = "variable/inspect";
+
+    // File operations (notifications from host to extension)
+    public const string FileDownload = "file/download";
 }

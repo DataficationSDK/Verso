@@ -1,4 +1,4 @@
-@inject NotebookService Service
+@inject INotebookService Service
 @inject IJSRuntime JS
 
 <div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "")">
@@ -16,7 +16,7 @@
                 @if (_showTypeDropdown)
                 {
                     <div class="verso-cell-type-popup">
-                        @foreach (var ct in _availableCellTypes)
+                        @foreach (var ct in Service.AvailableCellTypes)
                         {
                             var t = ct;
                             var isActive = string.Equals(t.Id, CellData.Type, StringComparison.OrdinalIgnoreCase);
@@ -127,11 +127,8 @@
     [Parameter] public EventCallback<(Guid CellId, string NewType)> OnCellTypeChanged { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
 
-    private record CellTypeChoice(string Id, string DisplayName);
-
-    private List<IToolbarAction> _enabledCellActions = new();
+    private List<ToolbarActionInfo> _enabledCellActions = new();
     private bool _showTypeDropdown;
-    private List<CellTypeChoice> _availableCellTypes = new();
 
     // Actions already represented by hardcoded buttons in the cell toolbar
     private static readonly HashSet<string> _hardcodedActionIds = new(StringComparer.OrdinalIgnoreCase)
@@ -145,37 +142,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var host = Service.ExtensionHost;
-        var scaffold = Service.Scaffold;
-        if (host is null || scaffold is null)
+        if (!Service.IsLoaded)
         {
             _enabledCellActions = new();
-            _availableCellTypes = new();
             return;
         }
 
-        // Build available cell types: code is always present, others depend on extensions
-        var types = new List<CellTypeChoice> { new("code", "Code") };
-
-        var hasMarkdown = host.GetCellTypes()
-            .Any(ct => string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
-            || host.GetRenderers()
-            .Any(r => string.Equals(r.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
-        if (hasMarkdown)
-            types.Add(new("markdown", "Markdown"));
-
-        foreach (var ct in host.GetCellTypes())
-        {
-            if (!string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
-                types.Add(new CellTypeChoice(ct.CellTypeId, ct.DisplayName));
-        }
-        _availableCellTypes = types;
-
-        var cellActions = host.GetToolbarActions()
-            .Where(a => a.Placement == ToolbarPlacement.CellToolbar
-                        && !_hardcodedActionIds.Contains(a.ActionId))
-            .OrderBy(a => a.Order)
+        var cellActions = Service.GetToolbarActions(ToolbarPlacement.CellToolbar)
+            .Where(a => !_hardcodedActionIds.Contains(a.ActionId))
             .ToList();
 
         if (cellActions.Count == 0)
@@ -184,31 +158,19 @@
             return;
         }
 
-        var context = new BlazorToolbarActionContext(
-            scaffold,
-            new List<Guid> { CellData.Id },
-            JS);
+        var enabledStates = await Service.GetActionEnabledStatesAsync(
+            ToolbarPlacement.CellToolbar,
+            new List<Guid> { CellData.Id });
 
-        var enabled = new List<IToolbarAction>();
-        foreach (var action in cellActions)
-        {
-            if (await action.IsEnabledAsync(context))
-                enabled.Add(action);
-        }
-
-        _enabledCellActions = enabled;
+        _enabledCellActions = cellActions
+            .Where(a => enabledStates.GetValueOrDefault(a.ActionId, false)
+                        && !_hardcodedActionIds.Contains(a.ActionId))
+            .ToList();
     }
 
-    private async Task ExecuteCellActionAsync(IToolbarAction action)
+    private async Task ExecuteCellActionAsync(ToolbarActionInfo action)
     {
-        if (Service.Scaffold is null) return;
-
-        var context = new BlazorToolbarActionContext(
-            Service.Scaffold,
-            new List<Guid> { CellData.Id },
-            JS);
-
-        await action.ExecuteAsync(context);
+        await Service.ExecuteActionAsync(action.ActionId, new List<Guid> { CellData.Id });
     }
 
     private async Task HandleEditorAction(string action)
@@ -231,11 +193,7 @@
 
     private async Task<object?> HandleGetHoverInfo(string code, int position)
     {
-        if (CellData.Language is null || Service.Scaffold is null) return null;
-        var kernel = Service.Scaffold.GetKernel(CellData.Language);
-        if (kernel is null) return null;
-
-        var info = await kernel.GetHoverInfoAsync(code, position);
+        var info = await Service.GetHoverInfoAsync(CellData.Id, code, position);
         if (info is null) return null;
 
         if (info.Range is { } r)
@@ -246,14 +204,12 @@
 
     private async Task<object?> HandleGetCompletions(string code, int position)
     {
-        if (CellData.Language is null || Service.Scaffold is null) return null;
-        var kernel = Service.Scaffold.GetKernel(CellData.Language);
-        if (kernel is null) return null;
+        var completions = await Service.GetCompletionsAsync(CellData.Id, code, position);
+        if (completions is null) return null;
 
-        var completions = await kernel.GetCompletionsAsync(code, position);
         return new
         {
-            items = completions.Select(c => new
+            items = completions.Items.Select(c => new
             {
                 displayText = c.DisplayText,
                 insertText = c.InsertText,

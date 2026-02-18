@@ -16,7 +16,8 @@
     "Notebooks"
   ],
   "activationEvents": [
-    "onNotebook:verso-notebook"
+    "onNotebook:verso-notebook",
+    "onCustomEditor:verso.blazorNotebook"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -29,6 +30,18 @@
             "filenamePattern": "*.verso"
           }
         ]
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "verso.blazorNotebook",
+        "displayName": "Verso Notebook (Experimental)",
+        "selector": [
+          {
+            "filenamePattern": "*.verso"
+          }
+        ],
+        "priority": "option"
       }
     ],
     "viewsContainers": {
@@ -213,9 +226,12 @@
   },
   "scripts": {
     "build": "node esbuild.mjs",
+    "build:host": "dotnet build ../src/Verso.Host -c Release",
+    "build:wasm": "dotnet publish ../src/Verso.Blazor.Wasm -c Release -o blazor-wasm",
+    "build:all": "npm run build:host && npm run build:wasm && npm run build",
     "watch": "node esbuild.mjs --watch",
     "lint": "tsc --noEmit",
-    "package": "vsce package --skip-license"
+    "package": "npm run build:all && vsce package --skip-license"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
