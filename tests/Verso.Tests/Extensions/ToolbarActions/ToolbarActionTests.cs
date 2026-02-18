@@ -1,6 +1,7 @@
 using Verso.Abstractions;
 using Verso.Extensions.ToolbarActions;
-using Verso.Tests.Helpers;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
 
 namespace Verso.Tests.Extensions.ToolbarActions;
 
@@ -44,7 +45,7 @@ public sealed class ToolbarActionTests
     public async Task RunAll_Execute_CallsExecuteAll()
     {
         var action = new RunAllAction();
-        var stub = new Helpers.StubNotebookOperations();
+        var stub = new StubNotebookOperations();
         var context = CreateContext(notebook: stub);
 
         await action.ExecuteAsync(context);
@@ -102,7 +103,7 @@ public sealed class ToolbarActionTests
         var action = new RunCellAction();
         var id1 = Guid.NewGuid();
         var id2 = Guid.NewGuid();
-        var stub = new Helpers.StubNotebookOperations();
+        var stub = new StubNotebookOperations();
         var context = CreateContext(
             selectedCellIds: new[] { id1, id2 },
             notebook: stub);
@@ -147,7 +148,7 @@ public sealed class ToolbarActionTests
     public async Task ClearOutputs_Execute_CallsClearAllOutputs()
     {
         var action = new ClearOutputsAction();
-        var stub = new Helpers.StubNotebookOperations();
+        var stub = new StubNotebookOperations();
         var context = CreateContext(notebook: stub);
 
         await action.ExecuteAsync(context);
@@ -188,7 +189,7 @@ public sealed class ToolbarActionTests
     public async Task RestartKernel_Execute_CallsRestartWithActiveKernelId()
     {
         var action = new RestartKernelAction();
-        var stub = new Helpers.StubNotebookOperations();
+        var stub = new StubNotebookOperations();
         var context = CreateContext(activeKernelId: "csharp", notebook: stub);
 
         await action.ExecuteAsync(context);
@@ -299,7 +300,7 @@ public sealed class ToolbarActionTests
         CellModel[]? cells = null,
         Guid[]? selectedCellIds = null,
         string? activeKernelId = "csharp",
-        Helpers.StubNotebookOperations? notebook = null)
+        StubNotebookOperations? notebook = null)
     {
         return new StubToolbarActionContext
         {
@@ -307,7 +308,7 @@ public sealed class ToolbarActionTests
             NotebookCells = cells ?? new[] { new CellModel() },
             SelectedCellIds = selectedCellIds ?? Array.Empty<Guid>(),
             ActiveKernelId = activeKernelId,
-            Notebook = notebook ?? new Helpers.StubNotebookOperations()
+            Notebook = notebook ?? new StubNotebookOperations()
         };
     }
 }

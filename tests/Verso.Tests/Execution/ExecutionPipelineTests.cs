@@ -2,7 +2,8 @@ using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.Execution;
 using Verso.Stubs;
-using Verso.Tests.Helpers;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
 
 namespace Verso.Tests.Execution;
 

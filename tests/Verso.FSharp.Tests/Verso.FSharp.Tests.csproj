@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Verso.FSharp\Verso.FSharp.csproj" />
     <ProjectReference Include="..\..\src\Verso\Verso.csproj" />
+    <ProjectReference Include="..\..\src\Verso.Testing\Verso.Testing.csproj" />
   </ItemGroup>
 
 </Project>

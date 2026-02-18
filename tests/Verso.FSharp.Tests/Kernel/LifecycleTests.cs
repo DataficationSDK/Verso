@@ -1,6 +1,6 @@
 using Verso.Abstractions;
 using Verso.FSharp.Kernel;
-using Verso.FSharp.Tests.Helpers;
+using Verso.Testing.Stubs;
 
 namespace Verso.FSharp.Tests.Kernel;
 

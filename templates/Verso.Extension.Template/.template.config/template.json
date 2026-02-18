@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Verso Contributors",
+  "classifications": ["Verso", "Extension", "Library"],
+  "identity": "Verso.Extension.Template",
+  "name": "Verso Extension",
+  "shortName": "verso-extension",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "MyExtension",
+  "preferNameDirectory": true,
+  "symbols": {
+    "extensionId": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "com.example.myextension",
+      "replaces": "com.example.myextension",
+      "description": "The unique extension identifier (reverse-domain format)"
+    },
+    "author": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "Extension Author",
+      "replaces": "Extension Author",
+      "description": "The extension author name"
+    },
+    "includeKernel": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include an ILanguageKernel scaffold"
+    },
+    "includeRenderer": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include an ICellRenderer scaffold"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(!includeKernel)",
+          "exclude": [
+            "SampleKernel.cs"
+          ]
+        },
+        {
+          "condition": "(!includeRenderer)",
+          "exclude": [
+            "SampleRenderer.cs"
+          ]
+        }
+      ]
+    }
+  ]
+}

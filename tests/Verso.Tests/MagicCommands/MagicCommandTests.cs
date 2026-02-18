@@ -1,6 +1,7 @@
 using Verso.Contexts;
 using Verso.MagicCommands;
-using Verso.Tests.Helpers;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
 
 namespace Verso.Tests.MagicCommands;
 

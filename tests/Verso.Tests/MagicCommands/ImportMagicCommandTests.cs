@@ -2,8 +2,9 @@ using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.MagicCommands;
 using Verso.Serializers;
-using Verso.Tests.Helpers;
-using StubNotebookOperations = Verso.Tests.Helpers.StubNotebookOperations;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
+using StubNotebookOperations = Verso.Testing.Stubs.StubNotebookOperations;
 
 namespace Verso.Tests.MagicCommands;
 

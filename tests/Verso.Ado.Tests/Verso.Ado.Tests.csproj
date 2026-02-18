@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Verso.Ado\Verso.Ado.csproj" />
     <ProjectReference Include="..\..\src\Verso\Verso.csproj" />
+    <ProjectReference Include="..\..\src\Verso.Testing\Verso.Testing.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 using Verso.Extensions.Formatters;
-using Verso.Tests.Helpers;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
 
 namespace Verso.Tests.Extensions;
 

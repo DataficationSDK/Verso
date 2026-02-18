@@ -3,7 +3,8 @@ using Verso.Extensions;
 using Verso.Extensions.Themes;
 using Verso.Extensions.Layouts;
 using Verso.Serializers;
-using Verso.Tests.Helpers;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
 
 namespace Verso.Tests.Integration;
 

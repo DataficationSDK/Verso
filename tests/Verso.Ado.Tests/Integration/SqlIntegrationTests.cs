@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 using Verso.Ado.Kernel;
 using Verso.Ado.MagicCommands;
 using Verso.Ado.Models;
-using Verso.Ado.Tests.Helpers;
+using Verso.Testing.Stubs;
 using Verso.Ado.ToolbarActions;
 
 namespace Verso.Ado.Tests.Integration;

@@ -1,6 +1,7 @@
 using Verso.Abstractions;
 using Verso.Execution;
 using Verso.Extensions;
+using Verso.Testing.Fakes;
 using static Verso.Execution.ExecutionResult;
 
 namespace Verso.Tests.Extensions;
@@ -121,7 +122,7 @@ public class ExtensionHostIntegrationTests
 
         await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
 
-        var manualKernel = new Verso.Tests.Helpers.FakeLanguageKernel(languageId: "csharp");
+        var manualKernel = new FakeLanguageKernel(languageId: "csharp");
         scaffold.RegisterKernel(manualKernel);
 
         var resolved = scaffold.GetKernel("csharp");

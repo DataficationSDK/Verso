@@ -1,6 +1,7 @@
 using Verso.Abstractions;
 using Verso.Execution;
-using Verso.Tests.Helpers;
+using Verso.Testing.Stubs;
+using Verso.Testing.Fakes;
 
 namespace Verso.Tests.Scaffold;
 

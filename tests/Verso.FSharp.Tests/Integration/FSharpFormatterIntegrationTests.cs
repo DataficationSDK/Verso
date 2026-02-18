@@ -1,6 +1,6 @@
 using Verso.FSharp.Formatters;
 using Verso.FSharp.Kernel;
-using Verso.FSharp.Tests.Helpers;
+using Verso.Testing.Stubs;
 
 namespace Verso.FSharp.Tests.Integration;
 
