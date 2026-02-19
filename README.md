@@ -87,7 +87,7 @@ Both hosts implement the same `INotebookService` interface, so a single set of R
 
 ### Comprehensive Theming
 
-Design token system covering editor colors, cell styling, UI components, syntax highlighting, typography, and spacing. Two built-in themes (Light and Dark) ship out of the box. Hot-swap themes at runtime. Create your own by implementing `ITheme`.
+Design token system covering editor colors, cell styling, UI components, syntax highlighting, typography, and spacing. Three built-in themes (Light, Dark, and High Contrast) ship out of the box. The High Contrast theme meets WCAG 2.1 AA contrast requirements for accessibility. Hot-swap themes at runtime. Create your own by implementing `ITheme`.
 
 ### Custom Cell Types
 
@@ -161,7 +161,7 @@ Verso uses a layered architecture that separates concerns cleanly:
   ├────────────────┴───────────────┴───────────────┤
   │  Built-in Extensions (via Verso.Abstractions)  │
   │  C# Kernel | Markdown | Formatters             │
-  │  Light/Dark Themes | Notebook/Dashboard Layout │
+  │  Light/Dark/HighContrast Themes | Layouts      │
   ├────────────────────────────────────────────────┤
   │  Verso.FSharp (first-party extension package)  │
   │  F# Kernel | IntelliSense | NuGet/Scripts      │
@@ -229,7 +229,7 @@ What ships out of the box:
 | **Kernel** | C# (Roslyn), latest language version, persistent state, IntelliSense, diagnostics, hover, NuGet; F# (FSharp.Compiler.Service) via Verso.FSharp |
 | **Renderer** | Markdown (Markdig with advanced extensions) |
 | **Data Formatters** | Primitives, Collections (HTML tables, up to 100 rows), HTML (`ToHtml()`), Images (PNG/JPEG/GIF/BMP/WebP), SVG, Exceptions (structured with inner exception support) |
-| **Themes** | Verso Light, Verso Dark |
+| **Themes** | Verso Light, Verso Dark, Verso High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid with drag handles and bin-packing) |
 | **Magic Commands** | `#!time`, `#!nuget`, `#!restart`, `#!about`, `#!import` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart Kernel, Switch Layout, Switch Theme, Export HTML, Export Markdown |
@@ -258,6 +258,27 @@ The Verso.Ado package adds SQL database support as a first-party extension:
 | **Magic Commands** | `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold` |
 | **Toolbar Actions** | Export CSV, Export JSON (on SQL result cells) |
 | **Serializer** | Jupyter SQL import hook (converts Polyglot Notebooks `#!connect`/`#!sql` patterns) |
+
+## Writing Extensions
+
+Verso includes documentation and tooling for building your own extensions:
+
+- **Getting started guide** (`docs/getting-started.md`): project setup, `dotnet new verso-extension` template, building, and loading extensions.
+- **Interface reference** (`docs/extension-interfaces.md`): detailed API documentation for all ten extension interfaces.
+- **Theme authoring guide** (`docs/theme-authoring.md`): token reference, typography, spacing, syntax color mapping, WCAG accessibility guidance.
+- **Layout authoring guide** (`docs/layout-authoring.md`): capability flags, metadata persistence, cell container positioning, HTML conventions.
+- **Testing extensions** (`docs/testing-extensions.md`): `Verso.Testing` library with stub contexts for unit testing.
+- **Best practices** (`docs/best-practices.md`): state management, thread safety, extension isolation.
+
+### Sample Extensions
+
+| Sample | Type | Location |
+|--------|------|----------|
+| **Dice** | `ILanguageKernel` + `ICellRenderer` + `IToolbarAction` | `samples/SampleExtension/Verso.Sample.Dice/` |
+| **Presentation Layout** | `ILayoutEngine` (slide-based navigation) | `samples/SampleLayout/Verso.Sample.Slides/` |
+| **Diagram Editor** | `ICellType` + `ICellRenderer` + `ILanguageKernel` | `samples/SampleCellType/Verso.Sample.Diagram/` |
+
+Each sample references only `Verso.Abstractions` and includes a companion test project.
 
 ## Getting Started
 
@@ -310,8 +331,12 @@ Install the generated `.vsix` file in VS Code, then open any `.verso` file or im
 | SQL kernel, connection management, paginated result tables, schema inspection, CSV/JSON export, EF Core scaffolding, Polyglot Notebooks SQL import | | |
 | **Verso.FSharp: F# Language Support** | v0.6 | Complete |
 | F# kernel, IntelliSense, NuGet/script directives, rich data formatting, configurable settings, Polyglot Notebooks F# import | | |
-| **Phase 3: Ecosystem** | v1.0 | In progress |
-| Extension authoring toolkit, CI/CD pipeline, WCAG 2.1 AA accessibility, community governance | | |
+| **Phase 3A: Extension Authoring Toolkit** | v0.7 | Complete |
+| Extension authoring docs, `dotnet new` project template, sample extension (Dice), testing utilities (`Verso.Testing`), NuGet packaging guide | | |
+| **Phase 3B: Theme + Layout Guides and Samples** | v0.7 | Complete |
+| Theme authoring guide, High Contrast accessibility theme, layout authoring guide, sample Presentation layout, sample Diagram cell type | | |
+| **Phase 3 (continued): Ecosystem** | v1.0 | In progress |
+| CI/CD pipeline, community governance, extension marketplace | | |
 
 ## Contributing
 
