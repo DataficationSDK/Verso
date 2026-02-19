@@ -35,7 +35,7 @@ public class IntegrationTests
             using var doc = JsonDocument.Parse(readyLine);
             var root = doc.RootElement;
             Assert.AreEqual("host/ready", root.GetProperty("method").GetString());
-            Assert.AreEqual("0.5.0", root.GetProperty("params").GetProperty("version").GetString());
+            Assert.AreEqual("1.0.0", root.GetProperty("params").GetProperty("version").GetString());
         }
         finally
         {

@@ -28,7 +28,7 @@ public sealed class VersoSerializer : INotebookSerializer
     public string ExtensionId => "verso.serializer.verso";
     public string Name => "Verso Serializer";
     public string Version => "1.0.0";
-    public string? Author => "Verso Contributors";
+    public string? Author => "Datafication";
     public string? Description => "Native .verso file format serializer.";
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;

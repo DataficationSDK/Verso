@@ -20,7 +20,7 @@ public sealed class ImportMagicCommandTests
 
         Assert.AreEqual("import", command.Name);
         Assert.AreEqual("verso.magic.import", command.ExtensionId);
-        Assert.AreEqual("0.5.0", command.Version);
+        Assert.AreEqual("1.0.0", command.Version);
         Assert.AreEqual(1, command.Parameters.Count);
         Assert.AreEqual("path", command.Parameters[0].Name);
         Assert.IsTrue(command.Parameters[0].IsRequired);

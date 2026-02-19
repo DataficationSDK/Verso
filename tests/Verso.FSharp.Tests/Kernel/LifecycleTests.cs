@@ -13,8 +13,8 @@ public class ExtensionMetadataTests
         var ext = new FSharp.FSharpExtension();
         Assert.AreEqual("verso.fsharp", ext.ExtensionId);
         Assert.AreEqual("Verso.FSharp", ext.Name);
-        Assert.AreEqual("0.1.0", ext.Version);
-        Assert.AreEqual("Verso Contributors", ext.Author);
+        Assert.AreEqual("1.0.0", ext.Version);
+        Assert.AreEqual("Datafication", ext.Author);
         Assert.IsNotNull(ext.Description);
     }
 
@@ -48,8 +48,8 @@ public class LifecycleTests
         var kernel = new FSharpKernel();
         Assert.AreEqual("verso.fsharp.kernel", kernel.ExtensionId);
         Assert.AreEqual("F# (Interactive)", kernel.Name);
-        Assert.AreEqual("0.1.0", kernel.Version);
-        Assert.AreEqual("Verso Contributors", kernel.Author);
+        Assert.AreEqual("1.0.0", kernel.Version);
+        Assert.AreEqual("Datafication", kernel.Author);
         Assert.IsNotNull(kernel.Description);
     }
 
