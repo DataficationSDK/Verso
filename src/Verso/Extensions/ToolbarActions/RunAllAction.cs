@@ -12,7 +12,7 @@ public sealed class RunAllAction : IToolbarAction
 
     public string ExtensionId => "verso.action.run-all";
     public string Name => "Run All";
-    public string Version => "0.5.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Executes all cells in the notebook.";
 

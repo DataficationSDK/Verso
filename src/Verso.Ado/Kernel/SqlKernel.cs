@@ -30,7 +30,7 @@ public sealed class SqlKernel : ILanguageKernel
     // --- IExtension ---
     public string ExtensionId => "verso.ado.kernel.sql";
     string IExtension.Name => "SQL Kernel";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Executes SQL queries against ADO.NET database connections.";
 

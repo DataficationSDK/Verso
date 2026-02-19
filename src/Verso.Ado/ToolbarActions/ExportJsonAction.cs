@@ -15,7 +15,7 @@ public sealed class ExportJsonAction : IToolbarAction
 
     public string ExtensionId => "verso.ado.action.export-json";
     public string Name => "Export JSON";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Exports SQL result sets as JSON files.";
 

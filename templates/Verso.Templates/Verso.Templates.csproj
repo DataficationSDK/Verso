@@ -3,8 +3,8 @@
   <PropertyGroup>
     <PackageType>Template</PackageType>
     <PackageId>Verso.Templates</PackageId>
-    <Version>0.5.0</Version>
-    <Authors>Verso Contributors</Authors>
+    <Version>1.0.0</Version>
+    <Authors>Datafication</Authors>
     <Description>Project templates for building Verso extensions.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <TargetFramework>net8.0</TargetFramework>

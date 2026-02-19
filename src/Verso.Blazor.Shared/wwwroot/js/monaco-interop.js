@@ -257,6 +257,13 @@ window.versoMonaco = (function () {
             if (editor) {
                 editor.focus();
             }
+        },
+
+        scrollToSelected: function () {
+            const el = document.querySelector('.verso-cell--selected');
+            if (el) {
+                el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
         }
     };
 })();

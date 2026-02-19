@@ -12,7 +12,7 @@ public sealed class SqlAdoExtension : IExtension
 {
     public string ExtensionId => "verso.ado";
     public string Name => "Verso.Ado";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "SQL database connectivity extension for Verso notebooks.";
 

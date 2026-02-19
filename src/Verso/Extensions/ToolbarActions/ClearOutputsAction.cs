@@ -12,7 +12,7 @@ public sealed class ClearOutputsAction : IToolbarAction
 
     public string ExtensionId => "verso.action.clear-outputs";
     public string Name => "Clear Outputs";
-    public string Version => "0.5.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Clears all cell outputs in the notebook.";
 

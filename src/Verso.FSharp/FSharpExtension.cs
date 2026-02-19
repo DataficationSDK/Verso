@@ -12,7 +12,7 @@ public sealed class FSharpExtension : IExtension
 {
     public string ExtensionId => "verso.fsharp";
     public string Name => "Verso.FSharp";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "F# Interactive language kernel extension for Verso notebooks.";
 

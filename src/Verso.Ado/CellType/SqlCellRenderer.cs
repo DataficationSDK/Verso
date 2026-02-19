@@ -15,7 +15,7 @@ public sealed class SqlCellRenderer : ICellRenderer
 
     public string ExtensionId => "verso.ado.renderer.sql";
     public string Name => "SQL Renderer";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Renders SQL cells with connection indicator badges.";
 

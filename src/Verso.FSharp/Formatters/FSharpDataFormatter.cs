@@ -22,7 +22,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
 
     public string ExtensionId => "verso.fsharp.formatter";
     public string Name => "F# Data Formatter";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Formats F# types as rich HTML tables and styled output.";
 

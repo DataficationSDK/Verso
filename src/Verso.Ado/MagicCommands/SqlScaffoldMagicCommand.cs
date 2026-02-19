@@ -15,7 +15,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-scaffold";
     string IExtension.Name => "SQL Scaffold Magic Command";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => "Generates EF Core DbContext and entity classes from a database schema.";
 

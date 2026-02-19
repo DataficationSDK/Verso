@@ -13,7 +13,7 @@ public sealed class VersoHighContrastTheme : ITheme
 
     public string ExtensionId => "verso.theme.highcontrast";
     public string Name => "Verso High Contrast";
-    public string Version => "0.5.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "High-contrast accessibility theme with WCAG 2.1 AA compliant color tokens.";
 

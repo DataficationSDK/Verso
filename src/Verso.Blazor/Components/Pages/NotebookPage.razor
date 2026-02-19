@@ -427,10 +427,12 @@
             case "run-and-select-below":
                 await HandleRunCell(cellId);
                 await SelectNextCell(cellId, addIfLast: true);
+                await ScrollToSelectedCell();
                 break;
             case "run-and-insert-below":
                 await HandleRunCell(cellId);
                 await InsertAndSelectBelow(cellId);
+                await ScrollToSelectedCell();
                 break;
             case "escape":
                 _selectedCellId = cellId;
@@ -464,13 +466,16 @@
                 break;
             case "ArrowUp":
                 SelectPreviousCell(selectedId);
+                await ScrollToSelectedCell();
                 break;
             case "ArrowDown":
                 await SelectNextCell(selectedId);
+                await ScrollToSelectedCell();
                 break;
             case "Enter" when e.ShiftKey:
                 await HandleRunCell(selectedId);
                 await SelectNextCell(selectedId, addIfLast: true);
+                await ScrollToSelectedCell();
                 break;
             case "Enter" when e.CtrlKey:
                 await HandleRunCell(selectedId);
@@ -478,6 +483,7 @@
             case "Enter" when e.AltKey:
                 await HandleRunCell(selectedId);
                 await InsertAndSelectBelow(selectedId);
+                await ScrollToSelectedCell();
                 break;
             case "Enter":
                 await FocusSelectedEditor();
@@ -531,6 +537,19 @@
 
         var newCell = await Service.InsertCellAsync(index + 1, "code");
         _selectedCellId = newCell.Id;
+    }
+
+    private async Task ScrollToSelectedCell()
+    {
+        if (_selectedCellId is null) return;
+        StateHasChanged();
+        await Task.Yield();
+        try
+        {
+            await JS.InvokeVoidAsync("versoMonaco.scrollToSelected");
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     private async Task FocusSelectedEditor()

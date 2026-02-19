@@ -50,7 +50,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
 
     public string ExtensionId => "verso.fsharp.kernel";
     public string Name => "F# (Interactive)";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "F# language kernel powered by FSharp.Compiler.Service.";
 

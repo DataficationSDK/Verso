@@ -7,8 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Testing</PackageId>
-    <Version>0.5.0</Version>
-    <Authors>Verso Contributors</Authors>
+    <Version>1.0.0</Version>
+    <Authors>Datafication</Authors>
     <Description>Test stubs and fakes for building and testing Verso extensions.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>

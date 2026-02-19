@@ -41,7 +41,7 @@ public sealed class JupyterSqlImportHook : INotebookPostProcessor
     // --- IExtension ---
     public string ExtensionId => "verso.ado.postprocessor.jupyter-sql";
     string IExtension.Name => "Jupyter SQL Import Hook";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Converts Polyglot Notebooks SQL patterns to Verso SQL cells on Jupyter import.";
 

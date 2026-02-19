@@ -19,7 +19,7 @@ public sealed class ResultSetFormatter : IDataFormatter
 
     public string ExtensionId => "verso.ado.formatter.resultset";
     public string Name => "Result Set Formatter";
-    public string Version => "0.1.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Formats SQL result sets and DataTables as paginated HTML tables.";
 

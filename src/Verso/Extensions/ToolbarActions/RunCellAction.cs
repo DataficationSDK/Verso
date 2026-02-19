@@ -12,7 +12,7 @@ public sealed class RunCellAction : IToolbarAction
 
     public string ExtensionId => "verso.action.run-cell";
     public string Name => "Run Cell";
-    public string Version => "0.5.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => "Executes the selected cell(s).";
 

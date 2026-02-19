@@ -13,7 +13,7 @@ public sealed class ImportMagicCommand : IMagicCommand
 
     public string ExtensionId => "verso.magic.import";
     string IExtension.Name => "Import Magic Command";
-    public string Version => "0.5.0";
+    public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 
     // --- IMagicCommand ---
