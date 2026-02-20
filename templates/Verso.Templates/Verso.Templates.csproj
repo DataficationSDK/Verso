@@ -3,10 +3,8 @@
   <PropertyGroup>
     <PackageType>Template</PackageType>
     <PackageId>Verso.Templates</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Datafication</Authors>
+    <Title>Verso Templates</Title>
     <Description>Project templates for building Verso extensions.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <TargetFramework>net8.0</TargetFramework>
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -14,6 +12,10 @@
     <NoDefaultExcludes>true</NoDefaultExcludes>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="..\Verso.Extension.Template\**\*" Exclude="..\Verso.Extension.Template\**\bin\**;..\Verso.Extension.Template\**\obj\**" />

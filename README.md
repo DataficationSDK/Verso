@@ -2,7 +2,7 @@
 
 **Open-source extensible interactive notebook platform for .NET.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
 <!-- ![Build Status](https://img.shields.io/github/actions/workflow/status/user/verso/build.yml?branch=main) -->
 
@@ -346,6 +346,6 @@ In the meantime, open an issue to discuss what you'd like to work on.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE.md)
 
 Verso is a Datafication project.

@@ -7,10 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Abstractions</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Datafication</Authors>
+    <Title>Verso Abstractions</Title>
     <Description>Pure interfaces and types for the Verso extensible notebook platform.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

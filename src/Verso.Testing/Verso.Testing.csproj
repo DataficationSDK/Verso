@@ -7,11 +7,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Testing</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Datafication</Authors>
+    <Title>Verso Testing</Title>
     <Description>Test stubs and fakes for building and testing Verso extensions.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Verso.Abstractions\Verso.Abstractions.csproj" />
