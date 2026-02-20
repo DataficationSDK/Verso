@@ -1,0 +1,162 @@
+name: Verso CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/Verso/**"
+      - ".github/workflows/verso-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/Verso/**"
+      - ".github/workflows/verso-ci.yml"
+
+defaults:
+  run:
+    working-directory: tools/Verso
+
+jobs:
+  dotnet:
+    name: .NET (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore Verso.sln
+
+      - name: Build
+        run: dotnet build Verso.sln --configuration Release --no-restore
+
+      - name: Test
+        run: >-
+          dotnet test Verso.sln
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=results.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory TestResults
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: tools/Verso/TestResults/**/*.trx
+
+      - name: Install ReportGenerator
+        if: matrix.os == 'ubuntu-latest'
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        if: matrix.os == 'ubuntu-latest'
+        run: >-
+          reportgenerator
+          -reports:"TestResults/**/coverage.cobertura.xml"
+          -targetdir:"TestResults/CoverageReport"
+          -reporttypes:"Html;Cobertura;MarkdownSummaryGithub"
+
+      - name: Upload coverage report
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: tools/Verso/TestResults/CoverageReport
+
+      - name: Post coverage summary
+        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: tools/Verso/TestResults/CoverageReport/SummaryGithub.md
+
+  nuget-validate:
+    name: NuGet Validation
+    runs-on: ubuntu-latest
+    needs: dotnet
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Pack NuGet packages
+        run: |
+          dotnet pack src/Verso.Abstractions/Verso.Abstractions.csproj -c Release -o packages
+          dotnet pack src/Verso/Verso.csproj -c Release -o packages
+          dotnet pack src/Verso.Ado/Verso.Ado.csproj -c Release -o packages
+          dotnet pack src/Verso.FSharp/Verso.FSharp.csproj -c Release -o packages
+          dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release -o packages
+          dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release -o packages
+
+      - name: Validate packages
+        run: |
+          for pkg in packages/*.nupkg; do
+            echo "Validating $pkg..."
+            dotnet nuget verify "$pkg" --all 2>/dev/null || echo "  (signature verification skipped — package is unsigned)"
+            # Verify the package is a valid zip/nupkg
+            unzip -t "$pkg" > /dev/null
+            echo "  OK"
+          done
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: tools/Verso/packages/*.nupkg
+
+  vscode-extension:
+    name: VS Code Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: tools/Verso/vscode
+
+      - name: Lint
+        run: npm run lint
+        working-directory: tools/Verso/vscode
+
+      - name: Build extension
+        run: npm run build
+        working-directory: tools/Verso/vscode
+
+      - name: Compile tests
+        run: tsc -p tsconfig.test.json
+        working-directory: tools/Verso/vscode
+
+      - name: Run extension tests
+        run: xvfb-run -a npm test
+        working-directory: tools/Verso/vscode
+
+      - name: Package VSIX
+        run: npx vsce package --skip-license --no-dependencies
+        working-directory: tools/Verso/vscode
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: verso-vsix
+          path: tools/Verso/vscode/*.vsix

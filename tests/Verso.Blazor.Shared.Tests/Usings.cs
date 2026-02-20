@@ -1,0 +1,11 @@
+global using Microsoft.VisualStudio.TestTools.UnitTesting;
+global using Microsoft.Extensions.DependencyInjection;
+global using Bunit;
+global using Verso.Abstractions;
+global using Verso.Blazor.Shared;
+global using Verso.Blazor.Shared.Components;
+global using Verso.Blazor.Shared.Components.Notebook;
+global using Verso.Blazor.Shared.Components.Editor;
+global using Verso.Blazor.Shared.Models;
+global using Verso.Blazor.Shared.Services;
+global using Verso.Blazor.Shared.Tests.Fakes;
