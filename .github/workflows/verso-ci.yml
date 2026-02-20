@@ -4,17 +4,21 @@ on:
   push:
     branches: [main]
     paths:
-      - "tools/Verso/**"
+      - "src/**"
+      - "tests/**"
+      - "templates/**"
+      - "vscode/**"
+      - "Verso.sln"
       - ".github/workflows/verso-ci.yml"
   pull_request:
     branches: [main]
     paths:
-      - "tools/Verso/**"
+      - "src/**"
+      - "tests/**"
+      - "templates/**"
+      - "vscode/**"
+      - "Verso.sln"
       - ".github/workflows/verso-ci.yml"
-
-defaults:
-  run:
-    working-directory: tools/Verso
 
 jobs:
   dotnet:
@@ -54,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.os }}
-          path: tools/Verso/TestResults/**/*.trx
+          path: TestResults/**/*.trx
 
       - name: Install ReportGenerator
         if: matrix.os == 'ubuntu-latest'
@@ -73,13 +77,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: tools/Verso/TestResults/CoverageReport
+          path: TestResults/CoverageReport
 
       - name: Post coverage summary
         if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          path: tools/Verso/TestResults/CoverageReport/SummaryGithub.md
+          path: TestResults/CoverageReport/SummaryGithub.md
 
   nuget-validate:
     name: NuGet Validation
@@ -117,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: tools/Verso/packages/*.nupkg
+          path: packages/*.nupkg
 
   vscode-extension:
     name: VS Code Extension
@@ -133,30 +137,30 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Lint
         run: npm run lint
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Build extension
         run: npm run build
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Compile tests
         run: tsc -p tsconfig.test.json
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Run extension tests
         run: xvfb-run -a npm test
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Package VSIX
         run: npx vsce package --skip-license --no-dependencies
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
         with:
           name: verso-vsix
-          path: tools/Verso/vscode/*.vsix
+          path: vscode/*.vsix

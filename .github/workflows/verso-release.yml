@@ -10,10 +10,6 @@ on:
         description: "Version number (e.g. 1.0.0)"
         required: true
 
-defaults:
-  run:
-    working-directory: tools/Verso
-
 jobs:
   build-and-test:
     name: Build & Test
@@ -59,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: tools/Verso/packages/*.nupkg
+          path: packages/*.nupkg
 
   build-vsix:
     name: Build VSIX
@@ -81,25 +77,25 @@ jobs:
 
       - name: Set version
         run: npm version ${{ needs.build-and-test.outputs.version }} --no-git-tag-version
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Install dependencies
         run: npm ci
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Build all
         run: npm run build:all
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Package VSIX
         run: npx vsce package --skip-license
-        working-directory: tools/Verso/vscode
+        working-directory: vscode
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
         with:
           name: verso-vsix
-          path: tools/Verso/vscode/*.vsix
+          path: vscode/*.vsix
 
   publish-nuget:
     name: Publish to NuGet
