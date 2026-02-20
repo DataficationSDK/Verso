@@ -120,7 +120,7 @@ jobs:
           for pkg in packages/*.nupkg; do
             echo "Publishing $pkg..."
             dotnet nuget push "$pkg" \
-              --api-key "${{ secrets.NUGET_API_KEY }}" \
+              --api-key "${{ secrets.NUGET_VERSO_API_KEY }}" \
               --source https://api.nuget.org/v3/index.json \
               --skip-duplicate
           done
