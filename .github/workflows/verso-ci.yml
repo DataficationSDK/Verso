@@ -98,14 +98,17 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Build
+        run: dotnet build Verso.sln -c Release
+
       - name: Pack NuGet packages
         run: |
-          dotnet pack src/Verso.Abstractions/Verso.Abstractions.csproj -c Release -o packages
-          dotnet pack src/Verso/Verso.csproj -c Release -o packages
-          dotnet pack src/Verso.Ado/Verso.Ado.csproj -c Release -o packages
-          dotnet pack src/Verso.FSharp/Verso.FSharp.csproj -c Release -o packages
-          dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release -o packages
-          dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release -o packages
+          dotnet pack src/Verso.Abstractions/Verso.Abstractions.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso/Verso.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso.Ado/Verso.Ado.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso.FSharp/Verso.FSharp.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release --no-build -o packages
+          dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release --no-build -o packages
 
       - name: Validate packages
         run: |
