@@ -114,7 +114,7 @@ internal sealed class NuGetReferenceProcessor
                 if (_resolvedAssemblyPaths.Add(assemblyPath))
                 {
                     newPaths.Add(assemblyPath);
-                    session.EvalSilent($"#r \"{assemblyPath}\"");
+                    session.EvalSilent($"#r \"{assemblyPath.Replace('\\', '/')}\"");
                 }
             }
         }

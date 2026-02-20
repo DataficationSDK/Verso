@@ -147,7 +147,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         var abstractionsAssembly = typeof(Verso.Abstractions.IVariableStore).Assembly.Location;
         if (!string.IsNullOrEmpty(abstractionsAssembly))
         {
-            _sessionManager.EvalSilent($"#r \"{abstractionsAssembly}\"");
+            _sessionManager.EvalSilent($"#r \"{abstractionsAssembly.Replace('\\', '/')}\"");
         }
 
         _variableBridge = new VariableBridge(_options);
@@ -197,7 +197,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             var magicPaths = _nugetProcessor!.CheckMagicCommandResults(context.Variables);
             foreach (var path in magicPaths)
             {
-                _sessionManager!.EvalSilent($"#r \"{path}\"");
+                _sessionManager!.EvalSilent($"#r \"{path.Replace('\\', '/')}\"");
                 _projectContext?.AddReference(path);
             }
 

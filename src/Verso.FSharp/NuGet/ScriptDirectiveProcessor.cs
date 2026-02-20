@@ -61,7 +61,7 @@ internal sealed class ScriptDirectiveProcessor
             var resolved = ResolvePath(relativePath, metadata);
             if (File.Exists(resolved) && !_resolvedAssemblyPaths.Contains(resolved))
                 _resolvedAssemblyPaths.Add(resolved);
-            return $"#r \"{resolved}\"";
+            return $"#r \"{resolved.Replace('\\', '/')}\"";
         });
 
         // Process #load "script.fsx"
@@ -71,7 +71,7 @@ internal sealed class ScriptDirectiveProcessor
             var resolved = ResolvePath(relativePath, metadata);
             if (File.Exists(resolved) && !_loadedFilePaths.Contains(resolved))
                 _loadedFilePaths.Add(resolved);
-            return $"#load \"{resolved}\"";
+            return $"#load \"{resolved.Replace('\\', '/')}\"";
         });
 
         // Process #I "path"
@@ -79,7 +79,7 @@ internal sealed class ScriptDirectiveProcessor
         {
             var relativePath = match.Groups[1].Value;
             var resolved = ResolvePath(relativePath, metadata);
-            return $"#I \"{resolved}\"";
+            return $"#I \"{resolved.Replace('\\', '/')}\"";
         });
 
         // Process #nowarn "number"
