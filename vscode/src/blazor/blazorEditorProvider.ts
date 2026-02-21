@@ -2,7 +2,12 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { HostProcess } from "../host/hostProcess";
 import { BlazorBridge } from "./blazorBridge";
-import { NotebookOpenResult, NotebookSetFilePathParams } from "../host/protocol";
+import {
+  CellAddParams,
+  CellDto,
+  NotebookOpenResult,
+  NotebookSetFilePathParams,
+} from "../host/protocol";
 
 /**
  * CustomReadonlyEditorProvider that hosts the Blazor WASM app in a VS Code webview.
@@ -66,6 +71,17 @@ export class BlazorEditorProvider
         "notebook/open",
         { content, filePath }
       );
+
+      // If the notebook has no cells (new/empty file), register a default
+      // code cell with the host so the WASM app has something to render.
+      if (result.cells.length === 0) {
+        const added = await this.host.sendRequest<CellDto>("cell/add", {
+          type: "code",
+          language: "csharp",
+          source: "",
+        } satisfies CellAddParams);
+        result.cells.push(added);
+      }
 
       // Set file path on the host (requires notebook to be open)
       await this.host.sendRequest("notebook/setFilePath", {
