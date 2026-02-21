@@ -144,7 +144,8 @@
 
     private bool _hasMermaidContent;
 
-    private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected;
+    private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected
+        && !string.IsNullOrWhiteSpace(CellData.Source);
 
     private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
 

@@ -580,9 +580,16 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public bool ShouldCollapseInput(string cellType)
     {
+        // Check directly-registered renderers first
         var renderer = _extensionHost?.GetRenderers()
             .FirstOrDefault(r => string.Equals(r.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
-        return renderer?.CollapsesInputOnExecute ?? false;
+        if (renderer is not null)
+            return renderer.CollapsesInputOnExecute;
+
+        // Also check renderers owned by ICellType registrations (e.g. HTML, Mermaid)
+        var ct = _extensionHost?.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
+        return ct?.Renderer?.CollapsesInputOnExecute ?? false;
     }
 
     // ── Private helpers ────────────────────────────────────────────────

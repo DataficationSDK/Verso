@@ -487,8 +487,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     public bool ShouldCollapseInput(string cellType)
     {
-        // In WASM, check if this cell type is a rendering cell (markdown, etc.)
-        return string.Equals(cellType, "markdown", StringComparison.OrdinalIgnoreCase);
+        // In WASM, check if this cell type is a rendering cell (markdown, html, mermaid, etc.)
+        return string.Equals(cellType, "markdown", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(cellType, "html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(cellType, "mermaid", StringComparison.OrdinalIgnoreCase);
     }
 
     // ── Notification handling ───────────────────────────────────────────
