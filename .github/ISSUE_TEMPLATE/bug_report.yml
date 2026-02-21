@@ -1,0 +1,131 @@
+name: Bug Report
+description: Report a bug in Verso
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below so we can reproduce and fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear, concise description of the bug.
+      placeholder: What happened? What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the behavior.
+      placeholder: |
+        1. Open a new .verso notebook
+        2. Add a code cell with `...`
+        3. Execute the cell
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Paste any error messages, stack traces, or unexpected output. Use the cell error output if available.
+      render: text
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Verso is affected?
+      options:
+        - C# Kernel
+        - F# Kernel
+        - SQL / Verso.Ado
+        - Extension Host / Loading
+        - Themes / Rendering
+        - Layout Engine
+        - Magic Commands
+        - NuGet Package Resolution
+        - File Format (.verso / .ipynb import)
+        - VS Code Extension
+        - Blazor Frontend
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frontend
+    attributes:
+      label: Frontend
+      description: Where did you encounter this?
+      options:
+        - VS Code
+        - Blazor (standalone)
+        - Both
+        - N/A
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Verso Version
+      description: "Version or commit hash. Run `#!about` in a cell to find this."
+      placeholder: "e.g., 1.0.0 or commit abc1234"
+    validations:
+      required: true
+
+  - type: input
+    id: dotnet-version
+    attributes:
+      label: .NET Version
+      description: "Output of `dotnet --version`"
+      placeholder: "e.g., 8.0.300"
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "e.g., Windows 11, macOS 14.5, Ubuntu 24.04"
+
+  - type: textarea
+    id: notebook-snippet
+    attributes:
+      label: Notebook Snippet
+      description: If applicable, paste a minimal .verso JSON or code cell content that triggers the bug.
+      render: json
+
+  - type: textarea
+    id: extensions
+    attributes:
+      label: Loaded Extensions
+      description: "List any third-party extensions loaded when the bug occurs. Run `#!about` to see loaded extensions."
+      placeholder: "e.g., Verso.Ado 1.0.0, MyCustomExtension 0.2.1"
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How much does this impact your work?
+      options:
+        - "Low - cosmetic or minor inconvenience"
+        - "Medium - workaround exists but it's disruptive"
+        - "High - blocks a workflow, no reasonable workaround"
+        - "Critical - data loss, crash, or security issue"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this hasn't been reported yet
+          required: true
+        - label: I can reproduce this with no third-party extensions loaded
+          required: false
