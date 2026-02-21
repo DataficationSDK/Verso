@@ -130,6 +130,12 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         OnNotebookChanged?.Invoke();
     }
 
+    public Task<string?> GetSerializedContentAsync()
+    {
+        // WASM mode doesn't support client-side serialization; the host handles saving.
+        return Task.FromResult<string?>(null);
+    }
+
     public async Task SaveAsync(string filePath)
     {
         // Get the serialized notebook content from the host

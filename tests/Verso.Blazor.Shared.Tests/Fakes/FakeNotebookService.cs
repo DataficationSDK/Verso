@@ -104,6 +104,8 @@ public sealed class FakeNotebookService : INotebookService
 
     public Task OpenFromContentAsync(string fileName, string content) => Task.CompletedTask;
 
+    public Task<string?> GetSerializedContentAsync() => Task.FromResult<string?>("{\"fake\":true}");
+
     public Task SaveAsync(string filePath)
     {
         SaveCallCount++;
