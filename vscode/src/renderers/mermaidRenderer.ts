@@ -1,4 +1,12 @@
-import type { RendererContext } from "vscode-notebook-renderer";
+/** Minimal type for the VS Code notebook renderer activation context. */
+interface RendererContext<T> {
+  onDidCreateOutput(callback: (event: OutputEvent) => void): void;
+}
+
+interface OutputEvent {
+  element: HTMLElement;
+  output: { data: Record<string, unknown> };
+}
 
 interface MermaidApi {
   initialize: (config: Record<string, unknown>) => void;

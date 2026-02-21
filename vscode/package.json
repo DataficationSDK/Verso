@@ -247,7 +247,7 @@
     "build:wasm": "dotnet publish ../src/Verso.Blazor.Wasm -c Release -o blazor-wasm",
     "build:all": "npm run build:host && npm run build:wasm && npm run build",
     "watch": "node esbuild.mjs --watch",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.renderer.json",
     "pretest": "tsc -p ./tsconfig.test.json",
     "test": "node ./out-test/test/runTest.js",
     "package": "npm run build:all && vsce package --skip-license"
