@@ -2,7 +2,7 @@
   "name": "verso-notebook",
   "displayName": "Verso Notebook",
   "description": "VS Code extension for Verso .NET notebooks",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "publisher": "verso-contributors",
   "license": "MIT",
   "repository": {
