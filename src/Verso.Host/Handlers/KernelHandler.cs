@@ -7,25 +7,23 @@ namespace Verso.Host.Handlers;
 
 public static class KernelHandler
 {
-    public static async Task<object> HandleRestartAsync(HostSession session, JsonElement? @params)
+    public static async Task<object> HandleRestartAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<KernelRestartParams>(JsonRpcMessage.SerializerOptions);
-        await session.Scaffold!.RestartKernelAsync(p?.KernelId);
+        await ns.Scaffold.RestartKernelAsync(p?.KernelId);
 
         // Notify: restart clears the variable store
-        session.SendNotification(MethodNames.VariableChanged);
+        ns.SendNotification(MethodNames.VariableChanged);
 
         return new { success = true };
     }
 
-    public static async Task<CompletionsResult> HandleGetCompletionsAsync(HostSession session, JsonElement? @params)
+    public static async Task<CompletionsResult> HandleGetCompletionsAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CompletionsParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for kernel/getCompletions");
 
-        var kernel = ResolveKernelForCell(session, p.CellId);
+        var kernel = ResolveKernelForCell(ns, p.CellId);
         if (kernel is null)
             return new CompletionsResult();
 
@@ -43,13 +41,12 @@ public static class KernelHandler
         };
     }
 
-    public static async Task<DiagnosticsResult> HandleGetDiagnosticsAsync(HostSession session, JsonElement? @params)
+    public static async Task<DiagnosticsResult> HandleGetDiagnosticsAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<DiagnosticsParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for kernel/getDiagnostics");
 
-        var kernel = ResolveKernelForCell(session, p.CellId);
+        var kernel = ResolveKernelForCell(ns, p.CellId);
         if (kernel is null)
             return new DiagnosticsResult();
 
@@ -69,13 +66,12 @@ public static class KernelHandler
         };
     }
 
-    public static async Task<HoverResult?> HandleGetHoverInfoAsync(HostSession session, JsonElement? @params)
+    public static async Task<HoverResult?> HandleGetHoverInfoAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<HoverParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for kernel/getHoverInfo");
 
-        var kernel = ResolveKernelForCell(session, p.CellId);
+        var kernel = ResolveKernelForCell(ns, p.CellId);
         if (kernel is null)
             return null;
 
@@ -97,16 +93,16 @@ public static class KernelHandler
         };
     }
 
-    private static ILanguageKernel? ResolveKernelForCell(HostSession session, string cellId)
+    private static ILanguageKernel? ResolveKernelForCell(NotebookSession ns, string cellId)
     {
-        var cell = session.Scaffold!.GetCell(Guid.Parse(cellId));
+        var cell = ns.Scaffold.GetCell(Guid.Parse(cellId));
         if (cell is null)
             return null;
 
-        var language = cell.Language ?? session.Scaffold.Notebook.DefaultKernelId;
+        var language = cell.Language ?? ns.Scaffold.Notebook.DefaultKernelId;
         if (language is null)
             return null;
 
-        return session.Scaffold.GetKernel(language);
+        return ns.Scaffold.GetKernel(language);
     }
 }

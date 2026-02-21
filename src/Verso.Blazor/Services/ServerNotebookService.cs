@@ -226,7 +226,20 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         if (_scaffold is null) return;
 
-        if (_scaffold.LayoutManager is { } lm)
+        var json = await PrepareSerializedContentAsync();
+        await File.WriteAllTextAsync(filePath, json);
+        _filePath = filePath;
+    }
+
+    public async Task<string?> GetSerializedContentAsync()
+    {
+        if (_scaffold is null) return null;
+        return await PrepareSerializedContentAsync();
+    }
+
+    private async Task<string> PrepareSerializedContentAsync()
+    {
+        if (_scaffold!.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(_scaffold.Notebook);
 
         if (_scaffold.SettingsManager is { } sm)
@@ -234,9 +247,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
         var serializer = new VersoSerializer();
-        var json = await serializer.SerializeAsync(_scaffold.Notebook);
-        await File.WriteAllTextAsync(filePath, json);
-        _filePath = filePath;
+        return await serializer.SerializeAsync(_scaffold.Notebook);
     }
 
     // ── Cell operations ────────────────────────────────────────────────

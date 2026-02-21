@@ -8,14 +8,13 @@ namespace Verso.Host.Handlers;
 public static class ToolbarHandler
 {
     public static async Task<ToolbarGetEnabledStatesResult> HandleGetEnabledStatesAsync(
-        HostSession session, JsonElement? @params)
+        NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<ToolbarGetEnabledStatesParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for toolbar/getEnabledStates");
 
-        var scaffold = session.Scaffold!;
-        var extensionHost = session.ExtensionHost!;
+        var scaffold = ns.Scaffold;
+        var extensionHost = ns.ExtensionHost;
 
         var selectedIds = p.SelectedCellIds
             .Select(id => Guid.TryParse(id, out var g) ? g : Guid.Empty)
@@ -29,7 +28,7 @@ public static class ToolbarHandler
             .Where(a => a.Placement == placement)
             .ToList();
 
-        var context = new HostToolbarActionContext(scaffold, selectedIds, session);
+        var context = new HostToolbarActionContext(scaffold, selectedIds, ns);
         var states = new Dictionary<string, bool>();
 
         foreach (var action in actions)
@@ -47,14 +46,13 @@ public static class ToolbarHandler
         return new ToolbarGetEnabledStatesResult { States = states };
     }
 
-    public static async Task<object?> HandleExecuteAsync(HostSession session, JsonElement? @params)
+    public static async Task<object?> HandleExecuteAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<ToolbarExecuteParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for toolbar/execute");
 
-        var scaffold = session.Scaffold!;
-        var extensionHost = session.ExtensionHost!;
+        var scaffold = ns.Scaffold;
+        var extensionHost = ns.ExtensionHost;
 
         var action = extensionHost.GetToolbarActions()
             .FirstOrDefault(a => a.ActionId == p.ActionId)
@@ -65,7 +63,7 @@ public static class ToolbarHandler
             .Where(g => g != Guid.Empty)
             .ToList();
 
-        var context = new HostToolbarActionContext(scaffold, selectedIds, session);
+        var context = new HostToolbarActionContext(scaffold, selectedIds, ns);
         await action.ExecuteAsync(context);
 
         return null;
@@ -74,17 +72,17 @@ public static class ToolbarHandler
     /// <summary>
     /// IToolbarActionContext implementation for the host process.
     /// Similar to BlazorToolbarActionContext but without JS interop.
-    /// File downloads are routed through the host session as JSON-RPC notifications.
+    /// File downloads are routed through the notebook session as JSON-RPC notifications.
     /// </summary>
     private sealed class HostToolbarActionContext : IToolbarActionContext
     {
         private readonly Scaffold _scaffold;
-        private readonly HostSession _session;
+        private readonly NotebookSession _ns;
 
-        public HostToolbarActionContext(Scaffold scaffold, IReadOnlyList<Guid> selectedCellIds, HostSession session)
+        public HostToolbarActionContext(Scaffold scaffold, IReadOnlyList<Guid> selectedCellIds, NotebookSession ns)
         {
             _scaffold = scaffold;
-            _session = session;
+            _ns = ns;
             SelectedCellIds = selectedCellIds;
         }
 
@@ -103,7 +101,7 @@ public static class ToolbarHandler
 
         public Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data)
         {
-            _session.SendNotification(MethodNames.FileDownload, new
+            _ns.SendNotification(MethodNames.FileDownload, new
             {
                 fileName,
                 contentType,

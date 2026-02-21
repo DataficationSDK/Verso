@@ -2,10 +2,9 @@ namespace Verso.Host.Handlers;
 
 public static class OutputHandler
 {
-    public static object HandleClearAll(HostSession session)
+    public static object HandleClearAll(NotebookSession ns)
     {
-        session.EnsureSession();
-        session.Scaffold!.ClearAllOutputs();
+        ns.Scaffold.ClearAllOutputs();
         return new { success = true };
     }
 }

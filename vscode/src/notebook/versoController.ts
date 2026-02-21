@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { notebookRegistry } from "../host/notebookRegistry";
 import {
   CellOutputDto,
   CellUpdateSourceParams,
@@ -29,14 +30,16 @@ export class VersoController {
     notebook: vscode.NotebookDocument,
     controller: vscode.NotebookController
   ): Promise<void> {
+    const notebookId = notebookRegistry.getByUri(notebook.uri);
     for (const cell of cells) {
-      await this.executeCell(cell, controller);
+      await this.executeCell(cell, controller, notebookId);
     }
   }
 
   private async executeCell(
     cell: vscode.NotebookCell,
-    controller: vscode.NotebookController
+    controller: vscode.NotebookController,
+    notebookId?: string
   ): Promise<void> {
     const versoId = cell.metadata?.versoId as string | undefined;
     if (!versoId) {
@@ -52,12 +55,15 @@ export class VersoController {
       await this.host.sendRequest("cell/updateSource", {
         cellId: versoId,
         source: cell.document.getText(),
-      } satisfies CellUpdateSourceParams);
+        notebookId,
+      } as CellUpdateSourceParams & { notebookId?: string });
 
       // Execute
       const result = await this.host.sendRequest<ExecutionResultDto>(
         "execution/run",
-        { cellId: versoId } satisfies ExecutionRunParams
+        { cellId: versoId, notebookId } as ExecutionRunParams & {
+          notebookId?: string;
+        }
       );
 
       execution.executionOrder = result.executionCount;
@@ -80,6 +86,8 @@ export class VersoController {
   }
 
   async runAll(notebook: vscode.NotebookDocument): Promise<void> {
+    const notebookId = notebookRegistry.getByUri(notebook.uri);
+
     // Sync all cell sources first
     for (const cell of notebook.getCells()) {
       const versoId = cell.metadata?.versoId as string | undefined;
@@ -87,12 +95,14 @@ export class VersoController {
         await this.host.sendRequest("cell/updateSource", {
           cellId: versoId,
           source: cell.document.getText(),
-        } satisfies CellUpdateSourceParams);
+          notebookId,
+        } as CellUpdateSourceParams & { notebookId?: string });
       }
     }
 
     const result = await this.host.sendRequest<ExecutionRunAllResult>(
-      "execution/runAll"
+      "execution/runAll",
+      { notebookId }
     );
 
     // Match results to cells and update outputs
@@ -139,9 +149,10 @@ export class VersoController {
    * Query the host for registered languages and set them on the controller.
    * The first language becomes the default for new code cells.
    */
-  async updateSupportedLanguages(): Promise<void> {
+  async updateSupportedLanguages(notebookId?: string): Promise<void> {
     const result = await this.host.sendRequest<LanguagesResult>(
-      "notebook/getLanguages"
+      "notebook/getLanguages",
+      { notebookId }
     );
     if (result.languages.length > 0) {
       this.controller.supportedLanguages = result.languages.map((l) => l.id);

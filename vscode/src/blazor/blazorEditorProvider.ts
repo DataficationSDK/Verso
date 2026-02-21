@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { notebookRegistry } from "../host/notebookRegistry";
 import { BlazorBridge } from "./blazorBridge";
 import {
   CellAddParams,
   CellDto,
+  NotebookCloseParams,
   NotebookOpenResult,
   NotebookSaveResult,
   NotebookSetFilePathParams,
@@ -81,8 +83,19 @@ export class BlazorEditorProvider
 
     webviewPanel.onDidDispose(() => {
       const b = this.bridges.get(webviewPanel);
+      const notebookId = b?.getNotebookId();
       b?.dispose();
       this.bridges.delete(webviewPanel);
+
+      // Clean up the host session
+      if (notebookId) {
+        notebookRegistry.unregister(document.uri);
+        this.host
+          .sendRequest("notebook/close", {
+            notebookId,
+          } satisfies NotebookCloseParams)
+          .catch(() => {});
+      }
     });
 
     // Open the notebook in the host process and notify the webview
@@ -97,6 +110,10 @@ export class BlazorEditorProvider
         { content, filePath }
       );
 
+      const notebookId = result.notebookId;
+      notebookRegistry.register(document.uri, notebookId);
+      bridge.setNotebookId(notebookId);
+
       // If the notebook has no cells (new/empty file), register a default
       // code cell with the host so the WASM app has something to render.
       if (result.cells.length === 0) {
@@ -104,14 +121,16 @@ export class BlazorEditorProvider
           type: "code",
           language: "csharp",
           source: "",
-        } satisfies CellAddParams);
+          notebookId,
+        } as CellAddParams & { notebookId: string });
         result.cells.push(added);
       }
 
       // Set file path on the host (requires notebook to be open)
       await this.host.sendRequest("notebook/setFilePath", {
         filePath,
-      } satisfies NotebookSetFilePathParams);
+        notebookId,
+      } satisfies NotebookSetFilePathParams & { notebookId: string });
 
       // Notify the WASM app that the notebook is ready
       bridge.notify("notebook/opened", { filePath, ...result });
@@ -130,8 +149,10 @@ export class BlazorEditorProvider
     document: VersoDocument,
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
+    const notebookId = notebookRegistry.getByUri(document.uri);
     const result = await this.host.sendRequest<NotebookSaveResult>(
-      "notebook/save"
+      "notebook/save",
+      { notebookId }
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(document.uri, data);
@@ -142,8 +163,10 @@ export class BlazorEditorProvider
     destination: vscode.Uri,
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
+    const notebookId = notebookRegistry.getByUri(document.uri);
     const result = await this.host.sendRequest<NotebookSaveResult>(
-      "notebook/save"
+      "notebook/save",
+      { notebookId }
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(destination, data);
@@ -158,12 +181,14 @@ export class BlazorEditorProvider
   }
 
   async backupCustomDocument(
-    _document: VersoDocument,
+    document: VersoDocument,
     context: vscode.CustomDocumentBackupContext,
     _cancellation: vscode.CancellationToken
   ): Promise<vscode.CustomDocumentBackup> {
+    const notebookId = notebookRegistry.getByUri(document.uri);
     const result = await this.host.sendRequest<NotebookSaveResult>(
-      "notebook/save"
+      "notebook/save",
+      { notebookId }
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(context.destination, data);

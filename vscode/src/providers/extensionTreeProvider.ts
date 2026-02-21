@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { getActiveNotebookId } from "../host/notebookRegistry";
 import { ExtensionListResult, ExtensionInfoDto } from "../host/protocol";
 
 const categoryDisplayNames: Record<string, string> = {
@@ -110,8 +111,10 @@ export class ExtensionTreeProvider
 
     // Root level: fetch and group
     try {
+      const notebookId = getActiveNotebookId();
       const result = await this.host.sendRequest<ExtensionListResult>(
-        "extension/list"
+        "extension/list",
+        { notebookId }
       );
       this._extensions = result.extensions;
       return this.buildCategoryNodes(result.extensions);

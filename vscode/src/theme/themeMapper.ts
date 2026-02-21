@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { getActiveNotebookId } from "../host/notebookRegistry";
 import { ThemeResult } from "../host/protocol";
 
 const tokenTypeToScope: Record<string, string> = {
@@ -21,8 +22,10 @@ const tokenTypeToScope: Record<string, string> = {
 
 export async function applyEngineTheme(host: HostProcess): Promise<void> {
   try {
+    const notebookId = getActiveNotebookId();
     const theme = await host.sendRequest<ThemeResult | null>(
-      "notebook/getTheme"
+      "notebook/getTheme",
+      { notebookId }
     );
     if (!theme) {
       return;

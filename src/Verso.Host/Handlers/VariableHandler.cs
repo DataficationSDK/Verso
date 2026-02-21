@@ -8,11 +8,10 @@ namespace Verso.Host.Handlers;
 
 public static class VariableHandler
 {
-    public static VariableListResult HandleList(HostSession session)
+    public static VariableListResult HandleList(NotebookSession ns)
     {
-        session.EnsureSession();
-        var variables = session.Scaffold!.Variables.GetAll();
-        var previewService = new VariablePreviewService(session.ExtensionHost!);
+        var variables = ns.Scaffold.Variables.GetAll();
+        var previewService = new VariablePreviewService(ns.ExtensionHost);
 
         return new VariableListResult
         {
@@ -26,13 +25,12 @@ public static class VariableHandler
         };
     }
 
-    public static async Task<VariableInspectResult> HandleInspectAsync(HostSession session, JsonElement? @params)
+    public static async Task<VariableInspectResult> HandleInspectAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var name = @params?.GetProperty("name").GetString()
             ?? throw new JsonException("Missing name");
 
-        var variables = session.Scaffold!.Variables;
+        var variables = ns.Scaffold.Variables;
         var all = variables.GetAll();
         var descriptor = all.FirstOrDefault(v =>
             string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase));
@@ -41,8 +39,8 @@ public static class VariableHandler
             throw new InvalidOperationException($"Variable '{name}' not found.");
 
         // Try to format using IDataFormatter
-        var formatters = session.ExtensionHost!.GetFormatters();
-        var formatterContext = new SimpleFormatterContext(session.ExtensionHost!, variables);
+        var formatters = ns.ExtensionHost.GetFormatters();
+        var formatterContext = new SimpleFormatterContext(ns.ExtensionHost, variables);
 
         if (descriptor.Value is not null)
         {

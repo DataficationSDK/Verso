@@ -36,6 +36,7 @@ export class BlazorBridge implements vscode.Disposable {
   ]);
 
   private documentUri: vscode.Uri | undefined;
+  private notebookId: string | undefined;
 
   /** Callback fired when the webview sends a request that mutates the notebook. */
   onDidEdit: (() => void) | undefined;
@@ -83,6 +84,20 @@ export class BlazorBridge implements vscode.Disposable {
   }
 
   /**
+   * Set the notebookId assigned by the host for this editor session.
+   */
+  setNotebookId(id: string): void {
+    this.notebookId = id;
+  }
+
+  /**
+   * Get the notebookId for this editor session.
+   */
+  getNotebookId(): string | undefined {
+    return this.notebookId;
+  }
+
+  /**
    * Handle a JSON-RPC request from the webview. Methods prefixed with
    * "extension/" are handled directly; all others are forwarded to the host.
    */
@@ -100,7 +115,14 @@ export class BlazorBridge implements vscode.Disposable {
         await vscode.commands.executeCommand("workbench.action.files.save");
         result = { success: true };
       } else {
-        result = await this.host.sendRequest(method, params);
+        // Inject notebookId into the forwarded request params
+        const enrichedParams =
+          this.notebookId && params && typeof params === "object"
+            ? { ...(params as Record<string, unknown>), notebookId: this.notebookId }
+            : this.notebookId
+              ? { notebookId: this.notebookId }
+              : params;
+        result = await this.host.sendRequest(method, enrichedParams);
 
         // Notify the provider that the document was mutated.
         if (BlazorBridge.mutationMethods.has(method)) {

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { getActiveNotebookId } from "../host/notebookRegistry";
 import {
   LayoutRenderResult,
   LayoutUpdateCellParams,
@@ -16,6 +17,7 @@ export class DashboardPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly host: HostProcess;
   private readonly disposables: vscode.Disposable[] = [];
+  private currentNotebookId: string | undefined;
 
   constructor(host: HostProcess) {
     this.host = host;
@@ -54,6 +56,7 @@ export class DashboardPanel implements vscode.Disposable {
       this.disposables
     );
 
+    this.currentNotebookId = getActiveNotebookId();
     await this.refresh();
   }
 
@@ -62,8 +65,10 @@ export class DashboardPanel implements vscode.Disposable {
     if (!this.panel) return;
 
     try {
+      const notebookId = this.currentNotebookId ?? getActiveNotebookId();
       const result = (await this.host.sendRequest(
-        "layout/render"
+        "layout/render",
+        { notebookId }
       )) as LayoutRenderResult;
       this.update(result.html);
     } catch (err) {
@@ -317,44 +322,53 @@ export class DashboardPanel implements vscode.Disposable {
     switch (msg.type) {
       case "run":
         if (msg.cellId) {
+          const notebookId = this.currentNotebookId ?? getActiveNotebookId();
           await this.host.sendRequest("execution/run", {
             cellId: msg.cellId,
-          } as ExecutionRunParams);
+            notebookId,
+          } as ExecutionRunParams & { notebookId?: string });
           await this.refresh();
         }
         break;
 
       case "resize":
         if (msg.cellId) {
+          const notebookId = this.currentNotebookId ?? getActiveNotebookId();
           await this.host.sendRequest("layout/updateCell", {
             cellId: msg.cellId,
             row: msg.row ?? 0,
             col: msg.col ?? 0,
             width: msg.width ?? 6,
             height: msg.height ?? 4,
-          } as LayoutUpdateCellParams);
+            notebookId,
+          } as LayoutUpdateCellParams & { notebookId?: string });
           await this.refresh();
         }
         break;
 
       case "move":
         if (msg.cellId) {
+          const notebookId = this.currentNotebookId ?? getActiveNotebookId();
           await this.host.sendRequest("layout/updateCell", {
             cellId: msg.cellId,
             row: msg.row ?? 0,
             col: msg.col ?? 0,
             width: msg.width ?? 6,
             height: msg.height ?? 4,
-          } as LayoutUpdateCellParams);
+            notebookId,
+          } as LayoutUpdateCellParams & { notebookId?: string });
           await this.refresh();
         }
         break;
 
-      case "editMode":
+      case "editMode": {
+        const notebookId = this.currentNotebookId ?? getActiveNotebookId();
         await this.host.sendRequest("layout/setEditMode", {
           editMode: msg.editMode ?? false,
-        } as LayoutSetEditModeParams);
+          notebookId,
+        } as LayoutSetEditModeParams & { notebookId?: string });
         break;
+      }
 
       case "edit":
         if (msg.cellId) {

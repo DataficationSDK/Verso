@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { notebookRegistry } from "../host/notebookRegistry";
 import {
   CellAddParams,
   CellDto,
@@ -23,6 +24,8 @@ export class VersoSerializer implements vscode.NotebookSerializer {
       { content: text } satisfies NotebookOpenParams
     );
 
+    const notebookId = result.notebookId;
+
     const cells = result.cells.map((cell) => this.mapCellToNotebookData(cell));
 
     // If no cells, register a default code cell with the host so it
@@ -38,7 +41,8 @@ export class VersoSerializer implements vscode.NotebookSerializer {
           type: "code",
           language: "csharp",
           source: "",
-        } satisfies CellAddParams);
+          notebookId,
+        } as CellAddParams & { notebookId: string });
         cellData.metadata = { versoId: added.id };
       } catch {
         // Host may not be ready — cell will be registered when opened later
@@ -50,6 +54,7 @@ export class VersoSerializer implements vscode.NotebookSerializer {
     data.metadata = {
       title: result.title,
       defaultKernel: result.defaultKernel,
+      notebookId,
     };
     return data;
   }
@@ -58,6 +63,8 @@ export class VersoSerializer implements vscode.NotebookSerializer {
     data: vscode.NotebookData,
     _token: vscode.CancellationToken
   ): Promise<Uint8Array> {
+    const notebookId = data.metadata?.notebookId as string | undefined;
+
     // Sync all cell sources to the engine
     for (const cell of data.cells) {
       const versoId = cell.metadata?.versoId as string | undefined;
@@ -65,12 +72,14 @@ export class VersoSerializer implements vscode.NotebookSerializer {
         await this.host.sendRequest("cell/updateSource", {
           cellId: versoId,
           source: cell.value,
-        } satisfies CellUpdateSourceParams);
+          notebookId,
+        } as CellUpdateSourceParams & { notebookId?: string });
       }
     }
 
     const result = await this.host.sendRequest<NotebookSaveResult>(
-      "notebook/save"
+      "notebook/save",
+      { notebookId }
     );
     return new TextEncoder().encode(result.content);
   }

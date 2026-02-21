@@ -6,10 +6,9 @@ namespace Verso.Host.Handlers;
 
 public static class ExtensionHandler
 {
-    public static ExtensionListResult HandleList(HostSession session)
+    public static ExtensionListResult HandleList(NotebookSession ns)
     {
-        session.EnsureSession();
-        var infos = session.ExtensionHost!.GetExtensionInfos();
+        var infos = ns.ExtensionHost.GetExtensionInfos();
         return new ExtensionListResult
         {
             Extensions = infos.Select(i => new ExtensionInfoDto
@@ -25,21 +24,19 @@ public static class ExtensionHandler
         };
     }
 
-    public static async Task<ExtensionListResult> HandleEnableAsync(HostSession session, JsonElement? @params)
+    public static async Task<ExtensionListResult> HandleEnableAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var extensionId = @params?.GetProperty("extensionId").GetString()
             ?? throw new JsonException("Missing extensionId");
-        await session.ExtensionHost!.EnableExtensionAsync(extensionId);
-        return HandleList(session);
+        await ns.ExtensionHost.EnableExtensionAsync(extensionId);
+        return HandleList(ns);
     }
 
-    public static async Task<ExtensionListResult> HandleDisableAsync(HostSession session, JsonElement? @params)
+    public static async Task<ExtensionListResult> HandleDisableAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var extensionId = @params?.GetProperty("extensionId").GetString()
             ?? throw new JsonException("Missing extensionId");
-        await session.ExtensionHost!.DisableExtensionAsync(extensionId);
-        return HandleList(session);
+        await ns.ExtensionHost.DisableExtensionAsync(extensionId);
+        return HandleList(ns);
     }
 }

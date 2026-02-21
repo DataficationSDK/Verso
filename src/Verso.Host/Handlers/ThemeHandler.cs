@@ -6,10 +6,9 @@ namespace Verso.Host.Handlers;
 
 public static class ThemeHandler
 {
-    public static ThemeResult? HandleGetTheme(HostSession session)
+    public static ThemeResult? HandleGetTheme(NotebookSession ns)
     {
-        session.EnsureSession();
-        var theme = session.Scaffold!.ThemeEngine?.ActiveTheme;
+        var theme = ns.Scaffold.ThemeEngine?.ActiveTheme;
         if (theme is null)
             return null;
 
@@ -79,11 +78,10 @@ public static class ThemeHandler
         };
     }
 
-    public static ThemesResult HandleGetThemes(HostSession session)
+    public static ThemesResult HandleGetThemes(NotebookSession ns)
     {
-        session.EnsureSession();
-        var themes = session.Scaffold!.ThemeEngine?.AvailableThemes ?? Array.Empty<Verso.Abstractions.ITheme>();
-        var activeId = session.Scaffold!.ThemeEngine?.ActiveTheme?.ThemeId;
+        var themes = ns.Scaffold.ThemeEngine?.AvailableThemes ?? Array.Empty<Verso.Abstractions.ITheme>();
+        var activeId = ns.Scaffold.ThemeEngine?.ActiveTheme?.ThemeId;
         return new ThemesResult
         {
             Themes = themes.Select(t => new ThemeListItemDto
@@ -96,14 +94,13 @@ public static class ThemeHandler
         };
     }
 
-    public static ThemeResult? HandleSwitchTheme(HostSession session, JsonElement? @params)
+    public static ThemeResult? HandleSwitchTheme(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var themeId = @params?.GetProperty("themeId").GetString()
             ?? throw new JsonException("Missing themeId");
-        session.Scaffold!.ThemeEngine!.SetActiveTheme(themeId);
-        session.Scaffold.Notebook.PreferredThemeId = themeId;
-        return HandleGetTheme(session);
+        ns.Scaffold.ThemeEngine!.SetActiveTheme(themeId);
+        ns.Scaffold.Notebook.PreferredThemeId = themeId;
+        return HandleGetTheme(ns);
     }
 
     private static void AddColorToken(Dictionary<string, string> dict, string key, string value)

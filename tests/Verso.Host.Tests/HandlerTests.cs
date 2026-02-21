@@ -15,14 +15,19 @@ public class HandlerTests
         return new HostSession(n => notifications.Add(n));
     }
 
-    private async Task<HostSession> CreateOpenSession()
+    private async Task<(HostSession Session, string NotebookId)> CreateOpenSession()
     {
         var session = CreateSession();
         var openParams = JsonSerializer.SerializeToElement(
             new NotebookOpenParams { Content = "" },
             JsonRpcMessage.SerializerOptions);
-        await NotebookHandler.HandleOpenAsync(session, openParams);
-        return session;
+        var result = await NotebookHandler.HandleOpenAsync(session, openParams);
+        return (session, result.NotebookId);
+    }
+
+    private NotebookSession GetNs(HostSession session, string notebookId)
+    {
+        return session.GetSession(notebookId);
     }
 
     [TestMethod]
@@ -37,15 +42,106 @@ public class HandlerTests
 
         Assert.IsNotNull(result);
         Assert.AreEqual(0, result.Cells.Count);
-        Assert.IsNotNull(session.Scaffold);
+        Assert.IsFalse(string.IsNullOrEmpty(result.NotebookId));
+    }
+
+    [TestMethod]
+    public async Task NotebookOpen_ReturnsNotebookId()
+    {
+        var session = CreateSession();
+        var openParams = JsonSerializer.SerializeToElement(
+            new NotebookOpenParams { Content = "" },
+            JsonRpcMessage.SerializerOptions);
+
+        var result = await NotebookHandler.HandleOpenAsync(session, openParams);
+
+        Assert.IsTrue(result.NotebookId.StartsWith("nb-"));
+    }
+
+    [TestMethod]
+    public async Task MultipleNotebookOpen_ReturnsDifferentIds()
+    {
+        var session = CreateSession();
+        var openParams = JsonSerializer.SerializeToElement(
+            new NotebookOpenParams { Content = "" },
+            JsonRpcMessage.SerializerOptions);
+
+        var result1 = await NotebookHandler.HandleOpenAsync(session, openParams);
+        var result2 = await NotebookHandler.HandleOpenAsync(session, openParams);
+
+        Assert.AreNotEqual(result1.NotebookId, result2.NotebookId);
+    }
+
+    [TestMethod]
+    public async Task NotebookClose_RemovesSession()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+
+        var closeParams = JsonSerializer.SerializeToElement(
+            new NotebookCloseParams { NotebookId = notebookId },
+            JsonRpcMessage.SerializerOptions);
+        await NotebookHandler.HandleCloseAsync(session, closeParams);
+
+        Assert.ThrowsException<InvalidOperationException>(() => session.GetSession(notebookId));
+    }
+
+    [TestMethod]
+    public async Task Dispatch_MissingNotebookId_ReturnsError()
+    {
+        var (session, _) = await CreateOpenSession();
+
+        // Call a method that requires notebookId but don't provide it
+        var response = await session.DispatchAsync(1, "cell/list", null);
+        using var doc = JsonDocument.Parse(response);
+        Assert.IsTrue(doc.RootElement.TryGetProperty("error", out _));
+    }
+
+    [TestMethod]
+    public async Task Dispatch_InvalidNotebookId_ReturnsError()
+    {
+        var (session, _) = await CreateOpenSession();
+
+        var @params = JsonSerializer.SerializeToElement(
+            new { notebookId = "nb-nonexistent" },
+            JsonRpcMessage.SerializerOptions);
+
+        var response = await session.DispatchAsync(1, "cell/list", @params);
+        using var doc = JsonDocument.Parse(response);
+        Assert.IsTrue(doc.RootElement.TryGetProperty("error", out _));
+    }
+
+    [TestMethod]
+    public async Task CellAdd_OnNotebookA_NotVisibleOnNotebookB()
+    {
+        var session = CreateSession();
+        var openParams = JsonSerializer.SerializeToElement(
+            new NotebookOpenParams { Content = "" },
+            JsonRpcMessage.SerializerOptions);
+
+        var resultA = await NotebookHandler.HandleOpenAsync(session, openParams);
+        var resultB = await NotebookHandler.HandleOpenAsync(session, openParams);
+
+        var nsA = session.GetSession(resultA.NotebookId);
+        var nsB = session.GetSession(resultB.NotebookId);
+
+        // Add a cell to notebook A
+        var addParams = JsonSerializer.SerializeToElement(
+            new CellAddParams { Type = "code", Source = "var x = 1;" },
+            JsonRpcMessage.SerializerOptions);
+        CellHandler.HandleAdd(nsA, addParams);
+
+        // Notebook A should have 1 cell, notebook B should have 0
+        Assert.AreEqual(1, nsA.Scaffold.Cells.Count);
+        Assert.AreEqual(0, nsB.Scaffold.Cells.Count);
     }
 
     [TestMethod]
     public async Task NotebookGetLanguages_ReturnsRegisteredLanguages()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
 
-        var result = NotebookHandler.HandleGetLanguages(session);
+        var result = NotebookHandler.HandleGetLanguages(ns);
 
         // CSharpKernel is loaded as a built-in extension
         Assert.IsTrue(result.Languages.Count > 0);
@@ -55,12 +151,13 @@ public class HandlerTests
     [TestMethod]
     public async Task CellAdd_AddsCodeCell()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
         var addParams = JsonSerializer.SerializeToElement(
             new CellAddParams { Type = "code", Language = "csharp", Source = "var x = 1;" },
             JsonRpcMessage.SerializerOptions);
 
-        var result = CellHandler.HandleAdd(session, addParams);
+        var result = CellHandler.HandleAdd(ns, addParams);
 
         Assert.AreEqual("code", result.Type);
         Assert.AreEqual("csharp", result.Language);
@@ -71,24 +168,25 @@ public class HandlerTests
     [TestMethod]
     public async Task CellInsert_InsertsAtIndex()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
 
         // Add two cells
         var addParams1 = JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "first" }, JsonRpcMessage.SerializerOptions);
-        CellHandler.HandleAdd(session, addParams1);
+        CellHandler.HandleAdd(ns, addParams1);
 
         var addParams2 = JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "third" }, JsonRpcMessage.SerializerOptions);
-        CellHandler.HandleAdd(session, addParams2);
+        CellHandler.HandleAdd(ns, addParams2);
 
         // Insert between them
         var insertParams = JsonSerializer.SerializeToElement(
             new CellInsertParams { Index = 1, Source = "second" },
             JsonRpcMessage.SerializerOptions);
-        CellHandler.HandleInsert(session, insertParams);
+        CellHandler.HandleInsert(ns, insertParams);
 
-        var cells = session.Scaffold!.Cells;
+        var cells = ns.Scaffold.Cells;
         Assert.AreEqual(3, cells.Count);
         Assert.AreEqual("second", cells[1].Source);
     }
@@ -96,46 +194,49 @@ public class HandlerTests
     [TestMethod]
     public async Task CellRemove_RemovesByGuid()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
         var addParams = JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "to remove" }, JsonRpcMessage.SerializerOptions);
-        var cell = CellHandler.HandleAdd(session, addParams);
+        var cell = CellHandler.HandleAdd(ns, addParams);
 
         var removeParams = JsonSerializer.SerializeToElement(
             new CellRemoveParams { CellId = cell.Id }, JsonRpcMessage.SerializerOptions);
-        CellHandler.HandleRemove(session, removeParams);
+        CellHandler.HandleRemove(ns, removeParams);
 
-        Assert.AreEqual(0, session.Scaffold!.Cells.Count);
+        Assert.AreEqual(0, ns.Scaffold.Cells.Count);
     }
 
     [TestMethod]
     public async Task CellUpdateSource_UpdatesContent()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
         var addParams = JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "old" }, JsonRpcMessage.SerializerOptions);
-        var cell = CellHandler.HandleAdd(session, addParams);
+        var cell = CellHandler.HandleAdd(ns, addParams);
 
         var updateParams = JsonSerializer.SerializeToElement(
             new CellUpdateSourceParams { CellId = cell.Id, Source = "new" },
             JsonRpcMessage.SerializerOptions);
-        CellHandler.HandleUpdateSource(session, updateParams);
+        CellHandler.HandleUpdateSource(ns, updateParams);
 
-        var fetched = session.Scaffold!.GetCell(Guid.Parse(cell.Id));
+        var fetched = ns.Scaffold.GetCell(Guid.Parse(cell.Id));
         Assert.AreEqual("new", fetched!.Source);
     }
 
     [TestMethod]
     public async Task CellGet_ReturnsCell()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
         var addParams = JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "hello" }, JsonRpcMessage.SerializerOptions);
-        var added = CellHandler.HandleAdd(session, addParams);
+        var added = CellHandler.HandleAdd(ns, addParams);
 
         var getParams = JsonSerializer.SerializeToElement(
             new CellGetParams { CellId = added.Id }, JsonRpcMessage.SerializerOptions);
-        var result = CellHandler.HandleGet(session, getParams);
+        var result = CellHandler.HandleGet(ns, getParams);
 
         Assert.IsNotNull(result);
         Assert.AreEqual("hello", result.Source);
@@ -144,13 +245,14 @@ public class HandlerTests
     [TestMethod]
     public async Task CellList_ReturnsAllCells()
     {
-        var session = await CreateOpenSession();
-        CellHandler.HandleAdd(session, JsonSerializer.SerializeToElement(
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        CellHandler.HandleAdd(ns, JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "a" }, JsonRpcMessage.SerializerOptions));
-        CellHandler.HandleAdd(session, JsonSerializer.SerializeToElement(
+        CellHandler.HandleAdd(ns, JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "b" }, JsonRpcMessage.SerializerOptions));
 
-        var result = CellHandler.HandleList(session);
+        var result = CellHandler.HandleList(ns);
 
         // Result is anonymous type with cells property; verify via JSON
         var json = JsonSerializer.Serialize(result, JsonRpcMessage.SerializerOptions);
@@ -161,17 +263,19 @@ public class HandlerTests
     [TestMethod]
     public async Task OutputClearAll_ClearsOutputs()
     {
-        var session = await CreateOpenSession();
-        OutputHandler.HandleClearAll(session);
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        OutputHandler.HandleClearAll(ns);
         // Should not throw
-        Assert.AreEqual(0, session.Scaffold!.Cells.Count);
+        Assert.AreEqual(0, ns.Scaffold.Cells.Count);
     }
 
     [TestMethod]
     public async Task ExecutionCancel_DoesNotThrow()
     {
-        var session = await CreateOpenSession();
-        var result = ExecutionHandler.HandleCancel(session);
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var result = ExecutionHandler.HandleCancel(ns);
         var json = JsonSerializer.Serialize(result, JsonRpcMessage.SerializerOptions);
         Assert.IsTrue(json.Contains("true"));
     }
@@ -179,29 +283,26 @@ public class HandlerTests
     [TestMethod]
     public async Task Dispatch_UnknownMethod_ReturnsMethodNotFoundError()
     {
-        var session = await CreateOpenSession();
-        var response = await session.DispatchAsync(1, "unknown/method", null);
+        var (session, notebookId) = await CreateOpenSession();
+        var @params = JsonSerializer.SerializeToElement(
+            new { notebookId },
+            JsonRpcMessage.SerializerOptions);
+        var response = await session.DispatchAsync(1, "unknown/method", @params);
         using var doc = JsonDocument.Parse(response);
         var error = doc.RootElement.GetProperty("error");
         Assert.AreEqual(JsonRpcMessage.ErrorCodes.MethodNotFound, error.GetProperty("code").GetInt32());
     }
 
     [TestMethod]
-    public void EnsureSession_WithoutOpen_Throws()
-    {
-        var session = CreateSession();
-        Assert.ThrowsException<InvalidOperationException>(() => session.EnsureSession());
-    }
-
-    [TestMethod]
     public async Task NotebookSave_ReturnsVersoContent()
     {
-        var session = await CreateOpenSession();
-        CellHandler.HandleAdd(session, JsonSerializer.SerializeToElement(
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        CellHandler.HandleAdd(ns, JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "Console.WriteLine(\"test\");" },
             JsonRpcMessage.SerializerOptions));
 
-        var result = await NotebookHandler.HandleSaveAsync(session);
+        var result = await NotebookHandler.HandleSaveAsync(ns);
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.Content));
         Assert.IsTrue(result.Content.Contains("Console.WriteLine"));
@@ -210,26 +311,28 @@ public class HandlerTests
     [TestMethod]
     public async Task CellMove_ReordersCells()
     {
-        var session = await CreateOpenSession();
-        CellHandler.HandleAdd(session, JsonSerializer.SerializeToElement(
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        CellHandler.HandleAdd(ns, JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "first" }, JsonRpcMessage.SerializerOptions));
-        CellHandler.HandleAdd(session, JsonSerializer.SerializeToElement(
+        CellHandler.HandleAdd(ns, JsonSerializer.SerializeToElement(
             new CellAddParams { Source = "second" }, JsonRpcMessage.SerializerOptions));
 
-        CellHandler.HandleMove(session, JsonSerializer.SerializeToElement(
+        CellHandler.HandleMove(ns, JsonSerializer.SerializeToElement(
             new CellMoveParams { FromIndex = 0, ToIndex = 1 },
             JsonRpcMessage.SerializerOptions));
 
-        Assert.AreEqual("second", session.Scaffold!.Cells[0].Source);
-        Assert.AreEqual("first", session.Scaffold!.Cells[1].Source);
+        Assert.AreEqual("second", ns.Scaffold.Cells[0].Source);
+        Assert.AreEqual("first", ns.Scaffold.Cells[1].Source);
     }
 
     [TestMethod]
     public async Task ExtensionList_ReturnsLoadedExtensions()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
 
-        var result = ExtensionHandler.HandleList(session);
+        var result = ExtensionHandler.HandleList(ns);
 
         Assert.IsTrue(result.Extensions.Count > 0);
         Assert.IsTrue(result.Extensions.All(e => !string.IsNullOrEmpty(e.ExtensionId)));
@@ -239,15 +342,16 @@ public class HandlerTests
     [TestMethod]
     public async Task ExtensionDisable_SetsStatusToDisabled()
     {
-        var session = await CreateOpenSession();
-        var extensions = ExtensionHandler.HandleList(session);
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var extensions = ExtensionHandler.HandleList(ns);
         var firstId = extensions.Extensions[0].ExtensionId;
 
         var disableParams = JsonSerializer.SerializeToElement(
             new ExtensionToggleParams { ExtensionId = firstId },
             JsonRpcMessage.SerializerOptions);
 
-        var result = await ExtensionHandler.HandleDisableAsync(session, disableParams);
+        var result = await ExtensionHandler.HandleDisableAsync(ns, disableParams);
 
         var disabled = result.Extensions.First(e => e.ExtensionId == firstId);
         Assert.AreEqual("Disabled", disabled.Status);
@@ -256,9 +360,10 @@ public class HandlerTests
     [TestMethod]
     public async Task VariableList_ReturnsEmptyWhenNoVariables()
     {
-        var session = await CreateOpenSession();
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
 
-        var result = VariableHandler.HandleList(session);
+        var result = VariableHandler.HandleList(ns);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(0, result.Variables.Count);
@@ -267,10 +372,11 @@ public class HandlerTests
     [TestMethod]
     public async Task VariableList_ReturnsVariablesAfterSet()
     {
-        var session = await CreateOpenSession();
-        session.Scaffold!.Variables.Set("myVar", 42);
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        ns.Scaffold.Variables.Set("myVar", 42);
 
-        var result = VariableHandler.HandleList(session);
+        var result = VariableHandler.HandleList(ns);
 
         Assert.AreEqual(1, result.Variables.Count);
         Assert.AreEqual("myVar", result.Variables[0].Name);

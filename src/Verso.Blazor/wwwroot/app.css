@@ -186,6 +186,156 @@ html, body {
     border-bottom: 1px solid var(--verso-status-success, #28A745);
 }
 
+/* === Modal (Save Dialog, etc.) === */
+
+.verso-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.verso-modal {
+    background: var(--verso-editor-background, #FFFFFF);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 540px;
+    max-width: calc(100vw - 48px);
+    animation: verso-modal-enter 0.15s ease-out;
+}
+
+@keyframes verso-modal-enter {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.verso-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+}
+
+.verso-modal-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-line-number, #858585);
+    cursor: pointer;
+}
+
+.verso-modal-close:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-modal-body {
+    padding: 20px;
+}
+
+.verso-modal-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-modal-input {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
+    font-size: 13px;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.verso-modal-input:focus {
+    border-color: var(--verso-accent-primary, #0078D4);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--verso-accent-primary, #0078D4) 25%, transparent);
+}
+
+.verso-modal-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-modal-hint code {
+    font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
+    background: var(--verso-cell-output-background, #F5F5F5);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.verso-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--verso-border-default, #E0E0E0);
+}
+
+.verso-modal-btn {
+    padding: 7px 18px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+}
+
+.verso-modal-btn--secondary {
+    background: transparent;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-modal-btn--secondary:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-modal-btn--primary {
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+    border-color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-modal-btn--primary:hover:not(:disabled) {
+    background: var(--verso-accent-secondary, #005A9E);
+    border-color: var(--verso-accent-secondary, #005A9E);
+}
+
+.verso-modal-btn--primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* === Browse Button === */
 
 .verso-toolbar-btn--browse {

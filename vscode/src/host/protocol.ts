@@ -37,9 +37,14 @@ export interface NotebookSetFilePathParams {
 }
 
 export interface NotebookOpenResult {
+  notebookId: string;
   title?: string;
   cells: CellDto[];
   defaultKernel?: string;
+}
+
+export interface NotebookCloseParams {
+  notebookId: string;
 }
 
 export interface NotebookSaveResult {

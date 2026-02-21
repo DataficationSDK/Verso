@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { resolveNotebookIdForCell } from "../host/notebookRegistry";
 import { CompletionsParams, CompletionsResult } from "../host/protocol";
 
 const completionKindMap: Record<string, vscode.CompletionItemKind> = {
@@ -31,6 +32,8 @@ export class VersoCompletionProvider implements vscode.CompletionItemProvider {
     _token: vscode.CancellationToken,
     _context: vscode.CompletionContext
   ): Promise<vscode.CompletionItem[]> {
+    const notebookId = resolveNotebookIdForCell(document);
+
     const cell = vscode.window.activeNotebookEditor?.notebook
       .getCells()
       .find((c) => c.document.uri.toString() === document.uri.toString());
@@ -50,7 +53,8 @@ export class VersoCompletionProvider implements vscode.CompletionItemProvider {
           cellId: versoId,
           code,
           cursorPosition,
-        } satisfies CompletionsParams
+          notebookId,
+        } as CompletionsParams & { notebookId?: string }
       );
 
       return result.items.map((item) => {

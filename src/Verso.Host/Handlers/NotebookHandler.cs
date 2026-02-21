@@ -65,35 +65,43 @@ public static class NotebookHandler
             $"{kernels.Count} kernels ({string.Join(", ", kernels.Select(k => k.LanguageId))}), " +
             $"{magicCommands.Count} magic commands ({string.Join(", ", magicCommands.Select(m => m.Name))})");
 
-        session.SetSession(scaffold, extensionHost);
+        var notebookId = session.AddSession(scaffold, extensionHost);
 
         return new NotebookOpenResult
         {
+            NotebookId = notebookId,
             Title = notebook.Title,
             DefaultKernel = notebook.DefaultKernelId,
             Cells = scaffold.Cells.Select(MapCell).ToList()
         };
     }
 
-    public static object? HandleSetFilePath(HostSession session, JsonElement? @params)
+    public static async Task<object?> HandleCloseAsync(HostSession session, JsonElement? @params)
     {
-        session.EnsureSession();
-        var p = @params?.Deserialize<NotebookSetFilePathParams>(JsonRpcMessage.SerializerOptions)
-            ?? throw new JsonException("Missing params for notebook/setFilePath");
+        var p = @params?.Deserialize<NotebookCloseParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for notebook/close");
 
-        session.Scaffold!.SetFilePath(p.FilePath);
+        await session.RemoveSessionAsync(p.NotebookId);
         return null;
     }
 
-    public static async Task<NotebookSaveResult> HandleSaveAsync(HostSession session)
+    public static object? HandleSetFilePath(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
+        var p = @params?.Deserialize<NotebookSetFilePathParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for notebook/setFilePath");
+
+        ns.Scaffold.SetFilePath(p.FilePath);
+        return null;
+    }
+
+    public static async Task<NotebookSaveResult> HandleSaveAsync(NotebookSession ns)
+    {
         // Flush layout metadata (grid positions, etc.) into the notebook model
-        if (session.Scaffold!.LayoutManager is { } lm)
-            await lm.SaveMetadataAsync(session.Scaffold!.Notebook);
+        if (ns.Scaffold.LayoutManager is { } lm)
+            await lm.SaveMetadataAsync(ns.Scaffold.Notebook);
         // Run post-processors before serialization
-        var notebook = session.Scaffold!.Notebook;
-        var postProcessors = session.ExtensionHost!.GetPostProcessors()
+        var notebook = ns.Scaffold.Notebook;
+        var postProcessors = ns.ExtensionHost.GetPostProcessors()
             .Where(pp => pp.CanProcess(null, "verso-native"))
             .OrderBy(pp => pp.Priority);
         foreach (var pp in postProcessors)
@@ -104,10 +112,9 @@ public static class NotebookHandler
         return new NotebookSaveResult { Content = content };
     }
 
-    public static LanguagesResult HandleGetLanguages(HostSession session)
+    public static LanguagesResult HandleGetLanguages(NotebookSession ns)
     {
-        session.EnsureSession();
-        var scaffold = session.Scaffold!;
+        var scaffold = ns.Scaffold;
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var languages = new List<LanguageDto>();
@@ -127,12 +134,11 @@ public static class NotebookHandler
         return new LanguagesResult { Languages = languages };
     }
 
-    public static CellTypesResult HandleGetCellTypes(HostSession session)
+    public static CellTypesResult HandleGetCellTypes(NotebookSession ns)
     {
-        session.EnsureSession();
         var types = new List<CellTypeDto> { new() { Id = "code", DisplayName = "Code" } };
 
-        var extHost = session.ExtensionHost!;
+        var extHost = ns.ExtensionHost;
 
         var hasMarkdown = extHost.GetCellTypes()
             .Any(ct => string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
@@ -151,10 +157,9 @@ public static class NotebookHandler
         return new CellTypesResult { CellTypes = types };
     }
 
-    public static ToolbarActionsResult HandleGetToolbarActions(HostSession session)
+    public static ToolbarActionsResult HandleGetToolbarActions(NotebookSession ns)
     {
-        session.EnsureSession();
-        var actions = session.ExtensionHost!.GetToolbarActions();
+        var actions = ns.ExtensionHost.GetToolbarActions();
         return new ToolbarActionsResult
         {
             Actions = actions.Select(a => new ToolbarActionDto

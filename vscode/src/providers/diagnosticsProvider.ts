@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { resolveNotebookIdForCell } from "../host/notebookRegistry";
 import { DiagnosticsParams, DiagnosticsResult } from "../host/protocol";
 
 const severityMap: Record<string, vscode.DiagnosticSeverity> = {
@@ -37,6 +38,8 @@ export class VersoDiagnosticsProvider implements vscode.Disposable {
   }
 
   private async updateDiagnostics(document: vscode.TextDocument): Promise<void> {
+    const notebookId = resolveNotebookIdForCell(document);
+
     const cell = vscode.window.activeNotebookEditor?.notebook
       .getCells()
       .find((c) => c.document.uri.toString() === document.uri.toString());
@@ -52,7 +55,8 @@ export class VersoDiagnosticsProvider implements vscode.Disposable {
         {
           cellId: versoId,
           code: document.getText(),
-        } satisfies DiagnosticsParams
+          notebookId,
+        } as DiagnosticsParams & { notebookId?: string }
       );
 
       const diagnostics = result.items.map((item) => {

@@ -6,23 +6,22 @@ namespace Verso.Host.Handlers;
 
 public static class ExecutionHandler
 {
-    public static async Task<ExecutionResultDto> HandleRunAsync(HostSession session, JsonElement? @params)
+    public static async Task<ExecutionResultDto> HandleRunAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<ExecutionRunParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for execution/run");
 
         var cellId = Guid.Parse(p.CellId);
-        var ct = session.GetExecutionToken();
+        var ct = ns.GetExecutionToken();
 
         // Notify: execution started
-        session.SendNotification(MethodNames.CellExecutionState, new ExecutionStateNotification
+        ns.SendNotification(MethodNames.CellExecutionState, new ExecutionStateNotification
         {
             CellId = p.CellId,
             State = "running"
         });
 
-        var result = await session.Scaffold!.ExecuteCellAsync(cellId, ct);
+        var result = await ns.Scaffold.ExecuteCellAsync(cellId, ct);
 
         // Notify: execution completed
         var finalState = result.Status switch
@@ -31,17 +30,17 @@ public static class ExecutionHandler
             Execution.ExecutionResult.ExecutionStatus.Cancelled => "cancelled",
             _ => "failed"
         };
-        session.SendNotification(MethodNames.CellExecutionState, new ExecutionStateNotification
+        ns.SendNotification(MethodNames.CellExecutionState, new ExecutionStateNotification
         {
             CellId = p.CellId,
             State = finalState
         });
 
         // Notify: variables may have changed (kernels publish variables after execution)
-        session.SendNotification(MethodNames.VariableChanged);
+        ns.SendNotification(MethodNames.VariableChanged);
 
         // Fetch cell outputs after execution
-        var cell = session.Scaffold.GetCell(cellId);
+        var cell = ns.Scaffold.GetCell(cellId);
         var outputs = cell?.Outputs.Select(NotebookHandler.MapOutput).ToList() ?? new List<CellOutputDto>();
 
         return new ExecutionResultDto
@@ -55,20 +54,19 @@ public static class ExecutionHandler
         };
     }
 
-    public static async Task<object> HandleRunAllAsync(HostSession session)
+    public static async Task<object> HandleRunAllAsync(NotebookSession ns)
     {
-        session.EnsureSession();
-        var ct = session.GetExecutionToken();
-        var results = await session.Scaffold!.ExecuteAllAsync(ct);
+        var ct = ns.GetExecutionToken();
+        var results = await ns.Scaffold.ExecuteAllAsync(ct);
 
         // Notify: variables may have changed after running all cells
-        session.SendNotification(MethodNames.VariableChanged);
+        ns.SendNotification(MethodNames.VariableChanged);
 
         return new
         {
             results = results.Select(r =>
             {
-                var cell = session.Scaffold.GetCell(r.CellId);
+                var cell = ns.Scaffold.GetCell(r.CellId);
                 return new ExecutionResultDto
                 {
                     CellId = r.CellId.ToString(),
@@ -87,9 +85,9 @@ public static class ExecutionHandler
         };
     }
 
-    public static object HandleCancel(HostSession session)
+    public static object HandleCancel(NotebookSession ns)
     {
-        session.CancelExecution();
+        ns.CancelExecution();
         return new { success = true };
     }
 }

@@ -61,11 +61,12 @@ public class IntegrationTests
             var openResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
             Assert.IsNotNull(openResponse, $"No response to notebook/open. Stderr: {await ReadStderr(process)}");
             using var openDoc = JsonDocument.Parse(openResponse);
-            Assert.IsTrue(openDoc.RootElement.TryGetProperty("result", out _),
+            Assert.IsTrue(openDoc.RootElement.TryGetProperty("result", out var openResult),
                 $"notebook/open returned error: {openResponse}");
+            var notebookId = openResult.GetProperty("notebookId").GetString();
 
             // Add a cell
-            await SendRequest(process, new { jsonrpc = "2.0", id = 2, method = "cell/add", @params = new { type = "code", language = "csharp", source = "1+1" } });
+            await SendRequest(process, new { jsonrpc = "2.0", id = 2, method = "cell/add", @params = new { type = "code", language = "csharp", source = "1+1", notebookId } });
             var addResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
             Assert.IsNotNull(addResponse, "No response to cell/add");
             using var addDoc = JsonDocument.Parse(addResponse);
@@ -74,7 +75,7 @@ public class IntegrationTests
             Assert.AreEqual("1+1", result.GetProperty("source").GetString());
 
             // List cells
-            await SendRequest(process, new { jsonrpc = "2.0", id = 3, method = "cell/list" });
+            await SendRequest(process, new { jsonrpc = "2.0", id = 3, method = "cell/list", @params = new { notebookId } });
             var listResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
             Assert.IsNotNull(listResponse, "No response to cell/list");
             using var listDoc = JsonDocument.Parse(listResponse);
@@ -99,7 +100,14 @@ public class IntegrationTests
             var readyLine = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
             Assert.IsNotNull(readyLine, "Host did not emit ready signal");
 
-            await SendRequest(process, new { jsonrpc = "2.0", id = 1, method = "does/not/exist" });
+            // Open a notebook to get a valid notebookId
+            await SendRequest(process, new { jsonrpc = "2.0", id = 1, method = "notebook/open", @params = new { content = "" } });
+            var openResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
+            Assert.IsNotNull(openResponse, "No response to notebook/open");
+            using var openDoc = JsonDocument.Parse(openResponse);
+            var notebookId = openDoc.RootElement.GetProperty("result").GetProperty("notebookId").GetString();
+
+            await SendRequest(process, new { jsonrpc = "2.0", id = 2, method = "does/not/exist", @params = new { notebookId } });
             var response = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
             Assert.IsNotNull(response, $"No response to unknown method. Stderr: {await ReadStderr(process)}");
             using var doc = JsonDocument.Parse(response);

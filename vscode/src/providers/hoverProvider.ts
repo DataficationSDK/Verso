@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { resolveNotebookIdForCell } from "../host/notebookRegistry";
 import { HoverParams, HoverResult } from "../host/protocol";
 
 export class VersoHoverProvider implements vscode.HoverProvider {
@@ -10,6 +11,8 @@ export class VersoHoverProvider implements vscode.HoverProvider {
     position: vscode.Position,
     _token: vscode.CancellationToken
   ): Promise<vscode.Hover | undefined> {
+    const notebookId = resolveNotebookIdForCell(document);
+
     const cell = vscode.window.activeNotebookEditor?.notebook
       .getCells()
       .find((c) => c.document.uri.toString() === document.uri.toString());
@@ -29,7 +32,8 @@ export class VersoHoverProvider implements vscode.HoverProvider {
           cellId: versoId,
           code,
           cursorPosition,
-        } satisfies HoverParams
+          notebookId,
+        } as HoverParams & { notebookId?: string }
       );
 
       if (!result?.content) {

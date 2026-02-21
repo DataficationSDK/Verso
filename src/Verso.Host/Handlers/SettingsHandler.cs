@@ -6,11 +6,9 @@ namespace Verso.Host.Handlers;
 
 public static class SettingsHandler
 {
-    public static SettingsGetDefinitionsResult HandleGetDefinitions(HostSession session)
+    public static SettingsGetDefinitionsResult HandleGetDefinitions(NotebookSession ns)
     {
-        session.EnsureSession();
-
-        var manager = session.Scaffold!.SettingsManager;
+        var manager = ns.Scaffold.SettingsManager;
         if (manager is null)
             return new SettingsGetDefinitionsResult();
 
@@ -19,10 +17,10 @@ public static class SettingsHandler
 
         foreach (var (extensionId, definitions) in allDefs)
         {
-            var extInfo = session.ExtensionHost!.GetExtensionInfos()
+            var extInfo = ns.ExtensionHost.GetExtensionInfos()
                 .FirstOrDefault(e => string.Equals(e.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase));
 
-            var settable = session.ExtensionHost.GetSettableExtensions()
+            var settable = ns.ExtensionHost.GetSettableExtensions()
                 .FirstOrDefault(s => s is IExtension ext &&
                     string.Equals(ext.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase));
 
@@ -60,13 +58,12 @@ public static class SettingsHandler
         return result;
     }
 
-    public static SettingsGetResult HandleGet(HostSession session, JsonElement? @params)
+    public static SettingsGetResult HandleGet(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var extensionId = @params?.GetProperty("extensionId").GetString()
             ?? throw new JsonException("Missing extensionId");
 
-        var settable = session.ExtensionHost!.GetSettableExtensions()
+        var settable = ns.ExtensionHost.GetSettableExtensions()
             .FirstOrDefault(s => s is IExtension ext &&
                 string.Equals(ext.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"Extension '{extensionId}' does not implement IExtensionSettings.");
@@ -78,9 +75,8 @@ public static class SettingsHandler
         };
     }
 
-    public static async Task<SettingsGetResult> HandleUpdateAsync(HostSession session, JsonElement? @params)
+    public static async Task<SettingsGetResult> HandleUpdateAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var extensionId = @params?.GetProperty("extensionId").GetString()
             ?? throw new JsonException("Missing extensionId");
         var name = @params?.GetProperty("name").GetString()
@@ -100,21 +96,20 @@ public static class SettingsHandler
             };
         }
 
-        await session.Scaffold!.SettingsManager!.UpdateSettingAsync(extensionId, name, value);
+        await ns.Scaffold.SettingsManager!.UpdateSettingAsync(extensionId, name, value);
 
-        return HandleGet(session, @params);
+        return HandleGet(ns, @params);
     }
 
-    public static async Task<SettingsGetResult> HandleResetAsync(HostSession session, JsonElement? @params)
+    public static async Task<SettingsGetResult> HandleResetAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var extensionId = @params?.GetProperty("extensionId").GetString()
             ?? throw new JsonException("Missing extensionId");
         var name = @params?.GetProperty("name").GetString()
             ?? throw new JsonException("Missing name");
 
-        await session.Scaffold!.SettingsManager!.ResetSettingAsync(extensionId, name);
+        await ns.Scaffold.SettingsManager!.ResetSettingAsync(extensionId, name);
 
-        return HandleGet(session, @params);
+        return HandleGet(ns, @params);
     }
 }

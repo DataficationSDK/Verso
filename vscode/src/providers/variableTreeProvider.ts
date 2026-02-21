@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { getActiveNotebookId } from "../host/notebookRegistry";
 import { VariableListResult, VariableEntryDto } from "../host/protocol";
 
 export class VariableTreeItem extends vscode.TreeItem {
@@ -42,8 +43,10 @@ export class VariableTreeProvider
     }
 
     try {
+      const notebookId = getActiveNotebookId();
       const result = await this.host.sendRequest<VariableListResult>(
-        "variable/list"
+        "variable/list",
+        { notebookId }
       );
       return result.variables.map((v) => new VariableTreeItem(v));
     } catch {

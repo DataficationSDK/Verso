@@ -8,10 +8,9 @@ namespace Verso.Host.Handlers;
 
 public static class LayoutHandler
 {
-    public static LayoutsResult HandleGetLayouts(HostSession session)
+    public static LayoutsResult HandleGetLayouts(NotebookSession ns)
     {
-        session.EnsureSession();
-        var manager = session.Scaffold!.LayoutManager;
+        var manager = ns.Scaffold.LayoutManager;
         if (manager is null)
             return new LayoutsResult();
 
@@ -29,49 +28,46 @@ public static class LayoutHandler
         };
     }
 
-    public static object? HandleSwitch(HostSession session, JsonElement? @params)
+    public static object? HandleSwitch(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<LayoutSwitchParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for layout/switch");
 
-        var manager = session.Scaffold!.LayoutManager
+        var manager = ns.Scaffold.LayoutManager
             ?? throw new InvalidOperationException("No layout manager initialized.");
 
         manager.SetActiveLayout(p.LayoutId);
-        session.Scaffold!.Notebook.ActiveLayoutId = p.LayoutId;
+        ns.Scaffold.Notebook.ActiveLayoutId = p.LayoutId;
         return null;
     }
 
-    public static async Task<LayoutRenderResult> HandleRenderAsync(HostSession session)
+    public static async Task<LayoutRenderResult> HandleRenderAsync(NotebookSession ns)
     {
-        session.EnsureSession();
-        var manager = session.Scaffold!.LayoutManager
+        var manager = ns.Scaffold.LayoutManager
             ?? throw new InvalidOperationException("No layout manager initialized.");
 
         var layout = manager.ActiveLayout
             ?? throw new InvalidOperationException("No active layout.");
 
-        var cells = session.Scaffold!.Cells;
-        var context = new HostVersoContext(session.Scaffold!);
+        var cells = ns.Scaffold.Cells;
+        var context = new HostVersoContext(ns.Scaffold);
         var result = await layout.RenderLayoutAsync(cells, context).ConfigureAwait(false);
 
         return new LayoutRenderResult { Html = result.Content };
     }
 
-    public static async Task<LayoutGetCellContainerResult> HandleGetCellContainerAsync(HostSession session, JsonElement? @params)
+    public static async Task<LayoutGetCellContainerResult> HandleGetCellContainerAsync(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<LayoutGetCellContainerParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for layout/getCellContainer");
 
         if (!Guid.TryParse(p.CellId, out var cellId))
             throw new JsonException($"Invalid cell ID: {p.CellId}");
 
-        var layout = session.Scaffold!.LayoutManager?.ActiveLayout
+        var layout = ns.Scaffold.LayoutManager?.ActiveLayout
             ?? throw new InvalidOperationException("No active layout.");
 
-        var context = new HostVersoContext(session.Scaffold!);
+        var context = new HostVersoContext(ns.Scaffold);
         var info = await layout.GetCellContainerAsync(cellId, context).ConfigureAwait(false);
 
         return new LayoutGetCellContainerResult
@@ -83,13 +79,12 @@ public static class LayoutHandler
         };
     }
 
-    public static object? HandleUpdateCell(HostSession session, JsonElement? @params)
+    public static object? HandleUpdateCell(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<LayoutUpdateCellParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for layout/updateCell");
 
-        var manager = session.Scaffold!.LayoutManager
+        var manager = ns.Scaffold.LayoutManager
             ?? throw new InvalidOperationException("No layout manager initialized.");
 
         if (manager.ActiveLayout is DashboardLayout dashboard)
@@ -103,13 +98,12 @@ public static class LayoutHandler
         return null;
     }
 
-    public static object? HandleSetEditMode(HostSession session, JsonElement? @params)
+    public static object? HandleSetEditMode(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<LayoutSetEditModeParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for layout/setEditMode");
 
-        var manager = session.Scaffold!.LayoutManager
+        var manager = ns.Scaffold.LayoutManager
             ?? throw new InvalidOperationException("No layout manager initialized.");
 
         if (manager.ActiveLayout is DashboardLayout dashboard)

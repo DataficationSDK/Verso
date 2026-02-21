@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { getActiveNotebookId } from "../host/notebookRegistry";
 import { VersoController } from "../notebook/versoController";
 import { DashboardPanel } from "../layout/dashboardPanel";
 import { LayoutsResult, LayoutDto, ThemesResult, ThemeListItemDto, ThemeResult } from "../host/protocol";
@@ -37,7 +38,8 @@ export function registerToolbarActions(
       if (notebook?.notebookType !== "verso-notebook") {
         return;
       }
-      await host.sendRequest("output/clearAll");
+      const notebookId = getActiveNotebookId();
+      await host.sendRequest("output/clearAll", { notebookId });
       // Clear VS Code side outputs
       await vscode.commands.executeCommand("notebook.clearAllCellsOutputs");
     })
@@ -49,7 +51,8 @@ export function registerToolbarActions(
       if (notebook?.notebookType !== "verso-notebook") {
         return;
       }
-      await host.sendRequest("kernel/restart");
+      const notebookId = getActiveNotebookId();
+      await host.sendRequest("kernel/restart", { notebookId });
       vscode.window.showInformationMessage("Verso kernel restarted.");
     })
   );
@@ -62,8 +65,10 @@ export function registerToolbarActions(
       }
 
       // Request available layouts from host
+      const notebookId = getActiveNotebookId();
       const result = (await host.sendRequest(
-        "layout/getLayouts"
+        "layout/getLayouts",
+        { notebookId }
       )) as LayoutsResult;
       if (!result?.layouts || result.layouts.length <= 1) {
         vscode.window.showInformationMessage("No other layouts available.");
@@ -87,6 +92,7 @@ export function registerToolbarActions(
       // Switch layout on host
       await host.sendRequest("layout/switch", {
         layoutId: selected.layoutId,
+        notebookId,
       });
 
       // If custom renderer needed, open dashboard panel
@@ -106,8 +112,10 @@ export function registerToolbarActions(
       }
 
       // Request available themes from host
+      const notebookId = getActiveNotebookId();
       const result = (await host.sendRequest(
-        "theme/getThemes"
+        "theme/getThemes",
+        { notebookId }
       )) as ThemesResult;
       if (!result?.themes || result.themes.length <= 1) {
         vscode.window.showInformationMessage("No other themes available.");
@@ -130,6 +138,7 @@ export function registerToolbarActions(
       // Switch theme on host
       await host.sendRequest("theme/switch", {
         themeId: selected.themeId,
+        notebookId,
       });
 
       // Re-apply theme colors

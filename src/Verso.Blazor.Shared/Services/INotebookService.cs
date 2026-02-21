@@ -114,6 +114,9 @@ public interface INotebookService
     /// <summary>Save the notebook to a file path.</summary>
     Task SaveAsync(string filePath);
 
+    /// <summary>Serialize the notebook content without writing to disk.</summary>
+    Task<string?> GetSerializedContentAsync();
+
     // ── Cell operations ────────────────────────────────────────────────
 
     /// <summary>Add a new cell at the end.</summary>

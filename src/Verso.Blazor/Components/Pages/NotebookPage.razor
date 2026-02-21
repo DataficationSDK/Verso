@@ -19,6 +19,39 @@
              OnActionExecuted="HandleActionExecuted"
              OnError="HandleError" />
 
+    @if (_showSaveDialog)
+    {
+        <div class="verso-modal-overlay" @onclick="CancelSaveDialog">
+            <div class="verso-modal" @onclick:stopPropagation="true">
+                <div class="verso-modal-header">
+                    <span class="verso-modal-title">Save Notebook As</span>
+                    <button class="verso-modal-close" @onclick="CancelSaveDialog" title="Cancel">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                    </button>
+                </div>
+                <div class="verso-modal-body">
+                    <label class="verso-modal-label" for="savePath">Save to:</label>
+                    <input id="savePath" class="verso-modal-input"
+                           @bind="_saveFilePath" @bind:event="oninput"
+                           @onkeydown="OnSaveDialogKeyDown"
+                           @ref="_saveDialogInput"
+                           spellcheck="false"
+                           autocomplete="off" />
+                    <div class="verso-modal-hint">
+                        Enter the full file path. The <code>.verso</code> extension will be added if missing.
+                    </div>
+                </div>
+                <div class="verso-modal-footer">
+                    <button class="verso-modal-btn verso-modal-btn--secondary"
+                            @onclick="CancelSaveDialog">Cancel</button>
+                    <button class="verso-modal-btn verso-modal-btn--primary"
+                            @onclick="ConfirmSaveDialog"
+                            disabled="@string.IsNullOrWhiteSpace(_saveFilePath)">Save</button>
+                </div>
+            </div>
+        </div>
+    }
+
     @if (_error is not null)
     {
         <div class="verso-error-banner">
@@ -193,6 +226,10 @@
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
+    private bool _showSaveDialog;
+    private string _saveFilePath = "";
+    private bool _hasNativeHandle;
+    private ElementReference _saveDialogInput;
 
     private string MonacoThemeName =>
         Service.ActiveThemeKind == ThemeKind.Dark ? "vs-dark" : "vs";
@@ -295,6 +332,8 @@
         try
         {
             _error = null;
+            _hasNativeHandle = false;
+            try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
             await Service.NewNotebookAsync();
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -310,6 +349,8 @@
         try
         {
             _error = null;
+            _hasNativeHandle = false;
+            try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
             await Service.OpenAsync(filePath);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -325,6 +366,8 @@
         try
         {
             _error = null;
+            _hasNativeHandle = false;
+            try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
             await Service.OpenFromContentAsync(args.FileName, args.Content);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -337,10 +380,67 @@
 
     private async Task HandleSave()
     {
+        _error = null;
+
+        // Already saved to a known path — save directly
+        if (Service.FilePath is not null)
+        {
+            await SaveToPathAsync(Service.FilePath);
+            return;
+        }
+
+        // Has a native file handle from a previous Save As — write to it
+        if (_hasNativeHandle)
+        {
+            await SaveViaNativeHandleAsync();
+            return;
+        }
+
+        // First save — try native OS save dialog, fall back to modal
+        var content = await Service.GetSerializedContentAsync();
+        if (content is null) return;
+
+        var suggestedName = BuildSuggestedFileName();
+
+        try
+        {
+            var result = await JS.InvokeAsync<SaveDialogResult>(
+                "versoSaveDialog.saveAs", suggestedName, content);
+
+            switch (result.Status)
+            {
+                case "saved":
+                    _hasNativeHandle = true;
+                    await ShowStatusAsync($"Saved to {result.FileName}");
+                    return;
+                case "cancelled":
+                    return;
+                case "unsupported":
+                    // Fall through to modal
+                    break;
+                default:
+                    _error = $"Failed to save: {result.Message}";
+                    return;
+            }
+        }
+        catch
+        {
+            // Fall through to modal
+        }
+
+        // Fallback: show in-app modal
+        _saveFilePath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), suggestedName);
+        _showSaveDialog = true;
+        StateHasChanged();
+        await Task.Yield();
+        try { await _saveDialogInput.FocusAsync(); } catch { }
+    }
+
+    private async Task SaveToPathAsync(string path)
+    {
         try
         {
             _error = null;
-            var path = Service.FilePath ?? "notebook.verso";
 
             if (!path.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
                 path = System.IO.Path.ChangeExtension(path, ".verso");
@@ -352,6 +452,60 @@
         {
             _error = $"Failed to save: {ex.Message}";
         }
+    }
+
+    private async Task SaveViaNativeHandleAsync()
+    {
+        try
+        {
+            var content = await Service.GetSerializedContentAsync();
+            if (content is null) return;
+
+            var result = await JS.InvokeAsync<SaveDialogResult>(
+                "versoSaveDialog.save", content);
+
+            if (result.Status == "saved")
+                await ShowStatusAsync($"Saved to {result.FileName}");
+            else
+                _error = $"Failed to save: {result.Message ?? "unknown error"}";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to save: {ex.Message}";
+        }
+    }
+
+    private string BuildSuggestedFileName()
+    {
+        var title = Service.Title;
+        var name = string.IsNullOrWhiteSpace(title) || title == "Untitled"
+            ? "notebook" : title;
+        return name + ".verso";
+    }
+
+    private async Task ConfirmSaveDialog()
+    {
+        _showSaveDialog = false;
+        if (!string.IsNullOrWhiteSpace(_saveFilePath))
+            await SaveToPathAsync(_saveFilePath.Trim());
+    }
+
+    private void CancelSaveDialog()
+    {
+        _showSaveDialog = false;
+    }
+
+    private async Task OnSaveDialogKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ConfirmSaveDialog();
+        else if (e.Key == "Escape") CancelSaveDialog();
+    }
+
+    private sealed class SaveDialogResult
+    {
+        public string Status { get; set; } = "";
+        public string? FileName { get; set; }
+        public string? Message { get; set; }
     }
 
     private async Task ShowStatusAsync(string message)

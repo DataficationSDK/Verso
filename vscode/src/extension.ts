@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { HostProcess } from "./host/hostProcess";
+import { notebookRegistry, getActiveNotebookId } from "./host/notebookRegistry";
 import { VersoSerializer } from "./notebook/versoSerializer";
 import { VersoController } from "./notebook/versoController";
 import { VersoCompletionProvider } from "./providers/completionProvider";
@@ -23,6 +24,7 @@ import {
   CellDto,
   ExtensionListResult,
   ExtensionToggleParams,
+  NotebookCloseParams,
   NotebookSetFilePathParams,
   SettingsGetDefinitionsResult,
   VariableInspectParams,
@@ -62,13 +64,37 @@ export async function activate(
       if (doc.notebookType !== "verso-notebook") {
         return;
       }
-      if (doc.uri.scheme === "file") {
+      const notebookId = doc.metadata?.notebookId as string | undefined;
+      if (notebookId) {
+        notebookRegistry.register(doc.uri, notebookId);
+      }
+      if (doc.uri.scheme === "file" && notebookId) {
         try {
           await host!.sendRequest("notebook/setFilePath", {
             filePath: doc.uri.fsPath,
-          } satisfies NotebookSetFilePathParams);
+            notebookId,
+          } satisfies NotebookSetFilePathParams & { notebookId: string });
         } catch {
           // Host may not be running yet — ignore
+        }
+      }
+    })
+  );
+
+  // Clean up when a notebook document is closed
+  context.subscriptions.push(
+    vscode.workspace.onDidCloseNotebookDocument(async (doc) => {
+      if (doc.notebookType !== "verso-notebook") {
+        return;
+      }
+      const notebookId = notebookRegistry.unregister(doc.uri);
+      if (notebookId) {
+        try {
+          await host!.sendRequest("notebook/close", {
+            notebookId,
+          } satisfies NotebookCloseParams);
+        } catch {
+          // Host may already be gone — ignore
         }
       }
     })
@@ -94,6 +120,7 @@ export async function activate(
       if (e.notebook.notebookType !== "verso-notebook") {
         return;
       }
+      const notebookId = notebookRegistry.getByUri(e.notebook.uri);
       for (const change of e.contentChanges) {
         for (const cell of change.addedCells) {
           if (cell.metadata?.versoId) {
@@ -110,7 +137,8 @@ export async function activate(
               type,
               language,
               source: cell.document.getText(),
-            } satisfies CellAddParams);
+              notebookId,
+            } as CellAddParams & { notebookId?: string });
 
             const edit = new vscode.WorkspaceEdit();
             const nbEdit = vscode.NotebookEdit.updateCellMetadata(
@@ -153,7 +181,8 @@ export async function activate(
       }
       languagesInitialized = true;
       try {
-        await controller.updateSupportedLanguages();
+        const notebookId = notebookRegistry.getByUri(doc.uri);
+        await controller.updateSupportedLanguages(notebookId);
       } catch {
         // Best effort — controller still works without the language list
       }
@@ -233,10 +262,12 @@ export async function activate(
     vscode.commands.registerCommand(
       "verso.enableExtension",
       async (item: ExtensionTreeItem) => {
+        const notebookId = getActiveNotebookId();
         try {
           await host!.sendRequest<ExtensionListResult>("extension/enable", {
             extensionId: item.info.extensionId,
-          } satisfies ExtensionToggleParams);
+            notebookId,
+          } as ExtensionToggleParams & { notebookId?: string });
           extensionTreeProvider.refresh();
         } catch (err) {
           vscode.window.showErrorMessage(
@@ -251,10 +282,12 @@ export async function activate(
     vscode.commands.registerCommand(
       "verso.disableExtension",
       async (item: ExtensionTreeItem) => {
+        const notebookId = getActiveNotebookId();
         try {
           await host!.sendRequest<ExtensionListResult>("extension/disable", {
             extensionId: item.info.extensionId,
-          } satisfies ExtensionToggleParams);
+            notebookId,
+          } as ExtensionToggleParams & { notebookId?: string });
           extensionTreeProvider.refresh();
         } catch (err) {
           vscode.window.showErrorMessage(
@@ -269,10 +302,14 @@ export async function activate(
     vscode.commands.registerCommand(
       "verso.inspectVariable",
       async (item: VariableTreeItem) => {
+        const notebookId = getActiveNotebookId();
         try {
           const result = await host!.sendRequest<VariableInspectResult>(
             "variable/inspect",
-            { name: item.entry.name } satisfies VariableInspectParams
+            {
+              name: item.entry.name,
+              notebookId,
+            } as VariableInspectParams & { notebookId?: string }
           );
 
           const doc = await vscode.workspace.openTextDocument({
@@ -293,9 +330,11 @@ export async function activate(
   // Register settings command
   context.subscriptions.push(
     vscode.commands.registerCommand("verso.openSettings", async () => {
+      const notebookId = getActiveNotebookId();
       try {
         const result = await host!.sendRequest<SettingsGetDefinitionsResult>(
-          "settings/getDefinitions"
+          "settings/getDefinitions",
+          { notebookId }
         );
 
         if (result.extensions.length === 0) {

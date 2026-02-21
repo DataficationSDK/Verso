@@ -10,9 +10,15 @@ public sealed class NotebookOpenParams
 
 public sealed class NotebookOpenResult
 {
+    public string NotebookId { get; set; } = "";
     public string? Title { get; set; }
     public List<CellDto> Cells { get; set; } = new();
     public string? DefaultKernel { get; set; }
+}
+
+public sealed class NotebookCloseParams
+{
+    public string NotebookId { get; set; } = "";
 }
 
 public sealed class NotebookSetFilePathParams

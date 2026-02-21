@@ -6,70 +6,64 @@ namespace Verso.Host.Handlers;
 
 public static class CellHandler
 {
-    public static CellDto HandleAdd(HostSession session, JsonElement? @params)
+    public static CellDto HandleAdd(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellAddParams>(JsonRpcMessage.SerializerOptions)
             ?? new CellAddParams();
 
-        var cell = session.Scaffold!.AddCell(p.Type, p.Language, p.Source);
+        var cell = ns.Scaffold.AddCell(p.Type, p.Language, p.Source);
         return NotebookHandler.MapCell(cell);
     }
 
-    public static CellDto HandleInsert(HostSession session, JsonElement? @params)
+    public static CellDto HandleInsert(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellInsertParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for cell/insert");
 
-        var cell = session.Scaffold!.InsertCell(p.Index, p.Type, p.Language, p.Source);
+        var cell = ns.Scaffold.InsertCell(p.Index, p.Type, p.Language, p.Source);
         return NotebookHandler.MapCell(cell);
     }
 
-    public static object HandleRemove(HostSession session, JsonElement? @params)
+    public static object HandleRemove(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellRemoveParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for cell/remove");
 
-        var removed = session.Scaffold!.RemoveCell(Guid.Parse(p.CellId));
+        var removed = ns.Scaffold.RemoveCell(Guid.Parse(p.CellId));
         return new { success = removed };
     }
 
-    public static object HandleMove(HostSession session, JsonElement? @params)
+    public static object HandleMove(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellMoveParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for cell/move");
 
-        session.Scaffold!.MoveCell(p.FromIndex, p.ToIndex);
+        ns.Scaffold.MoveCell(p.FromIndex, p.ToIndex);
         return new { success = true };
     }
 
-    public static object HandleUpdateSource(HostSession session, JsonElement? @params)
+    public static object HandleUpdateSource(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellUpdateSourceParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for cell/updateSource");
 
-        session.Scaffold!.UpdateCellSource(Guid.Parse(p.CellId), p.Source);
+        ns.Scaffold.UpdateCellSource(Guid.Parse(p.CellId), p.Source);
         return new { success = true };
     }
 
-    public static object HandleChangeType(HostSession session, JsonElement? @params)
+    public static object HandleChangeType(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellChangeTypeParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for cell/changeType");
 
         var cellId = Guid.Parse(p.CellId);
-        var cell = session.Scaffold!.Cells.FirstOrDefault(c => c.Id == cellId);
+        var cell = ns.Scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
         if (cell is null)
             return new { success = false };
 
         if (!string.Equals(cell.Type, p.Type, StringComparison.OrdinalIgnoreCase))
         {
-            var extHost = session.ExtensionHost!;
+            var extHost = ns.ExtensionHost;
             var cellType = extHost.GetCellTypes()
                 .FirstOrDefault(t => string.Equals(t.CellTypeId, p.Type, StringComparison.OrdinalIgnoreCase));
 
@@ -79,7 +73,7 @@ public static class CellHandler
                 var hasRenderer = extHost.GetRenderers()
                     .Any(r => string.Equals(r.CellTypeId, p.Type, StringComparison.OrdinalIgnoreCase));
                 if (!hasRenderer)
-                    language = session.Scaffold!.DefaultKernelId ?? "csharp";
+                    language = ns.Scaffold.DefaultKernelId ?? "csharp";
             }
 
             cell.Type = p.Type;
@@ -90,19 +84,17 @@ public static class CellHandler
         return new { success = true };
     }
 
-    public static CellDto? HandleGet(HostSession session, JsonElement? @params)
+    public static CellDto? HandleGet(NotebookSession ns, JsonElement? @params)
     {
-        session.EnsureSession();
         var p = @params?.Deserialize<CellGetParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for cell/get");
 
-        var cell = session.Scaffold!.GetCell(Guid.Parse(p.CellId));
+        var cell = ns.Scaffold.GetCell(Guid.Parse(p.CellId));
         return cell is null ? null : NotebookHandler.MapCell(cell);
     }
 
-    public static object HandleList(HostSession session)
+    public static object HandleList(NotebookSession ns)
     {
-        session.EnsureSession();
-        return new { cells = session.Scaffold!.Cells.Select(NotebookHandler.MapCell).ToList() };
+        return new { cells = ns.Scaffold.Cells.Select(NotebookHandler.MapCell).ToList() };
     }
 }
