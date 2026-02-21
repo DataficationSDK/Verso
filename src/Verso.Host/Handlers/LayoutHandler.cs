@@ -117,7 +117,7 @@ public static class LayoutHandler
     /// <summary>
     /// Minimal IVersoContext for rendering layouts on the host side.
     /// </summary>
-    private sealed class HostVersoContext : IVersoContext
+    internal sealed class HostVersoContext : IVersoContext
     {
         private readonly Scaffold _scaffold;
 

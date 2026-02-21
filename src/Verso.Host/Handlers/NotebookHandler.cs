@@ -58,6 +58,13 @@ public static class NotebookHandler
         var scaffold = new Scaffold(notebook, extensionHost, p.FilePath);
         scaffold.InitializeSubsystems();
 
+        // Restore saved layout metadata (e.g. dashboard grid positions) from the notebook
+        if (scaffold.LayoutManager is { } lm && notebook.Layouts.Count > 0)
+        {
+            var context = new LayoutHandler.HostVersoContext(scaffold);
+            await lm.RestoreMetadataAsync(notebook, context).ConfigureAwait(false);
+        }
+
         // Diagnostic: log loaded extensions to stderr (captured by VS Code extension host)
         var kernels = extensionHost.GetKernels();
         var magicCommands = extensionHost.GetMagicCommands();

@@ -15,27 +15,11 @@ const buildOptions = {
   minify: !watch,
 };
 
-/** @type {esbuild.BuildOptions} */
-const rendererBuild = {
-  entryPoints: ["src/renderers/mermaidRenderer.ts"],
-  bundle: true,
-  outfile: "dist/mermaidRenderer.js",
-  format: "esm",
-  platform: "browser",
-  target: "es2020",
-  sourcemap: true,
-  minify: !watch,
-};
-
 if (watch) {
   const ctx = await esbuild.context(buildOptions);
-  const rendererCtx = await esbuild.context(rendererBuild);
-  await Promise.all([ctx.watch(), rendererCtx.watch()]);
+  await ctx.watch();
   console.log("Watching for changes...");
 } else {
-  await Promise.all([
-    esbuild.build(buildOptions),
-    esbuild.build(rendererBuild),
-  ]);
+  await esbuild.build(buildOptions);
   console.log("Build complete.");
 }

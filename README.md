@@ -16,7 +16,7 @@ Verso is an open-source, extensible interactive notebook platform for .NET. It s
 
 Microsoft deprecated Polyglot Notebooks on February 11, 2026, with a sunset date of March 27, 2026. Verso exists because the .NET ecosystem deserves a community-owned notebook platform that isn't subject to a single vendor's priorities.
 
-The core engine is a headless library with no UI dependencies. Front-ends consume it through two channels: a VS Code extension (native notebook API or embedded Blazor WebAssembly) and a standalone Blazor Server web application. All UI components live in a shared Razor class library, and all notebook logic lives in the engine.
+The core engine is a headless library with no UI dependencies. Front-ends consume it through two channels: a VS Code extension (embedded Blazor WebAssembly) and a standalone Blazor Server web application. All UI components live in a shared Razor class library, and all notebook logic lives in the engine.
 
 ## Why Verso?
 
@@ -136,7 +136,7 @@ Verso uses a layered architecture that separates concerns cleanly:
 - **Verso.Abstractions**: Pure interfaces with zero external dependencies. This is the only package extension authors reference.
 - **Verso**: Headless engine library containing the Scaffold Layer, Extension Host, Theme Engine, Layout Manager, Execution Pipeline, and all built-in extensions. Depends on Roslyn, Markdig, and NuGet.Protocol.
 - **Verso.Host**: Console application that wraps the engine in a JSON-RPC 2.0 protocol over stdin/stdout, enabling communication with the VS Code extension.
-- **Verso.VSCode**: Thin TypeScript adapter for the VS Code Notebook API. Handles UI concerns only; all logic lives in the engine.
+- **Verso.VSCode**: Thin TypeScript adapter that hosts the Blazor WASM webview inside VS Code. Handles host process lifecycle and editor registration; all notebook logic lives in the engine.
 - **Verso.Blazor.Shared**: Razor class library containing all shared UI components (cells, toolbar, panels, editor, theme provider) and the `INotebookService` abstraction. Depends only on `Verso.Abstractions`.
 - **Verso.Blazor**: Standalone Blazor Server web application. Implements `INotebookService` in-process via `ServerNotebookService`, with direct access to the engine.
 - **Verso.Blazor.Wasm**: Blazor WebAssembly project that runs inside a VS Code webview. Implements `INotebookService` remotely via `RemoteNotebookService`, communicating through a postMessage/JSON-RPC bridge. References only `Verso.Abstractions` and `Verso.Blazor.Shared` (no engine dependencies).
@@ -324,7 +324,7 @@ npm run build:all
 npx vsce package --skip-license
 ```
 
-Install the generated `.vsix` file in VS Code, then open any `.verso` file or import a `.ipynb` notebook. Use "Open With..." to choose between the native notebook view and the Blazor-powered editor.
+Install the generated `.vsix` file in VS Code, then open any `.verso` file or import a `.ipynb` notebook.
 
 ## Roadmap
 

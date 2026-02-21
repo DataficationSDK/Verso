@@ -17,14 +17,13 @@
     "Notebooks"
   ],
   "activationEvents": [
-    "onNotebook:verso-notebook",
     "onCustomEditor:verso.blazorNotebook"
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "notebooks": [
+    "customEditors": [
       {
-        "type": "verso-notebook",
+        "viewType": "verso.blazorNotebook",
         "displayName": "Verso Notebook",
         "selector": [
           {
@@ -33,201 +32,8 @@
           {
             "filenamePattern": "*.ipynb"
           }
-        ]
-      }
-    ],
-    "notebookRenderer": [
-      {
-        "id": "verso-mermaid-renderer",
-        "displayName": "Verso Mermaid Diagram",
-        "entrypoint": "./dist/mermaidRenderer.js",
-        "mimeTypes": [
-          "text/x-verso-mermaid"
-        ]
-      }
-    ],
-    "customEditors": [
-      {
-        "viewType": "verso.blazorNotebook",
-        "displayName": "Verso Notebook (Experimental)",
-        "selector": [
-          {
-            "filenamePattern": "*.verso"
-          },
-          {
-            "filenamePattern": "*.ipynb"
-          }
         ],
-        "priority": "option"
-      }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "verso-explorer",
-          "title": "Verso",
-          "icon": "$(notebook)"
-        }
-      ]
-    },
-    "views": {
-      "verso-explorer": [
-        {
-          "id": "verso.extensions",
-          "name": "Extensions"
-        },
-        {
-          "id": "verso.variables",
-          "name": "Variables"
-        }
-      ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "verso.extensions",
-        "contents": "Open a .verso notebook to see loaded extensions.",
-        "when": "!verso.notebookOpen"
-      },
-      {
-        "view": "verso.variables",
-        "contents": "Run cells in a .verso notebook to see variables here.",
-        "when": "!verso.notebookOpen"
-      }
-    ],
-    "commands": [
-      {
-        "command": "verso.runAll",
-        "title": "Run All Cells",
-        "shortTitle": "Run All",
-        "category": "Verso",
-        "icon": "$(run-all)"
-      },
-      {
-        "command": "verso.runCell",
-        "title": "Run Cell",
-        "shortTitle": "Run",
-        "category": "Verso",
-        "icon": "$(run)"
-      },
-      {
-        "command": "verso.clearOutputs",
-        "title": "Clear All Outputs",
-        "shortTitle": "Clear Outputs",
-        "category": "Verso",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "verso.restartKernel",
-        "title": "Restart Kernel",
-        "shortTitle": "Restart",
-        "category": "Verso",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "verso.switchLayout",
-        "title": "Switch Layout",
-        "shortTitle": "Layout",
-        "category": "Verso",
-        "icon": "$(layout)"
-      },
-      {
-        "command": "verso.switchTheme",
-        "title": "Switch Theme",
-        "shortTitle": "Theme",
-        "category": "Verso",
-        "icon": "$(symbol-color)"
-      },
-      {
-        "command": "verso.enableExtension",
-        "title": "Enable Extension",
-        "category": "Verso",
-        "icon": "$(check)"
-      },
-      {
-        "command": "verso.disableExtension",
-        "title": "Disable Extension",
-        "category": "Verso",
-        "icon": "$(circle-slash)"
-      },
-      {
-        "command": "verso.refreshExtensions",
-        "title": "Refresh Extensions",
-        "category": "Verso",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "verso.refreshVariables",
-        "title": "Refresh Variables",
-        "category": "Verso",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "verso.inspectVariable",
-        "title": "Inspect Variable",
-        "category": "Verso",
-        "icon": "$(eye)"
-      }
-    ],
-    "menus": {
-      "notebook/toolbar": [
-        {
-          "command": "verso.restartKernel",
-          "group": "navigation@3",
-          "when": "notebookType == verso-notebook"
-        },
-        {
-          "command": "verso.switchLayout",
-          "group": "navigation@4",
-          "when": "notebookType == verso-notebook"
-        },
-        {
-          "command": "verso.switchTheme",
-          "group": "navigation@5",
-          "when": "notebookType == verso-notebook"
-        }
-      ],
-      "notebook/cell/title": [
-        {
-          "command": "verso.runCell",
-          "group": "inline@1",
-          "when": "notebookType == verso-notebook"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "verso.refreshExtensions",
-          "when": "view == verso.extensions",
-          "group": "navigation"
-        },
-        {
-          "command": "verso.refreshVariables",
-          "when": "view == verso.variables",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "verso.enableExtension",
-          "when": "view == verso.extensions && viewItem == disabled",
-          "group": "inline"
-        },
-        {
-          "command": "verso.disableExtension",
-          "when": "view == verso.extensions && viewItem == enabled",
-          "group": "inline"
-        },
-        {
-          "command": "verso.inspectVariable",
-          "when": "view == verso.variables",
-          "group": "inline"
-        }
-      ]
-    },
-    "keybindings": [
-      {
-        "command": "verso.runAll",
-        "key": "ctrl+alt+enter",
-        "when": "notebookType == verso-notebook"
+        "priority": "default"
       }
     ],
     "configuration": {
@@ -247,7 +53,7 @@
     "build:wasm": "dotnet publish ../src/Verso.Blazor.Wasm -c Release -o blazor-wasm",
     "build:all": "npm run build:host && npm run build:wasm && npm run build",
     "watch": "node esbuild.mjs --watch",
-    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.renderer.json",
+    "lint": "tsc --noEmit",
     "pretest": "tsc -p ./tsconfig.test.json",
     "test": "node ./out-test/test/runTest.js",
     "package": "npm run build:all && vsce package --skip-license"
@@ -259,7 +65,6 @@
     "@vscode/test-electron": "^2.3.9",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.21.0",
-    "mermaid": "^11.4.0",
     "glob": "^10.3.10",
     "mocha": "^10.4.0",
     "typescript": "^5.4.0"

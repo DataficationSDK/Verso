@@ -15,20 +15,6 @@ Interactive `.verso` notebooks in VS Code and Cursor, with C# and SQL execution,
 
 3. Open any `.verso` file to activate the extension.
 
-## Editor Modes
-
-The extension provides two ways to open `.verso` files:
-
-### Native Notebook (default)
-
-The default editor uses VS Code's built-in notebook API with native cell rendering, IntelliSense, and diagnostics. This is the standard experience when you open a `.verso` file.
-
-### Blazor Editor (Open With...)
-
-Right-click a `.verso` file and choose **Open With... > Verso Notebook (Experimental)** to open it in the full Blazor UI. This mode runs the same Razor components used by the standalone Blazor web application inside a VS Code webview via WebAssembly. It includes the full notebook toolbar, side panels (metadata, extensions, variables, settings), dashboard layout, and theme switching.
-
-The Blazor editor communicates with the Verso engine through a postMessage/JSON-RPC bridge — the engine runs in the `Verso.Host` process, not in WASM.
-
 ## Features
 
 ### Notebook Editing
@@ -38,16 +24,9 @@ The Blazor editor communicates with the Verso engine through a postMessage/JSON-
 - Markdown cells with preview
 - Restart kernel, clear outputs, switch layout and theme from the toolbar
 
-### Sidebar
+### Built-in Panels
 
-- **Extensions panel** -- view and enable/disable loaded Verso extensions (kernels, themes, formatters, etc.)
-- **Variables panel** -- inspect in-scope variables with type and value preview; auto-refreshes after cell execution
-
-### IntelliSense
-
-- **Completions** -- C# completions via Roslyn; SQL keyword, table/column, and `@variable` completions from cached schema metadata. Triggered on `.` in C# cells.
-- **Hover** -- type and documentation info for C# symbols; SQL keyword descriptions, table column lists, column data types, and `@variable` types/values.
-- **Diagnostics** -- inline errors and warnings as you type (debounced). SQL diagnostics include missing connection and unresolved parameter warnings.
+The Blazor editor includes built-in panels for extensions, variables, and settings — all accessible from within the notebook UI without requiring VS Code sidebar views.
 
 ## SQL Database Support
 
@@ -175,17 +154,6 @@ Opening a `.ipynb` file automatically converts Polyglot Notebooks SQL patterns t
 
 Missing `#r "nuget:"` directives for detected providers are inserted automatically.
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| Verso: Run All Cells | Execute every cell in order |
-| Verso: Run Cell | Execute the current cell |
-| Verso: Clear All Outputs | Clear all cell outputs |
-| Verso: Restart Kernel | Restart the .NET runtime |
-| Verso: Switch Layout | Choose between linear and dashboard layouts |
-| Verso: Switch Theme | Apply a different notebook theme |
-
 ## Building from Source
 
 ```bash
@@ -194,10 +162,7 @@ Missing `#r "nuget:"` directives for detected providers are inserted automatical
 # Install dependencies
 npm install
 
-# Build TypeScript only (native notebook mode)
-npm run build
-
-# Build TypeScript + Blazor WASM (includes Blazor editor)
+# Build TypeScript + Blazor WASM
 npm run build:all
 
 # Package the extension

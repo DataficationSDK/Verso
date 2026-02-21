@@ -9,36 +9,6 @@ suite("Extension Activation", () => {
     assert.ok(vscode.extensions);
   });
 
-  test("All Verso commands should be registered", async () => {
-    const allCommands = await vscode.commands.getCommands(true);
-
-    const expectedCommands = [
-      "verso.runAll",
-      "verso.runCell",
-      "verso.clearOutputs",
-      "verso.restartKernel",
-      "verso.switchLayout",
-      "verso.switchTheme",
-      "verso.enableExtension",
-      "verso.disableExtension",
-      "verso.refreshExtensions",
-      "verso.refreshVariables",
-      "verso.inspectVariable",
-    ];
-
-    // Commands are registered when extension activates.
-    // In test environment, extension may not have activated yet,
-    // so we verify the command list is queryable.
-    assert.ok(Array.isArray(allCommands));
-    assert.ok(allCommands.length > 0, "VS Code should have commands registered");
-  });
-
-  test("Notebook serializer type should be recognizable", () => {
-    // The verso-notebook type is contributed via package.json
-    // We verify that VS Code's notebook API is available
-    assert.ok(vscode.workspace.registerNotebookSerializer);
-  });
-
   test("VS Code API should expose notebook types", () => {
     assert.ok(vscode.NotebookCellKind);
     assert.strictEqual(vscode.NotebookCellKind.Markup, 1);
