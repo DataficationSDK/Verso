@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
 import {
+  CellAddParams,
   CellDto,
   CellUpdateSourceParams,
   NotebookOpenParams,
@@ -24,15 +25,25 @@ export class VersoSerializer implements vscode.NotebookSerializer {
 
     const cells = result.cells.map((cell) => this.mapCellToNotebookData(cell));
 
-    // If no cells, add an empty code cell
+    // If no cells, register a default code cell with the host so it
+    // gets a proper versoId and can be executed immediately.
     if (cells.length === 0) {
-      cells.push(
-        new vscode.NotebookCellData(
-          vscode.NotebookCellKind.Code,
-          "",
-          "csharp"
-        )
+      const cellData = new vscode.NotebookCellData(
+        vscode.NotebookCellKind.Code,
+        "",
+        "csharp"
       );
+      try {
+        const added = await this.host.sendRequest<CellDto>("cell/add", {
+          type: "code",
+          language: "csharp",
+          source: "",
+        } satisfies CellAddParams);
+        cellData.metadata = { versoId: added.id };
+      } catch {
+        // Host may not be ready — cell will be registered when opened later
+      }
+      cells.push(cellData);
     }
 
     const data = new vscode.NotebookData(cells);

@@ -19,6 +19,8 @@ import { DashboardPanel } from "./layout/dashboardPanel";
 import { BlazorEditorProvider } from "./blazor/blazorEditorProvider";
 import { applyEngineTheme } from "./theme/themeMapper";
 import {
+  CellAddParams,
+  CellDto,
   ExtensionListResult,
   ExtensionToggleParams,
   NotebookSetFilePathParams,
@@ -84,6 +86,46 @@ export async function activate(
     );
     return;
   }
+
+  // Register new cells added via the VS Code UI (e.g. the "+" button) with
+  // the host engine so they receive a versoId and can be executed.
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeNotebookDocument(async (e) => {
+      if (e.notebook.notebookType !== "verso-notebook") {
+        return;
+      }
+      for (const change of e.contentChanges) {
+        for (const cell of change.addedCells) {
+          if (cell.metadata?.versoId) {
+            continue;
+          }
+          const type =
+            cell.kind === vscode.NotebookCellKind.Code ? "code" : "markdown";
+          const language =
+            cell.kind === vscode.NotebookCellKind.Code
+              ? cell.document.languageId
+              : undefined;
+          try {
+            const result = await host!.sendRequest<CellDto>("cell/add", {
+              type,
+              language,
+              source: cell.document.getText(),
+            } satisfies CellAddParams);
+
+            const edit = new vscode.WorkspaceEdit();
+            const nbEdit = vscode.NotebookEdit.updateCellMetadata(
+              cell.index,
+              { ...cell.metadata, versoId: result.id }
+            );
+            edit.set(e.notebook.uri, [nbEdit]);
+            await vscode.workspace.applyEdit(edit);
+          } catch {
+            // Host may not be ready — ignore
+          }
+        }
+      }
+    })
+  );
 
   // Register Blazor WASM custom editor (available via "Open With...")
   const blazorProvider = new BlazorEditorProvider(context, host);
