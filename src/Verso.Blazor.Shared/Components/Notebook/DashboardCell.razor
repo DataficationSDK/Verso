@@ -41,6 +41,12 @@
                         <pre class="verso-output-error-content">@output.Content</pre>
                     </div>
                 }
+                else if (output.MimeType == "text/x-verso-mermaid")
+                {
+                    <div class="verso-output verso-output--html verso-mermaid-container">
+                        <pre class="mermaid">@output.Content</pre>
+                    </div>
+                }
                 else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
                 {
                     <div class="verso-output verso-output--html">
@@ -77,12 +83,18 @@
 
     private bool _showCode;
     private bool _jsInitialized;
+    private bool _hasMermaidContent;
     private DotNetObjectReference<DashboardCell>? _dotnetRef;
 
     private string _elementId => $"verso-cell-{CellData.Id}";
     private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
 
     private void ToggleEdit() => _showCode = !_showCode;
+
+    protected override void OnParametersSet()
+    {
+        _hasMermaidContent = CellData.Outputs.Any(o => o.MimeType == "text/x-verso-mermaid");
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -99,6 +111,12 @@
             {
                 // JS not yet loaded
             }
+        }
+
+        if (_hasMermaidContent)
+        {
+            try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }
+            catch (JSException) { }
         }
     }
 

@@ -230,6 +230,9 @@ export class BlazorEditorProvider
     const fileDownloadInterop = toUri(
       "_content/Verso.Blazor.Shared/js/file-download-interop.js"
     );
+    const mermaidInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/mermaid-interop.js"
+    );
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -347,6 +350,7 @@ export class BlazorEditorProvider
     <script src="${dashboardInterop}"></script>
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
+    <script src="${mermaidInterop}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.

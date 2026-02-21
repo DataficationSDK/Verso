@@ -3,7 +3,7 @@
   "displayName": "Verso Notebook",
   "description": "VS Code extension for Verso .NET notebooks",
   "version": "1.0.0",
-  "publisher": "verso-contributors",
+  "publisher": "datafication",
   "license": "MIT",
   "icon": "icon.png",
   "repository": {
@@ -29,7 +29,20 @@
         "selector": [
           {
             "filenamePattern": "*.verso"
+          },
+          {
+            "filenamePattern": "*.ipynb"
           }
+        ]
+      }
+    ],
+    "notebookRenderer": [
+      {
+        "id": "verso-mermaid-renderer",
+        "displayName": "Verso Mermaid Diagram",
+        "entrypoint": "./dist/mermaidRenderer.js",
+        "mimeTypes": [
+          "text/x-verso-mermaid"
         ]
       }
     ],
@@ -40,6 +53,9 @@
         "selector": [
           {
             "filenamePattern": "*.verso"
+          },
+          {
+            "filenamePattern": "*.ipynb"
           }
         ],
         "priority": "option"
@@ -243,6 +259,7 @@
     "@vscode/test-electron": "^2.3.9",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.21.0",
+    "mermaid": "^11.4.0",
     "glob": "^10.3.10",
     "mocha": "^10.4.0",
     "typescript": "^5.4.0"

@@ -13,7 +13,7 @@ public sealed class BuiltInExtensionDiscoveryTests
         await host.LoadBuiltInExtensionsAsync();
 
         var all = host.GetLoadedExtensions();
-        Assert.AreEqual(28, all.Count, $"Expected 28 extensions, got {all.Count}: {string.Join(", ", all.Select(e => e.ExtensionId))}");
+        Assert.AreEqual(30, all.Count, $"Expected 30 extensions, got {all.Count}: {string.Join(", ", all.Select(e => e.ExtensionId))}");
 
     }
 

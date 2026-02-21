@@ -624,7 +624,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         if (_scaffold.ThemeEngine is { ActiveTheme: null } te)
         {
-            var defaultTheme = _extensionHost.GetThemes().FirstOrDefault();
+            var themes = _extensionHost.GetThemes();
+            var defaultTheme = themes.FirstOrDefault(t => t.ThemeKind == ThemeKind.Light)
+                ?? themes.FirstOrDefault();
             if (defaultTheme is not null)
                 te.SetActiveTheme(defaultTheme.ThemeId);
         }

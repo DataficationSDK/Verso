@@ -420,10 +420,12 @@ public sealed class NotebookService : IAsyncDisposable
                 lm.SetActiveLayout(defaultLayout.LayoutId);
         }
 
-        // Default theme: first available
+        // Default theme: prefer light, fall back to first available
         if (_scaffold.ThemeEngine is { ActiveTheme: null } te)
         {
-            var defaultTheme = _extensionHost.GetThemes().FirstOrDefault();
+            var themes = _extensionHost.GetThemes();
+            var defaultTheme = themes.FirstOrDefault(t => t.ThemeKind == ThemeKind.Light)
+                ?? themes.FirstOrDefault();
             if (defaultTheme is not null)
                 te.SetActiveTheme(defaultTheme.ThemeId);
         }

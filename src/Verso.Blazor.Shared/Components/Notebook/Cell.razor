@@ -93,6 +93,12 @@
                             }
                         </div>
                     }
+                    else if (output.MimeType == "text/x-verso-mermaid")
+                    {
+                        <div class="verso-output verso-output--html verso-mermaid-container">
+                            <pre class="mermaid">@output.Content</pre>
+                        </div>
+                    }
                     else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
                     {
                         <div class="verso-output verso-output--html">
@@ -136,6 +142,8 @@
         "verso.action.run-cell"
     };
 
+    private bool _hasMermaidContent;
+
     private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected;
 
     private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
@@ -166,6 +174,17 @@
             .Where(a => enabledStates.GetValueOrDefault(a.ActionId, false)
                         && !_hardcodedActionIds.Contains(a.ActionId))
             .ToList();
+
+        _hasMermaidContent = CellData.Outputs.Any(o => o.MimeType == "text/x-verso-mermaid");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_hasMermaidContent)
+        {
+            try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }
+            catch (JSException) { }
+        }
     }
 
     private async Task ExecuteCellActionAsync(ToolbarActionInfo action)

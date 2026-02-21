@@ -450,7 +450,6 @@ html, body {
 .verso-cell-content {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
 }
 
 /* Cell toolbar */

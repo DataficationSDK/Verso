@@ -140,6 +140,20 @@ export class VersoController {
     }
 
     const mimeType = output.mimeType || "text/plain";
+
+    if (mimeType === "text/x-verso-mermaid") {
+      return new vscode.NotebookCellOutput([
+        vscode.NotebookCellOutputItem.text(
+          output.content,
+          "text/x-verso-mermaid"
+        ),
+        vscode.NotebookCellOutputItem.text(
+          `<pre>${escapeHtml(output.content)}</pre>`,
+          "text/html"
+        ),
+      ]);
+    }
+
     return new vscode.NotebookCellOutput([
       vscode.NotebookCellOutputItem.text(output.content, mimeType),
     ]);
@@ -162,4 +176,12 @@ export class VersoController {
   dispose(): void {
     this.controller.dispose();
   }
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }

@@ -91,6 +91,10 @@ Both hosts implement the same `INotebookService` interface, so a single set of R
 
 Design token system covering editor colors, cell styling, UI components, syntax highlighting, typography, and spacing. Three built-in themes (Light, Dark, and High Contrast) ship out of the box. The High Contrast theme meets WCAG 2.1 AA contrast requirements for accessibility. Hot-swap themes at runtime. Create your own by implementing `ITheme`.
 
+### HTML and Mermaid Cell Types
+
+Built-in cell types for authoring raw HTML and Mermaid diagrams directly in the notebook. Both support `@variable` substitution from the shared variable store, IntelliSense completions for variables, diagnostics for unresolved references, and hover info. The Mermaid kernel also offers diagram keyword completions (`graph`, `flowchart`, `sequenceDiagram`, `classDiagram`, etc.). Mermaid diagrams render natively across all three surfaces: Blazor server, VS Code notebook (via a bundled renderer), and VS Code Blazor WebAssembly.
+
 ### Custom Cell Types
 
 Go beyond code and markdown. Define domain-specific cell types with their own renderers and optional language kernels by implementing `ICellType`, which pairs an `ICellRenderer` with an optional `ILanguageKernel`.
@@ -162,8 +166,8 @@ Verso uses a layered architecture that separates concerns cleanly:
   │ Extension Host │ Theme Engine  │ Layout Manager│
   ├────────────────┴───────────────┴───────────────┤
   │  Built-in Extensions (via Verso.Abstractions)  │
-  │  C# Kernel | Markdown | Formatters             │
-  │  Light/Dark/HighContrast Themes | Layouts      │
+  │  C# Kernel | Markdown | HTML | Mermaid         │
+  │  Formatters | Themes | Layouts                 │
   ├────────────────────────────────────────────────┤
   │  Verso.FSharp (first-party extension package)  │
   │  F# Kernel | IntelliSense | NuGet/Scripts      │
@@ -229,6 +233,7 @@ What ships out of the box:
 | Category | Extensions |
 |----------|-----------|
 | **Kernel** | C# (Roslyn), latest language version, persistent state, IntelliSense, diagnostics, hover, NuGet; F# (FSharp.Compiler.Service) via Verso.FSharp |
+| **Cell Types** | HTML (`@variable` substitution, text/html output), Mermaid (`@variable` substitution, diagram keyword completions, text/x-verso-mermaid output with per-surface rendering) |
 | **Renderer** | Markdown (Markdig with advanced extensions) |
 | **Data Formatters** | Primitives, Collections (HTML tables, up to 100 rows), HTML (`ToHtml()`), Images (PNG/JPEG/GIF/BMP/WebP), SVG, Exceptions (structured with inner exception support) |
 | **Themes** | Verso Light, Verso Dark, Verso High Contrast (WCAG 2.1 AA) |

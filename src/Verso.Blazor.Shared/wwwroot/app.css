@@ -300,7 +300,6 @@ html, body {
 .verso-cell-content {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
 }
 
 /* Cell toolbar */
@@ -327,6 +326,7 @@ html, body {
     padding: 4px var(--verso-cell-padding, 12px) 0;
     overflow: visible;
 }
+
 
 .verso-cell-type-badge {
     display: inline-flex;
@@ -374,7 +374,7 @@ html, body {
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: var(--verso-button-border-radius, 4px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    z-index: 100;
+    z-index: 10000;
     padding: 2px;
 }
 
