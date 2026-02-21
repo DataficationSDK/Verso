@@ -37,6 +37,9 @@ public static class ExecutionHandler
             State = finalState
         });
 
+        // Notify: variables may have changed (kernels publish variables after execution)
+        session.SendNotification(MethodNames.VariableChanged);
+
         // Fetch cell outputs after execution
         var cell = session.Scaffold.GetCell(cellId);
         var outputs = cell?.Outputs.Select(NotebookHandler.MapOutput).ToList() ?? new List<CellOutputDto>();
@@ -57,6 +60,9 @@ public static class ExecutionHandler
         session.EnsureSession();
         var ct = session.GetExecutionToken();
         var results = await session.Scaffold!.ExecuteAllAsync(ct);
+
+        // Notify: variables may have changed after running all cells
+        session.SendNotification(MethodNames.VariableChanged);
 
         return new
         {

@@ -24,7 +24,21 @@ export class BlazorBridge implements vscode.Disposable {
     "variable/changed",
   ];
 
+  private static readonly mutationMethods = new Set([
+    "cell/add",
+    "cell/insert",
+    "cell/remove",
+    "cell/move",
+    "cell/updateSource",
+    "execution/run",
+    "execution/runAll",
+    "output/clearAll",
+  ]);
+
   private documentUri: vscode.Uri | undefined;
+
+  /** Callback fired when the webview sends a request that mutates the notebook. */
+  onDidEdit: (() => void) | undefined;
 
   constructor(
     private readonly webview: vscode.Webview,
@@ -81,9 +95,17 @@ export class BlazorBridge implements vscode.Disposable {
       let result: unknown;
 
       if (method === "extension/writeFile") {
-        result = await this.handleWriteFile(params);
+        // The WASM app triggers save via this method. Route through VS Code's
+        // save command so the CustomEditorProvider clears the dirty indicator.
+        await vscode.commands.executeCommand("workbench.action.files.save");
+        result = { success: true };
       } else {
         result = await this.host.sendRequest(method, params);
+
+        // Notify the provider that the document was mutated.
+        if (BlazorBridge.mutationMethods.has(method)) {
+          this.onDidEdit?.();
+        }
       }
 
       this.webview.postMessage({

@@ -1,41 +1,60 @@
 import * as vscode from "vscode";
-import * as path from "path";
 import { HostProcess } from "../host/hostProcess";
 import { BlazorBridge } from "./blazorBridge";
 import {
   CellAddParams,
   CellDto,
   NotebookOpenResult,
+  NotebookSaveResult,
   NotebookSetFilePathParams,
 } from "../host/protocol";
 
 /**
- * CustomReadonlyEditorProvider that hosts the Blazor WASM app in a VS Code webview.
- * The webview loads the published WASM output and communicates with the Verso.Host
- * process through the BlazorBridge.
+ * A minimal CustomDocument that tracks its URI so the provider can
+ * read / write the backing .verso file.
+ */
+class VersoDocument implements vscode.CustomDocument {
+  constructor(public readonly uri: vscode.Uri) {}
+  dispose(): void {}
+}
+
+/**
+ * CustomEditorProvider that hosts the Blazor WASM app in a VS Code webview.
+ * The webview loads the published WASM output and communicates with the
+ * Verso.Host process through the BlazorBridge.
+ *
+ * Implements the full editable custom-editor contract so VS Code tracks
+ * dirty state and routes Cmd/Ctrl+S through {@link saveCustomDocument}.
  */
 export class BlazorEditorProvider
-  implements vscode.CustomReadonlyEditorProvider
+  implements vscode.CustomEditorProvider<VersoDocument>
 {
   public static readonly viewType = "verso.blazorNotebook";
 
   private readonly bridges = new Map<vscode.WebviewPanel, BlazorBridge>();
+
+  // --- Edit tracking ---
+  private readonly _onDidChangeCustomDocument =
+    new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<VersoDocument>>();
+  readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly host: HostProcess
   ) {}
 
+  // --- CustomEditorProvider lifecycle ---
+
   async openCustomDocument(
     uri: vscode.Uri,
     _openContext: vscode.CustomDocumentOpenContext,
     _token: vscode.CancellationToken
-  ): Promise<vscode.CustomDocument> {
-    return { uri, dispose: () => {} };
+  ): Promise<VersoDocument> {
+    return new VersoDocument(uri);
   }
 
   async resolveCustomEditor(
-    document: vscode.CustomDocument,
+    document: VersoDocument,
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
@@ -52,6 +71,12 @@ export class BlazorEditorProvider
     // Create bridge for this webview
     const bridge = new BlazorBridge(webview, this.host);
     bridge.setDocumentUri(document.uri);
+
+    // Mark the document dirty whenever the WASM app mutates the notebook.
+    bridge.onDidEdit = () => {
+      this._onDidChangeCustomDocument.fire({ document });
+    };
+
     this.bridges.set(webviewPanel, bridge);
 
     webviewPanel.onDidDispose(() => {
@@ -89,7 +114,6 @@ export class BlazorEditorProvider
       } satisfies NotebookSetFilePathParams);
 
       // Notify the WASM app that the notebook is ready
-      // The RemoteNotebookService will receive this through its own bridge request
       bridge.notify("notebook/opened", { filePath, ...result });
     } catch (err) {
       vscode.window.showErrorMessage(
@@ -99,6 +123,54 @@ export class BlazorEditorProvider
       );
     }
   }
+
+  // --- Save / Revert ---
+
+  async saveCustomDocument(
+    document: VersoDocument,
+    _cancellation: vscode.CancellationToken
+  ): Promise<void> {
+    const result = await this.host.sendRequest<NotebookSaveResult>(
+      "notebook/save"
+    );
+    const data = new TextEncoder().encode(result.content);
+    await vscode.workspace.fs.writeFile(document.uri, data);
+  }
+
+  async saveCustomDocumentAs(
+    document: VersoDocument,
+    destination: vscode.Uri,
+    _cancellation: vscode.CancellationToken
+  ): Promise<void> {
+    const result = await this.host.sendRequest<NotebookSaveResult>(
+      "notebook/save"
+    );
+    const data = new TextEncoder().encode(result.content);
+    await vscode.workspace.fs.writeFile(destination, data);
+  }
+
+  async revertCustomDocument(
+    _document: VersoDocument,
+    _cancellation: vscode.CancellationToken
+  ): Promise<void> {
+    // Full revert would require re-opening the notebook in the host.
+    // For now this is a no-op; the user can close and re-open the file.
+  }
+
+  async backupCustomDocument(
+    _document: VersoDocument,
+    context: vscode.CustomDocumentBackupContext,
+    _cancellation: vscode.CancellationToken
+  ): Promise<vscode.CustomDocumentBackup> {
+    const result = await this.host.sendRequest<NotebookSaveResult>(
+      "notebook/save"
+    );
+    const data = new TextEncoder().encode(result.content);
+    await vscode.workspace.fs.writeFile(context.destination, data);
+    return { id: context.destination.toString(), delete: () => {} };
+  }
+
+  // --- Private helpers ---
 
   /**
    * Returns the URI to the blazor-wasm static files directory.

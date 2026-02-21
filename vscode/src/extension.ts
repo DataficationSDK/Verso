@@ -141,6 +141,25 @@ export async function activate(
   const controller = new VersoController(host);
   context.subscriptions.push(controller);
 
+  // Populate the controller's supported languages from the host once the
+  // first notebook is opened (the host session must exist before
+  // notebook/getLanguages can be called).  The first language in the list
+  // becomes the default for new code cells created via the VS Code UI.
+  let languagesInitialized = false;
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenNotebookDocument(async (doc) => {
+      if (languagesInitialized || doc.notebookType !== "verso-notebook") {
+        return;
+      }
+      languagesInitialized = true;
+      try {
+        await controller.updateSupportedLanguages();
+      } catch {
+        // Best effort — controller still works without the language list
+      }
+    })
+  );
+
   // Register language intelligence providers for notebook cells
   const cellSelector: vscode.DocumentSelector = {
     scheme: "vscode-notebook-cell",

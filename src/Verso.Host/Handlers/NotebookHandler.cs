@@ -49,6 +49,12 @@ public static class NotebookHandler
                 notebook = await pp.PostDeserializeAsync(notebook, p.FilePath);
         }
 
+        // Ensure essential metadata defaults are present so subsystems, the
+        // metadata panel, and newly created cells all behave correctly even when
+        // the file is empty or has a blank metadata section.
+        notebook.DefaultKernelId ??= "csharp";
+        notebook.ActiveLayoutId ??= "notebook";
+
         var scaffold = new Scaffold(notebook, extensionHost, p.FilePath);
         scaffold.InitializeSubsystems();
 

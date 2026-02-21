@@ -122,14 +122,16 @@ public sealed class Scaffold : IAsyncDisposable
 
     public CellModel AddCell(string type = "code", string? language = null, string source = "")
     {
-        var cell = new CellModel { Type = type, Language = language, Source = source };
+        var effectiveLanguage = language ?? ResolveDefaultLanguage(type);
+        var cell = new CellModel { Type = type, Language = effectiveLanguage, Source = source };
         lock (_cellLock) { _notebook.Cells.Add(cell); }
         return cell;
     }
 
     public CellModel InsertCell(int index, string type = "code", string? language = null, string source = "")
     {
-        var cell = new CellModel { Type = type, Language = language, Source = source };
+        var effectiveLanguage = language ?? ResolveDefaultLanguage(type);
+        var cell = new CellModel { Type = type, Language = effectiveLanguage, Source = source };
         lock (_cellLock)
         {
             if (index < 0 || index > _notebook.Cells.Count)
@@ -358,6 +360,17 @@ public sealed class Scaffold : IAsyncDisposable
 
         return _extensionHost?.GetKernels()
             .FirstOrDefault(ek => string.Equals(ek.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Returns the notebook's default kernel language for executable cell types, or <c>null</c> for
+    /// types that don't need a language (e.g. markdown).
+    /// </summary>
+    private string? ResolveDefaultLanguage(string type)
+    {
+        if (string.Equals(type, "markdown", StringComparison.OrdinalIgnoreCase))
+            return null;
+        return _notebook.DefaultKernelId;
     }
 
     private IMagicCommand? ResolveMagicCommand(string name)

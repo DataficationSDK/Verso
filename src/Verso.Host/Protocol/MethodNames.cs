@@ -71,6 +71,7 @@ public static class MethodNames
     // Variable explorer
     public const string VariableList = "variable/list";
     public const string VariableInspect = "variable/inspect";
+    public const string VariableChanged = "variable/changed";
 
     // File operations (notifications from host to extension)
     public const string FileDownload = "file/download";

@@ -12,6 +12,10 @@ public static class KernelHandler
         session.EnsureSession();
         var p = @params?.Deserialize<KernelRestartParams>(JsonRpcMessage.SerializerOptions);
         await session.Scaffold!.RestartKernelAsync(p?.KernelId);
+
+        // Notify: restart clears the variable store
+        session.SendNotification(MethodNames.VariableChanged);
+
         return new { success = true };
     }
 

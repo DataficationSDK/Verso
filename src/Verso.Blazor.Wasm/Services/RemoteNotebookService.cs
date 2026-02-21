@@ -224,6 +224,28 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Cancel any pending debounced source update for <paramref name="cellId"/> and send
+    /// the current local source to the host immediately.  Called before execution so the
+    /// host always has the latest source.
+    /// </summary>
+    private async Task FlushPendingSourceUpdateAsync(Guid cellId)
+    {
+        if (_debounceCts.TryGetValue(cellId, out var cts))
+        {
+            cts.Cancel();
+            cts.Dispose();
+            _debounceCts.Remove(cellId);
+        }
+
+        var cell = _cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is not null)
+        {
+            await _bridge.RequestVoidAsync("cell/updateSource",
+                new { cellId = cellId.ToString(), source = cell.Source });
+        }
+    }
+
     public async Task ChangeCellTypeAsync(Guid cellId, string newType)
     {
         await _bridge.RequestVoidAsync("cell/changeType", new { cellId = cellId.ToString(), type = newType });
@@ -246,6 +268,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     public async Task<ExecutionResultDto> ExecuteCellAsync(Guid cellId)
     {
+        // Flush any debounced source update so the host has the latest source
+        await FlushPendingSourceUpdateAsync(cellId);
+
         var result = await _bridge.RequestAsync<ExecutionResponse>(
             "execution/run",
             new { cellId = cellId.ToString() });
@@ -269,6 +294,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     public async Task<IReadOnlyList<ExecutionResultDto>> ExecuteAllAsync()
     {
+        // Flush all pending source updates before running
+        foreach (var cell in _cells)
+            await FlushPendingSourceUpdateAsync(cell.Id);
+
         var result = await _bridge.RequestAsync<ExecutionResponse>(
             "execution/runAll", null);
 

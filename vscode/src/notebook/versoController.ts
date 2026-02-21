@@ -6,6 +6,7 @@ import {
   ExecutionResultDto,
   ExecutionRunParams,
   ExecutionRunAllResult,
+  LanguagesResult,
 } from "../host/protocol";
 
 export class VersoController {
@@ -19,10 +20,6 @@ export class VersoController {
     );
 
     this.controller.description = ".NET Notebook Engine";
-    // Don't restrict languages — the engine handles routing cells to the
-    // correct kernel or cell type.  Setting this to undefined lets VS Code
-    // pass all code cells to the controller regardless of language.
-    this.controller.supportedLanguages = undefined;
     this.controller.supportsExecutionOrder = true;
     this.controller.executeHandler = this.executeHandler.bind(this);
   }
@@ -136,6 +133,19 @@ export class VersoController {
     return new vscode.NotebookCellOutput([
       vscode.NotebookCellOutputItem.text(output.content, mimeType),
     ]);
+  }
+
+  /**
+   * Query the host for registered languages and set them on the controller.
+   * The first language becomes the default for new code cells.
+   */
+  async updateSupportedLanguages(): Promise<void> {
+    const result = await this.host.sendRequest<LanguagesResult>(
+      "notebook/getLanguages"
+    );
+    if (result.languages.length > 0) {
+      this.controller.supportedLanguages = result.languages.map((l) => l.id);
+    }
   }
 
   dispose(): void {
