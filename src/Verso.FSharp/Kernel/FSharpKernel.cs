@@ -314,10 +314,32 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
 
                 if (resolved is not null)
                 {
-                    var formatted = FSharpValueFormatter.FormatValue(resolved);
-                    if (!string.IsNullOrEmpty(formatted))
+                    CellOutput? valueCell = null;
+
+                    if (resolved is CellOutput directOutput)
                     {
-                        var valueCell = new CellOutput("text/plain", formatted);
+                        valueCell = directOutput;
+                    }
+                    else if (TryExtractCellOutput(resolved, out var extracted))
+                    {
+                        valueCell = extracted;
+                    }
+                    else
+                    {
+                        valueCell = await TryFormatAsync(resolved, context).ConfigureAwait(false);
+                    }
+
+                    if (valueCell is null)
+                    {
+                        var formatted = FSharpValueFormatter.FormatValue(resolved);
+                        if (!string.IsNullOrEmpty(formatted))
+                        {
+                            valueCell = new CellOutput("text/plain", formatted);
+                        }
+                    }
+
+                    if (valueCell is not null)
+                    {
                         await context.WriteOutputAsync(valueCell).ConfigureAwait(false);
                         outputs.Add(valueCell);
                     }
@@ -763,6 +785,70 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         var items = string.Join("",
             packages.Select(p => $"<li><span>{p.PackageId}, {p.ResolvedVersion}</span></li>"));
         return $"<div><b>Installed Packages</b><ul>{items}</ul></div>";
+    }
+
+    private static async Task<CellOutput?> TryFormatAsync(object value, IExecutionContext context)
+    {
+        var formatters = context.ExtensionHost.GetFormatters();
+        if (formatters.Count == 0) return null;
+
+        var fmtContext = new ExecutionFormatterContext(context);
+
+        foreach (var formatter in formatters.OrderByDescending(f => f.Priority))
+        {
+            if (formatter.SupportedTypes.Any(t => t.IsInstanceOfType(value))
+                && formatter.CanFormat(value, fmtContext))
+            {
+                return await formatter.FormatAsync(value, fmtContext).ConfigureAwait(false);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Attempts to extract a <see cref="CellOutput"/> from an object that has the same shape
+    /// but was loaded in a different assembly context (e.g. via #r in a notebook cell).
+    /// </summary>
+    private static bool TryExtractCellOutput(object value, out CellOutput? output)
+    {
+        output = null;
+        var type = value.GetType();
+        if (type.FullName != "Verso.Abstractions.CellOutput") return false;
+
+        var mimeType = type.GetProperty("MimeType")?.GetValue(value) as string;
+        var content = type.GetProperty("Content")?.GetValue(value) as string;
+        if (mimeType is null || content is null) return false;
+
+        var isError = type.GetProperty("IsError")?.GetValue(value) is true;
+        var errorName = type.GetProperty("ErrorName")?.GetValue(value) as string;
+        var errorStackTrace = type.GetProperty("ErrorStackTrace")?.GetValue(value) as string;
+
+        output = new CellOutput(mimeType, content, isError, errorName, errorStackTrace);
+        return true;
+    }
+
+    /// <summary>
+    /// Adapts an <see cref="IExecutionContext"/> to <see cref="IFormatterContext"/> by adding
+    /// the three formatting-specific properties.
+    /// </summary>
+    private sealed class ExecutionFormatterContext : IFormatterContext
+    {
+        private readonly IExecutionContext _inner;
+        public ExecutionFormatterContext(IExecutionContext inner) => _inner = inner;
+
+        public string MimeType => "text/html";
+        public double MaxWidth => 800;
+        public double MaxHeight => 600;
+
+        public IVariableStore Variables => _inner.Variables;
+        public CancellationToken CancellationToken => _inner.CancellationToken;
+        public Task WriteOutputAsync(CellOutput output) => _inner.WriteOutputAsync(output);
+        public IThemeContext Theme => _inner.Theme;
+        public LayoutCapabilities LayoutCapabilities => _inner.LayoutCapabilities;
+        public IExtensionHostContext ExtensionHost => _inner.ExtensionHost;
+        public INotebookMetadata NotebookMetadata => _inner.NotebookMetadata;
+        public INotebookOperations Notebook => _inner.Notebook;
     }
 
     private void EnsureInitialized()
