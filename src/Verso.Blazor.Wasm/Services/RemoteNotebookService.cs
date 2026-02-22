@@ -532,6 +532,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         _cells = result.Cells?.Select(MapCellFromDto).ToList() ?? new();
         _isLoaded = true;
 
+        // Notify immediately so the UI can render cells while supplementary data loads
+        OnNotebookChanged?.Invoke();
+
         // Fetch supplementary data (toolbar actions, languages, themes, etc.)
         await RefreshExtensionDataAsync();
         await RefreshThemeDataAsync();

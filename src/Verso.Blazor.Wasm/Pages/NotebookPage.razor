@@ -218,11 +218,17 @@
     {
         if (firstRender)
         {
-            // Initialize the bridge notification handler
+            // Subscribe BEFORE initializing so replayed notifications are caught
+            Bridge.OnNotification += HandleBridgeNotification;
+
+            // Initialize the bridge notification handler (may replay queued notifications)
             await Bridge.InitializeAsync();
 
-            // Listen for the initial notebook content from VS Code
-            Bridge.OnNotification += HandleBridgeNotification;
+            // If the notification was already processed, re-render immediately
+            if (Service.IsLoaded)
+            {
+                StateHasChanged();
+            }
 
             await SyncMonacoThemeAsync();
         }
