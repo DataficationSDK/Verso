@@ -58,6 +58,12 @@ function resolveHostPath(context: vscode.ExtensionContext): string {
     return configured;
   }
 
+  // Check bundled host (inside the installed extension)
+  const bundled = path.join(context.extensionPath, "host", "Verso.Host.dll");
+  if (fs.existsSync(bundled)) {
+    return bundled;
+  }
+
   // Search workspace folders for the Verso.Host.dll (check Release first, then Debug)
   const configs = ["Release", "Debug"];
   const workspaceFolders = vscode.workspace.workspaceFolders ?? [];

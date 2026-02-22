@@ -1,7 +1,11 @@
 src/**
+test/**
 out/**
+out-test/**
 node_modules/**
 tsconfig.json
+tsconfig.test.json
 esbuild.mjs
 .gitignore
 *.map
+*.vsix

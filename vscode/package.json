@@ -49,7 +49,7 @@
   },
   "scripts": {
     "build": "node esbuild.mjs",
-    "build:host": "dotnet build ../src/Verso.Host -c Release",
+    "build:host": "dotnet publish ../src/Verso.Host -c Release -o host",
     "build:wasm": "dotnet publish ../src/Verso.Blazor.Wasm -c Release -o blazor-wasm",
     "build:all": "npm run build:host && npm run build:wasm && npm run build",
     "watch": "node esbuild.mjs --watch",
