@@ -8,7 +8,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/DataficationSDK/Verso?label=Release)](https://github.com/DataficationSDK/Verso/releases)
 ![CI](https://img.shields.io/github/actions/workflow/status/DataficationSDK/Verso/verso-ci.yml?branch=main&label=CI)
 
-<!-- TODO: Hero image or GIF showing Verso in action (VS Code or Blazor, C# code executing with output, variable explorer visible) -->
+![Verso in action](https://datafication.co/assets/verso/RunningVersoNotebook.gif)
 
 ## The Story
 
@@ -68,7 +68,8 @@ Both paths use the same shared Razor components for the UI, so the experience is
 
 ## What You Can Do
 
-<!-- TODO: GIF showing C# code execution with IntelliSense completing, output appearing below the cell -->
+![C# code execution with IntelliSense](https://datafication.co/assets/verso/IntellisenseVerso.gif)
+
 
 ### Write and Run C# with Full IntelliSense
 

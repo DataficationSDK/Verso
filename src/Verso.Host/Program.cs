@@ -1,6 +1,12 @@
+using System.Text;
 using System.Text.Json;
 using Verso.Host;
 using Verso.Host.Protocol;
+
+// Force UTF-8 for stdin/stdout — Windows defaults to the OEM code page (e.g. CP437)
+// which corrupts non-ASCII characters in JSON-RPC messages.
+Console.InputEncoding = Encoding.UTF8;
+Console.OutputEncoding = Encoding.UTF8;
 
 var session = new HostSession(SendLine);
 
