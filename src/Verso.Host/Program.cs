@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using Verso.Host;
 using Verso.Host.Protocol;
 
@@ -8,47 +9,89 @@ using Verso.Host.Protocol;
 Console.InputEncoding = Encoding.UTF8;
 Console.OutputEncoding = Encoding.UTF8;
 
-var session = new HostSession(SendLine);
+// Lock ensures atomic line writes when the reader task and main loop
+// send responses/notifications concurrently.
+var stdoutLock = new object();
+
+var session = new HostSession(json => SendLine(json, stdoutLock));
 
 // Emit ready signal
-SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "1.0.0" }));
+SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "1.0.0" }), stdoutLock);
 
-await foreach (var line in ReadLinesAsync(Console.In))
+// Channel for requests that need sequential processing by the main loop.
+var requests = Channel.CreateUnbounded<(object id, string method, JsonElement? @params)>();
+
+// Background task: continuously read stdin.
+// Consent responses are resolved immediately (they just complete a TCS) to prevent
+// deadlocks when a handler is blocked waiting for consent approval.  All other
+// requests are forwarded to the main loop via the channel.
+_ = Task.Run(async () =>
 {
-    if (string.IsNullOrWhiteSpace(line))
-        continue;
+    try
+    {
+        await foreach (var line in ReadLinesAsync(Console.In))
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
 
+            try
+            {
+                var (id, method, @params) = JsonRpcMessage.Parse(line);
+
+                if (id is null || method is null)
+                    continue;
+
+                if (method == MethodNames.ExtensionConsentResponse)
+                {
+                    // Handle inline — resolves a TCS, no heavy work.
+                    var response = await session.DispatchAsync(id, method, @params);
+                    SendLine(response, stdoutLock);
+                    continue;
+                }
+
+                await requests.Writer.WriteAsync((id, method, @params));
+            }
+            catch (JsonException)
+            {
+                SendLine(JsonRpcMessage.Error(0, JsonRpcMessage.ErrorCodes.ParseError, "Invalid JSON"), stdoutLock);
+            }
+        }
+    }
+    finally
+    {
+        requests.Writer.Complete();
+    }
+});
+
+// Main loop: process all other requests sequentially.
+await foreach (var (id, method, @params) in requests.Reader.ReadAllAsync())
+{
     string response;
     try
     {
-        var (id, method, @params) = JsonRpcMessage.Parse(line);
-
-        if (id is null || method is null)
-        {
-            // Notification from extension — currently no inbound notifications handled
-            continue;
-        }
-
         response = await session.DispatchAsync(id, method, @params);
     }
     catch (JsonException)
     {
-        response = JsonRpcMessage.Error(0, JsonRpcMessage.ErrorCodes.ParseError, "Invalid JSON");
+        response = JsonRpcMessage.Error(id, JsonRpcMessage.ErrorCodes.ParseError, "Invalid JSON");
     }
     catch (Exception ex)
     {
-        response = JsonRpcMessage.Error(0, JsonRpcMessage.ErrorCodes.InternalError, ex.Message);
+        response = JsonRpcMessage.Error(id, JsonRpcMessage.ErrorCodes.InternalError, ex.Message);
     }
 
-    SendLine(response);
+    SendLine(response, stdoutLock);
 }
 
 await session.DisposeAsync();
 
-static void SendLine(string json)
+static void SendLine(string json, object @lock)
 {
-    Console.Out.WriteLine(json);
-    Console.Out.Flush();
+    lock (@lock)
+    {
+        Console.Out.WriteLine(json);
+        Console.Out.Flush();
+    }
 }
 
 static async IAsyncEnumerable<string> ReadLinesAsync(TextReader reader)

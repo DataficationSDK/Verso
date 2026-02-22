@@ -1,0 +1,56 @@
+@using Verso.Abstractions
+
+@if (IsVisible)
+{
+    <div class="verso-modal-overlay" @onclick="HandleDeny">
+        <div class="verso-modal" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
+            <div class="verso-modal-header">
+                <span class="verso-modal-title">Extension Consent Required</span>
+                <button class="verso-modal-close" @onclick="HandleDeny" title="Deny">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="verso-modal-body">
+                <p style="margin:0 0 8px 0;">
+                    This notebook wants to load the following extension package@(Extensions.Count == 1 ? "" : "s"):
+                </p>
+                <ul style="margin:0 0 12px 0; padding-left:20px;">
+                    @foreach (var ext in Extensions)
+                    {
+                        <li>
+                            <strong>@ext.PackageId</strong>@(ext.Version is not null ? $" ({ext.Version})" : "")
+                            @if (ext.Source != "cell")
+                            {
+                                <span style="opacity:0.7;"> &mdash; @ext.Source</span>
+                            }
+                        </li>
+                    }
+                </ul>
+                <div class="verso-modal-hint" style="color:var(--verso-status-warning, #b58900);">
+                    Extensions run code on your machine. Only approve packages you trust.
+                </div>
+            </div>
+            <div class="verso-modal-footer">
+                <button class="verso-modal-btn verso-modal-btn--secondary"
+                        @onclick="HandleDeny">Deny</button>
+                <button class="verso-modal-btn verso-modal-btn--primary"
+                        @onclick="HandleApprove">Approve All</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public IReadOnlyList<ExtensionConsentInfo> Extensions { get; set; } = Array.Empty<ExtensionConsentInfo>();
+    [Parameter] public EventCallback<bool> OnConsentResult { get; set; }
+
+    private async Task HandleApprove() => await OnConsentResult.InvokeAsync(true);
+    private async Task HandleDeny() => await OnConsentResult.InvokeAsync(false);
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await HandleApprove();
+        else if (e.Key == "Escape") await HandleDeny();
+    }
+}

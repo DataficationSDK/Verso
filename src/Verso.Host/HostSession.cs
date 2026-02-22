@@ -15,6 +15,8 @@ public sealed class NotebookSession : IAsyncDisposable
 
     private CancellationTokenSource? _executionCts;
     private readonly Action<string, object?> _sendNotification;
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _pendingConsents = new();
+    private int _consentCounter;
 
     public NotebookSession(
         string notebookId,
@@ -26,6 +28,15 @@ public sealed class NotebookSession : IAsyncDisposable
         Scaffold = scaffold;
         ExtensionHost = extensionHost;
         _sendNotification = sendNotification;
+
+        // Notify the client when extensions are dynamically loaded (e.g. via #!extension)
+        // so the WASM UI can refresh its cached extension/layout/theme lists.
+        ExtensionHost.OnExtensionLoaded += HandleExtensionLoaded;
+    }
+
+    private void HandleExtensionLoaded(Abstractions.IExtension extension)
+    {
+        SendNotification(Protocol.MethodNames.ExtensionChanged, null);
     }
 
     public CancellationToken GetExecutionToken()
@@ -45,8 +56,52 @@ public sealed class NotebookSession : IAsyncDisposable
         _sendNotification(method, @params);
     }
 
+    /// <summary>
+    /// Sends an extension consent request notification to the client and awaits the response.
+    /// </summary>
+    public async Task<bool> RequestConsentAsync(
+        IReadOnlyList<Abstractions.ExtensionConsentInfo> extensions,
+        CancellationToken cancellationToken)
+    {
+        var requestId = $"consent-{Interlocked.Increment(ref _consentCounter)}";
+        var tcs = new TaskCompletionSource<bool>();
+        _pendingConsents[requestId] = tcs;
+
+        using var registration = cancellationToken.Register(
+            () => { tcs.TrySetResult(false); _pendingConsents.TryRemove(requestId, out _); });
+
+        SendNotification(Protocol.MethodNames.ExtensionConsentRequest, new
+        {
+            requestId,
+            extensions = extensions.Select(e => new
+            {
+                packageId = e.PackageId,
+                version = e.Version,
+                source = e.Source
+            }).ToArray()
+        });
+
+        return await tcs.Task;
+    }
+
+    /// <summary>
+    /// Resolves a pending consent request from the client response.
+    /// </summary>
+    public void ResolveConsent(string requestId, bool approved)
+    {
+        if (_pendingConsents.TryRemove(requestId, out var tcs))
+            tcs.TrySetResult(approved);
+    }
+
     public async ValueTask DisposeAsync()
     {
+        ExtensionHost.OnExtensionLoaded -= HandleExtensionLoaded;
+
+        // Cancel any pending consent requests
+        foreach (var tcs in _pendingConsents.Values)
+            tcs.TrySetResult(false);
+        _pendingConsents.Clear();
+
         _executionCts?.Dispose();
         await Scaffold.DisposeAsync();
         await ExtensionHost.DisposeAsync();
@@ -189,8 +244,18 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.ToolbarExecute => await ToolbarHandler.HandleExecuteAsync(ns, @params),
             MethodNames.VariableList => VariableHandler.HandleList(ns),
             MethodNames.VariableInspect => await VariableHandler.HandleInspectAsync(ns, @params),
+            MethodNames.ExtensionConsentResponse => HandleConsentResponse(ns, @params),
             _ => throw new InvalidOperationException($"Unknown method: {method}")
         };
+    }
+
+    private static object? HandleConsentResponse(NotebookSession ns, JsonElement? @params)
+    {
+        var requestId = @params?.GetProperty("requestId").GetString();
+        var approved = @params?.GetProperty("approved").GetBoolean() ?? false;
+        if (requestId is not null)
+            ns.ResolveConsent(requestId, approved);
+        return null;
     }
 
     private object? HandleShutdown()

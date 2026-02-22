@@ -9,7 +9,7 @@ namespace Verso;
 /// </summary>
 public sealed class SettingsManager
 {
-    private readonly IReadOnlyList<IExtensionSettings> _settableExtensions;
+    private IReadOnlyList<IExtensionSettings> _settableExtensions;
 
     public SettingsManager(IReadOnlyList<IExtensionSettings> settableExtensions)
     {
@@ -18,6 +18,14 @@ public sealed class SettingsManager
 
     /// <summary>Raised when any extension setting changes.</summary>
     public event Action<string, string, object?>? OnSettingsChanged;
+
+    /// <summary>
+    /// Replaces the settable extensions list with an updated snapshot.
+    /// </summary>
+    public void Refresh(IReadOnlyList<IExtensionSettings> updatedExtensions)
+    {
+        _settableExtensions = updatedExtensions ?? throw new ArgumentNullException(nameof(updatedExtensions));
+    }
 
     /// <summary>
     /// Gets all setting definitions from all extensions that implement <see cref="IExtensionSettings"/>.

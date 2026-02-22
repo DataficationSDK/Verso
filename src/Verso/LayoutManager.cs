@@ -8,7 +8,7 @@ namespace Verso;
 /// </summary>
 public sealed class LayoutManager
 {
-    private readonly IReadOnlyList<ILayoutEngine> _availableLayouts;
+    private IReadOnlyList<ILayoutEngine> _availableLayouts;
     private volatile ILayoutEngine? _activeLayout;
 
     public LayoutManager(IReadOnlyList<ILayoutEngine> availableLayouts, string? defaultLayoutId = null)
@@ -33,6 +33,22 @@ public sealed class LayoutManager
     /// Raised when the active layout changes.
     /// </summary>
     public event Action<ILayoutEngine>? OnLayoutChanged;
+
+    /// <summary>
+    /// Replaces the available layouts list with an updated snapshot.
+    /// Preserves the active layout if it still exists in the new list.
+    /// </summary>
+    public void Refresh(IReadOnlyList<ILayoutEngine> updatedLayouts)
+    {
+        var activeId = _activeLayout?.LayoutId;
+        _availableLayouts = updatedLayouts ?? throw new ArgumentNullException(nameof(updatedLayouts));
+
+        if (activeId is not null)
+        {
+            _activeLayout = _availableLayouts.FirstOrDefault(
+                l => string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase));
+        }
+    }
 
     /// <summary>
     /// Gets whether the active layout requires a custom renderer.

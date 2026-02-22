@@ -6,6 +6,7 @@ using Verso.Contexts;
 using Verso.Execution;
 using Verso.Extensions;
 using Verso.Extensions.Layouts;
+using Verso.MagicCommands;
 using Verso.Serializers;
 
 namespace Verso.Blazor.Services;
@@ -20,6 +21,23 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     private ExtensionHost? _extensionHost;
     private string? _filePath;
     private readonly IJSRuntime _jsRuntime;
+
+    // Extension consent state
+    private TaskCompletionSource<bool>? _consentTcs;
+    private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
+
+    /// <summary>Raised when extensions need user consent. The UI should show the consent dialog.</summary>
+    public event Action? OnExtensionConsentRequested;
+
+    /// <summary>The extensions awaiting consent, if any.</summary>
+    public IReadOnlyList<ExtensionConsentInfo>? PendingConsentExtensions => _pendingConsentExtensions;
+
+    /// <summary>Called by the UI to resolve the pending consent request.</summary>
+    public void ResolveConsentResult(bool approved)
+    {
+        _consentTcs?.TrySetResult(approved);
+        _pendingConsentExtensions = null;
+    }
 
     public ServerNotebookService(IJSRuntime jsRuntime)
     {
@@ -154,6 +172,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         _extensionHost = new ExtensionHost();
         await _extensionHost.LoadBuiltInExtensionsAsync();
+        WireConsentHandler();
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
@@ -171,6 +190,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         _extensionHost = new ExtensionHost();
         await _extensionHost.LoadBuiltInExtensionsAsync();
+        WireConsentHandler();
 
         var content = await File.ReadAllTextAsync(filePath);
 
@@ -189,6 +209,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         SubscribeToEngineEvents();
 
         OnNotebookChanged?.Invoke();
+
+        await ScanAndRequestConsentAsync(notebook);
     }
 
     public async Task OpenFromContentAsync(string fileName, string content)
@@ -204,6 +226,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         _extensionHost = new ExtensionHost();
         await _extensionHost.LoadBuiltInExtensionsAsync();
+        WireConsentHandler();
 
         var serializer = _extensionHost.GetSerializers()
             .FirstOrDefault(s => s.CanImport(fileName))
@@ -220,6 +243,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         SubscribeToEngineEvents();
 
         OnNotebookChanged?.Invoke();
+
+        await ScanAndRequestConsentAsync(notebook);
     }
 
     public async Task SaveAsync(string filePath)
@@ -726,6 +751,42 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     private void HandleSettingsChanged(string extensionId, string settingName, object? value)
         => OnSettingsChanged?.Invoke();
+
+    private async Task<bool> RequestConsentFromUIAsync(
+        IReadOnlyList<ExtensionConsentInfo> extensions,
+        CancellationToken cancellationToken)
+    {
+        _consentTcs = new TaskCompletionSource<bool>();
+        _pendingConsentExtensions = extensions;
+
+        using var registration = cancellationToken.Register(
+            () => _consentTcs.TrySetResult(false));
+
+        OnExtensionConsentRequested?.Invoke();
+
+        return await _consentTcs.Task;
+    }
+
+    private void WireConsentHandler()
+    {
+        if (_extensionHost is not null)
+            _extensionHost.ConsentHandler = RequestConsentFromUIAsync;
+    }
+
+    private async Task ScanAndRequestConsentAsync(NotebookModel notebook)
+    {
+        if (_extensionHost is null) return;
+        var directives = ExtensionMagicCommand.ScanForExtensionDirectives(notebook);
+        if (directives.Count > 0)
+        {
+            var approved = await _extensionHost.RequestExtensionConsentAsync(directives);
+            if (approved)
+            {
+                foreach (var d in directives)
+                    _extensionHost.ApprovePackage(d.PackageId);
+            }
+        }
+    }
 
     private async Task DisposeCurrentAsync()
     {

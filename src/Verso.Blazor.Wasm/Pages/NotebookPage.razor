@@ -1,5 +1,7 @@
 @page "/"
 @implements IDisposable
+@using Verso.Abstractions
+@using Verso.Blazor.Wasm.Services
 @inject INotebookService Service
 @inject VsCodeBridge Bridge
 @inject IJSRuntime JS
@@ -14,6 +16,13 @@
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
              OnError="HandleError" />
+
+    @if (_showExtensionConsent && _pendingConsentExtensions is not null)
+    {
+        <ExtensionConsentDialog IsVisible="true"
+                                Extensions="_pendingConsentExtensions"
+                                OnConsentResult="HandleExtensionConsentResult" />
+    }
 
     @if (_error is not null)
     {
@@ -190,6 +199,8 @@
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
+    private bool _showExtensionConsent;
+    private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
 
     private string _monacoThemeName = "vs";
 
@@ -212,6 +223,9 @@
         Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
+
+        if (Service is RemoteNotebookService remoteService)
+            remoteService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -283,6 +297,25 @@
     private async void HandleSettingsChanged()
     {
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleExtensionConsentRequested()
+    {
+        if (Service is RemoteNotebookService remoteService)
+        {
+            _pendingConsentExtensions = remoteService.PendingConsentExtensions;
+            _showExtensionConsent = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleExtensionConsentResult(bool approved)
+    {
+        _showExtensionConsent = false;
+        _pendingConsentExtensions = null;
+
+        if (Service is RemoteNotebookService remoteService)
+            await remoteService.ResolveConsentResultAsync(approved);
     }
 
     private async Task SyncMonacoThemeAsync()
@@ -606,5 +639,8 @@
         Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
+
+        if (Service is RemoteNotebookService remoteService)
+            remoteService.OnExtensionConsentRequested -= HandleExtensionConsentRequested;
     }
 }

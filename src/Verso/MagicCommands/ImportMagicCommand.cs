@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Extensions;
 
 namespace Verso.MagicCommands;
 
@@ -69,6 +70,25 @@ public sealed class ImportMagicCommand : IMagicCommand
             var content = await File.ReadAllTextAsync(resolvedPath, context.CancellationToken)
                 .ConfigureAwait(false);
             var notebook = await serializer.DeserializeAsync(content).ConfigureAwait(false);
+
+            // Pre-scan for #!extension directives and request consent
+            var directives = ExtensionMagicCommand.ScanForExtensionDirectives(notebook);
+            if (directives.Count > 0)
+            {
+                var importedDirectives = directives
+                    .Select(e => new ExtensionConsentInfo(e.PackageId, e.Version,
+                        $"imported from {Path.GetFileName(resolvedPath)}"))
+                    .ToList();
+
+                var approved = await context.ExtensionHost.RequestExtensionConsentAsync(
+                    importedDirectives, context.CancellationToken).ConfigureAwait(false);
+
+                if (approved && context.ExtensionHost is ExtensionHost host)
+                {
+                    foreach (var d in directives)
+                        host.ApprovePackage(d.PackageId);
+                }
+            }
 
             var codeCellCount = 0;
             foreach (var cell in notebook.Cells)

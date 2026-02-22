@@ -76,4 +76,16 @@ public interface IExtensionHostContext
     /// </summary>
     /// <param name="extensionId">The unique identifier of the extension to disable.</param>
     Task DisableExtensionAsync(string extensionId);
+
+    /// <summary>
+    /// Requests user consent to load the specified extension packages.
+    /// Returns <c>true</c> if the user approved, <c>false</c> if denied.
+    /// Default implementation auto-approves (for tests / non-interactive hosts).
+    /// </summary>
+    Task<bool> RequestExtensionConsentAsync(
+        IReadOnlyList<ExtensionConsentInfo> extensions,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(true);
+    }
 }

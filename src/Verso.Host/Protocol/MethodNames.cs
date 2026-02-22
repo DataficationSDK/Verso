@@ -57,6 +57,9 @@ public static class MethodNames
     public const string ExtensionList = "extension/list";
     public const string ExtensionEnable = "extension/enable";
     public const string ExtensionDisable = "extension/disable";
+    public const string ExtensionConsentRequest = "extension/consentRequest";
+    public const string ExtensionConsentResponse = "extension/consentResponse";
+    public const string ExtensionChanged = "extension/changed";
 
     // Settings
     public const string SettingsGetDefinitions = "settings/getDefinitions";

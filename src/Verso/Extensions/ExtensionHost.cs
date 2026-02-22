@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
@@ -30,10 +31,37 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IExtensionSettings> _settableExtensions = new();
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _approvedExtensionPackages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _loadedExtensionPackages = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
 
     /// <summary>Raised when an extension is enabled or disabled.</summary>
     public event Action<string, ExtensionStatus>? OnExtensionStatusChanged;
+
+    /// <summary>Raised after a new extension is loaded and auto-registered.</summary>
+    public event Action<IExtension>? OnExtensionLoaded;
+
+    /// <summary>
+    /// Optional consent handler set by the hosting layer (ServerNotebookService, HostSession).
+    /// When set, overrides the default auto-approve behavior for extension consent requests.
+    /// </summary>
+    public Func<IReadOnlyList<ExtensionConsentInfo>, CancellationToken, Task<bool>>? ConsentHandler { get; set; }
+
+    /// <summary>Requests user consent, delegating to <see cref="ConsentHandler"/> if set.</summary>
+    public Task<bool> RequestExtensionConsentAsync(
+        IReadOnlyList<ExtensionConsentInfo> extensions,
+        CancellationToken cancellationToken = default)
+    {
+        return ConsentHandler?.Invoke(extensions, cancellationToken) ?? Task.FromResult(true);
+    }
+
+    // --- Approved / loaded extension package tracking (session-scoped) ---
+
+    public bool IsPackageApproved(string packageId) => _approvedExtensionPackages.Contains(packageId);
+    public void ApprovePackage(string packageId) => _approvedExtensionPackages.Add(packageId);
+
+    public bool IsExtensionPackageLoaded(string packageId) => _loadedExtensionPackages.Contains(packageId);
+    public void MarkExtensionPackageLoaded(string packageId) => _loadedExtensionPackages.Add(packageId);
 
     // --- IExtensionHostContext ---
 
@@ -278,6 +306,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _extensions.Add(extension);
             AutoRegister(extension);
         }
+
+        OnExtensionLoaded?.Invoke(extension);
     }
 
     /// <summary>
@@ -375,6 +405,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _magicCommands.Clear();
             _postProcessors.Clear();
             _settableExtensions.Clear();
+            _approvedExtensionPackages.Clear();
+            _loadedExtensionPackages.Clear();
 
             foreach (var ctx in _loadContexts)
                 ctx.Unload();

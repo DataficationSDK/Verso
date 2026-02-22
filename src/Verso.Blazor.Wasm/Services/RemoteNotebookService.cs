@@ -47,6 +47,28 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
 
+    /// <summary>Raised when the host requests extension consent. The UI should show the consent dialog.</summary>
+    public event Action? OnExtensionConsentRequested;
+
+    // ── Extension consent state ────────────────────────────────────────
+    private string? _pendingConsentRequestId;
+    private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
+
+    /// <summary>The extensions awaiting consent, if any.</summary>
+    public IReadOnlyList<ExtensionConsentInfo>? PendingConsentExtensions => _pendingConsentExtensions;
+
+    /// <summary>Called by the UI to resolve the pending consent request.</summary>
+    public async Task ResolveConsentResultAsync(bool approved)
+    {
+        if (_pendingConsentRequestId is null) return;
+        var requestId = _pendingConsentRequestId;
+        _pendingConsentRequestId = null;
+        _pendingConsentExtensions = null;
+
+        await _bridge.RequestVoidAsync("extension/consentResponse",
+            new { requestId, approved });
+    }
+
     public RemoteNotebookService(VsCodeBridge bridge)
     {
         _bridge = bridge;
@@ -511,7 +533,41 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             case "variable/changed":
                 _ = RefreshVariablesAsync();
                 break;
+            case "extension/consentRequest":
+                HandleConsentRequest(paramsJson);
+                break;
+            case "extension/changed":
+                _ = HandleExtensionChangedAsync();
+                break;
         }
+    }
+
+    private async Task HandleExtensionChangedAsync()
+    {
+        await RefreshExtensionDataAsync();
+        OnExtensionStatusChanged?.Invoke();
+        OnLayoutChanged?.Invoke();
+        OnNotebookChanged?.Invoke();
+    }
+
+    private void HandleConsentRequest(string? paramsJson)
+    {
+        if (paramsJson is null) return;
+
+        var opts = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        var request = JsonSerializer.Deserialize<ConsentRequestNotification>(paramsJson, opts);
+        if (request?.RequestId is null) return;
+
+        _pendingConsentRequestId = request.RequestId;
+        _pendingConsentExtensions = request.Extensions?
+            .Select(e => new ExtensionConsentInfo(e.PackageId ?? "", e.Version, e.Source ?? "cell"))
+            .ToList()
+            ?? new List<ExtensionConsentInfo>();
+
+        OnExtensionConsentRequested?.Invoke();
     }
 
     private async Task HandleNotebookOpenedAsync(string? paramsJson)
@@ -1064,5 +1120,18 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public int Col { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
+    }
+
+    private sealed class ConsentRequestNotification
+    {
+        public string? RequestId { get; set; }
+        public List<ConsentExtensionItem>? Extensions { get; set; }
+    }
+
+    private sealed class ConsentExtensionItem
+    {
+        public string? PackageId { get; set; }
+        public string? Version { get; set; }
+        public string? Source { get; set; }
     }
 }

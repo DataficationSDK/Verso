@@ -116,6 +116,23 @@ public sealed class Scaffold : IAsyncDisposable
 
         var settable = _extensionHost.GetSettableExtensions();
         _settingsManager = new SettingsManager(settable);
+
+        // When extensions are loaded dynamically (e.g. via #!extension), refresh
+        // the subsystems so newly registered capabilities are picked up.
+        _extensionHost.OnExtensionLoaded += _ => RefreshSubsystems();
+    }
+
+    /// <summary>
+    /// Re-queries the <see cref="ExtensionHost"/> for the latest capabilities and
+    /// updates every subsystem.  Preserves the currently active theme and layout.
+    /// </summary>
+    private void RefreshSubsystems()
+    {
+        if (_extensionHost is null) return;
+
+        _layoutManager?.Refresh(_extensionHost.GetLayouts());
+        _themeEngine?.Refresh(_extensionHost.GetThemes());
+        _settingsManager?.Refresh(_extensionHost.GetSettableExtensions());
     }
 
     // --- Cell CRUD ---

@@ -9,7 +9,7 @@ namespace Verso;
 /// </summary>
 public sealed class ThemeEngine : IThemeContext
 {
-    private readonly IReadOnlyList<ITheme> _availableThemes;
+    private IReadOnlyList<ITheme> _availableThemes;
     private volatile ITheme? _activeTheme;
 
     // Fallback maps (same as StubThemeContext) when no theme is active
@@ -39,6 +39,22 @@ public sealed class ThemeEngine : IThemeContext
     /// Raised when the active theme changes.
     /// </summary>
     public event Action<ITheme>? OnThemeChanged;
+
+    /// <summary>
+    /// Replaces the available themes list with an updated snapshot.
+    /// Preserves the active theme if it still exists in the new list.
+    /// </summary>
+    public void Refresh(IReadOnlyList<ITheme> updatedThemes)
+    {
+        var activeId = _activeTheme?.ThemeId;
+        _availableThemes = updatedThemes ?? throw new ArgumentNullException(nameof(updatedThemes));
+
+        if (activeId is not null)
+        {
+            _activeTheme = _availableThemes.FirstOrDefault(
+                t => string.Equals(t.ThemeId, activeId, StringComparison.OrdinalIgnoreCase));
+        }
+    }
 
     /// <summary>
     /// Switches the active theme by theme ID.

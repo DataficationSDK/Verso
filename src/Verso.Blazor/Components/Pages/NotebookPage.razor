@@ -1,5 +1,7 @@
 @page "/"
 @implements IDisposable
+@using Verso.Abstractions
+@using Verso.Blazor.Services
 @inject INotebookService Service
 @inject IJSRuntime JS
 
@@ -50,6 +52,13 @@
                 </div>
             </div>
         </div>
+    }
+
+    @if (_showExtensionConsent && _pendingConsentExtensions is not null)
+    {
+        <ExtensionConsentDialog IsVisible="true"
+                                Extensions="_pendingConsentExtensions"
+                                OnConsentResult="HandleExtensionConsentResult" />
     }
 
     @if (_error is not null)
@@ -230,6 +239,8 @@
     private string _saveFilePath = "";
     private bool _hasNativeHandle;
     private ElementReference _saveDialogInput;
+    private bool _showExtensionConsent;
+    private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
 
     private string MonacoThemeName =>
         Service.ActiveThemeKind == ThemeKind.Dark ? "vs-dark" : "vs";
@@ -243,6 +254,9 @@
         Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
+
+        if (Service is ServerNotebookService serverService)
+            serverService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -286,6 +300,25 @@
     private async void HandleSettingsChanged()
     {
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleExtensionConsentRequested()
+    {
+        if (Service is ServerNotebookService serverService)
+        {
+            _pendingConsentExtensions = serverService.PendingConsentExtensions;
+            _showExtensionConsent = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandleExtensionConsentResult(bool approved)
+    {
+        _showExtensionConsent = false;
+        _pendingConsentExtensions = null;
+
+        if (Service is ServerNotebookService serverService)
+            serverService.ResolveConsentResult(approved);
     }
 
     private async Task SyncMonacoThemeAsync()
@@ -777,5 +810,8 @@
         Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
+
+        if (Service is ServerNotebookService serverService)
+            serverService.OnExtensionConsentRequested -= HandleExtensionConsentRequested;
     }
 }

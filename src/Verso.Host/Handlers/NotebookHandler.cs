@@ -3,6 +3,7 @@ using Verso.Abstractions;
 using Verso.Extensions;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
+using Verso.MagicCommands;
 using Verso.Serializers;
 
 namespace Verso.Host.Handlers;
@@ -73,6 +74,35 @@ public static class NotebookHandler
             $"{magicCommands.Count} magic commands ({string.Join(", ", magicCommands.Select(m => m.Name))})");
 
         var notebookId = session.AddSession(scaffold, extensionHost);
+
+        // Wire consent handler so extension commands can request consent via the client
+        var ns = session.GetSession(notebookId);
+        extensionHost.ConsentHandler = (extensions, ct) => ns.RequestConsentAsync(extensions, ct);
+
+        // Pre-scan for #!extension directives.  Fire-and-forget so the open response
+        // returns immediately — the webview must load before it can show the consent
+        // dialog.  Per-command consent in ExtensionMagicCommand is the fallback if
+        // the pre-scan approval is missed or denied.
+        var directives = ExtensionMagicCommand.ScanForExtensionDirectives(notebook);
+        if (directives.Count > 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var approved = await extensionHost.RequestExtensionConsentAsync(directives);
+                    if (approved)
+                    {
+                        foreach (var d in directives)
+                            extensionHost.ApprovePackage(d.PackageId);
+                    }
+                }
+                catch
+                {
+                    // Pre-scan consent failure is non-fatal; per-command consent is the fallback.
+                }
+            });
+        }
 
         return new NotebookOpenResult
         {
