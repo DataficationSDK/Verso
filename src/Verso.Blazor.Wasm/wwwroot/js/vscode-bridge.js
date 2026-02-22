@@ -10,6 +10,7 @@
     let nextId = 1;
     const pending = new Map(); // id → { resolve, reject }
     let notificationCallback = null; // DotNetObjectReference for notifications
+    const pendingNotifications = []; // queued before handler is registered
 
     /**
      * Send a JSON-RPC request to the VS Code extension host.
@@ -47,6 +48,11 @@
      */
     function registerNotificationHandler(dotNetRef) {
         notificationCallback = dotNetRef;
+        // Replay any notifications that arrived before the handler was registered
+        while (pendingNotifications.length > 0) {
+            var n = pendingNotifications.shift();
+            notificationCallback.invokeMethodAsync("OnNotification", n.method, n.params);
+        }
     }
 
     /**
@@ -55,6 +61,19 @@
      */
     function isVsCodeWebview() {
         return vscode !== null;
+    }
+
+    /**
+     * Returns "dark" or "light" based on the VS Code webview body class.
+     * VS Code sets vscode-dark / vscode-light / vscode-high-contrast on <body>.
+     * @returns {string}
+     */
+    function getThemeKind() {
+        if (document.body.classList.contains("vscode-dark") ||
+            document.body.classList.contains("vscode-high-contrast")) {
+            return "dark";
+        }
+        return "light";
     }
 
     // Listen for messages from the VS Code extension host
@@ -73,12 +92,13 @@
                 entry.resolve(JSON.stringify(msg.result));
             }
         } else if (msg.type === "jsonrpc-notification") {
+            var method = msg.method;
+            var params = msg.params ? JSON.stringify(msg.params) : null;
             if (notificationCallback) {
-                notificationCallback.invokeMethodAsync(
-                    "OnNotification",
-                    msg.method,
-                    msg.params ? JSON.stringify(msg.params) : null
-                );
+                notificationCallback.invokeMethodAsync("OnNotification", method, params);
+            } else {
+                // Queue for replay when the .NET handler registers
+                pendingNotifications.push({ method: method, params: params });
             }
         }
     });
@@ -87,6 +107,7 @@
     window.vscodeBridge = {
         sendRequest: sendRequest,
         registerNotificationHandler: registerNotificationHandler,
-        isVsCodeWebview: isVsCodeWebview
+        isVsCodeWebview: isVsCodeWebview,
+        getThemeKind: getThemeKind
     };
 })();
