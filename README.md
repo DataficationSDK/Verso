@@ -22,36 +22,41 @@ The answer is a platform where *every* feature, from the C# kernel to the dark t
 
 Verso is split into layers that each do one thing:
 
-```mermaid
-graph TD
-    subgraph Frontend[" "]
-        FE_Header["Front-Ends"]
-        VSCode["VS Code Extension<br/>(Blazor WASM inside a webview)"]
-        Blazor["Blazor Server Web App<br/>(runs in any browser)"]
-        SharedUI["Shared UI (Razor Class Library)<br/>Monaco editor, panels, toolbar, theme provider"]
-        FE_Header ~~~ VSCode & Blazor
-        VSCode --> SharedUI
-        Blazor --> SharedUI
-    end
-
-    subgraph Engine[" "]
-        ENG_Header["Verso Engine (headless .NET library, no UI)"]
-        Core["Scaffold · Extension Host · Execution Pipeline<br/>Layout Manager · Theme Engine · Variable Store"]
-        BuiltIn["Built-in Extensions<br/>C# Kernel · Markdown · HTML · Mermaid<br/>Themes · Notebook Layout · Dashboard Layout · Formatters"]
-        FirstParty["First-Party Extension Packages<br/>Verso.FSharp (F# kernel) · Verso.Ado (SQL)"]
-        ENG_Header ~~~ Core
-        Core --- BuiltIn
-        BuiltIn --- FirstParty
-    end
-
-    subgraph Abstractions[" "]
-        ABS_Header["Verso.Abstractions"]
-        Abs["Only interfaces, no dependencies<br/>The only package extension authors need to reference"]
-        ABS_Header ~~~ Abs
-    end
-
-    SharedUI --> ENG_Header
-    FirstParty --> ABS_Header
+```
+┌─────────────────────────────────────────────────────────┐
+│  Front-Ends                                             │
+│  ┌─────────────────────┐  ┌──────────────────────────┐  │
+│  │  VS Code Extension  │  │  Blazor Server Web App   │  │
+│  │  (Blazor WASM       │  │  (runs in any browser)   │  │
+│  │   inside a webview) │  │                          │  │
+│  └──────────┬──────────┘  └────────────┬─────────────┘  │
+│             │                          │                │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Shared UI (Razor Class Library)                 │   │
+│  │  Monaco editor, panels, toolbar, theme provider  │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+                          │
+┌─────────────────────────────────────────────────────────┐
+│  Verso Engine (headless .NET library, no UI)            │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Scaffold · Extension Host · Execution Pipeline    │ │
+│  │  Layout Manager · Theme Engine · Variable Store    │ │
+│  ├────────────────────────────────────────────────────┤ │
+│  │  Built-in Extensions                               │ │
+│  │  C# Kernel · Markdown · HTML · Mermaid · Themes    │ │
+│  │  Notebook Layout · Dashboard Layout · Formatters   │ │
+│  ├────────────────────────────────────────────────────┤ │
+│  │  First-Party Extension Packages                    │ │
+│  │  Verso.FSharp (F# kernel) · Verso.Ado (SQL)        │ │
+│  └────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+                          │
+┌─────────────────────────────────────────────────────────┐
+│  Verso.Abstractions                                     │
+│  Pure interfaces, zero dependencies                     │
+│  The only package extension authors need to reference   │
+└─────────────────────────────────────────────────────────┘
 ```
 
 The engine is a headless library with no UI dependencies. It doesn't know whether it's running inside VS Code, a browser, or a test harness. Front-ends connect through two paths:
@@ -265,4 +270,3 @@ Contributions are welcome. Open an issue to discuss what you'd like to work on. 
 [MIT](LICENSE.md)
 
 Verso is a Datafication project.
-
