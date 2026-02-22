@@ -237,8 +237,9 @@ export class BlazorEditorProvider
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
 
-    // Content Security Policy: allow scripts/styles from the webview origin and
-    // the Monaco editor CDN used by monaco-interop.js.
+    // Content Security Policy: allow scripts/styles from the webview origin,
+    // the Monaco editor CDN, and any HTTPS source so HTML cells can load
+    // external libraries (charting, visualization, etc.).
     const cspSource = webview.cspSource;
     const monacoCdn = "https://cdn.jsdelivr.net";
 
@@ -247,7 +248,7 @@ export class BlazorEditorProvider
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} 'unsafe-inline'; font-src ${cspSource} ${monacoCdn}; img-src ${cspSource} data:; connect-src ${cspSource} ${monacoCdn} data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
     <base id="blazor-base" href="/" />
     <script>
     // Set base href to match the webview origin so Blazor's NavigationManager
