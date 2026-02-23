@@ -180,7 +180,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL (via Verso.Ado) |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid with drag-and-resize) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!restart`, `#!about`, `#!import` |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!extension`, `#!restart`, `#!about`, `#!import` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types (via Verso.FSharp), SQL result sets (via Verso.Ado) |
 | **Serializers** | `.verso` (native JSON format), `.ipynb` import (Jupyter nbformat v4+) |

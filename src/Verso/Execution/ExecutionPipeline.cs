@@ -156,41 +156,57 @@ internal sealed class ExecutionPipeline
         }
 
         // --- Magic command interception ---
-        var parseResult = MagicCommandParser.Parse(cell.Source);
+        // A cell may contain multiple consecutive magic commands (e.g. two #!extension lines).
+        // Loop until the first non-empty line is no longer a recognized magic command.
+        var currentSource = cell.Source;
         bool reportElapsedTime = false;
+        bool anyMagicProcessed = false;
 
-        if (parseResult.IsMagicCommand)
+        while (true)
         {
+            var parseResult = MagicCommandParser.Parse(currentSource);
+            if (!parseResult.IsMagicCommand)
+                break;
+
             var magicCommand = _resolveMagicCommand(parseResult.CommandName!);
-            if (magicCommand is not null)
+            if (magicCommand is null)
+                break;
+
+            anyMagicProcessed = true;
+
+            var magicContext = new MagicCommandContext(
+                parseResult.RemainingCode,
+                _variables,
+                ct,
+                _theme,
+                _layoutCapabilities,
+                _extensionHost,
+                _notebookMetadata,
+                _notebook,
+                AppendOutput);
+
+            await magicCommand.ExecuteAsync(parseResult.Arguments ?? "", magicContext).ConfigureAwait(false);
+
+            if (magicContext.SuppressExecution)
             {
-                var magicContext = new MagicCommandContext(
-                    parseResult.RemainingCode,
-                    _variables,
-                    ct,
-                    _theme,
-                    _layoutCapabilities,
-                    _extensionHost,
-                    _notebookMetadata,
-                    _notebook,
-                    AppendOutput);
+                stopwatch.Stop();
+                return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
+            }
 
-                await magicCommand.ExecuteAsync(parseResult.Arguments ?? "", magicContext).ConfigureAwait(false);
+            if (magicContext.ReportElapsedTime)
+                reportElapsedTime = true;
 
-                if (magicContext.SuppressExecution || string.IsNullOrWhiteSpace(parseResult.RemainingCode))
-                {
-                    stopwatch.Stop();
-                    return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
-                }
+            currentSource = parseResult.RemainingCode;
 
-                reportElapsedTime = magicContext.ReportElapsedTime;
+            if (string.IsNullOrWhiteSpace(currentSource))
+            {
+                stopwatch.Stop();
+                return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
             }
         }
 
-        // Determine the code to execute: if magic command was found, use remaining code; otherwise full source
-        var codeToExecute = parseResult.IsMagicCommand && _resolveMagicCommand(parseResult.CommandName!) is not null
-            ? parseResult.RemainingCode
-            : cell.Source;
+        // Determine the code to execute: if any magic commands were processed, use the remaining code
+        var codeToExecute = anyMagicProcessed ? currentSource : cell.Source;
 
         var context = new Contexts.ExecutionContext(
             cell.Id,
