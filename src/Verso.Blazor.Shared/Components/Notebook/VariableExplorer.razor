@@ -1,13 +1,18 @@
 <div class="verso-sidebar-panel">
     <div class="verso-variable-toolbar">
-        <button class="verso-cell-btn" title="Refresh" @onclick="Refresh">&#8635;</button>
+        <button class="verso-cell-btn" title="Refresh" @onclick="RefreshFromHostAsync">&#8635;</button>
     </div>
 
-    @if (_entries.Count == 0)
+    @if (_refreshError is not null)
+    {
+        <div class="verso-variable-empty" style="color:var(--vscode-errorForeground, #f44);">@_refreshError</div>
+    }
+
+    @if (_entries.Count == 0 && _refreshError is null)
     {
         <div class="verso-variable-empty">No variables defined.</div>
     }
-    else
+    else if (_entries.Count > 0)
     {
         <table class="verso-variable-table">
             <thead>
@@ -53,6 +58,8 @@
     }
 </div>
 
+@implements IDisposable
+
 @code {
     [Parameter] public INotebookService Service { get; set; } = default!;
 
@@ -60,15 +67,50 @@
     private string? _inspecting;
     private string? _inspectContent;
     private string _inspectMimeType = "text/plain";
+    private string? _refreshError;
+    private INotebookService? _subscribedService;
 
     protected override void OnParametersSet()
     {
-        Refresh();
+        if (_subscribedService != Service)
+        {
+            if (_subscribedService is not null)
+                _subscribedService.OnVariablesChanged -= HandleVariablesChanged;
+
+            _subscribedService = Service;
+            Service.OnVariablesChanged += HandleVariablesChanged;
+        }
+
+        ReadFromCache();
     }
 
-    private void Refresh()
+    private async void HandleVariablesChanged()
+    {
+        ReadFromCache();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ReadFromCache()
     {
         _entries = Service.GetVariables().ToList();
+    }
+
+    /// <summary>
+    /// Called by the Refresh button — sends a request to the host to fetch
+    /// the latest variables (instead of just reading from a potentially stale cache).
+    /// </summary>
+    private async Task RefreshFromHostAsync()
+    {
+        _refreshError = null;
+        try
+        {
+            await Service.RefreshVariablesAsync();
+            _entries = Service.GetVariables().ToList();
+        }
+        catch (Exception ex)
+        {
+            _refreshError = $"Refresh failed: {ex.Message}";
+        }
     }
 
     private async Task InspectAsync(string name)
@@ -91,5 +133,11 @@
     {
         _inspecting = null;
         _inspectContent = null;
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedService is not null)
+            _subscribedService.OnVariablesChanged -= HandleVariablesChanged;
     }
 }

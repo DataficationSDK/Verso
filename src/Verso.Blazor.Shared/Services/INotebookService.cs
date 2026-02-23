@@ -200,8 +200,12 @@ public interface INotebookService
 
     // ── Variables ──────────────────────────────────────────────────────
 
-    /// <summary>Get all variables from the variable store.</summary>
+    /// <summary>Get all variables from the variable store (reads from cache in WASM).</summary>
     IReadOnlyList<VariableEntryDto> GetVariables();
+
+    /// <summary>Force-refresh the variable list from the host/engine. In Server mode this re-reads
+    /// the live store; in WASM mode this sends a variable/list request to the host.</summary>
+    Task RefreshVariablesAsync();
 
     /// <summary>Inspect a variable by name (formatted output).</summary>
     Task<VariableInspectResultDto?> InspectVariableAsync(string name);

@@ -53,10 +53,13 @@
     }
 </div>
 
+@implements IDisposable
+
 @code {
     [Parameter] public INotebookService Service { get; set; } = default!;
 
     private readonly HashSet<string> _expandedCategories = new();
+    private INotebookService? _subscribedService;
 
     private static readonly Dictionary<string, string> CategoryDisplayNames = new()
     {
@@ -111,11 +114,34 @@
             _expandedCategories.Add(category);
     }
 
+    protected override void OnParametersSet()
+    {
+        if (_subscribedService != Service)
+        {
+            if (_subscribedService is not null)
+                _subscribedService.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+
+            _subscribedService = Service;
+            Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
+        }
+    }
+
+    private async void HandleExtensionStatusChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task ToggleExtensionAsync(string extensionId, ExtensionStatus currentStatus)
     {
         if (currentStatus == ExtensionStatus.Enabled)
             await Service.DisableExtensionAsync(extensionId);
         else
             await Service.EnableExtensionAsync(extensionId);
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedService is not null)
+            _subscribedService.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
     }
 }

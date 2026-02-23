@@ -312,6 +312,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                 cell.Outputs.Add(MapOutputFromDto(o));
         }
 
+        // Refresh variables directly after execution instead of relying
+        // solely on the fire-and-forget notification handler.
+        await RefreshVariablesSafeAsync();
+
         OnCellExecuted?.Invoke();
 
         return new ExecutionResultDto(
@@ -330,6 +334,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             "execution/runAll", null);
 
         await RefreshCellListAsync();
+        await RefreshVariablesSafeAsync();
         OnCellExecuted?.Invoke();
 
         return Array.Empty<ExecutionResultDto>();
@@ -373,6 +378,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
         // Refresh state since actions can mutate cells, outputs, etc.
         await RefreshCellListAsync();
+        await RefreshVariablesSafeAsync();
         OnCellExecuted?.Invoke();
     }
 
@@ -531,7 +537,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                 OnSettingsChanged?.Invoke();
                 break;
             case "variable/changed":
-                _ = RefreshVariablesAsync();
+                _ = RefreshVariablesSafeAsync();
                 break;
             case "extension/consentRequest":
                 HandleConsentRequest(paramsJson);
@@ -648,7 +654,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         await RefreshSettingsAsync();
 
         // Variables
-        await RefreshVariablesAsync();
+        await RefreshVariablesSafeAsync();
     }
 
     private async Task RefreshThemeDataAsync()
@@ -720,16 +726,31 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             dto.DefaultValue, dto.Category, constraints, dto.Order);
     }
 
-    private async Task RefreshVariablesAsync()
+    /// <summary>
+    /// Public refresh — sends variable/list to the host and updates cache.
+    /// Throws on failure so callers (e.g. UI Refresh button) can surface the error.
+    /// </summary>
+    public async Task RefreshVariablesAsync()
+    {
+        var result = await _bridge.RequestAsync<VariableListResponse>("variable/list", null);
+        _variablesCache = result.Variables?.Select(v =>
+            new VariableEntryDto(v.Name, v.TypeName, v.ValuePreview, v.IsExpandable)).ToList() ?? new();
+        OnVariablesChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Internal refresh — catches and logs errors so background/notification callers don't crash.
+    /// </summary>
+    private async Task RefreshVariablesSafeAsync()
     {
         try
         {
-            var result = await _bridge.RequestAsync<VariableListResponse>("variable/list", null);
-            _variablesCache = result.Variables?.Select(v =>
-                new VariableEntryDto(v.Name, v.TypeName, v.ValuePreview, v.IsExpandable)).ToList() ?? new();
-            OnVariablesChanged?.Invoke();
+            await RefreshVariablesAsync();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[RemoteNotebookService] RefreshVariablesAsync failed: {ex.Message}");
+        }
     }
 
     // ── DTO mapping ─────────────────────────────────────────────────────

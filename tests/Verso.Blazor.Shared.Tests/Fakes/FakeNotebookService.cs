@@ -223,6 +223,12 @@ public sealed class FakeNotebookService : INotebookService
 
     public IReadOnlyList<VariableEntryDto> GetVariables() => Variables;
 
+    public Task RefreshVariablesAsync()
+    {
+        OnVariablesChanged?.Invoke();
+        return Task.CompletedTask;
+    }
+
     public Task<VariableInspectResultDto?> InspectVariableAsync(string name)
         => Task.FromResult(InspectResult);
 

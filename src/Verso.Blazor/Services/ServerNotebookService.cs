@@ -547,6 +547,13 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         )).ToList();
     }
 
+    public Task RefreshVariablesAsync()
+    {
+        // In Server mode, GetVariables() already reads the live store — nothing extra needed.
+        OnVariablesChanged?.Invoke();
+        return Task.CompletedTask;
+    }
+
     public async Task<VariableInspectResultDto?> InspectVariableAsync(string name)
     {
         if (_scaffold is null || _extensionHost is null) return null;
