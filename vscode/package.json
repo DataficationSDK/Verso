@@ -31,6 +31,9 @@
           },
           {
             "filenamePattern": "*.ipynb"
+          },
+          {
+            "filenamePattern": "*.dib"
           }
         ],
         "priority": "default"

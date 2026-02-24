@@ -107,9 +107,9 @@ Three built-in themes ship out of the box: Light, Dark, and High Contrast. The H
 
 <!-- TODO: Screenshot or GIF showing theme switching (light → dark → high contrast) -->
 
-### Import Jupyter Notebooks
+### Import Jupyter and Polyglot Notebooks
 
-Open any `.ipynb` file and Verso converts it automatically. Polyglot Notebooks patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import.
+Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot Notebooks patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import. The `.dib` parser handles `#!meta` blocks, all standard language directives, and custom kernel directives.
 
 ### Share Variables Across Languages
 
@@ -183,7 +183,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Magic Commands** | `#!time`, `#!nuget`, `#!extension`, `#!restart`, `#!about`, `#!import` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types (via Verso.FSharp), SQL result sets (via Verso.Ado) |
-| **Serializers** | `.verso` (native JSON format), `.ipynb` import (Jupyter nbformat v4+) |
+| **Serializers** | `.verso` (native JSON format), `.ipynb` import (Jupyter nbformat v4+), `.dib` import (Polyglot Notebooks) |
 
 ## The `.verso` File Format
 
@@ -242,7 +242,7 @@ npm run build:all
 npx vsce package --skip-license
 ```
 
-Install the `.vsix` file, then open any `.verso` file.
+Install the `.vsix` file, then open any `.verso` file. Use **Open With...** to import `.ipynb` or `.dib` files.
 
 ### Run the Tests
 

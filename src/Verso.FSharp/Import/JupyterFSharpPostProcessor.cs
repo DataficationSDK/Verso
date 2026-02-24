@@ -36,10 +36,13 @@ public sealed class JupyterFSharpPostProcessor : INotebookPostProcessor
 
     public bool CanProcess(string? filePath, string formatId)
     {
-        if (string.Equals(formatId, "jupyter", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(formatId, "jupyter", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(formatId, "dib", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        if (filePath is not null && filePath.EndsWith(".ipynb", StringComparison.OrdinalIgnoreCase))
+        if (filePath is not null &&
+            (filePath.EndsWith(".ipynb", StringComparison.OrdinalIgnoreCase) ||
+             filePath.EndsWith(".dib", StringComparison.OrdinalIgnoreCase)))
             return true;
 
         return false;
