@@ -241,9 +241,20 @@
     private ElementReference _saveDialogInput;
     private bool _showExtensionConsent;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
+    private Timer? _autoSaveTimer;
+
+    [SupplyParameterFromQuery(Name = "recover")]
+    public string? RecoverPath { get; set; }
 
     private string MonacoThemeName =>
         Service.ActiveThemeKind == ThemeKind.Dark ? "vs-dark" : "vs";
+
+    private sealed class RecoveryState
+    {
+        public string FilePath { get; set; } = "";
+        public string Content { get; set; } = "";
+        public long Timestamp { get; set; }
+    }
 
     protected override void OnInitialized()
     {
@@ -259,10 +270,44 @@
             serverService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        // Primary recovery path: file path passed via URL query string.
+        // This works even if the interactive circuit hasn't established yet
+        // (runs during prerendering), so the user sees the notebook immediately.
+        if (!string.IsNullOrEmpty(RecoverPath) && File.Exists(RecoverPath))
+        {
+            try
+            {
+                await Service.OpenAsync(RecoverPath);
+                _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+            }
+            catch (Exception ex)
+            {
+                _error = $"Session recovery failed: {ex.Message}";
+            }
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
             await SyncMonacoThemeAsync();
+
+            // Clean URL query param and sessionStorage after query-param recovery
+            if (RecoverPath is not null)
+            {
+                try { await JS.InvokeVoidAsync("history.replaceState", null, "", "/"); } catch { }
+                try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
+            }
+
+            // Fallback: recover unsaved notebooks from sessionStorage (requires circuit)
+            if (!Service.IsLoaded)
+                await TryRecoverSessionAsync();
+
+            StartAutoSaveTimer();
+        }
 
         if (_activePanel is not null && !_panelResizeInitialized)
         {
@@ -279,6 +324,74 @@
         {
             _panelResizeInitialized = false;
         }
+    }
+
+    private async Task TryRecoverSessionAsync()
+    {
+        try
+        {
+            var state = await JS.InvokeAsync<RecoveryState?>("versoRecovery.getState");
+            if (state is null) return;
+
+            // Ignore stale recovery data (older than 24 hours)
+            var ageMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - state.Timestamp;
+            if (ageMs > 86_400_000) // 24 hours
+            {
+                await JS.InvokeVoidAsync("versoRecovery.clearState");
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(state.FilePath) && File.Exists(state.FilePath))
+            {
+                await Service.OpenAsync(state.FilePath);
+            }
+            else if (!string.IsNullOrEmpty(state.Content))
+            {
+                await Service.OpenFromContentAsync("recovery.verso", state.Content);
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("versoRecovery.clearState");
+                return;
+            }
+
+            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+            await SyncMonacoThemeAsync();
+            await JS.InvokeVoidAsync("versoRecovery.clearState");
+            StateHasChanged();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+        catch (Exception ex)
+        {
+            _error = $"Session recovery failed: {ex.Message}";
+            try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
+        }
+    }
+
+    private void StartAutoSaveTimer()
+    {
+        _autoSaveTimer = new Timer(AutoSaveCallback, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async void AutoSaveCallback(object? state)
+    {
+        try
+        {
+            if (!Service.IsLoaded) return;
+
+            var content = await Service.GetSerializedContentAsync();
+            if (content is null) return;
+
+            await InvokeAsync(async () =>
+            {
+                await JS.InvokeVoidAsync("versoRecovery.saveState", Service.FilePath ?? "", content);
+            });
+        }
+        catch (JSDisconnectedException) { }
+        catch (TaskCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (JSException) { }
     }
 
     private async void HandleThemeChanged()
@@ -367,6 +480,7 @@
             _error = null;
             _hasNativeHandle = false;
             try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
+            try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
             await Service.NewNotebookAsync();
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -384,6 +498,7 @@
             _error = null;
             _hasNativeHandle = false;
             try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
+            try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
             await Service.OpenAsync(filePath);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -401,6 +516,7 @@
             _error = null;
             _hasNativeHandle = false;
             try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
+            try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
             await Service.OpenFromContentAsync(args.FileName, args.Content);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -800,6 +916,7 @@
 
     public void Dispose()
     {
+        _autoSaveTimer?.Dispose();
         _statusCts?.Cancel();
         _statusCts?.Dispose();
         _panelResizeRef?.Dispose();

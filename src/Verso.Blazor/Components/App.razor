@@ -18,6 +18,7 @@
     <script src="js/file-download-interop.js"></script>
     <script src="js/save-dialog-interop.js"></script>
     <script src="js/mermaid-interop.js"></script>
+    <script src="js/recovery-interop.js"></script>
     <div id="verso-reconnect-overlay" style="display:none">
         <div class="verso-reconnect-box">
             <div class="verso-spinner verso-spinner--large"></div>
@@ -34,27 +35,73 @@
             const title = document.getElementById('verso-reconnect-title');
             const message = document.getElementById('verso-reconnect-message');
             const reloadBtn = document.getElementById('verso-reconnect-reload');
+            const pageLoadTime = Date.now();
+            let isDisconnected = false;
+            let disconnectTimer = null;
+
+            function recoverAndReload() {
+                title.textContent = 'Recovering your session...';
+                message.textContent = 'Reloading to restore your notebook.';
+                reloadBtn.style.display = 'none';
+                overlay.style.display = 'flex';
+
+                // Pass file path via URL so the server can recover during
+                // component initialization — no interactive circuit needed.
+                var state = window.versoRecovery.getState();
+                var url = '/';
+                if (state && state.filePath) {
+                    url = '/?recover=' + encodeURIComponent(state.filePath);
+                }
+                setTimeout(() => { window.location.href = url; }, 1000);
+            }
 
             Blazor.start({
                 circuit: {
                     reconnectionOptions: {
-                        maxRetries: 360,
-                        retryIntervalMilliseconds: (previousAttempts, maxRetries) =>
+                        maxRetries: 30,
+                        retryIntervalMilliseconds: (previousAttempts) =>
                             previousAttempts < 10 ? 1000
-                            : previousAttempts < 30 ? 5000
-                            : 10000
+                            : previousAttempts < 20 ? 3000
+                            : 5000
                     },
                     reconnectionHandler: {
                         onConnectionDown(options, error) {
+                            isDisconnected = true;
+
+                            // Don't show the overlay for connection failures during
+                            // initial page load (e.g. recovery reload where the server
+                            // needs a moment to clean up the old circuit).
+                            if (Date.now() - pageLoadTime < 10000) return;
+
                             overlay.style.display = 'flex';
                             title.textContent = 'Reconnecting...';
                             message.textContent = 'Your session is still active. Attempting to reconnect.';
                             reloadBtn.style.display = 'none';
+
+                            // Foreground fallback: if the tab stays visible, reload after 2 min
+                            if (!disconnectTimer) {
+                                disconnectTimer = setTimeout(recoverAndReload, 120000);
+                            }
                         },
                         onConnectionUp() {
+                            isDisconnected = false;
                             overlay.style.display = 'none';
+                            if (disconnectTimer) {
+                                clearTimeout(disconnectTimer);
+                                disconnectTimer = null;
+                            }
                         }
                     }
+                }
+            });
+
+            // When the user returns to a backgrounded tab, browsers will have
+            // throttled/suspended setTimeout, so the foreground timer won't have
+            // fired. Detect tab re-activation and reload immediately if disconnected.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && isDisconnected
+                    && Date.now() - pageLoadTime > 10000) {
+                    recoverAndReload();
                 }
             });
         })();
