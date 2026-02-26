@@ -181,10 +181,10 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     // --- Discovery & Loading ---
 
     /// <summary>
-    /// Scans the Verso assembly and any co-located <c>Verso.*.dll</c> assemblies for types
-    /// marked with <see cref="VersoExtensionAttribute"/>, instantiates them, validates, and
-    /// auto-registers by capability interface. First-party extension assemblies (e.g.
-    /// <c>Verso.Ado.dll</c>) are loaded into the default assembly context so their types
+    /// Scans the Verso assembly and any co-located assemblies that reference
+    /// <c>Verso.Abstractions</c> for types marked with <see cref="VersoExtensionAttribute"/>,
+    /// instantiates them, validates, and auto-registers by capability interface.
+    /// Extension assemblies are loaded into the default assembly context so their types
     /// share identity with the host.
     /// </summary>
     public async Task LoadBuiltInExtensionsAsync()
@@ -194,16 +194,19 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         // 1. Scan the core Verso assembly
         await ScanAssemblyForExtensionsAsync(typeof(ExtensionHost).Assembly).ConfigureAwait(false);
 
-        // 2. Discover co-located Verso.*.dll assemblies in the app base directory
+        // 2. Discover co-located assemblies that reference Verso.Abstractions
         var baseDir = AppContext.BaseDirectory;
-        var coreAssemblyName = typeof(ExtensionHost).Assembly.GetName().Name;
+        var scannedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            typeof(ExtensionHost).Assembly.GetName().Name!
+        };
 
-        foreach (var dll in Directory.GetFiles(baseDir, "Verso.*.dll"))
+        foreach (var dll in Directory.GetFiles(baseDir, "*.dll"))
         {
             var fileName = Path.GetFileNameWithoutExtension(dll);
 
-            // Skip assemblies we've already scanned or that aren't extensions
-            if (string.Equals(fileName, coreAssemblyName, StringComparison.OrdinalIgnoreCase) ||
+            // Skip assemblies we've already scanned, test assemblies, and resource satellites
+            if (scannedNames.Contains(fileName) ||
                 string.Equals(fileName, "Verso.Abstractions", StringComparison.OrdinalIgnoreCase) ||
                 fileName.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase) ||
                 fileName.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
@@ -213,9 +216,16 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
 
             try
             {
-                // LoadFrom uses the default load context and handles deduplication
-                // if the assembly is already loaded (e.g. via a direct type reference).
+                // Check if the assembly references Verso.Abstractions before loading types.
+                // This is a cheap metadata-only check that filters out all Microsoft/System/
+                // third-party libraries without needing a deny-list.
+                var assemblyName = AssemblyName.GetAssemblyName(Path.GetFullPath(dll));
+                scannedNames.Add(fileName);
+
                 var assembly = Assembly.LoadFrom(Path.GetFullPath(dll));
+                if (!ReferencesVersoAbstractions(assembly))
+                    continue;
+
                 await ScanAssemblyForExtensionsAsync(assembly).ConfigureAwait(false);
             }
             catch (BadImageFormatException)
@@ -223,6 +233,16 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
                 // Skip non-.NET DLLs (native libraries, etc.)
             }
         }
+    }
+
+    private static bool ReferencesVersoAbstractions(Assembly assembly)
+    {
+        foreach (var reference in assembly.GetReferencedAssemblies())
+        {
+            if (string.Equals(reference.Name, "Verso.Abstractions", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 
     private async Task ScanAssemblyForExtensionsAsync(Assembly assembly)
@@ -235,6 +255,13 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         foreach (var type in extensionTypes)
         {
             var extension = (IExtension)Activator.CreateInstance(type)!;
+
+            // During auto-discovery, skip types that fail validation (e.g. types that
+            // implement IExtension but no capability interface) rather than throwing.
+            var errors = ValidateExtension(extension);
+            if (errors.Count > 0)
+                continue;
+
             await LoadExtensionAsync(extension).ConfigureAwait(false);
         }
     }
