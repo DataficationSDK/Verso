@@ -37,4 +37,12 @@ public sealed class StubToolbarActionContext : IToolbarActionContext
         DownloadedFiles.Add((fileName, contentType, data));
         return Task.CompletedTask;
     }
+
+    public List<(string OutputBlockId, CellOutput Output)> UpdatedOutputs { get; } = new();
+
+    public Task UpdateOutputAsync(string outputBlockId, CellOutput output)
+    {
+        UpdatedOutputs.Add((outputBlockId, output));
+        return Task.CompletedTask;
+    }
 }

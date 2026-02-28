@@ -269,6 +269,86 @@ public class ExtensionHostTests
         Assert.AreEqual(0, _host.GetPostProcessors().Count);
     }
 
+    // --- ICellInteractionHandler ---
+
+    [TestMethod]
+    public async Task LoadExtension_WithInteractionHandler_RegisteredInHandlerLookup()
+    {
+        var handler = new FakeCellInteractionHandler();
+        await _host.LoadExtensionAsync(handler);
+
+        var found = _host.GetInteractionHandler(handler.ExtensionId);
+        Assert.IsNotNull(found);
+        Assert.AreSame(handler, found);
+    }
+
+    [TestMethod]
+    public async Task GetInteractionHandler_UnknownId_ReturnsNull()
+    {
+        var handler = new FakeCellInteractionHandler();
+        await _host.LoadExtensionAsync(handler);
+
+        Assert.IsNull(_host.GetInteractionHandler("com.unknown.id"));
+    }
+
+    [TestMethod]
+    public async Task GetInteractionHandler_DisabledExtension_ReturnsNull()
+    {
+        var handler = new FakeCellInteractionHandler();
+        await _host.LoadExtensionAsync(handler);
+        await _host.DisableExtensionAsync(handler.ExtensionId);
+
+        Assert.IsNull(_host.GetInteractionHandler(handler.ExtensionId));
+    }
+
+    [TestMethod]
+    public async Task LoadExtension_InteractionHandlerOnly_FailsValidation()
+    {
+        var handlerOnly = new InteractionHandlerOnly();
+        await Assert.ThrowsExceptionAsync<ExtensionLoadException>(
+            () => _host.LoadExtensionAsync(handlerOnly));
+    }
+
+    [TestMethod]
+    public async Task GetCapabilityList_IncludesCellInteractionHandler()
+    {
+        var handler = new FakeCellInteractionHandler();
+        await _host.LoadExtensionAsync(handler);
+
+        var infos = _host.GetExtensionInfos();
+        var info = infos.First(i => i.ExtensionId == handler.ExtensionId);
+        Assert.IsTrue(info.Capabilities.Contains("CellInteractionHandler"));
+        Assert.IsTrue(info.Capabilities.Contains("DataFormatter"));
+    }
+
+    [TestMethod]
+    public async Task UnloadAll_ClearsInteractionHandlers()
+    {
+        var handler = new FakeCellInteractionHandler();
+        await _host.LoadExtensionAsync(handler);
+
+        await _host.UnloadAllAsync();
+
+        Assert.IsNull(_host.GetInteractionHandler(handler.ExtensionId));
+    }
+
+    // --- Helper: interaction handler without primary capability ---
+
+    private sealed class InteractionHandlerOnly : IExtension, ICellInteractionHandler
+    {
+        public string ExtensionId => "com.test.interaction.only";
+        public string Name => "Interaction Only";
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+
+        public Task<string?> OnCellInteractionAsync(CellInteractionContext context)
+            => Task.FromResult<string?>(null);
+    }
+
     // --- Helper: kernel that tracks unload order ---
 
     private sealed class TrackingKernel : ILanguageKernel

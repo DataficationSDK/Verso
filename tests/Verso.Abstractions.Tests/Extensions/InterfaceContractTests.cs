@@ -84,4 +84,39 @@ public class InterfaceContractTests
         Assert.IsNotNull(prop, "ICellRenderer should define CollapsesInputOnExecute property");
         Assert.AreEqual(typeof(bool), prop!.PropertyType);
     }
+
+    [TestMethod]
+    public void ICellInteractionHandler_DoesNotInheritIExtension()
+    {
+        Assert.IsFalse(typeof(IExtension).IsAssignableFrom(typeof(ICellInteractionHandler)),
+            "ICellInteractionHandler is supplemental and must not inherit IExtension");
+    }
+
+    [TestMethod]
+    public void CellInteractionContext_HasRequiredProperties()
+    {
+        var ctx = new CellInteractionContext
+        {
+            Region = CellRegion.Output,
+            InteractionType = "click",
+            Payload = "{\"page\":2}",
+            OutputBlockId = "block-1",
+            CellId = Guid.NewGuid(),
+            ExtensionId = "com.test.handler"
+        };
+
+        Assert.AreEqual(CellRegion.Output, ctx.Region);
+        Assert.AreEqual("click", ctx.InteractionType);
+        Assert.AreEqual("{\"page\":2}", ctx.Payload);
+        Assert.AreEqual("block-1", ctx.OutputBlockId);
+        Assert.AreEqual("com.test.handler", ctx.ExtensionId);
+    }
+
+    [TestMethod]
+    public void CellRegion_HasExpectedValues()
+    {
+        Assert.IsTrue(Enum.IsDefined(typeof(CellRegion), CellRegion.Input));
+        Assert.IsTrue(Enum.IsDefined(typeof(CellRegion), CellRegion.Output));
+        Assert.AreEqual(2, Enum.GetValues(typeof(CellRegion)).Length);
+    }
 }

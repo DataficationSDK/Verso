@@ -100,6 +100,9 @@ public interface INotebookService
     /// <summary>Raised when an extension setting changes.</summary>
     event Action? OnSettingsChanged;
 
+    /// <summary>Raised when a cell output is updated in place by an interaction handler.</summary>
+    event Action? OnOutputUpdated;
+
     // ── File operations ────────────────────────────────────────────────
 
     /// <summary>Create a new empty notebook.</summary>
@@ -162,6 +165,12 @@ public interface INotebookService
 
     /// <summary>Execute a toolbar action by ID.</summary>
     Task ExecuteActionAsync(string actionId, IReadOnlyList<Guid> selectedCellIds);
+
+    // ── Cell interaction ──────────────────────────────────────────────
+
+    /// <summary>Send an interaction event from rendered cell content to the extension that owns it.</summary>
+    Task<string?> HandleCellInteractionAsync(Guid cellId, string extensionId, string interactionType,
+        string payload, string? outputBlockId, CellRegion region);
 
     // ── Editor intelligence ────────────────────────────────────────────
 

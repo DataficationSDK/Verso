@@ -37,6 +37,11 @@ public sealed class BlazorToolbarActionContext : IToolbarActionContext
 
     public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 
+    public Task UpdateOutputAsync(string outputBlockId, CellOutput output)
+    {
+        throw new NotSupportedException("In-place output update is not supported in Blazor toolbar context.");
+    }
+
     public async Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data)
     {
         if (_jsRuntime is null)

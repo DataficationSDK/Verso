@@ -46,6 +46,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
+    public event Action? OnOutputUpdated;
 
     /// <summary>Raised when the host requests extension consent. The UI should show the consent dialog.</summary>
     public event Action? OnExtensionConsentRequested;
@@ -382,6 +383,41 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         OnCellExecuted?.Invoke();
     }
 
+    // ── Cell interaction ────────────────────────────────────────────────
+
+    public async Task<string?> HandleCellInteractionAsync(
+        Guid cellId, string extensionId, string interactionType,
+        string payload, string? outputBlockId, CellRegion region)
+    {
+        var result = await _bridge.RequestAsync<CellInteractResponse>("cell/interact", new
+        {
+            cellId = cellId.ToString(),
+            extensionId,
+            interactionType,
+            payload,
+            outputBlockId,
+            region = region.ToString()
+        });
+
+        if (result?.Response is not null && outputBlockId is not null)
+        {
+            var cell = _cells.FirstOrDefault(c => c.Id == cellId);
+            if (cell is not null)
+            {
+                var existingIndex = cell.Outputs.FindIndex(o =>
+                    o.Content.Contains($"data-output-id=\"{outputBlockId}\""));
+                if (existingIndex >= 0)
+                    cell.Outputs[existingIndex] = new CellOutput("text/html", result.Response);
+                else
+                    cell.Outputs.Add(new CellOutput("text/html", result.Response));
+
+                OnOutputUpdated?.Invoke();
+            }
+        }
+
+        return result?.Response;
+    }
+
     // ── Editor intelligence ─────────────────────────────────────────────
 
     public async Task<HoverResultDto?> GetHoverInfoAsync(Guid cellId, string code, int position)
@@ -545,6 +581,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             case "extension/changed":
                 _ = HandleExtensionChangedAsync();
                 break;
+            case "output/update":
+                HandleOutputUpdate();
+                break;
         }
     }
 
@@ -554,6 +593,11 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         OnExtensionStatusChanged?.Invoke();
         OnLayoutChanged?.Invoke();
         OnNotebookChanged?.Invoke();
+    }
+
+    private void HandleOutputUpdate()
+    {
+        _ = RefreshCellListAsync().ContinueWith(_ => OnOutputUpdated?.Invoke());
     }
 
     private void HandleConsentRequest(string? paramsJson)
@@ -1154,5 +1198,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string? PackageId { get; set; }
         public string? Version { get; set; }
         public string? Source { get; set; }
+    }
+
+    private sealed class CellInteractResponse
+    {
+        public string? Response { get; set; }
     }
 }

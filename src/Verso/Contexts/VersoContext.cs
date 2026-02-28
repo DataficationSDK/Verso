@@ -8,6 +8,7 @@ namespace Verso.Contexts;
 public class VersoContext : IVersoContext
 {
     private readonly Func<CellOutput, Task> _writeOutput;
+    private readonly Func<string, CellOutput, Task>? _updateOutput;
 
     public VersoContext(
         IVariableStore variables,
@@ -17,7 +18,8 @@ public class VersoContext : IVersoContext
         IExtensionHostContext extensionHost,
         INotebookMetadata notebookMetadata,
         INotebookOperations notebook,
-        Func<CellOutput, Task> writeOutput)
+        Func<CellOutput, Task> writeOutput,
+        Func<string, CellOutput, Task>? updateOutput = null)
     {
         Variables = variables ?? throw new ArgumentNullException(nameof(variables));
         CancellationToken = cancellationToken;
@@ -27,6 +29,7 @@ public class VersoContext : IVersoContext
         NotebookMetadata = notebookMetadata ?? throw new ArgumentNullException(nameof(notebookMetadata));
         Notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));
         _writeOutput = writeOutput ?? throw new ArgumentNullException(nameof(writeOutput));
+        _updateOutput = updateOutput;
     }
 
     /// <inheritdoc />
@@ -55,5 +58,17 @@ public class VersoContext : IVersoContext
     {
         ArgumentNullException.ThrowIfNull(output);
         return _writeOutput(output);
+    }
+
+    /// <inheritdoc />
+    public Task UpdateOutputAsync(string outputBlockId, CellOutput output)
+    {
+        ArgumentNullException.ThrowIfNull(outputBlockId);
+        ArgumentNullException.ThrowIfNull(output);
+
+        if (_updateOutput is null)
+            throw new NotSupportedException("In-place output update is not supported by this host.");
+
+        return _updateOutput(outputBlockId, output);
     }
 }

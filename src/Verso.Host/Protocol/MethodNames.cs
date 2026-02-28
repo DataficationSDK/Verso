@@ -40,6 +40,10 @@ public static class MethodNames
 
     // Output
     public const string OutputClearAll = "output/clearAll";
+    public const string OutputUpdate = "output/update";
+
+    // Cell interaction
+    public const string CellInteract = "cell/interact";
 
     // Layout
     public const string LayoutGetLayouts = "layout/getLayouts";

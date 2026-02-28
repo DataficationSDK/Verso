@@ -224,6 +224,7 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.KernelGetDiagnostics => await KernelHandler.HandleGetDiagnosticsAsync(ns, @params),
             MethodNames.KernelGetHoverInfo => await KernelHandler.HandleGetHoverInfoAsync(ns, @params),
             MethodNames.OutputClearAll => OutputHandler.HandleClearAll(ns),
+            MethodNames.CellInteract => await InteractionHandler.HandleInteractAsync(ns, @params),
             MethodNames.NotebookGetCellTypes => NotebookHandler.HandleGetCellTypes(ns),
             MethodNames.LayoutGetLayouts => LayoutHandler.HandleGetLayouts(ns),
             MethodNames.LayoutSwitch => LayoutHandler.HandleSwitch(ns, @params),

@@ -66,6 +66,7 @@ public sealed class FakeNotebookService : INotebookService
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
+    public event Action? OnOutputUpdated;
 
     // ── Call tracking ──────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ public sealed class FakeNotebookService : INotebookService
     public List<string> EnableExtensionCalls { get; } = new();
     public List<string> DisableExtensionCalls { get; } = new();
     public List<(string ExtensionId, string SettingName, object? Value)> UpdateSettingCalls { get; } = new();
+    public List<(Guid CellId, string ExtensionId, string InteractionType)> InteractionCalls { get; } = new();
 
     // ── Configurable responses ─────────────────────────────────────────
 
@@ -91,6 +93,7 @@ public sealed class FakeNotebookService : INotebookService
     public VariableInspectResultDto? InspectResult { get; set; }
     public Dictionary<Guid, CellContainerInfo> CellContainers { get; set; } = new();
     public Dictionary<string, bool> CollapseInputMap { get; set; } = new();
+    public string? InteractionResponse { get; set; }
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -168,6 +171,16 @@ public sealed class FakeNotebookService : INotebookService
         => Task.FromResult(ActionEnabledStates);
 
     public Task ExecuteActionAsync(string actionId, IReadOnlyList<Guid> selectedCellIds) => Task.CompletedTask;
+
+    // ── Cell interaction ────────────────────────────────────────────────
+
+    public Task<string?> HandleCellInteractionAsync(
+        Guid cellId, string extensionId, string interactionType,
+        string payload, string? outputBlockId, CellRegion region)
+    {
+        InteractionCalls.Add((cellId, extensionId, interactionType));
+        return Task.FromResult(InteractionResponse);
+    }
 
     // ── Editor intelligence ────────────────────────────────────────────
 
@@ -255,4 +268,5 @@ public sealed class FakeNotebookService : INotebookService
     public void RaiseExtensionStatusChanged() => OnExtensionStatusChanged?.Invoke();
     public void RaiseVariablesChanged() => OnVariablesChanged?.Invoke();
     public void RaiseSettingsChanged() => OnSettingsChanged?.Invoke();
+    public void RaiseOutputUpdated() => OnOutputUpdated?.Invoke();
 }

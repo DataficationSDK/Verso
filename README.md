@@ -131,7 +131,7 @@ Run the Blazor Server app and open it in any browser. Same UI, same features, no
 
 ## The Extension Model
 
-This is the core idea behind Verso. Ten interfaces define every point of extensibility, and every built-in feature is implemented as an extension using those same interfaces:
+This is the core idea behind Verso. Eleven interfaces define every point of extensibility, and every built-in feature is implemented as an extension using those same interfaces:
 
 | Interface | What It Does |
 |-----------|-------------|
@@ -145,8 +145,17 @@ This is the core idea behind Verso. Ten interfaces define every point of extensi
 | `ILayoutEngine` | Manage spatial arrangement of cells (linear, grid, slides, anything) |
 | `INotebookSerializer` | Read and write notebook file formats |
 | `INotebookPostProcessor` | Transform notebooks after load or before save |
+| `ICellInteractionHandler` | Handle bidirectional interactions from rendered cell content back to extension code |
 
 Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
+
+### Interactive Cell Content
+
+Extensions that implement `ICellInteractionHandler` can receive structured messages from their rendered HTML output. This enables scenarios like server-side pagination, interactive data exploration, configuration wizards, and in-place output updates — all without embedding full datasets in the initial HTML payload.
+
+The interaction model uses `CellInteractionContext` to describe each event (origin region, interaction type, JSON payload, output block ID) and returns an optional response that the rendered content can use to update the DOM. Extensions can also call `UpdateOutputAsync` on `IVersoContext` to replace a previously written output block, supporting progressive rendering and live-updating displays.
+
+The interaction pipeline works across all hosting paths: in-process for Blazor Server, over the JSON-RPC bridge for Blazor WASM / VS Code, and programmatically for CLI or test harnesses.
 
 ### Dogfooding All the Way Down
 

@@ -29,6 +29,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IMagicCommand> _magicCommands = new();
     private readonly List<INotebookPostProcessor> _postProcessors = new();
     private readonly List<IExtensionSettings> _settableExtensions = new();
+    private readonly List<ICellInteractionHandler> _interactionHandlers = new();
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _approvedExtensionPackages = new(StringComparer.OrdinalIgnoreCase);
@@ -125,6 +126,29 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     public IReadOnlyList<IExtensionSettings> GetSettableExtensions()
     {
         lock (_lock) { return _settableExtensions.Where(s => s is IExtension ext && IsEnabled(ext)).ToList(); }
+    }
+
+    /// <summary>
+    /// Finds the first enabled <see cref="ICellInteractionHandler"/> whose owning extension
+    /// matches the specified extension ID (case-insensitive).
+    /// </summary>
+    /// <param name="extensionId">The extension ID to look up.</param>
+    /// <returns>The matching handler, or <c>null</c> if not found or disabled.</returns>
+    public ICellInteractionHandler? GetInteractionHandler(string extensionId)
+    {
+        lock (_lock)
+        {
+            foreach (var handler in _interactionHandlers)
+            {
+                if (handler is IExtension ext &&
+                    string.Equals(ext.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase) &&
+                    IsEnabled(ext))
+                {
+                    return handler;
+                }
+            }
+            return null;
+        }
     }
 
     // --- Enable / Disable ---
@@ -432,6 +456,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _magicCommands.Clear();
             _postProcessors.Clear();
             _settableExtensions.Clear();
+            _interactionHandlers.Clear();
             _approvedExtensionPackages.Clear();
             _loadedExtensionPackages.Clear();
 
@@ -474,6 +499,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _postProcessors.Add(postProcessor);
         if (extension is IExtensionSettings settable)
             _settableExtensions.Add(settable);
+        if (extension is ICellInteractionHandler interactionHandler)
+            _interactionHandlers.Add(interactionHandler);
     }
 
     private static bool HasCapabilityInterface(IExtension extension)
@@ -504,6 +531,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         if (extension is IMagicCommand) caps.Add("MagicCommand");
         if (extension is INotebookPostProcessor) caps.Add("NotebookPostProcessor");
         if (extension is IExtensionSettings) caps.Add("ExtensionSettings");
+        if (extension is ICellInteractionHandler) caps.Add("CellInteractionHandler");
         return caps;
     }
 

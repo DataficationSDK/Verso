@@ -58,4 +58,15 @@ public interface IVersoContext
     {
         throw new NotSupportedException("File download is not supported by this host.");
     }
+
+    /// <summary>
+    /// Updates an existing output block in place, replacing its content with the new output.
+    /// </summary>
+    /// <param name="outputBlockId">The identifier of the output block to update.</param>
+    /// <param name="output">The new cell output to display.</param>
+    /// <returns>A task that completes when the update has been sent.</returns>
+    Task UpdateOutputAsync(string outputBlockId, CellOutput output)
+    {
+        throw new NotSupportedException("In-place output update is not supported by this host.");
+    }
 }

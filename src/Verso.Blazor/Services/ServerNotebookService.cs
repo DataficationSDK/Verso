@@ -155,6 +155,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
+    public event Action? OnOutputUpdated;
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -418,6 +419,50 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         var context = new BlazorToolbarActionContext(_scaffold, selectedCellIds, _jsRuntime);
         await action.ExecuteAsync(context);
+    }
+
+    // ── Cell interaction ────────────────────────────────────────────────
+
+    public async Task<string?> HandleCellInteractionAsync(
+        Guid cellId, string extensionId, string interactionType,
+        string payload, string? outputBlockId, CellRegion region)
+    {
+        if (_scaffold is null || _extensionHost is null)
+            throw new InvalidOperationException("No notebook is loaded.");
+
+        var handler = _extensionHost.GetInteractionHandler(extensionId)
+            ?? throw new InvalidOperationException($"No interaction handler found for extension '{extensionId}'.");
+
+        var context = new CellInteractionContext
+        {
+            Region = region,
+            InteractionType = interactionType,
+            Payload = payload,
+            OutputBlockId = outputBlockId,
+            CellId = cellId,
+            ExtensionId = extensionId,
+            CancellationToken = CancellationToken.None
+        };
+
+        var response = await handler.OnCellInteractionAsync(context);
+
+        if (response is not null && outputBlockId is not null)
+        {
+            var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+            if (cell is not null)
+            {
+                var existingIndex = cell.Outputs.FindIndex(o =>
+                    o.Content.Contains($"data-output-id=\"{outputBlockId}\""));
+                if (existingIndex >= 0)
+                    cell.Outputs[existingIndex] = new CellOutput("text/html", response);
+                else
+                    cell.Outputs.Add(new CellOutput("text/html", response));
+
+                OnOutputUpdated?.Invoke();
+            }
+        }
+
+        return response;
     }
 
     // ── Editor intelligence ────────────────────────────────────────────

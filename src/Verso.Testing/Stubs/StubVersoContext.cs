@@ -18,10 +18,17 @@ public sealed class StubVersoContext : IVersoContext
     public INotebookOperations Notebook { get; set; } = new StubNotebookOperations();
 
     public List<CellOutput> WrittenOutputs { get; } = new();
+    public List<(string OutputBlockId, CellOutput Output)> UpdatedOutputs { get; } = new();
 
     public Task WriteOutputAsync(CellOutput output)
     {
         WrittenOutputs.Add(output);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateOutputAsync(string outputBlockId, CellOutput output)
+    {
+        UpdatedOutputs.Add((outputBlockId, output));
         return Task.CompletedTask;
     }
 }
