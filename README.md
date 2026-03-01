@@ -4,9 +4,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
+![CI](https://img.shields.io/github/actions/workflow/status/DataficationSDK/Verso/verso-ci.yml?branch=main&label=CI)
 [![NuGet](https://img.shields.io/nuget/v/Verso?label=NuGet)](https://www.nuget.org/packages/Verso)
 [![GitHub Release](https://img.shields.io/github/v/release/DataficationSDK/Verso?label=Release)](https://github.com/DataficationSDK/Verso/releases)
-![CI](https://img.shields.io/github/actions/workflow/status/DataficationSDK/Verso/verso-ci.yml?branch=main&label=CI)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/Datafication.verso-notebook?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook)
 
 ![Verso in action](https://datafication.co/assets/verso/RunningVersoNotebook.gif)
 

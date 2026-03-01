@@ -1,16 +1,13 @@
 {
   "name": "Verso",
   "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts"
-    }
-  },
-  "postAttachCommand": "dotnet build Verso.sln && cd vscode && npm install && npm run build && npm run package && cd .. && code --install-extension vscode/verso-notebook-0.5.0.vsix --force",
+  "postAttachCommand": "dotnet build Verso.sln",
   "customizations": {
     "vscode": {
+      "extensions": [
+        "Datafication.verso-notebook"
+      ],
       "settings": {
-        "verso.hostPath": "${containerWorkspaceFolder}/src/Verso.Host/bin/Debug/net8.0/Verso.Host.dll",
         "dotnet.server.suppressLspErrorToasts": true,
         "csharp.suppressDotnetInstallWarning": true,
         "extensions.ignoreRecommendations": true
