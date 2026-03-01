@@ -514,7 +514,9 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             or ILayoutEngine
             or IToolbarAction
             or IMagicCommand
-            or INotebookPostProcessor;
+            or INotebookPostProcessor
+            or IExtensionSettings
+            or ICellInteractionHandler;
     }
 
     private static IReadOnlyList<string> GetCapabilityList(IExtension extension)

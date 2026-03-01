@@ -223,6 +223,7 @@
         Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
+        Service.OnOutputUpdated += HandleOutputUpdated;
 
         if (Service is RemoteNotebookService remoteService)
             remoteService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
@@ -316,6 +317,11 @@
 
         if (Service is RemoteNotebookService remoteService)
             await remoteService.ResolveConsentResultAsync(approved);
+    }
+
+    private async void HandleOutputUpdated()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SyncMonacoThemeAsync()
@@ -639,6 +645,7 @@
         Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
+        Service.OnOutputUpdated -= HandleOutputUpdated;
 
         if (Service is RemoteNotebookService remoteService)
             remoteService.OnExtensionConsentRequested -= HandleExtensionConsentRequested;

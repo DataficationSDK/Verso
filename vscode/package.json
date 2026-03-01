@@ -24,7 +24,7 @@
     "notebook",
     "csharp",
     "jupyter",
-    "polyglot-notebooks"
+    "polyglot-notebook"
   ],
   "activationEvents": [
     "onCustomEditor:verso.blazorNotebook"

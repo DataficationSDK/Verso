@@ -79,6 +79,7 @@
         @if (CellData.Outputs.Count > 0)
         {
             <div class="verso-cell-outputs @(IsInPreviewMode ? "verso-cell-outputs--clickable" : "")"
+                 data-cell-id="@CellData.Id"
                  @onclick="HandleOutputClick">
                 @foreach (var output in CellData.Outputs)
                 {

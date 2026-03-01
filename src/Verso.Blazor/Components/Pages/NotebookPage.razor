@@ -232,6 +232,7 @@
     private string? _activePanel;
     private int _panelWidth = 300;
     private DotNetObjectReference<NotebookPage>? _panelResizeRef;
+    private DotNetObjectReference<NotebookPage>? _cellInteractRef;
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
@@ -265,6 +266,7 @@
         Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
+        Service.OnOutputUpdated += HandleOutputUpdated;
 
         if (Service is ServerNotebookService serverService)
             serverService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
@@ -293,6 +295,9 @@
     {
         if (firstRender)
         {
+            _cellInteractRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("versoCellInteract.register", _cellInteractRef);
+
             await SyncMonacoThemeAsync();
 
             // Clean URL query param and sessionStorage after query-param recovery
@@ -432,6 +437,21 @@
 
         if (Service is ServerNotebookService serverService)
             serverService.ResolveConsentResult(approved);
+    }
+
+    private async void HandleOutputUpdated()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task<string?> OnCellInteract(string cellId, string extensionId, string interactionType, string payloadJson, string? outputBlockId)
+    {
+        if (!Guid.TryParse(cellId, out var cellGuid))
+            return null;
+
+        return await Service.HandleCellInteractionAsync(
+            cellGuid, extensionId, interactionType, payloadJson, outputBlockId, CellRegion.Output);
     }
 
     private async Task SyncMonacoThemeAsync()
@@ -920,6 +940,7 @@
         _statusCts?.Cancel();
         _statusCts?.Dispose();
         _panelResizeRef?.Dispose();
+        _cellInteractRef?.Dispose();
         Service.OnCellExecuted -= StateHasChanged;
         Service.OnNotebookChanged -= StateHasChanged;
         Service.OnLayoutChanged -= StateHasChanged;
@@ -927,6 +948,7 @@
         Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
+        Service.OnOutputUpdated -= HandleOutputUpdated;
 
         if (Service is ServerNotebookService serverService)
             serverService.OnExtensionConsentRequested -= HandleExtensionConsentRequested;

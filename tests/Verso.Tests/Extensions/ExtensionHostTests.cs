@@ -302,11 +302,12 @@ public class ExtensionHostTests
     }
 
     [TestMethod]
-    public async Task LoadExtension_InteractionHandlerOnly_FailsValidation()
+    public async Task LoadExtension_InteractionHandlerOnly_LoadsSuccessfully()
     {
         var handlerOnly = new InteractionHandlerOnly();
-        await Assert.ThrowsExceptionAsync<ExtensionLoadException>(
-            () => _host.LoadExtensionAsync(handlerOnly));
+        await _host.LoadExtensionAsync(handlerOnly);
+
+        Assert.IsNotNull(_host.GetInteractionHandler(handlerOnly.ExtensionId));
     }
 
     [TestMethod]
@@ -332,7 +333,7 @@ public class ExtensionHostTests
         Assert.IsNull(_host.GetInteractionHandler(handler.ExtensionId));
     }
 
-    // --- Helper: interaction handler without primary capability ---
+    // --- Helper: standalone interaction handler ---
 
     private sealed class InteractionHandlerOnly : IExtension, ICellInteractionHandler
     {

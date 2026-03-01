@@ -9,6 +9,7 @@
 | [VERSO-003](#verso-003-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Open | Verso.FSharp |
 | [VERSO-004](#verso-004-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
 | [VERSO-005](#verso-005-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
+| [VERSO-006](#verso-006-blazor-wasm-webview-fails-to-initialize-in-github-codespaces) | Blazor WASM webview fails to initialize in GitHub Codespaces | Open | Verso.VSCode |
 
 ---
 
@@ -152,3 +153,36 @@ Add a type annotation or downcast after import:
 ```fsharp
 let myVar = Variables.Get<obj>("myVar") :?> int
 ```
+
+---
+
+## VERSO-006: Blazor WASM webview fails to initialize in GitHub Codespaces
+
+| | |
+|---|---|
+| **Status** | Open |
+| **Affected** | Verso.VSCode |
+| **Severity** | High |
+
+### Symptom
+
+When opening a notebook in GitHub Codespaces (browser-based VS Code), the editor gets stuck on the loading spinner and never renders. The Blazor WASM runtime fails to initialize inside the webview, and no error is surfaced to the user.
+
+### Root cause
+
+The VS Code extension hosts Blazor WASM as static files inside a custom editor webview. On desktop VS Code, `webview.asWebviewUri()` produces `vscode-webview://` URIs, and the `loadBootResource` callback in `Blazor.start()` remaps `_framework/` assembly fetches to these URIs successfully.
+
+In GitHub Codespaces, webviews run as nested iframes under a different origin with a more restrictive security policy. This breaks the Blazor WASM boot sequence in at least two ways:
+
+1. **WebAssembly instantiation may be blocked** — the nested iframe's Content Security Policy may not include the `wasm-unsafe-eval` directive required to compile and execute .NET WebAssembly modules.
+2. **Framework assembly fetches fail** — the `loadBootResource` URL remapping assumes the `vscode-webview://` URI scheme. In browser-based VS Code the scheme and origin differ, causing the `.dll` and `.wasm` fetches to silently fail or be blocked by CORS.
+
+Because the Blazor boot process does not surface these failures, `Blazor.start()` hangs and the webview remains in its initial loading state indefinitely.
+
+### Workaround
+
+Use the desktop version of VS Code (local or via Remote-SSH) instead of the browser-based Codespaces editor. The Blazor WASM webview initializes correctly in all desktop VS Code environments.
+
+### Planned improvement
+
+Surface an error message to the user when Blazor WASM initialization fails or times out, rather than showing an indefinite loading spinner.
