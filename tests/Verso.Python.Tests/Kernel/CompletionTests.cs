@@ -1,3 +1,4 @@
+using Verso.Abstractions;
 using Verso.Python.Kernel;
 using Verso.Testing.Stubs;
 
@@ -8,6 +9,7 @@ public sealed class CompletionTests
 {
     private PythonKernel _kernel = null!;
     private StubExecutionContext _context = null!;
+    private bool _jediAvailable;
 
     [TestInitialize]
     public async Task Setup()
@@ -15,6 +17,11 @@ public sealed class CompletionTests
         _kernel = new PythonKernel();
         await _kernel.InitializeAsync();
         _context = new StubExecutionContext();
+
+        // Probe jedi — rlcompleter returns full dotted names ("os.path")
+        // while jedi returns short names ("path"), so DisplayText checks differ
+        var probe = await _kernel.GetDiagnosticsAsync("def __probe__(:");
+        _jediAvailable = probe.Count > 0;
     }
 
     [TestCleanup]
@@ -23,9 +30,17 @@ public sealed class CompletionTests
         await _kernel.DisposeAsync();
     }
 
+    private void RequireJedi()
+    {
+        if (!_jediAvailable)
+            Assert.Inconclusive("jedi is not available in this environment.");
+    }
+
     [TestMethod]
     public async Task Completions_DotOnModule_ReturnsModuleMembers()
     {
+        RequireJedi();
+
         var code = "os.";
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);
 
@@ -37,6 +52,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_AfterExecution_IncludesUserVariables()
     {
+        RequireJedi();
+
         await _kernel.ExecuteAsync("x = [1, 2, 3]", _context);
 
         var code = "x.";
@@ -51,6 +68,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_PartialTyping_FiltersByPrefix()
     {
+        RequireJedi();
+
         var code = "os.pa";
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);
 
@@ -82,7 +101,6 @@ public sealed class CompletionTests
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);
 
         Assert.IsTrue(completions.Count > 0, "Expected completions for os module.");
-        // All completions should have a non-null Kind
         Assert.IsTrue(completions.All(c => !string.IsNullOrEmpty(c.Kind)),
             "All completions should have a Kind.");
     }

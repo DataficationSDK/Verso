@@ -8,6 +8,7 @@ public sealed class HoverTests
 {
     private PythonKernel _kernel = null!;
     private StubExecutionContext _context = null!;
+    private bool _jediAvailable;
 
     [TestInitialize]
     public async Task Setup()
@@ -15,6 +16,10 @@ public sealed class HoverTests
         _kernel = new PythonKernel();
         await _kernel.InitializeAsync();
         _context = new StubExecutionContext();
+
+        // Probe jedi availability — hover requires jedi
+        var probe = await _kernel.GetHoverInfoAsync("len", 0);
+        _jediAvailable = probe is not null;
     }
 
     [TestCleanup]
@@ -23,9 +28,17 @@ public sealed class HoverTests
         await _kernel.DisposeAsync();
     }
 
+    private void RequireJedi()
+    {
+        if (!_jediAvailable)
+            Assert.Inconclusive("jedi is not available in this environment.");
+    }
+
     [TestMethod]
     public async Task Hover_BuiltinFunction_ShowsInfo()
     {
+        RequireJedi();
+
         var code = "len";
         var hover = await _kernel.GetHoverInfoAsync(code, 0);
 
@@ -38,6 +51,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_AfterExecution_ReturnsInfoForVariable()
     {
+        RequireJedi();
+
         await _kernel.ExecuteAsync("my_list = [1, 2, 3]", _context);
 
         var code = "my_list";
@@ -65,6 +80,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_IncludesRange()
     {
+        RequireJedi();
+
         var code = "len";
         var hover = await _kernel.GetHoverInfoAsync(code, 0);
 

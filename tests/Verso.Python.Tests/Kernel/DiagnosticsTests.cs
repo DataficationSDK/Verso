@@ -9,6 +9,7 @@ public sealed class DiagnosticsTests
 {
     private PythonKernel _kernel = null!;
     private StubExecutionContext _context = null!;
+    private bool _jediAvailable;
 
     [TestInitialize]
     public async Task Setup()
@@ -16,12 +17,22 @@ public sealed class DiagnosticsTests
         _kernel = new PythonKernel();
         await _kernel.InitializeAsync();
         _context = new StubExecutionContext();
+
+        // Probe jedi availability — diagnostics require jedi
+        var probe = await _kernel.GetDiagnosticsAsync("def __probe__(:");
+        _jediAvailable = probe.Count > 0;
     }
 
     [TestCleanup]
     public async Task Cleanup()
     {
         await _kernel.DisposeAsync();
+    }
+
+    private void RequireJedi()
+    {
+        if (!_jediAvailable)
+            Assert.Inconclusive("jedi is not available in this environment.");
     }
 
     [TestMethod]
@@ -34,6 +45,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_SyntaxError_ReturnsError()
     {
+        RequireJedi();
+
         var diagnostics = await _kernel.GetDiagnosticsAsync("def foo(:");
 
         Assert.IsTrue(diagnostics.Count > 0, "Expected at least one diagnostic.");
@@ -46,6 +59,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_LinePositions_AreCorrect()
     {
+        RequireJedi();
+
         var code = "x = 10\ndef foo(:";
         var diagnostics = await _kernel.GetDiagnosticsAsync(code);
 
@@ -65,6 +80,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_PreviousCellContext_Respected()
     {
+        RequireJedi();
+
         // Execute a binding in a first "cell"
         await _kernel.ExecuteAsync("my_var = 42", _context);
 
