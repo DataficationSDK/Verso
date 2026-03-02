@@ -115,15 +115,22 @@ internal static class PythonEngineManager
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string[] winPaths =
             {
-                Path.Combine(localAppData, "Programs", "Python"),
+                Path.Combine(localAppData, "Programs", "Python"),  // Standard MSI installer
+                Path.Combine(localAppData, "Python"),               // python.org / nuget layout
                 Path.Combine(programFiles, "Python")
             };
             foreach (var basePath in winPaths)
             {
                 if (!Directory.Exists(basePath)) continue;
+
+                // Check the directory itself (e.g. %LOCALAPPDATA%\Python has python3*.dll)
+                var dll = FindPythonDllInDirectory(basePath);
+                if (dll is not null) return dll;
+
+                // Check Python3* subdirectories (e.g. Programs\Python\Python312)
                 foreach (var dir in Directory.GetDirectories(basePath, "Python3*").OrderByDescending(d => d))
                 {
-                    var dll = FindPythonDllInDirectory(dir);
+                    dll = FindPythonDllInDirectory(dir);
                     if (dll is not null) return dll;
                 }
             }
@@ -134,12 +141,16 @@ internal static class PythonEngineManager
 
     internal static string? FindPython3OnPath()
     {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // Windows: try python3.exe first, then fall back to python.exe
+            // (standard Windows installer only provides python.exe)
+            return WhereFirst("python3.exe") ?? WhereFirst("python.exe");
+        }
+
         try
         {
-            var fileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python3.exe" : "python3";
-            var whichCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "where" : "which";
-
-            var psi = new ProcessStartInfo(whichCmd, fileName)
+            var psi = new ProcessStartInfo("which", "python3")
             {
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
@@ -154,17 +165,55 @@ internal static class PythonEngineManager
 
             if (process.ExitCode != 0 || string.IsNullOrEmpty(output)) return null;
 
-            // Take the first line in case of multiple results
             var firstLine = output.Split('\n')[0].Trim();
 
             // Resolve symlinks on Unix
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && File.Exists(firstLine))
+            if (File.Exists(firstLine))
             {
                 var resolved = ResolveSymlink(firstLine);
                 if (resolved is not null) return resolved;
             }
 
             return firstLine;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Runs <c>where &lt;fileName&gt;</c> on Windows and returns the first result that
+    /// is not the Windows Store app stub (<c>WindowsApps</c>).
+    /// </summary>
+    private static string? WhereFirst(string fileName)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("where", fileName)
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process is null) return null;
+
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit(5000);
+
+            if (process.ExitCode != 0 || string.IsNullOrEmpty(output)) return null;
+
+            // where.exe may return multiple lines; skip the Windows Store stub
+            foreach (var line in output.Split('\n'))
+            {
+                var candidate = line.Trim();
+                if (!string.IsNullOrEmpty(candidate) && !candidate.Contains("WindowsApps"))
+                    return candidate;
+            }
+
+            return null;
         }
         catch
         {
