@@ -1,0 +1,234 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Python in Verso",
+    "created": "2026-03-01T10:00:00+00:00",
+    "modified": "2026-03-02T13:27:54.304669+00:00",
+    "defaultKernel": "python",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "00000003-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Python in Verso\n\nVerso embeds CPython via **pythonnet**, giving you a full Python kernel alongside C# and F#. Variables flow automatically between kernels, so you can mix languages in a single notebook."
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## Basics\n\nStandard output and expression results are captured automatically."
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "python",
+      "source": "print(\u0022Hello from Python!\u0022)"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "python",
+      "source": "# The last expression in a cell is displayed automatically\nimport sys\nf\u0022Python {sys.version}\u0022"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Working with Data\n\nVariables persist across cells, just like a Jupyter notebook."
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "python",
+      "source": "cities = [\n    {\u0022name\u0022: \u0022Tokyo\u0022,     \u0022country\u0022: \u0022Japan\u0022,     \u0022population\u0022: 13_960_000, \u0022area\u0022: 2_194},\n    {\u0022name\u0022: \u0022London\u0022,    \u0022country\u0022: \u0022UK\u0022,         \u0022population\u0022:  8_982_000, \u0022area\u0022: 1_572},\n    {\u0022name\u0022: \u0022New York\u0022,  \u0022country\u0022: \u0022USA\u0022,        \u0022population\u0022:  8_336_000, \u0022area\u0022:   783},\n    {\u0022name\u0022: \u0022Paris\u0022,     \u0022country\u0022: \u0022France\u0022,     \u0022population\u0022:  2_161_000, \u0022area\u0022:   105},\n    {\u0022name\u0022: \u0022Singapore\u0022, \u0022country\u0022: \u0022Singapore\u0022,  \u0022population\u0022:  5_454_000, \u0022area\u0022:   733},\n    {\u0022name\u0022: \u0022Sydney\u0022,    \u0022country\u0022: \u0022Australia\u0022,  \u0022population\u0022:  5_312_000, \u0022area\u0022: 12_368},\n]\n\nprint(f\u0022Loaded {len(cities)} cities\u0022)"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000007",
+      "type": "code",
+      "language": "python",
+      "source": "# Sort by population density\nranked = sorted(cities, key=lambda c: c[\u0022population\u0022] / c[\u0022area\u0022], reverse=True)\n\nprint(f\u0022{\u0027City\u0027:\u003C14}{\u0027Country\u0027:\u003C14}{\u0027Density\u0027:\u003E18}\u0022)\nprint(\u0022\u2500\u0022 * 46)\nfor c in ranked:\n    density = c[\u0022population\u0022] / c[\u0022area\u0022]\n    print(f\u0022{c[\u0027name\u0027]:\u003C14}{c[\u0027country\u0027]:\u003C14}{density:\u003E18,.0f}\u0022)"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000008",
+      "type": "code",
+      "language": "python",
+      "source": "# Aggregate stats using built-in functions\npopulations = [c[\u0022population\u0022] for c in cities]\n\ntotal = sum(populations)\naverage = total / len(populations)\nlargest = max(cities, key=lambda c: c[\u0022population\u0022])\nsmallest = min(cities, key=lambda c: c[\u0022population\u0022])\n\nprint(f\u0022Total population:   {total:,}\u0022)\nprint(f\u0022Average population: {average:,.0f}\u0022)\nprint(f\u0022Largest city:       {largest[\u0027name\u0027]} ({largest[\u0027population\u0027]:,})\u0022)\nprint(f\u0022Smallest city:      {smallest[\u0027name\u0027]} ({smallest[\u0027population\u0027]:,})\u0022)"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000009",
+      "type": "markdown",
+      "source": "## Cross-Kernel Variable Sharing\n\nVariables defined in Python cells are automatically published to the shared variable store. Other kernels (C#, F#) can read them, and vice versa."
+    },
+    {
+      "id": "00000003-0001-0001-0001-00000000000a",
+      "type": "code",
+      "language": "python",
+      "source": "# These variables will be available in C# and F# cells\ncity_count = len(cities)\ntotal_population = sum(c[\u0022population\u0022] for c in cities)\nlargest_city = largest[\u0022name\u0022]\n\nprint(f\u0022Published: city_count={city_count}, total_population={total_population}, largest_city={largest_city}\u0022)"
+    },
+    {
+      "id": "00000003-0001-0001-0001-00000000000b",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Read the Python variables from C#\nvar count = Variables.Get\u003Clong\u003E(\u0022city_count\u0022);\nvar pop = Variables.Get\u003Clong\u003E(\u0022total_population\u0022);\nvar biggest = Variables.Get\u003Cstring\u003E(\u0022largest_city\u0022);\n\nConsole.WriteLine($\u0022C# received from Python: {count} cities, {pop:N0} total, largest = {biggest}\u0022);"
+    },
+    {
+      "id": "00000003-0001-0001-0001-00000000000c",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Send a value back to Python\nVariables.Set(\u0022greeting\u0022, \u0022Hello from C#!\u0022);\nVariables.Set(\u0022magic_number\u0022, 42);"
+    },
+    {
+      "id": "00000003-0001-0001-0001-00000000000d",
+      "type": "code",
+      "language": "python",
+      "source": "# Pick up the C# variables\nprint(greeting)\nprint(f\u0022The magic number is {magic_number}\u0022)"
+    },
+    {
+      "id": "00000003-0001-0001-0001-00000000000e",
+      "type": "markdown",
+      "source": "## Rich Output\n\nThe \u0060display()\u0060 function supports objects with \u0060_repr_html_()\u0060, \u0060_repr_png_()\u0060, or \u0060_repr_svg_()\u0060 methods. Use \u0060#!pip\u0060 to install packages directly from a cell \u2014 \u0060plt.show()\u0060 renders inline."
+    },
+    {
+      "id": "00000003-0001-0001-0001-00000000000f",
+      "type": "code",
+      "language": "python",
+      "source": "# Rich HTML output via display() \u2014 uses Verso theme CSS variables\nhtml = \u0027\u003Ctable style=\u0022border-collapse:collapse;font-family:var(--verso-ui-font-family);font-size:var(--verso-ui-font-size)\u0022\u003E\u0027\nhtml \u002B= \u0027\u003Ctr style=\u0022background:var(--verso-accent-primary)\u0022\u003E\u0027\nhtml \u002B= \u0027\u003Cth style=\u0022padding:6px 12px\u0022\u003ECity\u003C/th\u003E\u003Cth style=\u0022padding:6px 12px\u0022\u003EDensity\u003C/th\u003E\u003C/tr\u003E\u0027\nfor i, c in enumerate(ranked[:4]):\n    d = c[\u0022population\u0022] / c[\u0022area\u0022]\n    bg = \u0027var(--verso-cell-output-background)\u0027 if i % 2 == 0 else \u0027var(--verso-cell-background)\u0027\n    html \u002B= f\u0027\u003Ctr style=\u0022background:{bg}\u0022\u003E\u0027\n    html \u002B= f\u0027\u003Ctd style=\u0022padding:6px 12px;border-bottom:1px solid var(--verso-border-default)\u0022\u003E{c[\u0022name\u0022]}\u003C/td\u003E\u0027\n    html \u002B= f\u0027\u003Ctd style=\u0022padding:6px 12px;border-bottom:1px solid var(--verso-border-default);text-align:right\u0022\u003E{d:,.0f}\u003C/td\u003E\u003C/tr\u003E\u0027\nhtml \u002B= \u0027\u003C/table\u003E\u0027\n\n# Wrap in a simple object with _repr_html_\nclass HtmlOutput:\n    def __init__(self, html):\n        self._html = html\n    def _repr_html_(self):\n        return self._html\n\ndisplay(HtmlOutput(html))"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000010",
+      "type": "code",
+      "language": "python",
+      "source": "#!pip matplotlib\nimport matplotlib.pyplot as plt\n\nnames = [c[\u0022name\u0022] for c in ranked]\ndensities = [c[\u0022population\u0022] / c[\u0022area\u0022] for c in ranked]\n\nplt.figure(figsize=(8, 4))\nplt.barh(names[::-1], densities[::-1], color=\u0027#4a6fa5\u0027)\nplt.xlabel(\u0027Population Density (per km\\u00b2)\u0027)\nplt.title(\u0027City Population Density\u0027)\nplt.tight_layout()\nplt.show()"
+    },
+    {
+      "id": "00000003-0001-0001-0001-000000000011",
+      "type": "markdown",
+      "source": "## What\u0027s Next?\n\nThe Python kernel supports the full standard library. Use \u0060#!pip\u0060 to install any package directly from a cell \u2014 try \u0060#!pip pandas numpy\u0060 to get started.\n\nSince variables sync automatically, you can use Python for data wrangling and C# for typed business logic \u2014 all in the same notebook."
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "00000003-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 12,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000002": {
+          "row": 3,
+          "col": 0,
+          "width": 6,
+          "height": 2,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000003": {
+          "row": 3,
+          "col": 6,
+          "width": 6,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000004": {
+          "row": 6,
+          "col": 0,
+          "width": 6,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000005": {
+          "row": 6,
+          "col": 6,
+          "width": 6,
+          "height": 2,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000006": {
+          "row": 9,
+          "col": 0,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000007": {
+          "row": 9,
+          "col": 6,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000008": {
+          "row": 14,
+          "col": 0,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000009": {
+          "row": 14,
+          "col": 6,
+          "width": 6,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-00000000000a": {
+          "row": 19,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-00000000000b": {
+          "row": 19,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-00000000000c": {
+          "row": 23,
+          "col": 0,
+          "width": 6,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-00000000000d": {
+          "row": 23,
+          "col": 6,
+          "width": 6,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-00000000000e": {
+          "row": 26,
+          "col": 0,
+          "width": 12,
+          "height": 3,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-00000000000f": {
+          "row": 29,
+          "col": 0,
+          "width": 6,
+          "height": 6,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000010": {
+          "row": 29,
+          "col": 6,
+          "width": 6,
+          "height": 6,
+          "visible": true
+        },
+        "00000003-0001-0001-0001-000000000011": {
+          "row": 35,
+          "col": 0,
+          "width": 12,
+          "height": 3,
+          "visible": true
+        }
+      }
+    }
+  }
+}

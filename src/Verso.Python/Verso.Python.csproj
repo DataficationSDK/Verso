@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Verso.Python</PackageId>
+    <Title>Verso Python</Title>
+    <Description>Python language kernel extension for Verso notebooks via pythonnet.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Verso.Python.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="pythonnet" Version="3.1.0-rc.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Verso.Abstractions\Verso.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
