@@ -172,6 +172,13 @@
     [Parameter] public EventCallback<string> OnActionExecuted { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
 
+    /// <summary>
+    /// Optional interceptor invoked before the default <c>Service.ExecuteActionAsync</c> path.
+    /// Return <c>true</c> to indicate the action was handled by the parent (the toolbar will
+    /// skip its own execution and still fire <see cref="OnActionExecuted"/>).
+    /// </summary>
+    [Parameter] public Func<string, Task<bool>>? OnInterceptAction { get; set; }
+
     private List<ToolbarActionInfo> _filteredToolbarActions = new();
     private List<ToolbarActionInfo> _exportActions = new();
     private Dictionary<string, bool> _enabledStates = new();
@@ -231,12 +238,19 @@
 
     private async Task ExecuteActionAsync(ToolbarActionInfo action)
     {
-        var selectedIds = SelectedCellId.HasValue
-            ? new List<Guid> { SelectedCellId.Value }
-            : new List<Guid>();
-
         try
         {
+            // Let the parent handle the action when an interceptor is provided
+            if (OnInterceptAction is not null && await OnInterceptAction(action.ActionId))
+            {
+                await OnActionExecuted.InvokeAsync(action.ActionId);
+                return;
+            }
+
+            var selectedIds = SelectedCellId.HasValue
+                ? new List<Guid> { SelectedCellId.Value }
+                : new List<Guid>();
+
             await Service.ExecuteActionAsync(action.ActionId, selectedIds);
             await OnActionExecuted.InvokeAsync(action.ActionId);
         }

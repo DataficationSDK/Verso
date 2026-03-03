@@ -15,6 +15,7 @@
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
+             OnInterceptAction="HandleInterceptAction"
              OnError="HandleError" />
 
     @if (_showExtensionConsent && _pendingConsentExtensions is not null)
@@ -613,6 +614,24 @@
     private async Task HandleCellTypeChanged((Guid CellId, string NewType) args)
     {
         await Service.ChangeCellTypeAsync(args.CellId, args.NewType);
+    }
+
+    private async Task<bool> HandleInterceptAction(string actionId)
+    {
+        if (string.Equals(actionId, "verso.action.run-all", StringComparison.OrdinalIgnoreCase))
+        {
+            await HandleRunAll();
+            return true;
+        }
+
+        if (string.Equals(actionId, "verso.action.run-cell", StringComparison.OrdinalIgnoreCase)
+            && _selectedCellId.HasValue)
+        {
+            await HandleRunCell(_selectedCellId.Value);
+            return true;
+        }
+
+        return false;
     }
 
     private async Task HandleActionExecuted(string actionId)
