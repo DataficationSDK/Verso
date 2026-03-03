@@ -15,7 +15,8 @@ internal sealed record FSharpKernelOptions
         "--nologo",
         "--gui-",
         "--targetprofile:netcore",
-        "--simpleresolution"
+        "--simpleresolution",
+        "--multiemit+"
     };
 
     /// <summary>
