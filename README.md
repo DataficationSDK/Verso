@@ -49,7 +49,7 @@ Verso is split into layers that each do one thing:
 │  │  Notebook Layout · Dashboard Layout · Formatters   │ │
 │  ├────────────────────────────────────────────────────┤ │
 │  │  First-Party Extension Packages                    │ │
-│  │  Verso.FSharp (F# kernel) · Verso.Ado (SQL)        │ │
+│  │  Verso.FSharp · Verso.Python · Verso.Ado (SQL)     │ │
 │  └────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -81,6 +81,12 @@ The C# kernel is powered by Roslyn. You get the latest C# language version, pers
 Verso.FSharp brings full F# scripting powered by FSharp.Compiler.Service. IntelliSense, diagnostics, NuGet references, script directives (`#r`, `#load`, `#I`), and a dedicated data formatter that renders discriminated unions, records, options, results, maps, and collections as styled HTML tables.
 
 <!-- TODO: Screenshot of F# cell with rich DU/record output formatting -->
+
+### Write and Run Python
+
+Verso.Python embeds CPython via pythonnet. You get IntelliSense (completions, diagnostics, hover) powered by jedi, bidirectional variable sharing with C#/F#/SQL cells, and virtual environment support via the `#!pip` magic command. Requires **Python 3.8–3.12** installed on the system (Python 3.13+ is not yet supported by pythonnet).
+
+<!-- TODO: Screenshot of Python cell -->
 
 ### Query Databases with SQL
 
@@ -186,11 +192,11 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 
 | Category | Included |
 |----------|----------|
-| **Kernels** | C# (Roslyn), F# (FSharp.Compiler.Service via Verso.FSharp) |
+| **Kernels** | C# (Roslyn), F# (FSharp.Compiler.Service via Verso.FSharp), Python (pythonnet via Verso.Python) |
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL (via Verso.Ado) |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid with drag-and-resize) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!extension`, `#!restart`, `#!about`, `#!import` |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!extension`, `#!restart`, `#!about`, `#!import` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types (via Verso.FSharp), SQL result sets (via Verso.Ado) |
 | **Serializers** | `.verso` (native JSON format), `.ipynb` import (Jupyter nbformat v4+), `.dib` import (Polyglot Notebooks) |
@@ -232,6 +238,7 @@ JSON-based, human-readable, and diff-friendly. Stores notebook metadata, cell co
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [VS Code](https://code.visualstudio.com/) (for the extension) or any modern browser (for Blazor)
+- [Python 3.8–3.12](https://www.python.org/downloads/) (optional, for the Python kernel — Python 3.13+ is not yet supported by pythonnet)
 
 ### Run in the Browser
 

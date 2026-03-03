@@ -6,7 +6,7 @@
 
 ## Features
 
-- **C# and F# with IntelliSense** including completions, diagnostics, hover info, and NuGet package references
+- **C#, F#, and Python with IntelliSense** including completions, diagnostics, hover info, and NuGet package references
 - **SQL database connectivity** with paginated results, schema inspection, and EF Core scaffolding
 - **Markdown, HTML, and Mermaid** cells for documentation, visualizations, and diagrams
 - **Variable sharing** across languages so you can set a value in C# and use it in SQL or F#
@@ -17,7 +17,7 @@
 
 ## Writing Code with IntelliSense
 
-Verso's C# kernel is powered by Roslyn, giving you the latest language features, persistent state across cells, real-time error checking, and code completions as you type. The F# kernel offers the same experience powered by FSharp.Compiler.Service.
+Verso's C# kernel is powered by Roslyn, giving you the latest language features, persistent state across cells, real-time error checking, and code completions as you type. The F# kernel offers the same experience powered by FSharp.Compiler.Service. The Python kernel embeds CPython via pythonnet with IntelliSense powered by jedi, bidirectional variable sharing with other kernels, and virtual environment support via `#!pip`.
 
 ![C# IntelliSense in Verso](https://datafication.co/assets/verso/IntellisenseVerso.gif)
 
@@ -39,6 +39,10 @@ Already have notebooks in Jupyter or Polyglot format? Open any `.ipynb` or `.dib
 2. Install this extension from the VS Code Marketplace
 3. Open an existing `.verso` file or create a new file with a `.verso` extension to start working
 
+### Python Kernel
+
+The Python kernel requires **Python 3.8–3.12** installed on your system. Python 3.13+ is not yet supported by pythonnet. The kernel auto-detects your Python installation; if auto-detection fails you can set the `PythonDll` option to the path of your Python shared library (e.g. `python312.dll` on Windows, `libpython3.12.dylib` on macOS, `libpython3.12.so` on Linux).
+
 To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` file.
 
 ## Supported Languages
@@ -47,6 +51,7 @@ To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` fi
 |----------|:------------:|:----------------:|
 | C#       | Yes          | Yes              |
 | F#       | Yes          | Yes              |
+| Python   | Yes          | Yes              |
 | SQL      | Yes          | Yes              |
 | Markdown | N/A          | N/A              |
 | HTML     | N/A          | Yes              |

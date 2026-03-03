@@ -12,6 +12,7 @@ internal static class PythonEngineManager
 {
     private static readonly object Lock = new();
     private static bool _initialized;
+    private static string? _resolvedDllPath;
 
     /// <summary>
     /// Ensures the Python engine is initialized exactly once. Safe to call from multiple threads.
@@ -32,6 +33,7 @@ internal static class PythonEngineManager
             if (dll is not null)
             {
                 Runtime.PythonDLL = dll;
+                _resolvedDllPath = Path.GetFullPath(dll);
             }
 
             PythonEngine.Initialize();
@@ -137,6 +139,40 @@ internal static class PythonEngineManager
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Returns a Python executable that matches the loaded Python DLL version.
+    /// On Windows, looks for <c>python.exe</c> alongside the DLL. On Unix,
+    /// looks for <c>python3</c> in a sibling <c>bin/</c> directory.
+    /// Falls back to <see cref="FindPython3OnPath"/> when the DLL path is unknown.
+    /// </summary>
+    internal static string? GetMatchingPythonExecutable()
+    {
+        if (_resolvedDllPath is not null)
+        {
+            var dllDir = Path.GetDirectoryName(_resolvedDllPath);
+            if (dllDir is not null)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    var exe = Path.Combine(dllDir, "python.exe");
+                    if (File.Exists(exe)) return exe;
+                }
+                else
+                {
+                    // On Unix the DLL is typically in lib/, the executable in bin/
+                    var binDir = Path.Combine(dllDir, "..", "bin");
+                    var exe = Path.Combine(binDir, "python3");
+                    if (File.Exists(exe)) return Path.GetFullPath(exe);
+
+                    exe = Path.Combine(dllDir, "python3");
+                    if (File.Exists(exe)) return exe;
+                }
+            }
+        }
+
+        return FindPython3OnPath();
     }
 
     internal static string? FindPython3OnPath()

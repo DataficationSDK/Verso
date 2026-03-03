@@ -227,18 +227,23 @@ public sealed class PythonKernel : ILanguageKernel
                     _scopeManager!.InjectFromStore(context.Variables);
                 }
 
-                // Add venv site-packages to sys.path if #!pip has been used
+                // Add package paths to sys.path if #!pip has been used.
+                // The store value may contain multiple paths separated by Path.PathSeparator
+                // (on Windows: venv site-packages + overlay directory).
                 if (context.Variables.TryGet<string>(VenvManager.SitePackagesStoreKey, out var sitePackages)
                     && !string.IsNullOrEmpty(sitePackages))
                 {
-                    var escaped = sitePackages.Replace("\\", "\\\\").Replace("'", "\\'");
-                    _scopeManager!.Exec(
-                        $"_verso_sp_added = '{escaped}' not in sys.path\n" +
-                        $"if _verso_sp_added: sys.path.insert(0, '{escaped}')");
+                    foreach (var sp in sitePackages.Split(Path.PathSeparator))
+                    {
+                        if (string.IsNullOrEmpty(sp)) continue;
+                        var escaped = sp.Replace("\\", "\\\\").Replace("'", "\\'");
+                        _scopeManager!.Exec(
+                            $"if '{escaped}' not in sys.path: sys.path.insert(0, '{escaped}')");
+                    }
 
                     // Re-run library hooks (matplotlib Agg backend, IPython shims) so
                     // packages installed via #!pip are configured before user code runs.
-                    _scopeManager.Exec(OutputCapture.LibraryHooksCode);
+                    _scopeManager!.Exec(OutputCapture.LibraryHooksCode);
                 }
 
                 // Reset output buffers

@@ -17,6 +17,18 @@ internal static class VenvManager
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         ".verso", "python", "venv");
 
+    /// <summary>
+    /// On Windows, user <c>#!pip</c> installs go to a separate overlay directory to avoid
+    /// WinError 32 file locking conflicts with packages already loaded by the embedded Python.
+    /// On Unix, installs go directly into the venv's site-packages (no locking issue).
+    /// </summary>
+    private static readonly string? PackagesOverlayPath =
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".verso", "python", "packages")
+            : null;
+
     private static string? _cachedSitePackages;
     private static bool _venvReady;
 
@@ -27,6 +39,37 @@ internal static class VenvManager
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? Path.Combine(VenvPath, "Scripts", "python.exe")
             : Path.Combine(VenvPath, "bin", "python3");
+
+    /// <summary>
+    /// Returns additional pip arguments for user <c>#!pip</c> installs. On Windows this
+    /// includes <c>--target</c> pointing to a separate overlay directory so pip does not
+    /// conflict with packages already loaded by the embedded Python process.
+    /// </summary>
+    internal static string GetPipInstallArgs()
+    {
+        if (PackagesOverlayPath is null)
+            return "";
+
+        Directory.CreateDirectory(PackagesOverlayPath);
+        return $"--target \"{PackagesOverlayPath}\"";
+    }
+
+    /// <summary>
+    /// Returns all directory paths that should be added to <c>sys.path</c> for user-installed packages.
+    /// </summary>
+    internal static async Task<IReadOnlyList<string>> GetAllPackagePathsAsync(CancellationToken ct)
+    {
+        var paths = new List<string>();
+
+        var sitePackages = await GetSitePackagesPathAsync(ct).ConfigureAwait(false);
+        if (sitePackages is not null)
+            paths.Add(sitePackages);
+
+        if (PackagesOverlayPath is not null && Directory.Exists(PackagesOverlayPath))
+            paths.Add(PackagesOverlayPath);
+
+        return paths;
+    }
 
     /// <summary>
     /// Ensures the virtual environment exists, creating it if necessary.
@@ -98,7 +141,7 @@ internal static class VenvManager
         // Create venv if it doesn't exist
         if (!File.Exists(GetPythonPath()))
         {
-            var systemPython = PythonEngineManager.FindPython3OnPath();
+            var systemPython = PythonEngineManager.GetMatchingPythonExecutable();
             if (systemPython is null)
                 return false;
 

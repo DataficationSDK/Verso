@@ -51,9 +51,11 @@ public sealed class PipMagicCommand : IMagicCommand
         if (args.StartsWith("install ", StringComparison.OrdinalIgnoreCase))
             args = args.Substring("install ".Length).TrimStart();
 
-        // Resolve the system Python (used to create the venv if needed)
-        var systemPython = PythonEngineManager.FindPython3OnPath()
-            ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python3.exe" : "python3");
+        // Resolve the system Python (used to create the venv if needed).
+        // Prefer the executable that matches the DLL pythonnet loaded so the
+        // venv uses the same Python version as the embedded runtime.
+        var systemPython = PythonEngineManager.GetMatchingPythonExecutable()
+            ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python3");
 
         // Ensure the venv exists
         if (!await VenvManager.EnsureCreatedAsync(systemPython, context, context.CancellationToken)
@@ -64,8 +66,9 @@ public sealed class PipMagicCommand : IMagicCommand
         }
 
         var venvPython = VenvManager.GetPythonPath();
+        var pipExtra = VenvManager.GetPipInstallArgs();
 
-        var psi = new ProcessStartInfo(venvPython, $"-m pip install --quiet --no-input {args}")
+        var psi = new ProcessStartInfo(venvPython, $"-m pip install --quiet --no-input {pipExtra} {args}")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -107,12 +110,15 @@ public sealed class PipMagicCommand : IMagicCommand
                 return;
             }
 
-            // Resolve and store the site-packages path so the kernel can add it to sys.path
-            var sitePackages = await VenvManager.GetSitePackagesPathAsync(context.CancellationToken)
+            // Resolve and store package paths so the kernel can add them to sys.path.
+            // On Windows this includes both the venv site-packages (jedi) and the
+            // overlay directory (user #!pip installs).
+            var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
                 .ConfigureAwait(false);
-            if (sitePackages is not null)
+            if (packagePaths.Count > 0)
             {
-                context.Variables.Set(VenvManager.SitePackagesStoreKey, sitePackages);
+                context.Variables.Set(VenvManager.SitePackagesStoreKey,
+                    string.Join(Path.PathSeparator.ToString(), packagePaths));
             }
 
             // Show pip's summary (e.g. "Successfully installed X-1.0 Y-2.0") or our own confirmation
