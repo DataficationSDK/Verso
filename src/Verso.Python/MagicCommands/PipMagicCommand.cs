@@ -65,6 +65,20 @@ public sealed class PipMagicCommand : IMagicCommand
             return;
         }
 
+        // Fast-path: if every requested package directory already exists in the
+        // install location, skip the expensive pip subprocess entirely.
+        if (VenvManager.ArePackagesInstalled(args))
+        {
+            var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
+                .ConfigureAwait(false);
+            if (packagePaths.Count > 0)
+            {
+                context.Variables.Set(VenvManager.SitePackagesStoreKey,
+                    string.Join(Path.PathSeparator.ToString(), packagePaths));
+            }
+            return; // packages present — silently continue to cell code
+        }
+
         var venvPython = VenvManager.GetPythonPath();
         var pipExtra = VenvManager.GetPipInstallArgs();
 

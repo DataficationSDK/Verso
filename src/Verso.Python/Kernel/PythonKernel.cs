@@ -257,6 +257,10 @@ public sealed class PythonKernel : ILanguageKernel
                 // Execute user code
                 _scopeManager.Exec(code);
 
+                // Capture any open matplotlib figures not already captured by plt.show().
+                // Covers cases where the user creates plots without calling show().
+                _scopeManager.Exec(OutputCapture.MatplotlibCaptureCode);
+
                 // Drain stdout
                 using var stdoutResult = _scopeManager.Eval("_verso_flush_stdout()");
                 var stdout = stdoutResult.ToString() ?? "";

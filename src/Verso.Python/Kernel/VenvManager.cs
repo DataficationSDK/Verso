@@ -199,6 +199,52 @@ internal static class VenvManager
     }
 
     /// <summary>
+    /// Checks whether all requested packages already exist in the install directory
+    /// (overlay on Windows, venv site-packages if cached). When <c>true</c>, the caller
+    /// can skip the expensive pip subprocess entirely.
+    /// </summary>
+    internal static bool ArePackagesInstalled(string args)
+    {
+        var packageNames = ParsePackageNames(args);
+        if (packageNames.Count == 0)
+            return false;
+
+        var dirsToCheck = new List<string>(2);
+        if (PackagesOverlayPath is not null && Directory.Exists(PackagesOverlayPath))
+            dirsToCheck.Add(PackagesOverlayPath);
+        if (_cachedSitePackages is not null && Directory.Exists(_cachedSitePackages))
+            dirsToCheck.Add(_cachedSitePackages);
+
+        if (dirsToCheck.Count == 0)
+            return false;
+
+        return packageNames.All(name =>
+        {
+            var normalized = NormalizePackageName(name);
+            return dirsToCheck.Any(dir =>
+                Directory.Exists(Path.Combine(dir, normalized)));
+        });
+    }
+
+    private static string NormalizePackageName(string name)
+        => name.ToLowerInvariant().Replace('-', '_');
+
+    private static List<string> ParsePackageNames(string args)
+    {
+        var names = new List<string>();
+        foreach (var token in args.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (token.StartsWith("-") || token.Contains("://"))
+                continue; // skip options and URLs
+            // Take the name before any version specifier
+            var name = token.Split(new[] { '=', '>', '<', '!', '[', ';' }, 2)[0];
+            if (!string.IsNullOrEmpty(name))
+                names.Add(name);
+        }
+        return names;
+    }
+
+    /// <summary>
     /// Resolves the venv's site-packages directory by asking the venv's Python.
     /// The result is cached after the first successful call.
     /// </summary>

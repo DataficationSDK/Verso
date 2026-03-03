@@ -13,25 +13,34 @@ internal static class OutputCapture
     /// catch allows it to be silently skipped and retried later.
     /// </summary>
     internal const string LibraryHooksCode = @"
-# --- matplotlib hook (conditional) ---
+# --- matplotlib hook ---
 try:
     import matplotlib
-    matplotlib.use('Agg')  # non-interactive backend
+    matplotlib.use('Agg')  # must be before pyplot import; warns if already imported
     import matplotlib.pyplot as _verso_plt
+    try:
+        _verso_plt.switch_backend('Agg')  # fallback: works even after pyplot import
+    except Exception:
+        pass
 
-    if not getattr(_verso_plt.show, '_verso_patched', False):
-        def _verso_patched_show(*args, **kwargs):
-            import base64
-            buf = io.BytesIO()
-            _verso_plt.savefig(buf, format='png', bbox_inches='tight')
-            buf.seek(0)
-            b64 = base64.b64encode(buf.read()).decode('ascii')
-            _verso_display_outputs.append(('text/html', f'<img src=""data:image/png;base64,{b64}"" />'))
-            buf.close()
-            _verso_plt.clf()
-        _verso_patched_show._verso_patched = True
-        _verso_plt.show = _verso_patched_show
-except ImportError:
+    # Always re-patch plt.show so the function's __globals__ binds to the
+    # current scope's _verso_display_outputs. Without this, a kernel restart
+    # creates a new scope (and new display list) but the old patched show
+    # still writes to the previous scope's list — producing no visible output.
+    def _verso_patched_show(*args, **kwargs):
+        import base64
+        for _fn in _verso_plt.get_fignums():
+            _fig = _verso_plt.figure(_fn)
+            _buf = io.BytesIO()
+            _fig.savefig(_buf, format='png', bbox_inches='tight')
+            _buf.seek(0)
+            _b64 = base64.b64encode(_buf.read()).decode('ascii')
+            _verso_display_outputs.append(('text/html', f'<img src=""data:image/png;base64,{_b64}"" />'))
+            _buf.close()
+        _verso_plt.close('all')
+    _verso_patched_show._verso_patched = True
+    _verso_plt.show = _verso_patched_show
+except Exception:
     pass
 
 # --- IPython.display hook (conditional) ---
@@ -40,6 +49,31 @@ try:
     _verso_ipd.display = display
 except ImportError:
     pass
+";
+
+    /// <summary>
+    /// Post-execution code that captures any remaining open matplotlib figures.
+    /// Runs after user code and before output drain so that plots created without
+    /// an explicit <c>plt.show()</c> call are still rendered.
+    /// </summary>
+    internal const string MatplotlibCaptureCode = @"
+if 'matplotlib.pyplot' in sys.modules:
+    try:
+        import matplotlib.pyplot as _mpl_cap
+        _fignums = _mpl_cap.get_fignums()
+        if _fignums:
+            import base64 as _b64_cap
+            for _fn in _fignums:
+                _fig = _mpl_cap.figure(_fn)
+                _buf = io.BytesIO()
+                _fig.savefig(_buf, format='png', bbox_inches='tight')
+                _buf.seek(0)
+                _b64_str = _b64_cap.b64encode(_buf.read()).decode('ascii')
+                _verso_display_outputs.append(('text/html', f'<img src=""data:image/png;base64,{_b64_str}"" />'))
+                _buf.close()
+            _mpl_cap.close('all')
+    except Exception:
+        pass
 ";
 
     /// <summary>
