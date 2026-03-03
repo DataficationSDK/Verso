@@ -520,8 +520,7 @@
         var cells = Service.Cells;
         foreach (var cell in cells.ToList())
         {
-            if (cell.Type == "code")
-                await HandleRunCell(cell.Id);
+            await HandleRunCell(cell.Id);
         }
     }
 
