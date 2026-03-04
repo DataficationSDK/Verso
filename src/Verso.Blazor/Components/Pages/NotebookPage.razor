@@ -122,7 +122,8 @@
                                       OnMoveDown="HandleMoveDown"
                                       OnSourceChanged="HandleSourceChanged"
                                       OnCellAction="HandleCellAction"
-                                      OnCellTypeChanged="HandleCellTypeChanged" />
+                                      OnCellTypeChanged="HandleCellTypeChanged"
+                                      OnCellLanguageChanged="HandleCellLanguageChanged" />
                             </div>
 
                             @if (index < cells.Count - 1)
@@ -915,6 +916,11 @@
     private async Task HandleCellTypeChanged((Guid CellId, string NewType) args)
     {
         await Service.ChangeCellTypeAsync(args.CellId, args.NewType);
+    }
+
+    private async Task HandleCellLanguageChanged((Guid CellId, string NewLanguage) args)
+    {
+        await Service.ChangeCellLanguageAsync(args.CellId, args.NewLanguage);
     }
 
     private async Task<bool> HandleInterceptAction(string actionId)

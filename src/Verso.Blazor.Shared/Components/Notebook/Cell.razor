@@ -30,7 +30,26 @@
             </div>
             @if (CellData.Type == "code" && CellData.Language is not null)
             {
-                <span class="verso-cell-language">@CellData.Language</span>
+                <div class="verso-cell-lang-dropdown" @onfocusout="OnLanguageDropdownFocusOut" tabindex="-1">
+                    <button class="verso-cell-lang-badge" @onclick="ToggleLanguageDropdown">
+                        @GetLanguageDisplayName(CellData.Language)
+                        <span class="verso-cell-lang-chevron">&#9662;</span>
+                    </button>
+                    @if (_showLanguageDropdown)
+                    {
+                        <div class="verso-cell-lang-popup">
+                            @foreach (var lang in Service.RegisteredLanguages)
+                            {
+                                var l = lang;
+                                var isActive = string.Equals(l.Id, CellData.Language, StringComparison.OrdinalIgnoreCase);
+                                <button class="verso-cell-lang-option @(isActive ? "verso-cell-lang-option--active" : "")"
+                                        @onclick="() => SelectLanguage(l.Id)">
+                                    @l.DisplayName
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
             }
             <div class="verso-cell-toolbar-actions">
                 @foreach (var action in _enabledCellActions)
@@ -132,10 +151,12 @@
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Action)> OnCellAction { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string NewType)> OnCellTypeChanged { get; set; }
+    [Parameter] public EventCallback<(Guid CellId, string NewLanguage)> OnCellLanguageChanged { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
 
     private List<ToolbarActionInfo> _enabledCellActions = new();
     private bool _showTypeDropdown;
+    private bool _showLanguageDropdown;
 
     // Actions already represented by hardcoded buttons in the cell toolbar
     private static readonly HashSet<string> _hardcodedActionIds = new(StringComparer.OrdinalIgnoreCase)
@@ -244,6 +265,7 @@
     private void ToggleTypeDropdown()
     {
         _showTypeDropdown = !_showTypeDropdown;
+        if (_showTypeDropdown) _showLanguageDropdown = false;
     }
 
     private async Task OnTypeDropdownFocusOut()
@@ -257,5 +279,31 @@
         _showTypeDropdown = false;
         if (!string.Equals(typeId, CellData.Type, StringComparison.OrdinalIgnoreCase))
             await OnCellTypeChanged.InvokeAsync((CellData.Id, typeId));
+    }
+
+    private void ToggleLanguageDropdown()
+    {
+        _showLanguageDropdown = !_showLanguageDropdown;
+        if (_showLanguageDropdown) _showTypeDropdown = false;
+    }
+
+    private async Task OnLanguageDropdownFocusOut()
+    {
+        await Task.Delay(150);
+        _showLanguageDropdown = false;
+    }
+
+    private async Task SelectLanguage(string languageId)
+    {
+        _showLanguageDropdown = false;
+        if (!string.Equals(languageId, CellData.Language, StringComparison.OrdinalIgnoreCase))
+            await OnCellLanguageChanged.InvokeAsync((CellData.Id, languageId));
+    }
+
+    private string GetLanguageDisplayName(string languageId)
+    {
+        var info = Service.RegisteredLanguages
+            .FirstOrDefault(l => string.Equals(l.Id, languageId, StringComparison.OrdinalIgnoreCase));
+        return info?.DisplayName ?? languageId;
     }
 }

@@ -64,8 +64,18 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         set { if (_scaffold is not null) _scaffold.DefaultKernelId = value; }
     }
 
-    public IReadOnlyList<string> RegisteredLanguages =>
-        _scaffold?.RegisteredLanguages ?? Array.Empty<string>();
+    public IReadOnlyList<KernelLanguageInfo> RegisteredLanguages
+    {
+        get
+        {
+            if (_scaffold is null) return Array.Empty<KernelLanguageInfo>();
+            return _scaffold.RegisteredLanguages.Select(langId =>
+            {
+                var kernel = _scaffold.GetKernel(langId);
+                return new KernelLanguageInfo(langId, kernel?.DisplayName ?? langId);
+            }).ToList();
+        }
+    }
 
     public DateTimeOffset? Created => _scaffold?.Notebook.Created;
     public DateTimeOffset? Modified => _scaffold?.Notebook.Modified;
@@ -335,6 +345,23 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var effectiveLanguage = ResolveLanguage(newType, null);
         cell.Type = newType;
         cell.Language = effectiveLanguage;
+        cell.Outputs.Clear();
+
+        OnNotebookChanged?.Invoke();
+        return Task.CompletedTask;
+    }
+
+    public Task ChangeCellLanguageAsync(Guid cellId, string newLanguage)
+    {
+        if (_scaffold is null) return Task.CompletedTask;
+
+        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null) return Task.CompletedTask;
+
+        if (string.Equals(cell.Language, newLanguage, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+
+        cell.Language = newLanguage;
         cell.Outputs.Clear();
 
         OnNotebookChanged?.Invoke();

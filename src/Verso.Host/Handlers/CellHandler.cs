@@ -84,6 +84,29 @@ public static class CellHandler
         return new { success = true };
     }
 
+    public static object HandleChangeLanguage(NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<CellChangeLanguageParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for cell/changeLanguage");
+
+        var cellId = Guid.Parse(p.CellId);
+        var cell = ns.Scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null)
+            return new { success = false };
+
+        var language = p.Language;
+        if (!ns.Scaffold.RegisteredLanguages.Contains(language, StringComparer.OrdinalIgnoreCase))
+            return new { success = false };
+
+        if (!string.Equals(cell.Language, language, StringComparison.OrdinalIgnoreCase))
+        {
+            cell.Language = language;
+            cell.Outputs.Clear();
+        }
+
+        return new { success = true };
+    }
+
     public static CellDto? HandleGet(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<CellGetParams>(JsonRpcMessage.SerializerOptions)

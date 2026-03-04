@@ -30,7 +30,7 @@ public interface INotebookService
     string? DefaultKernelId { get; set; }
 
     /// <summary>Languages registered with the kernel system.</summary>
-    IReadOnlyList<string> RegisteredLanguages { get; }
+    IReadOnlyList<KernelLanguageInfo> RegisteredLanguages { get; }
 
     /// <summary>When the notebook was created.</summary>
     DateTimeOffset? Created { get; }
@@ -139,6 +139,9 @@ public interface INotebookService
 
     /// <summary>Change the type of an existing cell.</summary>
     Task ChangeCellTypeAsync(Guid cellId, string newType);
+
+    /// <summary>Change the kernel language of an existing code cell.</summary>
+    Task ChangeCellLanguageAsync(Guid cellId, string newLanguage);
 
     /// <summary>Clear all cell outputs.</summary>
     Task ClearAllOutputsAsync();

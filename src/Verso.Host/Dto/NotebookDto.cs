@@ -125,6 +125,12 @@ public sealed class CellChangeTypeParams
     public string Type { get; set; } = "code";
 }
 
+public sealed class CellChangeLanguageParams
+{
+    public string CellId { get; set; } = "";
+    public string Language { get; set; } = "";
+}
+
 public sealed class CellGetParams
 {
     public string CellId { get; set; } = "";

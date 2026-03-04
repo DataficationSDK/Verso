@@ -32,6 +32,8 @@ export class BlazorBridge implements vscode.Disposable {
     "cell/remove",
     "cell/move",
     "cell/updateSource",
+    "cell/changeType",
+    "cell/changeLanguage",
     "execution/run",
     "execution/runAll",
     "output/clearAll",

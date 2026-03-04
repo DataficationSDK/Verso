@@ -19,7 +19,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private string? _filePath;
     private string? _title;
     private string? _defaultKernelId;
-    private List<string> _registeredLanguages = new();
+    private List<KernelLanguageInfo> _registeredLanguages = new();
     private DateTimeOffset? _created;
     private DateTimeOffset? _modified;
     private string _formatVersion = "";
@@ -96,7 +96,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         set => _defaultKernelId = value;
     }
 
-    public IReadOnlyList<string> RegisteredLanguages => _registeredLanguages;
+    public IReadOnlyList<KernelLanguageInfo> RegisteredLanguages => _registeredLanguages;
     public DateTimeOffset? Created => _created;
     public DateTimeOffset? Modified => _modified;
     public string FormatVersion => _formatVersion;
@@ -279,6 +279,13 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     {
         await _bridge.RequestVoidAsync("cell/changeType", new { cellId = cellId.ToString(), type = newType });
         // Re-fetch cell list after type change since the host may rebuild the cell
+        await RefreshCellListAsync();
+        OnNotebookChanged?.Invoke();
+    }
+
+    public async Task ChangeCellLanguageAsync(Guid cellId, string newLanguage)
+    {
+        await _bridge.RequestVoidAsync("cell/changeLanguage", new { cellId = cellId.ToString(), language = newLanguage });
         await RefreshCellListAsync();
         OnNotebookChanged?.Invoke();
     }
@@ -671,7 +678,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
         // Languages
         var langsResult = await _bridge.RequestAsync<LanguagesResponse>("notebook/getLanguages", null);
-        _registeredLanguages = langsResult.Languages?.Select(l => l.Id).ToList() ?? new();
+        _registeredLanguages = langsResult.Languages?.Select(l => new KernelLanguageInfo(l.Id, l.DisplayName)).ToList() ?? new();
 
         // Layouts
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);

@@ -5,6 +5,9 @@ namespace Verso.Blazor.Shared.Models;
 /// <summary>Describes a cell type available for creation or switching.</summary>
 public sealed record CellTypeInfo(string Id, string DisplayName);
 
+/// <summary>Describes a kernel language available for code cells.</summary>
+public sealed record KernelLanguageInfo(string Id, string DisplayName);
+
 /// <summary>Describes a toolbar action with its metadata.</summary>
 public sealed record ToolbarActionInfo(
     string ActionId,
