@@ -186,7 +186,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell);
 
-        Assert.IsTrue(cut.Markup.Contains("csharp"));
+        Assert.IsTrue(cut.Markup.Contains("C#"));
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
