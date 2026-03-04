@@ -178,7 +178,7 @@ Third-party extensions load in their own `AssemblyLoadContext`, collectible and 
 dotnet new verso-extension -n MyExtension
 ```
 
-Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and documentation covering all ten interfaces, theme authoring, layout authoring, and best practices.
+Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and documentation covering all eleven interfaces, theme authoring, layout authoring, and best practices.
 
 **Sample extensions included in the repo:**
 
