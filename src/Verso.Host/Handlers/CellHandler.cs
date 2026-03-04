@@ -102,6 +102,13 @@ public static class CellHandler
         {
             cell.Language = language;
             cell.Outputs.Clear();
+
+            // Eagerly warm up the target kernel so IntelliSense is ready immediately
+            _ = Task.Run(async () =>
+            {
+                try { await ns.Scaffold.WarmUpKernelAsync(language); }
+                catch { /* warm-up failure is non-fatal */ }
+            });
         }
 
         return new { success = true };

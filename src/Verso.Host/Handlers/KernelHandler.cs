@@ -27,6 +27,7 @@ public static class KernelHandler
         if (kernel is null)
             return new CompletionsResult();
 
+        await ns.Scaffold.WarmUpKernelAsync(kernel.LanguageId);
         var completions = await kernel.GetCompletionsAsync(p.Code, p.CursorPosition);
         return new CompletionsResult
         {
@@ -50,6 +51,7 @@ public static class KernelHandler
         if (kernel is null)
             return new DiagnosticsResult();
 
+        await ns.Scaffold.WarmUpKernelAsync(kernel.LanguageId);
         var diagnostics = await kernel.GetDiagnosticsAsync(p.Code);
         return new DiagnosticsResult
         {
@@ -75,6 +77,7 @@ public static class KernelHandler
         if (kernel is null)
             return null;
 
+        await ns.Scaffold.WarmUpKernelAsync(kernel.LanguageId);
         var info = await kernel.GetHoverInfoAsync(p.Code, p.CursorPosition);
         if (info is null)
             return null;

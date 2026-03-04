@@ -79,6 +79,24 @@ public static class NotebookHandler
         var ns = session.GetSession(notebookId);
         extensionHost.ConsentHandler = (extensions, ct) => ns.RequestConsentAsync(extensions, ct);
 
+        // Eagerly warm up kernels for languages present in the notebook so
+        // IntelliSense is available before the first cell execution.
+        var languagesToWarm = scaffold.Cells
+            .Where(c => c.Language is not null)
+            .Select(c => c.Language!)
+            .Append(notebook.DefaultKernelId ?? "csharp")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _ = Task.Run(async () =>
+        {
+            foreach (var lang in languagesToWarm)
+            {
+                try { await scaffold.WarmUpKernelAsync(lang); }
+                catch { /* warm-up failure is non-fatal */ }
+            }
+        });
+
         // Pre-scan for #!extension directives.  Fire-and-forget so the open response
         // returns immediately — the webview must load before it can show the consent
         // dialog.  Per-command consent in ExtensionMagicCommand is the fallback if

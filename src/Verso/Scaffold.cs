@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.Execution;
@@ -14,7 +15,7 @@ public sealed class Scaffold : IAsyncDisposable
     private readonly NotebookModel _notebook;
     private readonly object _cellLock = new();
     private readonly Dictionary<string, ILanguageKernel> _kernels = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _initializedKernels = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Task> _initializationTasks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<Guid, int> _executionCounts = new();
     private readonly VariableStore _variables = new();
     private readonly NotebookMetadataContext _metadata;
@@ -230,7 +231,7 @@ public sealed class Scaffold : IAsyncDisposable
     public bool UnregisterKernel(string languageId)
     {
         ArgumentNullException.ThrowIfNull(languageId);
-        _initializedKernels.Remove(languageId);
+        _initializationTasks.TryRemove(languageId, out _);
         return _kernels.Remove(languageId);
     }
 
@@ -271,10 +272,10 @@ public sealed class Scaffold : IAsyncDisposable
             ?? throw new InvalidOperationException($"No kernel registered for language '{id}'.");
 
         await kernel.DisposeAsync().ConfigureAwait(false);
-        _initializedKernels.Remove(id);
+        _initializationTasks.TryRemove(id, out _);
         _variables.Clear();
 
-        await EnsureInitialized(kernel).ConfigureAwait(false);
+        await WarmUpKernelAsync(id).ConfigureAwait(false);
     }
 
     // --- Execution ---
@@ -335,7 +336,7 @@ public sealed class Scaffold : IAsyncDisposable
             await kernel.DisposeAsync().ConfigureAwait(false);
         }
         _kernels.Clear();
-        _initializedKernels.Clear();
+        _initializationTasks.Clear();
 
         if (_extensionHost is not null)
             await _extensionHost.DisposeAsync().ConfigureAwait(false);
@@ -363,11 +364,20 @@ public sealed class Scaffold : IAsyncDisposable
         return cell?.Language ?? _notebook.DefaultKernelId;
     }
 
-    private async Task EnsureInitialized(ILanguageKernel kernel)
+    /// <summary>
+    /// Eagerly initializes a kernel so IntelliSense is available before the first execution.
+    /// Safe to call concurrently — concurrent calls for the same language share a single init task.
+    /// </summary>
+    public Task WarmUpKernelAsync(string languageId)
     {
-        if (_initializedKernels.Contains(kernel.LanguageId)) return;
-        await kernel.InitializeAsync().ConfigureAwait(false);
-        _initializedKernels.Add(kernel.LanguageId);
+        var kernel = ResolveKernel(languageId);
+        if (kernel is null) return Task.CompletedTask;
+        return _initializationTasks.GetOrAdd(languageId, _ => kernel.InitializeAsync());
+    }
+
+    private Task EnsureInitialized(ILanguageKernel kernel)
+    {
+        return _initializationTasks.GetOrAdd(kernel.LanguageId, _ => kernel.InitializeAsync());
     }
 
     private ILanguageKernel? ResolveKernel(string languageId)

@@ -191,6 +191,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         _scaffold.AddCell("code", "csharp");
         _filePath = null;
         SubscribeToEngineEvents();
+        WarmUpKernelsInBackground();
 
         OnNotebookChanged?.Invoke();
     }
@@ -218,6 +219,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         await RestoreSettingsAsync();
         _filePath = filePath;
         SubscribeToEngineEvents();
+        WarmUpKernelsInBackground();
 
         OnNotebookChanged?.Invoke();
 
@@ -252,6 +254,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         await RestoreSettingsAsync();
         _filePath = null;
         SubscribeToEngineEvents();
+        WarmUpKernelsInBackground();
 
         OnNotebookChanged?.Invoke();
 
@@ -363,6 +366,14 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         cell.Language = newLanguage;
         cell.Outputs.Clear();
+
+        // Eagerly warm up the target kernel so IntelliSense is ready immediately
+        var scaffold = _scaffold;
+        _ = Task.Run(async () =>
+        {
+            try { await scaffold!.WarmUpKernelAsync(newLanguage); }
+            catch { /* warm-up failure is non-fatal */ }
+        });
 
         OnNotebookChanged?.Invoke();
         return Task.CompletedTask;
@@ -504,6 +515,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var kernel = _scaffold.GetKernel(cell.Language);
         if (kernel is null) return null;
 
+        await _scaffold.WarmUpKernelAsync(cell.Language);
         var info = await kernel.GetHoverInfoAsync(code, position);
         if (info is null) return null;
 
@@ -524,6 +536,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var kernel = _scaffold.GetKernel(cell.Language);
         if (kernel is null) return null;
 
+        await _scaffold.WarmUpKernelAsync(cell.Language);
         var completions = await kernel.GetCompletionsAsync(code, position);
         return new CompletionsResultDto(
             completions.Select(c => new CompletionItemDto(
@@ -865,6 +878,26 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
                     _extensionHost.ApprovePackage(d.PackageId);
             }
         }
+    }
+
+    private void WarmUpKernelsInBackground()
+    {
+        if (_scaffold is null) return;
+        var languages = _scaffold.Cells
+            .Where(c => c.Language is not null)
+            .Select(c => c.Language!)
+            .Append(_scaffold.DefaultKernelId ?? "csharp")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var scaffold = _scaffold;
+        _ = Task.Run(async () =>
+        {
+            foreach (var lang in languages)
+            {
+                try { await scaffold.WarmUpKernelAsync(lang); }
+                catch { /* warm-up failure is non-fatal */ }
+            }
+        });
     }
 
     private async Task DisposeCurrentAsync()
