@@ -93,7 +93,13 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public string? DefaultKernelId
     {
         get => _defaultKernelId;
-        set => _defaultKernelId = value;
+        set
+        {
+            if (string.Equals(_defaultKernelId, value, StringComparison.OrdinalIgnoreCase)) return;
+            _defaultKernelId = value;
+            if (_isLoaded && value is not null)
+                _ = _bridge.RequestVoidAsync("notebook/setDefaultKernel", new { kernelId = value });
+        }
     }
 
     public IReadOnlyList<KernelLanguageInfo> RegisteredLanguages => _registeredLanguages;

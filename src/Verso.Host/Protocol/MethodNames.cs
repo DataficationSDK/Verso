@@ -15,6 +15,7 @@ public static class MethodNames
     public const string NotebookGetCellTypes = "notebook/getCellTypes";
     public const string NotebookClose = "notebook/close";
     public const string NotebookSetFilePath = "notebook/setFilePath";
+    public const string NotebookSetDefaultKernel = "notebook/setDefaultKernel";
 
     // Cell operations
     public const string CellAdd = "cell/add";

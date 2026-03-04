@@ -149,6 +149,26 @@ public static class NotebookHandler
         return null;
     }
 
+    public static object HandleSetDefaultKernel(NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<NotebookSetDefaultKernelParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for notebook/setDefaultKernel");
+
+        if (!ns.Scaffold.RegisteredLanguages.Contains(p.KernelId, StringComparer.OrdinalIgnoreCase))
+            return new { success = false };
+
+        ns.Scaffold.DefaultKernelId = p.KernelId;
+
+        // Warm up the kernel so IntelliSense is ready for new cells
+        _ = Task.Run(async () =>
+        {
+            try { await ns.Scaffold.WarmUpKernelAsync(p.KernelId); }
+            catch { /* non-fatal */ }
+        });
+
+        return new { success = true };
+    }
+
     public static async Task<NotebookSaveResult> HandleSaveAsync(NotebookSession ns)
     {
         // Flush layout metadata (grid positions, etc.) into the notebook model

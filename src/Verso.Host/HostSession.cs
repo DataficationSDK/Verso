@@ -204,6 +204,7 @@ public sealed class HostSession : IAsyncDisposable
         return method switch
         {
             MethodNames.NotebookSetFilePath => NotebookHandler.HandleSetFilePath(ns, @params),
+            MethodNames.NotebookSetDefaultKernel => NotebookHandler.HandleSetDefaultKernel(ns, @params),
             MethodNames.NotebookSave => await NotebookHandler.HandleSaveAsync(ns),
             MethodNames.NotebookGetLanguages => NotebookHandler.HandleGetLanguages(ns),
             MethodNames.NotebookGetToolbarActions => NotebookHandler.HandleGetToolbarActions(ns),

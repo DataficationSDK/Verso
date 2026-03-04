@@ -267,21 +267,9 @@ Install the `.vsix` file, then open any `.verso` file. Use **Open With...** to i
 dotnet test Verso.sln
 ```
 
-## Roadmap
-
-| Phase | Version | Status |
-|-------|---------|--------|
-| Foundation | v0.1 | Complete |
-| Standalone front-ends, VS Code extension, JSON-RPC host | v0.5 | Complete |
-| SQL database support (Verso.Ado) | v0.5 | Complete |
-| F# language support (Verso.FSharp) | v0.6 | Complete |
-| Extension authoring toolkit, samples, testing utilities | v0.7 | Complete |
-| Theme + layout authoring guides, accessibility theme | v0.7 | Complete |
-| CI/CD, community governance, extension marketplace | v1.0 | In progress |
-
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss what you'd like to work on. A formal `CONTRIBUTING.md` guide is coming as part of the v1.0 milestone.
+Contributions are welcome. Open an issue to discuss what you'd like to work on. A formal `CONTRIBUTING.md` guide is coming as part of an upcoming milestone.
 
 ## License
 

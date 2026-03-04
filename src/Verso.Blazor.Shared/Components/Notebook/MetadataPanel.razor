@@ -17,7 +17,7 @@
                     @onchange="HandleKernelChanged">
                 @foreach (var lang in Service.RegisteredLanguages)
                 {
-                    <option value="@lang">@lang</option>
+                    <option value="@lang.Id">@lang.DisplayName</option>
                 }
             </select>
         </div>

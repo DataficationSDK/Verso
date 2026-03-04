@@ -34,6 +34,7 @@ export class BlazorBridge implements vscode.Disposable {
     "cell/updateSource",
     "cell/changeType",
     "cell/changeLanguage",
+    "notebook/setDefaultKernel",
     "execution/run",
     "execution/runAll",
     "output/clearAll",
