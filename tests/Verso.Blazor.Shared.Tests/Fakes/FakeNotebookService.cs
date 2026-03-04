@@ -20,7 +20,11 @@ public sealed class FakeNotebookService : INotebookService
 
     public string? Title { get; set; } = "Test Notebook";
     public string? DefaultKernelId { get; set; } = "csharp";
-    public IReadOnlyList<string> RegisteredLanguages { get; set; } = new List<string> { "csharp", "fsharp" };
+    public IReadOnlyList<KernelLanguageInfo> RegisteredLanguages { get; set; } = new List<KernelLanguageInfo>
+    {
+        new("csharp", "C#"),
+        new("fsharp", "F#")
+    };
     public DateTimeOffset? Created { get; set; } = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
     public DateTimeOffset? Modified { get; set; } = new DateTimeOffset(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
     public string FormatVersion { get; set; } = "1.0";
@@ -138,6 +142,8 @@ public sealed class FakeNotebookService : INotebookService
     public Task UpdateCellSourceAsync(Guid cellId, string source) => Task.CompletedTask;
 
     public Task ChangeCellTypeAsync(Guid cellId, string newType) => Task.CompletedTask;
+
+    public Task ChangeCellLanguageAsync(Guid cellId, string newLanguage) => Task.CompletedTask;
 
     public Task ClearAllOutputsAsync() => Task.CompletedTask;
 

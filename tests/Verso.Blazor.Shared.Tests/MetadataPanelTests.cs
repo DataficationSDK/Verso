@@ -17,7 +17,12 @@ public sealed class MetadataPanelTests : BunitTestContext
             Created = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.Zero),
             Modified = new DateTimeOffset(2024, 6, 20, 14, 0, 0, TimeSpan.Zero),
             FormatVersion = "1.0",
-            RegisteredLanguages = new List<string> { "csharp", "fsharp", "sql" }
+            RegisteredLanguages = new List<KernelLanguageInfo>
+            {
+                new("csharp", "C#"),
+                new("fsharp", "F#"),
+                new("sql", "SQL")
+            }
         };
     }
 
