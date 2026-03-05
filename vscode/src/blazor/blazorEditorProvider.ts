@@ -265,9 +265,7 @@ export class BlazorEditorProvider
               context so the popup paints above the Monaco editor (which comes
               later in DOM order and would otherwise paint on top). */
         .verso-cell-content { overflow: visible !important; }
-        .verso-cell:hover .verso-cell-toolbar,
-        .verso-cell--selected .verso-cell-toolbar,
-        .verso-cell--executing .verso-cell-toolbar {
+        .verso-cell-toolbar {
             position: relative;
             z-index: 10;
         }

@@ -399,7 +399,6 @@ html, body {
 .verso-cell--preview:hover .verso-cell-toolbar {
     opacity: 0;
     pointer-events: none;
-    max-height: 0;
 }
 
 .verso-cell--preview:hover {
@@ -415,8 +414,6 @@ html, body {
 .verso-cell--preview.verso-cell--executing .verso-cell-toolbar {
     opacity: 1;
     pointer-events: auto;
-    max-height: 40px;
-    padding: 4px var(--verso-cell-padding, 12px) 0;
 }
 
 /* Clickable outputs */
@@ -461,10 +458,8 @@ html, body {
     font-size: 11px;
     opacity: 0;
     pointer-events: none;
-    max-height: 0;
-    padding: 0 var(--verso-cell-padding, 12px);
-    overflow: hidden;
-    transition: opacity 0.15s, max-height 0.15s;
+    padding: 4px var(--verso-cell-padding, 12px) 0;
+    transition: opacity 0.15s;
 }
 
 .verso-cell:hover .verso-cell-toolbar,
@@ -472,9 +467,6 @@ html, body {
 .verso-cell--executing .verso-cell-toolbar {
     opacity: 1;
     pointer-events: auto;
-    max-height: 40px;
-    padding: 4px var(--verso-cell-padding, 12px) 0;
-    overflow: visible;
 }
 
 
