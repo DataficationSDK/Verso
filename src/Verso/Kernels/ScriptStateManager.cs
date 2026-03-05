@@ -61,6 +61,16 @@ internal sealed class ScriptStateManager : IAsyncDisposable
     }
 
     /// <summary>
+    /// Adds namespace imports so that subsequent executions can use types without fully qualifying them.
+    /// </summary>
+    public void AddImports(IEnumerable<string> namespaces)
+    {
+        var newImports = namespaces.Where(n => !string.IsNullOrWhiteSpace(n)).ToArray();
+        if (newImports.Length > 0)
+            _baseOptions = _baseOptions.AddImports(newImports);
+    }
+
+    /// <summary>
     /// Adds metadata references from assembly paths so that subsequent executions can use those types.
     /// </summary>
     public void AddReferences(IEnumerable<string> assemblyPaths)

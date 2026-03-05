@@ -192,6 +192,55 @@ public sealed class CSharpKernelExecutionTests
         Assert.IsTrue(outputs.Any(o => o.Content.Contains("abc")));
     }
 
+    [TestMethod]
+    public async Task Execute_UsingDirective_PersistsAcrossCells()
+    {
+        // System.Text.RegularExpressions is NOT in the default imports
+        var context = CreateContext();
+
+        // Cell 1: add a using directive
+        await _kernel.ExecuteAsync("using System.Text.RegularExpressions;", context);
+
+        // Cell 2: use the type without fully qualifying — requires the using to persist
+        var outputs = await _kernel.ExecuteAsync("new Regex(\"test\").IsMatch(\"test\")", context);
+
+        Assert.AreEqual(1, outputs.Count);
+        Assert.AreEqual("True", outputs[0].Content);
+        Assert.IsFalse(outputs[0].IsError);
+    }
+
+    [TestMethod]
+    public async Task Execute_MultipleUsings_AllPersist()
+    {
+        // System.Globalization and System.Text.RegularExpressions are NOT in the defaults
+        var context = CreateContext();
+
+        await _kernel.ExecuteAsync(
+            "using System.Globalization;\nusing System.Text.RegularExpressions;", context);
+
+        // Both namespaces should be available in a later cell
+        var outputs = await _kernel.ExecuteAsync(
+            "CultureInfo.InvariantCulture.Name + \"-\" + Regex.IsMatch(\"a\", \"a\")", context);
+
+        Assert.AreEqual(1, outputs.Count);
+        Assert.IsTrue(outputs[0].Content.Contains("-True"));
+        Assert.IsFalse(outputs[0].IsError);
+    }
+
+    [TestMethod]
+    public async Task Execute_UsingStatic_NotPromoted()
+    {
+        var context = CreateContext();
+
+        // using static should work in-cell but shouldn't break the extraction
+        await _kernel.ExecuteAsync("using static System.Math;", context);
+
+        // Verify Math.PI is accessible via fully qualified name in next cell
+        var outputs = await _kernel.ExecuteAsync("System.Math.Round(System.Math.PI, 2)", context);
+        Assert.AreEqual(1, outputs.Count);
+        Assert.AreEqual("3.14", outputs[0].Content);
+    }
+
     private static Verso.Contexts.ExecutionContext CreateContext()
     {
         var variables = new VariableStore();

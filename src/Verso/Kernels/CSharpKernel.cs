@@ -19,6 +19,10 @@ public sealed class CSharpKernel : ILanguageKernel
         @"^#r\s+""nuget:\s*([^""]+)""",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
+    private static readonly Regex UsingDirectiveRegex = new(
+        @"^\s*using\s+(?!static\b)(?!var\b)(?!var\s)(?!\()([A-Za-z_][\w]*(?:\s*\.\s*[A-Za-z_][\w]*)*)\s*;",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
     private readonly CSharpKernelOptions _options;
     private SemaphoreSlim _executionLock = new(1, 1);
     private ScriptStateManager? _stateManager;
@@ -166,6 +170,11 @@ public sealed class CSharpKernel : ILanguageKernel
                 outputs.Add(returnOutput);
             }
 
+            // Promote using directives to ScriptOptions so they persist across cells
+            var usings = ExtractUsingDirectives(code);
+            if (usings.Count > 0)
+                _stateManager!.AddImports(usings);
+
             // Publish variables to the shared variable store
             var variables = _stateManager.GetVariables();
             foreach (var kvp in variables)
@@ -279,6 +288,17 @@ public sealed class CSharpKernel : ILanguageKernel
         // Remove the #r "nuget:" lines from the code
         var cleanedCode = NuGetReferenceRegex.Replace(code, "").Trim();
         return (cleanedCode, results);
+    }
+
+    private static List<string> ExtractUsingDirectives(string code)
+    {
+        var namespaces = new List<string>();
+        foreach (Match match in UsingDirectiveRegex.Matches(code))
+        {
+            var ns = match.Groups[1].Value.Replace(" ", "");
+            namespaces.Add(ns);
+        }
+        return namespaces;
     }
 
     private static string FormatInstalledPackagesHtml(List<NuGetResolveResult> packages)
