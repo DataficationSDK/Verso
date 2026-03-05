@@ -3,7 +3,7 @@
 **Open-source interactive notebook platform for .NET, built on a fully extensible architecture.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
-[![.NET 8](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![.NET 8 | 10](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
 ![CI](https://img.shields.io/github/actions/workflow/status/DataficationSDK/Verso/verso-ci.yml?branch=main&label=CI)
 [![NuGet](https://img.shields.io/nuget/v/Verso?label=NuGet)](https://www.nuget.org/packages/Verso)
 [![GitHub Release](https://img.shields.io/github/v/release/DataficationSDK/Verso?label=Release)](https://github.com/DataficationSDK/Verso/releases)
@@ -243,8 +243,8 @@ JSON-based, human-readable, and diff-friendly. Stores notebook metadata, cell co
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [VS Code](https://code.visualstudio.com/) (for the extension) or any modern browser (for Blazor)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (library packages target both; the host process runs on either via `RollForward`)
+- [VS Code](https://code.visualstudio.com/) (for the extension, desktop only — browser-based environments like GitHub Codespaces are not supported) or any modern browser (for Blazor)
 - [Python 3.8–3.12](https://www.python.org/downloads/) (optional, for the Python kernel — Python 3.13+ is not yet supported by pythonnet)
 
 ### Run in the Browser

@@ -35,9 +35,11 @@ Already have notebooks in Jupyter or Polyglot format? Open any `.ipynb` or `.dib
 
 ## Getting Started
 
-1. Install the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+1. Install the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later (.NET 10 is also supported)
 2. Install this extension from the VS Code Marketplace
 3. Open an existing `.verso` file or create a new file with a `.verso` extension to start working
+
+> **Note:** This extension requires the desktop version of VS Code. It is not compatible with browser-based environments such as GitHub Codespaces, where the embedded notebook UI cannot initialize.
 
 ### Python Kernel
 
