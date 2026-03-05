@@ -1,7 +1,7 @@
 {
   "name": "verso-notebook",
   "displayName": "Verso Notebook",
-  "description": "Interactive .NET notebooks with C#, F#, Python, SQL, IntelliSense, database connectivity, and EF Core scaffolding",
+  "description": "Interactive .NET notebooks with C#, F#, PowerShell, Python, SQL, IntelliSense, database connectivity, and EF Core scaffolding",
   "version": "1.0.0",
   "publisher": "datafication",
   "license": "MIT",
@@ -24,7 +24,8 @@
     "notebook",
     "csharp",
     "jupyter",
-    "polyglot-notebook"
+    "polyglot-notebook",
+    "powershell"
   ],
   "activationEvents": [
     "onCustomEditor:verso.blazorNotebook"

@@ -49,7 +49,8 @@ Verso is split into layers that each do one thing:
 │  │  Notebook Layout · Dashboard Layout · Formatters   │ │
 │  ├────────────────────────────────────────────────────┤ │
 │  │  First-Party Extension Packages                    │ │
-│  │  Verso.FSharp · Verso.Python · Verso.Ado (SQL)     │ │
+│  │  Verso.FSharp · Verso.PowerShell · Verso.Python    │ │
+│  │  Verso.Ado (SQL)                                   │ │
 │  └────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -81,6 +82,12 @@ The C# kernel is powered by Roslyn. You get the latest C# language version, pers
 Verso.FSharp brings full F# scripting powered by FSharp.Compiler.Service. IntelliSense, diagnostics, NuGet references, script directives (`#r`, `#load`, `#I`), and a dedicated data formatter that renders discriminated unions, records, options, results, maps, and collections as styled HTML tables.
 
 <!-- TODO: Screenshot of F# cell with rich DU/record output formatting -->
+
+### Write and Run PowerShell
+
+Verso.PowerShell hosts a persistent PowerShell runspace with full cmdlet support. State persists across cells, pipelines render through `Out-String` for proper formatting, and variables are automatically shared with other kernels. IntelliSense includes completions via `CommandCompletion`, parse diagnostics via the PowerShell AST parser, and hover information.
+
+<!-- TODO: Screenshot of PowerShell cell -->
 
 ### Write and Run Python
 
@@ -120,7 +127,7 @@ Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot N
 
 ### Share Variables Across Languages
 
-The variable store persists state across cell executions and language kernels. Set a value in C#, read it in F# or bind it as a SQL parameter. The variable explorer panel shows everything that's in scope.
+The variable store persists state across cell executions and language kernels. Set a value in C#, read it in F#, PowerShell, or bind it as a SQL parameter. The variable explorer panel shows everything that's in scope.
 
 ## Run It Wherever You Want
 
@@ -192,7 +199,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 
 | Category | Included |
 |----------|----------|
-| **Kernels** | C# (Roslyn), F# (FSharp.Compiler.Service via Verso.FSharp), Python (pythonnet via Verso.Python) |
+| **Kernels** | C# (Roslyn), F# (FSharp.Compiler.Service via Verso.FSharp), PowerShell (System.Management.Automation via Verso.PowerShell), Python (pythonnet via Verso.Python) |
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL (via Verso.Ado) |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid with drag-and-resize) |

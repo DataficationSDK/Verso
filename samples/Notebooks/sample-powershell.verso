@@ -1,0 +1,199 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Exploring PowerShell with Verso",
+    "created": "2026-03-04T20:00:00+00:00",
+    "modified": "2026-03-04T20:00:00+00:00",
+    "defaultKernel": "powershell",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "ps000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Exploring PowerShell with Verso\n\nVerso supports PowerShell as a language kernel. This notebook walks through PowerShell fundamentals \u2014 variables, pipelines, hashtables, custom objects, functions, and error handling \u2014 all running interactively with shared state across cells.\n\nEvery variable you define persists for the rest of the session, just like in a PowerShell console.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000002",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Define sample data as custom objects\n$cities = @(\n    [PSCustomObject]@{ Name = 'Tokyo';     Country = 'Japan';     Population = 13960000; Area = 2194.0 }\n    [PSCustomObject]@{ Name = 'London';    Country = 'UK';        Population = 8982000;  Area = 1572.0 }\n    [PSCustomObject]@{ Name = 'New York';  Country = 'USA';       Population = 8336000;  Area = 783.0 }\n    [PSCustomObject]@{ Name = 'Paris';     Country = 'France';    Population = 2161000;  Area = 105.0 }\n    [PSCustomObject]@{ Name = 'Singapore'; Country = 'Singapore'; Population = 5454000;  Area = 733.0 }\n    [PSCustomObject]@{ Name = 'Sydney';    Country = 'Australia'; Population = 5312000;  Area = 12368.0 }\n    [PSCustomObject]@{ Name = 'Toronto';   Country = 'Canada';    Population = 2794000;  Area = 630.0 }\n    [PSCustomObject]@{ Name = 'Berlin';    Country = 'Germany';   Population = 3645000;  Area = 892.0 }\n)\n\nWrite-Host \"Loaded $($cities.Count) cities\"",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000003",
+      "type": "markdown",
+      "source": "## The Pipeline\n\nPowerShell's pipeline (`|`) streams objects between commands. Each object retains its properties \u2014 no text parsing needed. The `$cities` array from the previous cell is still in scope.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Compute population density and rank cities\n$ranked = $cities | ForEach-Object {\n    [PSCustomObject]@{\n        Name    = $_.Name\n        Country = $_.Country\n        Density = [math]::Round($_.Population / $_.Area, 0)\n    }\n} | Sort-Object Density -Descending\n\n$ranked | Format-Table -AutoSize",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Hashtables and Type Conversion\n\nPowerShell hashtables (`@{}`) are flexible dictionaries. When published to Verso's variable store, they are automatically converted to `Dictionary<string, object>` for cross-kernel compatibility.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Build a lookup table: city name -> population\n$populationLookup = @{}\nforeach ($city in $cities) {\n    $populationLookup[$city.Name] = $city.Population\n}\n\n# Quick lookups\nWrite-Output \"Tokyo population: $($populationLookup['Tokyo'])\"\nWrite-Output \"Paris population: $($populationLookup['Paris'])\"\nWrite-Output \"Total entries: $($populationLookup.Count)\"",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## Functions and Filtering\n\nDefine reusable functions that persist across cells. PowerShell's `Where-Object` and comparison operators make filtering intuitive.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000008",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Define a classification function\nfunction Get-DensityTier {\n    param([int]$Density)\n    switch ($Density) {\n        { $_ -gt 10000 } { 'Ultra-dense'; break }\n        { $_ -gt 5000 }  { 'Dense'; break }\n        { $_ -gt 1000 }  { 'Moderate'; break }\n        default           { 'Spread out' }\n    }\n}\n\n# Apply classification using the pipeline\n$classified = $ranked | ForEach-Object {\n    [PSCustomObject]@{\n        Name    = $_.Name\n        Density = $_.Density\n        Tier    = Get-DensityTier -Density $_.Density\n    }\n}\n\n# Group and summarize\n$classified | Group-Object Tier | ForEach-Object {\n    $names = ($_.Group | ForEach-Object { $_.Name }) -join ', '\n    Write-Output \"$($_.Name) ($($_.Count)): $names\"\n}",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000009",
+      "type": "markdown",
+      "source": "## Error Handling\n\nPowerShell distinguishes between terminating errors (`throw`, `Write-Error -ErrorAction Stop`) and non-terminating errors (`Write-Error`). Verso captures both, along with warnings via `Write-Warning`.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000010",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Non-terminating error (execution continues)\nWrite-Error 'This is a non-terminating error'\nWrite-Output 'Execution continues after Write-Error'",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000011",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Warning stream\nWrite-Warning 'Low disk space on drive C:'\nWrite-Output 'Warnings do not stop execution'",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000012",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Try/Catch for terminating errors\ntry {\n    $result = 1 / 0\n} catch {\n    Write-Output \"Caught error: $($_.Exception.Message)\"\n}\n\nWrite-Output 'Recovered from the error'",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000013",
+      "type": "markdown",
+      "source": "## Multi-Cell Computation\n\nState flows naturally across cells. Here we build up a statistical summary step by step.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000014",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Compute statistics using Measure-Object\n$popStats = $cities | Measure-Object -Property Population -Sum -Average -Minimum -Maximum\n\n$stats = [PSCustomObject]@{\n    Count             = $cities.Count\n    TotalPopulation   = $popStats.Sum\n    AveragePopulation = [math]::Round($popStats.Average, 0)\n    Largest           = ($cities | Sort-Object Population -Descending | Select-Object -First 1).Name\n    Smallest          = ($cities | Sort-Object Population | Select-Object -First 1).Name\n}\n\n$stats | Format-List",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000015",
+      "type": "markdown",
+      "source": "## String Interpolation and Formatting\n\nPowerShell supports double-quoted string interpolation, here-strings, and the `-f` format operator.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000016",
+      "type": "code",
+      "language": "powershell",
+      "source": "# String interpolation\n$top = $ranked | Select-Object -First 3\nforeach ($city in $top) {\n    Write-Output \"$($city.Name): $($city.Density) people per km\u00B2\"\n}\n\n# Format operator (-f binds tightly, so wrap the template in parens)\nWrite-Output (\"Total cities analyzed: {0}\" -f $cities.Count)\nWrite-Output (\"Largest: {0}, Smallest: {1}\" -f $stats.Largest, $stats.Smallest)",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000017",
+      "type": "markdown",
+      "source": "## Variable Sharing\n\nVariables you assign in PowerShell cells are automatically published to Verso's variable store. Other kernels (C#, F#, Python) can read them, and variables from other kernels are injected into your PowerShell session.\n\nThe store itself is available as `$VersoVariables` for direct API access.",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000018",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Variables assigned in PS are auto-published to the store after each cell\n$greeting = 'Hello from PowerShell!'\n$favoriteNumber = 42\n$cityNames = $cities | ForEach-Object { $_.Name }\n\nWrite-Output \"Set `$greeting, `$favoriteNumber, and `$cityNames\"",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000020",
+      "type": "code",
+      "language": "powershell",
+      "source": "# Variables from the previous cell are now in the store \u2014 read them back\n$retrieved = $VersoVariables.Get[string]('greeting')\nWrite-Output \"Retrieved from variable store: $retrieved\"\n\n# You can also access variables from other kernels directly by name\n# (they're injected into the PS session at the start of each cell)\nWrite-Output \"Favorite number: $favoriteNumber\"\nWrite-Output \"City names: $($cityNames -join ', ')\"",
+      "outputs": []
+    },
+    {
+      "id": "ps000001-0001-0001-0001-000000000019",
+      "type": "markdown",
+      "source": "## What's Next?\n\nTry mixing PowerShell cells with other languages in the same notebook. Variables flow between kernels automatically:\n\n- Compute data in **PowerShell**, visualize in **C#**\n- Query a database in **SQL**, process results in **PowerShell**\n- Define types in **F#**, consume them in **PowerShell**\n\nPowerShell's full cmdlet library is available \u2014 `Get-ChildItem`, `Invoke-RestMethod`, `ConvertFrom-Json`, and everything else you're used to.",
+      "outputs": []
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "ps000001-0001-0001-0001-000000000001": {
+          "row": 0,
+          "col": 0,
+          "width": 12,
+          "height": 3,
+          "visible": true
+        },
+        "ps000001-0001-0001-0001-000000000002": {
+          "row": 3,
+          "col": 0,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "ps000001-0001-0001-0001-000000000004": {
+          "row": 3,
+          "col": 6,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "ps000001-0001-0001-0001-000000000008": {
+          "row": 8,
+          "col": 0,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "ps000001-0001-0001-0001-000000000014": {
+          "row": 8,
+          "col": 6,
+          "width": 6,
+          "height": 5,
+          "visible": true
+        },
+        "ps000001-0001-0001-0001-000000000016": {
+          "row": 13,
+          "col": 0,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        },
+        "ps000001-0001-0001-0001-000000000018": {
+          "row": 13,
+          "col": 6,
+          "width": 6,
+          "height": 4,
+          "visible": true
+        }
+      }
+    }
+  }
+}

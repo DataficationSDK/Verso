@@ -14,6 +14,7 @@
     <ProjectReference Include="..\Verso.FSharp\Verso.FSharp.csproj" />
     <ProjectReference Include="..\Verso.Blazor.Shared\Verso.Blazor.Shared.csproj" />
     <ProjectReference Include="..\Verso.Python\Verso.Python.csproj" />
+    <ProjectReference Include="..\Verso.PowerShell\Verso.PowerShell.csproj" />
   </ItemGroup>
 
 </Project>

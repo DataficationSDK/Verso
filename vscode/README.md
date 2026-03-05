@@ -1,15 +1,15 @@
 # Verso Notebook
 
-**Interactive .NET notebooks for VS Code with C#, F#, SQL, and more.**
+**Interactive .NET notebooks for VS Code with C#, F#, PowerShell, Python, SQL, and more.**
 
 ![Verso in action](https://datafication.co/assets/verso/RunningVersoNotebook.gif)
 
 ## Features
 
-- **C#, F#, and Python with IntelliSense** including completions, diagnostics, hover info, and NuGet package references
+- **C#, F#, PowerShell, and Python with IntelliSense** including completions, diagnostics, hover info, and NuGet package references
 - **SQL database connectivity** with paginated results, schema inspection, and EF Core scaffolding
 - **Markdown, HTML, and Mermaid** cells for documentation, visualizations, and diagrams
-- **Variable sharing** across languages so you can set a value in C# and use it in SQL or F#
+- **Variable sharing** across languages so you can set a value in C# and use it in SQL, F#, or PowerShell
 - **Notebook and Dashboard layouts** to view cells as a linear document or arrange them in a drag-and-drop grid
 - **Light, Dark, and High Contrast themes** that are hot-swappable at runtime (High Contrast meets WCAG 2.1 AA)
 - **Import Jupyter (.ipynb) and Polyglot (.dib) notebooks** with automatic conversion of magic commands and cell types
@@ -17,7 +17,7 @@
 
 ## Writing Code with IntelliSense
 
-Verso's C# kernel is powered by Roslyn, giving you the latest language features, persistent state across cells, real-time error checking, and code completions as you type. The F# kernel offers the same experience powered by FSharp.Compiler.Service. The Python kernel embeds CPython via pythonnet with IntelliSense powered by jedi, bidirectional variable sharing with other kernels, and virtual environment support via `#!pip`.
+Verso's C# kernel is powered by Roslyn, giving you the latest language features, persistent state across cells, real-time error checking, and code completions as you type. The F# kernel offers the same experience powered by FSharp.Compiler.Service. The PowerShell kernel hosts a persistent runspace with full cmdlet support, pipeline-aware output, and completions powered by `CommandCompletion`. The Python kernel embeds CPython via pythonnet with IntelliSense powered by jedi, bidirectional variable sharing with other kernels, and virtual environment support via `#!pip`.
 
 ![C# IntelliSense in Verso](https://datafication.co/assets/verso/IntellisenseVerso.gif)
 
@@ -49,10 +49,11 @@ To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` fi
 
 | Language | IntelliSense | Variable Sharing |
 |----------|:------------:|:----------------:|
-| C#       | Yes          | Yes              |
-| F#       | Yes          | Yes              |
-| Python   | Yes          | Yes              |
-| SQL      | Yes          | Yes              |
+| C#         | Yes          | Yes              |
+| F#         | Yes          | Yes              |
+| PowerShell | Yes          | Yes              |
+| Python     | Yes          | Yes              |
+| SQL        | Yes          | Yes              |
 | Markdown | N/A          | N/A              |
 | HTML     | N/A          | Yes              |
 | Mermaid  | N/A          | Yes              |

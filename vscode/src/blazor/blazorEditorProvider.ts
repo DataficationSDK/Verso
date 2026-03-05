@@ -274,6 +274,9 @@ export class BlazorEditorProvider
         /* Contain Monaco's internal z-index values so they don't leak
            into the parent stacking context and paint over the toolbar popup */
         .verso-cell-editor { position: relative; z-index: 1; }
+        /* Elevate the selected cell so Monaco's suggest widget paints above
+           sibling cells below it in DOM order */
+        .verso-cell--selected { position: relative; z-index: 2; }
         /* Map VS Code theme to Verso CSS variables */
         :root {
             --verso-editor-background: var(--vscode-editor-background);
