@@ -94,9 +94,47 @@ public sealed class CollectionFormatterTests
         Assert.IsTrue(result.Content.Contains("<th>Y</th>"));
     }
 
+    [TestMethod]
+    public async Task FormatAsync_TypeWithPublicFields_IncludesFields()
+    {
+        var items = new[] { new ItemWithField { Name = "test", Tag = "my-tag" } };
+
+        var result = await _formatter.FormatAsync(items, _context);
+        Assert.IsTrue(result.Content.Contains("<th>Name</th>"));
+        Assert.IsTrue(result.Content.Contains("<th>Tag</th>"));
+        Assert.IsTrue(result.Content.Contains("test"));
+        Assert.IsTrue(result.Content.Contains("my-tag"));
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_TypeWithMixedVisibility_ExcludesPrivateMembers()
+    {
+        var items = new[] { new ItemWithMixedVisibility() };
+
+        var result = await _formatter.FormatAsync(items, _context);
+        Assert.IsTrue(result.Content.Contains("<th>Visible</th>"));
+        Assert.IsTrue(result.Content.Contains("<th>PublicTag</th>"));
+        Assert.IsFalse(result.Content.Contains("Hidden"));
+        Assert.IsFalse(result.Content.Contains("_secret"));
+    }
+
     public sealed class TestItem
     {
         public string Name { get; set; } = "";
         public int Age { get; set; }
+    }
+
+    public sealed class ItemWithField
+    {
+        public string Name { get; set; } = "";
+        public string Tag = "";
+    }
+
+    public sealed class ItemWithMixedVisibility
+    {
+        public string Visible { get; set; } = "yes";
+        private string Hidden { get; set; } = "no";
+        public string PublicTag = "visible-field";
+        private int _secret = 42;
     }
 }

@@ -69,9 +69,13 @@ public sealed class CollectionFormatter : IDataFormatter
         var elementType = firstNonNull.GetType();
         var isPrimitiveLike = IsPrimitiveLike(elementType);
 
-        PropertyInfo[] columns = isPrimitiveLike
-            ? Array.Empty<PropertyInfo>()
-            : elementType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        MemberInfo[] columns = isPrimitiveLike
+            ? Array.Empty<MemberInfo>()
+            : elementType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+                .Cast<MemberInfo>()
+                .Concat(elementType.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                .ToArray();
 
         var sb = new StringBuilder();
         sb.Append("<table><thead><tr>");
@@ -104,7 +108,7 @@ public sealed class CollectionFormatter : IDataFormatter
             {
                 foreach (var col in columns)
                 {
-                    var val = item is not null ? col.GetValue(item) : null;
+                    var val = item is not null ? GetMemberValue(col, item) : null;
                     sb.Append("<td>").Append(WebUtility.HtmlEncode(val?.ToString() ?? "")).Append("</td>");
                 }
             }
@@ -127,6 +131,13 @@ public sealed class CollectionFormatter : IDataFormatter
 
         return Task.FromResult(new CellOutput("text/html", sb.ToString()));
     }
+
+    private static object? GetMemberValue(MemberInfo member, object target) => member switch
+    {
+        PropertyInfo p => p.GetValue(target),
+        FieldInfo f => f.GetValue(target),
+        _ => null
+    };
 
     private static bool IsPrimitiveLike(Type type)
     {
