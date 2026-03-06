@@ -1,0 +1,65 @@
+@inject IJSRuntime JS
+
+<div class="verso-presentation-view">
+    @foreach (var cell in Cells)
+    {
+        @if (cell.Outputs.Count > 0)
+        {
+            <div class="verso-presentation-cell" data-cell-id="@cell.Id">
+                @foreach (var output in cell.Outputs)
+                {
+                    @if (output.IsError)
+                    {
+                        <div class="verso-output verso-output--error">
+                            <div class="verso-output-error-name">@(output.ErrorName ?? "Error")</div>
+                            <pre class="verso-output-error-content">@output.Content</pre>
+                            @if (output.ErrorStackTrace is not null)
+                            {
+                                <pre class="verso-output-error-stack">@output.ErrorStackTrace</pre>
+                            }
+                        </div>
+                    }
+                    else if (output.MimeType == "text/x-verso-mermaid")
+                    {
+                        <div class="verso-output verso-output--html verso-mermaid-container">
+                            <pre class="mermaid">@output.Content</pre>
+                        </div>
+                    }
+                    else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
+                    {
+                        <div class="verso-output verso-output--html">
+                            @((MarkupString)output.Content)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="verso-output verso-output--text">
+                            <pre>@output.Content</pre>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public INotebookService Service { get; set; } = default!;
+    [Parameter] public IReadOnlyList<CellModel> Cells { get; set; } = Array.Empty<CellModel>();
+
+    private bool _hasMermaidContent;
+
+    protected override void OnParametersSet()
+    {
+        _hasMermaidContent = Cells.Any(c => c.Outputs.Any(o => o.MimeType == "text/x-verso-mermaid"));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_hasMermaidContent)
+        {
+            try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }
+            catch (JSException) { }
+        }
+    }
+}

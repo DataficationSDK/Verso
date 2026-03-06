@@ -1183,6 +1183,29 @@ html, body {
     border-radius: 2px;
 }
 
+/* === Presentation Layout === */
+
+.verso-presentation-view {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px var(--verso-cell-padding, 12px);
+}
+
+.verso-presentation-cell {
+    margin-bottom: 16px;
+}
+
+.verso-presentation-cell .verso-output {
+    padding: 8px 12px;
+}
+
+.verso-presentation-cell .verso-output--text pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: var(--verso-font-mono, 'Cascadia Code', 'Consolas', 'Courier New', monospace);
+    font-size: var(--verso-font-size, 13px);
+}
+
 /* Layout switcher active button */
 
 .verso-toolbar-btn--active {

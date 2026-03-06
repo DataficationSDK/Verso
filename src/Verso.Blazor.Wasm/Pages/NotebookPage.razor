@@ -53,13 +53,18 @@
     {
         <div class="verso-notebook-body">
             <div class="verso-notebook-main">
-                @if (Service.IsDashboardLayout)
+                @if (Service.ActiveLayoutId == "dashboard")
                 {
                     <DashboardGrid Service="Service"
                                    Cells="Service.Cells"
                                    ExecutingCellId="_executingCellId"
                                    OnRunCell="HandleRunCell"
                                    OnSourceChanged="HandleSourceChanged" />
+                }
+                else if (Service.ActiveLayoutId == "presentation")
+                {
+                    <PresentationView Service="Service"
+                                      Cells="Service.Cells" />
                 }
                 else
                 {
@@ -220,7 +225,7 @@
     {
         Service.OnCellExecuted += StateHasChanged;
         Service.OnNotebookChanged += HandleNotebookChanged;
-        Service.OnLayoutChanged += StateHasChanged;
+        Service.OnLayoutChanged += HandleLayoutChanged;
         Service.OnThemeChanged += HandleThemeChanged;
         Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Service.OnVariablesChanged += HandleVariablesChanged;
@@ -279,6 +284,22 @@
     private async void HandleNotebookChanged()
     {
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleLayoutChanged()
+    {
+        if (Service.ActiveLayoutId == "presentation")
+        {
+            await InvokeAsync(async () =>
+            {
+                await HandleRunAll();
+                StateHasChanged();
+            });
+        }
+        else
+        {
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async void HandleThemeChanged()
@@ -664,7 +685,7 @@
         Bridge.OnNotification -= HandleBridgeNotification;
         Service.OnCellExecuted -= StateHasChanged;
         Service.OnNotebookChanged -= HandleNotebookChanged;
-        Service.OnLayoutChanged -= StateHasChanged;
+        Service.OnLayoutChanged -= HandleLayoutChanged;
         Service.OnThemeChanged -= HandleThemeChanged;
         Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Service.OnVariablesChanged -= HandleVariablesChanged;
