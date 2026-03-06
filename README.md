@@ -19,6 +19,19 @@ Verso started from a simple question: what would an interactive notebook look li
 
 The answer is a platform where *every* feature, from the C# kernel to the dark theme to the dashboard layout, is built on the same public interfaces available to anyone writing an extension. There are no internal APIs. If a built-in feature can't be built on the public extension interfaces, the interfaces are incomplete.
 
+## Supported Languages
+
+| Language | IntelliSense | Variable Sharing |
+|----------|:------------:|:----------------:|
+| C#         | Yes          | Yes              |
+| F#         | Yes          | Yes              |
+| PowerShell | Yes          | Yes              |
+| Python     | Yes          | Yes              |
+| SQL        | Yes          | Yes              |
+| Markdown | N/A          | N/A              |
+| HTML     | N/A          | Yes              |
+| Mermaid  | N/A          | Yes              |
+
 ## How It Works
 
 Verso is split into layers that each do one thing:
