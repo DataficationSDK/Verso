@@ -987,6 +987,16 @@ html, body {
     pointer-events: auto;
 }
 
+/* Delay hover reveal so accidental mouse passes don't trigger buttons */
+.verso-insert-cell-row:hover {
+    transition-delay: 500ms;
+}
+
+.verso-insert-cell-row:hover .verso-insert-cell-line,
+.verso-insert-cell-row:hover .verso-insert-cell-btn {
+    transition-delay: 500ms;
+}
+
 .verso-insert-cell-line {
     flex: 1;
     height: 1px;
