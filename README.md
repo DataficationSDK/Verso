@@ -28,6 +28,7 @@ The answer is a platform where *every* feature, from the C# kernel to the dark t
 | PowerShell | Yes          | Yes              |
 | Python     | Yes          | Yes              |
 | SQL        | Yes          | Yes              |
+| HTTP       | Yes          | Yes              |
 | Markdown | N/A          | N/A              |
 | HTML     | N/A          | Yes              |
 | Mermaid  | N/A          | Yes              |
@@ -63,7 +64,7 @@ Verso is split into layers that each do one thing:
 │  ├────────────────────────────────────────────────────┤ │
 │  │  First-Party Extension Packages                    │ │
 │  │  Verso.FSharp · Verso.PowerShell · Verso.Python    │ │
-│  │  Verso.Ado (SQL)                                   │ │
+│  │  Verso.Ado (SQL) · Verso.Http (HTTP)               │ │
 │  └────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -117,6 +118,16 @@ Verso.Ado adds provider-agnostic SQL connectivity. Connect to any ADO.NET databa
 ```
 
 <!-- TODO: Screenshot of SQL cell with paginated result table -->
+
+### Send HTTP Requests
+
+Verso.Http adds an HTTP cell type using `.http` file syntax — the same format supported by VS Code's REST Client and JetBrains HTTP Client. Send GET, POST, PUT, PATCH, DELETE, and other requests directly in your notebook. Features include variable interpolation (`@name = value` and `{{name}}`), dynamic variables (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`), named request chaining (`# @name` with `{{name.response.body.$.path}}`), multiple requests per cell (`###` separator), and cross-kernel integration where response data is automatically shared to C#, F#, and other cells.
+
+```
+#!http-set-base https://api.example.com
+```
+
+<!-- TODO: Screenshot of HTTP cell with formatted response -->
 
 ### Switch Between Notebook and Dashboard Layouts
 
@@ -212,11 +223,11 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 
 | Category | Included |
 |----------|----------|
-| **Kernels** | C# (Roslyn), F# (FSharp.Compiler.Service via Verso.FSharp), PowerShell (System.Management.Automation via Verso.PowerShell), Python (pythonnet via Verso.Python) |
-| **Cell Types** | Code, Markdown, HTML, Mermaid, SQL (via Verso.Ado) |
+| **Kernels** | C# (Roslyn), F# (FSharp.Compiler.Service via Verso.FSharp), PowerShell (System.Management.Automation via Verso.PowerShell), Python (pythonnet via Verso.Python), HTTP (via Verso.Http) |
+| **Cell Types** | Code, Markdown, HTML, Mermaid, SQL (via Verso.Ado), HTTP (via Verso.Http) |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid with drag-and-resize) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!extension`, `#!restart`, `#!about`, `#!import` |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types (via Verso.FSharp), SQL result sets (via Verso.Ado) |
 | **Serializers** | `.verso` (native JSON format), `.ipynb` import (Jupyter nbformat v4+), `.dib` import (Polyglot Notebooks) |

@@ -1,0 +1,164 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "HTTP Requests in Verso",
+    "created": "2026-03-07T12:00:00+00:00",
+    "modified": "2026-03-07T12:00:00+00:00",
+    "defaultKernel": "http",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "00000004-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# HTTP Requests in Verso\n\nThe HTTP cell type lets you send REST API requests directly in your notebook using `.http` file syntax \u2014 the same format supported by VS Code\u0027s REST Client and JetBrains HTTP Client.\n\nFeatures include variable interpolation, dynamic variables, named request chaining, and multiple requests per cell."
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## Basic Requests\n\nA request starts with an HTTP method and URL. Headers follow on subsequent lines. The response is formatted with a status badge, timing, collapsible headers, and pretty-printed body."
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000003",
+      "type": "http",
+      "source": "GET https://httpbin.org/get\nAccept: application/json"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000004",
+      "type": "http",
+      "source": "POST https://httpbin.org/post\nContent-Type: application/json\n\n{\n  \u0022name\u0022: \u0022Verso\u0022,\n  \u0022version\u0022: \u00221.0\u0022,\n  \u0022features\u0022: [\u0022notebooks\u0022, \u0022http\u0022, \u0022sql\u0022]\n}"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Variables\n\nDeclare variables with `@name = value` at the top of a cell. Reference them anywhere with `{{name}}`. Variables can self-reference \u2014 build a base URL from parts."
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000006",
+      "type": "http",
+      "source": "@hostname = httpbin.org\n@baseUrl = https://{{hostname}}\n\nGET {{baseUrl}}/get\nAccept: application/json"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## Dynamic Variables\n\nBuilt-in dynamic variables generate values at request time:\n\n| Variable | Description |\n|---|---|\n| `{{$guid}}` | Random UUID |\n| `{{$randomInt min max}}` | Random integer |\n| `{{$timestamp}}` | Unix epoch seconds |\n| `{{$datetime format}}` | UTC datetime |\n| `{{$localDatetime format}}` | Local datetime |\n| `{{$processEnv NAME}}` | Environment variable |"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000008",
+      "type": "http",
+      "source": "GET https://httpbin.org/get\nX-Request-Id: {{$guid}}\nX-Timestamp: {{$timestamp}}\nX-Random: {{$randomInt 1 1000}}"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000009",
+      "type": "markdown",
+      "source": "## Magic Commands\n\nUse magic commands to configure defaults that apply to all HTTP cells:\n\n- `#!http-set-base <url>` \u2014 set a base URL for relative paths\n- `#!http-set-header <name> <value>` \u2014 add a default header\n- `#!http-set-timeout <seconds>` \u2014 set request timeout"
+    },
+    {
+      "id": "00000004-0001-0001-0001-00000000000a",
+      "type": "http",
+      "source": "#!http-set-base https://httpbin.org"
+    },
+    {
+      "id": "00000004-0001-0001-0001-00000000000b",
+      "type": "http",
+      "source": "#!http-set-header Accept application/json"
+    },
+    {
+      "id": "00000004-0001-0001-0001-00000000000c",
+      "type": "http",
+      "source": "GET /headers"
+    },
+    {
+      "id": "00000004-0001-0001-0001-00000000000d",
+      "type": "markdown",
+      "source": "## Multiple Requests\n\nSeparate requests with `###` to send multiple requests from a single cell. Each gets its own formatted response."
+    },
+    {
+      "id": "00000004-0001-0001-0001-00000000000e",
+      "type": "http",
+      "source": "GET https://httpbin.org/status/200\n\n###\n\nGET https://httpbin.org/status/404\n\n###\n\nGET https://httpbin.org/status/201"
+    },
+    {
+      "id": "00000004-0001-0001-0001-00000000000f",
+      "type": "markdown",
+      "source": "## Named Requests and Chaining\n\nUse `# @name` to name a request. Then reference its response in later requests:\n\n- `{{name.response.body.$.property}}` \u2014 JSON body value\n- `{{name.response.headers.HeaderName}}` \u2014 response header value\n\nThis lets you chain requests \u2014 for example, authenticate first, then use the token."
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000010",
+      "type": "http",
+      "source": "# @name createUser\nPOST https://httpbin.org/post\nContent-Type: application/json\n\n{\n  \u0022username\u0022: \u0022verso_user\u0022,\n  \u0022email\u0022: \u0022user@verso.dev\u0022\n}\n\n###\n\n# Use the URL from the first response\nGET {{createUser.response.body.$.url}}"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000011",
+      "type": "markdown",
+      "source": "## Query Parameters\n\nLong query strings can be broken across lines. Lines starting with `?` or `\u0026` are appended to the URL."
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000012",
+      "type": "http",
+      "source": "GET https://httpbin.org/get\n?search=verso\n\u0026page=1\n\u0026limit=25\n\u0026sort=name"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000013",
+      "type": "markdown",
+      "source": "## Request Directives\n\n- `# @no-redirect` \u2014 don\u0027t follow HTTP redirects\n- `# @no-cookie-jar` \u2014 don\u0027t send stored cookies"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000014",
+      "type": "http",
+      "source": "# @no-redirect\nGET https://httpbin.org/redirect/1"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000015",
+      "type": "markdown",
+      "source": "## Cross-Kernel Integration\n\nAfter each request, the response body and status code are stored in the variable store as `httpResponse` and `httpStatus`. Other kernels (C#, Python, F#) can read them directly."
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000016",
+      "type": "http",
+      "source": "GET https://httpbin.org/uuid"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000017",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Read the HTTP response in C#\nvar body = Variables.Get\u003Cstring\u003E(\u0022httpResponse\u0022);\nvar status = Variables.Get\u003Cint\u003E(\u0022httpStatus\u0022);\n\nConsole.WriteLine($\u0022Status: {status}\u0022);\nConsole.WriteLine($\u0022Body: {body}\u0022);"
+    },
+    {
+      "id": "00000004-0001-0001-0001-000000000018",
+      "type": "markdown",
+      "source": "## What\u0027s Next?\n\nCombine HTTP cells with SQL, C#, Python, and F# to build complete data workflows \u2014 fetch from an API, transform with code, load into a database, all in one notebook."
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {
+        "00000004-0001-0001-0001-000000000001": { "row": 0, "col": 0, "width": 12, "height": 3, "visible": true },
+        "00000004-0001-0001-0001-000000000002": { "row": 3, "col": 0, "width": 12, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-000000000003": { "row": 5, "col": 0, "width": 6, "height": 3, "visible": true },
+        "00000004-0001-0001-0001-000000000004": { "row": 5, "col": 6, "width": 6, "height": 5, "visible": true },
+        "00000004-0001-0001-0001-000000000005": { "row": 10, "col": 0, "width": 12, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-000000000006": { "row": 12, "col": 0, "width": 6, "height": 4, "visible": true },
+        "00000004-0001-0001-0001-000000000007": { "row": 12, "col": 6, "width": 6, "height": 5, "visible": true },
+        "00000004-0001-0001-0001-000000000008": { "row": 17, "col": 0, "width": 6, "height": 4, "visible": true },
+        "00000004-0001-0001-0001-000000000009": { "row": 17, "col": 6, "width": 6, "height": 3, "visible": true },
+        "00000004-0001-0001-0001-00000000000a": { "row": 21, "col": 0, "width": 4, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-00000000000b": { "row": 21, "col": 4, "width": 4, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-00000000000c": { "row": 21, "col": 8, "width": 4, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-00000000000d": { "row": 23, "col": 0, "width": 12, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-00000000000e": { "row": 25, "col": 0, "width": 6, "height": 5, "visible": true },
+        "00000004-0001-0001-0001-00000000000f": { "row": 25, "col": 6, "width": 6, "height": 3, "visible": true },
+        "00000004-0001-0001-0001-000000000010": { "row": 30, "col": 0, "width": 12, "height": 6, "visible": true },
+        "00000004-0001-0001-0001-000000000011": { "row": 36, "col": 0, "width": 12, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-000000000012": { "row": 38, "col": 0, "width": 6, "height": 4, "visible": true },
+        "00000004-0001-0001-0001-000000000013": { "row": 38, "col": 6, "width": 6, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-000000000014": { "row": 42, "col": 0, "width": 6, "height": 3, "visible": true },
+        "00000004-0001-0001-0001-000000000015": { "row": 42, "col": 6, "width": 6, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-000000000016": { "row": 45, "col": 0, "width": 6, "height": 2, "visible": true },
+        "00000004-0001-0001-0001-000000000017": { "row": 45, "col": 6, "width": 6, "height": 4, "visible": true },
+        "00000004-0001-0001-0001-000000000018": { "row": 49, "col": 0, "width": 12, "height": 2, "visible": true }
+      }
+    }
+  }
+}

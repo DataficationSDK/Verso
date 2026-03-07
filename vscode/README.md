@@ -8,6 +8,7 @@
 
 - **C#, F#, PowerShell, and Python with IntelliSense** including completions, diagnostics, hover info, and NuGet package references
 - **SQL database connectivity** with paginated results, schema inspection, and EF Core scaffolding
+- **HTTP requests** using `.http` file syntax with variable interpolation, dynamic variables, named request chaining, and cross-kernel response sharing
 - **Markdown, HTML, and Mermaid** cells for documentation, visualizations, and diagrams
 - **Variable sharing** across languages so you can set a value in C# and use it in SQL, F#, or PowerShell
 - **Notebook and Dashboard layouts** to view cells as a linear document or arrange them in a drag-and-drop grid
@@ -28,6 +29,10 @@ Every notebook can be viewed in two ways. **Notebook layout** presents cells in 
 ## SQL Database Support
 
 Connect to any ADO.NET-compatible database (SQL Server, PostgreSQL, MySQL, SQLite) and run queries directly in your notebook. Results render as paginated tables with column type tooltips. You can share variables between SQL and C# cells, inspect schema, and scaffold EF Core `DbContext` classes at runtime.
+
+## HTTP Requests
+
+Send REST API requests directly in your notebook using `.http` file syntax — the same format supported by VS Code's REST Client and JetBrains HTTP Client. Responses are formatted with status badges, timing, collapsible headers, and pretty-printed JSON. Declare variables with `@name = value`, use dynamic variables like `{{$guid}}` and `{{$timestamp}}`, chain named requests, and send multiple requests per cell with `###` separators. Response data is automatically shared to C#, F#, and other kernels via the variable store.
 
 ## Importing Existing Notebooks
 
@@ -56,6 +61,7 @@ To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` fi
 | PowerShell | Yes          | Yes              |
 | Python     | Yes          | Yes              |
 | SQL        | Yes          | Yes              |
+| HTTP       | Yes          | Yes              |
 | Markdown | N/A          | N/A              |
 | HTML     | N/A          | Yes              |
 | Mermaid  | N/A          | Yes              |
