@@ -346,8 +346,6 @@ html, body {
 
 .verso-cell-list {
     padding: var(--verso-content-margin-vertical, 16px) var(--verso-content-margin-horizontal, 24px);
-    max-width: 960px;
-    margin: 0 auto;
     width: 100%;
 }
 
