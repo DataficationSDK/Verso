@@ -32,7 +32,7 @@ Connect to any ADO.NET-compatible database (SQL Server, PostgreSQL, MySQL, SQLit
 
 ## HTTP Requests
 
-Send REST API requests directly in your notebook using `.http` file syntax — the same format supported by VS Code's REST Client and JetBrains HTTP Client. Responses are formatted with status badges, timing, collapsible headers, and pretty-printed JSON. Declare variables with `@name = value`, use dynamic variables like `{{$guid}}` and `{{$timestamp}}`, chain named requests, and send multiple requests per cell with `###` separators. Response data is automatically shared to C#, F#, and other kernels via the variable store.
+Send REST API requests directly in your notebook using `.http` file syntax, the same format supported by VS Code's REST Client and JetBrains HTTP Client. Responses are formatted with status badges, timing, collapsible headers, and pretty-printed JSON. Declare variables with `@name = value`, use dynamic variables like `{{$guid}}` and `{{$timestamp}}`, chain named requests, and send multiple requests per cell with `###` separators. Response data is automatically shared to C#, F#, and other kernels via the variable store.
 
 ## Importing Existing Notebooks
 

@@ -4,20 +4,31 @@ Pure interfaces and types for the [Verso](https://github.com/DataficationSDK/Ver
 
 ## Overview
 
-This package contains the ten extension interfaces that define every point of extensibility in Verso. Extension authors reference **only this package** — no dependency on the engine or any front-end.
+This package contains the extension interfaces that define every point of extensibility in Verso. Extension authors reference **only this package**, with no dependency on the engine or any front-end.
+
+### Extension Interfaces
 
 | Interface | Purpose |
 |-----------|---------|
-| `ILanguageKernel` | Execute code, provide completions, diagnostics, and hover info |
-| `ICellRenderer` | Render input and output areas of a cell |
 | `ICellType` | Pair a renderer with an optional kernel for a new cell type |
-| `IToolbarAction` | Add buttons to the notebook toolbar or cell menus |
+| `ICellRenderer` | Render input and output areas of a cell |
+| `ILanguageKernel` | Execute code, provide completions, diagnostics, and hover info |
 | `IDataFormatter` | Format runtime objects into displayable outputs |
 | `IMagicCommand` | Define inline directives like `#!time` |
+| `IToolbarAction` | Add buttons to the notebook toolbar or cell menus |
 | `ITheme` | Provide a complete visual theme |
 | `ILayoutEngine` | Manage spatial arrangement of cells |
 | `INotebookSerializer` | Serialize and deserialize notebooks |
 | `INotebookPostProcessor` | Transform notebooks after deserialization or before serialization |
+
+### Augmentation Interfaces
+
+These are combined with a primary extension interface to add additional capabilities:
+
+| Interface | Purpose |
+|-----------|---------|
+| `ICellInteractionHandler` | Handle bidirectional interaction events from rendered cell content |
+| `IExtensionSettings` | Expose configurable settings in the UI |
 
 ## Installation
 

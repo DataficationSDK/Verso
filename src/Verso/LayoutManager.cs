@@ -48,6 +48,16 @@ public sealed class LayoutManager
             _activeLayout = _availableLayouts.FirstOrDefault(
                 l => string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase));
         }
+
+        // If the previously active layout was disabled, fall back to the first
+        // non-custom-renderer layout (e.g. "notebook"), or the first available.
+        if (_activeLayout is null && _availableLayouts.Count > 0)
+        {
+            var fallback = _availableLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
+                ?? _availableLayouts[0];
+            _activeLayout = fallback;
+            OnLayoutChanged?.Invoke(fallback);
+        }
     }
 
     /// <summary>

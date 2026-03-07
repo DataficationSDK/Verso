@@ -17,7 +17,7 @@ public static class LayoutHandler
         var activeId = manager.ActiveLayout?.LayoutId;
         return new LayoutsResult
         {
-            Layouts = manager.AvailableLayouts.Select(l => new LayoutDto
+            Layouts = ns.ExtensionHost.GetLayouts().Select(l => new LayoutDto
             {
                 Id = l.LayoutId,
                 DisplayName = l.DisplayName,

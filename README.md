@@ -121,7 +121,7 @@ Verso.Ado adds provider-agnostic SQL connectivity. Connect to any ADO.NET databa
 
 ### Send HTTP Requests
 
-Verso.Http adds an HTTP cell type using `.http` file syntax — the same format supported by VS Code's REST Client and JetBrains HTTP Client. Send GET, POST, PUT, PATCH, DELETE, and other requests directly in your notebook. Features include variable interpolation (`@name = value` and `{{name}}`), dynamic variables (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`), named request chaining (`# @name` with `{{name.response.body.$.path}}`), multiple requests per cell (`###` separator), and cross-kernel integration where response data is automatically shared to C#, F#, and other cells.
+Verso.Http adds an HTTP cell type using `.http` file syntax, the same format supported by VS Code's REST Client and JetBrains HTTP Client. Send GET, POST, PUT, PATCH, DELETE, and other requests directly in your notebook. Features include variable interpolation (`@name = value` and `{{name}}`), dynamic variables (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`), named request chaining (`# @name` with `{{name.response.body.$.path}}`), multiple requests per cell (`###` separator), and cross-kernel integration where response data is automatically shared to C#, F#, and other cells.
 
 ```
 #!http-set-base https://api.example.com

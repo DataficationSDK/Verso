@@ -15,7 +15,7 @@ Provider-agnostic SQL support built on the public Verso extension interfaces. Co
 - **CSV and JSON export** toolbar actions
 - **Schema inspection** via `#!sql-schema`
 - **EF Core scaffolding** via `#!sql-scaffold`
-- **Polyglot Notebooks migration** — automatic conversion of `#!connect` and `#!sql` patterns during `.ipynb` import
+- **Polyglot Notebooks migration** with automatic conversion of `#!connect` and `#!sql` patterns during `.ipynb` import
 
 ## Installation
 

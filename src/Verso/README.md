@@ -10,11 +10,13 @@ Verso is a headless notebook engine with no UI dependencies. It provides C# scri
 
 - **C# kernel** with IntelliSense, diagnostics, hover info, and NuGet references
 - **Markdown rendering** via Markdig
-- **Data formatters** for primitives, collections, HTML, images, SVG, and exceptions
-- **Three themes** — Light, Dark, and High Contrast (WCAG 2.1 AA)
-- **Two layouts** — Notebook (linear) and Dashboard (12-column grid)
-- **Magic commands** — `#!time`, `#!nuget`, `#!restart`, `#!about`, `#!import`
-- **Serializers** — `.verso` native format and `.ipynb` import
+- **HTML and Mermaid cell types** with variable substitution from the shared store
+- **Data formatters** for primitives, collections, objects, HTML, images, SVG, and exceptions
+- **Three themes** (Light, Dark, and High Contrast meeting WCAG 2.1 AA)
+- **Three layouts** (Notebook linear, Dashboard 12-column grid, Presentation slide-based)
+- **Magic commands** (`#!time`, `#!nuget`, `#!extension`, `#!restart`, `#!about`, `#!import`)
+- **Serializers** (`.verso` native format, `.ipynb` Jupyter import, `.dib` Polyglot Notebooks import)
+- **Toolbar actions** (Run Cell, Run All, Clear Outputs, Restart Kernel, Switch Layout, Switch Theme, Export HTML, Export Markdown)
 
 ## Installation
 
@@ -31,5 +33,8 @@ This package depends on [Verso.Abstractions](https://www.nuget.org/packages/Vers
 | [Verso.Abstractions](https://www.nuget.org/packages/Verso.Abstractions) | Extension interfaces (for extension authors) |
 | [Verso.Ado](https://www.nuget.org/packages/Verso.Ado) | SQL database connectivity |
 | [Verso.FSharp](https://www.nuget.org/packages/Verso.FSharp) | F# Interactive kernel |
+| [Verso.PowerShell](https://www.nuget.org/packages/Verso.PowerShell) | PowerShell kernel |
+| [Verso.Python](https://www.nuget.org/packages/Verso.Python) | Python kernel via pythonnet |
+| [Verso.Http](https://www.nuget.org/packages/Verso.Http) | HTTP request cell type |
 | [Verso.Testing](https://www.nuget.org/packages/Verso.Testing) | Test utilities for extensions |
 | [Verso.Templates](https://www.nuget.org/packages/Verso.Templates) | `dotnet new` project templates |

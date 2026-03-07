@@ -30,11 +30,18 @@ public sealed class NotebookSession : IAsyncDisposable
         _sendNotification = sendNotification;
 
         // Notify the client when extensions are dynamically loaded (e.g. via #!extension)
-        // so the WASM UI can refresh its cached extension/layout/theme lists.
+        // or enabled/disabled at runtime, so the WASM UI can refresh its cached
+        // extension/layout/theme lists.
         ExtensionHost.OnExtensionLoaded += HandleExtensionLoaded;
+        ExtensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
     }
 
     private void HandleExtensionLoaded(Abstractions.IExtension extension)
+    {
+        SendNotification(Protocol.MethodNames.ExtensionChanged, null);
+    }
+
+    private void HandleExtensionStatusChanged(string extensionId, Abstractions.ExtensionStatus status)
     {
         SendNotification(Protocol.MethodNames.ExtensionChanged, null);
     }
@@ -96,6 +103,7 @@ public sealed class NotebookSession : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         ExtensionHost.OnExtensionLoaded -= HandleExtensionLoaded;
+        ExtensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
 
         // Cancel any pending consent requests
         foreach (var tcs in _pendingConsents.Values)

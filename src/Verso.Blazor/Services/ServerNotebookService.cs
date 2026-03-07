@@ -739,9 +739,10 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         if (_scaffold.LayoutManager is { ActiveLayout: null } lm)
         {
-            var defaultLayout = lm.AvailableLayouts
+            var enabledLayouts = _extensionHost.GetLayouts();
+            var defaultLayout = enabledLayouts
                 .FirstOrDefault(l => !l.RequiresCustomRenderer)
-                ?? lm.AvailableLayouts.FirstOrDefault();
+                ?? enabledLayouts.FirstOrDefault();
             if (defaultLayout is not null)
                 lm.SetActiveLayout(defaultLayout.LayoutId);
         }
