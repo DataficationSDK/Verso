@@ -48,7 +48,8 @@ export class BlazorBridge implements vscode.Disposable {
 
   constructor(
     private readonly webview: vscode.Webview,
-    private readonly host: HostProcess
+    private readonly host: HostProcess,
+    private readonly globalState?: vscode.Memento
   ) {
     // Listen for messages from the webview (Blazor WASM)
     this.disposables.push(
@@ -118,6 +119,17 @@ export class BlazorBridge implements vscode.Disposable {
         // The WASM app triggers save via this method. Route through VS Code's
         // save command so the CustomEditorProvider clears the dirty indicator.
         await vscode.commands.executeCommand("workbench.action.files.save");
+        result = { success: true };
+      } else if (method === "userPrefs/getDisabledExtensions") {
+        const ids =
+          this.globalState?.get<string[]>("verso.disabledExtensions") ?? null;
+        result = { ids };
+      } else if (method === "userPrefs/setDisabledExtensions") {
+        const p = params as { ids?: string[] } | undefined;
+        await this.globalState?.update(
+          "verso.disabledExtensions",
+          p?.ids ?? []
+        );
         result = { success: true };
       } else {
         // Inject notebookId into the forwarded request params

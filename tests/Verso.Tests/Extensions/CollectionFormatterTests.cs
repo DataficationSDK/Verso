@@ -45,9 +45,10 @@ public sealed class CollectionFormatterTests
 
         var result = await _formatter.FormatAsync(items, _context);
         Assert.AreEqual("text/html", result.MimeType);
-        Assert.IsTrue(result.Content.Contains("<table>"));
-        Assert.IsTrue(result.Content.Contains("<th>Name</th>"));
-        Assert.IsTrue(result.Content.Contains("<th>Age</th>"));
+        Assert.IsTrue(result.Content.Contains("verso-obj-tree"));
+        Assert.IsTrue(result.Content.Contains("<details"));
+        Assert.IsTrue(result.Content.Contains("Name</th>"));
+        Assert.IsTrue(result.Content.Contains("Age</th>"));
         Assert.IsTrue(result.Content.Contains("Alice"));
         Assert.IsTrue(result.Content.Contains("Bob"));
     }
@@ -65,10 +66,10 @@ public sealed class CollectionFormatterTests
     {
         var result = await _formatter.FormatAsync(new List<int> { 1, 2, 3 }, _context);
         Assert.AreEqual("text/html", result.MimeType);
-        Assert.IsTrue(result.Content.Contains("<th>Value</th>"));
-        Assert.IsTrue(result.Content.Contains("<td>1</td>"));
-        Assert.IsTrue(result.Content.Contains("<td>2</td>"));
-        Assert.IsTrue(result.Content.Contains("<td>3</td>"));
+        Assert.IsTrue(result.Content.Contains("Value</th>"));
+        Assert.IsTrue(result.Content.Contains(">1<"));
+        Assert.IsTrue(result.Content.Contains(">2<"));
+        Assert.IsTrue(result.Content.Contains(">3<"));
     }
 
     [TestMethod]
@@ -76,8 +77,8 @@ public sealed class CollectionFormatterTests
     {
         var items = Enumerable.Range(1, 150).ToList();
         var result = await _formatter.FormatAsync(items, _context);
-        Assert.IsTrue(result.Content.Contains("<tfoot>"));
-        Assert.IsTrue(result.Content.Contains("truncated at 100 rows"));
+        Assert.IsTrue(result.Content.Contains("verso-obj-footer"));
+        Assert.IsTrue(result.Content.Contains("Showing 100"));
     }
 
     [TestMethod]
@@ -90,8 +91,8 @@ public sealed class CollectionFormatterTests
         };
 
         var result = await _formatter.FormatAsync(items, _context);
-        Assert.IsTrue(result.Content.Contains("<th>X</th>"));
-        Assert.IsTrue(result.Content.Contains("<th>Y</th>"));
+        Assert.IsTrue(result.Content.Contains("X</th>"));
+        Assert.IsTrue(result.Content.Contains("Y</th>"));
     }
 
     [TestMethod]
@@ -100,8 +101,8 @@ public sealed class CollectionFormatterTests
         var items = new[] { new ItemWithField { Name = "test", Tag = "my-tag" } };
 
         var result = await _formatter.FormatAsync(items, _context);
-        Assert.IsTrue(result.Content.Contains("<th>Name</th>"));
-        Assert.IsTrue(result.Content.Contains("<th>Tag</th>"));
+        Assert.IsTrue(result.Content.Contains("Name</th>"));
+        Assert.IsTrue(result.Content.Contains("Tag</th>"));
         Assert.IsTrue(result.Content.Contains("test"));
         Assert.IsTrue(result.Content.Contains("my-tag"));
     }
@@ -112,8 +113,8 @@ public sealed class CollectionFormatterTests
         var items = new[] { new ItemWithMixedVisibility() };
 
         var result = await _formatter.FormatAsync(items, _context);
-        Assert.IsTrue(result.Content.Contains("<th>Visible</th>"));
-        Assert.IsTrue(result.Content.Contains("<th>PublicTag</th>"));
+        Assert.IsTrue(result.Content.Contains("Visible</th>"));
+        Assert.IsTrue(result.Content.Contains("PublicTag</th>"));
         Assert.IsFalse(result.Content.Contains("Hidden"));
         Assert.IsFalse(result.Content.Contains("_secret"));
     }

@@ -10,6 +10,7 @@
 | [VERSO-004](#verso-004-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
 | [VERSO-005](#verso-005-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
 | [VERSO-006](#verso-006-blazor-wasm-webview-fails-to-initialize-in-github-codespaces) | Blazor WASM webview fails to initialize in GitHub Codespaces | Open | Verso.VSCode |
+| [VERSO-007](#verso-007-object-tree-view-can-produce-oversized-output-for-complex-framework-types) | Object tree view can produce oversized output for complex framework types | Mitigated | Verso |
 
 ---
 
@@ -186,3 +187,40 @@ Use the desktop version of VS Code (local or via Remote-SSH) instead of the brow
 ### Planned improvement
 
 Surface an error message to the user when Blazor WASM initialization fails or times out, rather than showing an indefinite loading spinner.
+
+---
+
+## VERSO-007: Object tree view can produce oversized output for complex framework types
+
+| | |
+|---|---|
+| **Status** | Mitigated |
+| **Affected** | Verso |
+| **Severity** | Medium |
+
+### Symptom
+
+Returning a value whose type has deep or wide object graphs (such as `Microsoft.Data.Analysis.DataFrame`) can produce extremely large cell output (hundreds of megabytes), causing a `System.ArgumentException: The JSON value of length N is too large` error during notebook auto-save serialization.
+
+### Root cause
+
+The `ObjectFormatter` and `CollectionFormatter` use recursive tree view rendering (`<details>`/`<summary>`) to let users expand nested objects. When the returned value exposes framework infrastructure types through its public properties, the combinatorial fan-out across 6 recursion levels generates massive HTML output. For example, `DataFrameColumn.DataType` returns a `System.Type` with ~40+ public properties including `Assembly`, which in turn exposes `DefinedTypes` containing potentially thousands of types, each with their own property graphs.
+
+### Mitigation
+
+A 512 KB hard cap (`ObjectTreeRenderer.MaxOutputSize`) stops further tree expansion once the rendered HTML exceeds that threshold. Values beyond the cap fall back to `.ToString()`, matching the behavior at the depth limit. This prevents the serialization crash while still providing tree view output for the portion of the graph that fits within the budget.
+
+### Workaround
+
+If you encounter this issue with a specific type, register a higher-priority custom formatter for that type to control its rendering directly:
+
+```csharp
+// In a notebook cell, before returning the value:
+#!register-formatter MyNamespace.MyType text/html (value, context) => {
+    return $"<pre>{value.SomeProperty}: {value.SomeOtherProperty}</pre>";
+}
+```
+
+### Planned improvement
+
+Consider treating types from runtime assemblies (`System.*`, `System.Reflection.*`) as opaque beyond depth 1, rendering them via `.ToString()` rather than expanding their full property graphs. This would reduce wasted output budget on framework internals and preserve more of it for user-defined types.

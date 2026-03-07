@@ -1,6 +1,3 @@
-using System.Net;
-using System.Reflection;
-using System.Text;
 using Verso.Abstractions;
 
 namespace Verso.Extensions.Formatters;
@@ -47,42 +44,12 @@ public sealed class ObjectFormatter : IDataFormatter
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     {
-        var type = value.GetType();
-        var members = GetMemberValues(type, value);
-
-        var sb = new StringBuilder();
-        sb.Append("<table><thead><tr><th>Member</th><th>Value</th></tr></thead><tbody>");
-
-        foreach (var (name, memberValue) in members)
-        {
-            sb.Append("<tr><td>")
-              .Append(WebUtility.HtmlEncode(name))
-              .Append("</td><td>")
-              .Append(WebUtility.HtmlEncode(memberValue?.ToString() ?? ""))
-              .Append("</td></tr>");
-        }
-
-        sb.Append("</tbody></table>");
-
-        return Task.FromResult(new CellOutput("text/html", sb.ToString()));
+        var html = ObjectTreeRenderer.RenderObject(value, value.GetType());
+        return Task.FromResult(new CellOutput("text/html", html));
     }
 
     private static bool HasPublicMembers(Type type)
     {
-        return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                   .Any(p => p.CanRead && p.GetIndexParameters().Length == 0)
-            || type.GetFields(BindingFlags.Public | BindingFlags.Instance).Length > 0;
-    }
-
-    private static (string Name, object? Value)[] GetMemberValues(Type type, object value)
-    {
-        var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-            .Select(p => (p.Name, Value: (object?)p.GetValue(value)));
-
-        var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-            .Select(f => (f.Name, Value: (object?)f.GetValue(value)));
-
-        return props.Concat(fields).ToArray();
+        return ObjectTreeRenderer.HasPublicMembers(type);
     }
 }

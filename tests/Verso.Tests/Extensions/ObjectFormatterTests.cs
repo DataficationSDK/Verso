@@ -92,7 +92,9 @@ public sealed class ObjectFormatterTests
         var result = await _formatter.FormatAsync(obj, _context);
 
         Assert.AreEqual("text/html", result.MimeType);
-        Assert.IsTrue(result.Content.Contains("<table>"));
+        Assert.IsTrue(result.Content.Contains("verso-obj-tree"));
+        Assert.IsTrue(result.Content.Contains("<details"));
+        Assert.IsTrue(result.Content.Contains("<summary"));
         Assert.IsTrue(result.Content.Contains("Name"));
         Assert.IsTrue(result.Content.Contains("world"));
         Assert.IsTrue(result.Content.Contains("Value"));
@@ -137,7 +139,7 @@ public sealed class ObjectFormatterTests
         var obj = new SimpleClass { Name = null!, Value = 0 };
         var result = await _formatter.FormatAsync(obj, _context);
 
-        Assert.IsTrue(result.Content.Contains("<td></td>"));
+        Assert.IsTrue(result.Content.Contains("verso-obj-null"));
     }
 
     [TestMethod]

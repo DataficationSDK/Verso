@@ -170,7 +170,19 @@ internal sealed class ExecutionPipeline
 
             var magicCommand = _resolveMagicCommand(parseResult.CommandName!);
             if (magicCommand is null)
+            {
+                // Check whether the command exists but is disabled (vs truly unknown).
+                var isDisabled = _extensionHost.GetLoadedExtensions()
+                    .OfType<IMagicCommand>()
+                    .Any(m => string.Equals(m.Name, parseResult.CommandName, StringComparison.OrdinalIgnoreCase));
+
+                var message = isDisabled
+                    ? $"Magic command '#!{parseResult.CommandName}' belongs to a disabled extension. Enable the extension to use this command."
+                    : $"Unknown magic command '#!{parseResult.CommandName}'. Use '#!about' to list available commands.";
+
+                await AppendOutput(new CellOutput("text/plain", message, IsError: true)).ConfigureAwait(false);
                 break;
+            }
 
             anyMagicProcessed = true;
 

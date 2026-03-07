@@ -4,7 +4,7 @@
 
 @if (_css is not null)
 {
-    <style>@((MarkupString)_css)</style>
+    <style id="verso-theme">@((MarkupString)_css)</style>
 }
 
 @code {
@@ -14,7 +14,9 @@
 
     protected override void OnParametersSet()
     {
-        _css = BuildCss();
+        // When Theme is null (no notebook loaded), render nothing so that
+        // an early-theme <style> injected from localStorage isn't overwritten.
+        _css = Theme is not null ? BuildCss() : null;
     }
 
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ThemeColorTokens))]

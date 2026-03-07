@@ -250,6 +250,8 @@
     private bool _showExtensionConsent;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
     private Timer? _autoSaveTimer;
+    private bool _userPrefsApplied;
+    private bool _restoringPrefs;
 
     [SupplyParameterFromQuery(Name = "recover")]
     public string? RecoverPath { get; set; }
@@ -318,6 +320,8 @@
             if (!Service.IsLoaded)
                 await TryRecoverSessionAsync();
 
+            await ApplyUserPreferencesAsync();
+
             StartAutoSaveTimer();
         }
 
@@ -381,6 +385,55 @@
         }
     }
 
+    private async Task ApplyUserPreferencesAsync()
+    {
+        if (_userPrefsApplied) return;
+
+        // Themes/extensions aren't available until a notebook is loaded
+        if (Service.AvailableThemes.Count == 0) return;
+
+        _restoringPrefs = true;
+        try
+        {
+            var allExtIds = Service.Extensions.Select(e => e.ExtensionId).ToHashSet();
+
+            var disabledIds = await JS.InvokeAsync<string[]?>("versoUserPrefs.getDisabledExtensions");
+            if (disabledIds is not null)
+            {
+                foreach (var id in disabledIds)
+                {
+                    if (allExtIds.Contains(id))
+                        await Service.DisableExtensionAsync(id);
+                }
+
+                // Scrub stale IDs that no longer match any loaded extension
+                var cleaned = disabledIds.Where(allExtIds.Contains).ToArray();
+                if (cleaned.Length != disabledIds.Length)
+                    await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)cleaned);
+            }
+
+            var themeId = await JS.InvokeAsync<string?>("versoUserPrefs.getTheme");
+            var available = Service.AvailableThemes.Select(t => t.ThemeId).ToHashSet();
+            if (themeId is not null && Service.ActiveThemeId != themeId && available.Contains(themeId))
+            {
+                await Service.SwitchThemeAsync(themeId);
+            }
+            else if (themeId is not null && !available.Contains(themeId))
+            {
+                // Stored theme no longer exists — clear it so the default sticks
+                await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId ?? "");
+            }
+
+            _userPrefsApplied = true;
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+        finally
+        {
+            _restoringPrefs = false;
+        }
+    }
+
     private void StartAutoSaveTimer()
     {
         _autoSaveTimer = new Timer(AutoSaveCallback, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
@@ -425,11 +478,38 @@
     private async void HandleThemeChanged()
     {
         await SyncMonacoThemeAsync();
+        if (!_restoringPrefs)
+        {
+            try
+            {
+                if (Service.ActiveThemeId is not null)
+                    await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
+        }
         await InvokeAsync(StateHasChanged);
+        // Snapshot the rendered CSS variables so the next page load can apply them early
+        try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     private async void HandleExtensionStatusChanged()
     {
+        if (!_restoringPrefs)
+        {
+            try
+            {
+                var disabledIds = Service.Extensions
+                    .Where(e => e.Status == ExtensionStatus.Disabled)
+                    .Select(e => e.ExtensionId)
+                    .ToArray();
+                await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)disabledIds);
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
+        }
         await InvokeAsync(StateHasChanged);
     }
 
@@ -527,6 +607,7 @@
             await Service.NewNotebookAsync();
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
+            await ApplyUserPreferencesAsync();
         }
         catch (Exception ex)
         {
@@ -545,6 +626,7 @@
             await Service.OpenAsync(filePath);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
+            await ApplyUserPreferencesAsync();
         }
         catch (Exception ex)
         {
@@ -563,6 +645,7 @@
             await Service.OpenFromContentAsync(args.FileName, args.Content);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
+            await ApplyUserPreferencesAsync();
         }
         catch (Exception ex)
         {

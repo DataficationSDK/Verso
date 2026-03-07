@@ -208,6 +208,8 @@
     private bool _panelResizeInitialized;
     private bool _showExtensionConsent;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
+    private bool _userPrefsApplied;
+    private bool _restoringPrefs;
 
     private string _monacoThemeName = "vs";
 
@@ -253,6 +255,8 @@
             }
 
             await SyncMonacoThemeAsync();
+
+            await ApplyUserPreferencesAsync();
         }
 
         if (_activePanel is not null && !_panelResizeInitialized)
@@ -283,7 +287,14 @@
 
     private async void HandleNotebookChanged()
     {
-        await InvokeAsync(StateHasChanged);
+        // Apply user preferences once extension data is available.
+        // The service fires OnNotebookChanged after RefreshExtensionDataAsync,
+        // so themes/extensions are populated by this point.
+        await InvokeAsync(async () =>
+        {
+            await ApplyUserPreferencesAsync();
+            StateHasChanged();
+        });
     }
 
     private async void HandleLayoutChanged()
@@ -304,12 +315,25 @@
 
     private async void HandleThemeChanged()
     {
+        // Theme is driven by VS Code — no localStorage persistence needed
         await SyncMonacoThemeAsync();
         await InvokeAsync(StateHasChanged);
     }
 
     private async void HandleExtensionStatusChanged()
     {
+        if (!_restoringPrefs)
+        {
+            try
+            {
+                var disabledIds = Service.Extensions
+                    .Where(e => e.Status == ExtensionStatus.Disabled)
+                    .Select(e => e.ExtensionId)
+                    .ToArray();
+                await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)disabledIds);
+            }
+            catch (JSException) { }
+        }
         await InvokeAsync(StateHasChanged);
     }
 
@@ -355,6 +379,44 @@
             await JS.InvokeVoidAsync("versoMonaco.setTheme", _monacoThemeName);
         }
         catch (JSException) { }
+    }
+
+    private async Task ApplyUserPreferencesAsync()
+    {
+        if (_userPrefsApplied) return;
+
+        // Extensions aren't available until a notebook is loaded
+        if (!Service.IsLoaded || Service.Extensions.Count == 0) return;
+
+        _restoringPrefs = true;
+        try
+        {
+            var allExtIds = Service.Extensions.Select(e => e.ExtensionId).ToHashSet();
+
+            var disabledIds = await JS.InvokeAsync<string[]?>("versoUserPrefs.getDisabledExtensions");
+            if (disabledIds is not null)
+            {
+                foreach (var id in disabledIds)
+                {
+                    if (allExtIds.Contains(id))
+                        await Service.DisableExtensionAsync(id);
+                }
+
+                // Scrub stale IDs that no longer match any loaded extension
+                var cleaned = disabledIds.Where(allExtIds.Contains).ToArray();
+                if (cleaned.Length != disabledIds.Length)
+                    await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)cleaned);
+            }
+
+            // Theme is driven by VS Code in webview mode — no Verso theme persistence needed
+
+            _userPrefsApplied = true;
+        }
+        catch (JSException) { }
+        finally
+        {
+            _restoringPrefs = false;
+        }
     }
 
     private void TogglePanel(string panelId)

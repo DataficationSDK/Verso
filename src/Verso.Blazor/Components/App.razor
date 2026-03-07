@@ -7,6 +7,17 @@
     <link rel="icon" type="image/png" href="icon.png" />
     <link rel="stylesheet" href="app.css?v=4" />
     <HeadOutlet @rendermode="InteractiveServer" />
+    <script>
+        try {
+            var css = localStorage.getItem('verso-user-theme-css');
+            if (css) {
+                var s = document.createElement('style');
+                s.id = 'verso-early-theme';
+                s.textContent = css;
+                document.head.appendChild(s);
+            }
+        } catch(e) {}
+    </script>
 </head>
 <body>
     <Routes @rendermode="InteractiveServer" />
@@ -20,6 +31,7 @@
     <script src="js/mermaid-interop.js"></script>
     <script src="js/recovery-interop.js"></script>
     <script src="js/cell-interact-interop.js"></script>
+    <script src="_content/Verso.Blazor.Shared/js/user-prefs-interop.js"></script>
     <div id="verso-reconnect-overlay" style="display:none">
         <div class="verso-reconnect-box">
             <div class="verso-spinner verso-spinner--large"></div>

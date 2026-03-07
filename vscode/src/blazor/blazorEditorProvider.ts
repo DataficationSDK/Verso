@@ -71,7 +71,7 @@ export class BlazorEditorProvider
     webview.html = this.getWebviewHtml(webview);
 
     // Create bridge for this webview
-    const bridge = new BlazorBridge(webview, this.host);
+    const bridge = new BlazorBridge(webview, this.host, this.context.globalState);
     bridge.setDocumentUri(document.uri);
 
     // Mark the document dirty whenever the WASM app mutates the notebook.
@@ -233,6 +233,9 @@ export class BlazorEditorProvider
     const mermaidInterop = toUri(
       "_content/Verso.Blazor.Shared/js/mermaid-interop.js"
     );
+    const userPrefsInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/user-prefs-interop.js"
+    );
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -353,6 +356,7 @@ export class BlazorEditorProvider
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
+    <script src="${userPrefsInterop}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.
