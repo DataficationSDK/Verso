@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
 
@@ -240,29 +242,25 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
 
             try
             {
-                // Check if the assembly references Verso.Abstractions before loading types.
-                // This is a cheap metadata-only check that filters out all Microsoft/System/
-                // third-party libraries without needing a deny-list.
                 var fullPath = Path.GetFullPath(dll);
                 scannedNames.Add(fileName);
 
-                // Load through an isolated ExtensionLoadContext so that extensions compiled
-                // against an older Verso.Abstractions version still resolve to the host's
-                // copy via the deliberate-fail fallback, preserving type identity.
-                var loadContext = new ExtensionLoadContext(fullPath);
-                var assembly = loadContext.LoadFromAssemblyPath(fullPath);
-                if (!ReferencesVersoAbstractions(assembly))
-                {
-                    loadContext.Unload();
+                // Metadata-only check: read PE headers to see if this assembly references
+                // Verso.Abstractions. This avoids creating an ExtensionLoadContext for every
+                // DLL in the directory (which is very expensive in large bin directories).
+                if (!ReferencesVersoAbstractionsOnDisk(fullPath, out var referencedVersion))
                     continue;
+
+                if (referencedVersion is not null)
+                {
+                    var compatError = CheckAbstractionsVersionCompatibility(referencedVersion);
+                    if (compatError is not null)
+                        continue; // silently skip incompatible extensions during auto-discovery
                 }
 
-                var compatError = CheckAbstractionsCompatibility(assembly);
-                if (compatError is not null)
-                {
-                    loadContext.Unload();
-                    continue; // silently skip incompatible extensions during auto-discovery
-                }
+                // Only now create an isolated load context for this extension assembly.
+                var loadContext = new ExtensionLoadContext(fullPath);
+                var assembly = loadContext.LoadFromAssemblyPath(fullPath);
 
                 lock (_lock) { _loadContexts.Add(loadContext); }
                 await ScanAssemblyForExtensionsAsync(assembly).ConfigureAwait(false);
@@ -277,21 +275,53 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private static readonly Version HostAbstractionsVersion =
         typeof(Verso.Abstractions.IExtension).Assembly.GetName().Version!;
 
-    private static bool ReferencesVersoAbstractions(Assembly assembly)
+    /// <summary>
+    /// Reads assembly references from a DLL on disk using PE metadata only, without
+    /// loading it into any AssemblyLoadContext. Returns true if the assembly references
+    /// Verso.Abstractions, and outputs the referenced version if found.
+    /// </summary>
+    private static bool ReferencesVersoAbstractionsOnDisk(string dllPath, out Version? referencedVersion)
     {
-        foreach (var reference in assembly.GetReferencedAssemblies())
+        referencedVersion = null;
+        using var stream = File.OpenRead(dllPath);
+        using var peReader = new PEReader(stream);
+        if (!peReader.HasMetadata)
+            return false;
+
+        var metadataReader = peReader.GetMetadataReader();
+        foreach (var handle in metadataReader.AssemblyReferences)
         {
-            if (string.Equals(reference.Name, "Verso.Abstractions", StringComparison.OrdinalIgnoreCase))
+            var reference = metadataReader.GetAssemblyReference(handle);
+            var name = metadataReader.GetString(reference.Name);
+            if (string.Equals(name, "Verso.Abstractions", StringComparison.OrdinalIgnoreCase))
+            {
+                referencedVersion = reference.Version;
                 return true;
+            }
         }
         return false;
     }
 
     /// <summary>
-    /// Checks whether an assembly's referenced Verso.Abstractions version is compatible
-    /// with the host's version. Compatible means same major version and extension minor
-    /// is less than or equal to the host minor.
+    /// Checks whether a referenced Verso.Abstractions version is compatible with the host.
+    /// Compatible means same major version and extension minor &lt;= host minor.
     /// Returns null if compatible, or a descriptive error message if not.
+    /// </summary>
+    private static string? CheckAbstractionsVersionCompatibility(Version extVersion)
+    {
+        if (extVersion.Major != HostAbstractionsVersion.Major)
+            return $"Extension references Verso.Abstractions {extVersion} which is incompatible " +
+                   $"with the host version {HostAbstractionsVersion} (major version mismatch).";
+
+        if (extVersion.Minor > HostAbstractionsVersion.Minor)
+            return $"Extension references Verso.Abstractions {extVersion} which requires a newer " +
+                   $"host (current host version is {HostAbstractionsVersion}).";
+
+        return null;
+    }
+
+    /// <summary>
+    /// Checks compatibility using a loaded assembly's references (used by LoadFromAssemblyAsync).
     /// </summary>
     private static string? CheckAbstractionsCompatibility(Assembly assembly)
     {
@@ -304,15 +334,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             if (extVersion is null)
                 return null; // no version info, allow it
 
-            if (extVersion.Major != HostAbstractionsVersion.Major)
-                return $"Extension references Verso.Abstractions {extVersion} which is incompatible " +
-                       $"with the host version {HostAbstractionsVersion} (major version mismatch).";
-
-            if (extVersion.Minor > HostAbstractionsVersion.Minor)
-                return $"Extension references Verso.Abstractions {extVersion} which requires a newer " +
-                       $"host (current host version is {HostAbstractionsVersion}).";
-
-            return null; // compatible
+            return CheckAbstractionsVersionCompatibility(extVersion);
         }
         return null; // doesn't reference abstractions
     }
