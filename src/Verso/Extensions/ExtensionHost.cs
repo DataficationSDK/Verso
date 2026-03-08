@@ -246,23 +246,16 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
                 scannedNames.Add(fileName);
 
                 // Metadata-only check: read PE headers to see if this assembly references
-                // Verso.Abstractions. This avoids creating an ExtensionLoadContext for every
-                // DLL in the directory (which is very expensive in large bin directories).
-                if (!ReferencesVersoAbstractionsOnDisk(fullPath, out var referencedVersion))
+                // Verso.Abstractions, without loading the assembly. This filters out all
+                // Microsoft/System/third-party DLLs cheaply.
+                if (!ReferencesVersoAbstractionsOnDisk(fullPath, out _))
                     continue;
 
-                if (referencedVersion is not null)
-                {
-                    var compatError = CheckAbstractionsVersionCompatibility(referencedVersion);
-                    if (compatError is not null)
-                        continue; // silently skip incompatible extensions during auto-discovery
-                }
-
-                // Only now create an isolated load context for this extension assembly.
-                var loadContext = new ExtensionLoadContext(fullPath);
-                var assembly = loadContext.LoadFromAssemblyPath(fullPath);
-
-                lock (_lock) { _loadContexts.Add(loadContext); }
+                // Built-in extensions are co-deployed with the host and share the same
+                // Verso.Abstractions version, so they load into the default context.
+                // Isolated ExtensionLoadContext is reserved for third-party extensions
+                // loaded via LoadFromAssemblyAsync (e.g. #!extension).
+                var assembly = Assembly.LoadFrom(fullPath);
                 await ScanAssemblyForExtensionsAsync(assembly).ConfigureAwait(false);
             }
             catch (BadImageFormatException)
