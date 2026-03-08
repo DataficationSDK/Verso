@@ -13,6 +13,7 @@ internal sealed class ExtensionLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver? _resolver;
     private readonly string _abstractionsName;
+    private readonly Assembly _abstractionsAssembly;
 
     /// <summary>
     /// Creates a new isolated load context for a third-party extension assembly.
@@ -24,14 +25,18 @@ internal sealed class ExtensionLoadContext : AssemblyLoadContext
         if (!string.IsNullOrEmpty(pluginPath) && File.Exists(pluginPath))
             _resolver = new AssemblyDependencyResolver(pluginPath);
 
-        _abstractionsName = typeof(Verso.Abstractions.IExtension).Assembly.GetName().Name!;
+        _abstractionsAssembly = typeof(Verso.Abstractions.IExtension).Assembly;
+        _abstractionsName = _abstractionsAssembly.GetName().Name!;
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        // Share Verso.Abstractions from the default context so interface types match.
+        // Return the host's Verso.Abstractions directly so interface types match,
+        // regardless of the version the extension was compiled against. Returning
+        // null here would delegate to the default context, which may fail if the
+        // requested version differs from the host's version.
         if (string.Equals(assemblyName.Name, _abstractionsName, StringComparison.OrdinalIgnoreCase))
-            return null; // fall back to default context
+            return _abstractionsAssembly;
 
         if (_resolver is not null)
         {

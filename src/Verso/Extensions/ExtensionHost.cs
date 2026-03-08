@@ -243,13 +243,28 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
                 // Check if the assembly references Verso.Abstractions before loading types.
                 // This is a cheap metadata-only check that filters out all Microsoft/System/
                 // third-party libraries without needing a deny-list.
-                var assemblyName = AssemblyName.GetAssemblyName(Path.GetFullPath(dll));
+                var fullPath = Path.GetFullPath(dll);
                 scannedNames.Add(fileName);
 
-                var assembly = Assembly.LoadFrom(Path.GetFullPath(dll));
+                // Load through an isolated ExtensionLoadContext so that extensions compiled
+                // against an older Verso.Abstractions version still resolve to the host's
+                // copy via the deliberate-fail fallback, preserving type identity.
+                var loadContext = new ExtensionLoadContext(fullPath);
+                var assembly = loadContext.LoadFromAssemblyPath(fullPath);
                 if (!ReferencesVersoAbstractions(assembly))
+                {
+                    loadContext.Unload();
                     continue;
+                }
 
+                var compatError = CheckAbstractionsCompatibility(assembly);
+                if (compatError is not null)
+                {
+                    loadContext.Unload();
+                    continue; // silently skip incompatible extensions during auto-discovery
+                }
+
+                lock (_lock) { _loadContexts.Add(loadContext); }
                 await ScanAssemblyForExtensionsAsync(assembly).ConfigureAwait(false);
             }
             catch (BadImageFormatException)
@@ -259,6 +274,9 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         }
     }
 
+    private static readonly Version HostAbstractionsVersion =
+        typeof(Verso.Abstractions.IExtension).Assembly.GetName().Version!;
+
     private static bool ReferencesVersoAbstractions(Assembly assembly)
     {
         foreach (var reference in assembly.GetReferencedAssemblies())
@@ -267,6 +285,36 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
                 return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Checks whether an assembly's referenced Verso.Abstractions version is compatible
+    /// with the host's version. Compatible means same major version and extension minor
+    /// is less than or equal to the host minor.
+    /// Returns null if compatible, or a descriptive error message if not.
+    /// </summary>
+    private static string? CheckAbstractionsCompatibility(Assembly assembly)
+    {
+        foreach (var reference in assembly.GetReferencedAssemblies())
+        {
+            if (!string.Equals(reference.Name, "Verso.Abstractions", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var extVersion = reference.Version;
+            if (extVersion is null)
+                return null; // no version info, allow it
+
+            if (extVersion.Major != HostAbstractionsVersion.Major)
+                return $"Extension references Verso.Abstractions {extVersion} which is incompatible " +
+                       $"with the host version {HostAbstractionsVersion} (major version mismatch).";
+
+            if (extVersion.Minor > HostAbstractionsVersion.Minor)
+                return $"Extension references Verso.Abstractions {extVersion} which requires a newer " +
+                       $"host (current host version is {HostAbstractionsVersion}).";
+
+            return null; // compatible
+        }
+        return null; // doesn't reference abstractions
     }
 
     private async Task ScanAssemblyForExtensionsAsync(Assembly assembly)
@@ -321,9 +369,20 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             throw new FileNotFoundException($"Extension assembly not found: {path}", path);
 
         var loadContext = new ExtensionLoadContext(path);
+        var assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath(path));
+
+        var compatError = CheckAbstractionsCompatibility(assembly);
+        if (compatError is not null)
+        {
+            loadContext.Unload();
+            throw new ExtensionLoadException(new[]
+            {
+                new ExtensionValidationError(null, "INCOMPATIBLE_VERSION", compatError)
+            });
+        }
+
         lock (_lock) { _loadContexts.Add(loadContext); }
 
-        var assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath(path));
         var extensionTypes = assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract &&
                         t.GetCustomAttribute<VersoExtensionAttribute>() is not null &&
