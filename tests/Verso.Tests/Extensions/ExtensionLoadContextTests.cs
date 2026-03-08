@@ -30,16 +30,16 @@ public class ExtensionLoadContextTests
         context.Unload();
     }
 
-    // --- Verso.Abstractions passthrough to default context ---
+    // --- Verso.Abstractions returns host assembly directly ---
 
     [TestMethod]
-    public void Load_VersoAbstractions_FallsBackToDefaultContext()
+    public void Load_VersoAbstractions_ReturnsHostAssembly()
     {
         var context = new ExtensionLoadContext("/fake/path/Plugin.dll");
 
-        // When Load returns null, the runtime falls back to the default ALC.
-        // We verify that requesting the Verso.Abstractions assembly name returns null
-        // from the custom context (meaning it defers to default).
+        // ExtensionLoadContext returns the host's Verso.Abstractions assembly directly
+        // to preserve type identity, even when the extension was compiled against a
+        // different version.
         var abstractionsAssembly = typeof(Verso.Abstractions.IExtension).Assembly;
         var assemblyName = abstractionsAssembly.GetName();
 
@@ -51,7 +51,8 @@ public class ExtensionLoadContextTests
 
         var result = loadMethod?.Invoke(context, new object[] { assemblyName });
 
-        Assert.IsNull(result, "Verso.Abstractions should return null to fall back to the default context.");
+        Assert.AreSame(abstractionsAssembly, result,
+            "Verso.Abstractions should return the host assembly to preserve type identity.");
 
         context.Unload();
     }
