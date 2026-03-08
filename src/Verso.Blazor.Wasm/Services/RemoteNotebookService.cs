@@ -33,6 +33,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
     private bool _isDashboardLayout;
+    private LayoutCapabilities _layoutCapabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
+        | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
+        | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect;
 
     // ── Debounce for cell source updates ────────────────────────────────
     private readonly Dictionary<Guid, CancellationTokenSource> _debounceCts = new();
@@ -117,6 +120,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public ThemeKind? ActiveThemeKind => _activeThemeKind;
     public ThemeData? ActiveThemeData { get; private set; }
     public string? ActiveLayoutId => _activeLayoutId;
+    public LayoutCapabilities LayoutCapabilities => _layoutCapabilities;
     public string? ActiveThemeId => _activeThemeId;
 
     // ── Extension data ──────────────────────────────────────────────────
@@ -469,6 +473,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         _activeLayoutId = layoutId;
         var layout = _layouts.FirstOrDefault(l => l.LayoutId == layoutId);
         _isDashboardLayout = layout?.RequiresCustomRenderer ?? false;
+        _layoutCapabilities = layout?.Capabilities ?? _layoutCapabilities;
         OnLayoutChanged?.Invoke();
     }
 
@@ -690,8 +695,8 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);
         _layouts = layoutsResult.Layouts?.Select(l =>
         {
-            if (l.IsActive) { _activeLayoutId = l.Id; _isDashboardLayout = l.RequiresCustomRenderer; }
-            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer);
+            if (l.IsActive) { _activeLayoutId = l.Id; _isDashboardLayout = l.RequiresCustomRenderer; _layoutCapabilities = (LayoutCapabilities)l.Capabilities; }
+            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer, (LayoutCapabilities)l.Capabilities);
         }).ToList() ?? new();
 
         // Themes
@@ -1045,6 +1050,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string DisplayName { get; set; } = "";
         public bool RequiresCustomRenderer { get; set; }
         public bool IsActive { get; set; }
+        public int Capabilities { get; set; }
     }
 
     private sealed class ThemesResponse

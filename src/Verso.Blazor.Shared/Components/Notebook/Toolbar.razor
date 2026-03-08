@@ -59,8 +59,8 @@
         <div class="verso-toolbar-separator"></div>
 
         <div class="verso-toolbar-group">
-            <button class="verso-toolbar-btn" @onclick="OnAddCodeCell" title="Add Code Cell">+ Code</button>
-            <button class="verso-toolbar-btn" @onclick="OnAddMarkdownCell" title="Add Markdown Cell">+ Markdown</button>
+            <button class="verso-toolbar-btn" disabled="@(!Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))" @onclick="OnAddCodeCell" title="Add Code Cell">+ Code</button>
+            <button class="verso-toolbar-btn" disabled="@(!Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))" @onclick="OnAddMarkdownCell" title="Add Markdown Cell">+ Markdown</button>
         </div>
 
         @if (Service.AvailableLayouts.Count > 1)

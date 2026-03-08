@@ -39,6 +39,9 @@ public sealed class FakeNotebookService : INotebookService
     public ThemeKind? ActiveThemeKind { get; set; } = ThemeKind.Light;
     public ThemeData? ActiveThemeData { get; set; }
     public string? ActiveLayoutId { get; set; } = "notebook";
+    public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
+        | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
+        | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect;
     public string? ActiveThemeId { get; set; } = "light";
 
     // ── Extension data ─────────────────────────────────────────────────

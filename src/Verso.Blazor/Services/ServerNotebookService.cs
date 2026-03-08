@@ -110,6 +110,12 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public string? ActiveLayoutId =>
         _scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
 
+    public LayoutCapabilities LayoutCapabilities =>
+        _scaffold?.LayoutCapabilities ?? (LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
+                             LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
+                             LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute |
+                             LayoutCapabilities.MultiSelect);
+
     public string? ActiveThemeId =>
         _scaffold?.ThemeEngine?.ActiveTheme?.ThemeId;
 
@@ -142,7 +148,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public IReadOnlyList<LayoutInfo> AvailableLayouts =>
         _extensionHost?.GetLayouts()
-            .Select(l => new LayoutInfo(l.LayoutId, l.DisplayName, l.RequiresCustomRenderer))
+            .Select(l => new LayoutInfo(l.LayoutId, l.DisplayName, l.RequiresCustomRenderer, l.Capabilities))
             .ToList()
         ?? (IReadOnlyList<LayoutInfo>)Array.Empty<LayoutInfo>();
 

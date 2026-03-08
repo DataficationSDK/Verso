@@ -250,6 +250,7 @@ public sealed class LayoutDto
     public string? Icon { get; set; }
     public bool RequiresCustomRenderer { get; set; }
     public bool IsActive { get; set; }
+    public int Capabilities { get; set; }
 }
 
 public sealed class LayoutSwitchParams

@@ -60,6 +60,9 @@ public interface INotebookService
     /// <summary>Active layout ID.</summary>
     string? ActiveLayoutId { get; }
 
+    /// <summary>Capabilities granted by the active layout (cell insert, delete, execute, etc.).</summary>
+    LayoutCapabilities LayoutCapabilities { get; }
+
     /// <summary>Active theme ID.</summary>
     string? ActiveThemeId { get; }
 

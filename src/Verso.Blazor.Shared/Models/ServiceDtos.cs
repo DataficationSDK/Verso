@@ -20,7 +20,10 @@ public sealed record ToolbarActionInfo(
 public sealed record LayoutInfo(
     string LayoutId,
     string DisplayName,
-    bool RequiresCustomRenderer);
+    bool RequiresCustomRenderer,
+    LayoutCapabilities Capabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
+        | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
+        | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect);
 
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(

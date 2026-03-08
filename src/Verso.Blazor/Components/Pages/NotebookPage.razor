@@ -147,13 +147,16 @@
                             }
                         }
 
-                        <div class="verso-add-cell-row">
-                            @foreach (var ct in cellTypes)
-                            {
-                                var typeId = ct.Id;
-                                <button class="verso-add-cell-btn" @onclick="() => HandleAddCell(typeId)">+ @ct.DisplayName Cell</button>
-                            }
-                        </div>
+                        @if (Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))
+                        {
+                            <div class="verso-add-cell-row">
+                                @foreach (var ct in cellTypes)
+                                {
+                                    var typeId = ct.Id;
+                                    <button class="verso-add-cell-btn" @onclick="() => HandleAddCell(typeId)">+ @ct.DisplayName Cell</button>
+                                }
+                            </div>
+                        }
                     </div>
                 }
             </div>

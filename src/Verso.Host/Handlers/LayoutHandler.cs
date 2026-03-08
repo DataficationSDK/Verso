@@ -23,7 +23,8 @@ public static class LayoutHandler
                 DisplayName = l.DisplayName,
                 Icon = l.Icon,
                 RequiresCustomRenderer = l.RequiresCustomRenderer,
-                IsActive = string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase)
+                IsActive = string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase),
+                Capabilities = (int)l.Capabilities
             }).ToList()
         };
     }
