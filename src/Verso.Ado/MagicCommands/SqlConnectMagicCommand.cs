@@ -59,8 +59,8 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
             return;
         }
 
-        // Resolve credentials
-        var (resolvedCs, credError) = CredentialResolver.ResolveConnectionString(rawCs);
+        // Resolve credentials ($env:, $var:, $secret: tokens)
+        var (resolvedCs, credError) = CredentialResolver.ResolveConnectionString(rawCs, context.Variables);
         if (credError is not null)
         {
             await context.WriteOutputAsync(new CellOutput(

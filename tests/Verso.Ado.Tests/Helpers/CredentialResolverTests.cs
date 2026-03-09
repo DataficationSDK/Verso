@@ -1,4 +1,5 @@
 using Verso.Ado.Helpers;
+using Verso.Contexts;
 
 namespace Verso.Ado.Tests.Helpers;
 
@@ -80,6 +81,92 @@ public sealed class CredentialResolverTests
             Environment.SetEnvironmentVariable("VERSO_TEST_HOST", null);
             Environment.SetEnvironmentVariable("VERSO_TEST_PORT", null);
         }
+    }
+
+    // --- $var: variable store tests ---
+
+    [TestMethod]
+    public void ResolveConnectionString_Var_ExpandsFromStore()
+    {
+        var store = new VariableStore();
+        store.Set("connStr", "Server=localhost;Database=mydb");
+
+        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            "$var:connStr", store);
+
+        Assert.IsNull(error);
+        Assert.AreEqual("Server=localhost;Database=mydb", resolved);
+    }
+
+    [TestMethod]
+    public void ResolveConnectionString_Var_ExpandsPartialToken()
+    {
+        var store = new VariableStore();
+        store.Set("dbHost", "prod-server");
+        store.Set("dbName", "sales");
+
+        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            "Server=$var:dbHost;Database=$var:dbName", store);
+
+        Assert.IsNull(error);
+        Assert.AreEqual("Server=prod-server;Database=sales", resolved);
+    }
+
+    [TestMethod]
+    public void ResolveConnectionString_Var_MixedWithEnv()
+    {
+        var store = new VariableStore();
+        store.Set("dbName", "sales");
+        Environment.SetEnvironmentVariable("VERSO_TEST_HOST2", "prod-server");
+        try
+        {
+            var (resolved, error) = CredentialResolver.ResolveConnectionString(
+                "Server=$env:VERSO_TEST_HOST2;Database=$var:dbName", store);
+
+            Assert.IsNull(error);
+            Assert.AreEqual("Server=prod-server;Database=sales", resolved);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("VERSO_TEST_HOST2", null);
+        }
+    }
+
+    [TestMethod]
+    public void ResolveConnectionString_Var_UndefinedVariable_ReturnsError()
+    {
+        var store = new VariableStore();
+
+        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            "Server=$var:noSuchVar", store);
+
+        Assert.IsNull(resolved);
+        Assert.IsNotNull(error);
+        Assert.IsTrue(error!.Contains("noSuchVar"));
+    }
+
+    [TestMethod]
+    public void ResolveConnectionString_Var_NoStore_ReturnsError()
+    {
+        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            "Server=$var:myHost");
+
+        Assert.IsNull(resolved);
+        Assert.IsNotNull(error);
+        Assert.IsTrue(error!.Contains("variable store"));
+    }
+
+    [TestMethod]
+    public void ResolveConnectionString_Var_CaseInsensitiveLookup()
+    {
+        var store = new VariableStore();
+        store.Set("MyConnStr", "Data Source=:memory:");
+
+        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            "$var:myconnstr", store);
+
+        Assert.IsNull(error);
+        Assert.AreEqual("Data Source=:memory:", resolved);
     }
 
     [TestMethod]
