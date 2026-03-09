@@ -80,10 +80,13 @@ internal sealed class SchemaCache
     private static async Task<SchemaCacheEntry> LoadSchemaAsync(DbConnection connection, CancellationToken ct)
     {
         bool isSqlite = IsSqlite(connection);
+        bool isFirebird = !isSqlite && IsFirebird(connection);
 
         var tables = isSqlite
             ? await LoadSqliteTablesAsync(connection, ct).ConfigureAwait(false)
-            : await LoadInformationSchemaTablesAsync(connection, ct).ConfigureAwait(false);
+            : isFirebird
+                ? await LoadFirebirdTablesAsync(connection, ct).ConfigureAwait(false)
+                : await LoadInformationSchemaTablesAsync(connection, ct).ConfigureAwait(false);
 
         var columns = new Dictionary<string, List<ColumnInfo>>(StringComparer.OrdinalIgnoreCase);
         var foreignKeys = new Dictionary<string, List<ForeignKeyInfo>>(StringComparer.OrdinalIgnoreCase);
@@ -92,12 +95,16 @@ internal sealed class SchemaCache
         {
             var cols = isSqlite
                 ? await LoadSqliteColumnsAsync(connection, table.Name, ct).ConfigureAwait(false)
-                : await LoadInformationSchemaColumnsAsync(connection, table.Name, table.Schema, ct).ConfigureAwait(false);
+                : isFirebird
+                    ? await LoadFirebirdColumnsAsync(connection, table.Name, ct).ConfigureAwait(false)
+                    : await LoadInformationSchemaColumnsAsync(connection, table.Name, table.Schema, ct).ConfigureAwait(false);
             columns[table.Name] = cols;
 
             var fks = isSqlite
                 ? await LoadSqliteForeignKeysAsync(connection, table.Name, ct).ConfigureAwait(false)
-                : await LoadInformationSchemaForeignKeysAsync(connection, table.Name, table.Schema, ct).ConfigureAwait(false);
+                : isFirebird
+                    ? await LoadFirebirdForeignKeysAsync(connection, table.Name, ct).ConfigureAwait(false)
+                    : await LoadInformationSchemaForeignKeysAsync(connection, table.Name, table.Schema, ct).ConfigureAwait(false);
             if (fks.Count > 0)
                 foreignKeys[table.Name] = fks;
         }
@@ -109,6 +116,13 @@ internal sealed class SchemaCache
     {
         var typeName = connection.GetType().FullName ?? "";
         return typeName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsFirebird(DbConnection connection)
+    {
+        var typeName = connection.GetType().FullName ?? "";
+        return typeName.Contains("Firebird", StringComparison.OrdinalIgnoreCase)
+            || typeName.Contains("FbConnection", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<List<TableInfo>> LoadSqliteTablesAsync(DbConnection connection, CancellationToken ct)
@@ -246,6 +260,129 @@ internal sealed class SchemaCache
 
         return fks;
     }
+
+    // --- Firebird RDB$ system table queries ---
+
+    private static async Task<List<TableInfo>> LoadFirebirdTablesAsync(DbConnection connection, CancellationToken ct)
+    {
+        var tables = new List<TableInfo>();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = @"
+            SELECT TRIM(RDB$RELATION_NAME), RDB$RELATION_TYPE
+            FROM RDB$RELATIONS
+            WHERE RDB$SYSTEM_FLAG = 0
+            ORDER BY RDB$RELATION_NAME";
+
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var name = reader.GetString(0).Trim();
+            var relationType = reader.GetInt16(1);
+            // RDB$RELATION_TYPE: 0 = table, 1 = view
+            var tableType = relationType == 1 ? "VIEW" : "TABLE";
+            tables.Add(new TableInfo(name, null, tableType));
+        }
+
+        return tables;
+    }
+
+    private static async Task<List<ColumnInfo>> LoadFirebirdColumnsAsync(
+        DbConnection connection, string tableName, CancellationToken ct)
+    {
+        var columns = new List<ColumnInfo>();
+
+        // Identify primary key columns
+        var pkColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var pkCmd = connection.CreateCommand();
+            pkCmd.CommandText = @"
+                SELECT TRIM(sg.RDB$FIELD_NAME)
+                FROM RDB$RELATION_CONSTRAINTS rc
+                JOIN RDB$INDEX_SEGMENTS sg ON rc.RDB$INDEX_NAME = sg.RDB$INDEX_NAME
+                WHERE rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
+                  AND TRIM(rc.RDB$RELATION_NAME) = '" + tableName + "'";
+            using var pkReader = await pkCmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await pkReader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                pkColumns.Add(pkReader.GetString(0).Trim());
+            }
+        }
+        catch (DbException) { }
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = @"
+            SELECT TRIM(rf.RDB$FIELD_NAME),
+                   TRIM(COALESCE(t.RDB$TYPE_NAME, 'UNKNOWN')),
+                   rf.RDB$NULL_FLAG,
+                   rf.RDB$DEFAULT_SOURCE,
+                   rf.RDB$FIELD_POSITION
+            FROM RDB$RELATION_FIELDS rf
+            LEFT JOIN RDB$FIELDS f ON rf.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
+            LEFT JOIN RDB$TYPES t ON f.RDB$FIELD_TYPE = t.RDB$TYPE AND t.RDB$FIELD_NAME = 'RDB$FIELD_TYPE'
+            WHERE TRIM(rf.RDB$RELATION_NAME) = '" + tableName + @"'
+            ORDER BY rf.RDB$FIELD_POSITION";
+
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var name = reader.GetString(0).Trim();
+            var dataType = reader.IsDBNull(1) ? "UNKNOWN" : reader.GetString(1).Trim();
+            var nullFlag = reader.IsDBNull(2) ? (short)0 : reader.GetInt16(2);
+            var defaultValue = reader.IsDBNull(3) ? null : reader.GetString(3)?.Trim();
+            var ordinal = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+
+            columns.Add(new ColumnInfo(
+                name,
+                dataType,
+                nullFlag == 0, // RDB$NULL_FLAG: 1 = NOT NULL, 0/null = nullable
+                defaultValue,
+                pkColumns.Contains(name),
+                ordinal));
+        }
+
+        return columns;
+    }
+
+    private static async Task<List<ForeignKeyInfo>> LoadFirebirdForeignKeysAsync(
+        DbConnection connection, string tableName, CancellationToken ct)
+    {
+        var fks = new List<ForeignKeyInfo>();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT TRIM(rc.RDB$CONSTRAINT_NAME),
+                       TRIM(sg1.RDB$FIELD_NAME),
+                       TRIM(idx2.RDB$RELATION_NAME),
+                       TRIM(sg2.RDB$FIELD_NAME)
+                FROM RDB$RELATION_CONSTRAINTS rc
+                JOIN RDB$INDEX_SEGMENTS sg1 ON rc.RDB$INDEX_NAME = sg1.RDB$INDEX_NAME
+                JOIN RDB$REF_CONSTRAINTS ref_c ON rc.RDB$CONSTRAINT_NAME = ref_c.RDB$CONSTRAINT_NAME
+                JOIN RDB$RELATION_CONSTRAINTS rc2 ON ref_c.RDB$CONST_NAME_UQ = rc2.RDB$CONSTRAINT_NAME
+                JOIN RDB$INDICES idx2 ON rc2.RDB$INDEX_NAME = idx2.RDB$INDEX_NAME
+                JOIN RDB$INDEX_SEGMENTS sg2 ON idx2.RDB$INDEX_NAME = sg2.RDB$INDEX_NAME
+                  AND sg1.RDB$FIELD_POSITION = sg2.RDB$FIELD_POSITION
+                WHERE rc.RDB$CONSTRAINT_TYPE = 'FOREIGN KEY'
+                  AND TRIM(rc.RDB$RELATION_NAME) = '" + tableName + "'";
+
+            using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                fks.Add(new ForeignKeyInfo(
+                    reader.GetString(0).Trim(),
+                    tableName,
+                    reader.GetString(1).Trim(),
+                    reader.GetString(2).Trim(),
+                    reader.GetString(3).Trim()));
+            }
+        }
+        catch (DbException) { }
+
+        return fks;
+    }
+
+    // --- INFORMATION_SCHEMA queries (SQL Server, PostgreSQL, MySQL, etc.) ---
 
     private static async Task<List<ColumnInfo>> LoadInformationSchemaColumnsAsync(
         DbConnection connection, string tableName, string? schema, CancellationToken ct)
