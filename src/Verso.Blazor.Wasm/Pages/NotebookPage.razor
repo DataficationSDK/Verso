@@ -502,7 +502,16 @@
 
         try
         {
-            await Service.ExecuteCellAsync(cellId);
+            var result = await Service.ExecuteCellAsync(cellId);
+
+            // Stamp execution state onto the cell model for UI display
+            var cell = Service.Cells.FirstOrDefault(c => c.Id == cellId);
+            if (cell is not null)
+            {
+                cell.ExecutionCount = result.ExecutionCount;
+                cell.LastElapsed = result.Elapsed;
+                cell.LastStatus = result.Status;
+            }
         }
         catch (Exception ex)
         {

@@ -58,6 +58,7 @@ public sealed record CompletionItemDto(
 public sealed record ExecutionResultDto(
     Guid CellId,
     string Status,
+    int ExecutionCount,
     TimeSpan Elapsed);
 
 /// <summary>Variable entry for the variable explorer.</summary>

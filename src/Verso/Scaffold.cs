@@ -215,7 +215,12 @@ public sealed class Scaffold : IAsyncDisposable
         lock (_cellLock)
         {
             foreach (var cell in _notebook.Cells)
+            {
                 cell.Outputs.Clear();
+                cell.ExecutionCount = null;
+                cell.LastElapsed = null;
+                cell.LastStatus = null;
+            }
         }
     }
 

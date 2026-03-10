@@ -155,7 +155,7 @@ public sealed class FakeNotebookService : INotebookService
     public Task<ExecutionResultDto> ExecuteCellAsync(Guid cellId)
     {
         ExecutedCellIds.Add(cellId);
-        return Task.FromResult(new ExecutionResultDto(cellId, "ok", TimeSpan.FromMilliseconds(42)));
+        return Task.FromResult(new ExecutionResultDto(cellId, "ok", 1, TimeSpan.FromMilliseconds(42)));
     }
 
     public Task<IReadOnlyList<ExecutionResultDto>> ExecuteAllAsync()

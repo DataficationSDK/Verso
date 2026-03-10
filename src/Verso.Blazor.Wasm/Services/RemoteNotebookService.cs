@@ -339,6 +339,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         return new ExecutionResultDto(
             cellId,
             result.Status ?? "completed",
+            result.ExecutionCount,
             TimeSpan.FromMilliseconds(result.ElapsedMs));
     }
 
@@ -994,6 +995,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private sealed class ExecutionResponse
     {
         public string? Status { get; set; }
+        public int ExecutionCount { get; set; }
         public double ElapsedMs { get; set; }
         public List<CellOutputDto>? Outputs { get; set; }
     }

@@ -676,6 +676,45 @@ html, body {
     border-radius: 2px;
 }
 
+/* === Cell Execution Status === */
+
+.verso-cell-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 var(--verso-cell-padding, 12px);
+    padding: 3px 0;
+    font-size: 11px;
+    font-family: var(--verso-editor-font-family, monospace);
+    color: var(--verso-editor-line-number, #858585);
+    border-top: 1px solid var(--verso-cell-border, rgba(255, 255, 255, 0.06));
+}
+
+.verso-cell-status-icon {
+    font-size: 12px;
+}
+
+.verso-cell-status--success .verso-cell-status-icon {
+    color: var(--verso-status-success, #28A745);
+}
+
+.verso-cell-status--failed .verso-cell-status-icon {
+    color: var(--verso-status-error, #DC3545);
+}
+
+.verso-cell-status--cancelled .verso-cell-status-icon {
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-cell-status-elapsed {
+    flex: 1;
+}
+
+.verso-cell-status-count {
+    margin-left: auto;
+    opacity: 0.6;
+}
+
 /* === Cell Outputs === */
 
 .verso-cell-outputs {

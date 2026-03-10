@@ -95,6 +95,15 @@
             </div>
         }
 
+        @if (CellData.ExecutionCount is not null && !IsInPreviewMode)
+        {
+            <div class="verso-cell-status verso-cell-status--@EffectiveStatus">
+                <span class="verso-cell-status-icon">@StatusIcon</span>
+                <span class="verso-cell-status-elapsed">@FormatElapsed(CellData.LastElapsed)</span>
+                <span class="verso-cell-status-count">[@CellData.ExecutionCount]</span>
+            </div>
+        }
+
         @if (CellData.Outputs.Count > 0)
         {
             <div class="verso-cell-outputs @(IsInPreviewMode ? "verso-cell-outputs--clickable" : "")"
@@ -170,6 +179,26 @@
         && !string.IsNullOrWhiteSpace(CellData.Source);
 
     private string EditorLanguage => CellData.Type == "markdown" ? "markdown" : (CellData.Language ?? "csharp");
+
+    private bool HasErrorOutput => CellData.Outputs.Any(o => o.IsError);
+
+    private string EffectiveStatus => HasErrorOutput ? "failed" : (CellData.LastStatus?.ToLowerInvariant() ?? "success");
+
+    private string StatusIcon => EffectiveStatus switch
+    {
+        "success" or "completed" => "\u2714",  // ✔
+        "failed" => "\u2718",                  // ✘
+        "cancelled" => "\u2014",               // —
+        _ => "\u2714"
+    };
+
+    private static string FormatElapsed(TimeSpan? elapsed)
+    {
+        if (elapsed is not { } ts) return "";
+        return ts.TotalSeconds < 60
+            ? $"{ts.TotalSeconds:F1}s"
+            : $"{ts.TotalMinutes:F1}m";
+    }
 
     protected override async Task OnParametersSetAsync()
     {

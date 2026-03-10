@@ -34,4 +34,25 @@ public sealed class CellModel
     /// Gets or sets arbitrary key-value metadata associated with this cell.
     /// </summary>
     public Dictionary<string, object> Metadata { get; set; } = new();
+
+    // --- Execution state (transient, not serialized) ---
+
+    /// <summary>
+    /// The session-scoped execution counter for this cell, or <see langword="null"/> if the cell has not been executed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int? ExecutionCount { get; set; }
+
+    /// <summary>
+    /// The wall-clock duration of the most recent execution, or <see langword="null"/> if the cell has not been executed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public TimeSpan? LastElapsed { get; set; }
+
+    /// <summary>
+    /// The status of the most recent execution ("Success", "Failed", or "Cancelled"),
+    /// or <see langword="null"/> if the cell has not been executed.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? LastStatus { get; set; }
 }

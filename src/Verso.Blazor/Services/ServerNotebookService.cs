@@ -401,7 +401,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         var result = await _scaffold.ExecuteCellAsync(cellId);
         OnCellExecuted?.Invoke();
-        return new ExecutionResultDto(result.CellId, result.Status.ToString(), result.Elapsed);
+        return new ExecutionResultDto(result.CellId, result.Status.ToString(), result.ExecutionCount, result.Elapsed);
     }
 
     public async Task<IReadOnlyList<ExecutionResultDto>> ExecuteAllAsync()
@@ -412,7 +412,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var results = await _scaffold.ExecuteAllAsync();
         OnCellExecuted?.Invoke();
         return results.Select(r =>
-            new ExecutionResultDto(r.CellId, r.Status.ToString(), r.Elapsed)).ToList();
+            new ExecutionResultDto(r.CellId, r.Status.ToString(), r.ExecutionCount, r.Elapsed)).ToList();
     }
 
     public async Task RestartKernelAsync()
