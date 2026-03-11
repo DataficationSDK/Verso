@@ -145,4 +145,35 @@ public sealed class SqlConnectMagicCommandTests
 
         Assert.IsTrue(ctx.WrittenOutputs.Any(o => o.IsError));
     }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ProviderAsVar_ResolvesFromStore()
+    {
+        var cmd = new SqlConnectMagicCommand();
+        var ctx = new StubMagicCommandContext();
+        ctx.Variables.Set("providerName", "Microsoft.Data.Sqlite");
+
+        await cmd.ExecuteAsync(
+            "--name testdb --connection-string \"Data Source=:memory:\" --provider $var:providerName",
+            ctx);
+
+        Assert.IsTrue(ctx.WrittenOutputs.Any(o => !o.IsError && o.Content.Contains("Connected 'testdb'")));
+
+        var connections = ctx.Variables.Get<Dictionary<string, SqlConnectionInfo>>(
+            SqlConnectMagicCommand.ConnectionsStoreKey)!;
+        await connections["testdb"].Connection!.DisposeAsync();
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ProviderAsVar_UndefinedVariable_OutputsError()
+    {
+        var cmd = new SqlConnectMagicCommand();
+        var ctx = new StubMagicCommandContext();
+
+        await cmd.ExecuteAsync(
+            "--name testdb --connection-string \"Data Source=:memory:\" --provider $var:noSuchProvider",
+            ctx);
+
+        Assert.IsTrue(ctx.WrittenOutputs.Any(o => o.IsError && o.Content.Contains("Error resolving provider")));
+    }
 }
