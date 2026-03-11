@@ -5,9 +5,9 @@ namespace Verso.Ado.Helpers;
 
 /// <summary>
 /// Expands <c>$env:VAR_NAME</c>, <c>$var:VarName</c>, and <c>$secret:SecretName</c> tokens
-/// in connection strings, and redacts sensitive values for safe display.
+/// in strings, and redacts sensitive values for safe display.
 /// </summary>
-internal static class CredentialResolver
+internal static class PlaceholderResolver
 {
     private static readonly Regex EnvPattern = new(@"\$env:([A-Za-z_][A-Za-z0-9_]*)", RegexOptions.Compiled);
     private static readonly Regex VarPattern = new(@"\$var:([A-Za-z_][A-Za-z0-9_]*)", RegexOptions.Compiled);
@@ -61,6 +61,10 @@ internal static class CredentialResolver
         return (resolved, null);
     }
 
+    /// <summary>
+    /// Resolves <c>$var:</c> placeholders in any string using the notebook variable store.
+    /// Returns <c>(resolvedString, errorMessage)</c>. If errorMessage is non-null, resolution failed.
+    /// </summary>
     internal static (string? Resolved, string? Error) ResolveVariable(string raw, IVariableStore? variables, string targetName)
     {
         if (!VarPattern.IsMatch(raw))

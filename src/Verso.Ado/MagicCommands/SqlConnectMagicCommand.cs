@@ -60,7 +60,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         }
 
         // Resolve credentials ($env:, $var:, $secret: tokens)
-        var (resolvedCs, credError) = CredentialResolver.ResolveConnectionString(rawCs, context.Variables);
+        var (resolvedCs, credError) = PlaceholderResolver.ResolveConnectionString(rawCs, context.Variables);
         if (credError is not null)
         {
             await context.WriteOutputAsync(new CellOutput(
@@ -74,7 +74,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         string? resolvedProvider = explicitProvider;
         if (!string.IsNullOrWhiteSpace(explicitProvider))
         {
-            var (providerValue, providerResolveError) = CredentialResolver.ResolveVariable(
+            var (providerValue, providerResolveError) = PlaceholderResolver.ResolveVariable(
                 explicitProvider,
                 context.Variables,
                 "provider");
@@ -132,7 +132,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
             context.Variables.Set(DefaultConnectionStoreKey, name);
         }
 
-        var redacted = CredentialResolver.RedactConnectionString(resolvedCs!);
+        var redacted = PlaceholderResolver.RedactConnectionString(resolvedCs!);
         var dbName = connection.Database;
         var defaultLabel = isDefault ? " (default)" : "";
 

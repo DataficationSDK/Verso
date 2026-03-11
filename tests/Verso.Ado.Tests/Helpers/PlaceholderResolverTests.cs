@@ -4,12 +4,12 @@ using Verso.Contexts;
 namespace Verso.Ado.Tests.Helpers;
 
 [TestClass]
-public sealed class CredentialResolverTests
+public sealed class PlaceholderResolverTests
 {
     [TestMethod]
     public void ResolveConnectionString_PlainString_PassesThrough()
     {
-        var (resolved, error) = CredentialResolver.ResolveConnectionString("Data Source=:memory:");
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString("Data Source=:memory:");
 
         Assert.IsNull(error);
         Assert.AreEqual("Data Source=:memory:", resolved);
@@ -21,7 +21,7 @@ public sealed class CredentialResolverTests
         Environment.SetEnvironmentVariable("VERSO_TEST_DB", "mydb.sqlite");
         try
         {
-            var (resolved, error) = CredentialResolver.ResolveConnectionString("Data Source=$env:VERSO_TEST_DB");
+            var (resolved, error) = PlaceholderResolver.ResolveConnectionString("Data Source=$env:VERSO_TEST_DB");
 
             Assert.IsNull(error);
             Assert.AreEqual("Data Source=mydb.sqlite", resolved);
@@ -37,7 +37,7 @@ public sealed class CredentialResolverTests
     {
         Environment.SetEnvironmentVariable("VERSO_NONEXISTENT_XYZ", null);
 
-        var (resolved, error) = CredentialResolver.ResolveConnectionString("Data Source=$env:VERSO_NONEXISTENT_XYZ");
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString("Data Source=$env:VERSO_NONEXISTENT_XYZ");
 
         Assert.IsNull(resolved);
         Assert.IsNotNull(error);
@@ -47,7 +47,7 @@ public sealed class CredentialResolverTests
     [TestMethod]
     public void ResolveConnectionString_SecretPlaceholder_ReturnsError()
     {
-        var (resolved, error) = CredentialResolver.ResolveConnectionString("Password=$secret:MyPassword");
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString("Password=$secret:MyPassword");
 
         Assert.IsNull(resolved);
         Assert.IsNotNull(error);
@@ -57,7 +57,7 @@ public sealed class CredentialResolverTests
     [TestMethod]
     public void ResolveConnectionString_EmptyString_ReturnsError()
     {
-        var (resolved, error) = CredentialResolver.ResolveConnectionString("");
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString("");
 
         Assert.IsNull(resolved);
         Assert.IsNotNull(error);
@@ -70,7 +70,7 @@ public sealed class CredentialResolverTests
         Environment.SetEnvironmentVariable("VERSO_TEST_PORT", "5432");
         try
         {
-            var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
                 "Host=$env:VERSO_TEST_HOST;Port=$env:VERSO_TEST_PORT");
 
             Assert.IsNull(error);
@@ -91,7 +91,7 @@ public sealed class CredentialResolverTests
         var store = new VariableStore();
         store.Set("connStr", "Server=localhost;Database=mydb");
 
-        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
             "$var:connStr", store);
 
         Assert.IsNull(error);
@@ -105,7 +105,7 @@ public sealed class CredentialResolverTests
         store.Set("dbHost", "prod-server");
         store.Set("dbName", "sales");
 
-        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
             "Server=$var:dbHost;Database=$var:dbName", store);
 
         Assert.IsNull(error);
@@ -120,7 +120,7 @@ public sealed class CredentialResolverTests
         Environment.SetEnvironmentVariable("VERSO_TEST_HOST2", "prod-server");
         try
         {
-            var (resolved, error) = CredentialResolver.ResolveConnectionString(
+            var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
                 "Server=$env:VERSO_TEST_HOST2;Database=$var:dbName", store);
 
             Assert.IsNull(error);
@@ -137,7 +137,7 @@ public sealed class CredentialResolverTests
     {
         var store = new VariableStore();
 
-        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
             "Server=$var:noSuchVar", store);
 
         Assert.IsNull(resolved);
@@ -148,7 +148,7 @@ public sealed class CredentialResolverTests
     [TestMethod]
     public void ResolveConnectionString_Var_NoStore_ReturnsError()
     {
-        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
             "Server=$var:myHost");
 
         Assert.IsNull(resolved);
@@ -162,7 +162,7 @@ public sealed class CredentialResolverTests
         var store = new VariableStore();
         store.Set("MyConnStr", "Data Source=:memory:");
 
-        var (resolved, error) = CredentialResolver.ResolveConnectionString(
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
             "$var:myconnstr", store);
 
         Assert.IsNull(error);
@@ -170,9 +170,24 @@ public sealed class CredentialResolverTests
     }
 
     [TestMethod]
+    public void ResolveConnectionString_Var_EmptyValue_ReturnsError()
+    {
+        var store = new VariableStore();
+        store.Set("emptyVar", "");
+
+        var (resolved, error) = PlaceholderResolver.ResolveConnectionString(
+            "Server=$var:emptyVar", store);
+
+        Assert.IsNull(resolved);
+        Assert.IsNotNull(error);
+        Assert.IsTrue(error!.Contains("emptyVar"));
+        Assert.IsTrue(error!.Contains("null or empty"));
+    }
+
+    [TestMethod]
     public void RedactConnectionString_WithPassword_Redacts()
     {
-        var result = CredentialResolver.RedactConnectionString(
+        var result = PlaceholderResolver.RedactConnectionString(
             "Server=localhost;Database=mydb;Password=supersecret;");
 
         Assert.IsTrue(result.Contains("Password=***"));
@@ -182,7 +197,7 @@ public sealed class CredentialResolverTests
     [TestMethod]
     public void RedactConnectionString_WithPwd_Redacts()
     {
-        var result = CredentialResolver.RedactConnectionString(
+        var result = PlaceholderResolver.RedactConnectionString(
             "Server=localhost;Database=mydb;Pwd=supersecret;");
 
         Assert.IsTrue(result.Contains("Pwd=***"));
@@ -193,7 +208,7 @@ public sealed class CredentialResolverTests
     public void RedactConnectionString_NoPassword_Unchanged()
     {
         var input = "Data Source=:memory:";
-        var result = CredentialResolver.RedactConnectionString(input);
+        var result = PlaceholderResolver.RedactConnectionString(input);
 
         Assert.AreEqual(input, result);
     }
