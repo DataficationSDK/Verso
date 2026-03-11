@@ -69,10 +69,30 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
             return;
         }
 
-        // Discover provider (pass NuGet assembly paths so unloaded packages can be found)
+        // Resolve provider placeholder ($var:)
         args.TryGetValue("provider", out var explicitProvider);
+        string? resolvedProvider = explicitProvider;
+        if (!string.IsNullOrWhiteSpace(explicitProvider))
+        {
+            var (providerValue, providerResolveError) = VariablePlaceholderResolver.Resolve(
+                explicitProvider,
+                context.Variables,
+                "provider");
+
+            if (providerResolveError is not null)
+            {
+                await context.WriteOutputAsync(new CellOutput(
+                    "text/plain", $"Error resolving provider: {providerResolveError}", IsError: true))
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            resolvedProvider = providerValue;
+        }
+
+        // Discover provider (pass NuGet assembly paths so unloaded packages can be found)
         context.Variables.TryGet<List<string>>("__verso_nuget_assemblies", out var nugetPaths);
-        var (factory, providerName, providerError) = ProviderDiscovery.Discover(resolvedCs!, explicitProvider, nugetPaths);
+        var (factory, providerName, providerError) = ProviderDiscovery.Discover(resolvedCs!, resolvedProvider, nugetPaths);
         if (providerError is not null)
         {
             await context.WriteOutputAsync(new CellOutput(

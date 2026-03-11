@@ -10,7 +10,6 @@ namespace Verso.Ado.Helpers;
 internal static class CredentialResolver
 {
     private static readonly Regex EnvPattern = new(@"\$env:([A-Za-z_][A-Za-z0-9_]*)", RegexOptions.Compiled);
-    private static readonly Regex VarPattern = new(@"\$var:([A-Za-z_][A-Za-z0-9_]*)", RegexOptions.Compiled);
     private static readonly Regex SecretPattern = new(@"\$secret:([A-Za-z_][A-Za-z0-9_]*)", RegexOptions.Compiled);
     private static readonly Regex PasswordPattern = new(
         @"(Password|Pwd)\s*=\s*([^;]*)",
@@ -36,45 +35,14 @@ internal static class CredentialResolver
         }
 
         // Expand $var: tokens from the notebook variable store
+        var (varResolved, varError) = VariablePlaceholderResolver.Resolve(raw, variables, "connection string");
+        if (varError is not null)
+            return (null, varError);
+
         string? error = null;
-        var resolved = raw;
-
-        if (VarPattern.IsMatch(resolved))
-        {
-            if (variables is null)
-            {
-                return (null, "$var: placeholders require a variable store but none is available.");
-            }
-
-            resolved = VarPattern.Replace(resolved, match =>
-            {
-                var varName = match.Groups[1].Value;
-                var allVars = variables.GetAll();
-                var descriptor = allVars.FirstOrDefault(v =>
-                    string.Equals(v.Name, varName, StringComparison.OrdinalIgnoreCase));
-
-                if (descriptor is null)
-                {
-                    error = $"Variable '{varName}' is not defined. Set it in a C# cell before using $var:{varName}.";
-                    return match.Value;
-                }
-
-                var value = descriptor.Value?.ToString();
-                if (string.IsNullOrEmpty(value))
-                {
-                    error = $"Variable '{varName}' is null or empty.";
-                    return match.Value;
-                }
-
-                return value;
-            });
-
-            if (error is not null)
-                return (null, error);
-        }
 
         // Expand $env: tokens
-        resolved = EnvPattern.Replace(resolved, match =>
+        var resolved = EnvPattern.Replace(varResolved!, match =>
         {
             var varName = match.Groups[1].Value;
             var value = Environment.GetEnvironmentVariable(varName);
