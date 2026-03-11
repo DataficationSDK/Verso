@@ -74,7 +74,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         string? resolvedProvider = explicitProvider;
         if (!string.IsNullOrWhiteSpace(explicitProvider))
         {
-            var (providerValue, providerResolveError) = VariablePlaceholderResolver.Resolve(
+            var (providerValue, providerResolveError) = CredentialResolver.ResolveVariable(
                 explicitProvider,
                 context.Variables,
                 "provider");
