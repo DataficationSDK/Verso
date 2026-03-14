@@ -94,6 +94,21 @@ internal static class PythonEngineManager
                 var dll = FindPythonDllInDirectory(path);
                 if (dll is not null) return dll;
             }
+
+            // Anaconda / Miniconda
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string[] macCondaPaths =
+            {
+                Path.Combine(home, "anaconda3", "lib"),
+                Path.Combine(home, "miniconda3", "lib"),
+                "/opt/anaconda3/lib",
+                "/opt/miniconda3/lib"
+            };
+            foreach (var path in macCondaPaths)
+            {
+                var dll = FindPythonDllInDirectory(path);
+                if (dll is not null) return dll;
+            }
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
@@ -109,12 +124,30 @@ internal static class PythonEngineManager
                 var dll = FindPythonDllInDirectory(path);
                 if (dll is not null) return dll;
             }
+
+            // Anaconda / Miniconda
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string[] linuxCondaPaths =
+            {
+                Path.Combine(home, "anaconda3", "lib"),
+                Path.Combine(home, "miniconda3", "lib"),
+                "/opt/anaconda3/lib",
+                "/opt/miniconda3/lib"
+            };
+            foreach (var path in linuxCondaPaths)
+            {
+                var dll = FindPythonDllInDirectory(path);
+                if (dll is not null) return dll;
+            }
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             // Common Windows install locations
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var programData = Environment.GetEnvironmentVariable("ProgramData") ?? @"C:\ProgramData";
+
             string[] winPaths =
             {
                 Path.Combine(localAppData, "Programs", "Python"),  // Standard MSI installer
@@ -135,6 +168,47 @@ internal static class PythonEngineManager
                     dll = FindPythonDllInDirectory(dir);
                     if (dll is not null) return dll;
                 }
+            }
+
+            // Windows Store installs (real files live under Packages, not the WindowsApps stubs)
+            try
+            {
+                var packagesDir = Path.Combine(localAppData, "Packages");
+                if (Directory.Exists(packagesDir))
+                {
+                    var storeDirs = Directory.GetDirectories(packagesDir, "PythonSoftwareFoundation.Python.3*")
+                        .OrderByDescending(d => d);
+                    foreach (var storeDir in storeDirs)
+                    {
+                        var localPackages = Path.Combine(storeDir, "LocalCache", "local-packages");
+                        if (!Directory.Exists(localPackages)) continue;
+                        foreach (var pyDir in Directory.GetDirectories(localPackages, "Python3*").OrderByDescending(d => d))
+                        {
+                            var dll = FindPythonDllInDirectory(pyDir);
+                            if (dll is not null) return dll;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Store package directories may have restrictive ACLs; skip silently
+            }
+
+            // Anaconda / Miniconda
+            string[] condaPaths =
+            {
+                Path.Combine(userProfile, "anaconda3"),
+                Path.Combine(userProfile, "miniconda3"),
+                Path.Combine(localAppData, "anaconda3"),
+                Path.Combine(localAppData, "miniconda3"),
+                Path.Combine(programData, "anaconda3"),
+                Path.Combine(programData, "miniconda3")
+            };
+            foreach (var condaPath in condaPaths)
+            {
+                var dll = FindPythonDllInDirectory(condaPath);
+                if (dll is not null) return dll;
             }
         }
 
