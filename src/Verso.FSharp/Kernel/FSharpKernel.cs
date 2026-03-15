@@ -246,6 +246,10 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                     StringComparer.OrdinalIgnoreCase);
             }
 
+            // Snapshot bound value names so we can detect new bindings after eval
+            var boundNamesBefore = new HashSet<string>(
+                _sessionManager!.GetBoundValues().Select(v => v.Name));
+
             var result = _sessionManager!.EvalInteraction(processedCode, context.CancellationToken);
 
             // --- Detect newly loaded assemblies (FSI-native NuGet path) ---
@@ -261,8 +265,25 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 }
             }
 
-            // 1. FSI output (val bindings, type annotations, etc.)
-            if (!string.IsNullOrEmpty(result.FsiOutput))
+            // 1. FSI output — try rich formatting for newly bound collection/record values
+            var formattedBindings = new List<CellOutput>();
+            foreach (var (name, value, type) in _sessionManager!.GetBoundValues())
+            {
+                if (name == "it" || boundNamesBefore.Contains(name)) continue;
+                var formatted = await TryFormatAsync(value, context).ConfigureAwait(false);
+                if (formatted is not null)
+                    formattedBindings.Add(formatted);
+            }
+
+            if (formattedBindings.Count > 0)
+            {
+                foreach (var fo in formattedBindings)
+                {
+                    await context.WriteOutputAsync(fo).ConfigureAwait(false);
+                    outputs.Add(fo);
+                }
+            }
+            else if (!string.IsNullOrEmpty(result.FsiOutput))
             {
                 var fsiCell = new CellOutput("text/plain", result.FsiOutput);
                 await context.WriteOutputAsync(fsiCell).ConfigureAwait(false);
