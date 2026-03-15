@@ -7,6 +7,18 @@ window.versoMonaco = (function () {
     let readyCallbacks = [];
     let _currentTheme = 'vs';
 
+    // Editor font settings — overridden by VS Code extension when running in a webview
+    let _editorSettings = {
+        fontSize: 14,
+        fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+        fontLigatures: true
+    };
+
+    // Apply VS Code editor settings if injected by the extension host
+    if (window.__versoEditorSettings) {
+        Object.assign(_editorSettings, window.__versoEditorSettings);
+    }
+
     const completionKindMap = {
         'Method':    1,  // monaco.languages.CompletionItemKind.Method
         'Function':  1,
@@ -136,8 +148,9 @@ window.versoMonaco = (function () {
                     lineNumbersMinChars: 3,
                     renderLineHighlight: 'line',
                     automaticLayout: true,
-                    fontSize: 14,
-                    fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+                    fontSize: _editorSettings.fontSize,
+                    fontFamily: _editorSettings.fontFamily,
+                    fontLigatures: _editorSettings.fontLigatures,
                     scrollbar: {
                         vertical: 'auto',
                         horizontal: 'auto',
@@ -265,6 +278,15 @@ window.versoMonaco = (function () {
             if (el) {
                 el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
+        },
+
+        updateEditorSettings: function (settings) {
+            Object.assign(_editorSettings, settings);
+            const opts = {};
+            if (settings.fontSize !== undefined) opts.fontSize = settings.fontSize;
+            if (settings.fontFamily !== undefined) opts.fontFamily = settings.fontFamily;
+            if (settings.fontLigatures !== undefined) opts.fontLigatures = settings.fontLigatures;
+            Object.values(editors).forEach(function (ed) { ed.updateOptions(opts); });
         }
     };
 })();

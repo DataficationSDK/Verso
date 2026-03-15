@@ -91,6 +91,10 @@
             } else {
                 entry.resolve(JSON.stringify(msg.result));
             }
+        } else if (msg.type === "editor-settings-changed") {
+            if (window.versoMonaco && typeof window.versoMonaco.updateEditorSettings === "function") {
+                window.versoMonaco.updateEditorSettings(msg.settings);
+            }
         } else if (msg.type === "jsonrpc-notification") {
             var method = msg.method;
             var params = msg.params ? JSON.stringify(msg.params) : null;

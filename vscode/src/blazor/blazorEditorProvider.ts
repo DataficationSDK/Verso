@@ -43,7 +43,44 @@ export class BlazorEditorProvider
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly host: HostProcess
-  ) {}
+  ) {
+    // Watch for VS Code editor setting changes and push to all open webviews
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (
+          e.affectsConfiguration("editor.fontFamily") ||
+          e.affectsConfiguration("editor.fontSize") ||
+          e.affectsConfiguration("editor.fontLigatures")
+        ) {
+          const settings = BlazorEditorProvider.getEditorSettings();
+          for (const [, bridge] of this.bridges) {
+            bridge.postEditorSettings(settings);
+          }
+        }
+      })
+    );
+  }
+
+  /**
+   * Reads the user's VS Code editor font settings and prepends
+   * ligature-capable fonts so ligatures work out of the box.
+   */
+  private static readonly ligatureFonts = "'Cascadia Code', 'Fira Code'";
+
+  private static getEditorSettings(): {
+    fontSize: number;
+    fontFamily: string;
+    fontLigatures: boolean | string;
+  } {
+    const config = vscode.workspace.getConfiguration("editor");
+    const vscodeFontFamily = config.get<string>("fontFamily", "monospace");
+    const fontFamily = `${BlazorEditorProvider.ligatureFonts}, ${vscodeFontFamily}`;
+    return {
+      fontSize: config.get<number>("fontSize", 14),
+      fontFamily,
+      fontLigatures: config.get<boolean | string>("fontLigatures", true),
+    };
+  }
 
   // --- CustomEditorProvider lifecycle ---
 
@@ -350,6 +387,7 @@ export class BlazorEditorProvider
     </script>
 
     <script src="${vscodeBridgeJs}"></script>
+    <script>window.__versoEditorSettings = ${JSON.stringify(BlazorEditorProvider.getEditorSettings())};</script>
     <script src="${monacoCdn}/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
     <script src="${monacoInterop}"></script>
     <script src="${dashboardInterop}"></script>

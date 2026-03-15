@@ -247,6 +247,20 @@ export class BlazorBridge implements vscode.Disposable {
     });
   }
 
+  /**
+   * Push updated VS Code editor settings to the webview's Monaco editors.
+   */
+  postEditorSettings(settings: {
+    fontSize: number;
+    fontFamily: string;
+    fontLigatures: boolean | string;
+  }): void {
+    this.webview.postMessage({
+      type: "editor-settings-changed",
+      settings,
+    });
+  }
+
   dispose(): void {
     for (const d of this.disposables) {
       d.dispose();

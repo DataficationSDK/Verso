@@ -46,6 +46,10 @@ Already have notebooks in Jupyter or Polyglot format? Open any `.ipynb` or `.dib
 
 > **Note:** This extension requires the desktop version of VS Code. It is not compatible with browser-based environments such as GitHub Codespaces, where the embedded notebook UI cannot initialize.
 
+### Font Ligatures
+
+Verso respects your VS Code `editor.fontLigatures` setting. For ligatures to render, a ligature-capable font such as [Cascadia Code](https://github.com/microsoft/cascadia-code), [Fira Code](https://github.com/tonsky/FiraCode), or [JetBrains Mono](https://www.jetbrains.com/lp/mono/) must be installed on your system. Verso prepends Cascadia Code and Fira Code to your font stack automatically, so installing either font is all that is needed.
+
 ### Python Kernel
 
 The Python kernel requires **Python 3.8–3.12** installed on your system. Python 3.13+ is not yet supported by pythonnet. The kernel auto-detects your Python installation; if auto-detection fails you can set the `PythonDll` option to the path of your Python shared library (e.g. `python312.dll` on Windows, `libpython3.12.dylib` on macOS, `libpython3.12.so` on Linux).
