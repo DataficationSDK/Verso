@@ -84,13 +84,13 @@ public class NuGetFallbackResolverTests
             () => resolver.ResolvePackageAsync(
                 "Verso.ThisPackageDoesNotExist.ZZZZZ", null, CancellationToken.None));
 
-        Assert.IsTrue(ex.Message.Contains("not found on nuget.org"),
-            $"Expected 'not found on nuget.org' in message, got: {ex.Message}");
+        Assert.IsTrue(ex.Message.Contains("was not found on any configured source"),
+            $"Expected 'was not found on any configured source' in message, got: {ex.Message}");
     }
 
     [TestMethod]
     [TestCategory("Integration")]
-    public async Task ResolvePackageAsync_NonExistentVersion_ThrowsWithAvailableVersions()
+    public async Task ResolvePackageAsync_NonExistentVersion_ThrowsNotFound()
     {
         var resolver = new NuGetFallbackResolver();
 
@@ -98,9 +98,7 @@ public class NuGetFallbackResolverTests
             () => resolver.ResolvePackageAsync(
                 "Newtonsoft.Json", "99.99.99", CancellationToken.None));
 
-        Assert.IsTrue(ex.Message.Contains("not found"),
-            $"Expected 'not found' in message, got: {ex.Message}");
-        Assert.IsTrue(ex.Message.Contains("Available versions"),
-            $"Expected 'Available versions' in message, got: {ex.Message}");
+        Assert.IsTrue(ex.Message.Contains("was not found on any configured source"),
+            $"Expected 'was not found on any configured source' in message, got: {ex.Message}");
     }
 }
