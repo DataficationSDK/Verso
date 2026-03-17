@@ -19,6 +19,10 @@ public sealed class CSharpKernel : ILanguageKernel
         @"^#r\s+""nuget:\s*([^""]+)""",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
+    private static readonly Regex NuGetSourceRegex = new(
+        @"^#i\s+""nuget:\s*([^""]+)""",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
     private static readonly Regex UsingDirectiveRegex = new(
         @"^\s*using\s+(?!static\b)(?!var\b)(?!var\s)(?!\()([A-Za-z_][\w]*(?:\s*\.\s*[A-Za-z_][\w]*)*)\s*;",
         RegexOptions.Compiled | RegexOptions.Multiline);
@@ -28,6 +32,7 @@ public sealed class CSharpKernel : ILanguageKernel
     private ScriptStateManager? _stateManager;
     private RoslynWorkspaceManager? _workspaceManager;
     private ScriptGlobals? _globals;
+    private NuGetPackageResolver? _resolver;
     private bool _initialized;
     private bool _disposed;
 
@@ -71,6 +76,7 @@ public sealed class CSharpKernel : ILanguageKernel
 
         _stateManager = new ScriptStateManager(scriptOptions);
         _workspaceManager = new RoslynWorkspaceManager(imports, references.Select(r => (MetadataReference)r));
+        _resolver = new NuGetPackageResolver();
         _executionLock = new SemaphoreSlim(1, 1);
         _globals = null;
         _initialized = true;
@@ -90,9 +96,9 @@ public sealed class CSharpKernel : ILanguageKernel
         var originalOut = Console.Out;
         try
         {
-            // Process #r "nuget:" directives
+            // Process #i "nuget:" source directives and #r "nuget:" package directives
             var (cleanedCode, nugetResults) = await ProcessNuGetReferencesAsync(
-                code, context.CancellationToken).ConfigureAwait(false);
+                code, context, context.CancellationToken).ConfigureAwait(false);
 
             // Check for resolved packages from #!nuget magic command
             if (context.Variables.TryGet<List<NuGetResolveResult>>(NuGetMagicCommand.ResolvedPackagesStoreKey, out var magicResults)
@@ -260,19 +266,46 @@ public sealed class CSharpKernel : ILanguageKernel
         _stateManager = null;
         _workspaceManager?.Dispose();
         _workspaceManager = null;
+        _resolver = null;
         _globals = null;
         _executionLock.Dispose();
     }
 
     private async Task<(string CleanedCode, List<NuGetResolveResult> Results)> ProcessNuGetReferencesAsync(
-        string code, CancellationToken ct)
+        string code, IExecutionContext context, CancellationToken ct)
     {
+        // Process #i "nuget: ..." source directives first
+        var sourceMatches = NuGetSourceRegex.Matches(code);
+        if (sourceMatches.Count > 0)
+        {
+            // Get or create the session-scoped source registry
+            if (!context.Variables.TryGet<NuGetSourceRegistry>(NuGetSourceRegistry.StoreKey, out var registry)
+                || registry is null)
+            {
+                registry = new NuGetSourceRegistry();
+                context.Variables.Set(NuGetSourceRegistry.StoreKey, registry);
+            }
+
+            foreach (Match match in sourceMatches)
+            {
+                var source = NuGetPackageResolver.ParseSourceDirective(match.Groups[1].Value);
+                if (source is not null)
+                {
+                    _resolver!.AddSource(source);
+                    registry.AddSource(source);
+                }
+            }
+
+            // Strip #i lines from the code
+            code = NuGetSourceRegex.Replace(code, "").Trim();
+        }
+
+        // Process #r "nuget: ..." package directives
         var matches = NuGetReferenceRegex.Matches(code);
         if (matches.Count == 0)
             return (code, new List<NuGetResolveResult>());
 
         var results = new List<NuGetResolveResult>();
-        var resolver = new NuGetPackageResolver();
 
         foreach (Match match in matches)
         {
@@ -280,7 +313,7 @@ public sealed class CSharpKernel : ILanguageKernel
             var parsed = NuGetPackageResolver.ParseNuGetReference(directive);
             if (parsed is null) continue;
 
-            var result = await resolver.ResolvePackageAsync(parsed.Value.PackageId, parsed.Value.Version, ct)
+            var result = await _resolver!.ResolvePackageAsync(parsed.Value.PackageId, parsed.Value.Version, ct)
                 .ConfigureAwait(false);
             results.Add(result);
         }

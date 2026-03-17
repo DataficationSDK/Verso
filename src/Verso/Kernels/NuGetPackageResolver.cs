@@ -17,11 +17,15 @@ internal sealed record NuGetResolveResult(string PackageId, string ResolvedVersi
 /// <summary>
 /// Downloads NuGet packages and their transitive dependencies, extracts DLLs from the
 /// appropriate TFM folder, and caches results in a temp directory.
+/// Loads package sources from the standard NuGet.Config settings chain and supports
+/// session-scoped sources added via <c>#i</c> directives.
 /// </summary>
 internal sealed class NuGetPackageResolver
 {
     private static readonly string CacheRoot =
         Path.Combine(Path.GetTempPath(), "verso-nuget-packages");
+
+    private readonly List<SourceRepository> _sources;
 
     /// <summary>
     /// Target framework used for selecting lib groups and dependency groups from NuGet packages.
@@ -38,6 +42,67 @@ internal sealed class NuGetPackageResolver
     /// → Extensions.Logging.Abstractions) requires at least 5 hops.
     /// </summary>
     private const int MaxDependencyDepth = 6;
+
+    public NuGetPackageResolver()
+    {
+        _sources = new List<SourceRepository>();
+
+        try
+        {
+            var settings = Settings.LoadDefaultSettings(root: Directory.GetCurrentDirectory());
+            var provider = new PackageSourceProvider(settings);
+
+            foreach (var source in provider.LoadPackageSources().Where(s => s.IsEnabled))
+                _sources.Add(Repository.Factory.GetCoreV3(source));
+        }
+        catch
+        {
+            // Config loading must never prevent package resolution
+        }
+
+        // nuget.org fallback when no NuGet.Config sources exist
+        if (_sources.Count == 0)
+            _sources.Add(Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json"));
+    }
+
+    /// <summary>
+    /// Adds a package source at the highest priority (before NuGet.Config sources).
+    /// Used for session-scoped <c>#i</c> directive sources.
+    /// </summary>
+    public void AddSource(string source)
+    {
+        var trimmed = source.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return;
+
+        // Skip if this source URL is already in the list
+        if (_sources.Any(s => string.Equals(s.PackageSource.Source, trimmed, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        _sources.Insert(0, Repository.Factory.GetCoreV3(trimmed));
+    }
+
+    /// <summary>
+    /// Parses a <c>#i</c> source directive value, validating it is a URL, UNC path, or local directory.
+    /// Returns <c>null</c> if the value is not a valid package source.
+    /// </summary>
+    internal static string? ParseSourceDirective(string? directive)
+    {
+        if (string.IsNullOrWhiteSpace(directive))
+            return null;
+
+        var source = directive.Trim();
+
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri)
+            && uri.Scheme is "http" or "https" or "file")
+            return source;
+
+        // UNC paths and local directories
+        if (source.StartsWith(@"\\") || Directory.Exists(source))
+            return source;
+
+        return null;
+    }
 
     /// <summary>
     /// Parses a NuGet reference string in the format "PackageId, Version" or "PackageId".
@@ -122,26 +187,79 @@ internal sealed class NuGetPackageResolver
     private async Task<(string ResolvedVersion, List<string> AssemblyPaths, List<(string Id, string? MinVersion)> Dependencies)>
         DownloadSinglePackageAsync(string packageId, string? version, CancellationToken ct)
     {
-        var repository = Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json");
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
-
         var logger = NullLogger.Instance;
         var cache = new SourceCacheContext();
 
-        // Resolve version
-        NuGetVersion resolvedVersion;
-        if (version is not null && NuGetVersion.TryParse(version, out var parsed))
+        // If version is already known, check cache before hitting any source
+        if (version is not null && NuGetVersion.TryParse(version, out var parsedVersion))
         {
-            resolvedVersion = parsed;
+            var cachedDir = Path.Combine(CacheRoot, packageId, parsedVersion.ToString());
+            var cachedDepsFile = Path.Combine(cachedDir, ".deps");
+            if (Directory.Exists(cachedDir))
+            {
+                var cachedDlls = Directory.GetFiles(cachedDir, "*.dll");
+                var cachedDeps = ReadCachedDependencies(cachedDepsFile);
+                if (cachedDeps is not null)
+                {
+                    RegisterCachedRuntimeDirs(cachedDir);
+                    return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
+                }
+            }
         }
-        else
+
+        // Try each configured source in priority order
+        FindPackageByIdResource? resource = null;
+        NuGetVersion? resolvedVersion = null;
+        Exception? lastException = null;
+
+        foreach (var source in _sources)
         {
-            var versions = await resource.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
-            resolvedVersion = versions
-                .Where(v => !v.IsPrerelease)
-                .OrderByDescending(v => v)
-                .FirstOrDefault()
-                ?? throw new InvalidOperationException($"No versions found for package '{packageId}'.");
+            try
+            {
+                var res = await source.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
+
+                if (version is not null && NuGetVersion.TryParse(version, out var parsed))
+                {
+                    // Specific version requested: verify it exists on this source
+                    var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
+                    if (versions.Contains(parsed))
+                    {
+                        resolvedVersion = parsed;
+                        resource = res;
+                        break;
+                    }
+                }
+                else
+                {
+                    // No version specified: find the latest stable
+                    var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
+                    var latest = versions
+                        .Where(v => !v.IsPrerelease)
+                        .OrderByDescending(v => v)
+                        .FirstOrDefault();
+                    if (latest is not null)
+                    {
+                        resolvedVersion = latest;
+                        resource = res;
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                // Source unavailable, try next
+            }
+        }
+
+        if (resource is null || resolvedVersion is null)
+        {
+            var sourceNames = string.Join(", ", _sources.Select(s => s.PackageSource.Source));
+            var message = $"Package '{packageId}'{(version is not null ? $" v{version}" : "")} was not found on any configured source. Sources tried: {sourceNames}";
+            if (lastException is not null)
+                message += $" Last error: {lastException.GetType().Name}: {lastException.Message}";
+            throw new InvalidOperationException(message);
         }
 
         var packageDir = Path.Combine(CacheRoot, packageId, resolvedVersion.ToString());

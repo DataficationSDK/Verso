@@ -111,6 +111,29 @@ window.versoMonaco = (function () {
         });
     }
 
+    // Extend the built-in C# monarch tokenizer to highlight #i "nuget: ..." directives
+    // the same way Monaco highlights #r directives (as preprocessor + string).
+    function enhanceCSharpTokenizer() {
+        const langDef = monaco.languages.getLanguages().find(l => l.id === 'csharp');
+        if (!langDef || !langDef.loader) return;
+
+        // Wrap the language loader to inject our custom rules
+        const originalLoader = langDef.loader;
+        langDef.loader = function () {
+            return originalLoader().then(function (mod) {
+                const tokenizer = mod.language && mod.language.tokenizer;
+                if (tokenizer && tokenizer.root) {
+                    // Match #i as a preprocessor keyword, then the quoted string as a string literal.
+                    // Uses two rules: one for the directive keyword, one for the string that follows.
+                    tokenizer.root.unshift(
+                        [/(#i)(\s+)("(?:[^"\\]|\\.)*")/, ['keyword.preprocessor', 'white', 'string']]
+                    );
+                }
+                return mod;
+            });
+        };
+    }
+
     // Initialize Monaco AMD loader
     function ensureMonaco(callback) {
         if (monacoReady) {
@@ -121,6 +144,7 @@ window.versoMonaco = (function () {
         if (readyCallbacks.length === 1) {
             require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
             require(['vs/editor/editor.main'], function () {
+                enhanceCSharpTokenizer();
                 monacoReady = true;
                 readyCallbacks.forEach(cb => cb());
                 readyCallbacks = [];

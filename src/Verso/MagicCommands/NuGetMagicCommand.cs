@@ -61,6 +61,15 @@ public sealed class NuGetMagicCommand : IMagicCommand
         try
         {
             var resolver = new NuGetPackageResolver();
+
+            // Apply any session-scoped sources from #i directives
+            if (context.Variables.TryGet<NuGetSourceRegistry>(NuGetSourceRegistry.StoreKey, out var sourceRegistry)
+                && sourceRegistry is not null)
+            {
+                foreach (var source in sourceRegistry.Sources)
+                    resolver.AddSource(source);
+            }
+
             var result = await resolver.ResolvePackageAsync(packageId, version, context.CancellationToken)
                 .ConfigureAwait(false);
 

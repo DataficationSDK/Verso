@@ -34,6 +34,10 @@ internal sealed class NuGetReferenceProcessor
         @"^#r\s+""nuget:\s*([^""]+)""",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
+    private static readonly Regex NuGetSourceRegex = new(
+        @"^#i\s+""nuget:\s*([^""]+)""",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
     private readonly NuGetFallbackResolver _resolver = new();
     private readonly HashSet<string> _resolvedAssemblyPaths = new(StringComparer.OrdinalIgnoreCase);
     private bool _useFsiNuGet;
@@ -73,7 +77,7 @@ internal sealed class NuGetReferenceProcessor
     /// </summary>
     public static bool ContainsNuGetDirectives(string code)
     {
-        return NuGetDirectiveRegex.IsMatch(code);
+        return NuGetDirectiveRegex.IsMatch(code) || NuGetSourceRegex.IsMatch(code);
     }
 
     /// <summary>
@@ -84,6 +88,20 @@ internal sealed class NuGetReferenceProcessor
     public async Task<NuGetProcessResult> ProcessAsync(
         string code, FsiSessionManager session, CancellationToken ct)
     {
+        // Process #i "nuget: ..." source directives first
+        var sourceMatches = NuGetSourceRegex.Matches(code);
+        if (sourceMatches.Count > 0)
+        {
+            foreach (Match match in sourceMatches)
+            {
+                var source = NuGetFallbackResolver.ParseSourceDirective(match.Groups[1].Value);
+                if (source is not null)
+                    _resolver.AddSource(source);
+            }
+
+            code = NuGetSourceRegex.Replace(code, "").Trim();
+        }
+
         var matches = NuGetDirectiveRegex.Matches(code);
         if (matches.Count == 0)
             return new NuGetProcessResult(code, new List<FSharpNuGetResolveResult>(), new List<string>());

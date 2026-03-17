@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using NuGet.Common;
+using NuGet.Configuration;
 using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Protocol;
@@ -31,12 +32,70 @@ internal sealed class NuGetFallbackResolver
     private static readonly string CacheRoot =
         Path.Combine(Path.GetTempPath(), "verso-nuget-packages");
 
+    private readonly List<SourceRepository> _sources;
+
     private static readonly NuGetFramework TargetFramework = NuGetFramework.Parse("net8.0");
 
     private static readonly string[] PreferredFrameworks =
         { "net8.0", "net6.0", "netstandard2.1", "netstandard2.0" };
 
     private const int MaxDependencyDepth = 6;
+
+    public NuGetFallbackResolver()
+    {
+        _sources = new List<SourceRepository>();
+
+        try
+        {
+            var settings = Settings.LoadDefaultSettings(root: Directory.GetCurrentDirectory());
+            var provider = new PackageSourceProvider(settings);
+
+            foreach (var source in provider.LoadPackageSources().Where(s => s.IsEnabled))
+                _sources.Add(Repository.Factory.GetCoreV3(source));
+        }
+        catch
+        {
+            // Config loading must never prevent package resolution
+        }
+
+        if (_sources.Count == 0)
+            _sources.Add(Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json"));
+    }
+
+    /// <summary>
+    /// Adds a package source at the highest priority (before NuGet.Config sources).
+    /// </summary>
+    public void AddSource(string source)
+    {
+        var trimmed = source.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return;
+
+        if (_sources.Any(s => string.Equals(s.PackageSource.Source, trimmed, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        _sources.Insert(0, Repository.Factory.GetCoreV3(trimmed));
+    }
+
+    /// <summary>
+    /// Parses a <c>#i</c> source directive value, validating it is a URL, UNC path, or local directory.
+    /// </summary>
+    internal static string? ParseSourceDirective(string? directive)
+    {
+        if (string.IsNullOrWhiteSpace(directive))
+            return null;
+
+        var source = directive.Trim();
+
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri)
+            && uri.Scheme is "http" or "https" or "file")
+            return source;
+
+        if (source.StartsWith(@"\\") || Directory.Exists(source))
+            return source;
+
+        return null;
+    }
 
     /// <summary>
     /// Parses a NuGet reference string in the format "PackageId, Version" or "PackageId".
@@ -114,64 +173,74 @@ internal sealed class NuGetFallbackResolver
     private async Task<(string ResolvedVersion, List<string> AssemblyPaths, List<(string Id, string? MinVersion)> Dependencies)>
         DownloadSinglePackageAsync(string packageId, string? version, CancellationToken ct)
     {
-        SourceRepository repository;
-        FindPackageByIdResource resource;
-        try
-        {
-            repository = Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json");
-            resource = await repository.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            throw new InvalidOperationException(
-                $"Unable to reach nuget.org. Check your network connection and try again. ({ex.GetType().Name}: {ex.Message})", ex);
-        }
-
         var logger = NullLogger.Instance;
         var cache = new SourceCacheContext();
 
-        // Resolve version
-        NuGetVersion resolvedVersion;
-        IEnumerable<NuGetVersion> allVersions;
-        try
+        // If version is already known, check cache before hitting any source
+        if (version is not null && NuGetVersion.TryParse(version, out var parsedVersion))
         {
-            allVersions = await resource.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            throw new InvalidOperationException(
-                $"Unable to reach nuget.org. Check your network connection and try again. ({ex.GetType().Name}: {ex.Message})", ex);
-        }
-
-        var versionList = allVersions.ToList();
-        if (versionList.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"NuGet package '{packageId}' not found on nuget.org.");
-        }
-
-        if (version is not null && NuGetVersion.TryParse(version, out var parsed))
-        {
-            if (!versionList.Contains(parsed))
+            var cachedDir = Path.Combine(CacheRoot, packageId, parsedVersion.ToString());
+            var cachedDepsFile = Path.Combine(cachedDir, ".deps");
+            if (Directory.Exists(cachedDir))
             {
-                var available = string.Join(", ",
-                    versionList.Where(v => !v.IsPrerelease)
-                        .OrderByDescending(v => v)
-                        .Take(5)
-                        .Select(v => v.ToString()));
-                throw new InvalidOperationException(
-                    $"Version '{version}' of package '{packageId}' not found. Available versions: {available}");
+                var cachedDlls = Directory.GetFiles(cachedDir, "*.dll");
+                var cachedDeps = ReadCachedDependencies(cachedDepsFile);
+                if (cachedDeps is not null)
+                    return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
             }
-            resolvedVersion = parsed;
         }
-        else
+
+        // Try each configured source in priority order
+        FindPackageByIdResource? resource = null;
+        NuGetVersion? resolvedVersion = null;
+        Exception? lastException = null;
+
+        foreach (var source in _sources)
         {
-            resolvedVersion = versionList
-                .Where(v => !v.IsPrerelease)
-                .OrderByDescending(v => v)
-                .FirstOrDefault()
-                ?? throw new InvalidOperationException(
-                    $"NuGet package '{packageId}' not found on nuget.org.");
+            try
+            {
+                var res = await source.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
+
+                if (version is not null && NuGetVersion.TryParse(version, out var parsed))
+                {
+                    var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
+                    if (versions.Contains(parsed))
+                    {
+                        resolvedVersion = parsed;
+                        resource = res;
+                        break;
+                    }
+                }
+                else
+                {
+                    var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
+                    var latest = versions
+                        .Where(v => !v.IsPrerelease)
+                        .OrderByDescending(v => v)
+                        .FirstOrDefault();
+                    if (latest is not null)
+                    {
+                        resolvedVersion = latest;
+                        resource = res;
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                // Source unavailable, try next
+            }
+        }
+
+        if (resource is null || resolvedVersion is null)
+        {
+            var sourceNames = string.Join(", ", _sources.Select(s => s.PackageSource.Source));
+            var message = $"Package '{packageId}'{(version is not null ? $" v{version}" : "")} was not found on any configured source. Sources tried: {sourceNames}";
+            if (lastException is not null)
+                message += $" Last error: {lastException.GetType().Name}: {lastException.Message}";
+            throw new InvalidOperationException(message);
         }
 
         var packageDir = Path.Combine(CacheRoot, packageId, resolvedVersion.ToString());
