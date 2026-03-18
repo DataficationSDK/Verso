@@ -199,6 +199,9 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             {
                 _sessionManager!.EvalSilent($"#r \"{path.Replace('\\', '/')}\"");
                 _projectContext?.AddReference(path);
+                var dir = Path.GetDirectoryName(path);
+                if (dir is not null)
+                    _sessionManager.AddNuGetAssemblyDirectory(dir);
             }
 
             // --- NuGet: process inline #r "nuget:" directives ---

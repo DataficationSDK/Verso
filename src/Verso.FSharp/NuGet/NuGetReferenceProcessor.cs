@@ -126,13 +126,17 @@ internal sealed class NuGetReferenceProcessor
                 parsed.Value.PackageId, parsed.Value.Version, ct).ConfigureAwait(false);
             results.Add(result);
 
-            // Inject each resolved assembly into the FSI session
+            // Inject each resolved assembly into the FSI session and register
+            // its directory for the AssemblyResolve handler (needed by type providers)
             foreach (var assemblyPath in result.AssemblyPaths)
             {
                 if (_resolvedAssemblyPaths.Add(assemblyPath))
                 {
                     newPaths.Add(assemblyPath);
                     session.EvalSilent($"#r \"{assemblyPath.Replace('\\', '/')}\"");
+                    var dir = Path.GetDirectoryName(assemblyPath);
+                    if (dir is not null)
+                        session.AddNuGetAssemblyDirectory(dir);
                 }
             }
         }

@@ -147,6 +147,36 @@ public class NuGetExecutionTests
     }
 
     [TestMethod]
+    [TestCategory("Integration")]
+    public async Task NuGetDirective_TypeProviderResolvesTypes()
+    {
+        // Cell 1: install FSharp.Data and open it
+        var outputs1 = await _kernel.ExecuteAsync(
+            "#r \"nuget: FSharp.Data\"\nopen FSharp.Data",
+            _context);
+
+        var errors1 = outputs1.Where(o => o.IsError).ToList();
+        Assert.AreEqual(0, errors1.Count,
+            $"Expected no errors from package install, got: {string.Join(", ", errors1.Select(e => e.Content))}");
+
+        // Cell 2: use CsvProvider type provider
+        var outputs2 = await _kernel.ExecuteAsync(
+            "type MyCsv = CsvProvider<\"A, B\", Schema=\"int, string\">\n" +
+            "let rows = [ MyCsv.Row(1, \"hello\") ]\n" +
+            "let csv = new MyCsv(rows)\n" +
+            "csv.SaveToString()",
+            _context);
+
+        var errors2 = outputs2.Where(o => o.IsError).ToList();
+        Assert.AreEqual(0, errors2.Count,
+            $"Expected no errors from CsvProvider usage, got: {string.Join(", ", errors2.Select(e => e.Content))}");
+
+        var allText = string.Join(" ", outputs2.Select(o => o.Content));
+        Assert.IsTrue(allText.Contains("hello"),
+            $"Expected CSV output containing 'hello', got: {allText}");
+    }
+
+    [TestMethod]
     public async Task LoadDirective_AddsFileContentsToIntelliSense()
     {
         // Create a temp .fsx file with a function definition

@@ -34,10 +34,37 @@ internal sealed class NuGetFallbackResolver
 
     private readonly List<SourceRepository> _sources;
 
-    private static readonly NuGetFramework TargetFramework = NuGetFramework.Parse("net8.0");
+    private static readonly NuGetFramework TargetFramework =
+        NuGetFramework.Parse($"net{Environment.Version.Major}.0");
 
-    private static readonly string[] PreferredFrameworks =
-        { "net8.0", "net6.0", "netstandard2.1", "netstandard2.0" };
+    /// <summary>
+    /// Framework preferences for lib/ and typeproviders/ extraction, built from the
+    /// running runtime version. Only includes TFMs at or below the current runtime
+    /// so we never attempt to load assemblies compiled for a newer runtime.
+    /// </summary>
+    private static readonly string[] PreferredFrameworks = BuildPreferredFrameworks();
+
+    private static readonly string[] TypeProviderPrefixes = BuildTypeProviderPrefixes();
+
+    private static string[] BuildPreferredFrameworks()
+    {
+        var runtimeMajor = Environment.Version.Major;
+        var frameworks = new List<string>();
+        // Descend from current runtime version down to net6.0
+        for (var v = runtimeMajor; v >= 6; v--)
+            frameworks.Add($"net{v}.0");
+        // netstandard fallbacks are always compatible
+        frameworks.Add("netstandard2.1");
+        frameworks.Add("netstandard2.0");
+        return frameworks.ToArray();
+    }
+
+    private static string[] BuildTypeProviderPrefixes()
+    {
+        return PreferredFrameworks
+            .Select(tfm => $"typeproviders/fsharp41/{tfm}/")
+            .ToArray();
+    }
 
     private const int MaxDependencyDepth = 6;
 
@@ -183,7 +210,7 @@ internal sealed class NuGetFallbackResolver
             var cachedDepsFile = Path.Combine(cachedDir, ".deps");
             if (Directory.Exists(cachedDir))
             {
-                var cachedDlls = Directory.GetFiles(cachedDir, "*.dll");
+                var cachedDlls = GetAllCachedDlls(cachedDir);
                 var cachedDeps = ReadCachedDependencies(cachedDepsFile);
                 if (cachedDeps is not null)
                     return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
@@ -249,7 +276,7 @@ internal sealed class NuGetFallbackResolver
         // Check cache
         if (Directory.Exists(packageDir))
         {
-            var cachedDlls = Directory.GetFiles(packageDir, "*.dll");
+            var cachedDlls = GetAllCachedDlls(packageDir);
             var cachedDeps = ReadCachedDependencies(depsFile);
 
             if (cachedDeps is not null)
@@ -292,6 +319,8 @@ internal sealed class NuGetFallbackResolver
         using (var reader = new PackageArchiveReader(tempNupkg))
         {
             assemblyPaths = await ExtractDllsAsync(reader, packageDir, ct).ConfigureAwait(false);
+            var tpPaths = await ExtractTypeProviderDllsAsync(reader, packageDir, ct).ConfigureAwait(false);
+            assemblyPaths.AddRange(tpPaths);
             dependencies = await ReadDependenciesAsync(reader, ct).ConfigureAwait(false);
         }
 
@@ -344,6 +373,59 @@ internal sealed class NuGetFallbackResolver
         }
 
         return assemblyPaths;
+    }
+
+    /// <summary>
+    /// Extracts F# type provider design-time assemblies from the <c>typeproviders/</c> folder
+    /// in a NuGet package. These assemblies are placed alongside the main <c>lib/</c> DLLs so
+    /// that FCS can discover them when probing the referencing assembly's directory.
+    /// </summary>
+    private static async Task<List<string>> ExtractTypeProviderDllsAsync(
+        PackageArchiveReader reader, string packageDir, CancellationToken ct)
+    {
+        var paths = new List<string>();
+        var allEntries = reader.GetFiles().ToList();
+
+        // Find the best matching typeproviders folder
+        string? selectedPrefix = null;
+        foreach (var prefix in TypeProviderPrefixes)
+        {
+            if (allEntries.Any(e => e.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && e.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
+            {
+                selectedPrefix = prefix;
+                break;
+            }
+        }
+
+        if (selectedPrefix is null)
+            return paths;
+
+        // Extract into the same directory as the lib/ DLLs so FCS type provider
+        // resolution finds them by probing the referencing assembly's directory
+        foreach (var entry in allEntries)
+        {
+            if (!entry.StartsWith(selectedPrefix, StringComparison.OrdinalIgnoreCase)
+                || !entry.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var zipEntry = reader.GetEntry(entry);
+            if (zipEntry is null) continue;
+
+            var fileName = Path.GetFileName(entry);
+            var destPath = Path.Combine(packageDir, fileName);
+
+            // Do not overwrite a lib/ DLL with a type provider DLL of the same name
+            if (File.Exists(destPath)) continue;
+
+            using var entryStream = zipEntry.Open();
+            using var destStream = File.Create(destPath);
+            await entryStream.CopyToAsync(destStream, ct).ConfigureAwait(false);
+
+            paths.Add(destPath);
+        }
+
+        return paths;
     }
 
     private static async Task<List<(string Id, string? MinVersion)>> ReadDependenciesAsync(
@@ -422,6 +504,15 @@ internal sealed class NuGetFallbackResolver
             return TpaAssemblyNames.Value.Contains(packageId);
 
         return false;
+    }
+
+    /// <summary>
+    /// Returns all cached DLLs from a package directory, including type provider assemblies
+    /// extracted alongside the main lib/ DLLs.
+    /// </summary>
+    private static string[] GetAllCachedDlls(string packageDir)
+    {
+        return Directory.GetFiles(packageDir, "*.dll");
     }
 
     private static void WriteCachedDependencies(string depsFile, List<(string Id, string? MinVersion)> deps)

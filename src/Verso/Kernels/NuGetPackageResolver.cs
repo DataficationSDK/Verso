@@ -29,11 +29,23 @@ internal sealed class NuGetPackageResolver
 
     /// <summary>
     /// Target framework used for selecting lib groups and dependency groups from NuGet packages.
+    /// Derived from the running runtime version so the correct TFM is always selected.
     /// </summary>
-    private static readonly NuGetFramework TargetFramework = NuGetFramework.Parse("net8.0");
+    private static readonly NuGetFramework TargetFramework =
+        NuGetFramework.Parse($"net{Environment.Version.Major}.0");
 
-    private static readonly string[] PreferredFrameworks =
-        { "net8.0", "net6.0", "netstandard2.1", "netstandard2.0" };
+    private static readonly string[] PreferredFrameworks = BuildPreferredFrameworks();
+
+    private static string[] BuildPreferredFrameworks()
+    {
+        var runtimeMajor = Environment.Version.Major;
+        var frameworks = new List<string>();
+        for (var v = runtimeMajor; v >= 6; v--)
+            frameworks.Add($"net{v}.0");
+        frameworks.Add("netstandard2.1");
+        frameworks.Add("netstandard2.0");
+        return frameworks.ToArray();
+    }
 
     /// <summary>
     /// Maximum depth for transitive dependency resolution. Prevents runaway expansion

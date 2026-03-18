@@ -16,6 +16,14 @@ internal sealed class FsiSessionManager : IDisposable
     private bool _disposed;
 
     /// <summary>
+    /// Directories containing NuGet-resolved assemblies, searched by the
+    /// <see cref="AppDomain.AssemblyResolve"/> handler so that type providers
+    /// (and other compile-time components) can locate their dependencies.
+    /// </summary>
+    private readonly HashSet<string> _nugetAssemblyDirectories = new(StringComparer.OrdinalIgnoreCase);
+    private bool _resolveHandlerRegistered;
+
+    /// <summary>
     /// The resolved compiler arguments (flags + assembly references) used to initialize the session.
     /// Available after <see cref="Initialize"/> has been called.
     /// </summary>
@@ -89,6 +97,50 @@ internal sealed class FsiSessionManager : IDisposable
             _fsiErr,
             FSharpOption<bool>.Some(false),
             null);
+    }
+
+    /// <summary>
+    /// Registers directories containing NuGet-resolved assemblies so that
+    /// the <see cref="AppDomain.AssemblyResolve"/> handler can find them.
+    /// This is required for F# type providers, which load dependencies at
+    /// compile time outside the normal <c>#r</c> reference path.
+    /// </summary>
+    public void AddNuGetAssemblyDirectory(string directory)
+    {
+        if (string.IsNullOrEmpty(directory)) return;
+        _nugetAssemblyDirectories.Add(directory);
+        EnsureResolveHandler();
+    }
+
+    private void EnsureResolveHandler()
+    {
+        if (_resolveHandlerRegistered) return;
+        AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+        _resolveHandlerRegistered = true;
+    }
+
+    private System.Reflection.Assembly? OnAssemblyResolve(object? sender, ResolveEventArgs args)
+    {
+        var assemblyName = new System.Reflection.AssemblyName(args.Name);
+        var fileName = assemblyName.Name + ".dll";
+
+        foreach (var dir in _nugetAssemblyDirectories)
+        {
+            var candidate = Path.Combine(dir, fileName);
+            if (File.Exists(candidate))
+            {
+                try
+                {
+                    return System.Reflection.Assembly.LoadFrom(candidate);
+                }
+                catch
+                {
+                    // Could not load from this path, continue searching
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -239,6 +291,13 @@ internal sealed class FsiSessionManager : IDisposable
         if (_disposed) return;
         _disposed = true;
 
+        if (_resolveHandlerRegistered)
+        {
+            AppDomain.CurrentDomain.AssemblyResolve -= OnAssemblyResolve;
+            _resolveHandlerRegistered = false;
+        }
+
+        _nugetAssemblyDirectories.Clear();
         _fsiOut?.Dispose();
         _fsiErr?.Dispose();
         _session = null;
