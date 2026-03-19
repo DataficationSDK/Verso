@@ -187,6 +187,33 @@ export class BlazorEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const notebookId = notebookRegistry.getByUri(document.uri);
+
+    // If the source file is not a .verso file (e.g. imported .dib or .ipynb),
+    // redirect the save to a .verso file to avoid overwriting the original format.
+    const fsPath = document.uri.fsPath;
+    if (!fsPath.endsWith(".verso")) {
+      const versoPath = fsPath.replace(/\.[^.]+$/, ".verso");
+      const versoUri = vscode.Uri.file(versoPath);
+
+      const result = await this.host.sendRequest<NotebookSaveResult>(
+        "notebook/save",
+        { notebookId }
+      );
+      const data = new TextEncoder().encode(result.content);
+      await vscode.workspace.fs.writeFile(versoUri, data);
+
+      // Update the host's file path to the new .verso location
+      await this.host.sendRequest("notebook/setFilePath", {
+        filePath: versoUri.fsPath,
+        notebookId,
+      });
+
+      // Open the new .verso file and close the imported document
+      await vscode.commands.executeCommand("vscode.openWith", versoUri, BlazorEditorProvider.viewType);
+      await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+      return;
+    }
+
     const result = await this.host.sendRequest<NotebookSaveResult>(
       "notebook/save",
       { notebookId }
@@ -201,12 +228,20 @@ export class BlazorEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const notebookId = notebookRegistry.getByUri(document.uri);
+
+    // If the destination is not a .verso file, adjust the extension
+    let targetUri = destination;
+    if (!destination.fsPath.endsWith(".verso")) {
+      const versoPath = destination.fsPath.replace(/\.[^.]+$/, ".verso");
+      targetUri = vscode.Uri.file(versoPath);
+    }
+
     const result = await this.host.sendRequest<NotebookSaveResult>(
       "notebook/save",
       { notebookId }
     );
     const data = new TextEncoder().encode(result.content);
-    await vscode.workspace.fs.writeFile(destination, data);
+    await vscode.workspace.fs.writeFile(targetUri, data);
   }
 
   async revertCustomDocument(
