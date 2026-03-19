@@ -30,6 +30,7 @@ export interface JsonRpcError {
 
 export interface NotebookOpenParams {
   content: string;
+  workingDir?: string;
 }
 
 export interface NotebookSetFilePathParams {

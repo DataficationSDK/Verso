@@ -6,6 +6,7 @@ public sealed class NotebookOpenParams
 {
     public string Content { get; set; } = "";
     public string? FilePath { get; set; }
+    public string? WorkingDir { get; set; }
 }
 
 public sealed class NotebookOpenResult

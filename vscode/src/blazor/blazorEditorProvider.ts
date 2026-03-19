@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { HostProcess } from "../host/hostProcess";
 import { notebookRegistry } from "../host/notebookRegistry";
 import { BlazorBridge } from "./blazorBridge";
@@ -34,6 +35,7 @@ export class BlazorEditorProvider
   public static readonly viewType = "verso.blazorNotebook";
 
   private readonly bridges = new Map<vscode.WebviewPanel, BlazorBridge>();
+  private readonly hosts = new Map<vscode.WebviewPanel, HostProcess>();
 
   // --- Edit tracking ---
   private readonly _onDidChangeCustomDocument =
@@ -42,7 +44,7 @@ export class BlazorEditorProvider
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly host: HostProcess
+    private readonly hostDllPath: string
   ) {
     // Watch for VS Code editor setting changes and push to all open webviews
     context.subscriptions.push(
@@ -107,8 +109,23 @@ export class BlazorEditorProvider
     // Set the webview HTML loading the WASM app
     webview.html = this.getWebviewHtml(webview);
 
+    // Spawn a dedicated host process for this notebook
+    const host = new HostProcess(this.hostDllPath);
+    this.hosts.set(webviewPanel, host);
+
+    try {
+      await host.start();
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Verso: Failed to start host process: ${
+          err instanceof Error ? err.message : err
+        }`
+      );
+      return;
+    }
+
     // Create bridge for this webview
-    const bridge = new BlazorBridge(webview, this.host, this.context.globalState);
+    const bridge = new BlazorBridge(webview, host, this.context.globalState);
     bridge.setDocumentUri(document.uri);
 
     // Mark the document dirty whenever the WASM app mutates the notebook.
@@ -120,19 +137,15 @@ export class BlazorEditorProvider
 
     webviewPanel.onDidDispose(() => {
       const b = this.bridges.get(webviewPanel);
-      const notebookId = b?.getNotebookId();
       b?.dispose();
       this.bridges.delete(webviewPanel);
 
-      // Clean up the host session
-      if (notebookId) {
-        notebookRegistry.unregister(document.uri);
-        this.host
-          .sendRequest("notebook/close", {
-            notebookId,
-          } satisfies NotebookCloseParams)
-          .catch(() => {});
-      }
+      notebookRegistry.unregister(document.uri);
+
+      // Dispose the per-notebook host process
+      const h = this.hosts.get(webviewPanel);
+      h?.dispose();
+      this.hosts.delete(webviewPanel);
     });
 
     // Open the notebook in the host process and notify the webview
@@ -140,11 +153,12 @@ export class BlazorEditorProvider
       const fileContent = await vscode.workspace.fs.readFile(document.uri);
       const content = new TextDecoder().decode(fileContent);
       const filePath = document.uri.fsPath;
+      const workingDir = path.dirname(filePath);
 
       // Open the notebook via the host (must happen before setFilePath)
-      const result = await this.host.sendRequest<NotebookOpenResult>(
+      const result = await host.sendRequest<NotebookOpenResult>(
         "notebook/open",
-        { content, filePath }
+        { content, filePath, workingDir }
       );
 
       const notebookId = result.notebookId;
@@ -154,7 +168,7 @@ export class BlazorEditorProvider
       // If the notebook has no cells (new/empty file), register a default
       // code cell with the host so the WASM app has something to render.
       if (result.cells.length === 0) {
-        const added = await this.host.sendRequest<CellDto>("cell/add", {
+        const added = await host.sendRequest<CellDto>("cell/add", {
           type: "code",
           language: "csharp",
           source: "",
@@ -164,7 +178,7 @@ export class BlazorEditorProvider
       }
 
       // Set file path on the host (requires notebook to be open)
-      await this.host.sendRequest("notebook/setFilePath", {
+      await host.sendRequest("notebook/setFilePath", {
         filePath,
         notebookId,
       } satisfies NotebookSetFilePathParams & { notebookId: string });
@@ -182,11 +196,23 @@ export class BlazorEditorProvider
 
   // --- Save / Revert ---
 
+  private getHostForDocument(uri: vscode.Uri): HostProcess | undefined {
+    for (const [panel, host] of this.hosts) {
+      const bridge = this.bridges.get(panel);
+      if (bridge && notebookRegistry.getByUri(uri) !== undefined) {
+        return host;
+      }
+    }
+    return undefined;
+  }
+
   async saveCustomDocument(
     document: VersoDocument,
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const notebookId = notebookRegistry.getByUri(document.uri);
+    const host = this.getHostForDocument(document.uri);
+    if (!host || !notebookId) return;
 
     // If the source file is not a .verso file (e.g. imported .dib or .ipynb),
     // redirect the save to a .verso file to avoid overwriting the original format.
@@ -195,7 +221,7 @@ export class BlazorEditorProvider
       const versoPath = fsPath.replace(/\.[^.]+$/, ".verso");
       const versoUri = vscode.Uri.file(versoPath);
 
-      const result = await this.host.sendRequest<NotebookSaveResult>(
+      const result = await host.sendRequest<NotebookSaveResult>(
         "notebook/save",
         { notebookId }
       );
@@ -203,7 +229,7 @@ export class BlazorEditorProvider
       await vscode.workspace.fs.writeFile(versoUri, data);
 
       // Update the host's file path to the new .verso location
-      await this.host.sendRequest("notebook/setFilePath", {
+      await host.sendRequest("notebook/setFilePath", {
         filePath: versoUri.fsPath,
         notebookId,
       });
@@ -214,7 +240,7 @@ export class BlazorEditorProvider
       return;
     }
 
-    const result = await this.host.sendRequest<NotebookSaveResult>(
+    const result = await host.sendRequest<NotebookSaveResult>(
       "notebook/save",
       { notebookId }
     );
@@ -228,6 +254,8 @@ export class BlazorEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const notebookId = notebookRegistry.getByUri(document.uri);
+    const host = this.getHostForDocument(document.uri);
+    if (!host || !notebookId) return;
 
     // If the destination is not a .verso file, adjust the extension
     let targetUri = destination;
@@ -236,7 +264,7 @@ export class BlazorEditorProvider
       targetUri = vscode.Uri.file(versoPath);
     }
 
-    const result = await this.host.sendRequest<NotebookSaveResult>(
+    const result = await host.sendRequest<NotebookSaveResult>(
       "notebook/save",
       { notebookId }
     );
@@ -258,7 +286,11 @@ export class BlazorEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<vscode.CustomDocumentBackup> {
     const notebookId = notebookRegistry.getByUri(document.uri);
-    const result = await this.host.sendRequest<NotebookSaveResult>(
+    const host = this.getHostForDocument(document.uri);
+    if (!host || !notebookId) {
+      return { id: context.destination.toString(), delete: () => {} };
+    }
+    const result = await host.sendRequest<NotebookSaveResult>(
       "notebook/save",
       { notebookId }
     );

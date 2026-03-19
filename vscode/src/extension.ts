@@ -1,9 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { HostProcess } from "./host/hostProcess";
 import { BlazorEditorProvider } from "./blazor/blazorEditorProvider";
-
-let host: HostProcess | undefined;
 
 export async function activate(
   context: vscode.ExtensionContext
@@ -16,11 +13,8 @@ export async function activate(
     );
   }
 
-  host = new HostProcess(hostDllPath);
-  context.subscriptions.push(host);
-
-  // Register Blazor WASM custom editor
-  const blazorProvider = new BlazorEditorProvider(context, host);
+  // Register Blazor WASM custom editor — each notebook spawns its own host process
+  const blazorProvider = new BlazorEditorProvider(context, hostDllPath);
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
       BlazorEditorProvider.viewType,
@@ -28,23 +22,10 @@ export async function activate(
       { webviewOptions: { retainContextWhenHidden: true } }
     )
   );
-
-  if (!hostDllPath) {
-    return;
-  }
-
-  try {
-    await host.start();
-  } catch (err) {
-    vscode.window.showErrorMessage(
-      `Failed to start Verso host: ${err instanceof Error ? err.message : err}. Searched for Verso.Host.dll in workspace folders. Set "verso.hostPath" in settings.`
-    );
-    return;
-  }
 }
 
 export function deactivate(): void {
-  host?.dispose();
+  // Host processes are disposed per-notebook when their webview panels close.
 }
 
 function resolveHostPath(context: vscode.ExtensionContext): string {

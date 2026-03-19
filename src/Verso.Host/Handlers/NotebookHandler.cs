@@ -15,6 +15,11 @@ public static class NotebookHandler
         var p = @params?.Deserialize<NotebookOpenParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for notebook/open");
 
+        // Set the working directory for this process so that F# __SOURCE_DIRECTORY__
+        // and relative file paths resolve against the notebook's location.
+        if (!string.IsNullOrEmpty(p.WorkingDir) && Directory.Exists(p.WorkingDir))
+            Environment.CurrentDirectory = p.WorkingDir;
+
         var extensionHost = new ExtensionHost();
         await extensionHost.LoadBuiltInExtensionsAsync();
 
