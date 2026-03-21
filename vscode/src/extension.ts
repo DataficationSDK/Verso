@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { BlazorEditorProvider } from "./blazor/blazorEditorProvider";
+import { registerParticipant } from "./copilot/participant";
+import { registerTools } from "./copilot/tools";
 
 export async function activate(
   context: vscode.ExtensionContext
@@ -22,6 +24,10 @@ export async function activate(
       { webviewOptions: { retainContextWhenHidden: true } }
     )
   );
+
+  // Register Copilot chat participant and tools
+  registerTools(context);
+  registerParticipant(context);
 }
 
 export function deactivate(): void {

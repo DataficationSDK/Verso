@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { HostProcess } from "../host/hostProcess";
+import { hostRegistry } from "../host/hostRegistry";
 import { notebookRegistry } from "../host/notebookRegistry";
 import { BlazorBridge } from "./blazorBridge";
 import {
@@ -141,6 +142,7 @@ export class BlazorEditorProvider
       this.bridges.delete(webviewPanel);
 
       notebookRegistry.unregister(document.uri);
+      hostRegistry.unregister(document.uri);
 
       // Dispose the per-notebook host process
       const h = this.hosts.get(webviewPanel);
@@ -163,6 +165,7 @@ export class BlazorEditorProvider
 
       const notebookId = result.notebookId;
       notebookRegistry.register(document.uri, notebookId);
+      hostRegistry.register(document.uri, { host, bridge });
       bridge.setNotebookId(notebookId);
 
       // If the notebook has no cells (new/empty file), register a default

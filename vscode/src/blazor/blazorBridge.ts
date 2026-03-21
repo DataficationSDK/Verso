@@ -237,6 +237,15 @@ export class BlazorBridge implements vscode.Disposable {
   }
 
   /**
+   * Mark the document as dirty. Called by external callers (e.g. Copilot
+   * participant) that mutate the notebook by calling the host directly
+   * rather than going through the webview request flow.
+   */
+  markDirty(): void {
+    this.onDidEdit?.();
+  }
+
+  /**
    * Send a notification to the webview (e.g. when the notebook is opened).
    */
   notify(method: string, params?: unknown): void {

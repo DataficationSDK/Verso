@@ -34,6 +34,27 @@ Connect to any ADO.NET-compatible database (SQL Server, PostgreSQL, MySQL, SQLit
 
 Send REST API requests directly in your notebook using `.http` file syntax, the same format supported by VS Code's REST Client and JetBrains HTTP Client. Responses are formatted with status badges, timing, collapsible headers, and pretty-printed JSON. Declare variables with `@name = value`, use dynamic variables like `{{$guid}}` and `{{$timestamp}}`, chain named requests, and send multiple requests per cell with `###` separators. Response data is automatically shared to C#, F#, and other kernels via the variable store.
 
+## GitHub Copilot Integration
+
+Verso integrates with GitHub Copilot Chat through the `@verso` participant. With a notebook open, type `@verso` in the Copilot Chat panel to create cells, run code, inspect variables, and explore your notebook using natural language.
+
+**Example prompts:**
+
+- `@verso add a C# cell that generates a list of 100 random numbers`
+- `@verso run cell 3 and explain the output`
+- `@verso what variables are in scope?`
+- `@verso change cell 2 to use LINQ instead of a for loop`
+
+**Slash commands** for common actions without waiting for the LLM:
+
+| Command | Description |
+|---------|-------------|
+| `@verso /cells` | List all cells with their source code |
+| `@verso /run` | Run all cells and show results |
+| `@verso /vars` | Show all variables currently in scope |
+
+Copilot can chain multiple actions in a single conversation, for example creating a cell, running it, reading the output, and then fixing an error. The integration requires GitHub Copilot Chat and VS Code 1.99 or later.
+
 ## Importing Existing Notebooks
 
 Already have notebooks in Jupyter or Polyglot format? Open any `.ipynb` or `.dib` file and Verso converts it automatically. SQL connection patterns, language directives, and magic commands are mapped to their native Verso equivalents during import.

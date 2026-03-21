@@ -11,13 +11,14 @@
     "url": "https://github.com/DataficationSDK/Verso"
   },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.99.0"
   },
   "categories": [
     "Data Science",
     "Machine Learning",
     "Visualization",
-    "Notebooks"
+    "Notebooks",
+    "Chat"
   ],
   "keywords": [
     "dotnet",
@@ -25,7 +26,8 @@
     "csharp",
     "jupyter",
     "polyglot-notebook",
-    "powershell"
+    "powershell",
+    "copilot"
   ],
   "activationEvents": [
     "onCustomEditor:verso.blazorNotebook"
@@ -59,7 +61,177 @@
           "description": "Path to the Verso.Host.dll. If empty, uses bundled host."
         }
       }
-    }
+    },
+    "chatParticipants": [
+      {
+        "id": "verso.copilot.notebook",
+        "name": "verso",
+        "fullName": "Verso Notebook",
+        "description": "Create, edit, run, and explore Verso notebook cells",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "cells",
+            "description": "List all cells in the active notebook"
+          },
+          {
+            "name": "run",
+            "description": "Run all cells in the active notebook"
+          },
+          {
+            "name": "vars",
+            "description": "Show variables in scope"
+          }
+        ]
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "verso_listCells",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "List Cells",
+        "modelDescription": "List all cells in the active Verso notebook, showing each cell's source code, language, and outputs.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "verso_addCell",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "Add Cell",
+        "modelDescription": "Add a new cell to the Verso notebook. The 'type' field determines the cell kind. For code cells, also set 'language' to the kernel. For non-code types (markdown, html, mermaid, etc.), only type is needed. Refer to the system prompt for available cell types and languages.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "language": {
+              "type": "string",
+              "description": "The kernel language for code cells. Not needed for non-code cell types. Refer to the system prompt for available languages."
+            },
+            "source": {
+              "type": "string",
+              "description": "The source code or content for the cell"
+            },
+            "type": {
+              "type": "string",
+              "description": "The cell type. Use 'code' for executable code cells (requires language). Other types vary by notebook. Refer to the system prompt for available types."
+            },
+            "position": {
+              "type": "number",
+              "description": "1-based position to insert the cell at. If omitted, the cell is added at the end."
+            }
+          },
+          "required": ["type", "source"]
+        }
+      },
+      {
+        "name": "verso_updateCell",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "Update Cell",
+        "modelDescription": "Update the source code of an existing cell. Use the 1-based cell number (call verso_listCells first to find it).",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based cell number to update"
+            },
+            "source": {
+              "type": "string",
+              "description": "The new source code for the cell"
+            }
+          },
+          "required": ["cellNumber", "source"]
+        }
+      },
+      {
+        "name": "verso_removeCell",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "Remove Cell",
+        "modelDescription": "Remove a cell from the notebook by its 1-based cell number.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based cell number to remove"
+            }
+          },
+          "required": ["cellNumber"]
+        }
+      },
+      {
+        "name": "verso_runCell",
+        "tags": ["verso", "notebook", "execution"],
+        "displayName": "Run Cell",
+        "modelDescription": "Execute a specific cell by its 1-based cell number and return the output.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based cell number to execute"
+            }
+          },
+          "required": ["cellNumber"]
+        }
+      },
+      {
+        "name": "verso_runAll",
+        "tags": ["verso", "notebook", "execution"],
+        "displayName": "Run All Cells",
+        "modelDescription": "Execute all cells in the notebook sequentially and return results.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "verso_listVariables",
+        "tags": ["verso", "notebook", "variables"],
+        "displayName": "List Variables",
+        "modelDescription": "List all variables currently in scope in the notebook kernel, showing name, type, and value preview.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "verso_inspectVariable",
+        "tags": ["verso", "notebook", "variables"],
+        "displayName": "Inspect Variable",
+        "modelDescription": "Get the detailed value of a specific variable by name.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The variable name to inspect"
+            }
+          },
+          "required": ["name"]
+        }
+      },
+      {
+        "name": "verso_getLanguages",
+        "tags": ["verso", "notebook"],
+        "displayName": "Get Languages",
+        "modelDescription": "List the available languages/kernels for the active notebook.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.mjs",
@@ -75,7 +247,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^25.2.3",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.99.0",
     "@vscode/test-electron": "^2.3.9",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.21.0",
