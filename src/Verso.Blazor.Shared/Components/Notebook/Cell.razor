@@ -1,3 +1,6 @@
+@using System.Net
+@using System.Text
+@using System.Text.Json
 @inject INotebookService Service
 @inject IJSRuntime JS
 
@@ -132,6 +135,24 @@
                     {
                         <div class="verso-output verso-output--html">
                             @((MarkupString)output.Content)
+                        </div>
+                    }
+                    else if (output.MimeType.StartsWith("image/"))
+                    {
+                        <div class="verso-output verso-output--html">
+                            <img src="@($"data:{output.MimeType};base64,{output.Content}")" style="max-width:100%" />
+                        </div>
+                    }
+                    else if (output.MimeType == "application/json")
+                    {
+                        <div class="verso-output verso-output--html">
+                            @((MarkupString)RenderJsonTree(output.Content))
+                        </div>
+                    }
+                    else if (output.MimeType == "text/csv")
+                    {
+                        <div class="verso-output verso-output--html">
+                            @((MarkupString)RenderCsvTable(output.Content))
                         </div>
                     }
                     else
@@ -334,5 +355,178 @@
         var info = Service.RegisteredLanguages
             .FirstOrDefault(l => string.Equals(l.Id, languageId, StringComparison.OrdinalIgnoreCase));
         return info?.DisplayName ?? languageId;
+    }
+
+    // --- MIME type renderers ---
+
+    private static string RenderCsvTable(string content)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<style>");
+        sb.Append(".verso-csv{border-collapse:collapse;width:100%;font-family:var(--verso-code-output-font-family,monospace);font-size:13px;");
+        sb.Append("background:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));");
+        sb.Append("color:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e))}");
+        sb.Append(".verso-csv th{padding:6px 12px;text-align:left;white-space:nowrap;");
+        sb.Append("background:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));");
+        sb.Append("border:1px solid var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));font-weight:600}");
+        sb.Append(".verso-csv td{padding:4px 12px;");
+        sb.Append("background:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));");
+        sb.Append("border:1px solid var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));white-space:nowrap}");
+        sb.Append(".verso-csv tr:hover td{background:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0))}");
+        sb.Append("</style>");
+
+        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length == 0) return "<span>Empty CSV</span>";
+
+        sb.Append("<div style='max-height:400px;overflow:auto;border:1px solid var(--vscode-editorWidget-border,#e0e0e0);border-radius:4px'>");
+        sb.Append("<table class='verso-csv'>");
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var cells = ParseCsvLine(lines[i]);
+            var tag = i == 0 ? "th" : "td";
+            sb.Append("<tr>");
+            foreach (var cell in cells)
+                sb.Append($"<{tag}>{WebUtility.HtmlEncode(cell)}</{tag}>");
+            sb.Append("</tr>");
+        }
+
+        sb.Append("</table></div>");
+        return sb.ToString();
+    }
+
+    private static List<string> ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var current = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (inQuotes)
+            {
+                if (c == '"' && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current.Append('"');
+                    i++;
+                }
+                else if (c == '"')
+                {
+                    inQuotes = false;
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            else if (c == '"')
+            {
+                inQuotes = true;
+            }
+            else if (c == ',')
+            {
+                fields.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+
+        fields.Add(current.ToString().Trim());
+        return fields;
+    }
+
+    private static string RenderJsonTree(string content)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            var sb = new StringBuilder();
+            sb.Append("<style>");
+            sb.Append(".verso-json{font-family:var(--verso-code-output-font-family,monospace);font-size:13px;");
+            sb.Append("color:var(--vscode-editor-foreground,#1e1e1e);line-height:1.5}");
+            sb.Append(".verso-json details{margin-left:16px}");
+            sb.Append(".verso-json summary{cursor:pointer;list-style:none;user-select:none}");
+            sb.Append(".verso-json summary::-webkit-details-marker{display:none}");
+            sb.Append(".verso-json summary::before{content:'\\25B6';font-size:9px;margin-right:4px;");
+            sb.Append("color:var(--vscode-descriptionForeground,#858585);display:inline-block;transition:transform 0.1s}");
+            sb.Append(".verso-json details[open]>summary::before{transform:rotate(90deg)}");
+            sb.Append(".verso-json .jk{color:var(--vscode-textLink-foreground,#0078d4)}");
+            sb.Append(".verso-json .js{color:var(--vscode-debugTokenExpression-string,#a31515)}");
+            sb.Append(".verso-json .jn{color:var(--vscode-debugTokenExpression-number,#098658)}");
+            sb.Append(".verso-json .jb{color:var(--vscode-debugTokenExpression-boolean,#0000ff)}");
+            sb.Append(".verso-json .jnull{color:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));font-style:italic}");
+            sb.Append(".verso-json .jbrace{color:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e))}");
+            sb.Append(".verso-json .jcount{color:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));opacity:0.7}");
+            sb.Append("</style>");
+            sb.Append("<div class='verso-json'>");
+            RenderJsonElement(sb, doc.RootElement, null, 0);
+            sb.Append("</div>");
+            return sb.ToString();
+        }
+        catch
+        {
+            return $"<pre>{WebUtility.HtmlEncode(content)}</pre>";
+        }
+    }
+
+    private static void RenderJsonElement(StringBuilder sb, JsonElement element, string? key, int depth)
+    {
+        var keyHtml = key is not null ? $"<span class='jk'>\"{WebUtility.HtmlEncode(key)}\"</span>: " : "";
+
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var objProps = element.EnumerateObject().ToList();
+                if (objProps.Count == 0)
+                {
+                    sb.Append($"<div>{keyHtml}<span class='jbrace'>{{}}</span></div>");
+                }
+                else
+                {
+                    sb.Append($"<details{(depth < 2 ? " open" : "")}>");
+                    sb.Append($"<summary>{keyHtml}<span class='jbrace'>{{</span> <span class='jcount'>{objProps.Count} {(objProps.Count == 1 ? "key" : "keys")}</span></summary>");
+                    foreach (var prop in objProps)
+                        RenderJsonElement(sb, prop.Value, prop.Name, depth + 1);
+                    sb.Append($"<div><span class='jbrace'>}}</span></div></details>");
+                }
+                break;
+
+            case JsonValueKind.Array:
+                var items = element.EnumerateArray().ToList();
+                if (items.Count == 0)
+                {
+                    sb.Append($"<div>{keyHtml}<span class='jbrace'>[]</span></div>");
+                }
+                else
+                {
+                    sb.Append($"<details{(depth < 2 ? " open" : "")}>");
+                    sb.Append($"<summary>{keyHtml}<span class='jbrace'>[</span> <span class='jcount'>{items.Count} {(items.Count == 1 ? "item" : "items")}</span></summary>");
+                    foreach (var item in items)
+                        RenderJsonElement(sb, item, null, depth + 1);
+                    sb.Append($"<div><span class='jbrace'>]</span></div></details>");
+                }
+                break;
+
+            case JsonValueKind.String:
+                sb.Append($"<div>{keyHtml}<span class='js'>\"{WebUtility.HtmlEncode(element.GetString())}\"</span></div>");
+                break;
+
+            case JsonValueKind.Number:
+                sb.Append($"<div>{keyHtml}<span class='jn'>{element.GetRawText()}</span></div>");
+                break;
+
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                sb.Append($"<div>{keyHtml}<span class='jb'>{element.GetRawText()}</span></div>");
+                break;
+
+            case JsonValueKind.Null:
+                sb.Append($"<div>{keyHtml}<span class='jnull'>null</span></div>");
+                break;
+        }
     }
 }
