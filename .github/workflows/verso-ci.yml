@@ -156,7 +156,7 @@ jobs:
         working-directory: vscode
 
       - name: Compile tests
-        run: tsc -p tsconfig.test.json
+        run: npx tsc -p tsconfig.test.json
         working-directory: vscode
 
       - name: Run extension tests
