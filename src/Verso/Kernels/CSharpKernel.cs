@@ -94,6 +94,7 @@ public sealed class CSharpKernel : ILanguageKernel
 
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         var originalOut = Console.Out;
+        var originalErr = Console.Error;
         try
         {
             // Process #i "nuget:" source directives and #r "nuget:" package directives
@@ -132,7 +133,9 @@ public sealed class CSharpKernel : ILanguageKernel
             }
 
             var consoleWriter = new StringWriter();
+            var consoleErrWriter = new StringWriter();
             Console.SetOut(consoleWriter);
+            Console.SetError(consoleErrWriter);
 
             // Create globals on first execution so C# cells can access the shared variable store
             _globals ??= new ScriptGlobals(context.Variables);
@@ -142,13 +145,22 @@ public sealed class CSharpKernel : ILanguageKernel
 
             var outputs = new List<CellOutput>();
 
-            // Capture console output
+            // Capture console output (stdout)
             var consoleOutput = consoleWriter.ToString();
             if (!string.IsNullOrEmpty(consoleOutput))
             {
                 var consoleCell = new CellOutput("text/plain", consoleOutput);
                 await context.WriteOutputAsync(consoleCell).ConfigureAwait(false);
                 outputs.Add(consoleCell);
+            }
+
+            // Capture console error output (stderr)
+            var consoleError = consoleErrWriter.ToString();
+            if (!string.IsNullOrEmpty(consoleError))
+            {
+                var errCell = new CellOutput("text/plain", consoleError, IsError: true, ErrorName: "Error");
+                await context.WriteOutputAsync(errCell).ConfigureAwait(false);
+                outputs.Add(errCell);
             }
 
             // Capture return value
@@ -229,6 +241,7 @@ public sealed class CSharpKernel : ILanguageKernel
         finally
         {
             Console.SetOut(originalOut);
+            Console.SetError(originalErr);
             _executionLock.Release();
         }
     }
