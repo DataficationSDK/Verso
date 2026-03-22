@@ -23,6 +23,7 @@ The base context available to all extension operations. Every specialized contex
 | `Notebook` | `INotebookOperations` | Execute cells, manage outputs, insert/remove/move cells, switch layouts and themes. |
 | `WriteOutputAsync(CellOutput)` | `Task` | Writes a cell output to the notebook output stream. |
 | `RequestFileDownloadAsync(string, string, byte[])` | `Task` | Requests the host to deliver a file download to the user. Default implementation throws `NotSupportedException` -- only available on hosts that support downloads. |
+| `UpdateOutputAsync(string, CellOutput)` | `Task` | Updates an existing output block in place, replacing its content. The first argument is the `outputBlockId`. Default implementation throws `NotSupportedException` -- only available on hosts that support in-place updates. |
 
 ### When Available
 
@@ -65,10 +66,11 @@ Extends `IVersoContext` with execution-specific state. Passed to `ILanguageKerne
 
 Only within `ILanguageKernel.ExecuteAsync`. Not available during completions, diagnostics, or hover queries.
 
-### DisplayAsync vs. WriteOutputAsync
+### DisplayAsync vs. WriteOutputAsync vs. UpdateOutputAsync
 
 - `WriteOutputAsync` (from `IVersoContext`) appends output to the cell's output list permanently.
 - `DisplayAsync` sends a live-updating display that can be replaced. Use it for progress indicators, streaming output, or interactive displays.
+- `UpdateOutputAsync` (from `IVersoContext`) replaces the content of a specific output block by ID. Use it for interactive panels that refresh in place (e.g., paginated tables, `ICellInteractionHandler` responses).
 
 ### Usage Example
 
@@ -348,6 +350,7 @@ Accessed via `context.ExtensionHost`. Query loaded extensions by category.
 | `GetExtensionInfos()` | `IReadOnlyList<ExtensionInfo>` | Metadata for all loaded extensions. |
 | `EnableExtensionAsync(string)` | `Task` | Enables a previously disabled extension. |
 | `DisableExtensionAsync(string)` | `Task` | Disables an extension without unloading it. |
+| `RequestExtensionConsentAsync(IReadOnlyList<ExtensionConsentInfo>, CancellationToken)` | `Task<bool>` | Requests user consent to load extension packages. Returns `true` if approved, `false` if denied. Default implementation auto-approves (for tests and non-interactive hosts). `ExtensionConsentInfo` is a record with `PackageId`, `Version`, and `Source`. |
 
 ---
 

@@ -397,6 +397,132 @@ Post-processors are sorted by `Priority` (ascending). `CanProcess` is checked fi
 
 ---
 
+## Augmentation Interfaces
+
+These interfaces are not standalone extension capabilities. They are implemented **alongside** a primary capability interface (e.g., `ILanguageKernel + IExtensionSettings` or `IDataFormatter + ICellInteractionHandler`). They do not extend `IExtension` and cannot be the sole interface on a `[VersoExtension]` class.
+
+### IExtensionSettings
+
+Exposes configurable settings for an extension. The host persists setting overrides in the `.verso` file and renders a settings UI.
+
+| Member | Type | Description |
+|---|---|---|
+| `SettingDefinitions` | `IReadOnlyList<SettingDefinition>` | Static list of setting definitions declared by this extension. |
+| `GetSettingValues()` | `IReadOnlyDictionary<string, object?>` | Returns current values of all settings (or only those differing from defaults). |
+| `ApplySettingsAsync(IReadOnlyDictionary<string, object?>)` | `Task` | Batch-restores settings from persisted values (e.g., when opening a file). Unknown names should be silently ignored. |
+| `OnSettingChangedAsync(string, object?)` | `Task` | Called when a single setting is changed interactively from the UI. |
+
+#### SettingDefinition Record
+
+| Property | Type | Description |
+|---|---|---|
+| `Name` | `string` | Programmatic setting name (e.g., `"warningLevel"`). |
+| `DisplayName` | `string` | Human-readable label shown in the settings UI. |
+| `Description` | `string` | Longer description of what the setting controls. |
+| `SettingType` | `SettingType` | Data type of the value (see enum below). |
+| `DefaultValue` | `object?` | Default when no override is persisted. Default `null`. |
+| `Category` | `string?` | Optional grouping category (e.g., `"Compiler"`, `"Editor"`). Default `null`. |
+| `Constraints` | `SettingConstraints?` | Optional validation constraints. Default `null`. |
+| `Order` | `int` | Display order within category. Lower values appear first. Default `0`. |
+
+#### SettingType Enum
+
+| Value | Description |
+|---|---|
+| `String` | Free-form text value. |
+| `Integer` | Whole number (`System.Int32`). |
+| `Double` | Floating-point number (`System.Double`). |
+| `Boolean` | True/false value. |
+| `StringChoice` | String restricted to a fixed set of choices (see `SettingConstraints.Choices`). |
+| `StringList` | Ordered list of string values. |
+
+#### SettingConstraints Record
+
+| Property | Type | Description |
+|---|---|---|
+| `MinValue` | `double?` | Minimum numeric value (inclusive). Applies to `Integer` and `Double`. |
+| `MaxValue` | `double?` | Maximum numeric value (inclusive). Applies to `Integer` and `Double`. |
+| `Pattern` | `string?` | Regex pattern the value must match. Applies to `String`. |
+| `Choices` | `IReadOnlyList<string>?` | Allowed values. Applies to `StringChoice`. |
+| `MaxLength` | `int?` | Maximum string length. Applies to `String`. |
+| `MaxItems` | `int?` | Maximum number of items. Applies to `StringList`. |
+
+#### Example Usage
+
+```csharp
+[VersoExtension]
+public sealed class MyKernel : ILanguageKernel, IExtensionSettings
+{
+    private int _warningLevel = 3;
+
+    public IReadOnlyList<SettingDefinition> SettingDefinitions => new[]
+    {
+        new SettingDefinition(
+            "warningLevel", "Warning Level", "Compiler warning level (0-4).",
+            SettingType.Integer, DefaultValue: 3,
+            Constraints: new SettingConstraints(MinValue: 0, MaxValue: 4))
+    };
+
+    public IReadOnlyDictionary<string, object?> GetSettingValues()
+        => new Dictionary<string, object?> { ["warningLevel"] = _warningLevel };
+
+    public Task ApplySettingsAsync(IReadOnlyDictionary<string, object?> values)
+    {
+        if (values.TryGetValue("warningLevel", out var val) && val is int level)
+            _warningLevel = level;
+        return Task.CompletedTask;
+    }
+
+    public Task OnSettingChangedAsync(string name, object? value)
+        => ApplySettingsAsync(new Dictionary<string, object?> { [name] = value });
+
+    // ... ILanguageKernel members ...
+}
+```
+
+### ICellInteractionHandler
+
+Handles bidirectional interactions from rendered cell content. Implement alongside a formatter or renderer to support interactive outputs (e.g., paginated tables, inline forms, drill-down panels).
+
+| Member | Type | Description |
+|---|---|---|
+| `OnCellInteractionAsync(CellInteractionContext)` | `Task<string?>` | Handles an interaction event. Returns an optional response string to send back to the client, or `null`. |
+
+#### CellInteractionContext
+
+| Property | Type | Description |
+|---|---|---|
+| `Region` | `CellRegion` | Which cell region originated the interaction (`Input` or `Output`). |
+| `InteractionType` | `string` | Application-defined type (e.g., `"click"`, `"paginate"`, `"submit"`). |
+| `Payload` | `string` | Free-form payload from the client (e.g., JSON, form data, page number). |
+| `OutputBlockId` | `string?` | Optional identifier of the output block to update in place. |
+| `CellId` | `Guid` | The cell where the interaction occurred. |
+| `ExtensionId` | `string` | The extension identifier of the handler that should process this interaction. |
+| `CancellationToken` | `CancellationToken` | Cancellation token for the operation. |
+
+#### Example Usage
+
+```csharp
+[VersoExtension]
+public sealed class MyFormatter : IDataFormatter, ICellInteractionHandler
+{
+    // IDataFormatter members ...
+
+    public async Task<string?> OnCellInteractionAsync(CellInteractionContext context)
+    {
+        if (context.InteractionType == "paginate")
+        {
+            var page = int.Parse(context.Payload);
+            var html = RenderPage(page);
+            return html; // Sent back to the client
+        }
+        return null;
+    }
+}
+```
+
+---
+
 ## Key Models
 
 These records and classes are shared across all interfaces:
@@ -404,14 +530,58 @@ These records and classes are shared across all interfaces:
 | Model | Description |
 |---|---|
 | `CellOutput(MimeType, Content, IsError, ErrorName, ErrorStackTrace)` | Output produced by cell execution. |
-| `CellModel` | Mutable model with `Id`, `Type`, `Language`, `Source`, `Outputs`, `Metadata`. |
-| `NotebookModel` | Full notebook document with cells, metadata, layout, and theme configuration. |
 | `RenderResult(MimeType, Content)` | Rendered content returned by renderers. |
 | `Completion(DisplayText, InsertText, Kind, Description, SortText)` | Code completion item. |
-| `Diagnostic(Severity, Message, StartLine, StartColumn, EndLine, EndColumn, Code)` | Code diagnostic. |
-| `HoverInfo(Content, MimeType, Range)` | Hover tooltip information. |
+| `Diagnostic(Severity, Message, StartLine, StartColumn, EndLine, EndColumn, Code)` | Code diagnostic. `Severity` is a `DiagnosticSeverity` enum: `Hidden`, `Info`, `Warning`, `Error`. |
+| `HoverInfo(Content, MimeType, Range)` | Hover tooltip. `MimeType` defaults to `"text/plain"`. `Range` is an optional `(int StartLine, int StartColumn, int EndLine, int EndColumn)?` tuple (zero-based). |
 | `ParameterDefinition(Name, Description, ParameterType, IsRequired, DefaultValue)` | Magic command parameter definition. |
 | `VariableDescriptor(Name, Value, Type, KernelId)` | Describes a stored variable. |
+| `CellContainerInfo` | Cell layout position returned by `ILayoutEngine.GetCellContainerAsync`. Properties: `CellId`, `X`, `Y`, `Width`, `Height`, `IsVisible`. |
+| `ExtensionInfo(ExtensionId, Name, Version, Author, Description, Status, Capabilities)` | Metadata for a loaded extension, returned by `IExtensionHostContext.GetExtensionInfos()`. |
+| `ExtensionConsentInfo(PackageId, Version, Source)` | Describes a package pending user consent, used by `IExtensionHostContext.RequestExtensionConsentAsync()`. |
+| `FontDescriptor(Family, SizePx, Weight, LineHeight)` | Font specification used by `ThemeTypography`. `Weight` defaults to `400`, `LineHeight` defaults to `1.4`. |
+| `VariableExplorerEntry(Name, TypeName, ValuePreview, IsExpandable)` | Display entry for the variable explorer panel. |
+| `SyntaxColorMap` | Mutable map used by `ITheme.GetSyntaxColors()`. Methods: `Set(string, string)`, `Get(string)`, `GetAll()`, `Count`. |
+
+### CellModel
+
+Mutable model representing a single cell. Serialized properties:
+
+| Property | Type | Description |
+|---|---|---|
+| `Id` | `Guid` | Unique cell identifier. Auto-generated on creation. |
+| `Type` | `string` | Cell type (e.g., `"code"`, `"markdown"`). Default `"code"`. |
+| `Language` | `string?` | Language identifier, or `null` if unspecified. |
+| `Source` | `string` | Source text content. Default `""`. |
+| `Outputs` | `List<CellOutput>` | Outputs from execution. |
+| `Metadata` | `Dictionary<string, object>` | Arbitrary key-value metadata. |
+
+Transient properties (not serialized, `[JsonIgnore]`):
+
+| Property | Type | Description |
+|---|---|---|
+| `ExecutionCount` | `int?` | Session-scoped execution counter, or `null` if not yet executed. |
+| `LastElapsed` | `TimeSpan?` | Wall-clock duration of the most recent execution. |
+| `LastStatus` | `string?` | `"Success"`, `"Failed"`, or `"Cancelled"`. |
+
+### NotebookModel
+
+Mutable model representing a full notebook document.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `FormatVersion` | `string` | `"1.0"` | Notebook file format version. |
+| `Title` | `string?` | `null` | Display title. |
+| `Created` | `DateTimeOffset?` | `null` | Creation timestamp. |
+| `Modified` | `DateTimeOffset?` | `null` | Last-modified timestamp. |
+| `DefaultKernelId` | `string?` | `null` | Default kernel for new code cells. |
+| `ActiveLayoutId` | `string?` | `null` | Currently active layout. |
+| `PreferredThemeId` | `string?` | `null` | Preferred theme. |
+| `RequiredExtensions` | `List<string>` | `[]` | Extensions that must be loaded for this notebook to function. |
+| `OptionalExtensions` | `List<string>` | `[]` | Extensions that may enhance the notebook but are not required. |
+| `Cells` | `List<CellModel>` | `[]` | Ordered list of cells. |
+| `Layouts` | `Dictionary<string, object>` | `{}` | Named layout definitions. |
+| `ExtensionSettings` | `Dictionary<string, Dictionary<string, object?>>` | `{}` | Per-extension settings keyed by extension ID. Only overrides are persisted. |
 
 ---
 

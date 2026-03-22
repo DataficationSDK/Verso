@@ -30,7 +30,7 @@ Add `Verso.Testing` (and a test framework) to your test project:
 
   <ItemGroup>
     <ProjectReference Include="..\MyExtension\MyExtension.csproj" />
-    <PackageReference Include="Verso.Testing" Version="0.5.0" />
+    <PackageReference Include="Verso.Testing" Version="1.*" />
   </ItemGroup>
 </Project>
 ```
@@ -53,13 +53,13 @@ Stubs implement context interfaces with sensible defaults and track calls for as
 
 | Stub | Implements | Key Tracking Properties |
 |---|---|---|
-| `StubVersoContext` | `IVersoContext` | `WrittenOutputs` |
-| `StubExecutionContext` | `IExecutionContext` | `WrittenOutputs`, `DisplayedOutputs`, `CellId`, `ExecutionCount` |
+| `StubVersoContext` | `IVersoContext` | `WrittenOutputs`, `UpdatedOutputs` |
+| `StubExecutionContext` | `IExecutionContext` | `WrittenOutputs`, `DisplayedOutputs`, `UpdatedOutputs`, `CellId`, `ExecutionCount` |
 | `StubFormatterContext` | `IFormatterContext` | `MimeType`, `MaxWidth`, `MaxHeight` |
 | `StubCellRenderContext` | `ICellRenderContext` | `CellId`, `CellMetadata`, `Dimensions`, `IsSelected` |
-| `StubMagicCommandContext` | `IMagicCommandContext` | `WrittenOutputs`, `RemainingCode`, `SuppressExecution` |
-| `StubToolbarActionContext` | `IToolbarActionContext` | `WrittenOutputs`, `DownloadedFiles`, `SelectedCellIds`, `NotebookCells`, `ActiveKernelId` |
-| `StubNotebookOperations` | `INotebookOperations` | `ExecutedCellIds`, `ExecuteAllCallCount`, `ClearedOutputCellIds`, `InsertedCells`, `RemovedCellIds`, `MovedCells`, `ExecutedCodeCalls`, `RestartedKernelIds` |
+| `StubMagicCommandContext` | `IMagicCommandContext` | `WrittenOutputs`, `UpdatedOutputs`, `RemainingCode`, `SuppressExecution` |
+| `StubToolbarActionContext` | `IToolbarActionContext` | `WrittenOutputs`, `UpdatedOutputs`, `DownloadedFiles`, `SelectedCellIds`, `NotebookCells`, `ActiveKernelId` |
+| `StubNotebookOperations` | `INotebookOperations` | `ExecutedCellIds`, `ExecuteAllCallCount`, `ClearedOutputCellIds`, `InsertedCells`, `RemovedCellIds`, `MovedCells`, `ExecutedCodeCalls`, `RestartedKernelIds`, `SwitchedThemeIds` |
 
 All stubs provide:
 - A real `VariableStore` instance via the `Variables` property
@@ -77,6 +77,7 @@ Fakes implement extension interfaces with configurable behavior, useful for test
 | `FakeLanguageKernel` | `ILanguageKernel` | Configurable kernel with injectable `executeFunc`. Tracks `InitializeCallCount`, `DisposeCallCount`. |
 | `FakeCellRenderer` | `ICellRenderer` | Returns simple `text/plain` results. Tracks lifecycle calls. |
 | `FakeDataFormatter` | `IDataFormatter` | Formats strings to `text/plain`. Tracks lifecycle calls. |
+| `FakeCellInteractionHandler` | `IDataFormatter + ICellInteractionHandler` | Combined formatter and interaction handler. Tracks `ReceivedInteractions` and exposes a settable `ResponseToReturn`. |
 
 ---
 

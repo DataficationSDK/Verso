@@ -98,7 +98,7 @@ The generated `.csproj` references the `Verso.Abstractions` NuGet package and en
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Verso.Abstractions" Version="0.5.0" />
+    <PackageReference Include="Verso.Abstractions" Version="1.*" />
   </ItemGroup>
 </Project>
 ```
@@ -156,19 +156,7 @@ See [Testing Extensions](testing-extensions.md) for details on writing tests wit
 
 ## Loading in Dev Mode
 
-To load your extension into a running Verso instance during development, point Verso at your build output directory. There are two approaches:
-
-### Option 1: Extension directory path
-
-Configure Verso to scan a directory containing your compiled DLL:
-
-```bash
-verso --extension-path ./MyDashboard/bin/Debug/net8.0/
-```
-
-### Option 2: Local NuGet feed
-
-Add your build output as a local NuGet feed and install from it:
+To load your extension into a running Verso instance during development, add your build output as a local NuGet feed and install from it:
 
 ```bash
 dotnet nuget add source ./MyDashboard/bin/Debug/ --name LocalExtensions
@@ -178,7 +166,7 @@ Verso will pick up the package when it resolves extensions. See [Packaging and P
 
 ## Extension Discovery
 
-Verso discovers extensions by scanning assemblies for classes decorated with `[VersoExtension]`. Each attributed class is loaded into an isolated `AssemblyLoadContext` that shares only `Verso.Abstractions` types with the host. This ensures your extension's dependencies do not conflict with other extensions or with Verso itself.
+Verso discovers extensions by scanning assemblies for classes decorated with `[VersoExtension]`. Third-party extension packages are loaded into an isolated `ExtensionLoadContext` (a collectible `AssemblyLoadContext`) that shares only `Verso.Abstractions` types with the host. This ensures your extension's dependencies do not conflict with other extensions or with Verso itself. Built-in extensions that ship with Verso load in the default context without isolation.
 
 The host calls `OnLoadedAsync` on each discovered `IExtension` instance, then categorizes it by the capability interfaces it implements (e.g., `ILanguageKernel`, `ICellRenderer`).
 

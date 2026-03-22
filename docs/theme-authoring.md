@@ -63,7 +63,7 @@ public sealed class SolarizedDarkTheme : ITheme
 
 ## Token Reference: ThemeColorTokens
 
-All values are CSS hex color strings (e.g. `#FFFFFF`). The table below groups all 45 tokens by category, showing the light theme defaults.
+All values are CSS hex color strings (e.g. `#FFFFFF`). The table below groups all 44 tokens by category, showing the light theme defaults.
 
 ### Editor Tokens
 
@@ -399,7 +399,7 @@ public sealed class VersoHighContrastTheme : ITheme
         AccentSecondary = "#6FC3DF",         // Cyan, 9.0:1 ratio
         TooltipBackground = "#FFD700",       // Inverted: gold bg
         TooltipForeground = "#000000",       // Black text, 13.9:1
-        // ... all 45 tokens set
+        // ... all 44 tokens set
     };
 
     public ThemeTypography Typography { get; } = new ThemeTypography

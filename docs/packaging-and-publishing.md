@@ -4,7 +4,7 @@ Verso extensions are distributed as NuGet packages. This guide covers configurin
 
 ## Project Configuration
 
-The Verso extension template generates a `.csproj` that is already configured for NuGet packaging. Here are the key properties:
+The Verso extension template generates a `.csproj` that is already configured for NuGet packaging. Here is an example of the key properties for a published extension package:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -25,7 +25,7 @@ The Verso extension template generates a `.csproj` that is already configured fo
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Verso.Abstractions" Version="0.5.0" />
+    <PackageReference Include="Verso.Abstractions" Version="1.*" />
   </ItemGroup>
 </Project>
 ```
@@ -62,7 +62,7 @@ Your extension should reference only `Verso.Abstractions`, not the full `Verso` 
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Verso.Abstractions" Version="0.5.0" />
+  <PackageReference Include="Verso.Abstractions" Version="1.*" />
 </ItemGroup>
 ```
 
@@ -219,10 +219,12 @@ Key rules:
 
 ### Assembly Isolation
 
-Each extension assembly loads in its own `AssemblyLoadContext`. This means:
+Each third-party extension assembly loads in its own `ExtensionLoadContext` (a collectible `AssemblyLoadContext`). This means:
 - Your extension's dependencies do not conflict with other extensions or the host.
-- `Verso.Abstractions` is shared so that `IExtension`, `ILanguageKernel`, etc. are the same types across all contexts.
+- `Verso.Abstractions` is shared from the default context so that `IExtension`, `ILanguageKernel`, etc. are the same types across all contexts.
 - The load context is collectible, so extensions can be unloaded to free memory.
+
+Built-in extensions that ship with Verso load in the default context without isolation.
 
 ### Troubleshooting
 
@@ -230,7 +232,7 @@ Each extension assembly loads in its own `AssemblyLoadContext`. This means:
 |---|---|
 | Extension not discovered | Missing `[VersoExtension]` attribute, or missing parameterless constructor. |
 | Type cast failures | Extension compiled against a different version of `Verso.Abstractions` than the host. |
-| Missing dependencies at runtime | A transitive dependency was not included in the NuGet package. Verify with `dotnet nuget verify`. |
+| Missing dependencies at runtime | A transitive dependency was not included in the NuGet package. Inspect the `.nupkg` contents or run `dotnet publish` to verify the output includes all required assemblies. |
 | Extension loads but does nothing | `OnLoadedAsync` is throwing an exception silently. Check host logs. |
 
 ---
