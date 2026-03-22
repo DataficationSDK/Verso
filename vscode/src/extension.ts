@@ -25,9 +25,13 @@ export async function activate(
     )
   );
 
-  // Register Copilot chat participant and tools
-  registerTools(context);
-  registerParticipant(context);
+  // Register Copilot chat participant and tools (requires vscode.chat and vscode.lm APIs,
+  // which are not available in VSCodium or other VS Code forks that strip Copilot)
+  if (typeof vscode.chat?.createChatParticipant === "function" &&
+      typeof vscode.lm?.registerTool === "function") {
+    registerTools(context);
+    registerParticipant(context);
+  }
 }
 
 export function deactivate(): void {
