@@ -425,15 +425,58 @@ html, body {
 
 .verso-cell-gutter {
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
-    justify-content: center;
-    width: 40px;
-    min-width: 40px;
-    padding-top: var(--verso-cell-padding, 12px);
+    align-self: stretch;
+    width: 52px;
+    min-width: 52px;
+    padding: 4px 0 0 6px;
     color: var(--verso-editor-line-number, #858585);
     font-size: 11px;
     font-family: var(--verso-editor-font-family, monospace);
     user-select: none;
+}
+
+.verso-cell-gutter-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+
+.verso-cell:hover .verso-cell-gutter-actions,
+.verso-cell--selected .verso-cell-gutter-actions,
+.verso-cell--executing .verso-cell-gutter-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.verso-cell-gutter-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+}
+
+.verso-cell-gutter-btn--collapse {
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-cell-collapse-chevron {
+    display: inline-block;
+    font-size: 9px;
+    transition: transform 0.15s ease;
+}
+
+.verso-cell-collapse-chevron--collapsed {
+    transform: rotate(-90deg);
+}
+
+.verso-cell-index {
+    margin-top: auto;
+    padding-bottom: 8px;
 }
 
 .verso-cell--preview .verso-cell-gutter {
@@ -635,14 +678,14 @@ html, body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border: none;
     border-radius: var(--verso-button-border-radius, 4px);
     background: transparent;
     color: var(--verso-editor-line-number, #858585);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 14px;
 }
 
 .verso-cell-btn:hover:not(:disabled) {

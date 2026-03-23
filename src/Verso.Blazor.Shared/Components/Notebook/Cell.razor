@@ -6,6 +6,21 @@
 
 <div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "")">
     <div class="verso-cell-gutter">
+        <div class="verso-cell-gutter-actions">
+            <button class="verso-cell-btn verso-cell-btn--run verso-cell-gutter-btn"
+                    @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
+                    title="Run" disabled="@IsExecuting">
+                @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
+            </button>
+            @if (IsHeadingCell)
+            {
+                <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
+                        @onclick="() => OnToggleSection.InvokeAsync(CellData.Id)"
+                        title="@(IsSectionCollapsed ? "Expand Section" : "Collapse Section")">
+                    <span class="verso-cell-collapse-chevron @(IsSectionCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
+                </button>
+            }
+        </div>
         <span class="verso-cell-index">[@(Index + 1)]</span>
     </div>
 
@@ -79,9 +94,6 @@
                 {
                     <button class="verso-cell-btn" @onclick="() => OnMoveDown.InvokeAsync(CellData.Id)" title="Move Down">&#x25BC;</button>
                 }
-                <button class="verso-cell-btn verso-cell-btn--run" @onclick="() => OnRunCell.InvokeAsync(CellData.Id)" title="Run" disabled="@IsExecuting">
-                    @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
-                </button>
                 <button class="verso-cell-btn verso-cell-btn--delete" @onclick="() => OnDeleteCell.InvokeAsync(CellData.Id)" title="Delete">&#x2715;</button>
             </div>
         </div>
@@ -183,6 +195,9 @@
     [Parameter] public EventCallback<(Guid CellId, string NewType)> OnCellTypeChanged { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string NewLanguage)> OnCellLanguageChanged { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
+    [Parameter] public bool IsHeadingCell { get; set; }
+    [Parameter] public bool IsSectionCollapsed { get; set; }
+    [Parameter] public EventCallback<Guid> OnToggleSection { get; set; }
 
     private List<ToolbarActionInfo> _enabledCellActions = new();
     private bool _showTypeDropdown;

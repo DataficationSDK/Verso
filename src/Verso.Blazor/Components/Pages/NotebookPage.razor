@@ -109,10 +109,29 @@
                             var cells = Service.Cells;
                             var cellTypes = Service.AvailableCellTypes;
                         }
+                        @{
+                            int? skipUntilLevel = null;
+                        }
                         @for (int i = 0; i < cells.Count; i++)
                         {
                             var cell = cells[i];
                             var index = i;
+                            var headingLevel = HeadingDetector.GetHeadingLevel(cell);
+
+                            if (skipUntilLevel is not null)
+                            {
+                                if (headingLevel is not null && headingLevel.Value <= skipUntilLevel.Value)
+                                {
+                                    skipUntilLevel = null;
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+                            }
+
+                            var isSectionCollapsed = _collapsedSections.Contains(cell.Id);
+
                             <div @onclick:stopPropagation="true">
                                 <Cell CellData="cell"
                                       IsSelected="cell.Id == _selectedCellId"
@@ -120,6 +139,9 @@
                                       Index="index"
                                       IsLast="index == cells.Count - 1"
                                       CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
+                                      IsHeadingCell="headingLevel is not null"
+                                      IsSectionCollapsed="isSectionCollapsed"
+                                      OnToggleSection="HandleToggleSection"
                                       OnRunCell="HandleRunCell"
                                       OnDeleteCell="HandleDeleteCell"
                                       OnSelect="HandleSelectCell"
@@ -130,6 +152,11 @@
                                       OnCellTypeChanged="HandleCellTypeChanged"
                                       OnCellLanguageChanged="HandleCellLanguageChanged" />
                             </div>
+
+                            @if (headingLevel is not null && isSectionCollapsed)
+                            {
+                                skipUntilLevel = headingLevel;
+                            }
 
                             @if (index < cells.Count - 1)
                             {
@@ -236,6 +263,7 @@
 @code {
     private Guid? _selectedCellId;
     private Guid? _executingCellId;
+    private HashSet<Guid> _collapsedSections = new();
     private string? _error;
     private string? _statusMessage;
     private CancellationTokenSource? _statusCts;
@@ -855,6 +883,12 @@
     {
         _selectedCellId = cellId;
         return Task.CompletedTask;
+    }
+
+    private void HandleToggleSection(Guid cellId)
+    {
+        if (!_collapsedSections.Remove(cellId))
+            _collapsedSections.Add(cellId);
     }
 
     private async Task HandleCellAction((Guid CellId, string Action) args)
