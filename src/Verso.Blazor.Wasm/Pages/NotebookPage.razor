@@ -96,7 +96,7 @@
 
                             var isSectionCollapsed = _collapsedSections.Contains(cell.Id);
 
-                            <div @onclick:stopPropagation="true">
+                            <div @onclick:stopPropagation="true" data-cell-index="@index">
                                 <Cell CellData="cell"
                                       IsSelected="cell.Id == _selectedCellId"
                                       IsExecuting="cell.Id == _executingCellId"
@@ -234,6 +234,7 @@
     private string? _activePanel;
     private int _panelWidth = 300;
     private DotNetObjectReference<NotebookPage>? _panelResizeRef;
+    private DotNetObjectReference<NotebookPage>? _cellDragRef;
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
@@ -284,6 +285,9 @@
             {
                 StateHasChanged();
             }
+
+            _cellDragRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("versoCellDrag.init", _cellDragRef);
 
             await SyncMonacoThemeAsync();
 
@@ -735,6 +739,25 @@
         if (index >= 0 && index < cellList.Count - 1) await Service.MoveCellAsync(index, index + 1);
     }
 
+    [JSInvokable]
+    public async Task OnCellDragDrop(int fromIndex, int insertBeforeIndex)
+    {
+        var count = Service.Cells.Count;
+        if (fromIndex < 0 || fromIndex >= count) return;
+
+        int toIndex;
+        if (insertBeforeIndex >= count)
+            toIndex = count - 1;
+        else if (insertBeforeIndex > fromIndex)
+            toIndex = insertBeforeIndex - 1;
+        else
+            toIndex = insertBeforeIndex;
+
+        toIndex = Math.Clamp(toIndex, 0, count - 1);
+        if (toIndex != fromIndex)
+            await Service.MoveCellAsync(fromIndex, toIndex);
+    }
+
     private async Task HandleSourceChanged((Guid CellId, string Source) args)
     {
         await Service.UpdateCellSourceAsync(args.CellId, args.Source);
@@ -790,6 +813,7 @@
         _statusCts?.Cancel();
         _statusCts?.Dispose();
         _panelResizeRef?.Dispose();
+        _cellDragRef?.Dispose();
         Bridge.OnNotification -= HandleBridgeNotification;
         Service.OnCellExecuted -= StateHasChanged;
         Service.OnNotebookChanged -= HandleNotebookChanged;

@@ -347,6 +347,7 @@ html, body {
 .verso-cell-list {
     padding: var(--verso-content-margin-vertical, 16px) var(--verso-content-margin-horizontal, 24px);
     width: 100%;
+    position: relative;
 }
 
 /* === Cell === */
@@ -434,6 +435,7 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
     font-size: 11px;
     font-family: var(--verso-editor-font-family, monospace);
+    cursor: grab;
     user-select: none;
 }
 
@@ -481,6 +483,33 @@ html, body {
 
 .verso-cell--preview .verso-cell-gutter {
     display: none;
+}
+
+.verso-cell-gutter:active {
+    cursor: grabbing;
+}
+
+.verso-cell-gutter button {
+    cursor: pointer;
+}
+
+/* Cell drag and drop */
+
+.verso-cell--dragging {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.verso-cell-drop-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--verso-cell-active-border, #0078D4);
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 0 4px rgba(0, 120, 212, 0.4);
 }
 
 /* Cell content */

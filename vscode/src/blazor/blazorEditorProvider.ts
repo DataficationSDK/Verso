@@ -344,6 +344,9 @@ export class BlazorEditorProvider
     const userPrefsInterop = toUri(
       "_content/Verso.Blazor.Shared/js/user-prefs-interop.js"
     );
+    const cellDragInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/cell-drag-interop.js"
+    );
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -466,6 +469,7 @@ export class BlazorEditorProvider
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
     <script src="${userPrefsInterop}"></script>
+    <script src="${cellDragInterop}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.
