@@ -18,7 +18,7 @@
     {
       "id": "f0000001-0001-0001-0001-000000000001",
       "type": "markdown",
-      "source": "# Exploring F# with Verso\n\nVerso supports F# as a first-class language kernel. This notebook walks through F# fundamentals \u2014 records, discriminated unions, pattern matching, collections, and the pipe operator \u2014 all running interactively with shared state across cells.\n\nEvery value you define persists for the rest of the session, just like in F# Interactive.",
+      "source": "# Exploring F# with Verso\n\nVerso supports F# as a first-class language kernel. This notebook walks through F# fundamentals \u2014 records, discriminated unions, pattern matching, collections, and the pipe operator \u2014 all running interactively with shared state across cells.\n\nEvery value you define persists for the rest of the session, just like in F# Interactive. When a cell ends with a value expression, it is rendered with rich formatting.",
       "outputs": []
     },
     {
@@ -57,84 +57,91 @@
     {
       "id": "f0000001-0001-0001-0001-000000000007",
       "type": "markdown",
-      "source": "## Option and Result Types\n\nF# uses `Option<'T>` for values that may or may not exist, and `Result<'T, 'E>` for operations that can fail. Both are rendered with rich formatting in Verso.",
+      "source": "## Option and Result Types\n\nF# uses `Option<'T>` for values that may or may not exist, and `Result<'T, 'E>` for operations that can fail. End a cell with one of these values to see Verso's rich formatting.",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000008",
       "type": "code",
       "language": "fsharp",
-      "source": "// Safe lookup returns an Option\nlet findCity name =\n    cities |> List.tryFind (fun c -> c.Name = name)\n\nlet tokyo = findCity \"Tokyo\"\nlet atlantis = findCity \"Atlantis\"\n\nprintfn \"Tokyo:    %A\" tokyo\nprintfn \"Atlantis: %A\" atlantis\n\n// Publish Some values to variable store for rich formatter display\n// Note: None is null in .NET interop, so only publish when we have a value\nmatch tokyo with Some t -> Variables.Set(\"tokyo\", t) | None -> ()\nmatch atlantis with Some a -> Variables.Set(\"atlantis\", a) | None -> printfn \"(Atlantis not found \u2014 None values are null and cannot be stored)\"",
+      "source": "// Safe lookup returns an Option\nlet findCity name =\n    cities |> List.tryFind (fun c -> c.Name = name)\n\nlet tokyo = findCity \"Tokyo\"\nlet atlantis = findCity \"Atlantis\"\n\nprintfn \"Atlantis: %A\" atlantis\n\n// End with the Some value for rich formatting\ntokyo",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000009",
       "type": "code",
       "language": "fsharp",
-      "source": "// Result for validation\nlet validatePopulation pop =\n    if pop < 0 then Error \"Population cannot be negative\"\n    elif pop > 50_000_000 then Error \"Population exceeds reasonable city limit\"\n    else Ok pop\n\nlet valid = validatePopulation 8_000_000\nlet invalid = validatePopulation -1\n\nprintfn \"Valid:   %A\" valid\nprintfn \"Invalid: %A\" invalid\n\nVariables.Set(\"validResult\", valid)\nVariables.Set(\"invalidResult\", invalid)",
+      "source": "// Result for validation\nlet validatePopulation pop =\n    if pop < 0 then Error \"Population cannot be negative\"\n    elif pop > 50_000_000 then Error \"Population exceeds reasonable city limit\"\n    else Ok pop\n\nlet valid = validatePopulation 8_000_000\nlet invalid = validatePopulation -1\n\nprintfn \"Invalid: %A\" invalid\n\nvalid",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000010",
       "type": "markdown",
-      "source": "## Collections: Maps and Sets\n\nF#'s immutable `Map` and `Set` types are first-class in Verso's data formatter, rendering as styled tables.",
+      "source": "## Collections: Maps and Sets\n\nF#'s immutable `Map` and `Set` types render as styled tables when returned as a cell result.",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000011",
       "type": "code",
       "language": "fsharp",
-      "source": "// Build a Map from city name to population\nlet populationMap =\n    cities\n    |> List.map (fun c -> c.Name, c.Population)\n    |> Map.ofList\n\nprintfn \"Population map has %d entries\" populationMap.Count\n\n// Build a Set of countries\nlet countries =\n    cities\n    |> List.map (fun c -> c.Country)\n    |> Set.ofList\n\nprintfn \"Unique countries: %A\" countries\n\nVariables.Set(\"populationMap\", populationMap)\nVariables.Set(\"countries\", countries)",
+      "source": "// Build a Map from city name to population\nlet populationMap =\n    cities\n    |> List.map (fun c -> c.Name, c.Population)\n    |> Map.ofList\n\npopulationMap",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000012",
-      "type": "markdown",
-      "source": "## Multi-Cell Computation\n\nState flows naturally across cells. Here we build up a statistical summary step by step.",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Build a Set of countries\nlet countries =\n    cities\n    |> List.map (fun c -> c.Country)\n    |> Set.ofList\n\ncountries",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000013",
-      "type": "code",
-      "language": "fsharp",
-      "source": "// Define a stats record\ntype Stats = {\n    Count: int\n    TotalPopulation: int\n    AveragePopulation: float\n    Largest: string\n    Smallest: string\n}",
+      "type": "markdown",
+      "source": "## Multi-Cell Computation\n\nState flows naturally across cells. Here we build up a statistical summary step by step.",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000014",
       "type": "code",
       "language": "fsharp",
-      "source": "// Compute stats using values from earlier cells\nlet stats = {\n    Count = cities.Length\n    TotalPopulation = cities |> List.sumBy (fun c -> c.Population)\n    AveragePopulation = cities |> List.averageBy (fun c -> float c.Population)\n    Largest = cities |> List.maxBy (fun c -> c.Population) |> fun c -> c.Name\n    Smallest = cities |> List.minBy (fun c -> c.Population) |> fun c -> c.Name\n}\n\nprintfn \"Stats: %A\" stats\nVariables.Set(\"stats\", stats)",
+      "source": "// Define a stats record\ntype Stats = {\n    Count: int\n    TotalPopulation: int\n    AveragePopulation: float\n    Largest: string\n    Smallest: string\n}",
       "outputs": []
     },
     {
       "id": "f0000001-0001-0001-0001-000000000015",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Compute stats using values from earlier cells\nlet stats = {\n    Count = cities.Length\n    TotalPopulation = cities |> List.sumBy (fun c -> c.Population)\n    AveragePopulation = cities |> List.averageBy (fun c -> float c.Population)\n    Largest = cities |> List.maxBy (fun c -> c.Population) |> fun c -> c.Name\n    Smallest = cities |> List.minBy (fun c -> c.Population) |> fun c -> c.Name\n}\n\nstats",
+      "outputs": []
+    },
+    {
+      "id": "f0000001-0001-0001-0001-000000000016",
       "type": "markdown",
       "source": "## Tuples and Pipelines\n\nF# tuples are lightweight groupings. Verso renders them with parenthesized comma-separated notation.",
       "outputs": []
     },
     {
-      "id": "f0000001-0001-0001-0001-000000000016",
+      "id": "f0000001-0001-0001-0001-000000000017",
       "type": "code",
       "language": "fsharp",
-      "source": "// Extract the top 3 as tuples (reuses 'ranked' from the density cell)\nlet top3 =\n    ranked\n    |> List.take 3\n    |> List.map (fun (name, _, density) -> name, int density)\n\nprintfn \"Top 3 densest cities:\"\nfor (name, density) in top3 do\n    printfn \"  %s: %d per km\u00B2\" name density\n\nVariables.Set(\"top3\", box top3)",
+      "source": "// Extract the top 3 as tuples (reuses 'ranked' from the density cell)\nlet top3 =\n    ranked\n    |> List.take 3\n    |> List.map (fun (name, _, density) -> name, int density)\n\ntop3",
       "outputs": []
     },
     {
-      "id": "f0000001-0001-0001-0001-000000000017",
+      "id": "f0000001-0001-0001-0001-000000000018",
       "type": "markdown",
       "source": "## Variable Sharing\n\nVariables published via `Variables.Set(...)` are visible to other kernels in the same notebook. This enables cross-language workflows \u2014 compute in F#, visualize in C#, or query with SQL.",
       "outputs": []
     },
     {
-      "id": "f0000001-0001-0001-0001-000000000018",
+      "id": "f0000001-0001-0001-0001-000000000019",
       "type": "code",
       "language": "fsharp",
-      "source": "// Read back a variable we set earlier\nlet retrieved = Variables.Get<obj>(\"stats\")\nprintfn \"Retrieved from variable store: %A\" retrieved\n\n// You can also use the typed helper\nlet maybeCity = tryGetVar<City list> \"cities\"\nmatch maybeCity with\n| Some cityList -> printfn \"Got %d cities from the variable store\" cityList.Length\n| None -> printfn \"Variable not found\"",
+      "source": "// Publish values to the shared variable store\nVariables.Set(\"populationMap\", populationMap)\nVariables.Set(\"countries\", countries)\nVariables.Set(\"stats\", stats)\n\n// Read back a variable we set\nlet retrieved = Variables.Get<obj>(\"stats\")\nprintfn \"Retrieved from variable store: %A\" retrieved\n\n// You can also use the typed helper\nlet maybeCity = tryGetVar<City list> \"cities\"\nmatch maybeCity with\n| Some cityList -> printfn \"Got %d cities from the variable store\" cityList.Length\n| None -> printfn \"Variable not found\"",
       "outputs": []
     },
     {
-      "id": "f0000001-0001-0001-0001-000000000019",
+      "id": "f0000001-0001-0001-0001-000000000020",
       "type": "markdown",
       "source": "## What's Next?\n\nTry defining your own types, adding NuGet packages, or mixing F# cells with C# and SQL in the same notebook:\n\n```fsharp\n// Reference a NuGet package\n#r \"nuget: FSharp.Data\"\n\nopen FSharp.Data\nlet csv = CsvFile.Load(\"https://example.com/data.csv\")\n```\n\nVerso's F# kernel supports the full language including computation expressions, active patterns, type providers, and more.",
       "outputs": []
@@ -178,14 +185,14 @@
           "height": 5,
           "visible": true
         },
-        "f0000001-0001-0001-0001-000000000014": {
+        "f0000001-0001-0001-0001-000000000015": {
           "row": 13,
           "col": 0,
           "width": 6,
           "height": 4,
           "visible": true
         },
-        "f0000001-0001-0001-0001-000000000016": {
+        "f0000001-0001-0001-0001-000000000017": {
           "row": 13,
           "col": 6,
           "width": 6,

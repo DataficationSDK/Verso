@@ -34,12 +34,17 @@ public class ExecutionTests
     }
 
     [TestMethod]
-    public async Task LetBinding_ProducesFsiOutput()
+    public async Task LetBinding_ProducesNoOutput()
     {
+        // Binding-only cells produce no output, matching Polyglot Notebooks behavior.
+        // The binding is still created and accessible in subsequent cells.
         var outputs = await _kernel.ExecuteAsync("let x = 42", _context);
-        Assert.IsTrue(outputs.Count > 0);
-        var allText = string.Join(" ", outputs.Select(o => o.Content));
-        Assert.IsTrue(allText.Contains("42") || allText.Contains("x"), $"Expected binding info, got: {allText}");
+        Assert.AreEqual(0, outputs.Count, "Let bindings should not produce output");
+
+        // Verify the binding is accessible
+        var result = await _kernel.ExecuteAsync("x", _context);
+        var allText = string.Join(" ", result.Select(o => o.Content));
+        Assert.IsTrue(allText.Contains("42"), $"Expected '42', got: {allText}");
     }
 
     [TestMethod]

@@ -249,10 +249,6 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                     StringComparer.OrdinalIgnoreCase);
             }
 
-            // Snapshot bound value names so we can detect new bindings after eval
-            var boundNamesBefore = new HashSet<string>(
-                _sessionManager!.GetBoundValues().Select(v => v.Name));
-
             var result = _sessionManager!.EvalInteraction(processedCode, context.CancellationToken);
 
             // --- Detect newly loaded assemblies (FSI-native NuGet path) ---
@@ -268,30 +264,12 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 }
             }
 
-            // 1. FSI output — try rich formatting for newly bound collection/record values
-            var formattedBindings = new List<CellOutput>();
-            foreach (var (name, value, type) in _sessionManager!.GetBoundValues())
-            {
-                if (name == "it" || boundNamesBefore.Contains(name)) continue;
-                var formatted = await TryFormatAsync(value, context).ConfigureAwait(false);
-                if (formatted is not null)
-                    formattedBindings.Add(formatted);
-            }
-
-            if (formattedBindings.Count > 0)
-            {
-                foreach (var fo in formattedBindings)
-                {
-                    await context.WriteOutputAsync(fo).ConfigureAwait(false);
-                    outputs.Add(fo);
-                }
-            }
-            else if (!string.IsNullOrEmpty(result.FsiOutput))
-            {
-                var fsiCell = new CellOutput("text/plain", result.FsiOutput);
-                await context.WriteOutputAsync(fsiCell).ConfigureAwait(false);
-                outputs.Add(fsiCell);
-            }
+            // Parse FSI output to detect trailing expression.
+            // FSI creates a "val it:" binding when the cell ends with an expression.
+            // Binding-only cells (let declarations without a trailing expression) produce
+            // no output, matching Polyglot Notebooks behavior.
+            // Unit-returning expressions (printfn, Console.Write, etc.) are also suppressed.
+            var (_, hasTrailingExpression, itIsUnit) = ParseFsiOutput(result.FsiOutput);
 
             // 2. Console.Out capture
             if (!string.IsNullOrEmpty(result.ConsoleOutput))
@@ -329,8 +307,8 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 return outputs;
             }
 
-            // 6. Result value (if any, and not unit)
-            if (result.ResultValue is not null)
+            // 6. Result value (trailing expression, skip unit)
+            if (result.ResultValue is not null and not Unit && !itIsUnit)
             {
                 // Attempt to resolve async values
                 var resolved = await FSharpValueFormatter.ResolveAsyncValue(
@@ -367,6 +345,18 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                         await context.WriteOutputAsync(valueCell).ConfigureAwait(false);
                         outputs.Add(valueCell);
                     }
+                }
+            }
+            else if (hasTrailingExpression && result.ResultValue is null && !itIsUnit)
+            {
+                // Result is null at CLR level (e.g. F# None) but FSI had a trailing expression.
+                // Extract the "it" value representation from FSI output.
+                var itText = ExtractFsiBindingValue(result.FsiOutput, "it");
+                if (itText is not null)
+                {
+                    var cell = new CellOutput("text/plain", itText);
+                    await context.WriteOutputAsync(cell).ConfigureAwait(false);
+                    outputs.Add(cell);
                 }
             }
 
@@ -885,5 +875,89 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(FSharpKernel));
+    }
+
+    /// <summary>
+    /// Parses FSI output text for <c>val &lt;name&gt;:</c> binding declarations.
+    /// Returns the list of modified binding names (excluding <c>it</c>), whether
+    /// a trailing expression was detected (indicated by a <c>val it:</c> line),
+    /// and whether the <c>it</c> binding is of type <c>unit</c>.
+    /// </summary>
+    private static (List<string> ModifiedBindings, bool HasTrailingExpression, bool ItIsUnit) ParseFsiOutput(string? fsiOutput)
+    {
+        var names = new List<string>();
+        bool hasIt = false;
+        bool itIsUnit = false;
+
+        if (string.IsNullOrEmpty(fsiOutput))
+            return (names, false, false);
+
+        foreach (var line in fsiOutput.Split('\n'))
+        {
+            var trimmed = line.TrimStart();
+            if (!trimmed.StartsWith("val ")) continue;
+
+            var name = ExtractFsiBindingName(trimmed);
+            if (name is null) continue;
+
+            if (name == "it")
+            {
+                hasIt = true;
+                // Check if type is unit: "val it: unit = ()"
+                itIsUnit = trimmed.Contains(": unit");
+            }
+            else
+            {
+                names.Add(name);
+            }
+        }
+
+        return (names, hasIt, itIsUnit);
+    }
+
+    /// <summary>
+    /// Extracts the binding name from a <c>val &lt;name&gt;: ...</c> FSI output line.
+    /// </summary>
+    private static string? ExtractFsiBindingName(string valLine)
+    {
+        // Format: "val <name>: <type> = <value>" or "val <name> : <type> = <value>"
+        var afterVal = valLine.AsSpan(4);
+        var colonIdx = afterVal.IndexOf(':');
+        var spaceIdx = afterVal.IndexOf(' ');
+        var endIdx = colonIdx >= 0 && (spaceIdx < 0 || colonIdx < spaceIdx)
+            ? colonIdx
+            : (spaceIdx >= 0 ? spaceIdx : afterVal.Length);
+
+        if (endIdx <= 0) return null;
+
+        var name = afterVal.Slice(0, endIdx).Trim().ToString();
+        return name.Length > 0 ? name : null;
+    }
+
+    /// <summary>
+    /// Extracts the value representation from a <c>val &lt;name&gt;: &lt;type&gt; = &lt;value&gt;</c>
+    /// line in FSI output. Used when the CLR value is null (e.g. F# <c>None</c>).
+    /// </summary>
+    private static string? ExtractFsiBindingValue(string? fsiOutput, string bindingName)
+    {
+        if (string.IsNullOrEmpty(fsiOutput)) return null;
+
+        foreach (var line in fsiOutput.Split('\n'))
+        {
+            var trimmed = line.TrimStart();
+            if (!trimmed.StartsWith("val ")) continue;
+
+            var name = ExtractFsiBindingName(trimmed);
+            if (name != bindingName) continue;
+
+            // Find " = " and extract everything after it
+            var eqIdx = trimmed.IndexOf(" = ", StringComparison.Ordinal);
+            if (eqIdx < 0) return null;
+
+            var value = trimmed.Substring(eqIdx + 3).Trim();
+            return value.Length > 0 ? value : null;
+        }
+
+        return null;
     }
 }
