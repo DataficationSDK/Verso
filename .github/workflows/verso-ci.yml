@@ -111,6 +111,7 @@ jobs:
           dotnet pack src/Verso/Verso.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.Ado/Verso.Ado.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.FSharp/Verso.FSharp.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso.JavaScript/Verso.JavaScript.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.PowerShell/Verso.PowerShell.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release --no-build -o packages
           dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release --no-build -o packages

@@ -50,6 +50,7 @@ jobs:
           dotnet pack src/Verso/Verso.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.Ado/Verso.Ado.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.FSharp/Verso.FSharp.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
+          dotnet pack src/Verso.JavaScript/Verso.JavaScript.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.PowerShell/Verso.PowerShell.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
