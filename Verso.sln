@@ -71,6 +71,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleKernel", "SampleKerne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Perl", "samples\SampleKernel\Verso.Sample.Perl\Verso.Sample.Perl.csproj", "{82567AAE-80B6-4493-898E-92666DAF0114}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.JavaScript", "src\Verso.JavaScript\Verso.JavaScript.csproj", "{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -429,6 +431,18 @@ Global
 		{82567AAE-80B6-4493-898E-92666DAF0114}.Release|x64.Build.0 = Release|Any CPU
 		{82567AAE-80B6-4493-898E-92666DAF0114}.Release|x86.ActiveCfg = Release|Any CPU
 		{82567AAE-80B6-4493-898E-92666DAF0114}.Release|x86.Build.0 = Release|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Debug|x64.Build.0 = Debug|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Debug|x86.Build.0 = Debug|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x64.ActiveCfg = Release|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x64.Build.0 = Release|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x86.ActiveCfg = Release|Any CPU
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -464,5 +478,6 @@ Global
 		{23B5D202-4DF9-4DB6-BF15-BBC09DA93E8C} = {01B2C5E3-00CF-47C2-81D4-586351003AC8}
 		{7BD3E198-6D23-AD67-DCEF-7B69C8FA0960} = {8C1A6A40-19CE-4D8C-AE0E-B4BB17164FB3}
 		{82567AAE-80B6-4493-898E-92666DAF0114} = {7BD3E198-6D23-AD67-DCEF-7B69C8FA0960}
+		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993} = {FDC205CF-C62D-4489-A8D8-A9693F6F1977}
 	EndGlobalSection
 EndGlobal

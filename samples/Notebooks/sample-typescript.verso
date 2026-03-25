@@ -1,0 +1,102 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "TypeScript in Verso",
+    "created": "2026-03-25T10:00:00+00:00",
+    "modified": "2026-03-25T10:00:00+00:00",
+    "defaultKernel": "typescript",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "00000007-0001-0001-0001-000000000000",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!extension Verso.JavaScript"
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# TypeScript in Verso\n\nThe TypeScript kernel transpiles cells behind the scenes using the **TypeScript compiler API**, then executes the resulting JavaScript on **Node.js**. The `typescript` npm module is auto-installed on first use, so there is no manual setup required."
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000002",
+      "type": "markdown",
+      "source": "## Type Annotations\n\nWrite standard TypeScript with interfaces, type annotations, generics, and more."
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "typescript",
+      "source": "interface Planet {\n    name: string;\n    diameterKm: number;\n    distanceAU: number;\n    moons: number;\n}\n\nvar planets: Planet[] = [\n    { name: \u0022Mercury\u0022, diameterKm:   4_879, distanceAU: 0.39,  moons: 0  },\n    { name: \u0022Venus\u0022,   diameterKm:  12_104, distanceAU: 0.72,  moons: 0  },\n    { name: \u0022Earth\u0022,   diameterKm:  12_756, distanceAU: 1.00,  moons: 1  },\n    { name: \u0022Mars\u0022,    diameterKm:   6_792, distanceAU: 1.52,  moons: 2  },\n    { name: \u0022Jupiter\u0022, diameterKm: 142_984, distanceAU: 5.20,  moons: 95 },\n    { name: \u0022Saturn\u0022,  diameterKm: 120_536, distanceAU: 9.54,  moons: 146},\n    { name: \u0022Uranus\u0022,  diameterKm:  51_118, distanceAU: 19.19, moons: 28 },\n    { name: \u0022Neptune\u0022, diameterKm:  49_528, distanceAU: 30.07, moons: 16 },\n];\n\nconsole.log(`Loaded ${planets.length} planets`);"
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "typescript",
+      "source": "// Generic helper function with type constraints\nfunction summarize<T extends { name: string }>(items: T[], label: string): string {\n    return `${label}: ${items.map(i => i.name).join(\u0022, \u0022)}`;\n}\n\nvar inner = planets.filter(p => p.distanceAU < 2);\nvar outer = planets.filter(p => p.distanceAU >= 2);\n\nconsole.log(summarize(inner, \u0022Inner planets\u0022));\nconsole.log(summarize(outer, \u0022Outer planets\u0022));"
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Enums and Union Types\n\nTypeScript-specific features transpile seamlessly."
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "typescript",
+      "source": "enum PlanetCategory {\n    Terrestrial = \u0022terrestrial\u0022,\n    GasGiant = \u0022gas giant\u0022,\n    IceGiant = \u0022ice giant\u0022,\n}\n\ninterface CategorizedPlanet extends Planet {\n    category: PlanetCategory;\n}\n\nfunction categorize(planet: Planet): CategorizedPlanet {\n    let category: PlanetCategory;\n    if (planet.diameterKm < 15_000) {\n        category = PlanetCategory.Terrestrial;\n    } else if (planet.diameterKm > 100_000) {\n        category = PlanetCategory.GasGiant;\n    } else {\n        category = PlanetCategory.IceGiant;\n    }\n    return { ...planet, category };\n}\n\nvar categorized = planets.map(categorize);\n\nfor (const p of categorized) {\n    console.log(`${p.name.padEnd(10)} ${p.category}`);\n}"
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## Async / Await with Types\n\nTop-level `await` works just like in the JavaScript kernel, with full type safety."
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000008",
+      "type": "code",
+      "language": "typescript",
+      "source": "// Typed async operations\nasync function findLargest(items: Planet[]): Promise<Planet> {\n    // Simulate an async lookup\n    await new Promise(resolve => setTimeout(resolve, 10));\n    return items.reduce((a, b) => a.diameterKm > b.diameterKm ? a : b);\n}\n\nvar largest = await findLargest(planets);\nconsole.log(`Largest planet: ${largest.name} (${largest.diameterKm.toLocaleString()} km)`);"
+    },
+    {
+      "id": "00000007-0001-0001-0001-000000000009",
+      "type": "markdown",
+      "source": "## npm Packages with TypeScript\n\nUse `#!npm` to install packages, then `require()` them with types."
+    },
+    {
+      "id": "00000007-0001-0001-0001-00000000000a",
+      "type": "code",
+      "language": "typescript",
+      "source": "#!npm lodash"
+    },
+    {
+      "id": "00000007-0001-0001-0001-00000000000b",
+      "type": "code",
+      "language": "typescript",
+      "source": "const _: any = require(\u0022lodash\u0022);\n\nvar byCategory = _.groupBy(categorized, \u0022category\u0022) as Record<string, CategorizedPlanet[]>;\n\nfor (const [category, group] of Object.entries(byCategory)) {\n    const totalMoons: number = _.sumBy(group, \u0022moons\u0022);\n    console.log(`${category}: ${group.length} planets, ${totalMoons} total moons`);\n}"
+    },
+    {
+      "id": "00000007-0001-0001-0001-00000000000c",
+      "type": "markdown",
+      "source": "## Cross-Kernel Variable Sharing\n\nTypeScript cells share variables with other kernels through the same mechanism as JavaScript."
+    },
+    {
+      "id": "00000007-0001-0001-0001-00000000000d",
+      "type": "code",
+      "language": "typescript",
+      "source": "// Publish typed data to the variable store\nvar planet_count: number = planets.length;\nvar total_moons: number = planets.reduce((sum, p) => sum + p.moons, 0);\nvar largest_planet: string = largest.name;\n\nconsole.log(`Published: planet_count=${planet_count}, total_moons=${total_moons}, largest=${largest_planet}`);"
+    },
+    {
+      "id": "00000007-0001-0001-0001-00000000000e",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Read the TypeScript variables from C#\nvar count = Variables.Get\u003Clong\u003E(\u0022planet_count\u0022);\nvar moons = Variables.Get\u003Clong\u003E(\u0022total_moons\u0022);\nvar biggest = Variables.Get\u003Cstring\u003E(\u0022largest_planet\u0022);\n\nConsole.WriteLine($\u0022C# received from TypeScript: {count} planets, {moons} moons, largest = {biggest}\u0022);"
+    },
+    {
+      "id": "00000007-0001-0001-0001-00000000000f",
+      "type": "markdown",
+      "source": "## What's Next?\n\nThe TypeScript kernel supports the full Node.js ecosystem through `#!npm`. Type annotations are stripped at transpile time, so any valid TypeScript compiles and runs. Use `const { x } = await import('y')` for ES module imports.\n\nSince variables sync automatically, you can use TypeScript for typed data modeling and validation alongside C#, Python, or any other Verso kernel in the same notebook."
+    }
+  ]
+}
