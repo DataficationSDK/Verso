@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Jint;
 using Jint.Native;
 using Jint.Runtime;
@@ -71,7 +72,21 @@ internal sealed class JintRunner : IJavaScriptRunner
 
             try
             {
-                _engine.Execute(code);
+                // Wrap in a function scope so const/let/class can be re-declared
+                // on cell re-execution. Promote declarations to globalThis for
+                // cross-cell access.
+                var declNames = ExtractTopLevelDeclarations(code);
+                if (declNames.Count > 0)
+                {
+                    var promotion = string.Join("\n", declNames.Select(n =>
+                        $"globalThis[\"{n}\"] = typeof {n} !== 'undefined' ? {n} : undefined;"));
+                    var wrapped = $"(function() {{\n{code}\n{promotion}\n}})()";
+                    _engine.Execute(wrapped);
+                }
+                else
+                {
+                    _engine.Execute(code);
+                }
                 lastExpr = TryEvalLastExpression(code);
             }
             catch (JavaScriptException jse)
@@ -162,6 +177,34 @@ internal sealed class JintRunner : IJavaScriptRunner
         _engine?.Dispose();
         _engine = null;
         return ValueTask.CompletedTask;
+    }
+
+    private static readonly Regex DeclPattern = new(
+        @"^(?:const|let|var|class|(?:async\s+)?function\*?)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)",
+        RegexOptions.Compiled);
+
+    private static List<string> ExtractTopLevelDeclarations(string code)
+    {
+        var declNames = new List<string>();
+        var lines = code.Split('\n');
+        var braceDepth = 0;
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            // Check BEFORE updating brace depth so opening-brace lines are top-level
+            if (braceDepth == 0)
+            {
+                var match = DeclPattern.Match(trimmed);
+                if (match.Success)
+                    declNames.Add(match.Groups[1].Value);
+            }
+            foreach (var ch in trimmed)
+            {
+                if (ch == '{') braceDepth++;
+                else if (ch == '}') braceDepth--;
+            }
+        }
+        return declNames;
     }
 
     private string? TryEvalLastExpression(string code)

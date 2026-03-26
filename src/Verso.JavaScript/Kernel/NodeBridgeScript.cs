@@ -85,27 +85,27 @@ internal static class NodeBridgeScript
             }
         }
 
-        // --- Var promotion for async code ---
-        // When code uses await, we wrap in an async IIFE. But var declarations
-        // inside a function are scoped to that function and won't persist globally.
-        // This extracts top-level var names and adds globalThis assignments after execution.
-        function _verso_extractTopLevelVars(code) {
-            const varNames = [];
+        // --- Declaration promotion ---
+        // Extracts top-level const/let/var/class/function names so they can be
+        // promoted to globalThis after execution inside a function scope. This
+        // enables re-running cells that use const/let without "already declared" errors.
+        function _verso_extractTopLevelDecls(code) {
+            const declNames = [];
             const lines = code.split('\n');
             let braceDepth = 0;
             for (const line of lines) {
                 const trimmed = line.trim();
-                // Track brace depth (rough heuristic for top-level detection)
+                // Check BEFORE updating brace depth so opening-brace lines are top-level
+                if (braceDepth === 0) {
+                    const match = trimmed.match(/^(?:const|let|var|class|(?:async\s+)?function\*?)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/);
+                    if (match) declNames.push(match[1]);
+                }
                 for (const ch of trimmed) {
                     if (ch === '{') braceDepth++;
                     else if (ch === '}') braceDepth--;
                 }
-                if (braceDepth > 0) continue;
-                // Match top-level var declarations
-                const match = trimmed.match(/^var\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/);
-                if (match) varNames.push(match[1]);
             }
-            return varNames;
+            return declNames;
         }
 
         function _verso_hasAwait(code) {
@@ -121,16 +121,21 @@ internal static class NodeBridgeScript
             let lastExpr = null;
             let error = null;
             try {
+                // Always wrap in a function scope so const/let/class declarations
+                // are block-scoped and can be re-declared on cell re-execution.
+                // Promote all top-level declarations to globalThis for cross-cell access.
+                const declNames = _verso_extractTopLevelDecls(cmd.code);
+                const promotion = declNames.map(n =>
+                    `globalThis[${JSON.stringify(n)}] = typeof ${n} !== 'undefined' ? ${n} : undefined;`
+                ).join('\n');
+
                 if (_verso_hasAwait(cmd.code)) {
-                    // Async path: wrap in IIFE, promote var declarations afterward
-                    const varNames = _verso_extractTopLevelVars(cmd.code);
-                    const promotion = varNames.map(n => `globalThis[${JSON.stringify(n)}] = typeof ${n} !== 'undefined' ? ${n} : undefined;`).join('\n');
                     const wrapped = `(async () => {\n${cmd.code}\n${promotion}\n})()`;
                     const script = new vm.Script(wrapped, { filename: '<cell>', lineOffset: -1 });
                     await script.runInThisContext();
                 } else {
-                    // Sync path: run directly so var hoists to global context
-                    const script = new vm.Script(cmd.code, { filename: '<cell>' });
+                    const wrapped = `(function() {\n${cmd.code}\n${promotion}\n})()`;
+                    const script = new vm.Script(wrapped, { filename: '<cell>', lineOffset: -1 });
                     script.runInThisContext();
                 }
                 lastExpr = _verso_tryEvalLastExpr(cmd.code);
