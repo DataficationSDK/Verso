@@ -15,21 +15,16 @@ Uses Node.js (subprocess) when available for full npm and module support, with J
 
 ## Getting Started
 
-Load the extension with `#!extension`, then use JavaScript or TypeScript cells:
-
-```
-// Cell 1 (Code)
-#!extension Verso.JavaScript
-```
+Verso.JavaScript is included with Verso Blazor Server and the VS Code extension. JavaScript and TypeScript cells are available immediately with no setup required.
 
 ```javascript
-// Cell 2 (JavaScript)
+// JavaScript cell
 var greeting = "Hello from JavaScript!";
 console.log(greeting);
 ```
 
 ```typescript
-// Cell 3 (TypeScript)
+// TypeScript cell
 interface User { name: string; age: number }
 var user: User = { name: "Alice", age: 30 };
 console.log(`Hello, ${user.name}!`);

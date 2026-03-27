@@ -29,6 +29,8 @@ The architecture is built on one principle: every feature is an extension, and e
 |----------|:------------:|:----------------:|
 | C#         | Yes | Yes |
 | F#         | Yes | Yes |
+| JavaScript | Yes* | Yes |
+| TypeScript | Yes* | Yes |
 | PowerShell | Yes | Yes |
 | Python     | Yes | Yes |
 | SQL        | Yes | Yes |
@@ -36,6 +38,8 @@ The architecture is built on one principle: every feature is an extension, and e
 | Markdown   | N/A | N/A |
 | HTML       | N/A | Yes |
 | Mermaid    | N/A | Yes |
+
+\* IntelliSense for JavaScript and TypeScript is provided by Monaco's built-in language services rather than the kernel.
 
 ## Architecture
 
@@ -67,8 +71,8 @@ Verso is split into three layers. The engine knows nothing about the UI. The UI 
 │  │  Notebook Layout · Dashboard Layout · Formatters   │ │
 │  ├────────────────────────────────────────────────────┤ │
 │  │  First-Party Extension Packages                    │ │
-│  │  Verso.FSharp · Verso.PowerShell · Verso.Python    │ │
-│  │  Verso.Ado (SQL) · Verso.Http (HTTP)               │ │
+│  │  Verso.FSharp · Verso.JavaScript · Verso.PowerShell│ │
+│  │  Verso.Python · Verso.Ado (SQL) · Verso.Http       │ │
 │  └────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -87,7 +91,7 @@ Verso is split into three layers. The engine knows nothing about the UI. The UI 
 
 ![C# code execution with IntelliSense](https://datafication.co/assets/verso/IntellisenseVerso.gif)
 
-All language kernels provide completions, diagnostics, and hover information. NuGet packages are referenced inline with `#r "nuget: PackageName/Version"`, and custom package sources are supported with `#i "nuget: <url>"`. Python uses `#!pip` for package management. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
+All language kernels provide completions, diagnostics, and hover information. NuGet packages are referenced inline with `#r "nuget: PackageName/Version"`, and custom package sources are supported with `#i "nuget: <url>"`. Python uses `#!pip` for package management, and JavaScript uses `#!npm` for npm packages. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
 
 ### Layouts
 
@@ -102,6 +106,10 @@ Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect t
 ### HTTP Requests
 
 Verso.Http uses `.http` file syntax (the same format supported by VS Code REST Client and JetBrains HTTP Client). Features include variable interpolation, dynamic variables, named request chaining, and cross-kernel integration where response data is shared to C#, F#, and other cells.
+
+### JavaScript and TypeScript
+
+Verso.JavaScript provides full JavaScript and TypeScript execution in notebook cells. When Node.js is available, cells run in a persistent subprocess with access to `require()`, dynamic `import()`, top-level `await`, and npm packages installed via the `#!npm` magic command. In environments without Node.js, the JavaScript kernel falls back to Jint, a pure .NET ES2024 interpreter with no external dependencies. TypeScript cells are automatically transpiled using the TypeScript compiler API (auto-installed on first use) and share the same execution environment and variable scope as JavaScript cells.
 
 ### Rich Content Cells
 
@@ -153,11 +161,11 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 
 | Category | Included |
 |----------|----------|
-| **Kernels** | C# (Roslyn), F# (FCS), PowerShell, Python (pythonnet), HTTP |
+| **Kernels** | C# (Roslyn), F# (FCS), JavaScript (Node.js / Jint), TypeScript, PowerShell, Python (pythonnet), HTTP |
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL, HTTP |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types, SQL result sets |
 | **Serializers** | `.verso` (native JSON), `.ipynb` import, `.dib` import |
@@ -199,6 +207,7 @@ JSON-based, human-readable, and diff-friendly:
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [VS Code](https://code.visualstudio.com/) (for the extension, desktop only) or any modern browser (for Blazor)
+- [Node.js 18+](https://nodejs.org/) (optional, for the JavaScript/TypeScript kernel; falls back to Jint when absent)
 - [Python 3.8-3.12](https://www.python.org/downloads/) (optional, for the Python kernel)
 
 ### Run in the Browser

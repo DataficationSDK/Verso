@@ -10,12 +10,6 @@
   },
   "cells": [
     {
-      "id": "00000006-0001-0001-0001-000000000000",
-      "type": "code",
-      "language": "csharp",
-      "source": "#!extension Verso.JavaScript"
-    },
-    {
       "id": "00000006-0001-0001-0001-000000000001",
       "type": "markdown",
       "source": "# JavaScript in Verso\n\nThe JavaScript kernel runs on **Node.js** when available (with full npm and module support) and falls back to an embedded **Jint** engine when it is not installed. Variables persist across cells and flow automatically between kernels."
@@ -23,7 +17,7 @@
     {
       "id": "00000006-0001-0001-0001-000000000002",
       "type": "markdown",
-      "source": "## Basics\n\nStandard `console.log` output and last-expression results are captured automatically."
+      "source": "## Basics\n\nStandard \u0060console.log\u0060 output and last-expression results are captured automatically."
     },
     {
       "id": "00000006-0001-0001-0001-000000000003",
@@ -35,35 +29,35 @@
       "id": "00000006-0001-0001-0001-000000000004",
       "type": "code",
       "language": "javascript",
-      "source": "// The last expression in a cell is displayed automatically\nvar version = process.version;\n`Node.js ${version}`"
+      "source": "// The last expression in a cell is displayed automatically\nvar version = process.version;\n\u0060Node.js ${version}\u0060"
     },
     {
       "id": "00000006-0001-0001-0001-000000000005",
       "type": "markdown",
-      "source": "## Working with Data\n\nVariables declared with `var` or assigned to `globalThis` persist across cells."
+      "source": "## Working with Data\n\nVariables declared with \u0060var\u0060 or assigned to \u0060globalThis\u0060 persist across cells."
     },
     {
       "id": "00000006-0001-0001-0001-000000000006",
       "type": "code",
       "language": "javascript",
-      "source": "var languages = [\n    { name: \u0022JavaScript\u0022, year: 1995, paradigm: \u0022multi-paradigm\u0022,  typed: false },\n    { name: \u0022TypeScript\u0022, year: 2012, paradigm: \u0022multi-paradigm\u0022,  typed: true  },\n    { name: \u0022Python\u0022,     year: 1991, paradigm: \u0022multi-paradigm\u0022,  typed: false },\n    { name: \u0022Rust\u0022,       year: 2015, paradigm: \u0022systems\u0022,         typed: true  },\n    { name: \u0022Go\u0022,         year: 2009, paradigm: \u0022concurrent\u0022,      typed: true  },\n    { name: \u0022C#\u0022,         year: 2000, paradigm: \u0022object-oriented\u0022, typed: true  },\n];\n\nconsole.log(`Loaded ${languages.length} languages`);"
+      "source": "var languages = [\n    { name: \u0022JavaScript\u0022, year: 1995, paradigm: \u0022multi-paradigm\u0022,  typed: false },\n    { name: \u0022TypeScript\u0022, year: 2012, paradigm: \u0022multi-paradigm\u0022,  typed: true  },\n    { name: \u0022Python\u0022,     year: 1991, paradigm: \u0022multi-paradigm\u0022,  typed: false },\n    { name: \u0022Rust\u0022,       year: 2015, paradigm: \u0022systems\u0022,         typed: true  },\n    { name: \u0022Go\u0022,         year: 2009, paradigm: \u0022concurrent\u0022,      typed: true  },\n    { name: \u0022C#\u0022,         year: 2000, paradigm: \u0022object-oriented\u0022, typed: true  },\n];\n\nconsole.log(\u0060Loaded ${languages.length} languages\u0060);"
     },
     {
       "id": "00000006-0001-0001-0001-000000000007",
       "type": "code",
       "language": "javascript",
-      "source": "// Sort by year and display\nvar sorted = [...languages].sort((a, b) => a.year - b.year);\n\nconsole.log(`${\u0022Name\u0022.padEnd(14)}${\u0022Year\u0022.padEnd(8)}${\u0022Paradigm\u0022.padEnd(18)}Typed`);\nconsole.log(\u0022\u2500\u0022.repeat(48));\nfor (const lang of sorted) {\n    console.log(\n        `${lang.name.padEnd(14)}${String(lang.year).padEnd(8)}${lang.paradigm.padEnd(18)}${lang.typed ? \u0022yes\u0022 : \u0022no\u0022}`\n    );\n}"
+      "source": "// Sort by year and display\nvar sorted = [...languages].sort((a, b) =\u003E a.year - b.year);\n\nconsole.log(\u0060${\u0022Name\u0022.padEnd(14)}${\u0022Year\u0022.padEnd(8)}${\u0022Paradigm\u0022.padEnd(18)}Typed\u0060);\nconsole.log(\u0022\u2500\u0022.repeat(48));\nfor (const lang of sorted) {\n    console.log(\n        \u0060${lang.name.padEnd(14)}${String(lang.year).padEnd(8)}${lang.paradigm.padEnd(18)}${lang.typed ? \u0022yes\u0022 : \u0022no\u0022}\u0060\n    );\n}"
     },
     {
       "id": "00000006-0001-0001-0001-000000000008",
       "type": "code",
       "language": "javascript",
-      "source": "// Aggregate with array methods\nvar typedCount = languages.filter(l => l.typed).length;\nvar oldest = languages.reduce((a, b) => a.year < b.year ? a : b);\nvar newest = languages.reduce((a, b) => a.year > b.year ? a : b);\n\nconsole.log(`Statically typed: ${typedCount} of ${languages.length}`);\nconsole.log(`Oldest: ${oldest.name} (${oldest.year})`);\nconsole.log(`Newest: ${newest.name} (${newest.year})`);"
+      "source": "// Aggregate with array methods\nvar typedCount = languages.filter(l =\u003E l.typed).length;\nvar oldest = languages.reduce((a, b) =\u003E a.year \u003C b.year ? a : b);\nvar newest = languages.reduce((a, b) =\u003E a.year \u003E b.year ? a : b);\n\nconsole.log(\u0060Statically typed: ${typedCount} of ${languages.length}\u0060);\nconsole.log(\u0060Oldest: ${oldest.name} (${oldest.year})\u0060);\nconsole.log(\u0060Newest: ${newest.name} (${newest.year})\u0060);"
     },
     {
       "id": "00000006-0001-0001-0001-000000000009",
       "type": "markdown",
-      "source": "## Async / Await\n\nTop-level `await` is supported in Node.js mode. Use dynamic `import()` to load ES modules."
+      "source": "## Async / Await\n\nTop-level \u0060await\u0060 is supported in Node.js mode. Use dynamic \u0060import()\u0060 to load ES modules."
     },
     {
       "id": "00000006-0001-0001-0001-00000000000a",
@@ -74,7 +68,7 @@
     {
       "id": "00000006-0001-0001-0001-00000000000b",
       "type": "markdown",
-      "source": "## npm Packages\n\nUse `#!npm` to install packages. They are stored in `~/.verso/node/` and available via `require()` in subsequent cells."
+      "source": "## npm Packages\n\nUse \u0060#!npm\u0060 to install packages. They are stored in \u0060~/.verso/node/\u0060 and available via \u0060require()\u0060 in subsequent cells."
     },
     {
       "id": "00000006-0001-0001-0001-00000000000c",
@@ -86,7 +80,7 @@
       "id": "00000006-0001-0001-0001-00000000000d",
       "type": "code",
       "language": "javascript",
-      "source": "const _ = require(\u0022lodash\u0022);\n\nvar grouped = _.groupBy(languages, \u0022typed\u0022);\nconsole.log(\u0022Typed:\u0022, grouped[\u0022true\u0022].map(l => l.name).join(\u0022, \u0022));\nconsole.log(\u0022Untyped:\u0022, grouped[\u0022false\u0022].map(l => l.name).join(\u0022, \u0022));"
+      "source": "const _ = require(\u0022lodash\u0022);\n\nvar grouped = _.groupBy(languages, \u0022typed\u0022);\nconsole.log(\u0022Typed:\u0022, grouped[\u0022true\u0022].map(l =\u003E l.name).join(\u0022, \u0022));\nconsole.log(\u0022Untyped:\u0022, grouped[\u0022false\u0022].map(l =\u003E l.name).join(\u0022, \u0022));"
     },
     {
       "id": "00000006-0001-0001-0001-00000000000e",
@@ -97,7 +91,7 @@
       "id": "00000006-0001-0001-0001-00000000000f",
       "type": "code",
       "language": "javascript",
-      "source": "// These variables will be available in C# and Python cells\nvar language_count = languages.length;\nvar oldest_language = oldest.name;\nvar typed_languages = languages.filter(l => l.typed).map(l => l.name);\n\nconsole.log(`Published: language_count=${language_count}, oldest=${oldest_language}`);\nconsole.log(`Typed: ${typed_languages.join(\u0022, \u0022)}`);"
+      "source": "// These variables will be available in C# and Python cells\nvar language_count = languages.length;\nvar oldest_language = oldest.name;\nvar typed_languages = languages.filter(l =\u003E l.typed).map(l =\u003E l.name);\n\nconsole.log(\u0060Published: language_count=${language_count}, oldest=${oldest_language}\u0060);\nconsole.log(\u0060Typed: ${typed_languages.join(\u0022, \u0022)}\u0060);"
     },
     {
       "id": "00000006-0001-0001-0001-000000000010",
@@ -115,7 +109,7 @@
       "id": "00000006-0001-0001-0001-000000000012",
       "type": "code",
       "language": "javascript",
-      "source": "// Pick up the C# variables\nconsole.log(greeting);\nconsole.log(`Pi is approximately ${pi}`);"
+      "source": "// Pick up the C# variables\nconsole.log(greeting);\nconsole.log(\u0060Pi is approximately ${pi}\u0060);"
     },
     {
       "id": "00000006-0001-0001-0001-000000000013",
@@ -131,7 +125,7 @@
     {
       "id": "00000006-0001-0001-0001-000000000015",
       "type": "markdown",
-      "source": "## What's Next?\n\nThe JavaScript kernel supports the full Node.js standard library and npm ecosystem. Use `#!npm` to install any package directly from a cell. Since variables sync automatically, you can use JavaScript for scripting and data transformation alongside C#, Python, or any other Verso kernel in the same notebook."
+      "source": "## What\u0027s Next?\n\nThe JavaScript kernel supports the full Node.js standard library and npm ecosystem. Use \u0060#!npm\u0060 to install any package directly from a cell. Since variables sync automatically, you can use JavaScript for scripting and data transformation alongside C#, Python, or any other Verso kernel in the same notebook."
     }
   ]
 }

@@ -12,6 +12,7 @@ The original copyright notices and license texts are provided for each component
 | Microsoft.AspNetCore.Components | 8.0.0 | MIT | [dotnet/aspnetcore](https://github.com/dotnet/aspnetcore) |
 | Microsoft.PowerShell.SDK | 7.4.7 | MIT | [PowerShell/PowerShell](https://github.com/PowerShell/PowerShell) |
 | FSharp.Compiler.Service | 43.9.100 | MIT | [dotnet/fsharp](https://github.com/dotnet/fsharp) |
+| Jint | 4.6.4 | BSD-2-Clause | [sebastienros/jint](https://github.com/sebastienros/jint) |
 | pythonnet | 3.1.0-rc.0 | MIT | [pythonnet/pythonnet](https://github.com/pythonnet/pythonnet) |
 | Markdig | 0.37.0 | BSD-2-Clause | [lunet-io/markdig](https://github.com/lunet-io/markdig) |
 
@@ -241,8 +242,9 @@ END OF TERMS AND CONDITIONS
 
 ## BSD 2-Clause License
 
-The following component is licensed under the BSD 2-Clause "Simplified" License:
+The following components are licensed under the BSD 2-Clause "Simplified" License:
 
+- **Jint** - Copyright (c) Sebastien Ros
 - **Markdig** - Copyright (c) Alexandre Mutel
 
 ```
