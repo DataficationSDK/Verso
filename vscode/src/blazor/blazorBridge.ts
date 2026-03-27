@@ -197,8 +197,12 @@ export class BlazorBridge implements vscode.Disposable {
       return;
     }
 
+    const defaultUri = this.documentUri
+      ? vscode.Uri.joinPath(this.documentUri, "..", p.fileName)
+      : vscode.Uri.file(p.fileName);
+
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(p.fileName),
+      defaultUri,
       filters: this.getFileFilters(p.contentType, p.fileName),
     });
 

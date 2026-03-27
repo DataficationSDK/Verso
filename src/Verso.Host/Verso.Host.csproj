@@ -18,6 +18,7 @@
     <ProjectReference Include="..\Verso.Python\Verso.Python.csproj" />
     <ProjectReference Include="..\Verso.PowerShell\Verso.PowerShell.csproj" />
     <ProjectReference Include="..\Verso.Http\Verso.Http.csproj" />
+    <ProjectReference Include="..\Verso.JavaScript\Verso.JavaScript.csproj" />
   </ItemGroup>
 
 </Project>

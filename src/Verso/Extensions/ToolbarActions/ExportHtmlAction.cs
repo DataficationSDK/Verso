@@ -25,7 +25,7 @@ public sealed class ExportHtmlAction : IToolbarAction
     public string ActionId => "verso.action.export-html";
     public string DisplayName => "HTML";
     public string? Icon => null;
-    public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;
+    public ToolbarPlacement Placement => ToolbarPlacement.ExportMenu;
     public int Order => 60;
 
     public Task<bool> IsEnabledAsync(IToolbarActionContext context)

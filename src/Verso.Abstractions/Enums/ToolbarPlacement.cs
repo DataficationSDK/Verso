@@ -18,5 +18,11 @@ public enum ToolbarPlacement
     /// <summary>
     /// A right-click context menu associated with a cell or selection.
     /// </summary>
-    ContextMenu
+    ContextMenu,
+
+    /// <summary>
+    /// The Export dropdown menu in the main toolbar. Actions placed here appear
+    /// as items in the Export button's dropdown rather than as standalone buttons.
+    /// </summary>
+    ExportMenu
 }

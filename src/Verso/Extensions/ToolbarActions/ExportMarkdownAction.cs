@@ -25,7 +25,7 @@ public sealed class ExportMarkdownAction : IToolbarAction
     public string ActionId => "verso.action.export-markdown";
     public string DisplayName => "Markdown";
     public string? Icon => null;
-    public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;
+    public ToolbarPlacement Placement => ToolbarPlacement.ExportMenu;
     public int Order => 65;
 
     public Task<bool> IsEnabledAsync(IToolbarActionContext context)
