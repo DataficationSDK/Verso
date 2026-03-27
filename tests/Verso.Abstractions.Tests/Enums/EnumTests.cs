@@ -10,9 +10,9 @@ public class EnumTests
     }
 
     [TestMethod]
-    public void ToolbarPlacement_HasThreeValues()
+    public void ToolbarPlacement_HasFourValues()
     {
-        Assert.AreEqual(3, Enum.GetValues<ToolbarPlacement>().Length);
+        Assert.AreEqual(4, Enum.GetValues<ToolbarPlacement>().Length);
     }
 
     [TestMethod]
