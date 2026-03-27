@@ -232,7 +232,7 @@ public sealed class ToolbarActionTests
     {
         var action = new ExportHtmlAction();
         Assert.AreEqual("verso.action.export-html", action.ActionId);
-        Assert.AreEqual(ToolbarPlacement.MainToolbar, action.Placement);
+        Assert.AreEqual(ToolbarPlacement.ExportMenu, action.Placement);
         Assert.AreEqual(60, action.Order);
     }
 
@@ -275,7 +275,7 @@ public sealed class ToolbarActionTests
     {
         var action = new ExportMarkdownAction();
         Assert.AreEqual("verso.action.export-markdown", action.ActionId);
-        Assert.AreEqual(ToolbarPlacement.MainToolbar, action.Placement);
+        Assert.AreEqual(ToolbarPlacement.ExportMenu, action.Placement);
         Assert.AreEqual(65, action.Order);
     }
 

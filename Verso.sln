@@ -73,6 +73,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Perl", "sample
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.JavaScript", "src\Verso.JavaScript\Verso.JavaScript.csproj", "{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.JavaScript.Tests", "tests\Verso.JavaScript.Tests\Verso.JavaScript.Tests.csproj", "{A1F4D87B-151C-46B0-B2E0-FA713585DF08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -443,6 +445,18 @@ Global
 		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x64.Build.0 = Release|Any CPU
 		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x86.ActiveCfg = Release|Any CPU
 		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}.Release|x86.Build.0 = Release|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Debug|x64.Build.0 = Debug|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Debug|x86.Build.0 = Debug|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Release|x64.ActiveCfg = Release|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Release|x64.Build.0 = Release|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Release|x86.ActiveCfg = Release|Any CPU
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -479,5 +493,6 @@ Global
 		{7BD3E198-6D23-AD67-DCEF-7B69C8FA0960} = {8C1A6A40-19CE-4D8C-AE0E-B4BB17164FB3}
 		{82567AAE-80B6-4493-898E-92666DAF0114} = {7BD3E198-6D23-AD67-DCEF-7B69C8FA0960}
 		{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993} = {FDC205CF-C62D-4489-A8D8-A9693F6F1977}
+		{A1F4D87B-151C-46B0-B2E0-FA713585DF08} = {01B2C5E3-00CF-47C2-81D4-586351003AC8}
 	EndGlobalSection
 EndGlobal
