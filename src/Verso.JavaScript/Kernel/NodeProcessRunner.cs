@@ -36,7 +36,7 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         _bridgePath = Path.Combine(Path.GetTempPath(), $"verso-js-bridge-{Guid.NewGuid():N}.js");
         await File.WriteAllTextAsync(_bridgePath, NodeBridgeScript.BridgeSource, ct);
 
-        var psi = new ProcessStartInfo(_nodeExe, $"\"{_bridgePath}\"")
+        var psi = new ProcessStartInfo(_nodeExe, $"--no-warnings \"{_bridgePath}\"")
         {
             RedirectStandardInput = true,
             RedirectStandardOutput = true,

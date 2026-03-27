@@ -12,6 +12,22 @@ internal static class NodeBridgeScript
         const vm = require('vm');
         const readline = require('readline');
 
+        // --- Dynamic import() support for vm.Script ---
+        // Node 20.8+ provides USE_MAIN_CONTEXT_DEFAULT_LOADER which delegates
+        // import() inside vm scripts to the main context's ESM loader.
+        // For Node 18-20.7, we fall back to a callback that calls the host import().
+        const _verso_dynamicImport = (() => {
+            try {
+                const c = vm.constants;
+                if (c && c.USE_MAIN_CONTEXT_DEFAULT_LOADER !== undefined) {
+                    return c.USE_MAIN_CONTEXT_DEFAULT_LOADER;
+                }
+            } catch (_) {}
+            return async function(specifier) {
+                return import(specifier);
+            };
+        })();
+
         // --- Expose CJS globals to vm context ---
         globalThis.require = require;
         globalThis.module = module;
@@ -76,7 +92,7 @@ internal static class NodeBridgeScript
             if (lastLine.endsWith('{') || lastLine.endsWith('}')) return null;
 
             try {
-                const s = new vm.Script(`(${lastLine})`, { filename: '<lastexpr>' });
+                const s = new vm.Script(`(${lastLine})`, { filename: '<lastexpr>', importModuleDynamically: _verso_dynamicImport });
                 const result = s.runInThisContext();
                 if (result === undefined || typeof result === 'function') return null;
                 return JSON.stringify(result, null, 2) ?? null;
@@ -131,11 +147,11 @@ internal static class NodeBridgeScript
 
                 if (_verso_hasAwait(cmd.code)) {
                     const wrapped = `(async () => {\n${cmd.code}\n${promotion}\n})()`;
-                    const script = new vm.Script(wrapped, { filename: '<cell>', lineOffset: -1 });
+                    const script = new vm.Script(wrapped, { filename: '<cell>', lineOffset: -1, importModuleDynamically: _verso_dynamicImport });
                     await script.runInThisContext();
                 } else {
                     const wrapped = `(function() {\n${cmd.code}\n${promotion}\n})()`;
-                    const script = new vm.Script(wrapped, { filename: '<cell>', lineOffset: -1 });
+                    const script = new vm.Script(wrapped, { filename: '<cell>', lineOffset: -1, importModuleDynamically: _verso_dynamicImport });
                     script.runInThisContext();
                 }
                 lastExpr = _verso_tryEvalLastExpr(cmd.code);
