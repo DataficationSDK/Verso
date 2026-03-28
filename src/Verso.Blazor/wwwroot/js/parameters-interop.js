@@ -12,8 +12,7 @@ window.versoParameters = (() => {
     }
 
     function replaceFormOutput(cellId, html) {
-        const container = document.querySelector(
-            `[data-cell-id="${cellId}"] .verso-cell-rendered-input, [data-cell-id="${cellId}"] .verso-cell-outputs`);
+        const container = document.querySelector(`[data-cell-id="${cellId}"]`);
         if (container) {
             const outputDiv = container.querySelector('.verso-output--html') || container;
             outputDiv.innerHTML = html;

@@ -417,17 +417,26 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             region = region.ToString()
         });
 
-        if (result?.Response is not null && outputBlockId is not null)
+        if (result?.Response is not null)
         {
             var cell = _cells.FirstOrDefault(c => c.Id == cellId);
             if (cell is not null)
             {
-                var existingIndex = cell.Outputs.FindIndex(o =>
-                    o.Content.Contains($"data-output-id=\"{outputBlockId}\""));
-                if (existingIndex >= 0)
-                    cell.Outputs[existingIndex] = new CellOutput("text/html", result.Response);
+                if (outputBlockId is not null)
+                {
+                    var existingIndex = cell.Outputs.FindIndex(o =>
+                        o.Content.Contains($"data-output-id=\"{outputBlockId}\""));
+                    if (existingIndex >= 0)
+                        cell.Outputs[existingIndex] = new CellOutput("text/html", result.Response);
+                    else
+                        cell.Outputs.Add(new CellOutput("text/html", result.Response));
+                }
                 else
+                {
+                    // Replace all outputs (used by form-based cells like parameters)
+                    cell.Outputs.Clear();
                     cell.Outputs.Add(new CellOutput("text/html", result.Response));
+                }
 
                 OnOutputUpdated?.Invoke();
             }
