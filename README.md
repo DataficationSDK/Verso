@@ -9,7 +9,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/DataficationSDK/Verso?label=Release)](https://github.com/DataficationSDK/Verso/releases)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/Datafication.verso-notebook?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook)
 
-![Verso in action](https://datafication.co/assets/verso/RunningVersoNotebook.gif)
+![Verso in action](https://datafication.co/assets/verso/UsingVerso32026.gif)
 
 ## Why Verso
 
@@ -89,7 +89,7 @@ Verso is split into three layers. The engine knows nothing about the UI. The UI 
 
 ### Code Execution with IntelliSense
 
-![C# code execution with IntelliSense](https://datafication.co/assets/verso/IntellisenseVerso.gif)
+![C# code execution with IntelliSense](https://datafication.co/assets/verso/VersoIntelliSense.gif)
 
 All language kernels provide completions, diagnostics, and hover information. NuGet packages are referenced inline with `#r "nuget: PackageName/Version"`, and custom package sources are supported with `#i "nuget: <url>"`. Python uses `#!pip` for package management, and JavaScript uses `#!npm` for npm packages. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
 
@@ -97,7 +97,7 @@ All language kernels provide completions, diagnostics, and hover information. Nu
 
 The same notebook can be viewed as a linear document or rearranged into a 12-column grid dashboard. Drag cells to reposition them, resize with handles, and the layout metadata is saved in the `.verso` file. Switch between layouts at runtime.
 
-![Side-by-side comparison of Notebook Layout and Dashboard Layout](images/notebook-dashboard-side-by-side.png)
+![Side-by-side comparison of Notebook Layout and Dashboard Layout](https://datafication.co/assets/verso/VersoLayouts.gif)
 
 ### Database Connectivity
 
