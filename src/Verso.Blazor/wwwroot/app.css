@@ -2000,6 +2000,199 @@ html, body {
     background: var(--verso-accent-secondary, #005A9E);
 }
 
+/* === Parameters Cell === */
+
+.verso-parameters {
+    padding: 8px 12px;
+    font-size: var(--verso-ui-font-size, 13px);
+}
+
+.verso-parameters-header {
+    margin-bottom: 8px;
+}
+
+.verso-parameters-title {
+    font-weight: 600;
+}
+
+.verso-parameters-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+
+.verso-parameters-table th {
+    text-align: left;
+    padding: 4px 8px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--verso-border, #E0E0E0);
+    white-space: nowrap;
+}
+
+.verso-parameters-table td {
+    padding: 4px 8px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--verso-border-light, #F0F0F0);
+}
+
+.verso-parameter-type-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
+    background: var(--verso-badge-background, #E8E8E8);
+    color: var(--verso-badge-foreground, #555);
+}
+
+.verso-parameter-required {
+    color: var(--verso-error, #D32F2F);
+    font-weight: bold;
+}
+
+.verso-parameter-value input[type="text"],
+.verso-parameter-value input[type="number"],
+.verso-parameter-value input[type="date"],
+.verso-parameter-value input[type="datetime-local"] {
+    width: 100%;
+    padding: 3px 6px;
+    border: 1px solid var(--verso-input-border, #CCC);
+    border-radius: 3px;
+    font-size: var(--verso-ui-font-size, 13px);
+    font-family: inherit;
+    background: var(--verso-input-background, #FFF);
+    color: var(--verso-input-foreground, #1E1E1E);
+}
+
+.verso-parameter-value input:focus {
+    outline: none;
+    border-color: var(--verso-accent, #0078D4);
+    box-shadow: 0 0 0 1px var(--verso-accent, #0078D4);
+}
+
+.verso-parameter-bool {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-height: 26px;
+}
+
+.verso-output--html .verso-parameter-bool input[type="checkbox"],
+.verso-parameter-bool input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.verso-parameter-error {
+    color: var(--verso-error, #D32F2F);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.verso-parameters-error {
+    color: var(--verso-error, #D32F2F);
+    padding: 8px;
+}
+
+.verso-parameters-success {
+    color: var(--verso-success, #2E7D32);
+    padding: 4px 0 8px;
+    font-size: 12px;
+}
+
+.verso-btn-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--verso-foreground-muted, #999);
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.verso-btn-remove:hover {
+    color: var(--verso-error, #D32F2F);
+    background: var(--verso-hover-background, #F5F5F5);
+}
+
+.verso-btn-add {
+    background: none;
+    border: 1px solid var(--verso-border, #E0E0E0);
+    cursor: pointer;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: var(--verso-ui-font-size, 13px);
+    padding: 4px 12px;
+    border-radius: 3px;
+}
+
+.verso-btn-add:hover {
+    background: var(--verso-hover-background, #F5F5F5);
+    border-color: var(--verso-accent, #0078D4);
+    color: var(--verso-accent, #0078D4);
+}
+
+.verso-parameters-actions {
+    padding-top: 4px;
+}
+
+.verso-parameter-add-row input[type="text"],
+.verso-parameter-add-row select {
+    width: 100%;
+    padding: 3px 6px;
+    border: 1px solid var(--verso-input-border, #CCC);
+    border-radius: 3px;
+    font-size: var(--verso-ui-font-size, 13px);
+    font-family: inherit;
+    background: var(--verso-input-background, #FFF);
+    color: var(--verso-input-foreground, #1E1E1E);
+}
+
+.verso-parameter-add-row input[type="text"]:focus,
+.verso-parameter-add-row select:focus {
+    outline: none;
+    border-color: var(--verso-accent, #0078D4);
+    box-shadow: 0 0 0 1px var(--verso-accent, #0078D4);
+}
+
+.verso-add-required-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.verso-btn-confirm-add,
+.verso-btn-cancel-add {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.verso-btn-confirm-add {
+    color: var(--verso-success, #2E7D32);
+}
+
+.verso-btn-confirm-add:hover {
+    background: var(--verso-hover-background, #F5F5F5);
+}
+
+.verso-btn-cancel-add {
+    color: var(--verso-foreground-muted, #999);
+}
+
+.verso-btn-cancel-add:hover {
+    color: var(--verso-error, #D32F2F);
+    background: var(--verso-hover-background, #F5F5F5);
+}
+
 /* === Responsive === */
 
 @media (max-width: 768px) {

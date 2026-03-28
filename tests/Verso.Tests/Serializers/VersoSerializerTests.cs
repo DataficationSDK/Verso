@@ -224,4 +224,151 @@ public sealed class VersoSerializerTests
         Assert.AreEqual("Datafication", _serializer.Author);
         Assert.IsNotNull(_serializer.Description);
     }
+
+    // --- Parameters round-trip tests ---
+
+    [TestMethod]
+    public async Task RoundTrip_Parameters_PreservesAllFields()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new()
+                {
+                    Type = "string",
+                    Description = "AWS region",
+                    Default = "us-west-2",
+                    Required = true,
+                    Order = 1
+                },
+                ["batchSize"] = new()
+                {
+                    Type = "int",
+                    Default = 1000L,
+                    Order = 2
+                },
+                ["dryRun"] = new()
+                {
+                    Type = "bool",
+                    Default = false,
+                    Description = "Dry run mode"
+                }
+            }
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+        var result = await _serializer.DeserializeAsync(json);
+
+        Assert.IsNotNull(result.Parameters);
+        Assert.AreEqual(3, result.Parameters.Count);
+
+        var region = result.Parameters["region"];
+        Assert.AreEqual("string", region.Type);
+        Assert.AreEqual("AWS region", region.Description);
+        Assert.AreEqual("us-west-2", region.Default);
+        Assert.IsTrue(region.Required);
+        Assert.AreEqual(1, region.Order);
+
+        var batch = result.Parameters["batchSize"];
+        Assert.AreEqual("int", batch.Type);
+        Assert.AreEqual(1000L, batch.Default);
+        Assert.IsFalse(batch.Required);
+        Assert.AreEqual(2, batch.Order);
+
+        var dry = result.Parameters["dryRun"];
+        Assert.AreEqual("bool", dry.Type);
+        Assert.AreEqual(false, dry.Default);
+        Assert.AreEqual("Dry run mode", dry.Description);
+    }
+
+    [TestMethod]
+    public async Task RoundTrip_Parameters_FloatDefault()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["threshold"] = new() { Type = "float", Default = 0.95 }
+            }
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+        var result = await _serializer.DeserializeAsync(json);
+
+        Assert.AreEqual(0.95, result.Parameters!["threshold"].Default);
+    }
+
+    [TestMethod]
+    public async Task RoundTrip_Parameters_DateDefault()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["date"] = new() { Type = "date", Default = "2024-01-15" }
+            }
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+        var result = await _serializer.DeserializeAsync(json);
+
+        Assert.AreEqual("2024-01-15", result.Parameters!["date"].Default);
+    }
+
+    [TestMethod]
+    public async Task RoundTrip_NoParameters_IsNull()
+    {
+        var notebook = new NotebookModel();
+
+        var json = await _serializer.SerializeAsync(notebook);
+        var result = await _serializer.DeserializeAsync(json);
+
+        Assert.IsNull(result.Parameters);
+    }
+
+    [TestMethod]
+    public async Task Serialize_Parameters_ProducesCorrectJson()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new()
+                {
+                    Type = "string",
+                    Description = "AWS region",
+                    Default = "us-west-2",
+                    Required = true
+                }
+            }
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        Assert.IsTrue(json.Contains("\"parameters\""));
+        Assert.IsTrue(json.Contains("\"region\""));
+        Assert.IsTrue(json.Contains("\"us-west-2\""));
+        Assert.IsTrue(json.Contains("\"required\": true"));
+    }
+
+    [TestMethod]
+    public async Task RoundTrip_Parameters_RequiredFalse_NotSerialized()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["optional"] = new() { Type = "string", Required = false }
+            }
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        // Required=false should be omitted (WhenWritingNull for the nullable bool)
+        Assert.IsFalse(json.Contains("\"required\": false"));
+
+        var result = await _serializer.DeserializeAsync(json);
+        Assert.IsFalse(result.Parameters!["optional"].Required);
+    }
 }

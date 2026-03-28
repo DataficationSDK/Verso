@@ -1,0 +1,84 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Monte Carlo Simulation",
+    "created": "2026-03-28T14:00:00+00:00",
+    "modified": "2026-03-28T14:00:00+00:00",
+    "defaultKernel": "csharp",
+    "parameters": {
+      "iterations": {
+        "type": "int",
+        "description": "Number of simulation runs",
+        "default": 10000,
+        "required": true
+      },
+      "initialInvestment": {
+        "type": "float",
+        "description": "Starting portfolio value ($)",
+        "default": 100000.0,
+        "required": true
+      },
+      "annualReturn": {
+        "type": "float",
+        "description": "Expected annual return (e.g. 0.07 for 7%)",
+        "default": 0.07
+      },
+      "annualVolatility": {
+        "type": "float",
+        "description": "Annual volatility (e.g. 0.15 for 15%)",
+        "default": 0.15
+      },
+      "yearsToProject": {
+        "type": "int",
+        "description": "Number of years to simulate",
+        "default": 10
+      }
+    }
+  },
+  "cells": [
+    {
+      "id": "d0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Monte Carlo Portfolio Simulation\n\nSimulates the growth of a portfolio over time using random returns drawn from a normal distribution. Adjust the parameters to explore different scenarios.\n\n**iterations** and **initialInvestment** are required."
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000002",
+      "type": "parameters",
+      "source": ""
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Box-Muller transform for normal distribution sampling\ndouble NextGaussian(Random rng)\n{\n    var u1 = 1.0 - rng.NextDouble();\n    var u2 = rng.NextDouble();\n    return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);\n}\n\nConsole.WriteLine($\"Running {iterations:N0} simulations\");\nConsole.WriteLine($\"  Initial investment: {initialInvestment:C0}\");\nConsole.WriteLine($\"  Expected return:    {annualReturn:P1}\");\nConsole.WriteLine($\"  Volatility:         {annualVolatility:P1}\");\nConsole.WriteLine($\"  Time horizon:       {yearsToProject} years\");"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Run the simulation\nvar rng = new Random(42);\nvar finalValues = new double[iterations];\n\nfor (int i = 0; i < iterations; i++)\n{\n    var portfolio = initialInvestment;\n    for (int y = 0; y < yearsToProject; y++)\n    {\n        var yearReturn = annualReturn + annualVolatility * NextGaussian(rng);\n        portfolio *= (1.0 + yearReturn);\n    }\n    finalValues[i] = portfolio;\n}\n\nArray.Sort(finalValues);\nConsole.WriteLine($\"Simulation complete ({iterations:N0} paths).\");"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Results"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Compute percentiles\ndouble Percentile(double[] sorted, double p)\n{\n    var idx = (int)Math.Floor(p / 100.0 * sorted.Length);\n    return sorted[Math.Clamp(idx, 0, sorted.Length - 1)];\n}\n\nvar median = Percentile(finalValues, 50);\nvar p10    = Percentile(finalValues, 10);\nvar p25    = Percentile(finalValues, 25);\nvar p75    = Percentile(finalValues, 75);\nvar p90    = Percentile(finalValues, 90);\nvar mean   = finalValues.Average();\nvar minVal = finalValues[0];\nvar maxVal = finalValues[^1];\nvar lossProb = finalValues.Count(v => v < initialInvestment) / (double)finalValues.Length;\n\nConsole.WriteLine($\"{\"Metric\",-24}{\"Value\",16}\");\nConsole.WriteLine(new string('-', 40));\nConsole.WriteLine($\"{\"Mean\",-24}{mean,16:C0}\");\nConsole.WriteLine($\"{\"Median\",-24}{median,16:C0}\");\nConsole.WriteLine($\"{\"10th Percentile\",-24}{p10,16:C0}\");\nConsole.WriteLine($\"{\"25th Percentile\",-24}{p25,16:C0}\");\nConsole.WriteLine($\"{\"75th Percentile\",-24}{p75,16:C0}\");\nConsole.WriteLine($\"{\"90th Percentile\",-24}{p90,16:C0}\");\nConsole.WriteLine($\"{\"Worst Case\",-24}{minVal,16:C0}\");\nConsole.WriteLine($\"{\"Best Case\",-24}{maxVal,16:C0}\");\nConsole.WriteLine();\nConsole.WriteLine($\"Probability of loss: {lossProb:P1}\");"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## Distribution Histogram"
+    },
+    {
+      "id": "d0000001-0001-0001-0001-000000000008",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Text-based histogram of outcomes\nvar bucketCount = 20;\nvar bucketSize = (maxVal - minVal) / bucketCount;\nvar buckets = new int[bucketCount];\n\nforeach (var v in finalValues)\n{\n    var idx = (int)((v - minVal) / bucketSize);\n    buckets[Math.Clamp(idx, 0, bucketCount - 1)]++;\n}\n\nvar maxBucket = buckets.Max();\nvar barScale = 50.0 / maxBucket;\n\nConsole.WriteLine($\"\\n{\"Range\",-28}{\"Count\",7}  Distribution\");\nConsole.WriteLine(new string('-', 90));\nfor (int i = 0; i < bucketCount; i++)\n{\n    var low  = minVal + i * bucketSize;\n    var high = low + bucketSize;\n    var bar  = new string('#', (int)(buckets[i] * barScale));\n    Console.WriteLine($\"  {low,10:C0} - {high,10:C0}  {buckets[i],5}  {bar}\");\n}"
+    }
+  ]
+}

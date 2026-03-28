@@ -117,6 +117,7 @@ public static class ToolbarHandler
             public string? Title => _scaffold.Title;
             public string? DefaultKernelId => _scaffold.DefaultKernelId;
             public string? FilePath => null;
+            public Dictionary<string, NotebookParameterDefinition>? Parameters => _scaffold.Notebook.Parameters;
         }
     }
 }

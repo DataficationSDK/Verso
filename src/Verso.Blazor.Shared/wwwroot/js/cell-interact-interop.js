@@ -27,13 +27,22 @@ window.versoCellInteract = (() => {
          */
         async cellInteract(cellId, extensionId, interactionType, payloadJson, outputBlockId) {
             if (window.vscodeBridge && typeof window.vscodeBridge.sendRequest === 'function') {
-                return await window.vscodeBridge.sendRequest('cell/interact', {
+                // vscodeBridge.sendRequest expects a JSON string and returns a JSON string
+                var paramsJson = JSON.stringify({
                     cellId,
                     extensionId,
                     interactionType,
                     payload: payloadJson,
                     outputBlockId: outputBlockId || null
                 });
+                var resultJson = await window.vscodeBridge.sendRequest('cell/interact', paramsJson);
+                if (!resultJson) return null;
+                try {
+                    var result = JSON.parse(resultJson);
+                    return result.response || result.Response || null;
+                } catch (e) {
+                    return resultJson;
+                }
             }
 
             if (_dotNetRef) {

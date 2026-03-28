@@ -36,6 +36,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
     private NuGetReferenceProcessor? _nugetProcessor;
     private ScriptDirectiveProcessor? _scriptDirectiveProcessor;
     private bool _variablesInjected;
+    private bool _parametersInjected;
     private bool _initialized;
     private bool _disposed;
 
@@ -152,6 +153,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
 
         _variableBridge = new VariableBridge(_options);
         _variablesInjected = false;
+        _parametersInjected = false;
         _executionLock = new SemaphoreSlim(1, 1);
 
         // Initialize IntelliSense infrastructure
@@ -188,6 +190,17 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             {
                 _variableBridge!.InjectVariables(_sessionManager!, context.Variables);
                 _variablesInjected = true;
+            }
+
+            // Inject parameter bindings as top-level let declarations on first execution
+            if (!_parametersInjected)
+            {
+                _parametersInjected = true;
+                var preamble = BuildParameterPreamble(context);
+                if (preamble is not null)
+                {
+                    _sessionManager!.EvalSilent(preamble);
+                }
             }
 
             var outputs = new List<CellOutput>();
@@ -575,6 +588,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         _nugetProcessor = null;
         _scriptDirectiveProcessor = null;
         _variablesInjected = false;
+        _parametersInjected = false;
         _executionLock.Dispose();
 
         return ValueTask.CompletedTask;
@@ -959,5 +973,87 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Builds F# let bindings for notebook parameters so they are available as
+    /// top-level identifiers (e.g. <c>region</c> instead of <c>Variables.Get&lt;string&gt;("region")</c>).
+    /// </summary>
+    private static string? BuildParameterPreamble(IExecutionContext context)
+    {
+        var parameters = context.NotebookMetadata?.Parameters;
+        if (parameters is null || parameters.Count == 0)
+            return null;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var (name, def) in parameters)
+        {
+            if (!IsValidFSharpIdentifier(name))
+                continue;
+
+            // Skip required parameters that have no meaningful value
+            if (def.Required)
+            {
+                var hasValue = context.Variables.TryGet<object>(name, out var val)
+                    && val is not null
+                    && !IsEmptyValue(val, def.Type);
+                if (!hasValue)
+                    continue;
+            }
+
+            var (fsharpType, defaultLiteral) = def.Type switch
+            {
+                "int" => ("int64", "0L"),
+                "float" => ("float", "0.0"),
+                "bool" => ("bool", "false"),
+                "date" => ("System.DateOnly", "System.DateOnly()"),
+                "datetime" => ("System.DateTimeOffset", "System.DateTimeOffset()"),
+                _ => ("string", "\"\"")
+            };
+
+            sb.AppendLine($"let {name} : {fsharpType} = match tryGetVar<{fsharpType}> \"{name}\" with | Some v -> v | None -> {defaultLiteral}");
+        }
+
+        return sb.Length > 0 ? sb.ToString() : null;
+    }
+
+    private static bool IsEmptyValue(object value, string typeId) => typeId switch
+    {
+        "string" => value is string s && string.IsNullOrWhiteSpace(s),
+        "date" => value is DateOnly d && d == default,
+        "datetime" => value is DateTimeOffset dto && dto == default,
+        _ => false
+    };
+
+    /// <summary>
+    /// F# keywords that cannot be used as unquoted identifiers.
+    /// </summary>
+    private static readonly HashSet<string> FSharpKeywords = new(StringComparer.Ordinal)
+    {
+        "abstract", "and", "as", "assert", "base", "begin", "class", "default",
+        "delegate", "do", "done", "downcast", "downto", "elif", "else", "end",
+        "exception", "extern", "false", "finally", "fixed", "for", "fun",
+        "function", "global", "if", "in", "inherit", "inline", "interface",
+        "internal", "lazy", "let", "match", "member", "module", "mutable",
+        "namespace", "new", "not", "null", "of", "open", "or", "override",
+        "private", "public", "rec", "return", "select", "static", "struct",
+        "then", "to", "true", "try", "type", "upcast", "use", "val", "void",
+        "when", "while", "with", "yield"
+    };
+
+    private static bool IsValidFSharpIdentifier(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return false;
+        if (FSharpKeywords.Contains(name))
+            return false;
+        if (!char.IsLetter(name[0]) && name[0] != '_')
+            return false;
+        for (int i = 1; i < name.Length; i++)
+        {
+            if (!char.IsLetterOrDigit(name[i]) && name[i] != '_' && name[i] != '\'')
+                return false;
+        }
+        return true;
     }
 }

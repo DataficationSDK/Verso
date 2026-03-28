@@ -19,4 +19,9 @@ public interface INotebookMetadata
     /// Gets the file path of the notebook on disk, or <c>null</c> if the notebook has not been saved.
     /// </summary>
     string? FilePath { get; }
+
+    /// <summary>
+    /// Gets the notebook's parameter definitions, or <c>null</c> if the notebook has no parameters.
+    /// </summary>
+    Dictionary<string, NotebookParameterDefinition>? Parameters { get; }
 }

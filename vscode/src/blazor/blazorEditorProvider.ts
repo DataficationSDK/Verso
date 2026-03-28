@@ -347,6 +347,12 @@ export class BlazorEditorProvider
     const cellDragInterop = toUri(
       "_content/Verso.Blazor.Shared/js/cell-drag-interop.js"
     );
+    const cellInteractInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/cell-interact-interop.js"
+    );
+    const parametersInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/parameters-interop.js"
+    );
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -432,6 +438,18 @@ export class BlazorEditorProvider
             --verso-dropdown-hover: var(--vscode-list-hoverBackground);
             --verso-ui-font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
             --verso-ui-font-size: var(--vscode-font-size, 13px);
+            --verso-accent: var(--vscode-focusBorder, #0078D4);
+            --verso-border: var(--vscode-panel-border, #E0E0E0);
+            --verso-border-light: var(--vscode-editorWidget-border, #F0F0F0);
+            --verso-input-border: var(--vscode-input-border, #CCC);
+            --verso-input-background: var(--vscode-input-background, #FFF);
+            --verso-input-foreground: var(--vscode-input-foreground, #1E1E1E);
+            --verso-badge-background: var(--vscode-badge-background, #E8E8E8);
+            --verso-badge-foreground: var(--vscode-badge-foreground, #555);
+            --verso-error: var(--vscode-errorForeground, #F48771);
+            --verso-success: var(--vscode-testing-iconPassed, #73C991);
+            --verso-foreground-muted: var(--vscode-disabledForeground, #999);
+            --verso-hover-background: var(--vscode-list-hoverBackground, #F5F5F5);
         }
     </style>
 </head>
@@ -468,6 +486,8 @@ export class BlazorEditorProvider
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
+    <script src="${cellInteractInterop}"></script>
+    <script src="${parametersInterop}"></script>
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>
     <script src="${frameworkJs}" autostart="false"></script>

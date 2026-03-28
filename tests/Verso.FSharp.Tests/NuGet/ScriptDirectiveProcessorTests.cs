@@ -150,5 +150,6 @@ public class ScriptDirectiveProcessorTests
         public string? Title => null;
         public string? DefaultKernelId => null;
         public string? FilePath { get; }
+        public Dictionary<string, NotebookParameterDefinition>? Parameters => null;
     }
 }

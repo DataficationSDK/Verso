@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Verso.Cli</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>verso</ToolCommandName>
+    <PackageId>Verso.Cli</PackageId>
+    <PackageDescription>Command-line tool for the Verso interactive notebook platform.</PackageDescription>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Verso\Verso.csproj" />
+    <ProjectReference Include="..\Verso.Blazor\Verso.Blazor.csproj" />
+    <ProjectReference Include="..\Verso.Blazor.Shared\Verso.Blazor.Shared.csproj" />
+    <ProjectReference Include="..\Verso.FSharp\Verso.FSharp.csproj" />
+    <ProjectReference Include="..\Verso.Python\Verso.Python.csproj" />
+    <ProjectReference Include="..\Verso.JavaScript\Verso.JavaScript.csproj" />
+    <ProjectReference Include="..\Verso.PowerShell\Verso.PowerShell.csproj" />
+    <ProjectReference Include="..\Verso.Ado\Verso.Ado.csproj" />
+    <ProjectReference Include="..\Verso.Http\Verso.Http.csproj" />
+  </ItemGroup>
+
+</Project>

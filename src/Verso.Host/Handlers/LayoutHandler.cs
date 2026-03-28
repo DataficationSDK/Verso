@@ -140,6 +140,7 @@ public static class LayoutHandler
             public string? Title => _s.Title;
             public string? DefaultKernelId => _s.DefaultKernelId;
             public string? FilePath => null;
+            public Dictionary<string, NotebookParameterDefinition>? Parameters => _s.Notebook.Parameters;
         }
     }
 }

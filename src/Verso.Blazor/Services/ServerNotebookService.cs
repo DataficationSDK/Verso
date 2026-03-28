@@ -485,22 +485,34 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
             OutputBlockId = outputBlockId,
             CellId = cellId,
             ExtensionId = extensionId,
-            CancellationToken = CancellationToken.None
+            CancellationToken = CancellationToken.None,
+            Variables = _scaffold.Variables,
+            Notebook = _scaffold.NotebookOps,
+            NotebookModel = _scaffold.Notebook
         };
 
         var response = await handler.OnCellInteractionAsync(context);
 
-        if (response is not null && outputBlockId is not null)
+        if (response is not null)
         {
             var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
             if (cell is not null)
             {
-                var existingIndex = cell.Outputs.FindIndex(o =>
-                    o.Content.Contains($"data-output-id=\"{outputBlockId}\""));
-                if (existingIndex >= 0)
-                    cell.Outputs[existingIndex] = new CellOutput("text/html", response);
+                if (outputBlockId is not null)
+                {
+                    var existingIndex = cell.Outputs.FindIndex(o =>
+                        o.Content.Contains($"data-output-id=\"{outputBlockId}\""));
+                    if (existingIndex >= 0)
+                        cell.Outputs[existingIndex] = new CellOutput("text/html", response);
+                    else
+                        cell.Outputs.Add(new CellOutput("text/html", response));
+                }
                 else
+                {
+                    // Replace all outputs (used by form-based cells like parameters)
+                    cell.Outputs.Clear();
                     cell.Outputs.Add(new CellOutput("text/html", response));
+                }
 
                 OnOutputUpdated?.Invoke();
             }
@@ -713,6 +725,13 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var ct = _extensionHost?.GetCellTypes()
             .FirstOrDefault(t => string.Equals(t.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
         return ct?.Renderer?.CollapsesInputOnExecute ?? false;
+    }
+
+    public bool IsCellTypeEditable(string cellType)
+    {
+        var ct = _extensionHost?.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
+        return ct?.IsEditable ?? true;
     }
 
     // ── Private helpers ────────────────────────────────────────────────

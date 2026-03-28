@@ -61,6 +61,12 @@ public sealed class NotebookModel
     public Dictionary<string, object> Layouts { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets typed parameter definitions keyed by parameter name.
+    /// When present, parameters are injected into the variable store before execution.
+    /// </summary>
+    public Dictionary<string, NotebookParameterDefinition>? Parameters { get; set; }
+
+    /// <summary>
     /// Gets or sets per-extension settings keyed by extension ID. Only overridden values (not defaults) are persisted.
     /// </summary>
     public Dictionary<string, Dictionary<string, object?>> ExtensionSettings { get; set; } = new();

@@ -268,6 +268,9 @@ public sealed class FakeNotebookService : INotebookService
     public bool ShouldCollapseInput(string cellType)
         => CollapseInputMap.GetValueOrDefault(cellType, false);
 
+    public bool IsCellTypeEditable(string cellType)
+        => !string.Equals(cellType, "parameters", StringComparison.OrdinalIgnoreCase);
+
     // ── Event raisers for tests ────────────────────────────────────────
 
     public void RaiseCellExecuted() => OnCellExecuted?.Invoke();

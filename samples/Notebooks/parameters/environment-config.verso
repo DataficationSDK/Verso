@@ -1,0 +1,81 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Environment Configuration",
+    "created": "2026-03-28T14:00:00+00:00",
+    "modified": "2026-03-28T14:00:00+00:00",
+    "defaultKernel": "csharp",
+    "parameters": {
+      "environment": {
+        "type": "string",
+        "description": "Target environment: dev, staging, prod",
+        "default": "dev",
+        "required": true
+      },
+      "connectionString": {
+        "type": "string",
+        "description": "Database connection string",
+        "required": true
+      },
+      "maxRetries": {
+        "type": "int",
+        "description": "Max retry attempts for transient failures",
+        "default": 3
+      },
+      "timeoutSeconds": {
+        "type": "float",
+        "description": "Request timeout in seconds",
+        "default": 30.0
+      },
+      "enableVerboseLogging": {
+        "type": "bool",
+        "description": "Enable detailed diagnostic output",
+        "default": false
+      },
+      "deployTimestamp": {
+        "type": "datetime",
+        "description": "Deployment cutoff timestamp"
+      }
+    }
+  },
+  "cells": [
+    {
+      "id": "c0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Environment Configuration\n\nDemonstrates all supported parameter types working together in a realistic scenario.\n\nThe **environment** and **connectionString** parameters are required. The notebook simulates a health check against the configured environment."
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000002",
+      "type": "parameters",
+      "source": ""
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Build configuration from parameters\nvar config = new Dictionary<string, object>\n{\n    [\"Environment\"]    = environment,\n    [\"MaxRetries\"]     = maxRetries,\n    [\"TimeoutSeconds\"] = timeoutSeconds,\n    [\"VerboseLogging\"] = enableVerboseLogging\n};\n\nConsole.WriteLine($\"Configuration for [{environment.ToUpper()}]\");\nConsole.WriteLine(new string('=', 40));\nforeach (var (key, value) in config)\n{\n    Console.WriteLine($\"  {key,-20} {value}\");\n}\nConsole.WriteLine($\"  {\"Connection\",-20} {connectionString[..Math.Min(30, connectionString.Length)]}...\");"
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000004",
+      "type": "markdown",
+      "source": "## Environment Validation"
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000005",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Validate environment settings\nvar warnings = new List<string>();\n\nif (environment == \"prod\" && enableVerboseLogging)\n    warnings.Add(\"Verbose logging is enabled in production\");\n\nif (environment == \"prod\" && maxRetries < 3)\n    warnings.Add($\"Max retries ({maxRetries}) is low for production\");\n\nif (timeoutSeconds < 5.0)\n    warnings.Add($\"Timeout ({timeoutSeconds}s) may be too aggressive\");\n\nif (string.IsNullOrWhiteSpace(connectionString))\n    warnings.Add(\"Connection string is empty\");\n\nif (warnings.Count == 0)\n{\n    Console.WriteLine(\"All checks passed.\");\n}\nelse\n{\n    Console.WriteLine($\"{warnings.Count} warning(s):\");\n    foreach (var w in warnings)\n        Console.WriteLine($\"  * {w}\");\n}"
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000006",
+      "type": "markdown",
+      "source": "## Simulated Health Check"
+    },
+    {
+      "id": "c0000001-0001-0001-0001-000000000007",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Simulate a health check with retry logic\nvar rng = new Random(42);\nvar attempt = 0;\nvar success = false;\n\nwhile (attempt < maxRetries && !success)\n{\n    attempt++;\n    var latency = rng.Next(50, 500);\n    success = rng.NextDouble() > 0.3;\n\n    if (enableVerboseLogging)\n        Console.WriteLine($\"  Attempt {attempt}: {(success ? \"OK\" : \"FAIL\")} ({latency}ms)\");\n}\n\nConsole.WriteLine();\nif (success)\n    Console.WriteLine($\"Health check passed on attempt {attempt} of {maxRetries}.\");\nelse\n    Console.WriteLine($\"Health check failed after {maxRetries} attempts.\");"
+    }
+  ]
+}

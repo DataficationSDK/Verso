@@ -1,0 +1,51 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Greeting Generator",
+    "created": "2026-03-28T14:00:00+00:00",
+    "modified": "2026-03-28T14:00:00+00:00",
+    "defaultKernel": "csharp",
+    "parameters": {
+      "name": {
+        "type": "string",
+        "description": "Person to greet",
+        "default": "World",
+        "required": true
+      },
+      "language": {
+        "type": "string",
+        "description": "Greeting language: en, es, fr, de, ja",
+        "default": "en"
+      },
+      "enthusiastic": {
+        "type": "bool",
+        "description": "Add extra punctuation",
+        "default": false
+      }
+    }
+  },
+  "cells": [
+    {
+      "id": "a0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Greeting Generator\n\nA simple notebook that demonstrates string parameters, a boolean toggle, and basic branching logic.\n\nFill in the **Parameters** cell below and click **Run All**."
+    },
+    {
+      "id": "a0000001-0001-0001-0001-000000000002",
+      "type": "parameters",
+      "source": ""
+    },
+    {
+      "id": "a0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "var greetings = new Dictionary<string, string>\n{\n    [\"en\"] = \"Hello\",\n    [\"es\"] = \"Hola\",\n    [\"fr\"] = \"Bonjour\",\n    [\"de\"] = \"Hallo\",\n    [\"ja\"] = \"Konnichiwa\"\n};\n\nvar greeting = greetings.GetValueOrDefault(language, \"Hello\");\nvar punctuation = enthusiastic ? \"!!!\" : \".\";\n\nConsole.WriteLine($\"{greeting}, {name}{punctuation}\");"
+    },
+    {
+      "id": "a0000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Show what parameter values were used\nConsole.WriteLine($\"  name:         {name}\");\nConsole.WriteLine($\"  language:     {language}\");\nConsole.WriteLine($\"  enthusiastic: {enthusiastic}\");"
+    }
+  ]
+}

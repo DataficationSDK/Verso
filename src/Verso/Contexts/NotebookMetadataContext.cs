@@ -24,4 +24,7 @@ public sealed class NotebookMetadataContext : INotebookMetadata
 
     /// <inheritdoc />
     public string? FilePath { get => _filePath; internal set => _filePath = value; }
+
+    /// <inheritdoc />
+    public Dictionary<string, NotebookParameterDefinition>? Parameters => _notebook.Parameters;
 }

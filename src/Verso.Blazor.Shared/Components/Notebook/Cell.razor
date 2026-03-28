@@ -7,11 +7,14 @@
 <div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "")">
     <div class="verso-cell-gutter">
         <div class="verso-cell-gutter-actions">
-            <button class="verso-cell-btn verso-cell-btn--run verso-cell-gutter-btn"
-                    @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
-                    title="Run" disabled="@IsExecuting">
-                @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
-            </button>
+            @if (IsEditable)
+            {
+                <button class="verso-cell-btn verso-cell-btn--run verso-cell-gutter-btn"
+                        @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
+                        title="Run" disabled="@IsExecuting">
+                    @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
+                </button>
+            }
             @if (IsHeadingCell)
             {
                 <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
@@ -98,7 +101,45 @@
             </div>
         </div>
 
-        @if (!IsInPreviewMode)
+        @if (!IsEditable)
+        {
+            @* Non-editable cell types (e.g. parameters): show rendered output directly, no editor *@
+            @if (CellData.Outputs.Count > 0)
+            {
+                <div class="verso-cell-rendered-input" data-cell-id="@CellData.Id" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
+                    @foreach (var output in CellData.Outputs)
+                    {
+                        @if (output.IsError)
+                        {
+                            <div class="verso-output verso-output--error">
+                                <div class="verso-output-error-name">@(output.ErrorName ?? "Error")</div>
+                                <pre class="verso-output-error-content">@output.Content</pre>
+                            </div>
+                        }
+                        else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
+                        {
+                            <div class="verso-output verso-output--html">
+                                @((MarkupString)output.Content)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="verso-output verso-output--text">
+                                <pre>@output.Content</pre>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="verso-cell-rendered-input verso-cell-rendered-input--loading"
+                     @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
+                    <span class="verso-spinner"></span>
+                </div>
+            }
+        }
+        else if (!IsInPreviewMode)
         {
             <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
                 <MonacoEditor Value="@CellData.Source"
@@ -110,7 +151,7 @@
             </div>
         }
 
-        @if (CellData.ExecutionCount is not null && !IsInPreviewMode)
+        @if (CellData.ExecutionCount is not null && !IsInPreviewMode && IsEditable)
         {
             <div class="verso-cell-status verso-cell-status--@EffectiveStatus">
                 <span class="verso-cell-status-icon">@StatusIcon</span>
@@ -119,7 +160,7 @@
             </div>
         }
 
-        @if (CellData.Outputs.Count > 0)
+        @if (CellData.Outputs.Count > 0 && IsEditable)
         {
             <div class="verso-cell-outputs @(IsInPreviewMode ? "verso-cell-outputs--clickable" : "")"
                  data-cell-id="@CellData.Id"
@@ -195,6 +236,7 @@
     [Parameter] public EventCallback<(Guid CellId, string NewType)> OnCellTypeChanged { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string NewLanguage)> OnCellLanguageChanged { get; set; }
     [Parameter] public bool CollapsesInput { get; set; }
+    [Parameter] public bool IsEditable { get; set; } = true;
     [Parameter] public bool IsHeadingCell { get; set; }
     [Parameter] public bool IsSectionCollapsed { get; set; }
     [Parameter] public EventCallback<Guid> OnToggleSection { get; set; }
@@ -210,6 +252,7 @@
     };
 
     private bool _hasMermaidContent;
+    private bool _pendingAutoExecute;
 
     private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected
         && !string.IsNullOrWhiteSpace(CellData.Source);
@@ -264,10 +307,20 @@
             .ToList();
 
         _hasMermaidContent = CellData.Outputs.Any(o => o.MimeType == "text/x-verso-mermaid");
+
+        // Schedule auto-execute for non-editable cells that have no outputs yet
+        if (!IsEditable && CellData.Outputs.Count == 0 && !IsExecuting)
+            _pendingAutoExecute = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_pendingAutoExecute)
+        {
+            _pendingAutoExecute = false;
+            await OnRunCell.InvokeAsync(CellData.Id);
+        }
+
         if (_hasMermaidContent)
         {
             try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }

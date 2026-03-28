@@ -40,4 +40,19 @@ public sealed class CellInteractionContext
     /// Cancellation token for the interaction operation.
     /// </summary>
     public CancellationToken CancellationToken { get; init; }
+
+    /// <summary>
+    /// Optional access to the notebook's variable store for interaction handlers that modify variables.
+    /// </summary>
+    public IVariableStore? Variables { get; init; }
+
+    /// <summary>
+    /// Optional access to notebook operations (e.g. cell insertion) for interaction handlers.
+    /// </summary>
+    public INotebookOperations? Notebook { get; init; }
+
+    /// <summary>
+    /// Optional access to the notebook model for interaction handlers that modify metadata.
+    /// </summary>
+    public NotebookModel? NotebookModel { get; init; }
 }

@@ -1,0 +1,78 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "F# Data Filter",
+    "created": "2026-03-28T15:00:00+00:00",
+    "modified": "2026-03-28T15:00:00+00:00",
+    "defaultKernel": "fsharp",
+    "parameters": {
+      "category": {
+        "type": "string",
+        "description": "Product category to filter: Electronics, Books, Clothing, Food",
+        "default": "Electronics",
+        "required": true
+      },
+      "minPrice": {
+        "type": "float",
+        "description": "Minimum price threshold",
+        "default": 10.0
+      },
+      "maxResults": {
+        "type": "int",
+        "description": "Maximum number of results to display",
+        "default": 10
+      },
+      "inStockOnly": {
+        "type": "bool",
+        "description": "Show only items currently in stock",
+        "default": true
+      }
+    }
+  },
+  "cells": [
+    {
+      "id": "e0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# F# Data Filter\n\nDemonstrates notebook parameters available as top-level `let` bindings in F# cells. Parameters are injected automatically, so you can use `category`, `minPrice`, `maxResults`, and `inStockOnly` directly without calling `Variables.Get<T>()`."
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000002",
+      "type": "parameters",
+      "source": ""
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Parameters are available as typed let bindings:\n//   category   : string\n//   minPrice   : float\n//   maxResults : int64\n//   inStockOnly: bool\n\nprintfn $\"Filter: category={category}, minPrice={minPrice}, maxResults={maxResults}, inStockOnly={inStockOnly}\""
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Define a product type and generate sample data\ntype Product = { Name: string; Category: string; Price: float; InStock: bool }\n\nlet products = [\n    { Name = \"Laptop\";        Category = \"Electronics\"; Price = 999.99;  InStock = true }\n    { Name = \"Headphones\";    Category = \"Electronics\"; Price = 79.50;   InStock = true }\n    { Name = \"USB Cable\";     Category = \"Electronics\"; Price = 8.99;    InStock = false }\n    { Name = \"Keyboard\";      Category = \"Electronics\"; Price = 149.00;  InStock = true }\n    { Name = \"Monitor\";       Category = \"Electronics\"; Price = 349.00;  InStock = false }\n    { Name = \"Webcam\";        Category = \"Electronics\"; Price = 59.99;   InStock = true }\n    { Name = \"F# in Action\";  Category = \"Books\";       Price = 45.00;   InStock = true }\n    { Name = \"DDD Distilled\"; Category = \"Books\";       Price = 32.99;   InStock = true }\n    { Name = \"Clean Code\";    Category = \"Books\";       Price = 28.50;   InStock = false }\n    { Name = \"T-Shirt\";       Category = \"Clothing\";    Price = 19.99;   InStock = true }\n    { Name = \"Hoodie\";        Category = \"Clothing\";    Price = 49.99;   InStock = true }\n    { Name = \"Coffee Beans\";  Category = \"Food\";        Price = 14.99;   InStock = true }\n    { Name = \"Tea Set\";       Category = \"Food\";        Price = 22.50;   InStock = false }\n    { Name = \"Granola\";       Category = \"Food\";        Price = 6.99;    InStock = true }\n]\n\nprintfn $\"Loaded {products.Length} products\""
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Filtered Results"
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Filter using the parameter bindings directly in a pipeline\nlet filtered =\n    products\n    |> List.filter (fun p -> p.Category = category)\n    |> List.filter (fun p -> p.Price >= minPrice)\n    |> List.filter (fun p -> if inStockOnly then p.InStock else true)\n    |> List.sortByDescending (fun p -> p.Price)\n    |> List.truncate (int maxResults)\n\nprintfn \"%-20s %10s %10s\" \"Name\" \"Price\" \"Stock\"\nprintfn \"%s\" (System.String('-', 42))\nfor p in filtered do\n    let stock = if p.InStock then \"Yes\" else \"No\"\n    printfn \"%-20s %10.2f %10s\" p.Name p.Price stock\n\nlet catCount = products |> List.filter (fun p -> p.Category = category) |> List.length\nprintfn \"\\nShowing %d of %d items in '%s'\" filtered.Length catCount category"
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## Summary Statistics"
+    },
+    {
+      "id": "e0000001-0001-0001-0001-000000000008",
+      "type": "code",
+      "language": "fsharp",
+      "source": "// Compute stats over the filtered set\nif filtered.IsEmpty then\n    printfn \"No products match the current filters.\"\nelse\n    let prices = filtered |> List.map (fun p -> p.Price)\n    let avg = prices |> List.average\n    let total = prices |> List.sum\n    let cheapest = filtered |> List.minBy (fun p -> p.Price)\n    let priciest = filtered |> List.maxBy (fun p -> p.Price)\n\n    printfn \"Total value:    $%.2f\" total\n    printfn \"Average price:  $%.2f\" avg\n    printfn \"Cheapest:       %s ($%.2f)\" cheapest.Name cheapest.Price\n    printfn \"Most expensive: %s ($%.2f)\" priciest.Name priciest.Price"
+    }
+  ]
+}

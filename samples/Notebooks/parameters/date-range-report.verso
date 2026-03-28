@@ -1,0 +1,79 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Date Range Report",
+    "created": "2026-03-28T14:00:00+00:00",
+    "modified": "2026-03-28T14:00:00+00:00",
+    "defaultKernel": "csharp",
+    "parameters": {
+      "startDate": {
+        "type": "date",
+        "description": "Report start date",
+        "default": "2026-01-01",
+        "required": true
+      },
+      "endDate": {
+        "type": "date",
+        "description": "Report end date",
+        "default": "2026-03-31",
+        "required": true
+      },
+      "region": {
+        "type": "string",
+        "description": "Region filter: ALL, NA, EU, APAC",
+        "default": "ALL"
+      },
+      "topN": {
+        "type": "int",
+        "description": "Number of top items to show",
+        "default": 5
+      }
+    }
+  },
+  "cells": [
+    {
+      "id": "b0000001-0001-0001-0001-000000000001",
+      "type": "markdown",
+      "source": "# Date Range Report\n\nDemonstrates date and integer parameters. The notebook generates sample sales data, then filters and summarizes it based on the parameter values.\n\nBoth **startDate** and **endDate** are required. Adjust **region** and **topN** to change the output."
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000002",
+      "type": "parameters",
+      "source": ""
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Generate sample sales data\nrecord Sale(DateOnly Date, string Region, string Product, decimal Amount);\n\nvar rng = new Random(42);\nvar products = new[] { \"Widget A\", \"Widget B\", \"Gadget X\", \"Gadget Y\", \"Service Z\" };\nvar regions  = new[] { \"NA\", \"EU\", \"APAC\" };\n\nvar sales = Enumerable.Range(0, 500).Select(i =>\n{\n    var date = new DateOnly(2026, 1, 1).AddDays(rng.Next(0, 120));\n    return new Sale(\n        date,\n        regions[rng.Next(regions.Length)],\n        products[rng.Next(products.Length)],\n        Math.Round((decimal)(rng.NextDouble() * 5000 + 100), 2)\n    );\n}).ToList();\n\nConsole.WriteLine($\"Generated {sales.Count} sales records\");"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Filter by date range and region\nvar filtered = sales\n    .Where(s => s.Date >= startDate && s.Date <= endDate)\n    .Where(s => region == \"ALL\" || s.Region == region)\n    .ToList();\n\nConsole.WriteLine($\"Filtered to {filtered.Count} records\");\nConsole.WriteLine($\"  Date range: {startDate} to {endDate}\");\nConsole.WriteLine($\"  Region:     {region}\");"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000005",
+      "type": "markdown",
+      "source": "## Summary"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000006",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Aggregate stats\nif (filtered.Count == 0)\n{\n    Console.WriteLine(\"No records match the selected filters.\");\n}\nelse\n{\n    var total   = filtered.Sum(s => s.Amount);\n    var average = filtered.Average(s => s.Amount);\n    var highest = filtered.MaxBy(s => s.Amount)!;\n\n    Console.WriteLine($\"Total revenue:  {total:C}\");\n    Console.WriteLine($\"Average sale:   {average:C}\");\n    Console.WriteLine($\"Largest sale:   {highest.Product} on {highest.Date} ({highest.Amount:C})\");\n}"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000007",
+      "type": "markdown",
+      "source": "## Top Products"
+    },
+    {
+      "id": "b0000001-0001-0001-0001-000000000008",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Top N products by revenue\nvar topProducts = filtered\n    .GroupBy(s => s.Product)\n    .Select(g => new { Product = g.Key, Revenue = g.Sum(s => s.Amount), Count = g.Count() })\n    .OrderByDescending(p => p.Revenue)\n    .Take((int)topN)\n    .ToList();\n\nConsole.WriteLine($\"{\"Product\",-14}{\"Revenue\",14}{\"Sales\",8}\");\nConsole.WriteLine(new string('-', 36));\nforeach (var p in topProducts)\n{\n    Console.WriteLine($\"{p.Product,-14}{p.Revenue,14:C}{p.Count,8}\");\n}"
+    }
+  ]
+}

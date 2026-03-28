@@ -576,6 +576,12 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             || string.Equals(cellType, "mermaid", StringComparison.OrdinalIgnoreCase);
     }
 
+    public bool IsCellTypeEditable(string cellType)
+    {
+        // In WASM, parameters is the only known non-editable built-in cell type
+        return !string.Equals(cellType, "parameters", StringComparison.OrdinalIgnoreCase);
+    }
+
     // ── Notification handling ───────────────────────────────────────────
 
     private void HandleNotification(string method, string? paramsJson)

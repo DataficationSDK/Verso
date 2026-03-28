@@ -34,6 +34,7 @@ public sealed class CSharpKernel : ILanguageKernel
     private ScriptGlobals? _globals;
     private NuGetPackageResolver? _resolver;
     private bool _initialized;
+    private bool _parametersInjected;
     private bool _disposed;
 
     public CSharpKernel() : this(new CSharpKernelOptions()) { }
@@ -139,6 +140,18 @@ public sealed class CSharpKernel : ILanguageKernel
 
             // Create globals on first execution so C# cells can access the shared variable store
             _globals ??= new ScriptGlobals(context.Variables);
+
+            // Inject notebook parameters as top-level script variables (once)
+            if (!_parametersInjected)
+            {
+                _parametersInjected = true;
+                var preamble = BuildParameterPreamble(context);
+                if (preamble is not null)
+                {
+                    await _stateManager!.RunAsync(preamble, _globals, context.CancellationToken)
+                        .ConfigureAwait(false);
+                }
+            }
 
             var scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)
                 .ConfigureAwait(false);
@@ -272,6 +285,7 @@ public sealed class CSharpKernel : ILanguageKernel
         if (_disposed) return;
         _disposed = true;
         _initialized = false;
+        _parametersInjected = false;
 
         if (_stateManager is not null)
             await _stateManager.DisposeAsync().ConfigureAwait(false);
@@ -334,6 +348,89 @@ public sealed class CSharpKernel : ILanguageKernel
         // Remove the #r "nuget:" lines from the code
         var cleanedCode = NuGetReferenceRegex.Replace(code, "").Trim();
         return (cleanedCode, results);
+    }
+
+    /// <summary>
+    /// Builds a C# code snippet that declares notebook parameters as typed script variables,
+    /// reading their values from the IVariableStore. Returns null if no parameters exist.
+    /// </summary>
+    private static string? BuildParameterPreamble(IExecutionContext context)
+    {
+        var parameters = context.NotebookMetadata?.Parameters;
+        if (parameters is null || parameters.Count == 0)
+            return null;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var (name, def) in parameters)
+        {
+            // Skip parameters that aren't valid C# identifiers
+            if (!IsValidCSharpIdentifier(name))
+                continue;
+
+            // Skip required parameters that have no meaningful value in the variable store.
+            // Without a real value, we should not inject a synthetic default (e.g. "" or 0)
+            // as that masks missing-value validation.
+            if (def.Required)
+            {
+                var hasValue = context.Variables.TryGet<object>(name, out var val)
+                    && val is not null
+                    && !IsEmptyValue(val, def.Type);
+                if (!hasValue)
+                    continue;
+            }
+
+            var (clrType, defaultLiteral) = def.Type switch
+            {
+                "int" => ("long", "0L"),
+                "float" => ("double", "0.0"),
+                "bool" => ("bool", "false"),
+                "date" => ("DateOnly", "default"),
+                "datetime" => ("DateTimeOffset", "default"),
+                _ => ("string", "\"\"")
+            };
+
+            // Declare as typed variable, reading from the variable store
+            sb.AppendLine($"var {name} = Variables.TryGet<{clrType}>(\"{name}\", out var __{name}__val) ? __{name}__val : {defaultLiteral};");
+        }
+
+        return sb.Length > 0 ? sb.ToString() : null;
+    }
+
+    /// <summary>
+    /// Returns true if the value is a CLR default or empty for the given parameter type.
+    /// </summary>
+    private static bool IsEmptyValue(object value, string typeId) => typeId switch
+    {
+        "string" => value is string s && string.IsNullOrWhiteSpace(s),
+        "date" => value is DateOnly d && d == default,
+        "datetime" => value is DateTimeOffset dto && dto == default,
+        _ => false
+    };
+
+    private static readonly HashSet<string> CSharpKeywords = new(StringComparer.Ordinal)
+    {
+        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
+        "checked", "class", "const", "continue", "decimal", "default", "delegate", "do",
+        "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
+        "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int",
+        "interface", "internal", "is", "lock", "long", "namespace", "new", "null",
+        "object", "operator", "out", "override", "params", "private", "protected",
+        "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof",
+        "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true",
+        "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using",
+        "var", "virtual", "void", "volatile", "while"
+    };
+
+    private static bool IsValidCSharpIdentifier(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        if (CSharpKeywords.Contains(name)) return false;
+        if (!char.IsLetter(name[0]) && name[0] != '_') return false;
+        for (int i = 1; i < name.Length; i++)
+        {
+            if (!char.IsLetterOrDigit(name[i]) && name[i] != '_') return false;
+        }
+        return true;
     }
 
     private static List<string> ExtractUsingDirectives(string code)

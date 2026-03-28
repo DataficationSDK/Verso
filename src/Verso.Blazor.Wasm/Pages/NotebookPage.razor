@@ -103,6 +103,7 @@
                                       Index="index"
                                       IsLast="index == cells.Count - 1"
                                       CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
+                                      IsEditable="Service.IsCellTypeEditable(cell.Type)"
                                       IsHeadingCell="headingLevel is not null"
                                       IsSectionCollapsed="isSectionCollapsed"
                                       OnToggleSection="HandleToggleSection"
@@ -651,10 +652,27 @@
 
     private async Task HandleRunAll()
     {
-        var cells = Service.Cells;
-        foreach (var cell in cells.ToList())
+        try
         {
-            await HandleRunCell(cell.Id);
+            var results = await Service.ExecuteAllAsync();
+
+            // Stamp execution state onto cell models for UI display
+            foreach (var result in results)
+            {
+                var cell = Service.Cells.FirstOrDefault(c => c.Id == result.CellId);
+                if (cell is not null)
+                {
+                    cell.ExecutionCount = result.ExecutionCount;
+                    cell.LastElapsed = result.Elapsed;
+                    cell.LastStatus = result.Status;
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Execution error: {ex.Message}";
         }
     }
 

@@ -289,6 +289,9 @@ public sealed class Scaffold : IAsyncDisposable
 
     public async Task<ExecutionResult> ExecuteCellAsync(Guid cellId, CancellationToken ct = default)
     {
+        // Ensure parameter defaults are in the variable store before any cell runs
+        EnsureParametersInjected();
+
         CellModel cell;
         lock (_cellLock)
         {
@@ -304,10 +307,45 @@ public sealed class Scaffold : IAsyncDisposable
 
     public async Task<IReadOnlyList<ExecutionResult>> ExecuteAllAsync(CancellationToken ct = default)
     {
+        // Inject parameters and validate required ones before execution
+        EnsureParametersInjected();
+        var paramError = ValidateRequiredParameters();
+
         List<Guid> cellIds;
         lock (_cellLock)
         {
             cellIds = _notebook.Cells.Select(c => c.Id).ToList();
+        }
+
+        if (paramError is not null)
+        {
+            // Find the parameters cell to attach the error
+            CellModel? errorCell;
+            lock (_cellLock)
+            {
+                errorCell = _notebook.Cells.FirstOrDefault(c =>
+                    string.Equals(c.Type, "parameters", StringComparison.OrdinalIgnoreCase))
+                    ?? _notebook.Cells.FirstOrDefault();
+            }
+
+            if (errorCell is not null)
+            {
+                // Re-render the parameters cell so the form is preserved,
+                // then append the validation error below the form.
+                var pipeline = BuildPipeline();
+                await pipeline.ExecuteAsync(errorCell, ct).ConfigureAwait(false);
+
+                errorCell.Outputs.Add(new CellOutput("text/plain",
+                    paramError,
+                    IsError: true, ErrorName: "ParameterValidationError"));
+            }
+
+            return new List<ExecutionResult>
+            {
+                ExecutionResult.Failed(
+                    errorCell?.Id ?? Guid.Empty, 0, TimeSpan.Zero,
+                    new InvalidOperationException(paramError))
+            };
         }
 
         var results = new List<ExecutionResult>();
@@ -318,6 +356,118 @@ public sealed class Scaffold : IAsyncDisposable
         }
         return results;
     }
+
+    /// <summary>
+    /// Ensures parameter defaults are injected into the variable store.
+    /// Safe to call multiple times; only injects values not already present.
+    /// </summary>
+    private void EnsureParametersInjected()
+    {
+        var parameters = _notebook.Parameters;
+        if (parameters is null || parameters.Count == 0)
+            return;
+
+        foreach (var (name, def) in parameters)
+        {
+            if (_variables.TryGet<object>(name, out var existing) && existing is not null)
+                continue;
+
+            if (def.Default is not null)
+            {
+                // Ensure the value is the correct CLR type. Defaults deserialized from
+                // JSON may be strings or JsonElements rather than typed objects.
+                var typed = CoerceParameterValue(def.Default, def.Type);
+                _variables.Set(name, typed);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Coerces a parameter default value to the correct CLR type. Values loaded from
+    /// JSON may arrive as strings or JsonElements; this ensures they match the declared type.
+    /// </summary>
+    private static object CoerceParameterValue(object value, string typeId)
+    {
+        // Already the expected CLR type?
+        if (typeId == "int" && (value is long || value is int))
+            return value is int i ? (long)i : value;
+        if (typeId == "float" && value is double)
+            return value;
+        if (typeId == "bool" && value is bool)
+            return value;
+        if (typeId == "date" && value is DateOnly)
+            return value;
+        if (typeId == "datetime" && value is DateTimeOffset)
+            return value;
+        if (typeId == "string" && value is string)
+            return value;
+
+        // Try parsing from string representation
+        var str = value.ToString() ?? "";
+        if (Parameters.ParameterValueParser.TryParse(typeId, str, out var parsed, out _) && parsed is not null)
+            return parsed;
+
+        // Fall back to original value
+        return value;
+    }
+
+    /// <summary>
+    /// Validates that all required parameters have values. Returns an error message
+    /// listing missing parameters, or null if all are satisfied.
+    /// </summary>
+    private string? ValidateRequiredParameters()
+    {
+        var parameters = _notebook.Parameters;
+        if (parameters is null || parameters.Count == 0)
+            return null;
+
+        var missing = new List<(string Name, string Type, string? Description)>();
+
+        foreach (var (name, def) in parameters)
+        {
+            if (!def.Required) continue;
+
+            // Check if the variable store has a meaningful value
+            if (_variables.TryGet<object>(name, out var existing) && existing is not null
+                && !IsEmptyParameterValue(existing, def.Type))
+                continue;
+
+            // Check if there is a meaningful default
+            if (def.Default is not null && !IsEmptyParameterValue(def.Default, def.Type))
+                continue;
+
+            missing.Add((name, def.Type, def.Description));
+        }
+
+        if (missing.Count == 0)
+            return null;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Missing required notebook parameters:");
+        sb.AppendLine();
+        foreach (var (name, type, desc) in missing)
+        {
+            sb.Append($"  {name} ({type})");
+            if (!string.IsNullOrEmpty(desc))
+                sb.Append($"  {desc}");
+            sb.AppendLine();
+        }
+        sb.AppendLine();
+        sb.Append("Set values in the Parameters cell or supply them via --param.");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Returns true if the value is considered "empty" for a required parameter of the given type.
+    /// Empty strings, CLR-default dates, and CLR-default datetimes all count as missing.
+    /// </summary>
+    private static bool IsEmptyParameterValue(object value, string typeId) => typeId switch
+    {
+        "string" => value is string s && string.IsNullOrWhiteSpace(s),
+        "date" => value is DateOnly d && d == default,
+        "datetime" => value is DateTimeOffset dto && dto == default,
+        _ => false
+    };
 
     public async Task<ExecutionResult> ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
     {

@@ -66,7 +66,8 @@ public sealed class VersoSerializer : INotebookSerializer
                         Required = notebook.RequiredExtensions.Count > 0 ? notebook.RequiredExtensions : null,
                         Optional = notebook.OptionalExtensions.Count > 0 ? notebook.OptionalExtensions : null
                     }
-                    : null
+                    : null,
+                Parameters = SerializeParameters(notebook.Parameters)
             },
             Cells = notebook.Cells.Select(c => new VersoCell
             {
@@ -74,7 +75,9 @@ public sealed class VersoSerializer : INotebookSerializer
                 Type = c.Type,
                 Language = c.Language,
                 Source = c.Source,
+                // Parameters cell outputs are transient (always re-rendered from metadata.parameters)
                 Outputs = c.Outputs.Count > 0
+                    && !string.Equals(c.Type, "parameters", StringComparison.OrdinalIgnoreCase)
                     ? c.Outputs.Select(o => new VersoCellOutput
                     {
                         MimeType = o.MimeType,
@@ -113,7 +116,8 @@ public sealed class VersoSerializer : INotebookSerializer
             ActiveLayoutId = doc.Metadata?.ActiveLayout,
             PreferredThemeId = doc.Metadata?.PreferredTheme,
             RequiredExtensions = doc.Metadata?.Extensions?.Required ?? new List<string>(),
-            OptionalExtensions = doc.Metadata?.Extensions?.Optional ?? new List<string>()
+            OptionalExtensions = doc.Metadata?.Extensions?.Optional ?? new List<string>(),
+            Parameters = DeserializeParameters(doc.Metadata?.Parameters)
         };
 
         if (doc.Cells is not null)
@@ -161,6 +165,77 @@ public sealed class VersoSerializer : INotebookSerializer
         }
 
         return Task.FromResult(notebook);
+    }
+
+    // --- Parameter serialization helpers ---
+
+    private static Dictionary<string, VersoParameterDefinition>? SerializeParameters(
+        Dictionary<string, NotebookParameterDefinition>? parameters)
+    {
+        if (parameters is null or { Count: 0 }) return null;
+
+        var result = new Dictionary<string, VersoParameterDefinition>();
+        foreach (var (name, def) in parameters)
+        {
+            var dto = new VersoParameterDefinition
+            {
+                Type = def.Type,
+                Description = def.Description,
+                Required = def.Required ? true : null,
+                Order = def.Order
+            };
+
+            if (def.Default is not null)
+            {
+                dto.Default = JsonSerializer.SerializeToElement(def.Default, WriteOptions);
+            }
+
+            result[name] = dto;
+        }
+        return result;
+    }
+
+    private static Dictionary<string, NotebookParameterDefinition>? DeserializeParameters(
+        Dictionary<string, VersoParameterDefinition>? parameters)
+    {
+        if (parameters is null or { Count: 0 }) return null;
+
+        var result = new Dictionary<string, NotebookParameterDefinition>();
+        foreach (var (name, dto) in parameters)
+        {
+            var def = new NotebookParameterDefinition
+            {
+                Type = dto.Type,
+                Description = dto.Description,
+                Required = dto.Required ?? false,
+                Order = dto.Order
+            };
+
+            if (dto.Default is { } defaultElement)
+            {
+                def.Default = ConvertParameterDefault(defaultElement, dto.Type);
+            }
+
+            result[name] = def;
+        }
+        return result;
+    }
+
+    private static object? ConvertParameterDefault(JsonElement element, string typeId)
+    {
+        if (element.ValueKind == JsonValueKind.Null || element.ValueKind == JsonValueKind.Undefined)
+            return null;
+
+        switch (typeId)
+        {
+            case "string": return element.GetString();
+            case "int": return element.TryGetInt64(out var l) ? l : (object)element.GetDouble();
+            case "float": return element.GetDouble();
+            case "bool": return element.GetBoolean();
+            case "date": return element.GetString();
+            case "datetime": return element.GetString();
+            default: return ConvertJsonElement(element);
+        }
     }
 
     // --- Metadata serialization helpers ---
@@ -297,6 +372,16 @@ public sealed class VersoSerializer : INotebookSerializer
         public string? ActiveLayout { get; set; }
         public string? PreferredTheme { get; set; }
         public VersoExtensions? Extensions { get; set; }
+        public Dictionary<string, VersoParameterDefinition>? Parameters { get; set; }
+    }
+
+    private sealed class VersoParameterDefinition
+    {
+        public string Type { get; set; } = "string";
+        public string? Description { get; set; }
+        public JsonElement? Default { get; set; }
+        public bool? Required { get; set; }
+        public int? Order { get; set; }
     }
 
     private sealed class VersoExtensions

@@ -237,4 +237,7 @@ public interface INotebookService
 
     /// <summary>Whether the input should be collapsed for a given cell type after execution.</summary>
     bool ShouldCollapseInput(string cellType);
+
+    /// <summary>Whether the cell type uses a text editor. Returns <c>false</c> for form-based cell types like parameters.</summary>
+    bool IsCellTypeEditable(string cellType);
 }

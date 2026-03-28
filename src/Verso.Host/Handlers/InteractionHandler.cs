@@ -17,7 +17,7 @@ public static class InteractionHandler
             throw new JsonException($"Invalid CellId: {p.CellId}");
 
         if (!Enum.TryParse<CellRegion>(p.Region, ignoreCase: true, out var region))
-            throw new JsonException($"Invalid Region: {p.Region}");
+            region = CellRegion.Output; // Default to Output for interactions from rendered forms
 
         var handler = ns.ExtensionHost.GetInteractionHandler(p.ExtensionId)
             ?? throw new InvalidOperationException($"No interaction handler found for extension '{p.ExtensionId}'.");
@@ -30,7 +30,10 @@ public static class InteractionHandler
             OutputBlockId = p.OutputBlockId,
             CellId = cellId,
             ExtensionId = p.ExtensionId,
-            CancellationToken = CancellationToken.None
+            CancellationToken = CancellationToken.None,
+            Variables = ns.Scaffold.Variables,
+            Notebook = ns.Scaffold.NotebookOps,
+            NotebookModel = ns.Scaffold.Notebook
         };
 
         var response = await handler.OnCellInteractionAsync(context);
