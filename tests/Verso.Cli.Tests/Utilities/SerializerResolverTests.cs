@@ -68,4 +68,59 @@ public class SerializerResolverTests
             Assert.IsTrue(ex.Message.Contains(".dib"), "Error should mention .dib");
         }
     }
+
+    [TestMethod]
+    public void ResolveByFormat_Verso_ReturnsSerializer()
+    {
+        var serializer = SerializerResolver.ResolveByFormat(_host, "verso");
+        Assert.IsNotNull(serializer);
+        Assert.AreEqual("verso", serializer.FormatId);
+    }
+
+    [TestMethod]
+    public void ResolveByFormat_Ipynb_ReturnsJupyterSerializer()
+    {
+        var serializer = SerializerResolver.ResolveByFormat(_host, "ipynb");
+        Assert.IsNotNull(serializer);
+        Assert.AreEqual("jupyter", serializer.FormatId);
+    }
+
+    [TestMethod]
+    public void ResolveByFormat_Dib_ReturnsSerializer()
+    {
+        var serializer = SerializerResolver.ResolveByFormat(_host, "dib");
+        Assert.IsNotNull(serializer);
+        Assert.AreEqual("dib", serializer.FormatId);
+    }
+
+    [TestMethod]
+    public void ResolveByFormat_CaseInsensitive()
+    {
+        var serializer = SerializerResolver.ResolveByFormat(_host, "VERSO");
+        Assert.IsNotNull(serializer);
+        Assert.AreEqual("verso", serializer.FormatId);
+    }
+
+    [TestMethod]
+    public void ResolveByFormat_UnknownFormat_ThrowsSerializerNotFoundException()
+    {
+        Assert.ThrowsException<SerializerNotFoundException>(
+            () => SerializerResolver.ResolveByFormat(_host, "pdf"));
+    }
+
+    [TestMethod]
+    public void ResolveByFormat_UnknownFormat_ErrorMessageContainsSupportedFormats()
+    {
+        try
+        {
+            SerializerResolver.ResolveByFormat(_host, "pdf");
+            Assert.Fail("Expected SerializerNotFoundException.");
+        }
+        catch (SerializerNotFoundException ex)
+        {
+            Assert.IsTrue(ex.Message.Contains("verso"), "Error should mention verso");
+            Assert.IsTrue(ex.Message.Contains("ipynb"), "Error should mention ipynb");
+            Assert.IsTrue(ex.Message.Contains("dib"), "Error should mention dib");
+        }
+    }
 }

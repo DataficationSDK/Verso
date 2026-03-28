@@ -12,13 +12,18 @@ public sealed partial class OutputRenderer
     private readonly TextWriter _stdout;
     private readonly TextWriter _stderr;
     private readonly bool _verbose;
+    private readonly bool _includeMarkdown;
+    private readonly bool _showParameters;
     private readonly bool _supportsAnsi;
 
-    public OutputRenderer(TextWriter stdout, TextWriter stderr, bool verbose)
+    public OutputRenderer(TextWriter stdout, TextWriter stderr, bool verbose,
+        bool includeMarkdown = false, bool showParameters = false)
     {
         _stdout = stdout;
         _stderr = stderr;
         _verbose = verbose;
+        _includeMarkdown = includeMarkdown;
+        _showParameters = showParameters;
         _supportsAnsi = !Console.IsOutputRedirected;
     }
 
@@ -34,19 +39,59 @@ public sealed partial class OutputRenderer
     /// <summary>
     /// Renders outputs for a single cell execution result.
     /// </summary>
-    public void RenderCell(int index, CellModel cell, ExecutionResult result)
+    public void RenderCell(int index, CellModel cell, ExecutionResult result,
+        Dictionary<string, object>? resolvedParameters = null)
     {
-        if (cell.Type is not "code") return;
-
-        var language = cell.Language ?? "unknown";
-        _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} ({language}) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
-
-        foreach (var output in cell.Outputs)
+        if (cell.Type is "code")
         {
-            RenderOutput(output);
-        }
+            var language = cell.Language ?? "unknown";
+            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} ({language}) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
 
-        _stdout.WriteLine();
+            foreach (var output in cell.Outputs)
+            {
+                RenderOutput(output);
+            }
+
+            _stdout.WriteLine();
+        }
+        else if (_showParameters && cell.Type is "parameters")
+        {
+            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} (parameters) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+
+            if (resolvedParameters is { Count: > 0 })
+            {
+                var maxKey = resolvedParameters.Keys.Max(k => k.Length);
+                foreach (var (name, value) in resolvedParameters)
+                {
+                    _stdout.WriteLine($"  {name.PadRight(maxKey)}  {value}");
+                }
+            }
+            else
+            {
+                _stdout.WriteLine("  (no parameters)");
+            }
+
+            _stdout.WriteLine();
+        }
+        else if (_includeMarkdown && cell.Type is "markdown")
+        {
+            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} (markdown) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+
+            if (!string.IsNullOrWhiteSpace(cell.Source))
+                _stdout.WriteLine(cell.Source);
+
+            _stdout.WriteLine();
+        }
+        else if (_includeMarkdown && cell.Type is "html")
+        {
+            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} (html) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+
+            var stripped = StripHtmlTags(cell.Source);
+            if (!string.IsNullOrWhiteSpace(stripped))
+                _stdout.WriteLine(stripped);
+
+            _stdout.WriteLine();
+        }
     }
 
     /// <summary>
@@ -99,7 +144,8 @@ public sealed partial class OutputRenderer
                 break;
 
             case "text/markdown":
-                // Skipped by default; Phase 1D adds --include-markdown
+                if (_includeMarkdown && !string.IsNullOrWhiteSpace(output.Content))
+                    _stdout.WriteLine(output.Content);
                 break;
 
             default:

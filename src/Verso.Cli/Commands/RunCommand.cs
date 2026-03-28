@@ -1,6 +1,7 @@
 using System.CommandLine;
 using Verso.Cli.Execution;
 using Verso.Cli.Utilities;
+using Verso.Execution;
 
 namespace Verso.Cli.Commands;
 
@@ -52,6 +53,12 @@ public static class RunCommand
         var interactiveOption = new Option<bool>("--interactive", () => false,
             "Prompt for missing required parameters on stdin instead of failing.");
 
+        var includeMarkdownOption = new Option<bool>("--include-markdown", () => false,
+            "Include markdown and HTML cell content in terminal output.");
+
+        var showParametersOption = new Option<bool>("--show-parameters", () => false,
+            "Show resolved parameter values in terminal output.");
+
         var command = new Command("run", "Execute a notebook headlessly and stream cell outputs.")
         {
             notebookArg,
@@ -65,7 +72,9 @@ public static class RunCommand
             failFastOption,
             verboseOption,
             paramOption,
-            interactiveOption
+            interactiveOption,
+            includeMarkdownOption,
+            showParametersOption
         };
 
         command.SetHandler(async (context) =>
@@ -82,6 +91,8 @@ public static class RunCommand
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
             var paramValues = context.ParseResult.GetValueForOption(paramOption);
             var interactive = context.ParseResult.GetValueForOption(interactiveOption);
+            var includeMarkdown = context.ParseResult.GetValueForOption(includeMarkdownOption);
+            var showParameters = context.ParseResult.GetValueForOption(showParametersOption);
 
             // Parse --param name=value pairs into a dictionary
             var paramDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -160,14 +171,22 @@ public static class RunCommand
             switch (output)
             {
                 case OutputFormat.Text:
-                    var renderer = new OutputRenderer(Console.Out, Console.Error, verbose);
+                    var renderer = new OutputRenderer(Console.Out, Console.Error, verbose, includeMarkdown, showParameters);
                     for (var i = 0; i < result.Cells.Count; i++)
                     {
                         var cell = result.Cells[i];
                         var cellResult = result.CellResults.FirstOrDefault(r => r.CellId == cell.Id);
                         if (cellResult is not null)
                         {
-                            renderer.RenderCell(i, cell, cellResult);
+                            renderer.RenderCell(i, cell, cellResult, result.ResolvedParameters);
+                        }
+                        else if (showParameters && cell.Type is "parameters")
+                        {
+                            // Parameters cells may not have an execution result but
+                            // should still be rendered when --show-parameters is set.
+                            renderer.RenderCell(i, cell,
+                                ExecutionResult.Success(cell.Id, 0, TimeSpan.Zero),
+                                result.ResolvedParameters);
                         }
                     }
                     renderer.WriteSummary(result.CellResults, result.TotalElapsed);

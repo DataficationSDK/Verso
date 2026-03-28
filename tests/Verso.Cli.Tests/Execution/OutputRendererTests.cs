@@ -159,6 +159,140 @@ public class OutputRendererTests
         Assert.AreEqual("", _stderr.ToString());
     }
 
+    [TestMethod]
+    public void RenderCell_TextMarkdown_IncludedWhenFlagSet()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false, includeMarkdown: true);
+        var cell = CreateCodeCell("csharp", new CellOutput("text/markdown", "# Header"));
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        renderer.RenderCell(0, cell, result);
+
+        var output = _stdout.ToString();
+        Assert.IsTrue(output.Contains("# Header"));
+    }
+
+    [TestMethod]
+    public void RenderCell_MarkdownCell_SkippedByDefault()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false);
+        var cell = new CellModel
+        {
+            Type = "markdown",
+            Source = "# Some heading"
+        };
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        renderer.RenderCell(0, cell, result);
+
+        Assert.AreEqual("", _stdout.ToString());
+    }
+
+    [TestMethod]
+    public void RenderCell_MarkdownCell_IncludedWhenFlagSet()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false, includeMarkdown: true);
+        var cell = new CellModel
+        {
+            Type = "markdown",
+            Source = "# Some heading"
+        };
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        renderer.RenderCell(0, cell, result);
+
+        var output = _stdout.ToString();
+        Assert.IsTrue(output.Contains("# Some heading"));
+        Assert.IsTrue(output.Contains("Cell 0"));
+        Assert.IsTrue(output.Contains("markdown"));
+    }
+
+    [TestMethod]
+    public void RenderCell_HtmlCell_IncludedWhenFlagSet()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false, includeMarkdown: true);
+        var cell = new CellModel
+        {
+            Type = "html",
+            Source = "<h1>Title</h1>"
+        };
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        renderer.RenderCell(0, cell, result);
+
+        var output = _stdout.ToString();
+        Assert.IsTrue(output.Contains("Title"));
+        Assert.IsFalse(output.Contains("<h1>"));
+    }
+
+    [TestMethod]
+    public void RenderCell_HtmlCell_SkippedByDefault()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false);
+        var cell = new CellModel
+        {
+            Type = "html",
+            Source = "<h1>Title</h1>"
+        };
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        renderer.RenderCell(0, cell, result);
+
+        Assert.AreEqual("", _stdout.ToString());
+    }
+
+    [TestMethod]
+    public void RenderCell_ParametersCell_SkippedByDefault()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false);
+        var cell = new CellModel { Type = "parameters", Source = "" };
+        var result = ExecutionResult.Success(cell.Id, 0, TimeSpan.Zero);
+        var parameters = new Dictionary<string, object>
+        {
+            ["startDate"] = "2026-01-01",
+            ["region"] = "ALL"
+        };
+
+        renderer.RenderCell(0, cell, result, parameters);
+
+        Assert.AreEqual("", _stdout.ToString());
+    }
+
+    [TestMethod]
+    public void RenderCell_ParametersCell_RenderedWhenFlagSet()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false, showParameters: true);
+        var cell = new CellModel { Type = "parameters", Source = "" };
+        var result = ExecutionResult.Success(cell.Id, 0, TimeSpan.Zero);
+        var parameters = new Dictionary<string, object>
+        {
+            ["startDate"] = "2026-01-01",
+            ["region"] = "ALL"
+        };
+
+        renderer.RenderCell(0, cell, result, parameters);
+
+        var output = _stdout.ToString();
+        Assert.IsTrue(output.Contains("parameters"));
+        Assert.IsTrue(output.Contains("startDate"));
+        Assert.IsTrue(output.Contains("2026-01-01"));
+        Assert.IsTrue(output.Contains("region"));
+        Assert.IsTrue(output.Contains("ALL"));
+    }
+
+    [TestMethod]
+    public void RenderCell_ParametersCell_EmptyParameters_ShowsPlaceholder()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false, showParameters: true);
+        var cell = new CellModel { Type = "parameters", Source = "" };
+        var result = ExecutionResult.Success(cell.Id, 0, TimeSpan.Zero);
+
+        renderer.RenderCell(0, cell, result);
+
+        var output = _stdout.ToString();
+        Assert.IsTrue(output.Contains("no parameters"));
+    }
+
     private static CellModel CreateCodeCell(string language, params CellOutput[] outputs)
     {
         var cell = new CellModel

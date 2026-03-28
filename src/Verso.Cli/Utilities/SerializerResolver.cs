@@ -28,6 +28,31 @@ public static class SerializerResolver
 
         return serializer;
     }
+
+    /// <summary>
+    /// Finds a serializer by target format identifier (e.g. "verso", "ipynb", "dib").
+    /// </summary>
+    /// <exception cref="SerializerNotFoundException">Thrown when no serializer matches the format.</exception>
+    public static INotebookSerializer ResolveByFormat(ExtensionHost extensionHost, string format)
+    {
+        // Normalize CLI format names to serializer FormatId values
+        var formatId = format.ToLowerInvariant() switch
+        {
+            "ipynb" => "jupyter",
+            _ => format.ToLowerInvariant()
+        };
+
+        var serializer = extensionHost.GetSerializers()
+            .FirstOrDefault(s => string.Equals(s.FormatId, formatId, StringComparison.OrdinalIgnoreCase));
+
+        if (serializer is null)
+        {
+            throw new SerializerNotFoundException(
+                $"Unsupported output format '{format}'. Supported formats: verso, ipynb, dib");
+        }
+
+        return serializer;
+    }
 }
 
 /// <summary>

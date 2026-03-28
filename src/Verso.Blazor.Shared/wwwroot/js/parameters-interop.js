@@ -51,10 +51,12 @@ window.versoParameters = (() => {
                 sendInteraction(cellId, 'parameter-remove', { name: paramName });
             }
         } else if (action === 'parameter-add') {
-            // Show the inline add row
+            // Show the inline add row (and its parent table if hidden, e.g. in empty state)
             const cell = btn.closest('[data-cell-id]');
             const addRow = getAddRow(cell);
             if (addRow) {
+                const table = addRow.closest('table');
+                if (table) table.style.display = '';
                 addRow.style.display = '';
                 btn.style.display = 'none';
                 const nameInput = addRow.querySelector('.verso-add-name');

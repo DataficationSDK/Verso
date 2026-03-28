@@ -10,20 +10,8 @@ var rootCommand = new RootCommand("Verso CLI — execute, serve, and convert Ver
 rootCommand.AddCommand(RunCommand.Create());
 rootCommand.AddCommand(InfoCommand.Create());
 
-// Stubs for future commands
-var serveCommand = new Command("serve", "Launch the Verso Blazor application (not yet implemented).");
-serveCommand.SetHandler(() =>
-{
-    Console.WriteLine("The 'serve' command is not yet implemented.");
-});
-rootCommand.AddCommand(serveCommand);
-
-var convertCommand = new Command("convert", "Convert between notebook formats (not yet implemented).");
-convertCommand.SetHandler(() =>
-{
-    Console.WriteLine("The 'convert' command is not yet implemented.");
-});
-rootCommand.AddCommand(convertCommand);
+rootCommand.AddCommand(ServeCommand.Create());
+rootCommand.AddCommand(ConvertCommand.Create());
 
 var parser = new CommandLineBuilder(rootCommand)
     .UseDefaults()

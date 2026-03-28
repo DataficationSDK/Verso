@@ -226,10 +226,47 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
     private static string RenderEmptyState()
     {
-        return "<div class=\"verso-parameters verso-parameters-empty\">"
-            + "<p>No parameters defined.</p>"
-            + "<button class=\"verso-btn verso-btn-add\" data-action=\"parameter-add\">Add Parameter</button>"
-            + "</div>";
+        var sb = new StringBuilder();
+        sb.Append("<div class=\"verso-parameters verso-parameters-empty\">");
+        sb.Append("<p>No parameters defined.</p>");
+
+        // Hidden inline form (same structure as RenderExpandedForm) so the
+        // JS handler for data-action="parameter-add" can reveal it.
+        sb.Append("<table class=\"verso-parameters-table\" style=\"display:none;\">");
+        sb.Append("<tbody>");
+        sb.Append("<tr class=\"verso-parameter-row verso-parameter-add-row\">");
+        sb.Append("<td class=\"verso-parameter-name\">");
+        sb.Append("<input type=\"text\" class=\"verso-add-name\" placeholder=\"name\" />");
+        sb.Append("</td>");
+        sb.Append("<td>");
+        sb.Append("<select class=\"verso-add-type\">");
+        sb.Append("<option value=\"string\">string</option>");
+        sb.Append("<option value=\"int\">int</option>");
+        sb.Append("<option value=\"float\">float</option>");
+        sb.Append("<option value=\"bool\">bool</option>");
+        sb.Append("<option value=\"date\">date</option>");
+        sb.Append("<option value=\"datetime\">datetime</option>");
+        sb.Append("</select>");
+        sb.Append("</td>");
+        sb.Append("<td class=\"verso-parameter-description\">");
+        sb.Append("<input type=\"text\" class=\"verso-add-description\" placeholder=\"description\" />");
+        sb.Append("</td>");
+        sb.Append("<td class=\"verso-parameter-value\">");
+        sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"default value\" />");
+        sb.Append("</td>");
+        sb.Append("<td class=\"verso-parameter-required-cell\">");
+        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /></label>");
+        sb.Append("</td>");
+        sb.Append("<td>");
+        sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"Add\">&#x2713;</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-cancel-add\" data-action=\"parameter-cancel-add\" title=\"Cancel\">&#x2715;</button>");
+        sb.Append("</td>");
+        sb.Append("</tr>");
+        sb.Append("</tbody></table>");
+
+        sb.Append("<button class=\"verso-btn verso-btn-add\" data-action=\"parameter-add\">Add Parameter</button>");
+        sb.Append("</div>");
+        return sb.ToString();
     }
 
     private static string RenderExpandedForm(

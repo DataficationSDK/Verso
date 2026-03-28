@@ -104,9 +104,23 @@ public class RunCommandTests
     }
 
     [TestMethod]
+    public void Parse_IncludeMarkdown_IsRecognized()
+    {
+        var result = _command.Parse("test.verso --include-markdown");
+        Assert.AreEqual(0, result.Errors.Count, string.Join(", ", result.Errors.Select(e => e.Message)));
+    }
+
+    [TestMethod]
+    public void Parse_ShowParameters_IsRecognized()
+    {
+        var result = _command.Parse("test.verso --show-parameters");
+        Assert.AreEqual(0, result.Errors.Count, string.Join(", ", result.Errors.Select(e => e.Message)));
+    }
+
+    [TestMethod]
     public void Parse_AllOptionsIncludingParams_AreRecognized()
     {
-        var result = _command.Parse("test.verso --cell 0 --kernel csharp --output json --fail-fast --save --timeout 60 --verbose --param region=us-east --interactive");
+        var result = _command.Parse("test.verso --cell 0 --kernel csharp --output json --fail-fast --save --timeout 60 --verbose --param region=us-east --interactive --include-markdown --show-parameters");
         Assert.AreEqual(0, result.Errors.Count, string.Join(", ", result.Errors.Select(e => e.Message)));
     }
 }

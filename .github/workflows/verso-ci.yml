@@ -115,6 +115,7 @@ jobs:
           dotnet pack src/Verso.PowerShell/Verso.PowerShell.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release --no-build -o packages
           dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso.Cli/Verso.Cli.csproj -c Release --no-build -o packages
 
       - name: Validate packages
         run: |

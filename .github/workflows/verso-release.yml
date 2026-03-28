@@ -54,6 +54,7 @@ jobs:
           dotnet pack src/Verso.PowerShell/Verso.PowerShell.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
+          dotnet pack src/Verso.Cli/Verso.Cli.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
