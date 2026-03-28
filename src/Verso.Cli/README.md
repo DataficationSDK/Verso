@@ -80,6 +80,7 @@ verso run notebook.verso --cell 0
 | `--interactive` | false | Prompt for missing required parameters on stdin |
 | `--verbose` | false | Print cell execution progress to stderr |
 | `--include-markdown` | false | Include rendered markdown content in output |
+| `--show-parameters` | false | Show resolved parameter values in output |
 | `--extensions <dir>` | none | Additional directory to scan for extension assemblies |
 
 ### `verso convert`
