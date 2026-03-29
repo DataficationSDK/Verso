@@ -261,13 +261,19 @@
 
     private bool HasErrorOutput => CellData.Outputs.Any(o => o.IsError);
 
-    private string EffectiveStatus => HasErrorOutput ? "failed" : (CellData.LastStatus?.ToLowerInvariant() ?? "success");
+    private string EffectiveStatus => HasErrorOutput
+        ? "failed"
+        : (CellData.LastStatus?.ToLowerInvariant()) switch
+        {
+            null or "success" or "completed" => "success",
+            var s => s
+        };
 
     private string StatusIcon => EffectiveStatus switch
     {
-        "success" or "completed" => "\u2714",  // ✔
-        "failed" => "\u2718",                  // ✘
-        "cancelled" => "\u2014",               // —
+        "success" => "\u2714",    // ✔
+        "failed" => "\u2718",     // ✘
+        "cancelled" => "\u2014",  // —
         _ => "\u2714"
     };
 

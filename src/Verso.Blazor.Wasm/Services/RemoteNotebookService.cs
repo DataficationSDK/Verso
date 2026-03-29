@@ -349,14 +349,30 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         foreach (var cell in _cells)
             await FlushPendingSourceUpdateAsync(cell.Id);
 
-        var result = await _bridge.RequestAsync<ExecutionResponse>(
+        var response = await _bridge.RequestAsync<ExecutionRunAllResponse>(
             "execution/runAll", null);
 
         await RefreshCellListAsync();
         await RefreshVariablesSafeAsync();
         OnCellExecuted?.Invoke();
 
-        return Array.Empty<ExecutionResultDto>();
+        if (response.Results is null or { Count: 0 })
+            return Array.Empty<ExecutionResultDto>();
+
+        var dtos = new List<ExecutionResultDto>(response.Results.Count);
+        foreach (var r in response.Results)
+        {
+            if (!Guid.TryParse(r.CellId, out var cellId))
+                continue;
+
+            dtos.Add(new ExecutionResultDto(
+                cellId,
+                r.Status ?? "completed",
+                r.ExecutionCount,
+                TimeSpan.FromMilliseconds(r.ElapsedMs)));
+        }
+
+        return dtos;
     }
 
     public async Task RestartKernelAsync()
@@ -1009,6 +1025,20 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     private sealed class ExecutionResponse
     {
+        public string? Status { get; set; }
+        public int ExecutionCount { get; set; }
+        public double ElapsedMs { get; set; }
+        public List<CellOutputDto>? Outputs { get; set; }
+    }
+
+    private sealed class ExecutionRunAllResponse
+    {
+        public List<ExecutionRunAllResultDto>? Results { get; set; }
+    }
+
+    private sealed class ExecutionRunAllResultDto
+    {
+        public string CellId { get; set; } = "";
         public string? Status { get; set; }
         public int ExecutionCount { get; set; }
         public double ElapsedMs { get; set; }
