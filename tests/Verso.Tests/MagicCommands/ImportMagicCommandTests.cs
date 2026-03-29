@@ -21,9 +21,11 @@ public sealed class ImportMagicCommandTests
         Assert.AreEqual("import", command.Name);
         Assert.AreEqual("verso.magic.import", command.ExtensionId);
         Assert.AreEqual("1.0.0", command.Version);
-        Assert.AreEqual(1, command.Parameters.Count);
+        Assert.AreEqual(2, command.Parameters.Count);
         Assert.AreEqual("path", command.Parameters[0].Name);
         Assert.IsTrue(command.Parameters[0].IsRequired);
+        Assert.AreEqual("--param", command.Parameters[1].Name);
+        Assert.IsFalse(command.Parameters[1].IsRequired);
     }
 
     // --- Argument validation ---
@@ -206,6 +208,375 @@ public sealed class ImportMagicCommandTests
 
         var expected = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "setup.verso"));
         Assert.AreEqual(expected, result);
+    }
+
+    // --- Argument parsing ---
+
+    [TestMethod]
+    public void ParseArguments_PathOnly()
+    {
+        var (path, overrides) = ImportMagicCommand.ParseArguments("pipeline.verso");
+
+        Assert.AreEqual("pipeline.verso", path);
+        Assert.AreEqual(0, overrides.Count);
+    }
+
+    [TestMethod]
+    public void ParseArguments_WithParams()
+    {
+        var (path, overrides) = ImportMagicCommand.ParseArguments(
+            "pipeline.verso --param region=us-east --param limit=50");
+
+        Assert.AreEqual("pipeline.verso", path);
+        Assert.AreEqual(2, overrides.Count);
+        Assert.AreEqual("us-east", overrides["region"]);
+        Assert.AreEqual("50", overrides["limit"]);
+    }
+
+    [TestMethod]
+    public void ParseArguments_ShortFlag()
+    {
+        var (path, overrides) = ImportMagicCommand.ParseArguments(
+            "pipeline.verso -p region=US");
+
+        Assert.AreEqual("pipeline.verso", path);
+        Assert.AreEqual("US", overrides["region"]);
+    }
+
+    // --- Parameter resolution ---
+
+    [TestMethod]
+    public void Resolve_InjectsDefaults()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US" },
+                ["limit"] = new() { Type = "int", Default = "100" }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string>(), variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<object>("region", out var region));
+        Assert.AreEqual("US", region);
+        Assert.IsTrue(variables.TryGet<object>("limit", out var limit));
+        Assert.AreEqual(100L, limit);
+    }
+
+    [TestMethod]
+    public void Resolve_ParamOverridesDefault()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US" }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string> { ["region"] = "EU" }, variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<string>("region", out var region));
+        Assert.AreEqual("EU", region);
+    }
+
+    [TestMethod]
+    public void Resolve_ParamOverwritesExistingStoreValue()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US" }
+            }
+        };
+
+        var variables = new VariableStore();
+        variables.Set("region", "APAC");
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string> { ["region"] = "EU" }, variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<string>("region", out var region));
+        Assert.AreEqual("EU", region);
+    }
+
+    [TestMethod]
+    public void Resolve_DefaultDoesNotOverwriteExistingStoreValue()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US" }
+            }
+        };
+
+        var variables = new VariableStore();
+        variables.Set("region", "EU");
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string>(), variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<string>("region", out var region));
+        Assert.AreEqual("EU", region);
+    }
+
+    [TestMethod]
+    public void Resolve_CoercesParamToType()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["startDate"] = new() { Type = "date", Default = "2026-01-01" },
+                ["limit"] = new() { Type = "int" }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook,
+            new Dictionary<string, string> { ["startDate"] = "2026-06-15", ["limit"] = "200" },
+            variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<object>("startDate", out var date));
+        Assert.IsInstanceOfType(date, typeof(DateOnly));
+        Assert.AreEqual(new DateOnly(2026, 6, 15), date);
+        Assert.IsTrue(variables.TryGet<object>("limit", out var limit));
+        Assert.AreEqual(200L, limit);
+    }
+
+    [TestMethod]
+    public void Resolve_InvalidParamType_ReturnsError()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["limit"] = new() { Type = "int" }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string> { ["limit"] = "not-a-number" }, variables);
+
+        Assert.IsNotNull(error);
+        Assert.IsTrue(error.Contains("limit"));
+        Assert.IsTrue(error.Contains("int"));
+    }
+
+    [TestMethod]
+    public void Resolve_MissingRequiredParam_ReturnsError()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Required = true }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string>(), variables);
+
+        Assert.IsNotNull(error);
+        Assert.IsTrue(error.Contains("region"));
+        Assert.IsTrue(error.Contains("Missing required"));
+    }
+
+    [TestMethod]
+    public void Resolve_RequiredParamSatisfiedByOverride_Succeeds()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Required = true }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string> { ["region"] = "US" }, variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<string>("region", out var region));
+        Assert.AreEqual("US", region);
+    }
+
+    [TestMethod]
+    public void Resolve_RequiredParamSatisfiedByStore_Succeeds()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Required = true }
+            }
+        };
+
+        var variables = new VariableStore();
+        variables.Set("region", "EU");
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string>(), variables);
+
+        Assert.IsNull(error);
+    }
+
+    [TestMethod]
+    public void Resolve_UnknownParam_InjectedAsString()
+    {
+        var notebook = new NotebookModel
+        {
+            Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US" }
+            }
+        };
+
+        var variables = new VariableStore();
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string> { ["extra"] = "hello" }, variables);
+
+        Assert.IsNull(error);
+        Assert.IsTrue(variables.TryGet<string>("extra", out var extra));
+        Assert.AreEqual("hello", extra);
+    }
+
+    [TestMethod]
+    public void Resolve_NullParameters_NoOp()
+    {
+        var notebook = new NotebookModel();
+        var variables = new VariableStore();
+
+        var error = ImportMagicCommand.ResolveAndInjectParameters(
+            notebook, new Dictionary<string, string>(), variables);
+
+        Assert.IsNull(error);
+        Assert.IsFalse(variables.TryGet<object>("anything", out _));
+    }
+
+    // --- Integration: import with --param ---
+
+    [TestMethod]
+    public async Task Import_InjectsParameterDefaults_BeforeCodeCells()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var context = CreateContextWithSerializer(notebookOps);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.verso");
+        try
+        {
+            var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+            notebook.Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US" },
+                ["limit"] = new() { Type = "int", Default = 50 }
+            };
+            notebook.Cells.Add(new CellModel { Type = "parameters", Source = "" });
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "var x = 1;" });
+
+            var serializer = new VersoSerializer();
+            var json = await serializer.SerializeAsync(notebook);
+            await File.WriteAllTextAsync(tempFile, json);
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.IsFalse(context.WrittenOutputs.Any(o => o.IsError),
+                "Unexpected error: " + string.Join("; ", context.WrittenOutputs.Where(o => o.IsError).Select(o => o.Content)));
+            Assert.IsTrue(context.Variables.TryGet<object>("region", out var region));
+            Assert.AreEqual("US", region);
+            Assert.IsTrue(context.Variables.TryGet<object>("limit", out var limit));
+            Assert.AreEqual(50L, limit);
+            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task Import_ParamOverrides_AppliedBeforeExecution()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var context = CreateContextWithSerializer(notebookOps);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.verso");
+        try
+        {
+            var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+            notebook.Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["region"] = new() { Type = "string", Default = "US", Required = true },
+                ["limit"] = new() { Type = "int", Default = 10 }
+            };
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "var x = 1;" });
+
+            var serializer = new VersoSerializer();
+            var json = await serializer.SerializeAsync(notebook);
+            await File.WriteAllTextAsync(tempFile, json);
+
+            await command.ExecuteAsync($"{tempFile} --param region=eu-west --param limit=200", context);
+
+            Assert.IsFalse(context.WrittenOutputs.Any(o => o.IsError),
+                "Unexpected error: " + string.Join("; ", context.WrittenOutputs.Where(o => o.IsError).Select(o => o.Content)));
+            Assert.IsTrue(context.Variables.TryGet<string>("region", out var region));
+            Assert.AreEqual("eu-west", region);
+            Assert.IsTrue(context.Variables.TryGet<object>("limit", out var limit));
+            Assert.AreEqual(200L, limit);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task Import_MissingRequired_WritesErrorAndStops()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var context = CreateContextWithSerializer(notebookOps);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.verso");
+        try
+        {
+            var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+            notebook.Parameters = new Dictionary<string, NotebookParameterDefinition>
+            {
+                ["apiKey"] = new() { Type = "string", Required = true }
+            };
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "var x = 1;" });
+
+            var serializer = new VersoSerializer();
+            var json = await serializer.SerializeAsync(notebook);
+            await File.WriteAllTextAsync(tempFile, json);
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.IsTrue(context.WrittenOutputs.Any(o => o.IsError));
+            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("apiKey"));
+            Assert.AreEqual(0, notebookOps.ExecutedCodeCalls.Count);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 
     // --- Helpers ---
