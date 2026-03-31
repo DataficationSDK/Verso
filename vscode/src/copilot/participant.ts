@@ -22,6 +22,12 @@ Cell types and languages:
 - For code cells, set type to "code" and specify the language.
 - For non-code cells (markdown, html, mermaid, etc.), set type accordingly. No language is needed.
 
+Parameters:
+- Notebooks can define parameters: named, typed values that control notebook behavior.
+- Supported parameter types: string, int, float, bool, date (yyyy-MM-dd), datetime (ISO 8601).
+- Use verso_listParameters to see current parameters, and verso_addParameter / verso_updateParameter / verso_removeParameter to manage them.
+- A parameters cell is automatically created when the first parameter is added.
+
 Guidelines:
 - Before modifying cells, call verso_listCells to understand the current notebook state.
 - Cell numbers are 1-based (cell 1 is the first cell).

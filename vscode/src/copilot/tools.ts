@@ -9,6 +9,8 @@ import {
   ExecutionResultDto,
   ExecutionRunAllResult,
   LanguagesResult,
+  ParameterDefDto,
+  ParameterListResult,
   VariableListResult,
   VariableInspectResult,
 } from "../host/protocol";
@@ -516,6 +518,212 @@ export class GetLanguagesTool
   }
 }
 
+// ── Parameter tools ─────────────────────────────────────────────────
+
+export class ListParametersTool
+  implements vscode.LanguageModelTool<Record<string, never>>
+{
+  async invoke(
+    _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const result = await ctx.host.sendRequest<ParameterListResult>(
+      "parameter/list",
+      { notebookId: ctx.notebookId }
+    );
+
+    const entries = Object.entries(result.parameters);
+    if (entries.length === 0) {
+      return textResult("No parameters defined in this notebook.");
+    }
+
+    const lines = entries.map(([name, def]) => {
+      const parts = [`${name} (${def.type})`];
+      if (def.description) {
+        parts.push(`- ${def.description}`);
+      }
+      if (def.default !== undefined && def.default !== null) {
+        parts.push(`default: ${def.default}`);
+      }
+      if (def.required) {
+        parts.push("[required]");
+      }
+      return parts.join(" ");
+    });
+
+    return textResult(`Parameters:\n${lines.join("\n")}`);
+  }
+}
+
+export class AddParameterTool
+  implements
+    vscode.LanguageModelTool<{
+      name: string;
+      type: string;
+      description?: string;
+      defaultValue?: string;
+      required?: boolean;
+    }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      name: string;
+      type: string;
+      description?: string;
+      defaultValue?: string;
+      required?: boolean;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Adding parameter "${options.input.name}" (${options.input.type})`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      name: string;
+      type: string;
+      description?: string;
+      defaultValue?: string;
+      required?: boolean;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const { name, type, description, defaultValue, required } = options.input;
+
+    await ctx.host.sendRequest("parameter/add", {
+      notebookId: ctx.notebookId,
+      name,
+      type,
+      description,
+      defaultValue,
+      required,
+    });
+
+    notifyWebviewChanged(ctx);
+
+    return textResult(
+      `Added parameter "${name}" (${type})${required ? " [required]" : ""}.`
+    );
+  }
+}
+
+export class UpdateParameterTool
+  implements
+    vscode.LanguageModelTool<{
+      name: string;
+      type?: string;
+      description?: string;
+      defaultValue?: string;
+      required?: boolean;
+    }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      name: string;
+      type?: string;
+      description?: string;
+      defaultValue?: string;
+      required?: boolean;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Updating parameter "${options.input.name}"`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      name: string;
+      type?: string;
+      description?: string;
+      defaultValue?: string;
+      required?: boolean;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const { name, type, description, defaultValue, required } = options.input;
+
+    await ctx.host.sendRequest("parameter/update", {
+      notebookId: ctx.notebookId,
+      name,
+      type,
+      description,
+      defaultValue,
+      required,
+    });
+
+    notifyWebviewChanged(ctx);
+
+    const changes: string[] = [];
+    if (type !== undefined) changes.push(`type=${type}`);
+    if (description !== undefined) changes.push(`description="${description}"`);
+    if (defaultValue !== undefined) changes.push(`default=${defaultValue}`);
+    if (required !== undefined) changes.push(`required=${required}`);
+
+    return textResult(
+      `Updated parameter "${name}": ${changes.join(", ")}.`
+    );
+  }
+}
+
+export class RemoveParameterTool
+  implements vscode.LanguageModelTool<{ name: string }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      name: string;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Removing parameter "${options.input.name}"`,
+      confirmationMessages: {
+        title: "Remove parameter",
+        message: new vscode.MarkdownString(
+          `Remove parameter **${options.input.name}** from the notebook?`
+        ),
+      },
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{ name: string }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    await ctx.host.sendRequest("parameter/remove", {
+      notebookId: ctx.notebookId,
+      name: options.input.name,
+    });
+
+    notifyWebviewChanged(ctx);
+
+    return textResult(`Removed parameter "${options.input.name}".`);
+  }
+}
+
 // ── Registration ────────────────────────────────────────────────────
 
 export function registerTools(
@@ -533,6 +741,19 @@ export function registerTools(
       "verso_inspectVariable",
       new InspectVariableTool()
     ),
-    vscode.lm.registerTool("verso_getLanguages", new GetLanguagesTool())
+    vscode.lm.registerTool("verso_getLanguages", new GetLanguagesTool()),
+    vscode.lm.registerTool(
+      "verso_listParameters",
+      new ListParametersTool()
+    ),
+    vscode.lm.registerTool("verso_addParameter", new AddParameterTool()),
+    vscode.lm.registerTool(
+      "verso_updateParameter",
+      new UpdateParameterTool()
+    ),
+    vscode.lm.registerTool(
+      "verso_removeParameter",
+      new RemoveParameterTool()
+    )
   );
 }

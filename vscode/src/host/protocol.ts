@@ -393,6 +393,20 @@ export interface ToolbarExecuteParams {
   selectedCellIds: string[];
 }
 
+// --- Parameter DTOs ---
+
+export interface ParameterDefDto {
+  type: string;
+  description?: string;
+  default?: unknown;
+  required: boolean;
+  order?: number;
+}
+
+export interface ParameterListResult {
+  parameters: Record<string, ParameterDefDto>;
+}
+
 // --- Variable Explorer DTOs ---
 
 export interface VariableListResult {

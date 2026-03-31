@@ -78,6 +78,12 @@ public static class MethodNames
     public const string ToolbarGetEnabledStates = "toolbar/getEnabledStates";
     public const string ToolbarExecute = "toolbar/execute";
 
+    // Parameters
+    public const string ParameterList = "parameter/list";
+    public const string ParameterAdd = "parameter/add";
+    public const string ParameterUpdate = "parameter/update";
+    public const string ParameterRemove = "parameter/remove";
+
     // Variable explorer
     public const string VariableList = "variable/list";
     public const string VariableInspect = "variable/inspect";

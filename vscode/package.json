@@ -230,6 +230,102 @@
           "type": "object",
           "properties": {}
         }
+      },
+      {
+        "name": "verso_listParameters",
+        "tags": ["verso", "notebook", "parameters"],
+        "displayName": "List Parameters",
+        "modelDescription": "List all parameters defined in the notebook. Parameters are named, typed values (string, int, float, bool, date, datetime) that can be set before execution to control notebook behavior.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "verso_addParameter",
+        "tags": ["verso", "notebook", "parameters"],
+        "displayName": "Add Parameter",
+        "modelDescription": "Add a new parameter to the notebook. Supported types: string, int, float, bool, date (yyyy-MM-dd), datetime (ISO 8601). A parameters cell is automatically created if one does not exist.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The parameter name"
+            },
+            "type": {
+              "type": "string",
+              "description": "The parameter type: string, int, float, bool, date, or datetime",
+              "enum": ["string", "int", "float", "bool", "date", "datetime"]
+            },
+            "description": {
+              "type": "string",
+              "description": "A human-readable description of the parameter"
+            },
+            "defaultValue": {
+              "type": "string",
+              "description": "The default value as a string (parsed according to the type)"
+            },
+            "required": {
+              "type": "boolean",
+              "description": "Whether the parameter is required"
+            }
+          },
+          "required": ["name", "type"]
+        }
+      },
+      {
+        "name": "verso_updateParameter",
+        "tags": ["verso", "notebook", "parameters"],
+        "displayName": "Update Parameter",
+        "modelDescription": "Update an existing parameter's properties. Only the fields you provide will be changed. Use verso_listParameters first to see current parameters.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the parameter to update"
+            },
+            "type": {
+              "type": "string",
+              "description": "New type: string, int, float, bool, date, or datetime",
+              "enum": ["string", "int", "float", "bool", "date", "datetime"]
+            },
+            "description": {
+              "type": "string",
+              "description": "New description"
+            },
+            "defaultValue": {
+              "type": "string",
+              "description": "New default value as a string (parsed according to the type)"
+            },
+            "required": {
+              "type": "boolean",
+              "description": "Whether the parameter is required"
+            }
+          },
+          "required": ["name"]
+        }
+      },
+      {
+        "name": "verso_removeParameter",
+        "tags": ["verso", "notebook", "parameters"],
+        "displayName": "Remove Parameter",
+        "modelDescription": "Remove a parameter from the notebook by name. This also removes the corresponding variable from the kernel.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the parameter to remove"
+            }
+          },
+          "required": ["name"]
+        }
       }
     ]
   },
