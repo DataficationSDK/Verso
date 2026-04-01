@@ -255,7 +255,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"default value\" />");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-required-cell\">");
-        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /></label>");
+        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /> required</label>");
         sb.Append("</td>");
         sb.Append("<td>");
         sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"Add\">&#x2713;</button>");
@@ -367,7 +367,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"default value\" />");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-required-cell\">");
-        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /></label>");
+        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /> required</label>");
         sb.Append("</td>");
         sb.Append("<td>");
         sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"Add\">&#x2713;</button>");

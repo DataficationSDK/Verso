@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Verso.Blazor.Services;
 using Verso.Blazor.Shared.Services;
@@ -33,13 +35,18 @@ public static class BlazorHostBuilder
         var blazorAssemblyDir = Path.GetDirectoryName(
             typeof(Verso.Blazor.Components.App).Assembly.Location)!;
 
+        // In Development mode ASP.NET Core uses the manifest to locate wwwroot
+        // content. The manifest contains absolute paths from the build machine,
+        // so it only works from the original build output. When installed as a
+        // global tool (or any scenario where the manifest paths are stale) we
+        // fall back to Production mode and serve the bundled wwwroot directly.
+        var useDevMode = HasValidStaticWebAssetsManifest(blazorAssemblyDir);
+
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             ApplicationName = "Verso.Blazor",
             ContentRootPath = blazorAssemblyDir,
-            // Development mode enables static web assets discovery from the manifest
-            // and uses the ASP.NET Core dev certificate for HTTPS.
-            EnvironmentName = "Development",
+            EnvironmentName = useDevMode ? "Development" : "Production",
         });
 
         // Suppress ASP.NET Core info/warn noise unless --verbose is set.
@@ -66,6 +73,20 @@ public static class BlazorHostBuilder
         var app = builder.Build();
 
         // Middleware pipeline (matches Verso.Blazor/Program.cs)
+        if (!app.Environment.IsDevelopment())
+        {
+            // In Production mode (global tool install), serve the bundled
+            // wwwroot files that were packed alongside the assembly.
+            var wwwrootPath = Path.Combine(blazorAssemblyDir, "wwwroot");
+            if (Directory.Exists(wwwrootPath))
+            {
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(wwwrootPath),
+                });
+            }
+        }
+
         if (!options.NoHttps)
             app.UseHttpsRedirection();
 
@@ -76,5 +97,33 @@ public static class BlazorHostBuilder
             .AddInteractiveServerRenderMode();
 
         return app;
+    }
+
+    /// <summary>
+    /// Returns true when the static web assets manifest exists and its ContentRoots
+    /// point to directories that exist on disk (i.e. running from the original build
+    /// output). Returns false when installed as a global tool where the manifest
+    /// contains absolute paths from the CI build machine.
+    /// </summary>
+    private static bool HasValidStaticWebAssetsManifest(string assemblyDir)
+    {
+        var manifestPath = Path.Combine(assemblyDir, "Verso.Blazor.staticwebassets.runtime.json");
+        if (!File.Exists(manifestPath))
+            return false;
+
+        try
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(manifestPath));
+            var contentRoots = json?["ContentRoots"]?.AsArray();
+            if (contentRoots is null || contentRoots.Count == 0)
+                return false;
+
+            var firstRoot = contentRoots[0]?.GetValue<string>();
+            return firstRoot is not null && Directory.Exists(firstRoot);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

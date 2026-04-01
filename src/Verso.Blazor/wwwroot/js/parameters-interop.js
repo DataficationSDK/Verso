@@ -99,14 +99,31 @@ window.versoParameters = (() => {
         }
     });
 
-    // Allow Enter key in the name field to confirm the add
+    // Allow Enter key in the name field to confirm the add, and in
+    // parameter value fields to commit the update immediately.
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
-        const input = e.target.closest('.verso-add-name');
-        if (!input) return;
-        const addRow = input.closest('.verso-parameter-add-row');
-        const confirmBtn = addRow?.querySelector('[data-action="parameter-confirm-add"]');
-        if (confirmBtn) confirmBtn.click();
+
+        // Add-row name field: confirm the add
+        const addInput = e.target.closest('.verso-add-name');
+        if (addInput) {
+            const addRow = addInput.closest('.verso-parameter-add-row');
+            const confirmBtn = addRow?.querySelector('[data-action="parameter-confirm-add"]');
+            if (confirmBtn) confirmBtn.click();
+            return;
+        }
+
+        // Parameter value fields: commit the update on Enter so the
+        // server-side model is updated even if the browser does not
+        // fire a change event for inputs outside a <form>.
+        const paramInput = e.target.closest('[data-action="parameter-update"]');
+        if (paramInput && paramInput.type !== 'checkbox') {
+            e.preventDefault();
+            const cellId = getCellId(paramInput);
+            const paramName = paramInput.getAttribute('data-param');
+            if (!cellId || !paramName) return;
+            sendInteraction(cellId, 'parameter-update', { name: paramName, value: paramInput.value });
+        }
     });
 
     document.addEventListener('change', (e) => {

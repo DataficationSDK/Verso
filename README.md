@@ -50,13 +50,18 @@ Verso is split into three layers. The engine knows nothing about the UI. The UI 
 │  Front-Ends                                             │
 │  ┌─────────────────────┐  ┌──────────────────────────┐  │
 │  │  VS Code Extension  │  │  Blazor Server Web App   │  │
-│  │  (Blazor WASM       │  │  (runs in any browser)   │  │
-│  │   inside a webview) │  │                          │  │
+│  │  (Blazor WASM       │  │  (verso serve, or        │  │
+│  │   inside a webview) │  │  dotnet run Verso.Blazor)│  │
 │  └──────────┬──────────┘  └────────────┬─────────────┘  │
 │             │                          │                │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  Shared UI (Razor Class Library)                 │   │
 │  │  Monaco editor, panels, toolbar, theme provider  │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  CLI (verso run / verso convert)                 │   │
+│  │  Headless execution, format conversion, CI/CD    │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -83,7 +88,7 @@ Verso is split into three layers. The engine knows nothing about the UI. The UI 
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Blazor Server** talks to the engine directly, in-process. **VS Code** runs Blazor WebAssembly in a webview, which communicates with a host process over JSON-RPC. Both use the same shared Razor components, so the experience is identical in both environments.
+**Blazor Server** talks to the engine directly, in-process. **VS Code** runs Blazor WebAssembly in a webview, which communicates with a host process over JSON-RPC. Both use the same shared Razor components, so the experience is identical in both environments. The **CLI** (`verso run`, `verso convert`) drives the engine headlessly with no UI, making it suitable for CI pipelines and automated workflows.
 
 ## Features
 
@@ -218,6 +223,38 @@ cd Verso
 dotnet build Verso.sln
 dotnet run --project src/Verso.Blazor
 ```
+
+### Run from the Command Line
+
+Verso ships as a .NET global tool. Install it once, then launch the editor, run notebooks headlessly, or convert between formats from any terminal.
+
+```bash
+# Install the CLI
+dotnet tool install -g Verso.Cli
+
+# Launch the Verso editor in your browser
+verso serve
+
+# Open a specific notebook
+verso serve my-notebook.verso
+
+# Run a notebook headlessly
+verso run pipeline.verso --param region=us-east --output json
+
+# Convert a Jupyter notebook to Verso format
+verso convert notebook.ipynb --to verso
+```
+
+The CLI includes four commands:
+
+| Command | Purpose |
+|---------|---------|
+| `verso serve` | Launch the Verso editor as a local web server |
+| `verso run` | Execute a notebook headlessly and stream outputs |
+| `verso convert` | Convert between `.verso`, `.ipynb`, and `.dib` formats |
+| `verso info` | Display CLI version, runtime, and extension details |
+
+`verso run` supports typed parameters (`--param name=value`), JSON output for CI integration, selective cell execution, and fail-fast mode. See the [CLI README](src/Verso.Cli/README.md) for the full option reference, exit codes, and CI/CD examples.
 
 ### Run in VS Code
 

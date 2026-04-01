@@ -12,6 +12,7 @@
     <PackageId>Verso.Cli</PackageId>
     <PackageDescription>Command-line tool for the Verso interactive notebook platform.</PackageDescription>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_IncludeVersoStaticAssets</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +22,31 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+
+  <!-- Bundle static web assets so the Blazor Server app works when installed
+       as a global tool. BlazorHostBuilder detects invalid manifest paths at
+       startup and falls back to Production mode, serving the bundled wwwroot
+       via PhysicalFileProvider. -->
+  <Target Name="_IncludeVersoStaticAssets">
+    <ItemGroup>
+      <!-- Blazor framework JS (may ship as a NuGet static web asset in .NET 10+) -->
+      <_BlazorFrameworkFile Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.web.js" />
+      <_BlazorFrameworkFile Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.server.js" />
+      <!-- Static web assets manifest (used by dev-mode detection) -->
+      <TfmSpecificPackageFile Include="$(OutputPath)Verso.Blazor.staticwebassets.runtime.json"
+                              Condition="Exists('$(OutputPath)Verso.Blazor.staticwebassets.runtime.json')"
+                              PackagePath="tools/$(TargetFramework)/any/" />
+      <!-- Verso.Blazor wwwroot (served from /) -->
+      <TfmSpecificPackageFile Include="..\Verso.Blazor\wwwroot\**\*"
+                              PackagePath="tools/$(TargetFramework)/any/wwwroot/" />
+      <!-- Verso.Blazor.Shared wwwroot (served from /_content/Verso.Blazor.Shared/) -->
+      <TfmSpecificPackageFile Include="..\Verso.Blazor.Shared\wwwroot\**\*"
+                              PackagePath="tools/$(TargetFramework)/any/wwwroot/_content/Verso.Blazor.Shared/" />
+      <!-- Blazor framework JS files -->
+      <TfmSpecificPackageFile Include="@(_BlazorFrameworkFile)"
+                              PackagePath="tools/$(TargetFramework)/any/wwwroot/_framework/%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />

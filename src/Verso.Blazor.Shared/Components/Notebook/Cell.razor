@@ -118,7 +118,11 @@
                         }
                         else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
                         {
-                            <div class="verso-output verso-output--html">
+                            @* @key forces Blazor to tear down and recreate the element when the
+                               output object changes, rather than diffing MarkupString child nodes
+                               in place which can cause removeChild errors when interactive
+                               elements (inputs, checkboxes) hold browser-managed DOM state. *@
+                            <div @key="output" class="verso-output verso-output--html">
                                 @((MarkupString)output.Content)
                             </div>
                         }

@@ -2073,6 +2073,7 @@ html, body {
 .verso-parameter-bool {
     display: flex;
     align-items: center;
+    gap: 4px;
     height: 100%;
     min-height: 26px;
 }

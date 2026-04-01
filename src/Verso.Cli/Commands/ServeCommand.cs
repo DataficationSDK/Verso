@@ -95,10 +95,15 @@ public static class ServeCommand
                         Console.Error.WriteLine($"  Notebook: {notebookPath}");
                 }
 
+                // Open the browser after Kestrel has bound its ports to
+                // avoid a race where the browser requests before the server
+                // is listening.
                 if (!noBrowser)
-                    BrowserLauncher.Open(launchUrl);
+                {
+                    app.Lifetime.ApplicationStarted.Register(
+                        () => BrowserLauncher.Open(launchUrl));
+                }
 
-                // Link Ctrl+C to application lifetime for graceful shutdown
                 var ct = context.GetCancellationToken();
                 ct.Register(() => app.Lifetime.StopApplication());
                 await app.RunAsync();
