@@ -46,49 +46,45 @@ The architecture is built on one principle: every feature is an extension, and e
 Verso is split into three layers. The engine knows nothing about the UI. The UI knows nothing about the host environment. Extensions work identically everywhere.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Front-Ends                                             │
-│  ┌─────────────────────┐  ┌──────────────────────────┐  │
-│  │  VS Code Extension  │  │  Blazor Server Web App   │  │
-│  │  (Blazor WASM       │  │  (verso serve, or        │  │
-│  │   inside a webview) │  │  dotnet run Verso.Blazor)│  │
-│  └──────────┬──────────┘  └────────────┬─────────────┘  │
-│             │                          │                │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  Shared UI (Razor Class Library)                 │   │
-│  │  Monaco editor, panels, toolbar, theme provider  │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  CLI (verso run / verso convert)                 │   │
-│  │  Headless execution, format conversion, CI/CD    │   │
-│  └──────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-                          │
-┌─────────────────────────────────────────────────────────┐
-│  Verso Engine (headless .NET library, no UI)            │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  Scaffold · Extension Host · Execution Pipeline    │ │
-│  │  Layout Manager · Theme Engine · Variable Store    │ │
-│  ├────────────────────────────────────────────────────┤ │
-│  │  Built-in Extensions                               │ │
-│  │  C# Kernel · Markdown · HTML · Mermaid · Themes    │ │
-│  │  Notebook Layout · Dashboard Layout · Formatters   │ │
-│  ├────────────────────────────────────────────────────┤ │
-│  │  First-Party Extension Packages                    │ │
-│  │  Verso.FSharp · Verso.JavaScript · Verso.PowerShell│ │
-│  │  Verso.Python · Verso.Ado (SQL) · Verso.Http       │ │
-│  └────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                          │
-┌─────────────────────────────────────────────────────────┐
-│  Verso.Abstractions                                     │
-│  Pure interfaces, zero dependencies                     │
-│  The only package extension authors need to reference   │
-└─────────────────────────────────────────────────────────┘
++-----------------------------------------------------------+
+|  Front-Ends                                               |
+|  +---------------------+  +--------------------------+    |
+|  |  VS Code Extension  |  |  Blazor Server Web App   |    |
+|  |  (Blazor WASM       |  |  (verso serve, or        |    |
+|  |   inside a webview) |  |  dotnet run Verso.Blazor)|    |
+|  +----------+----------+  +-------------+------------+    |
+|             |                           |                 |
+|  +----------------------------------------------------+   |
+|  |  Shared UI (Razor Class Library)                   |   |
+|  |  Monaco editor, panels, toolbar, theme provider    |   |
+|  +----------------------------------------------------+   |
+|                                                           |
+|  +----------------------------------------------------+   |
+|  |  CLI (verso run / verso convert)                   |   |
+|  |  Headless execution, format conversion, CI/CD      |   |
+|  +----------------------------------------------------+   |
++-----------------------------------------------------------+
+                           |
++-----------------------------------------------------------+
+|  Verso Engine (headless .NET library, no UI)              |
+|  Scaffold - Extension Host - Execution Pipeline           |
+|  Layout Manager - Theme Engine - Variable Store           |
++-----------------------------------------------------------+
+                           |
++-----------------------------------------------------------+
+|  Verso.Abstractions                                       |
+|  Pure interfaces, zero dependencies                       |
+|  The only package extension authors need to reference     |
++-----------------------------------------------------------+
 ```
 
-**Blazor Server** talks to the engine directly, in-process. **VS Code** runs Blazor WebAssembly in a webview, which communicates with a host process over JSON-RPC. Both use the same shared Razor components, so the experience is identical in both environments. The **CLI** (`verso run`, `verso convert`) drives the engine headlessly with no UI, making it suitable for CI pipelines and automated workflows.
+**Front-ends** provide the user experience. Blazor Server talks to the engine directly, in-process. VS Code runs Blazor WebAssembly in a webview, communicating with a host process over JSON-RPC. Both share the same Razor components so the notebook experience is identical. The CLI drives the engine headlessly for CI pipelines and automated workflows.
+
+**The engine** is a headless .NET library. `Scaffold` orchestrates a notebook session: cell management, kernel dispatch, execution, cross-kernel variable sharing, and subsystem coordination. Every language kernel, theme, layout, and formatter ships as an extension using the same public interfaces available to third-party authors.
+
+**Verso.Abstractions** contains only interfaces and the `[VersoExtension]` attribute. It is the sole dependency for extension authors and has zero transitive dependencies.
+
+For a deeper look at each layer, see the [architecture documentation](docs/architecture/overview.md).
 
 ## Features
 
@@ -106,7 +102,7 @@ The same notebook can be viewed as a linear document or rearranged into a 12-col
 
 ### Database Connectivity
 
-Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect to any supported database, execute queries with paginated result tables, inspect schema, and scaffold EF Core DbContext classes at runtime.
+Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect to any supported database, execute queries with paginated result tables, inspect schema, and scaffold EF Core DbContext classes at runtime. SQL results are shared to the variable store for use in C#, F#, and other cells. See the [database connectivity guide](docs/guides/database-connectivity.md) for connection setup, provider support, EF Core scaffolding, and CI/CD pipeline examples.
 
 ### HTTP Requests
 
@@ -130,23 +126,7 @@ Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot N
 
 ## Extension Model
 
-Eleven interfaces define every point of extensibility:
-
-| Interface | Purpose |
-|-----------|---------|
-| `ILanguageKernel` | Execute code, provide completions, diagnostics, and hover for a language |
-| `ICellRenderer` | Render the input and output areas of a cell |
-| `ICellType` | Pair a renderer with an optional kernel to define a new cell type |
-| `IToolbarAction` | Add buttons to the notebook toolbar or cell menus |
-| `IDataFormatter` | Format runtime objects into displayable outputs |
-| `IMagicCommand` | Define directives like `#!time` that extend kernel behavior |
-| `ITheme` | Provide colors, typography, spacing, and syntax highlighting |
-| `ILayoutEngine` | Manage spatial arrangement of cells |
-| `INotebookSerializer` | Read and write notebook file formats |
-| `INotebookPostProcessor` | Transform notebooks after load or before save |
-| `ICellInteractionHandler` | Handle bidirectional interactions from rendered cell content back to extension code |
-
-Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
+Eleven interfaces in `Verso.Abstractions` define every point of extensibility, covering language kernels, cell renderers, cell types, toolbar actions, data formatters, magic commands, themes, layouts, serializers, post-processors, and cell interaction handlers. Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
 
 Third-party extensions load in their own `AssemblyLoadContext`, collectible and unloadable. Your extension references only `Verso.Abstractions` and works across every front-end without modification.
 
@@ -154,13 +134,7 @@ Third-party extensions load in their own `AssemblyLoadContext`, collectible and 
 dotnet new verso-extension -n MyExtension
 ```
 
-Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and sample extensions in the repo:
-
-| Sample | What It Shows |
-|--------|--------------|
-| **Dice** | Custom kernel + renderer + toolbar action |
-| **Presentation Layout** | Slide-based navigation layout |
-| **Diagram Editor** | Custom cell type with its own kernel |
+Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and sample extensions in the repo. For the full interface reference and extension host internals, see the [extension documentation](docs/extensions/) and [extension host architecture](docs/architecture/extension-host.md).
 
 ## What Ships Out of the Box
 
@@ -170,7 +144,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL, HTTP |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types, SQL result sets |
 | **Serializers** | `.verso` (native JSON), `.ipynb` import, `.dib` import |
