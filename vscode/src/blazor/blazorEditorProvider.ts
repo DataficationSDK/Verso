@@ -62,6 +62,20 @@ export class BlazorEditorProvider
         }
       })
     );
+
+    // Sync Monaco editor theme when the VS Code color theme changes
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveColorTheme((theme) => {
+        const kind =
+          theme.kind === vscode.ColorThemeKind.Dark ||
+          theme.kind === vscode.ColorThemeKind.HighContrast
+            ? "dark"
+            : "light";
+        for (const [, bridge] of this.bridges) {
+          bridge.postThemeKind(kind);
+        }
+      })
+    );
   }
 
   /**

@@ -274,6 +274,17 @@ export class BlazorBridge implements vscode.Disposable {
     });
   }
 
+  /**
+   * Push a theme kind change to the webview so Monaco editors switch
+   * between light and dark themes when the VS Code color theme changes.
+   */
+  postThemeKind(kind: "dark" | "light"): void {
+    this.webview.postMessage({
+      type: "theme-kind-changed",
+      kind,
+    });
+  }
+
   dispose(): void {
     for (const d of this.disposables) {
       d.dispose();

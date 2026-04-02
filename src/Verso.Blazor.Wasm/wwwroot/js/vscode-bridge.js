@@ -95,6 +95,10 @@
             if (window.versoMonaco && typeof window.versoMonaco.updateEditorSettings === "function") {
                 window.versoMonaco.updateEditorSettings(msg.settings);
             }
+        } else if (msg.type === "theme-kind-changed") {
+            if (window.versoMonaco && typeof window.versoMonaco.setTheme === "function") {
+                window.versoMonaco.setTheme(msg.kind === "dark" ? "vs-dark" : "vs");
+            }
         } else if (msg.type === "jsonrpc-notification") {
             var method = msg.method;
             var params = msg.params ? JSON.stringify(msg.params) : null;
