@@ -22,8 +22,8 @@ internal sealed record NuGetResolveResult(string PackageId, string ResolvedVersi
 /// </summary>
 internal sealed class NuGetPackageResolver
 {
-    private static readonly string CacheRoot =
-        Path.Combine(Path.GetTempPath(), "verso-nuget-packages");
+    internal static readonly string CacheRoot =
+        Path.Combine(Path.GetTempPath(), "verso-nuget-packages", $"net{Environment.Version.Major}.0");
 
     private readonly List<SourceRepository> _sources;
 

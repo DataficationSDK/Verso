@@ -60,6 +60,30 @@ public class NuGetFallbackResolverTests
     }
 
     [TestMethod]
+    public void CacheRoot_IncludesRuntimeTfm()
+    {
+        var expectedTfm = $"net{Environment.Version.Major}.0";
+
+        Assert.IsTrue(
+            NuGetFallbackResolver.CacheRoot.Contains(expectedTfm),
+            $"CacheRoot should contain '{expectedTfm}' to isolate packages by runtime version. Actual: {NuGetFallbackResolver.CacheRoot}");
+    }
+
+    [TestMethod]
+    public void CacheRoot_IsolatesDifferentRuntimeVersions()
+    {
+        var path = NuGetFallbackResolver.CacheRoot;
+        var segments = path.Split(Path.DirectorySeparatorChar).ToList();
+
+        var cacheIndex = segments.IndexOf("verso-nuget-packages");
+        Assert.IsTrue(cacheIndex >= 0, "CacheRoot should contain 'verso-nuget-packages' segment");
+        Assert.IsTrue(cacheIndex + 1 < segments.Count, "TFM segment should follow 'verso-nuget-packages'");
+        Assert.IsTrue(
+            segments[cacheIndex + 1].StartsWith("net") && segments[cacheIndex + 1].EndsWith(".0"),
+            $"Expected TFM segment like 'net8.0' after 'verso-nuget-packages', got '{segments[cacheIndex + 1]}'");
+    }
+
+    [TestMethod]
     [TestCategory("Integration")]
     public async Task ResolvePackageAsync_ResolvesRealPackage()
     {

@@ -130,6 +130,13 @@ window.versoMonaco = (function () {
             require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
             require(['vs/editor/editor.main'], function () {
                 enhanceCSharpTokenizer();
+
+                // Remove AMD flag so UMD libraries (Plotly, D3, Leaflet, etc.)
+                // loaded from CDN skip the AMD path and assign to window directly.
+                if (typeof define === 'function' && define.amd) {
+                    delete define.amd;
+                }
+
                 monacoReady = true;
                 readyCallbacks.forEach(cb => cb());
                 readyCallbacks = [];

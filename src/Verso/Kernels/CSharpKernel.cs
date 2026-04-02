@@ -531,10 +531,13 @@ public sealed class CSharpKernel : ILanguageKernel
     {
         var references = new List<PortableExecutableReference>();
 
-        // Core runtime assemblies
+        // Core runtime assemblies — skip entries from a different Microsoft.NETCore.App
+        // version so that multi-targeted hosts don't feed a mismatched System.Runtime
+        // (e.g. 10.0.0.0) into Roslyn when the process is running on .NET 8.
         var trustedPlatformAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
         if (trustedPlatformAssemblies is not null)
         {
+            var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
             var separator = OperatingSystem.IsWindows() ? ';' : ':';
             foreach (var path in trustedPlatformAssemblies.Split(separator))
             {
@@ -543,6 +546,15 @@ public sealed class CSharpKernel : ILanguageKernel
                     fileName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase) ||
                     fileName.Equals("netstandard", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Skip assemblies from a different core runtime version
+                    var assemblyDir = Path.GetDirectoryName(path);
+                    if (assemblyDir is not null &&
+                        assemblyDir.Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) &&
+                        !assemblyDir.Equals(runtimeDir, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     references.Add(MetadataReference.CreateFromFile(path));
                 }
             }

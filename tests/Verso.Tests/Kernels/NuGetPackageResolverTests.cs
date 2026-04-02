@@ -78,4 +78,32 @@ public sealed class NuGetPackageResolverTests
         Assert.AreEqual("Newtonsoft.Json", result.Value.PackageId);
         Assert.IsNull(result.Value.Version);
     }
+
+    [TestMethod]
+    public void CacheRoot_IncludesRuntimeTfm()
+    {
+        var expectedTfm = $"net{Environment.Version.Major}.0";
+
+        Assert.IsTrue(
+            NuGetPackageResolver.CacheRoot.Contains(expectedTfm),
+            $"CacheRoot should contain '{expectedTfm}' to isolate packages by runtime version. Actual: {NuGetPackageResolver.CacheRoot}");
+    }
+
+    [TestMethod]
+    public void CacheRoot_IsolatesDifferentRuntimeVersions()
+    {
+        // The cache path must include the TFM so that processes running on
+        // different .NET versions (e.g. Host on .NET 10, CLI on .NET 8)
+        // don't share extracted package DLLs built for the wrong runtime.
+        var path = NuGetPackageResolver.CacheRoot;
+        var segments = path.Split(Path.DirectorySeparatorChar);
+
+        // Expect: {tmp}/verso-nuget-packages/net{major}.0
+        var cacheIndex = Array.IndexOf(segments, "verso-nuget-packages");
+        Assert.IsTrue(cacheIndex >= 0, "CacheRoot should contain 'verso-nuget-packages' segment");
+        Assert.IsTrue(cacheIndex + 1 < segments.Length, "TFM segment should follow 'verso-nuget-packages'");
+        Assert.IsTrue(
+            segments[cacheIndex + 1].StartsWith("net") && segments[cacheIndex + 1].EndsWith(".0"),
+            $"Expected TFM segment like 'net8.0' after 'verso-nuget-packages', got '{segments[cacheIndex + 1]}'");
+    }
 }
