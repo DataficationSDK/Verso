@@ -84,8 +84,6 @@ public sealed class ExtensionMagicCommand : IMagicCommand
             return;
         }
 
-        // No consent dialog for local files — the developer explicitly referenced them.
-
         if (!File.Exists(resolvedPath))
         {
             await context.WriteOutputAsync(new CellOutput(
@@ -95,6 +93,37 @@ public sealed class ExtensionMagicCommand : IMagicCommand
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
             return;
+        }
+
+        // If the assembly was created after the session started, it was likely generated
+        // by a prior cell in this notebook. Require user consent before loading it.
+        var sessionStart = context.NotebookMetadata.SessionStartedUtc;
+        if (sessionStart > DateTime.MinValue)
+        {
+            var fileInfo = new FileInfo(resolvedPath);
+            var fileTime = fileInfo.CreationTimeUtc > fileInfo.LastWriteTimeUtc
+                ? fileInfo.LastWriteTimeUtc
+                : fileInfo.CreationTimeUtc;
+
+            if (fileTime > sessionStart && extensionHost is not null)
+            {
+                var consentInfo = new List<ExtensionConsentInfo>
+                {
+                    new(Path.GetFileName(resolvedPath), null, "session-generated local assembly")
+                };
+
+                var approved = await extensionHost.RequestExtensionConsentAsync(
+                    consentInfo, context.CancellationToken).ConfigureAwait(false);
+
+                if (!approved)
+                {
+                    await context.WriteOutputAsync(new CellOutput(
+                        "text/plain",
+                        $"Extension '{Path.GetFileName(resolvedPath)}' was not approved. Skipping."))
+                        .ConfigureAwait(false);
+                    return;
+                }
+            }
         }
 
         await context.WriteOutputAsync(new CellOutput(

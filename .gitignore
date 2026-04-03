@@ -47,3 +47,4 @@ coverage/
 
 ## VS Code extension — Blazor WASM publish output
 vscode/blazor-wasm/
+/samples/internal-testing

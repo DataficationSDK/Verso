@@ -27,4 +27,7 @@ public sealed class NotebookMetadataContext : INotebookMetadata
 
     /// <inheritdoc />
     public Dictionary<string, NotebookParameterDefinition>? Parameters => _notebook.Parameters;
+
+    /// <inheritdoc />
+    public DateTime SessionStartedUtc { get; } = DateTime.UtcNow;
 }

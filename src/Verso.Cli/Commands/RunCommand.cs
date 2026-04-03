@@ -59,6 +59,9 @@ public static class RunCommand
         var showParametersOption = new Option<bool>("--show-parameters", () => false,
             "Show resolved parameter values in terminal output.");
 
+        var trustLocalOption = new Option<bool>("--trust-local-assemblies", () => false,
+            "Allow loading assemblies generated during the current session without consent.");
+
         var command = new Command("run", "Execute a notebook headlessly and stream cell outputs.")
         {
             notebookArg,
@@ -74,7 +77,8 @@ public static class RunCommand
             paramOption,
             interactiveOption,
             includeMarkdownOption,
-            showParametersOption
+            showParametersOption,
+            trustLocalOption
         };
 
         command.SetHandler(async (context) =>
@@ -93,6 +97,7 @@ public static class RunCommand
             var interactive = context.ParseResult.GetValueForOption(interactiveOption);
             var includeMarkdown = context.ParseResult.GetValueForOption(includeMarkdownOption);
             var showParameters = context.ParseResult.GetValueForOption(showParametersOption);
+            var trustLocal = context.ParseResult.GetValueForOption(trustLocalOption);
 
             // Parse --param name=value pairs into a dictionary
             var paramDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -137,7 +142,8 @@ public static class RunCommand
                 TimeoutSeconds = timeout,
                 Verbose = verbose,
                 Parameters = paramDict.Count > 0 ? paramDict : null,
-                Interactive = interactive
+                Interactive = interactive,
+                TrustLocalAssemblies = trustLocal
             };
 
             var runner = new HeadlessRunner();

@@ -24,4 +24,10 @@ public interface INotebookMetadata
     /// Gets the notebook's parameter definitions, or <c>null</c> if the notebook has no parameters.
     /// </summary>
     Dictionary<string, NotebookParameterDefinition>? Parameters { get; }
+
+    /// <summary>
+    /// Gets the UTC timestamp when the notebook session was created. Used to detect
+    /// assemblies generated during the current session for security consent purposes.
+    /// </summary>
+    DateTime SessionStartedUtc => DateTime.MinValue;
 }

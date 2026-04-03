@@ -21,6 +21,7 @@ public sealed class RunOptions
     public bool Verbose { get; init; }
     public Dictionary<string, string>? Parameters { get; init; }
     public bool Interactive { get; init; }
+    public bool TrustLocalAssemblies { get; init; }
 }
 
 /// <summary>
@@ -63,7 +64,23 @@ public sealed class HeadlessRunner
         }
 
         var extensionHost = new ExtensionHost();
-        extensionHost.ConsentHandler = (_, _) => Task.FromResult(true);
+        extensionHost.ConsentHandler = (extensions, _) =>
+        {
+            if (!options.TrustLocalAssemblies)
+            {
+                foreach (var ext in extensions)
+                {
+                    if (ext.Source == "session-generated local assembly")
+                    {
+                        Console.Error.WriteLine(
+                            $"Warning: Refusing session-generated extension '{ext.PackageId}'. " +
+                            "Use --trust-local-assemblies to allow.");
+                        return Task.FromResult(false);
+                    }
+                }
+            }
+            return Task.FromResult(true);
+        };
 
         try
         {
