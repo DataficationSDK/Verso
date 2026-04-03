@@ -229,7 +229,8 @@ window.versoMonaco = (function () {
                     );
                     editor.addCommand(
                         monaco.KeyCode.Escape,
-                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'escape'); }
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'escape'); },
+                        '!suggestWidgetVisible && !parameterHintsVisible'
                     );
                 }
 
