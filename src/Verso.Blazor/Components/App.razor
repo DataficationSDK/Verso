@@ -1,3 +1,5 @@
+@using System.Reflection
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <link rel="icon" type="image/png" href="icon.png" />
-    <link rel="stylesheet" href="app.css?v=4" />
+    <link rel="stylesheet" href="app.css?v=@CacheBuster" />
     <HeadOutlet @rendermode="InteractiveServer" />
     <script>
         try {
@@ -23,17 +25,17 @@
     <Routes @rendermode="InteractiveServer" />
 
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
-    <script src="js/monaco-interop.js?v=4"></script>
-    <script src="js/dashboard-interop.js"></script>
-    <script src="js/panel-resize-interop.js"></script>
-    <script src="js/file-download-interop.js"></script>
-    <script src="js/save-dialog-interop.js"></script>
-    <script src="js/mermaid-interop.js"></script>
-    <script src="js/recovery-interop.js"></script>
-    <script src="js/cell-interact-interop.js"></script>
-    <script src="js/parameters-interop.js"></script>
-    <script src="js/cell-drag-interop.js"></script>
-    <script src="_content/Verso.Blazor.Shared/js/user-prefs-interop.js"></script>
+    <script src="js/monaco-interop.js?v=@CacheBuster"></script>
+    <script src="js/dashboard-interop.js?v=@CacheBuster"></script>
+    <script src="js/panel-resize-interop.js?v=@CacheBuster"></script>
+    <script src="js/file-download-interop.js?v=@CacheBuster"></script>
+    <script src="js/save-dialog-interop.js?v=@CacheBuster"></script>
+    <script src="js/mermaid-interop.js?v=@CacheBuster"></script>
+    <script src="js/recovery-interop.js?v=@CacheBuster"></script>
+    <script src="js/cell-interact-interop.js?v=@CacheBuster"></script>
+    <script src="js/parameters-interop.js?v=@CacheBuster"></script>
+    <script src="js/cell-drag-interop.js?v=@CacheBuster"></script>
+    <script src="_content/Verso.Blazor.Shared/js/user-prefs-interop.js?v=@CacheBuster"></script>
     <div id="verso-reconnect-overlay" style="display:none">
         <div class="verso-reconnect-box">
             <div class="verso-spinner verso-spinner--large"></div>
@@ -123,3 +125,25 @@
     </script>
 </body>
 </html>
+
+@code {
+    private static readonly string CacheBuster = GetCacheBuster();
+
+    private static string GetCacheBuster()
+    {
+        var info = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        // Published builds include a commit hash suffix (e.g. "1.0.0+abc123") which
+        // changes per build. For local dev builds without a suffix, fall back to the
+        // assembly's last-write time so every recompile busts the cache.
+        if (info is not null && info.Contains('+'))
+            return info.Split('+')[1];
+
+        var location = typeof(App).Assembly.Location;
+        if (!string.IsNullOrEmpty(location) && File.Exists(location))
+            return new FileInfo(location).LastWriteTimeUtc.Ticks.ToString();
+
+        return DateTimeOffset.UtcNow.Ticks.ToString();
+    }
+}

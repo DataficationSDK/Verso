@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import * as fs from "fs";
 import { HostProcess } from "../host/hostProcess";
 import { hostRegistry } from "../host/hostRegistry";
 import { notebookRegistry } from "../host/notebookRegistry";
@@ -326,11 +327,27 @@ export class BlazorEditorProvider
   }
 
   /**
+   * Returns a cache-buster string for webview resource URLs.
+   * Published builds use the extension version. Local dev builds append
+   * the WASM root's mtime so every recompile forces a fresh fetch.
+   */
+  private getCacheBuster(): string {
+    const version: string = this.context.extension.packageJSON.version ?? "0";
+    try {
+      const wasmDir = path.join(this.context.extensionPath, "blazor-wasm", "wwwroot");
+      const stat = fs.statSync(wasmDir);
+      return `${version}-${stat.mtimeMs.toFixed(0)}`;
+    } catch {
+      return version;
+    }
+  }
+
+  /**
    * Generates the webview HTML that loads the Blazor WASM app.
    */
   private getWebviewHtml(webview: vscode.Webview): string {
     const wasmRoot = this.getWasmRoot();
-    const version = this.context.extension.packageJSON.version;
+    const version = this.getCacheBuster();
 
     const toUri = (relativePath: string) =>
       webview.asWebviewUri(vscode.Uri.joinPath(wasmRoot, relativePath)).toString() + `?v=${version}`;
