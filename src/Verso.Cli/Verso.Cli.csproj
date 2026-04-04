@@ -9,6 +9,7 @@
     <RootNamespace>Verso.Cli</RootNamespace>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>verso</ToolCommandName>
+    <RollForward>LatestMajor</RollForward>
     <PackageId>Verso.Cli</PackageId>
     <PackageDescription>Command-line tool for the Verso interactive notebook platform.</PackageDescription>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
