@@ -1306,6 +1306,7 @@ html, body {
 /* === Presentation Layout === */
 
 .verso-presentation-view {
+    width: 100%;
     max-width: 960px;
     margin: 0 auto;
     padding: 24px var(--verso-cell-padding, 12px);
