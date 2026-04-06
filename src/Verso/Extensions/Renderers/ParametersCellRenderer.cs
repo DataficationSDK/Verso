@@ -279,6 +279,9 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         sb.Append("<div class=\"verso-parameters\">");
         sb.Append("<div class=\"verso-parameters-header\">");
         sb.Append("<span class=\"verso-parameters-title\">Parameters</span>");
+        sb.Append("<span class=\"verso-parameters-count\">(");
+        sb.Append(sorted.Count);
+        sb.Append(")</span>");
         sb.Append("</div>");
 
         if (submitted)

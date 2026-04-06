@@ -23,6 +23,14 @@
                     <span class="verso-cell-collapse-chevron @(IsSectionCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
                 </button>
             }
+            @if (!IsEditable)
+            {
+                <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
+                        @onclick="ToggleCellCollapse"
+                        title="@(_isCellCollapsed ? "Expand" : "Collapse")">
+                    <span class="verso-cell-collapse-chevron @(_isCellCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
+                </button>
+            }
         </div>
         <span class="verso-cell-index">[@(Index + 1)]</span>
     </div>
@@ -104,7 +112,13 @@
         @if (!IsEditable)
         {
             @* Non-editable cell types (e.g. parameters): show rendered output directly, no editor *@
-            @if (CellData.Outputs.Count > 0)
+            @if (_isCellCollapsed)
+            {
+                <div class="verso-cell-rendered-input verso-cell-rendered-input--collapsed"
+                     @onclick="ToggleCellCollapse">
+                </div>
+            }
+            else if (CellData.Outputs.Count > 0)
             {
                 <div class="verso-cell-rendered-input" data-cell-id="@CellData.Id" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
                     @foreach (var output in CellData.Outputs)
@@ -248,6 +262,7 @@
     private List<ToolbarActionInfo> _enabledCellActions = new();
     private bool _showTypeDropdown;
     private bool _showLanguageDropdown;
+    private bool _isCellCollapsed;
 
     // Actions already represented by hardcoded buttons in the cell toolbar
     private static readonly HashSet<string> _hardcodedActionIds = new(StringComparer.OrdinalIgnoreCase)
@@ -389,6 +404,8 @@
             }).ToArray()
         };
     }
+
+    private void ToggleCellCollapse() => _isCellCollapsed = !_isCellCollapsed;
 
     private void ToggleTypeDropdown()
     {

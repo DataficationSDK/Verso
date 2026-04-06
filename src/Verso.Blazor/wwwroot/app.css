@@ -2009,11 +2009,19 @@ html, body {
 }
 
 .verso-parameters-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-bottom: 8px;
 }
 
 .verso-parameters-title {
     font-weight: 600;
+}
+
+.verso-parameters-count {
+    color: var(--verso-text-muted, #888);
+    font-size: 0.85em;
 }
 
 .verso-parameters-table {
