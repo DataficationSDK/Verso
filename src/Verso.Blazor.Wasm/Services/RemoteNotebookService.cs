@@ -16,6 +16,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     // ── Local cache ─────────────────────────────────────────────────────
     private bool _isLoaded;
+
     private string? _filePath;
     private string? _title;
     private string? _defaultKernelId;

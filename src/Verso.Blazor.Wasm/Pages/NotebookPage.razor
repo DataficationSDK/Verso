@@ -292,6 +292,11 @@
     {
         if (firstRender)
         {
+            // Wait for Monaco to fully load before processing notebook
+            // notifications.  This ensures define.amd is removed before any
+            // cell outputs (which may contain AMD-interfering scripts) render.
+            await JS.InvokeVoidAsync("versoMonaco.waitForReady");
+
             // Subscribe BEFORE initializing so replayed notifications are caught
             Bridge.OnNotification += HandleBridgeNotification;
 
@@ -306,6 +311,7 @@
 
             _cellDragRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("versoCellDrag.init", _cellDragRef);
+
 
             await SyncMonacoThemeAsync();
 

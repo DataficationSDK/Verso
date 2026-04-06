@@ -22,6 +22,10 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     private ExtensionHost? _extensionHost;
     private string? _filePath;
     private readonly IJSRuntime _jsRuntime;
+    // Monaco is eagerly loaded at page load (before any notebook opens),
+    // so by the time cells render, define.amd is already removed and
+    // output scripts cannot interfere with the AMD loader.
+
 
     // Extension consent state
     private TaskCompletionSource<bool>? _consentTcs;

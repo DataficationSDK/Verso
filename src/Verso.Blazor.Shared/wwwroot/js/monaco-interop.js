@@ -5,6 +5,7 @@ window.versoMonaco = (function () {
     const registeredLanguages = new Set();
     let monacoReady = false;
     let readyCallbacks = [];
+    let onReadyCallbacks = [];
     let _currentTheme = 'vs';
 
     // Editor font settings — overridden by VS Code extension when running in a webview
@@ -148,18 +149,44 @@ window.versoMonaco = (function () {
 
                 // Remove AMD flag so UMD libraries (Plotly, D3, Leaflet, etc.)
                 // loaded from CDN skip the AMD path and assign to window directly.
+                // Then lock `define` so cell output scripts (e.g. Plotly's AMD
+                // workaround: `window.define = undefined`) cannot destroy it.
+                // Monaco still needs define() for lazy-loading language grammars.
                 if (typeof define === 'function' && define.amd) {
                     delete define.amd;
+                    Object.defineProperty(window, 'define', {
+                        value: define,
+                        writable: false,
+                        configurable: false
+                    });
                 }
 
                 monacoReady = true;
                 readyCallbacks.forEach(cb => cb());
                 readyCallbacks = [];
+                onReadyCallbacks.forEach(cb => cb());
+                onReadyCallbacks = [];
             });
         }
     }
 
+    // Eagerly start loading Monaco at page load so it is fully initialized
+    // (and define.amd removed) before any notebook opens.  This prevents
+    // <script> tags in saved cell outputs from interfering with the AMD
+    // module loader — by the time outputs render, Monaco no longer needs
+    // the define function.
+    ensureMonaco(function () {});
+
     return {
+        // Returns a Promise that resolves when Monaco is fully loaded and
+        // define.amd has been removed.  Resolves immediately if already ready.
+        waitForReady: function () {
+            return new Promise(function (resolve) {
+                if (monacoReady) { resolve(); }
+                else { onReadyCallbacks.push(resolve); }
+            });
+        },
+
         create: function (elementId, options, dotnetRef) {
             ensureMonaco(function () {
                 const container = document.getElementById(elementId);

@@ -304,7 +304,6 @@
     private Timer? _autoSaveTimer;
     private bool _userPrefsApplied;
     private bool _restoringPrefs;
-
     [SupplyParameterFromQuery(Name = "recover")]
     public string? RecoverPath { get; set; }
 
@@ -411,6 +410,8 @@
                 await JS.InvokeVoidAsync("versoRecovery.clearState");
                 return;
             }
+
+            await JS.InvokeVoidAsync("versoMonaco.waitForReady");
 
             if (!string.IsNullOrEmpty(state.FilePath) && File.Exists(state.FilePath))
             {
@@ -689,6 +690,7 @@
             _hasNativeHandle = false;
             try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
             try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
+            await JS.InvokeVoidAsync("versoMonaco.waitForReady");
             await Service.OpenAsync(filePath);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
@@ -708,6 +710,7 @@
             _hasNativeHandle = false;
             try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
             try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
+            await JS.InvokeVoidAsync("versoMonaco.waitForReady");
             await Service.OpenFromContentAsync(args.FileName, args.Content);
             _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
             await SyncMonacoThemeAsync();
