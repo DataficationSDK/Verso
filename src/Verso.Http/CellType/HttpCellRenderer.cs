@@ -21,6 +21,7 @@ public sealed class HttpCellRenderer : ICellRenderer
     public string CellTypeId => "http";
     public string DisplayName => "HTTP";
     public bool CollapsesInputOnExecute => false;
+    public CellVisibilityHint DefaultVisibility => CellVisibilityHint.OutputOnly;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

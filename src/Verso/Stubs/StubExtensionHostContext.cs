@@ -9,10 +9,14 @@ namespace Verso.Stubs;
 public sealed class StubExtensionHostContext : IExtensionHostContext
 {
     private readonly Func<IReadOnlyList<ILanguageKernel>> _getKernels;
+    private readonly Func<IReadOnlyList<ICellRenderer>> _getRenderers;
 
-    public StubExtensionHostContext(Func<IReadOnlyList<ILanguageKernel>> getKernels)
+    public StubExtensionHostContext(
+        Func<IReadOnlyList<ILanguageKernel>> getKernels,
+        Func<IReadOnlyList<ICellRenderer>>? getRenderers = null)
     {
         _getKernels = getKernels ?? throw new ArgumentNullException(nameof(getKernels));
+        _getRenderers = getRenderers ?? (() => Array.Empty<ICellRenderer>());
     }
 
     /// <inheritdoc />
@@ -22,7 +26,7 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
     public IReadOnlyList<ILanguageKernel> GetKernels() => _getKernels();
 
     /// <inheritdoc />
-    public IReadOnlyList<ICellRenderer> GetRenderers() => Array.Empty<ICellRenderer>();
+    public IReadOnlyList<ICellRenderer> GetRenderers() => _getRenderers();
 
     /// <inheritdoc />
     public IReadOnlyList<IDataFormatter> GetFormatters() => Array.Empty<IDataFormatter>();

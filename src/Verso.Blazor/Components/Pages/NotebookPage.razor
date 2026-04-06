@@ -92,7 +92,7 @@
                 @if (Service.ActiveLayoutId == "dashboard")
                 {
                     <DashboardGrid Service="Service"
-                                   Cells="Service.Cells"
+                                   Cells="GetLayoutFilteredCells()"
                                    ExecutingCellId="_executingCellId"
                                    OnRunCell="HandleRunCell"
                                    OnSourceChanged="HandleSourceChanged" />
@@ -100,7 +100,7 @@
                 else if (Service.ActiveLayoutId == "presentation")
                 {
                     <PresentationView Service="Service"
-                                      Cells="Service.Cells" />
+                                      Cells="GetLayoutFilteredCells()" />
                 }
                 else
                 {
@@ -215,6 +215,10 @@
                             {
                                 <SettingsPanel Service="Service" />
                             }
+                            else if (_activePanel == "properties")
+                            {
+                                <CellPropertiesPanel Service="Service" SelectedCellId="_selectedCellId" />
+                            }
                         </div>
                     </div>
                 }
@@ -255,6 +259,21 @@
                         </svg>
                         <span>Settings</span>
                     </button>
+                    @if (Service.ActiveLayoutSupportsPropertiesPanel)
+                    {
+                        <button class="verso-panel-strip-tab @(_activePanel == "properties" ? "verso-panel-strip-tab--active" : "")"
+                                @onclick='() => TogglePanel("properties")' title="Properties">
+                            <svg class="verso-panel-strip-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="2" y1="4" x2="10" y2="4"/>
+                                <line x1="2" y1="8" x2="14" y2="8"/>
+                                <line x1="2" y1="12" x2="8" y2="12"/>
+                                <circle cx="12" cy="4" r="1.5"/>
+                                <circle cx="5" cy="12" r="1.5"/>
+                                <circle cx="10" cy="8" r="1.5" fill="none"/>
+                            </svg>
+                            <span>Properties</span>
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -497,6 +516,9 @@
 
     private async void HandleLayoutChanged()
     {
+        if (_activePanel == "properties" && !Service.ActiveLayoutSupportsPropertiesPanel)
+            _activePanel = null;
+
         if (Service.ActiveLayoutId == "presentation")
         {
             await InvokeAsync(async () =>
@@ -616,12 +638,20 @@
         _activePanel = null;
     }
 
+    private IReadOnlyList<CellModel> GetLayoutFilteredCells()
+    {
+        return Service.Cells
+            .Where(c => Service.ResolveCellVisibility(c.Id) != CellVisibilityState.Hidden)
+            .ToList();
+    }
+
     private static string PanelDisplayName(string panelId) => panelId switch
     {
         "metadata" => "METADATA",
         "extensions" => "EXTENSIONS",
         "variables" => "VARIABLES",
         "settings" => "SETTINGS",
+        "properties" => "PROPERTIES",
         _ => panelId.ToUpperInvariant()
     };
 

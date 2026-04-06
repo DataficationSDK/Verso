@@ -261,7 +261,8 @@ public static class NotebookHandler
             Type = cell.Type,
             Language = cell.Language,
             Source = cell.Source,
-            Outputs = cell.Outputs.Select(MapOutput).ToList()
+            Outputs = cell.Outputs.Select(MapOutput).ToList(),
+            Metadata = cell.Metadata.Count > 0 ? cell.Metadata : null
         };
     }
 

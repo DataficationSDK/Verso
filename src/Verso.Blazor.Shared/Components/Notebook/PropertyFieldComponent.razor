@@ -1,0 +1,182 @@
+<div class="verso-properties-field-control">
+    @switch (Field.FieldType)
+    {
+        case PropertyFieldType.Text:
+            <input type="text"
+                   class="verso-properties-input"
+                   value="@Field.CurrentValue"
+                   disabled="@Field.IsReadOnly"
+                   @onchange="e => OnValueChanged.InvokeAsync(e.Value)" />
+            break;
+
+        case PropertyFieldType.Number:
+            <input type="number"
+                   class="verso-properties-input"
+                   value="@Field.CurrentValue"
+                   disabled="@Field.IsReadOnly"
+                   @onchange="HandleNumberChange" />
+            break;
+
+        case PropertyFieldType.Toggle:
+            <input type="checkbox"
+                   class="verso-properties-toggle"
+                   checked="@(Field.CurrentValue is true)"
+                   disabled="@Field.IsReadOnly"
+                   @onchange="e => OnValueChanged.InvokeAsync(e.Value)" />
+            break;
+
+        case PropertyFieldType.Select:
+            <select class="verso-properties-select"
+                    disabled="@Field.IsReadOnly"
+                    @onchange="e => OnValueChanged.InvokeAsync(e.Value)">
+                @if (Field.Options is not null)
+                {
+                    @foreach (var opt in Field.Options)
+                    {
+                        <option value="@opt.Value"
+                                selected="@IsSelected(opt.Value)">@opt.DisplayName</option>
+                    }
+                }
+            </select>
+            break;
+
+        case PropertyFieldType.MultiSelect:
+            @if (Field.Options is not null)
+            {
+                @foreach (var opt in Field.Options)
+                {
+                    var o = opt;
+                    <label class="verso-properties-multiselect-option">
+                        <input type="checkbox"
+                               checked="@IsMultiSelected(o.Value)"
+                               disabled="@Field.IsReadOnly"
+                               @onchange="e => ToggleMultiSelectAsync(o.Value, e.Value is true)" />
+                        @o.DisplayName
+                    </label>
+                }
+            }
+            break;
+
+        case PropertyFieldType.Color:
+            <input type="color"
+                   class="verso-properties-color"
+                   value="@(Field.CurrentValue?.ToString() ?? "#000000")"
+                   disabled="@Field.IsReadOnly"
+                   @onchange="e => OnValueChanged.InvokeAsync(e.Value)" />
+            break;
+
+        case PropertyFieldType.Tags:
+            <div class="verso-properties-tags">
+                @foreach (var tag in _currentTags)
+                {
+                    var t = tag;
+                    <span class="verso-properties-tag">
+                        @t
+                        @if (!Field.IsReadOnly)
+                        {
+                            <button class="verso-properties-tag-remove"
+                                    @onclick="() => RemoveTagAsync(t)"
+                                    title="Remove tag">&#x2715;</button>
+                        }
+                    </span>
+                }
+                @if (!Field.IsReadOnly)
+                {
+                    <input type="text"
+                           class="verso-properties-tag-input"
+                           placeholder="Add tag..."
+                           @bind="_newTagText"
+                           @bind:event="oninput"
+                           @onkeydown="HandleTagKeyDown" />
+                }
+            </div>
+            break;
+    }
+</div>
+
+@code {
+    [Parameter] public PropertyField Field { get; set; } = default!;
+    [Parameter] public EventCallback<object?> OnValueChanged { get; set; }
+
+    private string _newTagText = "";
+    private List<string> _currentTags = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Field.FieldType == PropertyFieldType.Tags)
+        {
+            _currentTags = Field.CurrentValue switch
+            {
+                IEnumerable<string> list => list.ToList(),
+                string s when !string.IsNullOrEmpty(s) =>
+                    s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+                _ => new List<string>()
+            };
+        }
+    }
+
+    private bool IsSelected(string optionValue) =>
+        string.Equals(Field.CurrentValue?.ToString(), optionValue, StringComparison.OrdinalIgnoreCase);
+
+    private bool IsMultiSelected(string optionValue)
+    {
+        return Field.CurrentValue switch
+        {
+            IEnumerable<string> list => list.Contains(optionValue, StringComparer.OrdinalIgnoreCase),
+            string s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                          .Contains(optionValue, StringComparer.OrdinalIgnoreCase),
+            _ => false
+        };
+    }
+
+    private async Task HandleNumberChange(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var d))
+            await OnValueChanged.InvokeAsync(d);
+        else
+            await OnValueChanged.InvokeAsync(e.Value);
+    }
+
+    private async Task ToggleMultiSelectAsync(string optionValue, bool isChecked)
+    {
+        var selected = GetCurrentMultiSelectList();
+        if (isChecked)
+        {
+            if (!selected.Contains(optionValue))
+                selected.Add(optionValue);
+        }
+        else
+        {
+            selected.Remove(optionValue);
+        }
+        await OnValueChanged.InvokeAsync((IReadOnlyList<string>)selected);
+    }
+
+    private List<string> GetCurrentMultiSelectList() =>
+        Field.CurrentValue switch
+        {
+            IEnumerable<string> list => list.ToList(),
+            string s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            _ => new List<string>()
+        };
+
+    private async Task RemoveTagAsync(string tag)
+    {
+        _currentTags.Remove(tag);
+        await OnValueChanged.InvokeAsync((IReadOnlyList<string>)_currentTags.ToList());
+    }
+
+    private async Task HandleTagKeyDown(KeyboardEventArgs e)
+    {
+        if ((e.Key == "Enter" || e.Key == ",") && !string.IsNullOrWhiteSpace(_newTagText))
+        {
+            var tag = _newTagText.Trim().TrimEnd(',');
+            if (!string.IsNullOrEmpty(tag) && !_currentTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                _currentTags.Add(tag);
+                await OnValueChanged.InvokeAsync((IReadOnlyList<string>)_currentTags.ToList());
+            }
+            _newTagText = "";
+        }
+    }
+}

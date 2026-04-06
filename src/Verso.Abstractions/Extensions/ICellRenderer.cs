@@ -45,4 +45,11 @@ public interface ICellRenderer : IExtension
     /// cell and reveals the editor. Defaults to <c>false</c>.
     /// </summary>
     bool CollapsesInputOnExecute => false;
+
+    /// <summary>
+    /// Declares the cell type's visibility nature as a hint to layouts.
+    /// Layouts may use this to decide whether to show, hide, or show only the output of cells
+    /// of this type by default. Defaults to <see cref="CellVisibilityHint.Content"/>.
+    /// </summary>
+    CellVisibilityHint DefaultVisibility => CellVisibilityHint.Content;
 }

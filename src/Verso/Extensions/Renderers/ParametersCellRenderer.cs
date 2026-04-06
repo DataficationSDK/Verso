@@ -26,6 +26,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
     public string CellTypeId => "parameters";
     public string DisplayName => "Parameters";
     public bool CollapsesInputOnExecute => false;
+    public CellVisibilityHint DefaultVisibility => CellVisibilityHint.Infrastructure;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

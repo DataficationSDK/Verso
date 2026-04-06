@@ -31,6 +31,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IMagicCommand> _magicCommands = new();
     private readonly List<INotebookPostProcessor> _postProcessors = new();
     private readonly List<IExtensionSettings> _settableExtensions = new();
+    private readonly List<ICellPropertyProvider> _propertyProviders = new();
     private readonly List<ICellInteractionHandler> _interactionHandlers = new();
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
@@ -123,6 +124,11 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     public IReadOnlyList<INotebookPostProcessor> GetPostProcessors()
     {
         lock (_lock) { return _postProcessors.Where(p => IsEnabled(p)).ToList(); }
+    }
+
+    public IReadOnlyList<ICellPropertyProvider> GetPropertyProviders()
+    {
+        lock (_lock) { return _propertyProviders.Where(p => IsEnabled(p)).ToList(); }
     }
 
     public IReadOnlyList<IExtensionSettings> GetSettableExtensions()
@@ -529,6 +535,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _toolbarActions.Clear();
             _magicCommands.Clear();
             _postProcessors.Clear();
+            _propertyProviders.Clear();
             _settableExtensions.Clear();
             _interactionHandlers.Clear();
             _approvedExtensionPackages.Clear();
@@ -573,6 +580,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _postProcessors.Add(postProcessor);
         if (extension is IExtensionSettings settable)
             _settableExtensions.Add(settable);
+        if (extension is ICellPropertyProvider provider)
+            _propertyProviders.Add(provider);
         if (extension is ICellInteractionHandler interactionHandler)
             _interactionHandlers.Add(interactionHandler);
     }
@@ -590,6 +599,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             or IMagicCommand
             or INotebookPostProcessor
             or IExtensionSettings
+            or ICellPropertyProvider
             or ICellInteractionHandler;
     }
 
@@ -607,6 +617,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         if (extension is IMagicCommand) caps.Add("MagicCommand");
         if (extension is INotebookPostProcessor) caps.Add("NotebookPostProcessor");
         if (extension is IExtensionSettings) caps.Add("ExtensionSettings");
+        if (extension is ICellPropertyProvider) caps.Add("CellPropertyProvider");
         if (extension is ICellInteractionHandler) caps.Add("CellInteractionHandler");
         return caps;
     }

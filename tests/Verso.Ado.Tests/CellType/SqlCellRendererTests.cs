@@ -27,6 +27,10 @@ public sealed class SqlCellRendererTests
         => Assert.AreEqual("sql", _renderer.GetEditorLanguage());
 
     [TestMethod]
+    public void DefaultVisibility_IsOutputOnly()
+        => Assert.AreEqual(CellVisibilityHint.OutputOnly, _renderer.DefaultVisibility);
+
+    [TestMethod]
     public void CollapsesInputOnExecute_ReturnsFalse()
         => Assert.IsFalse(_renderer.CollapsesInputOnExecute);
 

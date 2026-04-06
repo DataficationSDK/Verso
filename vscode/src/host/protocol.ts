@@ -81,6 +81,7 @@ export interface CellDto {
   language?: string;
   source: string;
   outputs: CellOutputDto[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface CellOutputDto {
@@ -429,4 +430,60 @@ export interface VariableInspectResult {
   typeName: string;
   mimeType: string;
   content: string;
+}
+
+// --- Properties DTOs ---
+
+export type PropertyFieldType =
+  | "Text"
+  | "Number"
+  | "Toggle"
+  | "Select"
+  | "MultiSelect"
+  | "Color"
+  | "Tags";
+
+export interface PropertyFieldOptionDto {
+  value: string;
+  displayName: string;
+}
+
+export interface PropertyFieldDto {
+  name: string;
+  displayName: string;
+  fieldType: PropertyFieldType;
+  currentValue?: unknown;
+  description?: string;
+  isReadOnly: boolean;
+  options?: PropertyFieldOptionDto[];
+}
+
+export interface PropertySectionDto {
+  title: string;
+  description?: string;
+  fields: PropertyFieldDto[];
+}
+
+export interface PropertySectionResultDto {
+  providerExtensionId: string;
+  section: PropertySectionDto;
+}
+
+export interface PropertiesGetSectionsParams {
+  cellId: string;
+}
+
+export interface PropertiesGetSectionsResult {
+  sections: PropertySectionResultDto[];
+}
+
+export interface PropertiesUpdatePropertyParams {
+  cellId: string;
+  providerExtensionId: string;
+  propertyName: string;
+  value?: string;
+}
+
+export interface PropertiesGetSupportedResult {
+  supported: boolean;
 }

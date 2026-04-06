@@ -163,9 +163,153 @@ public sealed class NotebookHtmlExporterTests
         Assert.IsTrue(html.Contains("&lt;script&gt;"));
     }
 
+    // ── Visibility-aware export tests ────────────────────────────────────
+
+    [TestMethod]
+    public void Export_NullOptions_AllCellsPresent()
+    {
+        var cells = new[]
+        {
+            new CellModel { Type = "code", Source = "cell1" },
+            new CellModel { Type = "code", Source = "cell2" }
+        };
+
+        var html = ExportToString(null, cells, null, null);
+
+        Assert.IsTrue(html.Contains("cell1"));
+        Assert.IsTrue(html.Contains("cell2"));
+    }
+
+    [TestMethod]
+    public void Export_PresentationLayout_HiddenCellSkipped()
+    {
+        var cell = new CellModel { Type = "code", Source = "secret-setup" };
+        cell.Metadata["verso:visibility"] = new Dictionary<string, object>
+        {
+            ["presentation"] = "Hidden"
+        };
+        var cells = new CellModel[] { cell };
+
+        var options = MakePresentationOptions();
+        var html = ExportToString(null, cells, null, options);
+
+        Assert.IsFalse(html.Contains("secret-setup"));
+    }
+
+    [TestMethod]
+    public void Export_PresentationLayout_OutputOnlyCell_SourceAbsentOutputPresent()
+    {
+        var cell = new CellModel
+        {
+            Type = "code", Language = "sql", Source = "SELECT 1",
+            Outputs = { new CellOutput("text/plain", "query-result-42") }
+        };
+        cell.Metadata["verso:visibility"] = new Dictionary<string, object>
+        {
+            ["presentation"] = "OutputOnly"
+        };
+
+        var options = MakePresentationOptions();
+        var html = ExportToString(null, new[] { cell }, null, options);
+
+        Assert.IsFalse(html.Contains("SELECT 1"));
+        Assert.IsTrue(html.Contains("query-result-42"));
+    }
+
+    [TestMethod]
+    public void Export_NotebookLayout_AllCellsVisible()
+    {
+        var cell = new CellModel { Type = "code", Source = "visible-cell" };
+        cell.Metadata["verso:visibility"] = new Dictionary<string, object>
+        {
+            ["notebook"] = "Hidden"
+        };
+
+        var notebookOptions = new ExportOptions(
+            "notebook",
+            new HashSet<CellVisibilityState> { CellVisibilityState.Visible },
+            new List<ICellRenderer> { new TestRenderer("code", CellVisibilityHint.Content) });
+
+        var html = ExportToString(null, new[] { cell }, null, notebookOptions);
+
+        // Notebook layout only supports Visible, so override is constrained to Visible
+        Assert.IsTrue(html.Contains("visible-cell"));
+    }
+
+    [TestMethod]
+    public void Export_PresentationLayout_InfrastructureHint_CellHidden()
+    {
+        var cell = new CellModel { Type = "parameters", Source = "param-setup" };
+
+        var options = new ExportOptions(
+            "presentation",
+            new HashSet<CellVisibilityState> { CellVisibilityState.Visible, CellVisibilityState.Hidden, CellVisibilityState.OutputOnly },
+            new List<ICellRenderer> { new TestRenderer("parameters", CellVisibilityHint.Infrastructure) });
+
+        var html = ExportToString(null, new[] { cell }, null, options);
+
+        Assert.IsFalse(html.Contains("param-setup"));
+    }
+
+    [TestMethod]
+    public void Export_PresentationLayout_ExplicitVisibleOverride_InfrastructureCellPresent()
+    {
+        var cell = new CellModel { Type = "parameters", Source = "param-visible" };
+        cell.Metadata["verso:visibility"] = new Dictionary<string, object>
+        {
+            ["presentation"] = "Visible"
+        };
+
+        var options = new ExportOptions(
+            "presentation",
+            new HashSet<CellVisibilityState> { CellVisibilityState.Visible, CellVisibilityState.Hidden, CellVisibilityState.OutputOnly },
+            new List<ICellRenderer> { new TestRenderer("parameters", CellVisibilityHint.Infrastructure) });
+
+        var html = ExportToString(null, new[] { cell }, null, options);
+
+        Assert.IsTrue(html.Contains("param-visible"));
+    }
+
     private static string ExportToString(string? title, IReadOnlyList<CellModel> cells, ITheme? theme)
     {
         var bytes = NotebookHtmlExporter.Export(title, cells, theme);
         return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static string ExportToString(string? title, IReadOnlyList<CellModel> cells, ITheme? theme, ExportOptions? options)
+    {
+        var bytes = NotebookHtmlExporter.Export(title, cells, theme, options);
+        return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static ExportOptions MakePresentationOptions(CellVisibilityHint hint = CellVisibilityHint.Content)
+        => new(
+            "presentation",
+            new HashSet<CellVisibilityState> { CellVisibilityState.Visible, CellVisibilityState.Hidden, CellVisibilityState.OutputOnly },
+            new List<ICellRenderer> { new TestRenderer("code", hint) });
+
+    private sealed class TestRenderer : ICellRenderer
+    {
+        private readonly CellVisibilityHint _hint;
+
+        public TestRenderer(string cellTypeId, CellVisibilityHint hint)
+        {
+            CellTypeId = cellTypeId;
+            _hint = hint;
+        }
+
+        public string CellTypeId { get; }
+        CellVisibilityHint ICellRenderer.DefaultVisibility => _hint;
+        public string DisplayName => CellTypeId;
+        public string ExtensionId => "test." + CellTypeId;
+        public string Name => CellTypeId;
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+        public Task<RenderResult> RenderInputAsync(string source, ICellRenderContext context) => throw new NotImplementedException();
+        public Task<RenderResult> RenderOutputAsync(CellOutput output, ICellRenderContext context) => throw new NotImplementedException();
+        public string? GetEditorLanguage() => null;
     }
 }

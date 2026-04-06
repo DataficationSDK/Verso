@@ -23,7 +23,8 @@ public sealed record LayoutInfo(
     bool RequiresCustomRenderer,
     LayoutCapabilities Capabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
-        | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect);
+        | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect,
+    bool SupportsPropertiesPanel = false);
 
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(
@@ -79,3 +80,8 @@ public sealed record VariableInspectResultDto(
 public sealed record ExtensionSettingsGroup(
     string ExtensionId,
     IReadOnlyList<SettingDefinition> Definitions);
+
+/// <summary>Pairs a property provider's extension ID with the section it returned.</summary>
+public sealed record PropertySectionResult(
+    string ProviderExtensionId,
+    PropertySection Section);

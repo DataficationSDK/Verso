@@ -1,0 +1,112 @@
+@implements IDisposable
+
+<div class="verso-sidebar-panel">
+    @if (!Service.IsLoaded)
+    {
+        <div class="verso-properties-empty">
+            <p>No notebook is open.</p>
+        </div>
+    }
+    else if (SelectedCellId is null)
+    {
+        <div class="verso-properties-empty">
+            <p>Select a cell to view its properties.</p>
+        </div>
+    }
+    else if (_loading)
+    {
+        <div class="verso-properties-empty">
+            <p>Loading...</p>
+        </div>
+    }
+    else if (_sections.Count == 0)
+    {
+        <div class="verso-properties-empty">
+            <p>No properties available for this cell.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var result in _sections)
+        {
+            var r = result;
+            <PropertySectionComponent
+                Section="r.Section"
+                OnFieldChanged="args => HandleFieldChangedAsync(r.ProviderExtensionId, args.Name, args.Value)" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public INotebookService Service { get; set; } = default!;
+    [Parameter] public Guid? SelectedCellId { get; set; }
+
+    private List<PropertySectionResult> _sections = new();
+    private bool _loading;
+    private Guid? _lastLoadedCellId;
+    private INotebookService? _subscribedService;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_subscribedService != Service)
+        {
+            if (_subscribedService is not null)
+                _subscribedService.OnCellExecuted -= HandleCellChanged;
+            _subscribedService = Service;
+            Service.OnCellExecuted += HandleCellChanged;
+        }
+
+        if (SelectedCellId != _lastLoadedCellId)
+            await LoadSectionsAsync();
+    }
+
+    private async Task LoadSectionsAsync()
+    {
+        _lastLoadedCellId = SelectedCellId;
+
+        if (!Service.IsLoaded || SelectedCellId is null)
+        {
+            _sections = new List<PropertySectionResult>();
+            return;
+        }
+
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var results = await Service.GetCellPropertySectionsAsync(SelectedCellId.Value);
+            _sections = results.ToList();
+        }
+        catch
+        {
+            _sections = new List<PropertySectionResult>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleFieldChangedAsync(string providerExtensionId, string propertyName, object? value)
+    {
+        if (SelectedCellId is null) return;
+        await Service.NotifyPropertyChangedAsync(SelectedCellId.Value, providerExtensionId, propertyName, value);
+        await LoadSectionsAsync();
+    }
+
+    private async void HandleCellChanged()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadSectionsAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedService is not null)
+            _subscribedService.OnCellExecuted -= HandleCellChanged;
+    }
+}

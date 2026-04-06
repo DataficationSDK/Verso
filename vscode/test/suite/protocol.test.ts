@@ -19,6 +19,12 @@ import type {
   VariableInspectParams,
   ToolbarGetEnabledStatesParams,
   ExecutionRunParams,
+  PropertiesGetSectionsParams,
+  PropertiesGetSectionsResult,
+  PropertiesUpdatePropertyParams,
+  PropertiesGetSupportedResult,
+  PropertySectionResultDto,
+  PropertyFieldDto,
 } from "../../src/host/protocol";
 
 suite("Protocol Message Types", () => {
@@ -233,5 +239,66 @@ suite("Protocol Message Types", () => {
 
     assert.strictEqual(params.placement, "MainToolbar");
     assert.strictEqual(params.selectedCellIds.length, 2);
+  });
+
+  // ── Properties DTOs ─────────────────────────────────────────────
+
+  test("Properties methods follow namespace pattern", () => {
+    const methods = [
+      "properties/getSections",
+      "properties/updateProperty",
+      "properties/getSupported",
+    ];
+    for (const m of methods) {
+      assert.ok(m.startsWith("properties/"), `${m} should start with properties/`);
+    }
+  });
+
+  test("PropertiesGetSectionsParams has cellId", () => {
+    const params: PropertiesGetSectionsParams = { cellId: "cell-abc" };
+    assert.strictEqual(params.cellId, "cell-abc");
+  });
+
+  test("PropertiesUpdatePropertyParams has required fields", () => {
+    const params: PropertiesUpdatePropertyParams = {
+      cellId: "cell-1",
+      providerExtensionId: "verso.propertyprovider.visibility",
+      propertyName: "visibility:dashboard",
+      value: "hidden",
+    };
+    assert.strictEqual(params.cellId, "cell-1");
+    assert.strictEqual(params.providerExtensionId, "verso.propertyprovider.visibility");
+    assert.strictEqual(params.propertyName, "visibility:dashboard");
+    assert.strictEqual(params.value, "hidden");
+  });
+
+  test("PropertiesGetSectionsResult has sections array", () => {
+    const result: PropertiesGetSectionsResult = { sections: [] };
+    assert.ok(Array.isArray(result.sections));
+  });
+
+  test("PropertiesGetSupportedResult has supported flag", () => {
+    const result: PropertiesGetSupportedResult = { supported: true };
+    assert.strictEqual(result.supported, true);
+  });
+
+  test("PropertySectionResultDto has providerExtensionId and section", () => {
+    const dto: PropertySectionResultDto = {
+      providerExtensionId: "ext.id",
+      section: { title: "Visibility", fields: [] },
+    };
+    assert.strictEqual(dto.providerExtensionId, "ext.id");
+    assert.strictEqual(dto.section.title, "Visibility");
+  });
+
+  test("PropertyFieldDto has required shape", () => {
+    const field: PropertyFieldDto = {
+      name: "visibility:dashboard",
+      displayName: "Dashboard",
+      fieldType: "Select",
+      isReadOnly: false,
+    };
+    assert.strictEqual(field.fieldType, "Select");
+    assert.strictEqual(field.isReadOnly, false);
   });
 });

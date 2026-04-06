@@ -259,6 +259,9 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.ParameterRemove => ParameterHandler.HandleRemove(ns, @params),
             MethodNames.VariableList => VariableHandler.HandleList(ns),
             MethodNames.VariableInspect => await VariableHandler.HandleInspectAsync(ns, @params),
+            MethodNames.PropertiesGetSections => await PropertiesHandler.HandleGetSectionsAsync(ns, @params),
+            MethodNames.PropertiesUpdateProperty => await PropertiesHandler.HandleUpdatePropertyAsync(ns, @params),
+            MethodNames.PropertiesGetSupported => PropertiesHandler.HandleGetSupported(ns),
             MethodNames.ExtensionConsentResponse => HandleConsentResponse(ns, @params),
             _ => throw new InvalidOperationException($"Unknown method: {method}")
         };

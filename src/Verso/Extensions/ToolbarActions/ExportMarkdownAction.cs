@@ -37,7 +37,18 @@ public sealed class ExportMarkdownAction : IToolbarAction
     public async Task ExecuteAsync(IToolbarActionContext context)
     {
         var title = context.NotebookMetadata.Title;
-        var data = NotebookMarkdownExporter.Export(title, context.NotebookCells);
+
+        ExportOptions? options = null;
+        var layoutId = context.ActiveLayoutId;
+        if (layoutId is not null)
+        {
+            var layout = context.ExtensionHost.GetLayouts()
+                .FirstOrDefault(l => string.Equals(l.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase));
+            if (layout is not null)
+                options = new ExportOptions(layoutId, layout.SupportedVisibilityStates, context.ExtensionHost.GetRenderers());
+        }
+
+        var data = NotebookMarkdownExporter.Export(title, context.NotebookCells, options);
         var fileName = ExportHtmlAction.SanitizeFileName(title, ".md");
 
         await context.RequestFileDownloadAsync(fileName, "text/markdown", data).ConfigureAwait(false);

@@ -45,7 +45,17 @@ public sealed class ExportHtmlAction : IToolbarAction
         activeTheme = themes.FirstOrDefault(t => t.ThemeKind == themeKind)
                       ?? themes.FirstOrDefault();
 
-        var data = NotebookHtmlExporter.Export(title, context.NotebookCells, activeTheme);
+        ExportOptions? options = null;
+        var layoutId = context.ActiveLayoutId;
+        if (layoutId is not null)
+        {
+            var layout = context.ExtensionHost.GetLayouts()
+                .FirstOrDefault(l => string.Equals(l.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase));
+            if (layout is not null)
+                options = new ExportOptions(layoutId, layout.SupportedVisibilityStates, context.ExtensionHost.GetRenderers());
+        }
+
+        var data = NotebookHtmlExporter.Export(title, context.NotebookCells, activeTheme, options);
         var fileName = SanitizeFileName(title, ".html");
 
         await context.RequestFileDownloadAsync(fileName, "text/html", data).ConfigureAwait(false);

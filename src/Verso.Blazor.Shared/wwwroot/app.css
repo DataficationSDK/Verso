@@ -1943,6 +1943,217 @@ html, body {
     margin: 16px 0;
 }
 
+/* === Properties Panel === */
+
+.verso-properties-empty {
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 12px;
+    text-align: center;
+    padding: 24px 0;
+}
+
+.verso-properties-section {
+    margin-bottom: 2px;
+}
+
+.verso-properties-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+.verso-properties-section-header:hover {
+    background: var(--verso-cell-output-background, #F5F5F5);
+}
+
+.verso-properties-section-chevron {
+    font-size: 8px;
+    transition: transform 0.15s ease;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-properties-section-chevron--open {
+    transform: rotate(90deg);
+}
+
+.verso-properties-section-title {
+    flex: 1;
+    text-align: left;
+}
+
+.verso-properties-section-description {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+    padding: 0 8px 6px 22px;
+}
+
+.verso-properties-section-fields {
+    padding-left: 16px;
+}
+
+.verso-properties-field-row {
+    margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.verso-properties-field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-properties-field-description {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-top: 2px;
+}
+
+.verso-properties-field-control {
+    margin-top: 4px;
+}
+
+.verso-properties-input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-editor-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.verso-properties-input:focus {
+    border-color: var(--verso-border-focused, #0078D4);
+}
+
+.verso-properties-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.verso-properties-select {
+    width: 100%;
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 4px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-editor-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.verso-properties-select:focus {
+    border-color: var(--verso-border-focused, #0078D4);
+}
+
+.verso-properties-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.verso-properties-toggle {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.verso-properties-toggle:disabled {
+    cursor: not-allowed;
+}
+
+.verso-properties-multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    padding: 2px 0;
+    cursor: pointer;
+}
+
+.verso-properties-color {
+    width: 40px;
+    height: 28px;
+    padding: 2px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-editor-background, #FFFFFF);
+    cursor: pointer;
+}
+
+.verso-properties-color:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.verso-properties-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-editor-background, #FFFFFF);
+    min-height: 32px;
+}
+
+.verso-properties-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+    border-radius: 12px;
+    font-size: 11px;
+}
+
+.verso-properties-tag-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    font-size: 10px;
+    line-height: 1;
+    opacity: 0.8;
+}
+
+.verso-properties-tag-remove:hover {
+    opacity: 1;
+}
+
+.verso-properties-tag-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    min-width: 80px;
+    flex: 1;
+}
+
 /* === Reconnect Overlay === */
 
 #verso-reconnect-overlay {

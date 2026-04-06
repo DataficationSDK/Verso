@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Extensions.Layouts;
+using Verso.Stubs;
 using Verso.Testing.Stubs;
 using Verso.Testing.Fakes;
 
@@ -66,17 +67,26 @@ public sealed class PresentationLayoutTests
     [TestMethod]
     public async Task RenderLayoutAsync_ShowsOutputContent()
     {
+        var renderer = new FakeCellRenderer(cellTypeId: "code", defaultVisibility: CellVisibilityHint.OutputOnly);
+        var context = new StubVersoContext
+        {
+            ExtensionHost = new StubExtensionHostContext(
+                () => Array.Empty<ILanguageKernel>(),
+                () => new ICellRenderer[] { renderer })
+        };
+
         var cells = new List<CellModel>
         {
             new()
             {
                 Id = Guid.NewGuid(),
+                Type = "code",
                 Source = "ignored source",
                 Outputs = { new CellOutput("text/plain", "the output text") }
             }
         };
 
-        var result = await _layout.RenderLayoutAsync(cells, _context);
+        var result = await _layout.RenderLayoutAsync(cells, context);
 
         Assert.IsTrue(result.Content.Contains("the output text"));
         Assert.IsFalse(result.Content.Contains("ignored source"));

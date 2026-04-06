@@ -63,6 +63,9 @@ public interface INotebookService
     /// <summary>Capabilities granted by the active layout (cell insert, delete, execute, etc.).</summary>
     LayoutCapabilities LayoutCapabilities { get; }
 
+    /// <summary>Whether the active layout supports the cell properties panel.</summary>
+    bool ActiveLayoutSupportsPropertiesPanel { get; }
+
     /// <summary>Active theme ID.</summary>
     string? ActiveThemeId { get; }
 
@@ -224,6 +227,17 @@ public interface INotebookService
 
     /// <summary>Inspect a variable by name (formatted output).</summary>
     Task<VariableInspectResultDto?> InspectVariableAsync(string name);
+
+    // ── Cell properties ──────────────────────────────────────────────
+
+    /// <summary>Get ordered property sections for the given cell from all applicable providers.</summary>
+    Task<IReadOnlyList<PropertySectionResult>> GetCellPropertySectionsAsync(Guid cellId);
+
+    /// <summary>Notify a property provider that a field value was changed in the panel.</summary>
+    Task NotifyPropertyChangedAsync(Guid cellId, string providerExtensionId, string propertyName, object? value);
+
+    /// <summary>Resolve the visibility state of a cell for the current active layout.</summary>
+    CellVisibilityState ResolveCellVisibility(Guid cellId);
 
     // ── Dashboard layout ───────────────────────────────────────────────
 

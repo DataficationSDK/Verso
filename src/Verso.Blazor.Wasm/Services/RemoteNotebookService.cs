@@ -33,6 +33,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
     private bool _isDashboardLayout;
+    private bool _activeLayoutSupportsPropertiesPanel;
     private LayoutCapabilities _layoutCapabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
         | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect;
@@ -121,6 +122,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public ThemeData? ActiveThemeData { get; private set; }
     public string? ActiveLayoutId => _activeLayoutId;
     public LayoutCapabilities LayoutCapabilities => _layoutCapabilities;
+    public bool ActiveLayoutSupportsPropertiesPanel => _activeLayoutSupportsPropertiesPanel;
     public string? ActiveThemeId => _activeThemeId;
 
     // ── Extension data ──────────────────────────────────────────────────
@@ -500,6 +502,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         var layout = _layouts.FirstOrDefault(l => l.LayoutId == layoutId);
         _isDashboardLayout = layout?.RequiresCustomRenderer ?? false;
         _layoutCapabilities = layout?.Capabilities ?? _layoutCapabilities;
+        _activeLayoutSupportsPropertiesPanel = layout?.SupportsPropertiesPanel ?? false;
         OnLayoutChanged?.Invoke();
     }
 
@@ -605,6 +608,93 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     {
         // In WASM, parameters is the only known non-editable built-in cell type
         return !string.Equals(cellType, "parameters", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Cell properties ──────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<PropertySectionResult>> GetCellPropertySectionsAsync(Guid cellId)
+    {
+        var response = await _bridge.RequestAsync<PropertiesGetSectionsResponse>(
+            "properties/getSections",
+            new { cellId = cellId.ToString() });
+
+        if (response.Sections is null or { Count: 0 })
+            return Array.Empty<PropertySectionResult>();
+
+        var results = new List<PropertySectionResult>(response.Sections.Count);
+        foreach (var r in response.Sections)
+        {
+            var fields = r.Section?.Fields?.Select(f => new PropertyField(
+                Name: f.Name,
+                DisplayName: f.DisplayName,
+                FieldType: Enum.TryParse<PropertyFieldType>(f.FieldType, true, out var ft)
+                    ? ft : PropertyFieldType.Text,
+                CurrentValue: f.CurrentValue,
+                Description: f.Description,
+                Options: f.Options?.Select(o => new PropertyFieldOption(o.Value, o.DisplayName)).ToList(),
+                IsReadOnly: f.IsReadOnly
+            )).ToList() ?? new();
+
+            var section = new PropertySection(
+                r.Section?.Title ?? "",
+                r.Section?.Description,
+                fields);
+            results.Add(new PropertySectionResult(r.ProviderExtensionId, section));
+        }
+
+        return results;
+    }
+
+    public async Task NotifyPropertyChangedAsync(Guid cellId, string providerExtensionId, string propertyName, object? value)
+    {
+        await _bridge.RequestVoidAsync(
+            "properties/updateProperty",
+            new
+            {
+                cellId = cellId.ToString(),
+                providerExtensionId,
+                propertyName,
+                value = value?.ToString()
+            });
+
+        // Refresh local cell cache so metadata-dependent rendering (e.g. visibility) reflects the change
+        await RefreshCellListAsync();
+        OnNotebookChanged?.Invoke();
+    }
+
+    public CellVisibilityState ResolveCellVisibility(Guid cellId)
+    {
+        // Partial implementation: reads user overrides from metadata only (Layer 1).
+        // Renderer hint resolution (Layer 2) would require a bridge method.
+        var cell = _cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null || _activeLayoutId is null) return CellVisibilityState.Visible;
+        if (!cell.Metadata.TryGetValue("verso:visibility", out var obj))
+            return CellVisibilityState.Visible;
+
+        string? valueStr = null;
+
+        // After JSON round-trip, the value is a JsonElement rather than a typed dictionary
+        if (obj is System.Text.Json.JsonElement jsonEl
+            && jsonEl.ValueKind == System.Text.Json.JsonValueKind.Object
+            && jsonEl.TryGetProperty(_activeLayoutId, out var prop)
+            && prop.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            valueStr = prop.GetString();
+        }
+        else if (obj is Dictionary<string, object> dict
+            && dict.TryGetValue(_activeLayoutId, out var val))
+        {
+            valueStr = val?.ToString();
+        }
+        else if (obj is Dictionary<string, string> dictStr)
+        {
+            dictStr.TryGetValue(_activeLayoutId, out valueStr);
+        }
+
+        if (valueStr is not null && Enum.TryParse<CellVisibilityState>(valueStr, true, out var state))
+            return state;
+
+        return CellVisibilityState.Visible;
     }
 
     // ── Notification handling ───────────────────────────────────────────
@@ -727,8 +817,8 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);
         _layouts = layoutsResult.Layouts?.Select(l =>
         {
-            if (l.IsActive) { _activeLayoutId = l.Id; _isDashboardLayout = l.RequiresCustomRenderer; _layoutCapabilities = (LayoutCapabilities)l.Capabilities; }
-            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer, (LayoutCapabilities)l.Capabilities);
+            if (l.IsActive) { _activeLayoutId = l.Id; _isDashboardLayout = l.RequiresCustomRenderer; _layoutCapabilities = (LayoutCapabilities)l.Capabilities; _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel; }
+            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer, (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel);
         }).ToList() ?? new();
 
         // Themes
@@ -862,6 +952,11 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         {
             foreach (var o in dto.Outputs)
                 cell.Outputs.Add(MapOutputFromDto(o));
+        }
+        if (dto.Metadata is not null)
+        {
+            foreach (var kv in dto.Metadata)
+                cell.Metadata[kv.Key] = kv.Value;
         }
         return cell;
     }
@@ -1007,6 +1102,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string? Language { get; set; }
         public string Source { get; set; } = "";
         public List<CellOutputDto>? Outputs { get; set; }
+        public Dictionary<string, object>? Metadata { get; set; }
     }
 
     private sealed class CellOutputDto
@@ -1098,6 +1194,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public bool RequiresCustomRenderer { get; set; }
         public bool IsActive { get; set; }
         public int Capabilities { get; set; }
+        public bool SupportsPropertiesPanel { get; set; }
     }
 
     private sealed class ThemesResponse
@@ -1269,5 +1366,40 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private sealed class CellInteractResponse
     {
         public string? Response { get; set; }
+    }
+
+    private sealed class PropertiesGetSectionsResponse
+    {
+        public List<PropertySectionResultResponse>? Sections { get; set; }
+    }
+
+    private sealed class PropertySectionResultResponse
+    {
+        public string ProviderExtensionId { get; set; } = "";
+        public PropertySectionResponse? Section { get; set; }
+    }
+
+    private sealed class PropertySectionResponse
+    {
+        public string Title { get; set; } = "";
+        public string? Description { get; set; }
+        public List<PropertyFieldResponse>? Fields { get; set; }
+    }
+
+    private sealed class PropertyFieldResponse
+    {
+        public string Name { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string FieldType { get; set; } = "";
+        public object? CurrentValue { get; set; }
+        public string? Description { get; set; }
+        public bool IsReadOnly { get; set; }
+        public List<PropertyFieldOptionResponse>? Options { get; set; }
+    }
+
+    private sealed class PropertyFieldOptionResponse
+    {
+        public string Value { get; set; } = "";
+        public string DisplayName { get; set; } = "";
     }
 }

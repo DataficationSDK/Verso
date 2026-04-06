@@ -24,6 +24,7 @@ public sealed class SqlCellRenderer : ICellRenderer
     public string CellTypeId => "sql";
     public string DisplayName => "SQL";
     public bool CollapsesInputOnExecute => false;
+    public CellVisibilityHint DefaultVisibility => CellVisibilityHint.OutputOnly;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

@@ -34,6 +34,7 @@ public sealed class BlazorToolbarActionContext : IToolbarActionContext
     public IExtensionHostContext ExtensionHost => _scaffold.ExtensionHostContext;
     public INotebookMetadata NotebookMetadata => new BlazorNotebookMetadata(_scaffold);
     public INotebookOperations Notebook => _scaffold.NotebookOps;
+    public string? ActiveLayoutId => _scaffold.LayoutManager?.ActiveLayout?.LayoutId;
 
     public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 

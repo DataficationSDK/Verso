@@ -13,6 +13,7 @@ public class InterfaceContractTests
     [DataRow(typeof(INotebookSerializer))]
     [DataRow(typeof(ITheme))]
     [DataRow(typeof(ILayoutEngine))]
+    [DataRow(typeof(ICellPropertyProvider))]
     public void ExtensionInterface_InheritsIExtension(Type extensionType)
     {
         Assert.IsTrue(typeof(IExtension).IsAssignableFrom(extensionType),
@@ -51,9 +52,9 @@ public class InterfaceContractTests
             .Where(t => t.IsInterface && typeof(IExtension).IsAssignableFrom(t))
             .ToList();
 
-        // IExtension + 10 derived = 11
-        Assert.AreEqual(11, extensionInterfaces.Count,
-            $"Expected 10 extension interfaces, found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
+        // IExtension + 11 derived = 12
+        Assert.AreEqual(12, extensionInterfaces.Count,
+            $"Expected 11 extension interfaces, found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
     }
 
     [TestMethod]
@@ -82,6 +83,30 @@ public class InterfaceContractTests
     {
         var prop = typeof(ICellRenderer).GetProperty(nameof(ICellRenderer.CollapsesInputOnExecute));
         Assert.IsNotNull(prop, "ICellRenderer should define CollapsesInputOnExecute property");
+        Assert.AreEqual(typeof(bool), prop!.PropertyType);
+    }
+
+    [TestMethod]
+    public void ICellRenderer_DefinesDefaultVisibility()
+    {
+        var prop = typeof(ICellRenderer).GetProperty(nameof(ICellRenderer.DefaultVisibility));
+        Assert.IsNotNull(prop, "ICellRenderer should define DefaultVisibility property");
+        Assert.AreEqual(typeof(CellVisibilityHint), prop!.PropertyType);
+    }
+
+    [TestMethod]
+    public void ILayoutEngine_DefinesSupportedVisibilityStates()
+    {
+        var prop = typeof(ILayoutEngine).GetProperty(nameof(ILayoutEngine.SupportedVisibilityStates));
+        Assert.IsNotNull(prop, "ILayoutEngine should define SupportedVisibilityStates property");
+        Assert.AreEqual(typeof(IReadOnlySet<CellVisibilityState>), prop!.PropertyType);
+    }
+
+    [TestMethod]
+    public void ILayoutEngine_DefinesSupportsPropertiesPanel()
+    {
+        var prop = typeof(ILayoutEngine).GetProperty(nameof(ILayoutEngine.SupportsPropertiesPanel));
+        Assert.IsNotNull(prop, "ILayoutEngine should define SupportsPropertiesPanel property");
         Assert.AreEqual(typeof(bool), prop!.PropertyType);
     }
 

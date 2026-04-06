@@ -13,7 +13,7 @@ public sealed class StubVersoContext : IVersoContext
     public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
     public IThemeContext Theme { get; } = new StubThemeContext();
     public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.None;
-    public IExtensionHostContext ExtensionHost { get; } = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
+    public IExtensionHostContext ExtensionHost { get; set; } = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
     public INotebookMetadata NotebookMetadata { get; } = new NotebookMetadataContext(new NotebookModel());
     public INotebookOperations Notebook { get; set; } = new StubNotebookOperations();
 

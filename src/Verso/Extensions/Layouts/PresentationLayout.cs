@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Verso.Abstractions;
+using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Layouts;
 
@@ -30,22 +31,46 @@ public sealed class PresentationLayout : ILayoutEngine
 
     public bool RequiresCustomRenderer => true;
 
+    public IReadOnlySet<CellVisibilityState> SupportedVisibilityStates { get; } =
+        new HashSet<CellVisibilityState>
+        {
+            CellVisibilityState.Visible,
+            CellVisibilityState.Hidden,
+            CellVisibilityState.OutputOnly,
+        };
+
+    private static readonly ICellRenderer _fallbackRenderer = new ContentFallbackRenderer();
+
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public Task<RenderResult> RenderLayoutAsync(IReadOnlyList<CellModel> cells, IVersoContext context)
     {
+        var renderers = context.ExtensionHost.GetRenderers();
         var sb = new StringBuilder();
         sb.Append("<div class=\"verso-presentation-view\">");
 
         foreach (var cell in cells)
         {
+            var renderer = renderers.FirstOrDefault(r => r.CellTypeId == cell.Type) ?? _fallbackRenderer;
+            var visibility = CellVisibilityResolver.Resolve(cell, renderer, LayoutId, SupportedVisibilityStates);
+
+            if (visibility == CellVisibilityState.Hidden)
+                continue;
+
             if (cell.Outputs.Count == 0)
                 continue;
 
             sb.Append("<div class=\"verso-presentation-cell\" data-cell-id=\"")
               .Append(cell.Id)
               .Append("\">");
+
+            if (visibility == CellVisibilityState.Visible)
+            {
+                sb.Append("<div class=\"verso-presentation-input\"><pre style=\"margin:0;white-space:pre-wrap;\">")
+                  .Append(WebUtility.HtmlEncode(cell.Source))
+                  .Append("</pre></div>");
+            }
 
             foreach (var output in cell.Outputs)
             {

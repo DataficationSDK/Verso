@@ -2,6 +2,8 @@ using System.Net;
 using System.Text;
 using Markdig;
 using Verso.Abstractions;
+using Verso.Extensions.Layouts;
+using Verso.Extensions.Utilities;
 
 namespace Verso.Export;
 
@@ -14,14 +16,27 @@ internal static class NotebookHtmlExporter
         .UseAdvancedExtensions()
         .Build();
 
+    private static readonly ICellRenderer FallbackRenderer = new ContentFallbackRenderer();
+
     /// <summary>
     /// Generates a complete, self-contained HTML document from the given notebook cells.
     /// </summary>
     public static byte[] Export(string? title, IReadOnlyList<CellModel> cells, ITheme? theme)
+        => Export(title, cells, theme, options: null);
+
+    /// <summary>
+    /// Generates a complete, self-contained HTML document from the given notebook cells.
+    /// When <paramref name="options"/> provides a layout ID, cells are filtered by visibility.
+    /// </summary>
+    public static byte[] Export(string? title, IReadOnlyList<CellModel> cells, ITheme? theme, ExportOptions? options)
     {
         var hasMermaid = false;
         var displayTitle = title ?? "Verso Notebook";
         var sb = new StringBuilder();
+
+        var useVisibility = options?.LayoutId is not null
+            && options.SupportedVisibilityStates is not null
+            && options.Renderers is not null;
 
         // Render cells into a temporary buffer so we know which features are used
         var bodySb = new StringBuilder();
@@ -35,6 +50,25 @@ internal static class NotebookHtmlExporter
         // Cells
         foreach (var cell in cells)
         {
+            if (useVisibility)
+            {
+                var renderer = options!.Renderers!.FirstOrDefault(r =>
+                    string.Equals(r.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase)) ?? FallbackRenderer;
+                var visibility = CellVisibilityResolver.Resolve(cell, renderer, options.LayoutId!, options.SupportedVisibilityStates!);
+
+                switch (visibility)
+                {
+                    case CellVisibilityState.Hidden:
+                        continue;
+                    case CellVisibilityState.OutputOnly:
+                        RenderOutputsOnly(bodySb, cell, ref hasMermaid);
+                        continue;
+                    case CellVisibilityState.Collapsed:
+                        RenderCollapsed(bodySb, cell);
+                        continue;
+                }
+            }
+
             if (string.Equals(cell.Type, "markdown", StringComparison.OrdinalIgnoreCase))
             {
                 RenderMarkdownCell(bodySb, cell);
@@ -110,6 +144,31 @@ internal static class NotebookHtmlExporter
         {
             RenderOutput(sb, output, ref hasMermaid);
         }
+    }
+
+    private static void RenderOutputsOnly(StringBuilder sb, CellModel cell, ref bool hasMermaid)
+    {
+        foreach (var output in cell.Outputs)
+        {
+            RenderOutput(sb, output, ref hasMermaid);
+        }
+    }
+
+    private static void RenderCollapsed(StringBuilder sb, CellModel cell)
+    {
+        var label = cell.Type ?? "cell";
+        var title = !string.IsNullOrWhiteSpace(cell.Source)
+            ? cell.Source.Split('\n')[0].TrimStart('#', ' ').Trim()
+            : null;
+
+        sb.AppendLine("<div class=\"verso-export-collapsed\">");
+        sb.Append("<span class=\"verso-export-collapsed-type\">").Append(WebUtility.HtmlEncode(label)).Append("</span>");
+        if (!string.IsNullOrEmpty(title))
+        {
+            sb.Append(" <span class=\"verso-export-collapsed-title\">").Append(WebUtility.HtmlEncode(title)).Append("</span>");
+        }
+        sb.AppendLine();
+        sb.AppendLine("</div>");
     }
 
     private static void RenderOutput(StringBuilder sb, CellOutput output, ref bool hasMermaid)

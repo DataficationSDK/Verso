@@ -333,6 +333,51 @@ public class ExtensionHostTests
         Assert.IsNull(_host.GetInteractionHandler(handler.ExtensionId));
     }
 
+    // --- ICellPropertyProvider ---
+
+    [TestMethod]
+    public async Task LoadExtension_CellPropertyProvider_RegisteredInProviders()
+    {
+        var provider = new FakeCellPropertyProvider();
+        await _host.LoadExtensionAsync(provider);
+
+        var providers = _host.GetPropertyProviders();
+        Assert.AreEqual(1, providers.Count);
+        Assert.AreSame(provider, providers[0]);
+    }
+
+    [TestMethod]
+    public async Task GetPropertyProviders_ReturnsOnlyEnabled()
+    {
+        var provider = new FakeCellPropertyProvider();
+        await _host.LoadExtensionAsync(provider);
+        await _host.DisableExtensionAsync(provider.ExtensionId);
+
+        Assert.AreEqual(0, _host.GetPropertyProviders().Count);
+    }
+
+    [TestMethod]
+    public async Task GetExtensionInfos_CellPropertyProvider_IncludesCapability()
+    {
+        var provider = new FakeCellPropertyProvider();
+        await _host.LoadExtensionAsync(provider);
+
+        var infos = _host.GetExtensionInfos();
+        var info = infos.First(i => i.ExtensionId == provider.ExtensionId);
+        Assert.IsTrue(info.Capabilities.Contains("CellPropertyProvider"));
+    }
+
+    [TestMethod]
+    public async Task UnloadAll_ClearsPropertyProviders()
+    {
+        var provider = new FakeCellPropertyProvider();
+        await _host.LoadExtensionAsync(provider);
+
+        await _host.UnloadAllAsync();
+
+        Assert.AreEqual(0, _host.GetPropertyProviders().Count);
+    }
+
     // --- Helper: standalone interaction handler ---
 
     private sealed class InteractionHandlerOnly : IExtension, ICellInteractionHandler

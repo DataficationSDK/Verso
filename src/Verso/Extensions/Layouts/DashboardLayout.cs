@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Layouts;
 
@@ -34,6 +35,15 @@ public sealed class DashboardLayout : ILayoutEngine
     public string? Icon => null;
     public bool RequiresCustomRenderer => true;
 
+    public IReadOnlySet<CellVisibilityState> SupportedVisibilityStates { get; } =
+        new HashSet<CellVisibilityState>
+        {
+            CellVisibilityState.Visible,
+            CellVisibilityState.Hidden,
+        };
+
+    public bool SupportsPropertiesPanel => _isEditMode;
+
     public LayoutCapabilities Capabilities
     {
         get
@@ -55,17 +65,31 @@ public sealed class DashboardLayout : ILayoutEngine
         set => _isEditMode = value;
     }
 
+    private static readonly ICellRenderer _fallbackRenderer = new ContentFallbackRenderer();
+
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public Task<RenderResult> RenderLayoutAsync(IReadOnlyList<CellModel> cells, IVersoContext context)
     {
+        var renderers = context.ExtensionHost.GetRenderers();
         var sb = new StringBuilder();
         sb.Append("<div class=\"verso-dashboard-grid\" style=\"display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:50px;gap:8px;padding:16px;align-content:start;\">");
 
         foreach (var cell in cells)
         {
+            bool alreadyPositioned = _gridPositions.ContainsKey(cell.Id);
             var pos = GetOrCreatePosition(cell.Id);
+
+            if (!alreadyPositioned)
+            {
+                var renderer = renderers.FirstOrDefault(r => r.CellTypeId == cell.Type) ?? _fallbackRenderer;
+                var state = CellVisibilityResolver.Resolve(cell, renderer, LayoutId, SupportedVisibilityStates);
+                bool visible = state != CellVisibilityState.Hidden;
+                pos = pos with { Visible = visible };
+                _gridPositions[cell.Id] = pos;
+            }
+
             if (!pos.Visible) continue;
 
             sb.Append("<div class=\"verso-dashboard-cell\" data-cell-id=\"")

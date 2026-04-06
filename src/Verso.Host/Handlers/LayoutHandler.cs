@@ -24,7 +24,8 @@ public static class LayoutHandler
                 Icon = l.Icon,
                 RequiresCustomRenderer = l.RequiresCustomRenderer,
                 IsActive = string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase),
-                Capabilities = (int)l.Capabilities
+                Capabilities = (int)l.Capabilities,
+                SupportsPropertiesPanel = l.SupportsPropertiesPanel
             }).ToList()
         };
     }
@@ -131,6 +132,7 @@ public static class LayoutHandler
         public IExtensionHostContext ExtensionHost => _scaffold.ExtensionHostContext;
         public INotebookMetadata NotebookMetadata => new HostNotebookMetadata(_scaffold);
         public INotebookOperations Notebook => _scaffold.NotebookOps;
+        public string? ActiveLayoutId => _scaffold.LayoutManager?.ActiveLayout?.LayoutId;
         public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 
         private sealed class HostNotebookMetadata : INotebookMetadata

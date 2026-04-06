@@ -60,6 +60,13 @@ public interface IExtensionHostContext
     IReadOnlyList<INotebookPostProcessor> GetPostProcessors();
 
     /// <summary>
+    /// Returns all registered cell property providers.
+    /// </summary>
+    /// <returns>A read-only list of <see cref="ICellPropertyProvider"/> instances.</returns>
+    IReadOnlyList<ICellPropertyProvider> GetPropertyProviders()
+        => Array.Empty<ICellPropertyProvider>();
+
+    /// <summary>
     /// Returns metadata for all loaded extensions, including their current status and capabilities.
     /// </summary>
     /// <returns>A read-only list of <see cref="ExtensionInfo"/> describing each loaded extension.</returns>

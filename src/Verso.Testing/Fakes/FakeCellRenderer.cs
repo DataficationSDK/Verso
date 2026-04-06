@@ -10,11 +10,15 @@ public sealed class FakeCellRenderer : ICellRenderer
     public FakeCellRenderer(
         string extensionId = "com.test.renderer",
         string name = "Fake Renderer",
-        string version = "1.0.0")
+        string version = "1.0.0",
+        string cellTypeId = "fake",
+        CellVisibilityHint defaultVisibility = CellVisibilityHint.Content)
     {
         ExtensionId = extensionId;
         Name = name;
         Version = version;
+        CellTypeId = cellTypeId;
+        DefaultVisibility = defaultVisibility;
     }
 
     public string ExtensionId { get; }
@@ -23,7 +27,8 @@ public sealed class FakeCellRenderer : ICellRenderer
     public string? Author => null;
     public string? Description => null;
 
-    public string CellTypeId => "fake";
+    public string CellTypeId { get; }
+    public CellVisibilityHint DefaultVisibility { get; }
     public string DisplayName => Name;
     public bool CollapsesInputOnExecute => false;
 

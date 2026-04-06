@@ -7,6 +7,7 @@ using Verso.Execution;
 using Verso.Extensions;
 using Verso.Extensions.Layouts;
 using Verso.MagicCommands;
+using Verso.Extensions.Utilities;
 using Verso.Serializers;
 
 namespace Verso.Blazor.Services;
@@ -110,6 +111,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public string? ActiveLayoutId =>
         _scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
 
+    public bool ActiveLayoutSupportsPropertiesPanel =>
+        _scaffold?.LayoutManager?.ActiveLayout?.SupportsPropertiesPanel == true;
+
     public LayoutCapabilities LayoutCapabilities =>
         _scaffold?.LayoutCapabilities ?? (LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete |
                              LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit |
@@ -148,7 +152,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public IReadOnlyList<LayoutInfo> AvailableLayouts =>
         _extensionHost?.GetLayouts()
-            .Select(l => new LayoutInfo(l.LayoutId, l.DisplayName, l.RequiresCustomRenderer, l.Capabilities))
+            .Select(l => new LayoutInfo(l.LayoutId, l.DisplayName, l.RequiresCustomRenderer, l.Capabilities, l.SupportsPropertiesPanel))
             .ToList()
         ?? (IReadOnlyList<LayoutInfo>)Array.Empty<LayoutInfo>();
 
@@ -732,6 +736,68 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var ct = _extensionHost?.GetCellTypes()
             .FirstOrDefault(t => string.Equals(t.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
         return ct?.IsEditable ?? true;
+    }
+
+    // ── Cell properties ──────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<PropertySectionResult>> GetCellPropertySectionsAsync(Guid cellId)
+    {
+        if (_scaffold is null || _extensionHost is null)
+            return Array.Empty<PropertySectionResult>();
+
+        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null)
+            return Array.Empty<PropertySectionResult>();
+
+        var context = new BlazorCellRenderContext(_scaffold, cell);
+        var providers = _extensionHost.GetPropertyProviders()
+            .Where(p => p.AppliesTo(cell, context))
+            .OrderBy(p => p.Order)
+            .ToList();
+
+        var results = new List<PropertySectionResult>();
+        foreach (var provider in providers)
+        {
+            try
+            {
+                var section = await provider.GetPropertiesSectionAsync(cell, context);
+                results.Add(new PropertySectionResult(provider.ExtensionId, section));
+            }
+            catch
+            {
+                // Provider failure is non-fatal; skip the section.
+            }
+        }
+        return results;
+    }
+
+    public async Task NotifyPropertyChangedAsync(Guid cellId, string providerExtensionId, string propertyName, object? value)
+    {
+        if (_scaffold is null || _extensionHost is null) return;
+
+        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null) return;
+
+        var provider = _extensionHost.GetPropertyProviders()
+            .FirstOrDefault(p => string.Equals(p.ExtensionId, providerExtensionId, StringComparison.OrdinalIgnoreCase));
+        if (provider is null) return;
+
+        var context = new BlazorCellRenderContext(_scaffold, cell);
+        await provider.OnPropertyChangedAsync(cell, propertyName, value, context);
+        OnNotebookChanged?.Invoke();
+    }
+
+    public CellVisibilityState ResolveCellVisibility(Guid cellId)
+    {
+        if (_scaffold is null || _extensionHost is null) return CellVisibilityState.Visible;
+        var layout = _scaffold.LayoutManager?.ActiveLayout;
+        if (layout is null) return CellVisibilityState.Visible;
+        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null) return CellVisibilityState.Visible;
+        var renderer = _extensionHost.GetRenderers()
+            .FirstOrDefault(r => string.Equals(r.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+        var hint = renderer?.DefaultVisibility ?? CellVisibilityHint.Content;
+        return CellVisibilityResolver.Resolve(cell, hint, layout.LayoutId, layout.SupportedVisibilityStates);
     }
 
     // ── Private helpers ────────────────────────────────────────────────

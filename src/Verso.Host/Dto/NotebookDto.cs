@@ -82,6 +82,7 @@ public sealed class CellDto
     public string? Language { get; set; }
     public string Source { get; set; } = "";
     public List<CellOutputDto> Outputs { get; set; } = new();
+    public Dictionary<string, object>? Metadata { get; set; }
 }
 
 public sealed class CellOutputDto
@@ -252,6 +253,7 @@ public sealed class LayoutDto
     public bool RequiresCustomRenderer { get; set; }
     public bool IsActive { get; set; }
     public int Capabilities { get; set; }
+    public bool SupportsPropertiesPanel { get; set; }
 }
 
 public sealed class LayoutSwitchParams

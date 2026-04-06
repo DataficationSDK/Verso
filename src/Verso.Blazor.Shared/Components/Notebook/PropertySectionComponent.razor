@@ -1,0 +1,40 @@
+<div class="verso-properties-section">
+    <button class="verso-properties-section-header" @onclick="ToggleExpanded">
+        <span class="verso-properties-section-chevron @(_isExpanded ? "verso-properties-section-chevron--open" : "")">&#9654;</span>
+        <span class="verso-properties-section-title">@Section.Title</span>
+    </button>
+
+    @if (_isExpanded)
+    {
+        @if (Section.Description is not null)
+        {
+            <div class="verso-properties-section-description">@Section.Description</div>
+        }
+
+        <div class="verso-properties-section-fields">
+            @foreach (var field in Section.Fields)
+            {
+                var f = field;
+                <div class="verso-properties-field-row">
+                    <label class="verso-properties-field-label">@f.DisplayName</label>
+                    @if (f.Description is not null)
+                    {
+                        <div class="verso-properties-field-description">@f.Description</div>
+                    }
+                    <PropertyFieldComponent
+                        Field="f"
+                        OnValueChanged="value => OnFieldChanged.InvokeAsync((f.Name, value))" />
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public PropertySection Section { get; set; } = default!;
+    [Parameter] public EventCallback<(string Name, object? Value)> OnFieldChanged { get; set; }
+
+    private bool _isExpanded = true;
+
+    private void ToggleExpanded() => _isExpanded = !_isExpanded;
+}

@@ -42,6 +42,7 @@ public sealed class FakeNotebookService : INotebookService
     public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
         | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect;
+    public bool ActiveLayoutSupportsPropertiesPanel { get; set; } = true;
     public string? ActiveThemeId { get; set; } = "light";
 
     // ── Extension data ─────────────────────────────────────────────────
@@ -253,6 +254,25 @@ public sealed class FakeNotebookService : INotebookService
 
     public Task<VariableInspectResultDto?> InspectVariableAsync(string name)
         => Task.FromResult(InspectResult);
+
+    // ── Cell properties ──────────────────────────────────────────────
+
+    public List<PropertySectionResult> PropertySections { get; set; } = new();
+    public List<(Guid CellId, string ProviderExtensionId, string PropertyName, object? Value)> PropertyChangedCalls { get; } = new();
+
+    public Task<IReadOnlyList<PropertySectionResult>> GetCellPropertySectionsAsync(Guid cellId)
+        => Task.FromResult<IReadOnlyList<PropertySectionResult>>(PropertySections);
+
+    public Task NotifyPropertyChangedAsync(Guid cellId, string providerExtensionId, string propertyName, object? value)
+    {
+        PropertyChangedCalls.Add((cellId, providerExtensionId, propertyName, value));
+        return Task.CompletedTask;
+    }
+
+    public Dictionary<Guid, CellVisibilityState> CellVisibilityMap { get; set; } = new();
+
+    public CellVisibilityState ResolveCellVisibility(Guid cellId)
+        => CellVisibilityMap.GetValueOrDefault(cellId, CellVisibilityState.Visible);
 
     // ── Dashboard layout ───────────────────────────────────────────────
 

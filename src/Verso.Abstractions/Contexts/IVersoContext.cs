@@ -48,6 +48,11 @@ public interface IVersoContext
     INotebookOperations Notebook { get; }
 
     /// <summary>
+    /// Gets the identifier of the currently active layout engine, or <c>null</c> if none is active.
+    /// </summary>
+    string? ActiveLayoutId => null;
+
+    /// <summary>
     /// Requests that the host deliver a file download to the user.
     /// </summary>
     /// <param name="fileName">The suggested file name for the download.</param>

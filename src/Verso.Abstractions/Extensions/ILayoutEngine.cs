@@ -87,4 +87,18 @@ public interface ILayoutEngine : IExtension
     /// <param name="context">Verso context providing theme, dimensions, and services.</param>
     /// <returns>A task that completes when the layout state has been restored.</returns>
     Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context);
+
+    /// <summary>
+    /// Declares the set of <see cref="CellVisibilityState"/> values this layout handles.
+    /// The properties panel uses this to present only the states the layout supports.
+    /// Defaults to <c>{ Visible }</c> (no filtering).
+    /// </summary>
+    IReadOnlySet<CellVisibilityState> SupportedVisibilityStates
+        => new HashSet<CellVisibilityState> { CellVisibilityState.Visible };
+
+    /// <summary>
+    /// Indicates whether this layout supports the cell properties panel in the sidebar.
+    /// Defaults to <c>false</c>.
+    /// </summary>
+    bool SupportsPropertiesPanel => false;
 }

@@ -89,6 +89,11 @@ public static class MethodNames
     public const string VariableInspect = "variable/inspect";
     public const string VariableChanged = "variable/changed";
 
+    // Properties panel
+    public const string PropertiesGetSections = "properties/getSections";
+    public const string PropertiesUpdateProperty = "properties/updateProperty";
+    public const string PropertiesGetSupported = "properties/getSupported";
+
     // File operations (notifications from host to extension)
     public const string FileDownload = "file/download";
 }

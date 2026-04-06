@@ -38,6 +38,7 @@ export class BlazorBridge implements vscode.Disposable {
     "execution/run",
     "execution/runAll",
     "output/clearAll",
+    "properties/updateProperty",
   ]);
 
   private documentUri: vscode.Uri | undefined;

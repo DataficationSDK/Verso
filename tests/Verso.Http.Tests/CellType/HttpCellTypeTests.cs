@@ -38,5 +38,6 @@ public sealed class HttpCellTypeTests
         Assert.AreEqual("http", renderer.CellTypeId);
         Assert.AreEqual("plaintext", renderer.GetEditorLanguage());
         Assert.IsFalse(renderer.CollapsesInputOnExecute);
+        Assert.AreEqual(Verso.Abstractions.CellVisibilityHint.OutputOnly, renderer.DefaultVisibility);
     }
 }
