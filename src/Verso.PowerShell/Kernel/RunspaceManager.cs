@@ -2,12 +2,15 @@ using System.Collections.ObjectModel;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
+using System.Net;
+using System.Text;
 using Verso.Abstractions;
 
 namespace Verso.PowerShell.Kernel;
 
 internal sealed record InvokeResult(
     IReadOnlyList<string> OutputLines,
+    string OutputMimeType,
     IReadOnlyList<string> ErrorLines,
     IReadOnlyList<string> WarningLines,
     IReadOnlyList<string> InformationLines,
@@ -50,6 +53,7 @@ internal sealed class RunspaceManager : IDisposable
         });
 
         var outputLines = new List<string>();
+        var outputMimeType = "text/plain";
         var errorLines = new List<string>();
         var warningLines = new List<string>();
         var informationLines = new List<string>();
@@ -59,20 +63,50 @@ internal sealed class RunspaceManager : IDisposable
         {
             Collection<PSObject> results = ps.Invoke();
 
-            // Detect format objects (from Format-Table, Format-List, etc.)
-            // and render them through Out-String instead of calling ToString()
             if (results.Count > 0 && HasFormatObjects(results))
             {
+                // Explicit Format-Table / Format-List: render through Out-String
+                // then parse the text table into HTML for consistent display.
                 using var renderer = System.Management.Automation.PowerShell.Create();
                 renderer.Runspace = runspace;
-                renderer.AddCommand("Out-String");
+                renderer.AddCommand("Out-String").AddParameter("Width", 200);
                 var rendered = renderer.Invoke(results);
-                foreach (var line in rendered)
+                // Out-String returns a single multi-line string; split into individual lines.
+                var lines = rendered
+                    .SelectMany(r => (r?.ToString() ?? "").Split('\n'))
+                    .Select(s => s.TrimEnd())
+                    .Where(s => s.Length > 0)
+                    .ToList();
+                if (lines.Count > 0)
                 {
-                    var text = line?.ToString()?.TrimEnd();
-                    if (!string.IsNullOrEmpty(text))
-                        outputLines.Add(text);
+                    var html = ParseTextTableToHtml(lines);
+                    if (html is not null)
+                    {
+                        outputLines.Add(html);
+                        outputMimeType = "text/html";
+                    }
+                    else
+                    {
+                        // Not a parseable table (e.g. Format-List) - wrap as styled <pre>
+                        var sb = new StringBuilder();
+                        AppendPreStyles(sb);
+                        sb.Append("<div class=\"verso-ps-result\">");
+                        sb.Append("<pre class=\"verso-ps-pre\">")
+                          .Append(WebUtility.HtmlEncode(string.Join(Environment.NewLine, lines)))
+                          .Append("</pre>");
+                        sb.Append("</div>");
+                        outputLines.Add(sb.ToString());
+                        outputMimeType = "text/html";
+                    }
                 }
+            }
+            else if (results.Count > 0 && HasComplexObjects(results))
+            {
+                // Complex objects: render as HTML table using Select-Object for
+                // reliable property resolution through PowerShell's ETS.
+                var html = RenderObjectsAsHtml(results, runspace);
+                outputLines.Add(html);
+                outputMimeType = "text/html";
             }
             else
             {
@@ -113,7 +147,7 @@ internal sealed class RunspaceManager : IDisposable
             errorLines.Add(ex.Message);
         }
 
-        return new InvokeResult(outputLines, errorLines, warningLines, informationLines, exception);
+        return new InvokeResult(outputLines, outputMimeType, errorLines, warningLines, informationLines, exception);
     }
 
     public void SetVariable(string name, object? value)
@@ -263,6 +297,141 @@ internal sealed class RunspaceManager : IDisposable
              targetToken.Extent.EndColumnNumber - 1));
     }
 
+    /// <summary>
+    /// Parses Out-String text table output (from Format-Table) into an HTML table.
+    /// Returns null if the text doesn't match the expected header/dashes/data pattern,
+    /// so the caller can fall back to &lt;pre&gt; rendering (e.g. for Format-List).
+    /// </summary>
+    private static string? ParseTextTableToHtml(List<string> lines)
+    {
+        // Format-Table via Out-String produces:
+        //   Header1  Header2  Header3      (column names, space-padded)
+        //   -------  -------  -------      (dashes under each column)
+        //   Value1   Value2   Value3       (data rows)
+        if (lines.Count < 2) return null;
+
+        // Find the dashes line (first line that is only dashes and spaces)
+        int dashesIndex = -1;
+        for (int i = 0; i < Math.Min(lines.Count, 3); i++)
+        {
+            if (lines[i].Length > 0 && lines[i].All(c => c == '-' || c == ' '))
+            {
+                dashesIndex = i;
+                break;
+            }
+        }
+
+        if (dashesIndex < 1) return null;
+
+        var headerLine = lines[dashesIndex - 1];
+        var dashesLine = lines[dashesIndex];
+
+        // Parse dash groups: each contiguous run of dashes marks a column header.
+        var dashGroups = new List<(int Start, int End, string Name)>();
+        int pos = 0;
+        while (pos < dashesLine.Length)
+        {
+            while (pos < dashesLine.Length && dashesLine[pos] == ' ') pos++;
+            if (pos >= dashesLine.Length) break;
+
+            int start = pos;
+            while (pos < dashesLine.Length && dashesLine[pos] == '-') pos++;
+            int end = pos;
+
+            var name = start < headerLine.Length
+                ? headerLine.Substring(start, Math.Min(end, headerLine.Length) - start).Trim()
+                : "";
+            dashGroups.Add((start, end, name));
+        }
+
+        if (dashGroups.Count == 0) return null;
+
+        // Compute extraction boundaries using the MIDPOINT of each gap between
+        // dash groups. Right-aligned numeric values extend left into the gap,
+        // so the dashes-start is not a reliable column boundary for data rows.
+        // Using midpoints ensures values stay within their column's range.
+        var extractionBounds = new List<(int Start, int End)>();
+        for (int c = 0; c < dashGroups.Count; c++)
+        {
+            int extractStart = c == 0
+                ? 0
+                : (dashGroups[c - 1].End + dashGroups[c].Start) / 2;
+            int extractEnd = c == dashGroups.Count - 1
+                ? int.MaxValue
+                : (dashGroups[c].End + dashGroups[c + 1].Start) / 2;
+            extractionBounds.Add((extractStart, extractEnd));
+        }
+
+        var sb = new StringBuilder();
+        AppendTableStyles(sb);
+        sb.Append("<div class=\"verso-ps-result\">");
+        sb.Append("<table><thead><tr>");
+        foreach (var (_, _, name) in dashGroups)
+            sb.Append("<th>").Append(WebUtility.HtmlEncode(name)).Append("</th>");
+        sb.Append("</tr></thead><tbody>");
+
+        int dataRowCount = 0;
+        for (int i = dashesIndex + 1; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            dataRowCount++;
+            sb.Append("<tr>");
+            for (int c = 0; c < extractionBounds.Count; c++)
+            {
+                sb.Append("<td>");
+                var (eStart, eEnd) = extractionBounds[c];
+                if (eStart < line.Length)
+                {
+                    int actualEnd = Math.Min(eEnd, line.Length);
+                    var cellValue = line[eStart..actualEnd].Trim();
+                    sb.Append(WebUtility.HtmlEncode(cellValue));
+                }
+                sb.Append("</td>");
+            }
+            sb.Append("</tr>");
+        }
+        sb.Append("</tbody></table>");
+
+        sb.Append("<div class=\"verso-ps-footer\">")
+          .Append(dataRowCount.ToString("N0"))
+          .Append(" object(s)</div>");
+        sb.Append("</div>");
+
+        return sb.ToString();
+    }
+
+    private static void AppendTableStyles(StringBuilder sb)
+    {
+        sb.Append("<style>");
+        sb.Append(".verso-ps-result{");
+        sb.Append("--ps-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));");
+        sb.Append("--ps-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));");
+        sb.Append("--ps-border:var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));");
+        sb.Append("--ps-header-bg:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));");
+        sb.Append("--ps-hover:var(--vscode-list-hoverBackground,var(--verso-cell-hover-background,#f0f0f0));");
+        sb.Append("--ps-muted:var(--vscode-descriptionForeground,var(--verso-editor-line-number,#858585));");
+        sb.Append("font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--ps-fg);}");
+        sb.Append(".verso-ps-result table{border-collapse:collapse;width:auto;background:var(--ps-bg);color:var(--ps-fg);}");
+        sb.Append(".verso-ps-result th{text-align:left;padding:6px 12px;border-bottom:2px solid var(--ps-border);background:var(--ps-header-bg);font-weight:600;}");
+        sb.Append(".verso-ps-result td{padding:5px 12px;border-bottom:1px solid var(--ps-border);}");
+        sb.Append(".verso-ps-result tbody tr:hover{background:var(--ps-hover);}");
+        sb.Append(".verso-ps-result .verso-ps-null{color:var(--ps-muted);font-style:italic;}");
+        sb.Append(".verso-ps-result .verso-ps-footer{padding:6px 0;color:var(--ps-muted);font-size:12px;}");
+        sb.Append("</style>");
+    }
+
+    private static void AppendPreStyles(StringBuilder sb)
+    {
+        sb.Append("<style>");
+        sb.Append(".verso-ps-result{");
+        sb.Append("--ps-bg:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));");
+        sb.Append("--ps-fg:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));");
+        sb.Append("font-family:var(--verso-code-output-font-family,monospace);font-size:13px;color:var(--ps-fg);}");
+        sb.Append(".verso-ps-pre{margin:0;white-space:pre;font-family:inherit;font-size:inherit;line-height:1.4;}");
+        sb.Append("</style>");
+    }
+
     private static bool HasFormatObjects(Collection<PSObject> results)
     {
         foreach (var obj in results)
@@ -272,6 +441,132 @@ internal sealed class RunspaceManager : IDisposable
                 return true;
         }
         return false;
+    }
+
+    private static bool HasComplexObjects(Collection<PSObject> results)
+    {
+        foreach (var obj in results)
+        {
+            if (obj is null) continue;
+            var baseObj = obj.BaseObject;
+            if (baseObj is string) continue;
+            if (baseObj.GetType().IsValueType) continue;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Renders a collection of PSObjects as an HTML table using the same styling
+    /// conventions as the SQL result set formatter. Uses PowerShell's
+    /// <c>DefaultDisplayPropertySet</c> when available to select columns, falling
+    /// back to the object's public properties.
+    /// </summary>
+    private static string RenderObjectsAsHtml(Collection<PSObject> results, Runspace runspace)
+    {
+        // Resolve display properties: use DefaultDisplayPropertySet if defined,
+        // otherwise fall back to the properties of the first non-null object.
+        var columnNames = GetDisplayProperties(results);
+        if (columnNames.Count == 0)
+        {
+            // No properties to display; fall back to Out-String
+            using var renderer = System.Management.Automation.PowerShell.Create();
+            renderer.Runspace = runspace;
+            renderer.AddCommand("Out-String").AddParameter("Width", 200);
+            var rendered = renderer.Invoke(results);
+            return WebUtility.HtmlEncode(string.Join(Environment.NewLine,
+                rendered.Select(r => r?.ToString()?.TrimEnd()).Where(s => !string.IsNullOrEmpty(s))));
+        }
+
+        var sb = new StringBuilder();
+        AppendTableStyles(sb);
+
+        sb.Append("<div class=\"verso-ps-result\">");
+
+        // Header
+        sb.Append("<table><thead><tr>");
+        foreach (var col in columnNames)
+            sb.Append("<th>").Append(WebUtility.HtmlEncode(col)).Append("</th>");
+        sb.Append("</tr></thead>");
+
+        // Resolve property values through PowerShell's ETS (Extended Type System)
+        // so that ScriptProperties (e.g. Process.CPU) evaluate correctly.
+        using var selector = System.Management.Automation.PowerShell.Create();
+        selector.Runspace = runspace;
+        selector.AddCommand("Select-Object").AddParameter("Property", columnNames.ToArray());
+        var resolved = selector.Invoke(results);
+
+        // Body
+        sb.Append("<tbody>");
+        foreach (var obj in resolved)
+        {
+            if (obj is null) continue;
+            sb.Append("<tr>");
+            foreach (var col in columnNames)
+            {
+                sb.Append("<td>");
+                var prop = obj.Properties[col];
+                if (prop is null)
+                {
+                    sb.Append("<span class=\"verso-ps-null\"></span>");
+                }
+                else
+                {
+                    try
+                    {
+                        var val = prop.Value;
+                        if (val is null)
+                            sb.Append("<span class=\"verso-ps-null\">$null</span>");
+                        else
+                            sb.Append(WebUtility.HtmlEncode(val.ToString() ?? ""));
+                    }
+                    catch
+                    {
+                        sb.Append("<span class=\"verso-ps-null\">N/A</span>");
+                    }
+                }
+                sb.Append("</td>");
+            }
+            sb.Append("</tr>");
+        }
+        sb.Append("</tbody></table>");
+
+        // Footer
+        sb.Append("<div class=\"verso-ps-footer\">")
+          .Append(resolved.Count(o => o is not null).ToString("N0"))
+          .Append(" object(s)</div>");
+
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Resolves the display property names for a collection of PSObjects.
+    /// Checks <c>DefaultDisplayPropertySet</c> first (matches PowerShell's
+    /// default table/list column selection), then falls back to the properties
+    /// of the first non-null object.
+    /// </summary>
+    private static IReadOnlyList<string> GetDisplayProperties(Collection<PSObject> results)
+    {
+        foreach (var obj in results)
+        {
+            if (obj is null) continue;
+
+            // Try DefaultDisplayPropertySet (defined in .ps1xml format files)
+            var members = obj.Members["PSStandardMembers"];
+            if (members?.Value is PSMemberSet memberSet)
+            {
+                var ddps = memberSet.Members["DefaultDisplayPropertySet"];
+                if (ddps?.Value is PSPropertySet propSet && propSet.ReferencedPropertyNames.Count > 0)
+                    return propSet.ReferencedPropertyNames.ToList();
+            }
+
+            // Fall back to all properties of the first object
+            var props = obj.Properties.Select(p => p.Name).ToList();
+            if (props.Count > 0) return props;
+        }
+
+        return Array.Empty<string>();
     }
 
     public void Dispose()

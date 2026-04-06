@@ -77,7 +77,7 @@ public sealed class PowerShellKernel : ILanguageKernel
             {
                 var text = string.Join(Environment.NewLine, result.OutputLines);
                 if (!string.IsNullOrEmpty(text))
-                    outputs.Add(new CellOutput("text/plain", text));
+                    outputs.Add(new CellOutput(result.OutputMimeType, text));
             }
 
             // Information stream (Write-Host)
