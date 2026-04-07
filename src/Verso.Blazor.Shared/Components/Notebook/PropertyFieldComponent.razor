@@ -1,3 +1,7 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using System.Text.Json
+
 <div class="verso-properties-field-control">
     @switch (Field.FieldType)
     {
@@ -85,9 +89,7 @@
                     <input type="text"
                            class="verso-properties-tag-input"
                            placeholder="Add tag..."
-                           @bind="_newTagText"
-                           @bind:event="oninput"
-                           @onkeydown="HandleTagKeyDown" />
+                           @ref="_tagInputRef" />
                 }
             </div>
             break;
@@ -98,8 +100,10 @@
     [Parameter] public PropertyField Field { get; set; } = default!;
     [Parameter] public EventCallback<object?> OnValueChanged { get; set; }
 
-    private string _newTagText = "";
     private List<string> _currentTags = new();
+    private ElementReference _tagInputRef;
+    private DotNetObjectReference<PropertyFieldComponent>? _dotNetRef;
+    private bool _tagInputAttached;
 
     protected override void OnParametersSet()
     {
@@ -110,9 +114,44 @@
                 IEnumerable<string> list => list.ToList(),
                 string s when !string.IsNullOrEmpty(s) =>
                     s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+                JsonElement je when je.ValueKind == JsonValueKind.Array =>
+                    je.EnumerateArray().Select(e => e.GetString()!).Where(v => !string.IsNullOrEmpty(v)).ToList(),
+                JsonElement je when je.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(je.GetString()) =>
+                    je.GetString()!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
                 _ => new List<string>()
             };
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Field.FieldType == PropertyFieldType.Tags && !Field.IsReadOnly && !_tagInputAttached)
+        {
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("versoTagInput.attach", _tagInputRef, _dotNetRef);
+                _tagInputAttached = true;
+            }
+            catch { /* element not yet in DOM */ }
+        }
+    }
+
+    /// <summary>
+    /// Called from JavaScript when comma or Enter is pressed.
+    /// The JS handler already called preventDefault() and cleared the input,
+    /// so there is no oninput race condition.
+    /// </summary>
+    [JSInvokable]
+    public async Task JsAddTag(string text)
+    {
+        var tag = text.Trim();
+        if (!string.IsNullOrEmpty(tag) && !_currentTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+        {
+            _currentTags.Add(tag);
+            await OnValueChanged.InvokeAsync((IReadOnlyList<string>)_currentTags.ToList());
+        }
+        StateHasChanged();
     }
 
     private bool IsSelected(string optionValue) =>
@@ -125,6 +164,11 @@
             IEnumerable<string> list => list.Contains(optionValue, StringComparer.OrdinalIgnoreCase),
             string s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                           .Contains(optionValue, StringComparer.OrdinalIgnoreCase),
+            JsonElement je when je.ValueKind == JsonValueKind.Array =>
+                je.EnumerateArray().Any(e => string.Equals(e.GetString(), optionValue, StringComparison.OrdinalIgnoreCase)),
+            JsonElement je when je.ValueKind == JsonValueKind.String =>
+                (je.GetString() ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Contains(optionValue, StringComparer.OrdinalIgnoreCase),
             _ => false
         };
     }
@@ -157,6 +201,10 @@
         {
             IEnumerable<string> list => list.ToList(),
             string s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            JsonElement je when je.ValueKind == JsonValueKind.Array =>
+                je.EnumerateArray().Select(e => e.GetString()!).Where(v => !string.IsNullOrEmpty(v)).ToList(),
+            JsonElement je when je.ValueKind == JsonValueKind.String =>
+                (je.GetString() ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
             _ => new List<string>()
         };
 
@@ -166,17 +214,13 @@
         await OnValueChanged.InvokeAsync((IReadOnlyList<string>)_currentTags.ToList());
     }
 
-    private async Task HandleTagKeyDown(KeyboardEventArgs e)
+    public async ValueTask DisposeAsync()
     {
-        if ((e.Key == "Enter" || e.Key == ",") && !string.IsNullOrWhiteSpace(_newTagText))
+        if (_tagInputAttached)
         {
-            var tag = _newTagText.Trim().TrimEnd(',');
-            if (!string.IsNullOrEmpty(tag) && !_currentTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
-            {
-                _currentTags.Add(tag);
-                await OnValueChanged.InvokeAsync((IReadOnlyList<string>)_currentTags.ToList());
-            }
-            _newTagText = "";
+            try { await JS.InvokeVoidAsync("versoTagInput.detach", _tagInputRef); }
+            catch { }
         }
+        _dotNetRef?.Dispose();
     }
 }

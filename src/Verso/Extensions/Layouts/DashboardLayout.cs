@@ -40,6 +40,7 @@ public sealed class DashboardLayout : ILayoutEngine
         {
             CellVisibilityState.Visible,
             CellVisibilityState.Hidden,
+            CellVisibilityState.OutputOnly,
         };
 
     public bool SupportsPropertiesPanel => _isEditMode;

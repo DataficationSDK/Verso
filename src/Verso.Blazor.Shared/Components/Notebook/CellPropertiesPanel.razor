@@ -57,10 +57,10 @@
         }
 
         if (SelectedCellId != _lastLoadedCellId)
-            await LoadSectionsAsync();
+            await LoadSectionsAsync(showLoading: true);
     }
 
-    private async Task LoadSectionsAsync()
+    private async Task LoadSectionsAsync(bool showLoading)
     {
         _lastLoadedCellId = SelectedCellId;
 
@@ -70,8 +70,11 @@
             return;
         }
 
-        _loading = true;
-        StateHasChanged();
+        if (showLoading)
+        {
+            _loading = true;
+            StateHasChanged();
+        }
 
         try
         {
@@ -92,14 +95,14 @@
     {
         if (SelectedCellId is null) return;
         await Service.NotifyPropertyChangedAsync(SelectedCellId.Value, providerExtensionId, propertyName, value);
-        await LoadSectionsAsync();
+        await LoadSectionsAsync(showLoading: false);
     }
 
     private async void HandleCellChanged()
     {
         await InvokeAsync(async () =>
         {
-            await LoadSectionsAsync();
+            await LoadSectionsAsync(showLoading: true);
             StateHasChanged();
         });
     }

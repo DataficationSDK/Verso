@@ -104,12 +104,28 @@ public sealed class CellVisibilityPropertyProvider : ICellPropertyProvider
         var isDefault = string.IsNullOrEmpty(stringValue) ||
                         string.Equals(stringValue, defaultStateName, StringComparison.OrdinalIgnoreCase);
 
-        // Get or create the visibility dictionary
+        // Get or create the visibility dictionary, handling all storage forms:
+        // - Dictionary<string, string> from in-memory edits
+        // - Dictionary<string, object> from some deserialization paths
+        // - JsonElement from .verso file deserialization
         Dictionary<string, string> visibilityDict;
 
-        if (cell.Metadata.TryGetValue(MetadataKey, out var existing) && existing is Dictionary<string, string> dict)
+        if (cell.Metadata.TryGetValue(MetadataKey, out var existing))
         {
-            visibilityDict = dict;
+            visibilityDict = existing switch
+            {
+                Dictionary<string, string> dictStr => dictStr,
+                Dictionary<string, object> dictObj => dictObj
+                    .Where(kv => kv.Value is not null)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value!.ToString()!),
+                JsonElement jsonEl when jsonEl.ValueKind == JsonValueKind.Object => jsonEl
+                    .EnumerateObject()
+                    .Where(p => p.Value.ValueKind == JsonValueKind.String)
+                    .ToDictionary(p => p.Name, p => p.Value.GetString()!),
+                _ => new Dictionary<string, string>(),
+            };
+            // Replace the stored value with the mutable dictionary
+            cell.Metadata[MetadataKey] = visibilityDict;
         }
         else
         {

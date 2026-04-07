@@ -61,14 +61,15 @@ public sealed class VisibilityDefaultsTests
     }
 
     [TestMethod]
-    public void DashboardLayout_SupportedVisibilityStates_ContainsVisibleHidden()
+    public void DashboardLayout_SupportedVisibilityStates_ContainsVisibleHiddenOutputOnly()
     {
         var layout = new DashboardLayout();
         var states = layout.SupportedVisibilityStates;
 
-        Assert.AreEqual(2, states.Count);
+        Assert.AreEqual(3, states.Count);
         Assert.IsTrue(states.Contains(CellVisibilityState.Visible));
         Assert.IsTrue(states.Contains(CellVisibilityState.Hidden));
+        Assert.IsTrue(states.Contains(CellVisibilityState.OutputOnly));
     }
 
     // --- Layout SupportsPropertiesPanel ---

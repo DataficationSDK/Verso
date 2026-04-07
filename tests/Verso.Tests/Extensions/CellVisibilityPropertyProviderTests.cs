@@ -78,14 +78,14 @@ public sealed class CellVisibilityPropertyProviderTests
     }
 
     [TestMethod]
-    public async Task GetPropertiesSection_DashboardField_HasTwoOptions()
+    public async Task GetPropertiesSection_DashboardField_HasThreeOptions()
     {
         var cell = new CellModel { Type = "fake" };
         var section = await _provider.GetPropertiesSectionAsync(cell, _renderContext);
 
         var dashField = section.Fields.First(f => f.Name == "visibility:dashboard");
-        // Dashboard supports: Visible, Hidden
-        Assert.AreEqual(2, dashField.Options!.Count);
+        // Dashboard supports: Visible, Hidden, OutputOnly
+        Assert.AreEqual(3, dashField.Options!.Count);
     }
 
     [TestMethod]

@@ -384,6 +384,9 @@ export class BlazorEditorProvider
     const parametersInterop = toUri(
       "_content/Verso.Blazor.Shared/js/parameters-interop.js"
     );
+    const tagInputInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/tag-input-interop.js"
+    );
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -521,6 +524,7 @@ export class BlazorEditorProvider
     <script src="${parametersInterop}"></script>
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>
+    <script src="${tagInputInterop}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.

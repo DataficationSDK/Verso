@@ -648,6 +648,13 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     public async Task NotifyPropertyChangedAsync(Guid cellId, string providerExtensionId, string propertyName, object? value)
     {
+        // Tags and MultiSelect pass IEnumerable<string>; serialize as
+        // comma-separated so the round-trip through the string-typed JSON-RPC
+        // protocol matches what PropertyFieldComponent.OnParametersSet parses.
+        var serializedValue = value is IEnumerable<string> list
+            ? string.Join(",", list)
+            : value?.ToString();
+
         await _bridge.RequestVoidAsync(
             "properties/updateProperty",
             new
@@ -655,7 +662,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                 cellId = cellId.ToString(),
                 providerExtensionId,
                 propertyName,
-                value = value?.ToString()
+                value = serializedValue
             });
 
         // Refresh local cell cache so metadata-dependent rendering (e.g. visibility) reflects the change
