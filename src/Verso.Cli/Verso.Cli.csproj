@@ -24,15 +24,65 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <!-- Locate blazor.web.js so it can be bundled with the tool.
+       .NET 10+ ships it as a NuGet static web asset; .NET 8/9 embed it
+       inside Microsoft.AspNetCore.Components.Endpoints.dll. We try the
+       NuGet package first (MSBuild glob), then fall back to extracting the
+       embedded resource via a small inline task. -->
+  <UsingTask TaskName="_ExtractEmbeddedBlazorJs"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SharedFrameworkDir ParameterType="System.String" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var dll = System.IO.Path.Combine(SharedFrameworkDir, "Microsoft.AspNetCore.Components.Endpoints.dll");
+        if (!System.IO.File.Exists(dll)) return true;
+        try
+        {
+            var asm = System.Reflection.Assembly.LoadFrom(dll);
+            using var stream = asm.GetManifestResourceStream("_framework/blazor.web.js");
+            if (stream == null) return true;
+            var dir = System.IO.Path.GetDirectoryName(OutputFile);
+            if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+            using var fs = System.IO.File.Create(OutputFile);
+            stream.CopyTo(fs);
+        }
+        catch { }
+        return true;
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="_ExtractBlazorFrameworkJs" AfterTargets="Build">
+    <!-- Try NuGet package first (.NET 10+) -->
+    <ItemGroup>
+      <_BlazorWebJsFromNuGet Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.web.js" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_BlazorWebJsFromNuGet)"
+          DestinationFolder="$(OutputPath)wwwroot/_framework/"
+          SkipUnchangedFiles="true"
+          Condition="'@(_BlazorWebJsFromNuGet)' != ''" />
+    <!-- Fallback: extract embedded resource (.NET 8/9 shared framework) -->
+    <ItemGroup Condition="'@(_BlazorWebJsFromNuGet)' == ''">
+      <_AspNetSharedFx Include="$(NetCoreRoot)shared/Microsoft.AspNetCore.App/*" />
+    </ItemGroup>
+    <_ExtractEmbeddedBlazorJs
+        SharedFrameworkDir="%(_AspNetSharedFx.Identity)"
+        OutputFile="$(OutputPath)wwwroot/_framework/blazor.web.js"
+        Condition="'@(_BlazorWebJsFromNuGet)' == '' AND '@(_AspNetSharedFx)' != '' AND !Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
+    <Warning Text="Could not locate blazor.web.js; verso serve may not function correctly."
+             Condition="!Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
+  </Target>
+
   <!-- Bundle static web assets so the Blazor Server app works when installed
        as a global tool. BlazorHostBuilder detects invalid manifest paths at
        startup and falls back to Production mode, serving the bundled wwwroot
        via PhysicalFileProvider. -->
   <Target Name="_IncludeVersoStaticAssets">
     <ItemGroup>
-      <!-- Blazor framework JS (may ship as a NuGet static web asset in .NET 10+) -->
-      <_BlazorFrameworkFile Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.web.js" />
-      <_BlazorFrameworkFile Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.server.js" />
       <!-- Static web assets manifest (used by dev-mode detection) -->
       <TfmSpecificPackageFile Include="$(OutputPath)Verso.Blazor.staticwebassets.runtime.json"
                               Condition="Exists('$(OutputPath)Verso.Blazor.staticwebassets.runtime.json')"
@@ -43,9 +93,10 @@
       <!-- Verso.Blazor.Shared wwwroot (served from /_content/Verso.Blazor.Shared/) -->
       <TfmSpecificPackageFile Include="..\Verso.Blazor.Shared\wwwroot\**\*"
                               PackagePath="tools/$(TargetFramework)/any/wwwroot/_content/Verso.Blazor.Shared/" />
-      <!-- Blazor framework JS files -->
-      <TfmSpecificPackageFile Include="@(_BlazorFrameworkFile)"
-                              PackagePath="tools/$(TargetFramework)/any/wwwroot/_framework/%(Filename)%(Extension)" />
+      <!-- Blazor framework JS (extracted during build) -->
+      <TfmSpecificPackageFile Include="$(OutputPath)wwwroot/_framework/blazor.web.js"
+                              Condition="Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')"
+                              PackagePath="tools/$(TargetFramework)/any/wwwroot/_framework/blazor.web.js" />
     </ItemGroup>
   </Target>
 

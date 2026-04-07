@@ -352,9 +352,6 @@
         _showExportDropdown = false;
     }
 
-    private void OnLayoutDropdownFocusOut() => _showLayoutDropdown = false;
-    private void OnThemeDropdownFocusOut() => _showThemeDropdown = false;
-
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;

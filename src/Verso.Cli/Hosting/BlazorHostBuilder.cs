@@ -73,18 +73,19 @@ public static class BlazorHostBuilder
         var app = builder.Build();
 
         // Middleware pipeline (matches Verso.Blazor/Program.cs)
-        if (!app.Environment.IsDevelopment())
+        //
+        // Serve the bundled wwwroot that ships alongside the assembly. This
+        // covers blazor.web.js (extracted at build time) and, in Production
+        // mode (global tool install), all other static assets. In Development
+        // mode the manifest handles most assets, but blazor.web.js is not in
+        // the manifest so we still need this provider.
+        var wwwrootPath = Path.Combine(blazorAssemblyDir, "wwwroot");
+        if (Directory.Exists(wwwrootPath))
         {
-            // In Production mode (global tool install), serve the bundled
-            // wwwroot files that were packed alongside the assembly.
-            var wwwrootPath = Path.Combine(blazorAssemblyDir, "wwwroot");
-            if (Directory.Exists(wwwrootPath))
+            app.UseStaticFiles(new StaticFileOptions
             {
-                app.UseStaticFiles(new StaticFileOptions
-                {
-                    FileProvider = new PhysicalFileProvider(wwwrootPath),
-                });
-            }
+                FileProvider = new PhysicalFileProvider(wwwrootPath),
+            });
         }
 
         if (!options.NoHttps)
