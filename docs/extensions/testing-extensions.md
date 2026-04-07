@@ -78,6 +78,7 @@ Fakes implement extension interfaces with configurable behavior, useful for test
 | `FakeCellRenderer` | `ICellRenderer` | Returns simple `text/plain` results. Tracks lifecycle calls. |
 | `FakeDataFormatter` | `IDataFormatter` | Formats strings to `text/plain`. Tracks lifecycle calls. |
 | `FakeCellInteractionHandler` | `IDataFormatter + ICellInteractionHandler` | Combined formatter and interaction handler. Tracks `ReceivedInteractions` and exposes a settable `ResponseToReturn`. |
+| `FakeCellPropertyProvider` | `ICellPropertyProvider` | Returns a section titled "Fake Section" with no fields. `AppliesTo` always returns `true`. Tracks lifecycle calls. Constructor accepts optional `extensionId`, `name`, `version`. |
 
 ---
 

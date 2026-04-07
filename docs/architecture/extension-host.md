@@ -72,6 +72,7 @@ After validation, `LoadExtensionAsync(extension)` runs:
 if (extension is ILanguageKernel kernel) _kernels.Add(kernel);
 if (extension is ICellRenderer renderer) _renderers.Add(renderer);
 if (extension is IDataFormatter formatter) _formatters.Add(formatter);
+if (extension is ICellPropertyProvider provider) _propertyProviders.Add(provider);
 // ... and so on for all capability interfaces
 ```
 
@@ -106,6 +107,7 @@ Disabled extensions remain in the `_extensions` list (visible in `GetLoadedExten
 | `GetThemes()` | `IReadOnlyList<ITheme>` |
 | `GetPostProcessors()` | `IReadOnlyList<INotebookPostProcessor>` |
 | `GetSettableExtensions()` | `IReadOnlyList<IExtensionSettings>` |
+| `GetPropertyProviders()` | `IReadOnlyList<ICellPropertyProvider>` |
 | `GetExtensionInfos()` | Metadata for all extensions with status |
 
 Additional methods not on `IExtensionHostContext` (used internally by the engine):

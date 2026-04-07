@@ -97,6 +97,7 @@ Renders the input (editor) and output (result) areas of a cell. Each renderer is
 | `CellTypeId` | `string` | Identifier of the cell type this renderer handles. |
 | `DisplayName` | `string` | Human-readable name for this renderer. |
 | `CollapsesInputOnExecute` | `bool` | Whether the input editor collapses after execution, showing only output. Defaults to `false`. |
+| `DefaultVisibility` | `CellVisibilityHint` | Hint to layouts about the cell type's presentability. Default interface member, defaults to `CellVisibilityHint.Content`. See [Layout Authoring](layout-authoring.md) for how layouts use this. |
 | `RenderInputAsync(string, ICellRenderContext)` | `Task<RenderResult>` | Renders the cell's source code as visual content. |
 | `RenderOutputAsync(CellOutput, ICellRenderContext)` | `Task<RenderResult>` | Renders a single execution output. |
 | `GetEditorLanguage()` | `string?` | Returns the editor language ID for syntax highlighting, or `null`. |
@@ -335,6 +336,8 @@ Manages the spatial arrangement of cells. Layouts support different paradigms su
 | `OnCellMovedAsync(Guid, int, IVersoContext)` | `Task` | Notification that a cell was moved. |
 | `GetLayoutMetadata()` | `Dictionary<string, object>` | Returns layout state for persistence. |
 | `ApplyLayoutMetadata(Dictionary<string, object>, IVersoContext)` | `Task` | Restores layout state from persisted metadata. |
+| `SupportedVisibilityStates` | `IReadOnlySet<CellVisibilityState>` | Visibility states this layout handles. Default interface member, defaults to `{ Visible }`. The properties panel uses this to determine which options to show. |
+| `SupportsPropertiesPanel` | `bool` | Whether the cell properties panel should be shown when this layout is active. Default interface member, defaults to `false`. |
 
 ### LayoutCapabilities Flags
 
@@ -394,6 +397,116 @@ Hooks into the serialization pipeline to transform notebooks after deserializati
 ### Lifecycle
 
 Post-processors are sorted by `Priority` (ascending). `CanProcess` is checked first; if `true`, the transform method is called. Multiple processors form a chain -- each receives the output of the previous.
+
+---
+
+## ICellPropertyProvider
+
+Contributes configurable property sections to the cell properties panel. When a cell is selected in the UI, the host queries all registered providers and composes their sections into the properties sidebar.
+
+### Members (in addition to IExtension)
+
+| Member | Type | Description |
+|---|---|---|
+| `Order` | `int` | Display order within the panel. Lower values appear first. |
+| `AppliesTo(CellModel, ICellRenderContext)` | `bool` | Whether this provider contributes properties for the given cell. |
+| `GetPropertiesSectionAsync(CellModel, ICellRenderContext)` | `Task<PropertySection>` | Returns the property section definition with current values. |
+| `OnPropertyChangedAsync(CellModel, string, object?, ICellRenderContext)` | `Task` | Called when the user changes a property value. The provider validates and writes the change to cell metadata. |
+
+### Lifecycle
+
+Providers are stateless. `AppliesTo` is called first as a filter. For providers that return `true`, `GetPropertiesSectionAsync` produces the section definition. `OnPropertyChangedAsync` fires when a field value changes in the UI.
+
+Property values are stored in `CellModel.Metadata` under extension-namespaced keys (e.g., `"verso:visibility"`, `"myext:color"`). Each provider owns its own namespace.
+
+### Panel Composition
+
+1. The front-end queries all registered `ICellPropertyProvider` instances via `IExtensionHostContext.GetPropertyProviders()`.
+2. Filters by `AppliesTo(cell, context)`.
+3. Calls `GetPropertiesSectionAsync` on matching providers.
+4. Sections are rendered in `Order` sequence.
+5. Field changes call `OnPropertyChangedAsync` on the owning provider.
+
+The properties panel is only visible when the active layout's `SupportsPropertiesPanel` is `true`.
+
+### PropertySection and PropertyField
+
+```csharp
+public sealed record PropertySection(
+    string Title,
+    string? Description,
+    IReadOnlyList<PropertyField> Fields);
+
+public sealed record PropertyField(
+    string Name,
+    string DisplayName,
+    PropertyFieldType FieldType,
+    object? CurrentValue,
+    string? Description = null,
+    IReadOnlyList<PropertyFieldOption>? Options = null,
+    bool IsReadOnly = false);
+
+public sealed record PropertyFieldOption(
+    string Value,
+    string DisplayName);
+```
+
+### PropertyFieldType Enum
+
+| Value | Description |
+|---|---|
+| `Text` | Free-form text input. |
+| `Number` | Numeric input. |
+| `Toggle` | Boolean checkbox. |
+| `Select` | Single-selection dropdown. Requires `Options`. |
+| `MultiSelect` | Multi-selection checkboxes. Requires `Options`. |
+| `Color` | Color picker. |
+| `Tags` | Tag list with comma/Enter to add. |
+
+### Built-in Provider: CellVisibilityPropertyProvider
+
+Verso ships a built-in `CellVisibilityPropertyProvider` (`ExtensionId: "verso.propertyprovider.visibility"`) that renders a `Select` field for each layout that supports more than just `Visible` in its `SupportedVisibilityStates`. Values are stored under the `"verso:visibility"` metadata key.
+
+### Example Implementation
+
+```csharp
+[VersoExtension]
+public sealed class SqlPropertyProvider : ICellPropertyProvider
+{
+    public string ExtensionId => "com.mycompany.sql-properties";
+    public string Name => "SQL Properties";
+    public string Version => "1.0.0";
+    public string? Author => "Your Name";
+    public string? Description => "Connection and timeout settings for SQL cells.";
+
+    public int Order => 10;
+
+    public bool AppliesTo(CellModel cell, ICellRenderContext context)
+        => string.Equals(cell.Type, "code", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(cell.Language, "sql", StringComparison.OrdinalIgnoreCase);
+
+    public Task<PropertySection> GetPropertiesSectionAsync(CellModel cell, ICellRenderContext context)
+    {
+        var timeout = cell.Metadata.TryGetValue("myext:timeout", out var t) ? t : 30;
+        var fields = new List<PropertyField>
+        {
+            new("timeout", "Query Timeout", PropertyFieldType.Number, timeout,
+                Description: "Timeout in seconds")
+        };
+        return Task.FromResult(new PropertySection("SQL Settings", null, fields));
+    }
+
+    public Task OnPropertyChangedAsync(
+        CellModel cell, string propertyName, object? value, ICellRenderContext context)
+    {
+        cell.Metadata[$"myext:{propertyName}"] = value!;
+        return Task.CompletedTask;
+    }
+
+    public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+    public Task OnUnloadedAsync() => Task.CompletedTask;
+}
+```
 
 ---
 
@@ -542,6 +655,9 @@ These records and classes are shared across all interfaces:
 | `FontDescriptor(Family, SizePx, Weight, LineHeight)` | Font specification used by `ThemeTypography`. `Weight` defaults to `400`, `LineHeight` defaults to `1.4`. |
 | `VariableExplorerEntry(Name, TypeName, ValuePreview, IsExpandable)` | Display entry for the variable explorer panel. |
 | `SyntaxColorMap` | Mutable map used by `ITheme.GetSyntaxColors()`. Methods: `Set(string, string)`, `Get(string)`, `GetAll()`, `Count`. |
+| `PropertySection(Title, Description, Fields)` | Section heading and field list for the cell properties panel. |
+| `PropertyField(Name, DisplayName, FieldType, CurrentValue, Description, Options, IsReadOnly)` | Individual property field definition. |
+| `PropertyFieldOption(Value, DisplayName)` | Option for `Select` and `MultiSelect` fields. |
 
 ### CellModel
 

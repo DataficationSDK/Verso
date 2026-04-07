@@ -347,6 +347,7 @@ Accessed via `context.ExtensionHost`. Query loaded extensions by category.
 | `GetLayouts()` | `IReadOnlyList<ILayoutEngine>` | All registered layouts. |
 | `GetThemes()` | `IReadOnlyList<ITheme>` | All registered themes. |
 | `GetPostProcessors()` | `IReadOnlyList<INotebookPostProcessor>` | All registered post-processors. |
+| `GetPropertyProviders()` | `IReadOnlyList<ICellPropertyProvider>` | All registered cell property providers. Default interface method that returns an empty list. |
 | `GetExtensionInfos()` | `IReadOnlyList<ExtensionInfo>` | Metadata for all loaded extensions. |
 | `EnableExtensionAsync(string)` | `Task` | Enables a previously disabled extension. |
 | `DisableExtensionAsync(string)` | `Task` | Disables an extension without unloading it. |

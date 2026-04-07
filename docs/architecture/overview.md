@@ -53,7 +53,7 @@ The architecture separates into three layers. The engine knows nothing about the
 
 The foundation of the entire system. This package contains only interfaces, records, enums, and the `[VersoExtension]` attribute. It has zero dependencies beyond the .NET BCL.
 
-Extension authors reference this package and nothing else. All eleven extension interfaces inherit from `IExtension`, which provides identity (`ExtensionId`, `Name`, `Version`), optional metadata (`Author`, `Description`), and lifecycle hooks (`OnLoadedAsync`, `OnUnloadedAsync`).
+Extension authors reference this package and nothing else. All twelve extension interfaces inherit from `IExtension`, which provides identity (`ExtensionId`, `Name`, `Version`), optional metadata (`Author`, `Description`), and lifecycle hooks (`OnLoadedAsync`, `OnUnloadedAsync`).
 
 The interfaces are:
 
@@ -70,6 +70,7 @@ The interfaces are:
 | `INotebookSerializer` | Read and write notebook file formats |
 | `INotebookPostProcessor` | Transform notebooks after load or before save |
 | `ICellInteractionHandler` | Handle interactions from rendered cell content back to extension code |
+| `ICellPropertyProvider` | Contribute configurable property sections to the cell properties panel |
 
 Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
 

@@ -15,6 +15,7 @@ The `Verso.Blazor.Shared` project is a Razor Class Library that contains every U
 | `MonacoEditor.razor` | Monaco editor wrapper with parameters for value, language, and callbacks for completions, hover, and diagnostics. |
 | `DashboardGrid.razor` | Grid layout container for dashboard mode. |
 | `ExtensionPanel.razor` | Sidebar listing loaded extensions with enable/disable controls. |
+| `CellPropertiesPanel.razor` | Cell properties sidebar showing extension-contributed property sections for the selected cell. Conditional on the active layout's `SupportsPropertiesPanel` flag. |
 | `VariableExplorer.razor` | Variable inspector sidebar showing all shared variables. |
 | `ThemeProvider.razor` | Injects CSS variables from the active theme into a `<style>` tag. |
 | `SettingsPanel.razor` | Extension settings editor. |
@@ -46,6 +47,7 @@ The shared project includes JavaScript interop files in `wwwroot/js/`:
 | `panel-resize-interop.js` | Sidebar resize handle |
 | `file-download-interop.js` | Browser download trigger (Server mode) |
 | `user-prefs-interop.js` | VS Code global state read/write |
+| `tag-input-interop.js` | Tag input field (comma/Enter to add tags) for the properties panel |
 
 ## Blazor Server (Verso.Blazor)
 
@@ -205,6 +207,7 @@ Notifications (execution state changes, variable updates) flow in the reverse di
 | `ExtensionHandler` | list, enable, disable, consentResponse |
 | `SettingsHandler` | getDefinitions, get, update, reset |
 | `ToolbarHandler` | getEnabledStates, execute |
+| `PropertiesHandler` | getSections, updateProperty, getSupported |
 | `ParameterHandler` | list, add, update, remove |
 | `VariableHandler` | list, inspect |
 

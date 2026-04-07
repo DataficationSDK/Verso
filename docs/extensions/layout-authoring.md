@@ -296,6 +296,71 @@ public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoConte
 
 This dual-path handling is critical. See `DashboardLayout.cs` and `PresentationLayout.cs` for complete examples.
 
+## Visibility and Cell Properties
+
+### SupportedVisibilityStates
+
+Declare which `CellVisibilityState` values your layout handles. The built-in `CellVisibilityPropertyProvider` uses this to render per-layout visibility dropdowns in the properties panel. Only layouts that support more than `{ Visible }` will appear.
+
+```csharp
+public IReadOnlySet<CellVisibilityState> SupportedVisibilityStates
+    => new HashSet<CellVisibilityState>
+    {
+        CellVisibilityState.Visible,
+        CellVisibilityState.Hidden,
+        CellVisibilityState.OutputOnly
+    };
+```
+
+Available states:
+
+| State | Description |
+|-------|-------------|
+| `Visible` | Show the full cell (input and output). |
+| `Hidden` | Hide the cell entirely. |
+| `OutputOnly` | Show only the cell's output area. |
+| `Collapsed` | Show the cell in a collapsed/summary state. |
+
+### SupportsPropertiesPanel
+
+Set this to `true` to enable the cell properties sidebar when your layout is active:
+
+```csharp
+public bool SupportsPropertiesPanel => true;
+```
+
+The front-end checks this flag to conditionally show or hide the properties panel. This defaults to `false`, so layouts that do not opt in will not display the panel.
+
+### Using CellVisibilityResolver
+
+When rendering cells, use `CellVisibilityResolver` to resolve per-cell visibility from metadata and cell type defaults:
+
+```csharp
+foreach (var cell in cells)
+{
+    var renderer = context.ExtensionHost.GetRenderers()
+        .FirstOrDefault(r => r.CellTypeId == cell.Type);
+    if (renderer is null) continue;
+
+    var state = CellVisibilityResolver.Resolve(
+        cell, renderer, LayoutId, SupportedVisibilityStates);
+
+    switch (state)
+    {
+        case CellVisibilityState.Hidden:
+            continue; // skip
+        case CellVisibilityState.OutputOnly:
+            RenderOutputOnly(cell);
+            break;
+        default:
+            RenderFull(cell);
+            break;
+    }
+}
+```
+
+The resolver checks `CellModel.Metadata["verso:visibility"]` for a per-layout user override first, then falls back to `ICellRenderer.DefaultVisibility`, constraining the result to your `SupportedVisibilityStates`.
+
 ## Front-End Considerations
 
 ### Blazor Server / WASM
