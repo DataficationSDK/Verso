@@ -11,6 +11,8 @@ import {
   LanguagesResult,
   ParameterDefDto,
   ParameterListResult,
+  PropertiesGetSectionsResult,
+  PropertySectionResultDto,
   VariableListResult,
   VariableInspectResult,
 } from "../host/protocol";
@@ -724,6 +726,132 @@ export class RemoveParameterTool
   }
 }
 
+// ── Property tools ─────────────────────────────────────────────────
+
+function formatPropertySection(result: PropertySectionResultDto): string {
+  const section = result.section;
+  const lines: string[] = [`**${section.title}**`];
+  if (section.description) {
+    lines.push(section.description);
+  }
+  for (const field of section.fields) {
+    const ro = field.isReadOnly ? " [read-only]" : "";
+    const value = field.currentValue ?? "(not set)";
+    let line = `- ${field.displayName} (${field.fieldType}${ro}): ${value}`;
+    if (field.options && field.options.length > 0) {
+      const opts = field.options.map((o) => o.displayName).join(", ");
+      line += ` [options: ${opts}]`;
+    }
+    lines.push(line);
+  }
+  return lines.join("\n");
+}
+
+export class GetCellPropertiesTool
+  implements vscode.LanguageModelTool<{ cellNumber: number }>
+{
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      cellNumber: number;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const cells = await listCellsRaw(ctx);
+    const cell = resolveCell(cells, options.input.cellNumber);
+    if (!cell) {
+      return textResult(
+        `Cell ${options.input.cellNumber} not found. The notebook has ${cells.length} cell(s).`
+      );
+    }
+
+    const result = await ctx.host.sendRequest<PropertiesGetSectionsResult>(
+      "properties/getSections",
+      { notebookId: ctx.notebookId, cellId: cell.id }
+    );
+
+    if (result.sections.length === 0) {
+      return textResult(
+        `Cell ${options.input.cellNumber} has no configurable properties.`
+      );
+    }
+
+    const text = result.sections
+      .map((s) => formatPropertySection(s))
+      .join("\n\n");
+    return textResult(
+      `Properties for cell ${options.input.cellNumber}:\n\n${text}`
+    );
+  }
+}
+
+export class UpdateCellPropertyTool
+  implements
+    vscode.LanguageModelTool<{
+      cellNumber: number;
+      providerExtensionId: string;
+      propertyName: string;
+      value: string;
+    }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      cellNumber: number;
+      providerExtensionId: string;
+      propertyName: string;
+      value: string;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Setting "${options.input.propertyName}" on cell ${options.input.cellNumber}`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      cellNumber: number;
+      providerExtensionId: string;
+      propertyName: string;
+      value: string;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const cells = await listCellsRaw(ctx);
+    const cell = resolveCell(cells, options.input.cellNumber);
+    if (!cell) {
+      return textResult(
+        `Cell ${options.input.cellNumber} not found. The notebook has ${cells.length} cell(s).`
+      );
+    }
+
+    const { providerExtensionId, propertyName, value } = options.input;
+
+    await ctx.host.sendRequest("properties/updateProperty", {
+      notebookId: ctx.notebookId,
+      cellId: cell.id,
+      providerExtensionId,
+      propertyName,
+      value,
+    });
+
+    notifyWebviewChanged(ctx);
+
+    return textResult(
+      `Updated "${propertyName}" to "${value}" on cell ${options.input.cellNumber}.`
+    );
+  }
+}
+
 // ── Registration ────────────────────────────────────────────────────
 
 export function registerTools(
@@ -754,6 +882,14 @@ export function registerTools(
     vscode.lm.registerTool(
       "verso_removeParameter",
       new RemoveParameterTool()
+    ),
+    vscode.lm.registerTool(
+      "verso_getCellProperties",
+      new GetCellPropertiesTool()
+    ),
+    vscode.lm.registerTool(
+      "verso_updateCellProperty",
+      new UpdateCellPropertyTool()
     )
   );
 }

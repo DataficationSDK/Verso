@@ -6,6 +6,7 @@ import {
   CellDto,
   ExecutionRunAllResult,
   LanguagesResult,
+  PropertiesGetSectionsResult,
   VariableListResult,
 } from "../host/protocol";
 
@@ -27,6 +28,11 @@ Parameters:
 - Supported parameter types: string, int, float, bool, date (yyyy-MM-dd), datetime (ISO 8601).
 - Use verso_listParameters to see current parameters, and verso_addParameter / verso_updateParameter / verso_removeParameter to manage them.
 - A parameters cell is automatically created when the first parameter is added.
+
+Cell properties:
+- Cells can have configurable properties provided by extensions (e.g. visibility, formatting, tags).
+- Use verso_getCellProperties to discover available properties for a cell, then verso_updateCellProperty to change them.
+- Always call verso_getCellProperties first to get the providerExtensionId and property names before updating.
 
 Guidelines:
 - Before modifying cells, call verso_listCells to understand the current notebook state.
@@ -181,6 +187,72 @@ async function handleVarsCommand(
   return {};
 }
 
+async function handlePropsCommand(
+  stream: vscode.ChatResponseStream,
+  prompt: string,
+  _token: vscode.CancellationToken
+): Promise<vscode.ChatResult> {
+  const ctx = await resolveNotebook();
+  if (!ctx) {
+    stream.markdown("No Verso notebook is currently open.");
+    return {};
+  }
+
+  const cellNumber = parseInt(prompt.trim(), 10);
+  if (isNaN(cellNumber) || cellNumber < 1) {
+    stream.markdown(
+      "Usage: `/props <cell number>` (1-based). Example: `/props 2`"
+    );
+    return {};
+  }
+
+  const cellsResult = await ctx.host.sendRequest<{ cells: CellDto[] }>(
+    "cell/list",
+    { notebookId: ctx.notebookId }
+  );
+  const cell = cellsResult.cells[cellNumber - 1];
+  if (!cell) {
+    stream.markdown(
+      `Cell ${cellNumber} not found. The notebook has ${cellsResult.cells.length} cell(s).`
+    );
+    return {};
+  }
+
+  const result = await ctx.host.sendRequest<PropertiesGetSectionsResult>(
+    "properties/getSections",
+    { notebookId: ctx.notebookId, cellId: cell.id }
+  );
+
+  if (result.sections.length === 0) {
+    stream.markdown(
+      `Cell ${cellNumber} has no configurable properties.`
+    );
+    return {};
+  }
+
+  const lang = cell.language ?? cell.type;
+  stream.markdown(`**Cell ${cellNumber}** [${lang}] properties:\n\n`);
+
+  for (const s of result.sections) {
+    stream.markdown(`### ${s.section.title}\n`);
+    if (s.section.description) {
+      stream.markdown(`${s.section.description}\n`);
+    }
+    stream.markdown(
+      "| Property | Type | Value | Read-only |\n|---|---|---|---|\n"
+    );
+    for (const field of s.section.fields) {
+      const value = field.currentValue ?? "(not set)";
+      stream.markdown(
+        `| ${field.displayName} | ${field.fieldType} | ${value} | ${field.isReadOnly ? "Yes" : "No"} |\n`
+      );
+    }
+    stream.markdown(`\n*Provider: \`${s.providerExtensionId}\`*\n\n`);
+  }
+
+  return {};
+}
+
 // ── Main handler ────────────────────────────────────────────────────
 
 const handler: vscode.ChatRequestHandler = async (
@@ -198,6 +270,9 @@ const handler: vscode.ChatRequestHandler = async (
   }
   if (request.command === "vars") {
     return handleVarsCommand(stream, token);
+  }
+  if (request.command === "props") {
+    return handlePropsCommand(stream, request.prompt, token);
   }
 
   // Check if any notebook is open

@@ -81,6 +81,10 @@
           {
             "name": "vars",
             "description": "Show variables in scope"
+          },
+          {
+            "name": "props",
+            "description": "Show properties for a cell"
           }
         ]
       }
@@ -325,6 +329,52 @@
             }
           },
           "required": ["name"]
+        }
+      },
+      {
+        "name": "verso_getCellProperties",
+        "tags": ["verso", "notebook", "properties"],
+        "displayName": "Get Cell Properties",
+        "modelDescription": "Get the configurable properties for a specific cell. Properties are extension-provided settings like visibility, formatting, or tags. Call this before verso_updateCellProperty to discover available properties and their current values. The response includes providerExtensionId values needed for updates.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based cell number to get properties for"
+            }
+          },
+          "required": ["cellNumber"]
+        }
+      },
+      {
+        "name": "verso_updateCellProperty",
+        "tags": ["verso", "notebook", "properties"],
+        "displayName": "Update Cell Property",
+        "modelDescription": "Update a property on a cell. Call verso_getCellProperties first to discover the available properties, their field types, and the providerExtensionId needed for this call. For Select fields, use the option value (not display name). For Toggle fields, use 'true' or 'false'.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based cell number to update"
+            },
+            "providerExtensionId": {
+              "type": "string",
+              "description": "The provider extension ID from verso_getCellProperties results"
+            },
+            "propertyName": {
+              "type": "string",
+              "description": "The property name (the 'name' field, not 'displayName')"
+            },
+            "value": {
+              "type": "string",
+              "description": "The new value as a string. For Toggle: 'true'/'false'. For Select: use the option value. For Tags: comma-separated values."
+            }
+          },
+          "required": ["cellNumber", "providerExtensionId", "propertyName", "value"]
         }
       }
     ]
