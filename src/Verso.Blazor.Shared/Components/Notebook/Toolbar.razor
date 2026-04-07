@@ -67,7 +67,7 @@
         {
             <div class="verso-toolbar-separator"></div>
 
-            <div class="verso-toolbar-dropdown" @onfocusout="OnLayoutDropdownFocusOut" tabindex="-1">
+            <div class="verso-toolbar-dropdown">
                 <button class="verso-toolbar-btn"
                         title="Switch Layout"
                         @onclick="CycleLayout">
@@ -81,7 +81,7 @@
                 </button>
                 @if (_showLayoutDropdown)
                 {
-                    <div class="verso-toolbar-dropdown-popup">
+                    <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
                         @foreach (var layout in Service.AvailableLayouts)
                         {
                             var l = layout;
@@ -100,7 +100,7 @@
         {
             <div class="verso-toolbar-separator"></div>
 
-            <div class="verso-toolbar-dropdown" @onfocusout="OnThemeDropdownFocusOut" tabindex="-1">
+            <div class="verso-toolbar-dropdown">
                 <button class="verso-toolbar-btn"
                         title="Switch Theme"
                         @onclick="CycleTheme">
@@ -114,7 +114,7 @@
                 </button>
                 @if (_showThemeDropdown)
                 {
-                    <div class="verso-toolbar-dropdown-popup">
+                    <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
                         @foreach (var theme in Service.AvailableThemes)
                         {
                             var t = theme;
