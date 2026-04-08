@@ -9,7 +9,7 @@
     <RootNamespace>Verso.Cli</RootNamespace>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>verso</ToolCommandName>
-    <RollForward>LatestMajor</RollForward>
+    <RollForward>Major</RollForward>
     <PackageId>Verso.Cli</PackageId>
     <PackageDescription>Command-line tool for the Verso interactive notebook platform.</PackageDescription>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -24,40 +24,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-  <!-- Locate blazor.web.js so it can be bundled with the tool.
-       .NET 10+ ships it as a NuGet static web asset; .NET 8/9 embed it
-       inside Microsoft.AspNetCore.Components.Endpoints.dll. We try the
-       NuGet package first (MSBuild glob), then fall back to extracting the
-       embedded resource via a small inline task. -->
-  <UsingTask TaskName="_ExtractEmbeddedBlazorJs"
-             TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <SharedFrameworkDir ParameterType="System.String" Required="true" />
-      <OutputFile ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Code Type="Fragment" Language="cs"><![CDATA[
-        var dll = System.IO.Path.Combine(SharedFrameworkDir, "Microsoft.AspNetCore.Components.Endpoints.dll");
-        if (!System.IO.File.Exists(dll)) return true;
-        try
-        {
-            var asm = System.Reflection.Assembly.LoadFrom(dll);
-            using var stream = asm.GetManifestResourceStream("_framework/blazor.web.js");
-            if (stream == null) return true;
-            var dir = System.IO.Path.GetDirectoryName(OutputFile);
-            if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
-            using var fs = System.IO.File.Create(OutputFile);
-            stream.CopyTo(fs);
-        }
-        catch { }
-        return true;
-      ]]></Code>
-    </Task>
-  </UsingTask>
-
-  <Target Name="_ExtractBlazorFrameworkJs" AfterTargets="Build">
-    <!-- Try NuGet package first (.NET 10+) -->
+  <!-- blazor.web.js is placed into $(OutputPath)wwwroot/_framework/ before
+       build by CI (see .github/workflows) or by the NuGet-cache copy below.
+       The pack target then bundles it into the tool package. -->
+  <Target Name="_CopyBlazorFrameworkJs" AfterTargets="Build">
     <ItemGroup>
       <_BlazorWebJsFromNuGet Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.web.js" />
     </ItemGroup>
@@ -65,16 +35,8 @@
           DestinationFolder="$(OutputPath)wwwroot/_framework/"
           SkipUnchangedFiles="true"
           Condition="'@(_BlazorWebJsFromNuGet)' != ''" />
-    <!-- Fallback: extract embedded resource (.NET 8/9 shared framework) -->
-    <ItemGroup Condition="'@(_BlazorWebJsFromNuGet)' == ''">
-      <_AspNetSharedFx Include="$(NetCoreRoot)shared/Microsoft.AspNetCore.App/*" />
-    </ItemGroup>
-    <_ExtractEmbeddedBlazorJs
-        SharedFrameworkDir="%(_AspNetSharedFx.Identity)"
-        OutputFile="$(OutputPath)wwwroot/_framework/blazor.web.js"
-        Condition="'@(_BlazorWebJsFromNuGet)' == '' AND '@(_AspNetSharedFx)' != '' AND !Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
-    <Warning Text="Could not locate blazor.web.js; verso serve may not function correctly."
-             Condition="!Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
+    <Warning Text="blazor.web.js not found in NuGet cache or $(OutputPath)wwwroot/_framework/. Run the extract-blazor-js CI step or copy the file manually."
+             Condition="'@(_BlazorWebJsFromNuGet)' == '' AND !Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
   </Target>
 
   <!-- Bundle static web assets so the Blazor Server app works when installed
