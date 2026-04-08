@@ -1,5 +1,20 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions & Discussions
-    url: https://github.com/user/verso/discussions
-    about: Use Discussions for questions, ideas, and general help. Issues are for confirmed bugs and feature requests.
+  - name: Feature Requests
+    url: https://github.com/DataficationSDK/Verso/discussions/categories/feature-requests
+    about: Suggest new features or improvements for Verso.
+  - name: Q&A
+    url: https://github.com/DataficationSDK/Verso/discussions/categories/q-a
+    about: Ask questions and get help from the community.
+  - name: Extensions
+    url: https://github.com/DataficationSDK/Verso/discussions/categories/extensions
+    about: Discuss building or using Verso extensions.
+  - name: Show and Tell
+    url: https://github.com/DataficationSDK/Verso/discussions/categories/show-and-tell
+    about: Share notebooks, workflows, or projects you have built with Verso.
+  - name: Migration
+    url: https://github.com/DataficationSDK/Verso/discussions/categories/migration
+    about: Get help migrating from Polyglot Notebooks, Jupyter, Papermill, or other notebook platforms.
+  - name: General Discussion
+    url: https://github.com/DataficationSDK/Verso/discussions/categories/general
+    about: General conversation about Verso that does not fit other categories.
