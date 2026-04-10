@@ -17,6 +17,7 @@ public sealed class SampleRenderer : ICellRenderer
     public string CellTypeId => "sample";
     public string DisplayName => "Sample";
     public bool CollapsesInputOnExecute => false;
+    public CellVisibilityHint DefaultVisibility => CellVisibilityHint.Content;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

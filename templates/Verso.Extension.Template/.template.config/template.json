@@ -37,6 +37,24 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Include an ICellRenderer scaffold"
+    },
+    "includeMagicCommand": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include an IMagicCommand scaffold"
+    },
+    "includeCellType": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include an ICellType scaffold"
+    },
+    "includeTheme": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include an ITheme scaffold"
     }
   },
   "sources": [
@@ -52,6 +70,27 @@
           "condition": "(!includeRenderer)",
           "exclude": [
             "SampleRenderer.cs"
+          ]
+        },
+        {
+          "condition": "(!includeMagicCommand)",
+          "exclude": [
+            "SampleMagicCommand.cs",
+            "MyExtension.Tests/SampleMagicCommandTests.cs"
+          ]
+        },
+        {
+          "condition": "(!includeCellType)",
+          "exclude": [
+            "SampleCellType.cs",
+            "MyExtension.Tests/SampleCellTypeTests.cs"
+          ]
+        },
+        {
+          "condition": "(!includeTheme)",
+          "exclude": [
+            "SampleTheme.cs",
+            "MyExtension.Tests/SampleThemeTests.cs"
           ]
         }
       ]
