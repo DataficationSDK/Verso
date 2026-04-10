@@ -91,6 +91,13 @@ export class BlazorBridge implements vscode.Disposable {
   }
 
   /**
+   * Get the document URI for this editor session.
+   */
+  getDocumentUri(): vscode.Uri | undefined {
+    return this.documentUri;
+  }
+
+  /**
    * Set the notebookId assigned by the host for this editor session.
    */
   setNotebookId(id: string): void {

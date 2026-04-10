@@ -214,23 +214,14 @@ export class BlazorEditorProvider
 
   // --- Save / Revert ---
 
-  private getHostForDocument(uri: vscode.Uri): HostProcess | undefined {
-    for (const [panel, host] of this.hosts) {
-      const bridge = this.bridges.get(panel);
-      if (bridge && notebookRegistry.getByUri(uri) !== undefined) {
-        return host;
-      }
-    }
-    return undefined;
-  }
-
   async saveCustomDocument(
     document: VersoDocument,
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const notebookId = notebookRegistry.getByUri(document.uri);
-    const host = this.getHostForDocument(document.uri);
-    if (!host || !notebookId) return;
+    const session = hostRegistry.getByUri(document.uri);
+    if (!session || !notebookId) return;
+    const host = session.host;
 
     // If the source file is not a .verso file (e.g. imported .dib or .ipynb),
     // redirect the save to a .verso file to avoid overwriting the original format.
@@ -272,8 +263,9 @@ export class BlazorEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const notebookId = notebookRegistry.getByUri(document.uri);
-    const host = this.getHostForDocument(document.uri);
-    if (!host || !notebookId) return;
+    const session = hostRegistry.getByUri(document.uri);
+    if (!session || !notebookId) return;
+    const host = session.host;
 
     // If the destination is not a .verso file, adjust the extension
     let targetUri = destination;
@@ -304,10 +296,11 @@ export class BlazorEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<vscode.CustomDocumentBackup> {
     const notebookId = notebookRegistry.getByUri(document.uri);
-    const host = this.getHostForDocument(document.uri);
-    if (!host || !notebookId) {
+    const session = hostRegistry.getByUri(document.uri);
+    if (!session || !notebookId) {
       return { id: context.destination.toString(), delete: () => {} };
     }
+    const host = session.host;
     const result = await host.sendRequest<NotebookSaveResult>(
       "notebook/save",
       { notebookId }
