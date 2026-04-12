@@ -285,6 +285,44 @@ public sealed class Scaffold : IAsyncDisposable
         await WarmUpKernelAsync(id).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Disposes and re-initializes all active kernels and clears the variable store.
+    /// Used by <see cref="ExecuteAllAsync"/> to ensure a clean slate without visible
+    /// kernel-restart feedback in the UI.
+    /// </summary>
+    private async Task ResetAllKernelsAsync()
+    {
+        // Preserve parameter values across the reset so that explicitly
+        // set parameters (e.g. via --param or the Parameters cell) survive.
+        var parameterNames = _notebook.Parameters?.Keys;
+        List<(string Name, object Value)>? savedParams = null;
+
+        if (parameterNames is { Count: > 0 })
+        {
+            savedParams = new List<(string, object)>();
+            foreach (var name in parameterNames)
+            {
+                if (_variables.TryGet<object>(name, out var value) && value is not null)
+                    savedParams.Add((name, value));
+            }
+        }
+
+        foreach (var kernel in _kernels.Values)
+        {
+            await kernel.DisposeAsync().ConfigureAwait(false);
+        }
+
+        _initializationTasks.Clear();
+        _variables.Clear();
+
+        // Restore parameter values
+        if (savedParams is not null)
+        {
+            foreach (var (name, value) in savedParams)
+                _variables.Set(name, value);
+        }
+    }
+
     // --- Execution ---
 
     public async Task<ExecutionResult> ExecuteCellAsync(Guid cellId, CancellationToken ct = default)
@@ -307,6 +345,11 @@ public sealed class Scaffold : IAsyncDisposable
 
     public async Task<IReadOnlyList<ExecutionResult>> ExecuteAllAsync(CancellationToken ct = default)
     {
+        // Reset all kernels to a clean state so Run All behaves as if
+        // the notebook is being executed from scratch. Without this,
+        // stale variables from previous runs can leak into the new run.
+        await ResetAllKernelsAsync().ConfigureAwait(false);
+
         // Inject parameters and validate required ones before execution
         EnsureParametersInjected();
         var paramError = ValidateRequiredParameters();

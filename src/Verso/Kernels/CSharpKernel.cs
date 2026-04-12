@@ -37,6 +37,13 @@ public sealed class CSharpKernel : ILanguageKernel
     private bool _parametersInjected;
     private bool _disposed;
 
+    /// <summary>
+    /// Tracks variable names that have already been declared in the Roslyn script state.
+    /// Roslyn script chaining disallows redeclaring a <c>var</c>, so previously injected
+    /// variables must use assignment instead of declaration on subsequent executions.
+    /// </summary>
+    private readonly HashSet<string> _injectedStoreVariables = new(StringComparer.Ordinal);
+
     public CSharpKernel() : this(new CSharpKernelOptions()) { }
 
     public CSharpKernel(CSharpKernelOptions options)
@@ -70,6 +77,12 @@ public sealed class CSharpKernel : ILanguageKernel
 
         var imports = _options.DefaultImports ?? CSharpKernelOptions.StandardImports;
         var references = BuildDefaultReferences();
+
+        // Add Verso.Abstractions so CellOutput and other types are available
+        // in C# cells without requiring #r "nuget: Verso.Abstractions"
+        var abstractionsAssembly = typeof(Verso.Abstractions.CellOutput).Assembly.Location;
+        if (!string.IsNullOrEmpty(abstractionsAssembly))
+            references.Add(MetadataReference.CreateFromFile(abstractionsAssembly));
 
         var scriptOptions = ScriptOptions.Default
             .AddImports(imports)
@@ -151,6 +164,15 @@ public sealed class CSharpKernel : ILanguageKernel
                     await _stateManager!.RunAsync(preamble, _globals, context.CancellationToken)
                         .ConfigureAwait(false);
                 }
+            }
+
+            // Inject shared variables from the store so other kernels' outputs
+            // (and widget values like sliders) are accessible by name in C# cells.
+            var storePreamble = BuildVariableStorePreamble(context);
+            if (storePreamble is not null)
+            {
+                await _stateManager!.RunAsync(storePreamble, _globals, context.CancellationToken)
+                    .ConfigureAwait(false);
             }
 
             var scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)
@@ -286,6 +308,7 @@ public sealed class CSharpKernel : ILanguageKernel
         _disposed = true;
         _initialized = false;
         _parametersInjected = false;
+        _injectedStoreVariables.Clear();
 
         if (_stateManager is not null)
             await _stateManager.DisposeAsync().ConfigureAwait(false);
@@ -391,6 +414,57 @@ public sealed class CSharpKernel : ILanguageKernel
 
             // Declare as typed variable, reading from the variable store
             sb.AppendLine($"var {name} = Variables.TryGet<{clrType}>(\"{name}\", out var __{name}__val) ? __{name}__val : {defaultLiteral};");
+        }
+
+        return sb.Length > 0 ? sb.ToString() : null;
+    }
+
+    /// <summary>
+    /// Builds a C# preamble that injects shared variables from the <see cref="IVariableStore"/>
+    /// as top-level script identifiers. Runs before every cell so values stay current
+    /// (e.g. slider widgets updated between executions).
+    /// Uses <c>var</c> for first-time declarations and plain assignment for variables
+    /// already in the Roslyn script chain.
+    /// </summary>
+    private string? BuildVariableStorePreamble(IExecutionContext context)
+    {
+        var descriptors = context.Variables.GetAll();
+        if (descriptors.Count == 0) return null;
+
+        // Variables already in the Roslyn script state were declared by user code.
+        // Skip them to avoid shadowing typed declarations with object-typed assignments.
+        var scriptVars = _stateManager!.GetVariables();
+
+        // Parameters were already injected with typed declarations.
+        var parameterNames = context.NotebookMetadata?.Parameters?.Keys;
+
+        var sb = new System.Text.StringBuilder();
+
+        foreach (var desc in descriptors)
+        {
+            if (desc.Value is null) continue;
+            if (!IsValidCSharpIdentifier(desc.Name)) continue;
+            if (desc.Name.StartsWith("__verso_", StringComparison.Ordinal)) continue;
+            if (parameterNames is not null && parameterNames.Contains(desc.Name)) continue;
+
+            // Skip variables that the user declared in C# code. Only inject
+            // variables that originated from other kernels or widgets.
+            if (scriptVars.ContainsKey(desc.Name) && !_injectedStoreVariables.Contains(desc.Name))
+                continue;
+
+            // Skip non-serializable types that can't meaningfully be used in script code
+            if (desc.Value is Delegate or CancellationToken or Task or IAsyncDisposable)
+                continue;
+
+            if (_injectedStoreVariables.Contains(desc.Name))
+            {
+                sb.AppendLine($"{desc.Name} = Variables.Get<object>(\"{desc.Name}\");");
+            }
+            else
+            {
+                sb.AppendLine($"var {desc.Name} = Variables.Get<object>(\"{desc.Name}\");");
+                _injectedStoreVariables.Add(desc.Name);
+            }
         }
 
         return sb.Length > 0 ? sb.ToString() : null;

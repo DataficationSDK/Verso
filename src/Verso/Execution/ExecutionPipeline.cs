@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Verso.Abstractions;
 using Verso.Contexts;
+using Verso.Display;
 using Verso.MagicCommands;
 
 namespace Verso.Execution;
@@ -234,6 +235,11 @@ internal sealed class ExecutionPipeline
             display: AppendOutput);
 
         ct.ThrowIfCancellationRequested();
+
+        // Set up the ambient display handler so user code can call .Display()
+        var displayFormatterContext = new DisplayFormatterContext(context);
+        var displayHandler = new DisplayHandler(AppendOutput, _extensionHost, displayFormatterContext);
+        using var _ = DisplayContext.SetHandler(displayHandler.DisplayAsync);
 
         var returnedOutputs = await kernel.ExecuteAsync(codeToExecute, context).ConfigureAwait(false);
 

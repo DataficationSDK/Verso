@@ -277,7 +277,7 @@ public sealed class PythonKernel : ILanguageKernel
                     outputs.Add(new CellOutput("text/plain", stderr, IsError: true));
                 }
 
-                // Drain display queue
+                // Drain display queue and write outputs immediately
                 using var displayItems = _scopeManager.Eval("_verso_flush_display()");
                 using var pyList = new PyList(displayItems);
                 for (var i = 0; i < pyList.Length(); i++)
@@ -287,7 +287,9 @@ public sealed class PythonKernel : ILanguageKernel
                     using var contentObj = item[1];
                     var mime = mimeObj.ToString() ?? "text/plain";
                     var content = contentObj.ToString() ?? "";
-                    outputs.Add(new CellOutput(mime, content));
+                    var cellOutput = new CellOutput(mime, content);
+                    context.WriteOutputAsync(cellOutput).GetAwaiter().GetResult();
+                    outputs.Add(cellOutput);
                 }
 
                 // Try last-expression capture: compile the last line as an eval expression

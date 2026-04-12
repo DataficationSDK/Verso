@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Jint;
 using Jint.Native;
 using Jint.Runtime;
+using Verso.Abstractions;
 
 namespace Verso.JavaScript.Kernel;
 
@@ -46,11 +47,20 @@ internal sealed class JintRunner : IJavaScriptRunner
         // Shim console
         _engine.SetValue("console", new JintConsoleShim(_stdoutBuf, _stderrBuf));
 
+        // Inject display() function that routes through DisplayContext
+        _engine.SetValue("display", new Action<object, object?>((value, mimeType) =>
+        {
+            if (value is null) return;
+            var hint = mimeType is string s ? s : null;
+            DisplayExtensions.Display(value, hint);
+        }));
+
         // Snapshot initial globals
         _initialGlobals = _engine.Global.GetOwnProperties()
             .Select(p => p.Key.ToString())
             .ToHashSet();
         _initialGlobals.Add("console");
+        _initialGlobals.Add("display");
 
         return Task.CompletedTask;
     }

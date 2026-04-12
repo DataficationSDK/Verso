@@ -203,6 +203,10 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 }
             }
 
+            // Inject shared variables from the store so other kernels' outputs
+            // are accessible by name in F# cells.
+            _variableBridge!.InjectFromStore(_sessionManager!, context.Variables);
+
             var outputs = new List<CellOutput>();
             var processedCode = code;
 

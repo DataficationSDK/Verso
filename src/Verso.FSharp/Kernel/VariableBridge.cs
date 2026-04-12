@@ -28,6 +28,7 @@ internal sealed class VariableBridge
     /// <summary>
     /// Injects the <see cref="IVariableStore"/> into the FSI session as <c>Variables</c>,
     /// and evaluates an <c>[&lt;AutoOpen&gt;]</c> helper module providing <c>tryGetVar</c> convenience function.
+    /// Called once during kernel initialization.
     /// </summary>
     public void InjectVariables(FsiSessionManager session, IVariableStore store)
     {
@@ -45,6 +46,55 @@ module VersoHelpers =
         else
             None
 ");
+
+        // Display functions are injected separately so that the type resolution
+        // for Verso.Abstractions.DisplayExtensions does not pollute the FSI
+        // type environment within the VersoHelpers module definition.
+        session.EvalSilent(@"
+let display (value: obj) : unit =
+    Verso.Abstractions.DisplayExtensions.Display(value, null)
+
+let displayAs (mimeType: string) (value: obj) : unit =
+    Verso.Abstractions.DisplayExtensions.Display(value, mimeType)
+");
+    }
+
+    /// <summary>
+    /// Injects all shared variables from the <see cref="IVariableStore"/> as top-level
+    /// FSI bindings so other kernels' outputs are accessible by name.
+    /// Called before every cell execution so values stay current.
+    /// </summary>
+    public void InjectFromStore(FsiSessionManager session, IVariableStore store)
+    {
+        foreach (var desc in store.GetAll())
+        {
+            if (desc.Value is null) continue;
+            if (InjectedNames.Contains(desc.Name)) continue;
+            if (desc.Name.StartsWith("__verso_", StringComparison.Ordinal)) continue;
+
+            if (desc.Value is Delegate or CancellationToken or Task or IAsyncDisposable)
+                continue;
+
+            try
+            {
+                // String values must be injected via a let binding with F#'s native
+                // string type. AddBoundValue binds them as System.String, which F#'s
+                // type checker treats differently (e.g. printfn "%s" fails).
+                if (desc.Value is string s)
+                {
+                    var escaped = s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                    session.EvalSilent($"let {desc.Name} = \"{escaped}\"");
+                }
+                else
+                {
+                    session.AddBoundValue(desc.Name, desc.Value);
+                }
+            }
+            catch
+            {
+                // Some values may not be representable in FSI; skip silently
+            }
+        }
     }
 
     /// <summary>

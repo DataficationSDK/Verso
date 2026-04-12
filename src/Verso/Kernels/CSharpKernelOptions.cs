@@ -19,6 +19,7 @@ public sealed record CSharpKernelOptions(
         "System.IO",
         "System.Linq",
         "System.Text",
-        "System.Threading.Tasks"
+        "System.Threading.Tasks",
+        "Verso.Abstractions"
     };
 }

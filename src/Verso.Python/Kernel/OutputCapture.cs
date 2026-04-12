@@ -91,10 +91,31 @@ sys.stderr = _verso_stderr
 # --- rich display queue ---
 _verso_display_outputs = []
 
-def display(obj):
+def display(obj, mime_type=None):
     # Route an object through rich-output detection into the display queue.
     if obj is None:
         return
+
+    # When an explicit MIME type hint is provided, format accordingly.
+    if mime_type is not None:
+        if mime_type == 'application/json':
+            import json
+            try:
+                content = json.dumps(obj, indent=2, default=str)
+            except (TypeError, ValueError):
+                content = str(obj)
+            _verso_display_outputs.append(('application/json', content))
+            return
+        elif mime_type == 'text/html':
+            _verso_display_outputs.append(('text/html', str(obj)))
+            return
+        elif mime_type == 'text/plain':
+            _verso_display_outputs.append(('text/plain', str(obj)))
+            return
+        else:
+            # Unknown MIME hint: use it as-is with str() content
+            _verso_display_outputs.append((mime_type, str(obj)))
+            return
 
     if hasattr(obj, '_repr_html_') and callable(obj._repr_html_):
         html = obj._repr_html_()

@@ -171,6 +171,17 @@ public sealed class JavaScriptKernel : ILanguageKernel
         if (result.Stderr is not null)
             outputs.Add(new CellOutput("text/plain", result.Stderr, IsError: true));
 
+        // Process display() outputs (Node queue-based; Jint calls DisplayContext directly)
+        if (result.DisplayOutputs is { Count: > 0 })
+        {
+            foreach (var displayOutput in result.DisplayOutputs)
+            {
+                var cellOutput = new CellOutput(displayOutput.MimeType, displayOutput.Content);
+                await context.WriteOutputAsync(cellOutput);
+                outputs.Add(cellOutput);
+            }
+        }
+
         if (result.HasError)
         {
             outputs.Add(new CellOutput(

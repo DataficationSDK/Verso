@@ -37,6 +37,9 @@ public sealed class PowerShellKernel : ILanguageKernel
         _runspaceManager = new RunspaceManager();
         _runspaceManager.Initialize();
 
+        // Inject Display function that routes through DisplayContext
+        _runspaceManager.InjectDisplayFunction();
+
         _variableBridge = new VariableBridge(_runspaceManager, _options);
         _variablesInjected = false;
 

@@ -5,131 +5,113 @@
     "created": "2026-03-21T00:00:00+00:00",
     "modified": "2026-03-21T00:00:00+00:00",
     "defaultKernel": "csharp",
+    "activeLayout": "notebook",
     "preferredTheme": "verso-dark"
   },
   "cells": [
     {
       "id": "a0000000-0000-0000-0000-000000000001",
       "type": "markdown",
-      "source": "# Supported CellOutput MIME Types\n\nThis notebook demonstrates each MIME type that Verso can render from a `CellOutput`.\nEach section shows how to construct the output from a C# code cell.",
-      "outputs": []
+      "source": "# Supported CellOutput MIME Types\n\nThis notebook demonstrates each MIME type that Verso can render from a \u0060CellOutput\u0060.\nEach section shows how to construct the output from a C# code cell."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000002",
       "type": "code",
       "language": "csharp",
-      "source": "#r \"nuget: Verso.Abstractions, 1.0.2\"\n\nusing Verso.Abstractions;\nusing System.Net;\nusing System.Text;",
-      "outputs": []
+      "source": "using System.Net;\nusing System.Text;"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000010",
       "type": "markdown",
-      "source": "---\n## text/plain\n\nThe default. Any MIME type that doesn't match a specific handler renders as preformatted text.",
-      "outputs": []
+      "source": "---\n## text/plain\n\nThe default. Any MIME type that doesn\u0027t match a specific handler renders as preformatted text."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000011",
       "type": "code",
       "language": "csharp",
-      "source": "new CellOutput(\"text/plain\", \"Hello from plain text!\\nLine two.\\nLine three.\")",
-      "outputs": []
+      "source": "CellOutput.Plain(\u0022Hello from plain text!\\nLine two.\\nLine three.\u0022)"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000020",
       "type": "markdown",
-      "source": "---\n## text/html\n\nRaw HTML injected directly into the output. Supports inline styles and CSS custom properties.",
-      "outputs": []
+      "source": "---\n## text/html\n\nRaw HTML injected directly into the output. Supports inline styles and CSS custom properties."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000021",
       "type": "code",
       "language": "csharp",
-      "source": "new CellOutput(\"text/html\", @\"\n<div style='padding:16px;border-radius:8px;\n  background:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));\n  color:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));\n  border:1px solid var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));\n  font-family:monospace;font-size:14px'>\n  <h3 style='margin:0 0 8px 0;color:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4))'>HTML Output</h3>\n  <p style='margin:0'>Supports <b style='color:var(--vscode-errorForeground,#f14c4c)'>bold</b>, \n  <i style='color:var(--vscode-terminal-ansiGreen,#89d185)'>italic</i>, and \n  <span style='color:var(--vscode-terminal-ansiYellow,#e5c07b)'>styled spans</span>.</p>\n</div>\")",
-      "outputs": []
+      "source": "CellOutput.Html(@\u0022\n\u003Cdiv style=\u0027padding:16px;border-radius:8px;\n  background:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5));\n  color:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e));\n  border:1px solid var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));\n  font-family:monospace;font-size:14px\u0027\u003E\n  \u003Ch3 style=\u0027margin:0 0 8px 0;color:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4))\u0027\u003EHTML Output\u003C/h3\u003E\n  \u003Cp style=\u0027margin:0\u0027\u003ESupports \u003Cb style=\u0027color:var(--vscode-errorForeground,#f14c4c)\u0027\u003Ebold\u003C/b\u003E, \n  \u003Ci style=\u0027color:var(--vscode-terminal-ansiGreen,#89d185)\u0027\u003Eitalic\u003C/i\u003E, and \n  \u003Cspan style=\u0027color:var(--vscode-terminal-ansiYellow,#e5c07b)\u0027\u003Estyled spans\u003C/span\u003E.\u003C/p\u003E\n\u003C/div\u003E\u0022)"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000030",
       "type": "markdown",
-      "source": "---\n## image/svg+xml\n\nInline SVG with support for animations.",
-      "outputs": []
+      "source": "---\n## image/svg\u002Bxml\n\nInline SVG with support for animations."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000031",
       "type": "code",
       "language": "csharp",
-      "source": "new CellOutput(\"image/svg+xml\", @\"\n<svg viewBox='0 0 400 100' xmlns='http://www.w3.org/2000/svg'\n  style='width:100%;max-width:400px;\n    background:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));\n    border:1px solid var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));\n    border-radius:8px;padding:8px'>\n  <style>\n    .sv-shape{stroke:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4))}\n    .sv-fill{fill:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5))}\n    .sv-text{fill:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e))}\n  </style>\n  <rect x='10' y='10' width='80' height='80' rx='12' class='sv-fill sv-shape' stroke-width='2'>\n    <animate attributeName='rx' values='12;40;12' dur='2s' repeatCount='indefinite'/>\n  </rect>\n  <circle cx='200' cy='50' r='30' fill='none' class='sv-shape' stroke-width='3' stroke-dasharray='10 5'>\n    <animateTransform attributeName='transform' type='rotate' from='0 200 50' to='360 200 50' dur='4s' repeatCount='indefinite'/>\n  </circle>\n  <text x='310' y='55' text-anchor='middle' font-family='monospace' font-size='14' class='sv-text' font-weight='bold'>\n    SVG\n    <animate attributeName='font-size' values='14;18;14' dur='1.5s' repeatCount='indefinite'/>\n  </text>\n</svg>\")",
-      "outputs": []
+      "source": "CellOutput.Svg(@\u0022\n\u003Csvg viewBox=\u00270 0 400 100\u0027 xmlns=\u0027http://www.w3.org/2000/svg\u0027\n  style=\u0027width:100%;max-width:400px;\n    background:var(--vscode-editor-background,var(--verso-cell-output-background,#fff));\n    border:1px solid var(--vscode-editorWidget-border,var(--verso-border-default,#e0e0e0));\n    border-radius:8px;padding:8px\u0027\u003E\n  \u003Cstyle\u003E\n    .sv-shape{stroke:var(--vscode-textLink-foreground,var(--verso-accent-primary,#0078d4))}\n    .sv-fill{fill:var(--vscode-editorWidget-background,var(--verso-cell-background,#f5f5f5))}\n    .sv-text{fill:var(--vscode-editor-foreground,var(--verso-cell-output-foreground,#1e1e1e))}\n  \u003C/style\u003E\n  \u003Crect x=\u002710\u0027 y=\u002710\u0027 width=\u002780\u0027 height=\u002780\u0027 rx=\u002712\u0027 class=\u0027sv-fill sv-shape\u0027 stroke-width=\u00272\u0027\u003E\n    \u003Canimate attributeName=\u0027rx\u0027 values=\u002712;40;12\u0027 dur=\u00272s\u0027 repeatCount=\u0027indefinite\u0027/\u003E\n  \u003C/rect\u003E\n  \u003Ccircle cx=\u0027200\u0027 cy=\u002750\u0027 r=\u002730\u0027 fill=\u0027none\u0027 class=\u0027sv-shape\u0027 stroke-width=\u00273\u0027 stroke-dasharray=\u002710 5\u0027\u003E\n    \u003CanimateTransform attributeName=\u0027transform\u0027 type=\u0027rotate\u0027 from=\u00270 200 50\u0027 to=\u0027360 200 50\u0027 dur=\u00274s\u0027 repeatCount=\u0027indefinite\u0027/\u003E\n  \u003C/circle\u003E\n  \u003Ctext x=\u0027310\u0027 y=\u002755\u0027 text-anchor=\u0027middle\u0027 font-family=\u0027monospace\u0027 font-size=\u002714\u0027 class=\u0027sv-text\u0027 font-weight=\u0027bold\u0027\u003E\n    SVG\n    \u003Canimate attributeName=\u0027font-size\u0027 values=\u002714;18;14\u0027 dur=\u00271.5s\u0027 repeatCount=\u0027indefinite\u0027/\u003E\n  \u003C/text\u003E\n\u003C/svg\u003E\u0022)"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000040",
       "type": "markdown",
-      "source": "---\n## image/png (also image/jpeg, image/gif, image/webp)\n\nBase64-encoded image data rendered as an `<img>` tag. The example below creates a 1px red PNG.",
-      "outputs": []
+      "source": "---\n## image/png (also image/jpeg, image/gif, image/webp)\n\nBase64-encoded image data rendered as an \u0060\u003Cimg\u003E\u0060 tag. The example below creates a 1px red PNG."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000041",
       "type": "code",
       "language": "csharp",
-      "source": "// Minimal valid 10x10 red PNG generated in code\nusing System.IO;\n\nstatic byte[] CreateSimpleBmp()\n{\n    int w = 120, h = 40;\n    var pixels = new byte[w * h * 3];\n    for (int y = 0; y < h; y++)\n        for (int x = 0; x < w; x++)\n        {\n            int i = (y * w + x) * 3;\n            float t = (float)x / w;\n            pixels[i]     = (byte)(137 * (1 - t) + 243 * t); // R: blue to red\n            pixels[i + 1] = (byte)(180 * (1 - t) + 139 * t); // G\n            pixels[i + 2] = (byte)(250 * (1 - t) + 168 * t); // B\n        }\n\n    // BMP format\n    int rowSize = ((w * 3 + 3) / 4) * 4;\n    int dataSize = rowSize * h;\n    int fileSize = 54 + dataSize;\n    var bmp = new byte[fileSize];\n    bmp[0] = 0x42; bmp[1] = 0x4D; // BM\n    BitConverter.GetBytes(fileSize).CopyTo(bmp, 2);\n    BitConverter.GetBytes(54).CopyTo(bmp, 10); // offset\n    BitConverter.GetBytes(40).CopyTo(bmp, 14); // header size\n    BitConverter.GetBytes(w).CopyTo(bmp, 18);\n    BitConverter.GetBytes(h).CopyTo(bmp, 22);\n    bmp[26] = 1; // planes\n    bmp[28] = 24; // bpp\n    for (int y = 0; y < h; y++)\n        for (int x = 0; x < w; x++)\n        {\n            int src = ((h - 1 - y) * w + x) * 3;\n            int dst = 54 + y * rowSize + x * 3;\n            bmp[dst] = pixels[src + 2]; bmp[dst+1] = pixels[src + 1]; bmp[dst+2] = pixels[src];\n        }\n    return bmp;\n}\n\nvar bmpBytes = CreateSimpleBmp();\nnew CellOutput(\"image/bmp\", Convert.ToBase64String(bmpBytes))",
-      "outputs": []
+      "source": "// Minimal valid 10x10 red PNG generated in code\nusing System.IO;\n\nstatic byte[] CreateSimpleBmp()\n{\n    int w = 120, h = 40;\n    var pixels = new byte[w * h * 3];\n    for (int y = 0; y \u003C h; y\u002B\u002B)\n        for (int x = 0; x \u003C w; x\u002B\u002B)\n        {\n            int i = (y * w \u002B x) * 3;\n            float t = (float)x / w;\n            pixels[i]     = (byte)(137 * (1 - t) \u002B 243 * t); // R: blue to red\n            pixels[i \u002B 1] = (byte)(180 * (1 - t) \u002B 139 * t); // G\n            pixels[i \u002B 2] = (byte)(250 * (1 - t) \u002B 168 * t); // B\n        }\n\n    // BMP format\n    int rowSize = ((w * 3 \u002B 3) / 4) * 4;\n    int dataSize = rowSize * h;\n    int fileSize = 54 \u002B dataSize;\n    var bmp = new byte[fileSize];\n    bmp[0] = 0x42; bmp[1] = 0x4D; // BM\n    BitConverter.GetBytes(fileSize).CopyTo(bmp, 2);\n    BitConverter.GetBytes(54).CopyTo(bmp, 10); // offset\n    BitConverter.GetBytes(40).CopyTo(bmp, 14); // header size\n    BitConverter.GetBytes(w).CopyTo(bmp, 18);\n    BitConverter.GetBytes(h).CopyTo(bmp, 22);\n    bmp[26] = 1; // planes\n    bmp[28] = 24; // bpp\n    for (int y = 0; y \u003C h; y\u002B\u002B)\n        for (int x = 0; x \u003C w; x\u002B\u002B)\n        {\n            int src = ((h - 1 - y) * w \u002B x) * 3;\n            int dst = 54 \u002B y * rowSize \u002B x * 3;\n            bmp[dst] = pixels[src \u002B 2]; bmp[dst\u002B1] = pixels[src \u002B 1]; bmp[dst\u002B2] = pixels[src];\n        }\n    return bmp;\n}\n\nvar bmpBytes = CreateSimpleBmp();\nCellOutput.Bmp(Convert.ToBase64String(bmpBytes))"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000042",
       "type": "markdown",
-      "source": "For real-world use, you would typically load an image file or capture chart output:\n```csharp\nvar bytes = File.ReadAllBytes(\"chart.png\");\nnew CellOutput(\"image/png\", Convert.ToBase64String(bytes))\n```",
-      "outputs": []
+      "source": "For real-world use, you would typically load an image file or capture chart output:\n\u0060\u0060\u0060csharp\nvar bytes = File.ReadAllBytes(\u0022chart.png\u0022);\nCellOutput.Png(Convert.ToBase64String(bytes))\n\u0060\u0060\u0060"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000050",
       "type": "markdown",
-      "source": "---\n## application/json\n\nCollapsible, syntax-highlighted JSON tree. Objects and arrays auto-expand for the first two levels.",
-      "outputs": []
+      "source": "---\n## application/json\n\nCollapsible, syntax-highlighted JSON tree. Objects and arrays auto-expand for the first two levels."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000051",
       "type": "code",
       "language": "csharp",
-      "source": "var json = @\"{\n  \"\"name\"\": \"\"Verso Notebook Engine\"\",\n  \"\"version\"\": \"\"1.0.0\"\",\n  \"\"features\"\": [\n    { \"\"name\"\": \"\"C# Kernel\"\", \"\"status\"\": \"\"stable\"\" },\n    { \"\"name\"\": \"\"F# Kernel\"\", \"\"status\"\": \"\"stable\"\" },\n    { \"\"name\"\": \"\"Python Kernel\"\", \"\"status\"\": \"\"preview\"\" }\n  ],\n  \"\"config\"\": {\n    \"\"maxCells\"\": 500,\n    \"\"autoSave\"\": true,\n    \"\"themes\"\": [\"\"light\"\", \"\"dark\"\", \"\"catppuccin\"\"]\n  }\n}\";\n\nnew CellOutput(\"application/json\", json)",
-      "outputs": []
+      "source": "var json = @\u0022{\n  \u0022\u0022name\u0022\u0022: \u0022\u0022Verso Notebook Engine\u0022\u0022,\n  \u0022\u0022version\u0022\u0022: \u0022\u00221.0.0\u0022\u0022,\n  \u0022\u0022features\u0022\u0022: [\n    { \u0022\u0022name\u0022\u0022: \u0022\u0022C# Kernel\u0022\u0022, \u0022\u0022status\u0022\u0022: \u0022\u0022stable\u0022\u0022 },\n    { \u0022\u0022name\u0022\u0022: \u0022\u0022F# Kernel\u0022\u0022, \u0022\u0022status\u0022\u0022: \u0022\u0022stable\u0022\u0022 },\n    { \u0022\u0022name\u0022\u0022: \u0022\u0022Python Kernel\u0022\u0022, \u0022\u0022status\u0022\u0022: \u0022\u0022preview\u0022\u0022 }\n  ],\n  \u0022\u0022config\u0022\u0022: {\n    \u0022\u0022maxCells\u0022\u0022: 500,\n    \u0022\u0022autoSave\u0022\u0022: true,\n    \u0022\u0022themes\u0022\u0022: [\u0022\u0022light\u0022\u0022, \u0022\u0022dark\u0022\u0022, \u0022\u0022catppuccin\u0022\u0022]\n  }\n}\u0022;\n\nCellOutput.Json(json)"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000060",
       "type": "markdown",
-      "source": "---\n## text/csv\n\nCSV content rendered as a styled, scrollable HTML table. The first row is treated as headers.",
-      "outputs": []
+      "source": "---\n## text/csv\n\nCSV content rendered as a styled, scrollable HTML table. The first row is treated as headers."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000061",
       "type": "code",
       "language": "csharp",
-      "source": "var csv = @\"Name,Department,Salary,Start Date\nAlice Johnson,Engineering,$95000,2020-03-15\nBob Smith,Marketing,$72000,2021-06-01\nCarol White,Engineering,$88000,2019-11-20\nDavid Brown,Sales,$65000,2022-01-10\n\"\"Eve, Davis\"\",Engineering,$102000,2018-05-03\";\n\nnew CellOutput(\"text/csv\", csv)",
-      "outputs": []
+      "source": "var csv = @\u0022Name,Department,Salary,Start Date\nAlice Johnson,Engineering,$95000,2020-03-15\nBob Smith,Marketing,$72000,2021-06-01\nCarol White,Engineering,$88000,2019-11-20\nDavid Brown,Sales,$65000,2022-01-10\n\u0022\u0022Eve, Davis\u0022\u0022,Engineering,$102000,2018-05-03\u0022;\n\nCellOutput.Csv(csv)"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000070",
       "type": "markdown",
-      "source": "---\n## text/x-verso-mermaid\n\nMermaid diagram syntax rendered via the built-in Mermaid integration.",
-      "outputs": []
+      "source": "---\n## text/x-verso-mermaid\n\nMermaid diagram syntax rendered via the built-in Mermaid integration."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000071",
       "type": "code",
       "language": "csharp",
-      "source": "new CellOutput(\"text/x-verso-mermaid\", @\"\ngraph LR\n  A[Code Cell] -->|returns| B[CellOutput]\n  B --> C{MIME Type?}\n  C -->|text/html| D[Raw HTML]\n  C -->|image/*| E[Base64 Image]\n  C -->|application/json| F[JSON Tree]\n  C -->|text/csv| G[Table]\n  C -->|text/plain| H[Preformatted]\n\")",
-      "outputs": []
+      "source": "CellOutput.Mermaid(@\u0022\ngraph LR\n  A[Code Cell] --\u003E|returns| B[CellOutput]\n  B --\u003E C{MIME Type?}\n  C --\u003E|text/html| D[Raw HTML]\n  C --\u003E|image/*| E[Base64 Image]\n  C --\u003E|application/json| F[JSON Tree]\n  C --\u003E|text/csv| G[Table]\n  C --\u003E|text/plain| H[Preformatted]\n\u0022)"
     },
     {
       "id": "a0000000-0000-0000-0000-000000000080",
       "type": "markdown",
-      "source": "---\n## Error Output\n\nAny `CellOutput` with `IsError: true` renders in the error block, regardless of MIME type.",
-      "outputs": []
+      "source": "---\n## Error Output\n\nAny \u0060CellOutput\u0060 with \u0060IsError: true\u0060 renders in the error block, regardless of MIME type."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000081",
       "type": "code",
       "language": "csharp",
-      "source": "new CellOutput(\"text/plain\", \"Something went wrong: connection refused\", IsError: true, ErrorName: \"ConnectionError\")",
-      "outputs": []
+      "source": "CellOutput.Error(\u0022Something went wrong: connection refused\u0022, errorName: \u0022ConnectionError\u0022)"
     }
   ]
 }

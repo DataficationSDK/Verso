@@ -150,6 +150,42 @@ internal sealed class RunspaceManager : IDisposable
         return new InvokeResult(outputLines, outputMimeType, errorLines, warningLines, informationLines, exception);
     }
 
+    public void InjectDisplayFunction()
+    {
+        ThrowIfDisposed();
+        var runspace = _runspace ?? throw new InvalidOperationException("RunspaceManager not initialized.");
+
+        using var ps = System.Management.Automation.PowerShell.Create();
+        ps.Runspace = runspace;
+        // Ensure the Verso.Abstractions assembly is available to PowerShell
+        var abstractionsPath = typeof(DisplayExtensions).Assembly.Location;
+        if (!string.IsNullOrEmpty(abstractionsPath))
+        {
+            using var loader = System.Management.Automation.PowerShell.Create();
+            loader.Runspace = runspace;
+            loader.AddScript($"Add-Type -Path '{abstractionsPath.Replace("'", "''")}'");
+            loader.Invoke();
+        }
+
+        ps.AddScript(@"
+function Display {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
+        [object]$Value,
+        [Parameter(Position = 1)]
+        [string]$MimeType = $null
+    )
+    process {
+        if ($null -ne $Value) {
+            [Verso.Abstractions.DisplayExtensions]::Display($Value, $MimeType)
+        }
+    }
+}
+");
+        ps.Invoke();
+    }
+
     public void SetVariable(string name, object? value)
     {
         ThrowIfDisposed();

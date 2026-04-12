@@ -90,7 +90,8 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
             ErrorMessage: response.TryGetProperty("error", out var e1) && e1.ValueKind == JsonValueKind.Object
                 ? GetStringOrNull(e1, "message") : null,
             ErrorStack: response.TryGetProperty("error", out var e2) && e2.ValueKind == JsonValueKind.Object
-                ? GetStringOrNull(e2, "stack") : null
+                ? GetStringOrNull(e2, "stack") : null,
+            DisplayOutputs: ParseDisplayOutputs(response)
         );
     }
 
@@ -280,5 +281,22 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
             .Where(v => v.ValueKind == JsonValueKind.String)
             .Select(v => v.GetString()!)
             .ToList();
+    }
+
+    private static IReadOnlyList<JavaScriptDisplayOutput>? ParseDisplayOutputs(JsonElement el)
+    {
+        if (!el.TryGetProperty("displayOutputs", out var val) || val.ValueKind != JsonValueKind.Array)
+            return null;
+
+        var outputs = new List<JavaScriptDisplayOutput>();
+        foreach (var item in val.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object) continue;
+            var mime = GetStringOrNull(item, "mime");
+            var content = GetStringOrNull(item, "content");
+            if (mime is not null && content is not null)
+                outputs.Add(new JavaScriptDisplayOutput(mime, content));
+        }
+        return outputs.Count > 0 ? outputs : null;
     }
 }

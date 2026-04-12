@@ -37,22 +37,46 @@ internal static class NodeBridgeScript
         // --- Snapshot of initial globals for tracking user-defined variables ---
         const _verso_initialGlobals = new Set(Object.getOwnPropertyNames(globalThis));
         _verso_initialGlobals.add('_verso_initialGlobals');
+        _verso_initialGlobals.add('display');
 
         // --- Output capture ---
         let _verso_stdoutBuf = [];
         let _verso_stderrBuf = [];
+        let _verso_displayOutputs = [];
 
         console.log = (...args) => { _verso_stdoutBuf.push(args.map(String).join(' ')); };
         console.error = (...args) => { _verso_stderrBuf.push(args.map(String).join(' ')); };
         console.warn = (...args) => { _verso_stderrBuf.push(args.map(String).join(' ')); };
         console.info = (...args) => { _verso_stdoutBuf.push(args.map(String).join(' ')); };
 
+        // --- Display function ---
+        globalThis.display = function display(value, mimeType) {
+            if (value === undefined || value === null) return;
+            let mime = typeof mimeType === 'string' ? mimeType : null;
+            let content;
+            if (mime === 'text/plain' || (!mime && typeof value === 'string')) {
+                content = String(value);
+                mime = mime || 'text/plain';
+            } else {
+                try {
+                    content = JSON.stringify(value, null, 2);
+                    mime = mime || 'application/json';
+                } catch (_) {
+                    content = String(value);
+                    mime = mime || 'text/plain';
+                }
+            }
+            _verso_displayOutputs.push({ mime, content });
+        };
+
         function _verso_flushOutput() {
             const stdout = _verso_stdoutBuf.join('\n');
             const stderr = _verso_stderrBuf.join('\n');
+            const displayOutputs = _verso_displayOutputs.length > 0 ? [..._verso_displayOutputs] : null;
             _verso_stdoutBuf = [];
             _verso_stderrBuf = [];
-            return { stdout, stderr };
+            _verso_displayOutputs = [];
+            return { stdout, stderr, displayOutputs };
         }
 
         // --- User globals tracking ---
@@ -158,11 +182,11 @@ internal static class NodeBridgeScript
             } catch (e) {
                 error = { message: e.message ?? String(e), stack: e.stack ?? '' };
             }
-            const { stdout, stderr } = _verso_flushOutput();
+            const { stdout, stderr, displayOutputs } = _verso_flushOutput();
             const globals = _verso_getUserGlobals();
             return {
                 type: 'executeResult', id: cmd.id,
-                stdout, stderr, lastExpr, globals, error,
+                stdout, stderr, lastExpr, globals, error, displayOutputs,
             };
         }
 

@@ -59,4 +59,10 @@ internal sealed record JavaScriptRunResult(
     IReadOnlyList<string>? UserGlobals,
     bool HasError,
     string? ErrorMessage,
-    string? ErrorStack);
+    string? ErrorStack,
+    IReadOnlyList<JavaScriptDisplayOutput>? DisplayOutputs = null);
+
+/// <summary>
+/// A display output captured from a <c>display()</c> call in JavaScript code.
+/// </summary>
+internal sealed record JavaScriptDisplayOutput(string MimeType, string Content);
