@@ -72,18 +72,50 @@ let displayAs (mimeType: string) (value: obj) : unit =
             if (InjectedNames.Contains(desc.Name)) continue;
             if (desc.Name.StartsWith("__verso_", StringComparison.Ordinal)) continue;
 
+            // Skip variables that already exist as native FSI bindings from this kernel.
+            // Re-injecting them via AddBoundValue would shadow the F#-typed binding
+            // with a .NET-typed one (e.g. System.Int32 instead of int), breaking
+            // printf format specifiers and other F# type-sensitive operations.
+            if (_previousBoundNames.Contains(desc.Name))
+                continue;
+
             if (desc.Value is Delegate or CancellationToken or Task or IAsyncDisposable)
                 continue;
 
             try
             {
-                // String values must be injected via a let binding with F#'s native
-                // string type. AddBoundValue binds them as System.String, which F#'s
-                // type checker treats differently (e.g. printfn "%s" fails).
+                // Numeric and other primitive values must be injected via let bindings
+                // with F#'s native types. AddBoundValue binds them as their .NET types
+                // (e.g. System.Int32 instead of int, System.Double instead of float),
+                // which F#'s type checker treats differently (e.g. printfn "%d" fails).
                 if (desc.Value is string s)
                 {
                     var escaped = s.Replace("\\", "\\\\").Replace("\"", "\\\"");
                     session.EvalSilent($"let {desc.Name} = \"{escaped}\"");
+                }
+                else if (desc.Value is int i)
+                {
+                    session.EvalSilent($"let {desc.Name} = {i}");
+                }
+                else if (desc.Value is long l)
+                {
+                    session.EvalSilent($"let {desc.Name} = {l}L");
+                }
+                else if (desc.Value is double d)
+                {
+                    session.EvalSilent($"let {desc.Name} = {d.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                }
+                else if (desc.Value is float f)
+                {
+                    session.EvalSilent($"let {desc.Name} = {f.ToString(System.Globalization.CultureInfo.InvariantCulture)}f");
+                }
+                else if (desc.Value is bool b)
+                {
+                    session.EvalSilent($"let {desc.Name} = {(b ? "true" : "false")}");
+                }
+                else if (desc.Value is decimal m)
+                {
+                    session.EvalSilent($"let {desc.Name} = {m.ToString(System.Globalization.CultureInfo.InvariantCulture)}M");
                 }
                 else
                 {
