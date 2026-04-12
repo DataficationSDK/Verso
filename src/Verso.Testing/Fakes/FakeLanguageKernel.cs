@@ -12,11 +12,13 @@ public sealed class FakeLanguageKernel : ILanguageKernel
     public FakeLanguageKernel(
         string languageId = "fake",
         string displayName = "Fake",
-        Func<string, IExecutionContext, Task<IReadOnlyList<CellOutput>>>? executeFunc = null)
+        Func<string, IExecutionContext, Task<IReadOnlyList<CellOutput>>>? executeFunc = null,
+        IReadOnlyList<string>? fileExtensions = null)
     {
         LanguageId = languageId;
         DisplayName = displayName;
         _executeFunc = executeFunc;
+        FileExtensions = fileExtensions ?? Array.Empty<string>();
     }
 
     public string ExtensionId => $"com.test.{LanguageId}";
@@ -26,7 +28,7 @@ public sealed class FakeLanguageKernel : ILanguageKernel
     public string? Description => "Fake kernel for testing";
     public string LanguageId { get; }
     public string DisplayName { get; }
-    public IReadOnlyList<string> FileExtensions => Array.Empty<string>();
+    public IReadOnlyList<string> FileExtensions { get; }
 
     public int InitializeCallCount { get; private set; }
     public int DisposeCallCount { get; private set; }

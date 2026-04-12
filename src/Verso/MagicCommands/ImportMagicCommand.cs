@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Verso.Abstractions;
 using Verso.Extensions;
 using Verso.Parameters;
@@ -5,9 +6,19 @@ using Verso.Parameters;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!import path [--param name=value ...]</c> — reads a notebook file, deserializes it, resolves
-/// parameters against the imported notebook's definitions, and executes all code cells in the current
-/// kernel session. Variables and state persist for subsequent cells.
+/// <c>#!import path [--param name=value ...]</c> -- reads a notebook file or source file, deserializes
+/// or parses it, resolves parameters against the imported notebook's definitions, and executes all code
+/// cells in the current kernel session. Variables and state persist for subsequent cells.
+/// <para>
+/// Supported formats:
+/// <list type="bullet">
+/// <item>Notebook files (<c>.verso</c>, <c>.ipynb</c>, <c>.dib</c>) -- deserialized and executed cell-by-cell.</item>
+/// <item>Source files (<c>.cs</c>, <c>.csx</c>, <c>.fs</c>, <c>.fsx</c>, <c>.py</c>, <c>.ps1</c>, <c>.psm1</c>,
+/// <c>.js</c>, <c>.mjs</c>, <c>.ts</c>, <c>.tsx</c>, <c>.sql</c>, etc.) -- magic commands are extracted,
+/// sorted by priority (NuGet/pip first, then imports, then remaining directives), and the file is executed
+/// in the kernel that owns the file extension.</item>
+/// </list>
+/// </para>
 /// </summary>
 [VersoExtension]
 public sealed class ImportMagicCommand : IMagicCommand
@@ -62,66 +73,27 @@ public sealed class ImportMagicCommand : IMagicCommand
             var serializer = context.ExtensionHost.GetSerializers()
                 .FirstOrDefault(s => s.CanImport(resolvedPath));
 
-            if (serializer is null)
+            if (serializer is not null)
             {
-                await context.WriteOutputAsync(new CellOutput("text/plain",
-                    $"Error: No serializer found for '{Path.GetFileName(resolvedPath)}'. Supported formats: .verso, .ipynb",
-                    IsError: true)).ConfigureAwait(false);
-                return;
-            }
-
-            var content = await File.ReadAllTextAsync(resolvedPath, context.CancellationToken)
-                .ConfigureAwait(false);
-            var notebook = await serializer.DeserializeAsync(content).ConfigureAwait(false);
-
-            // Pre-scan for #!extension directives and request consent
-            var directives = ExtensionMagicCommand.ScanForExtensionDirectives(notebook);
-            if (directives.Count > 0)
-            {
-                var importedDirectives = directives
-                    .Select(e => new ExtensionConsentInfo(e.PackageId, e.Version,
-                        $"imported from {Path.GetFileName(resolvedPath)}"))
-                    .ToList();
-
-                var approved = await context.ExtensionHost.RequestExtensionConsentAsync(
-                    importedDirectives, context.CancellationToken).ConfigureAwait(false);
-
-                if (approved && context.ExtensionHost is ExtensionHost host)
-                {
-                    foreach (var d in directives)
-                        host.ApprovePackage(d.PackageId);
-                }
-            }
-
-            // Resolve parameters: explicit --param overrides first (with type
-            // coercion and validation), then fill remaining defaults from the
-            // imported notebook's definitions. Explicit overrides always win.
-            var paramError = ResolveAndInjectParameters(
-                notebook, paramOverrides, context.Variables);
-
-            if (paramError is not null)
-            {
-                await context.WriteOutputAsync(new CellOutput("text/plain",
-                    paramError, IsError: true)).ConfigureAwait(false);
-                return;
-            }
-
-            var codeCellCount = 0;
-            foreach (var cell in notebook.Cells)
-            {
-                if (!string.Equals(cell.Type, "code", StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (string.IsNullOrWhiteSpace(cell.Source))
-                    continue;
-
-                await context.Notebook.ExecuteCodeAsync(cell.Source, cell.Language, context.CancellationToken)
+                await ImportNotebookAsync(resolvedPath, serializer, paramOverrides, context)
                     .ConfigureAwait(false);
-                codeCellCount++;
+                return;
             }
 
-            await context.WriteOutputAsync(new CellOutput("text/plain",
-                $"Imported {codeCellCount} code cell{(codeCellCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}"))
-                .ConfigureAwait(false);
+            // No serializer -- try to match the file extension to a registered kernel.
+            var extension = Path.GetExtension(resolvedPath);
+            var kernel = FindKernelByFileExtension(extension, context.ExtensionHost);
+
+            if (kernel is not null)
+            {
+                await ImportSourceFileAsync(resolvedPath, kernel, context).ConfigureAwait(false);
+                return;
+            }
+
+            var supportedExtensions = GetSupportedExtensions(context.ExtensionHost);
+            await context.WriteOutputAsync(CellOutput.Error(
+                $"No serializer or kernel found for '{Path.GetFileName(resolvedPath)}'. " +
+                $"Supported formats: {supportedExtensions}")).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -133,6 +105,204 @@ public sealed class ImportMagicCommand : IMagicCommand
                 $"Error importing notebook: {ex.Message}", IsError: true))
                 .ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Imports a notebook file by deserializing it and executing all code cells.
+    /// </summary>
+    private async Task ImportNotebookAsync(
+        string resolvedPath,
+        INotebookSerializer serializer,
+        Dictionary<string, string> paramOverrides,
+        IMagicCommandContext context)
+    {
+        var content = await File.ReadAllTextAsync(resolvedPath, context.CancellationToken)
+            .ConfigureAwait(false);
+        var notebook = await serializer.DeserializeAsync(content).ConfigureAwait(false);
+
+        // Pre-scan for #!extension directives and request consent
+        var directives = ExtensionMagicCommand.ScanForExtensionDirectives(notebook);
+        if (directives.Count > 0)
+        {
+            var importedDirectives = directives
+                .Select(e => new ExtensionConsentInfo(e.PackageId, e.Version,
+                    $"imported from {Path.GetFileName(resolvedPath)}"))
+                .ToList();
+
+            var approved = await context.ExtensionHost.RequestExtensionConsentAsync(
+                importedDirectives, context.CancellationToken).ConfigureAwait(false);
+
+            if (approved && context.ExtensionHost is ExtensionHost host)
+            {
+                foreach (var d in directives)
+                    host.ApprovePackage(d.PackageId);
+            }
+        }
+
+        var paramError = ResolveAndInjectParameters(notebook, paramOverrides, context.Variables);
+
+        if (paramError is not null)
+        {
+            await context.WriteOutputAsync(CellOutput.Error(paramError)).ConfigureAwait(false);
+            return;
+        }
+
+        var codeCellCount = 0;
+        foreach (var cell in notebook.Cells)
+        {
+            if (!string.Equals(cell.Type, "code", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (string.IsNullOrWhiteSpace(cell.Source))
+                continue;
+
+            await context.Notebook.ExecuteCodeAsync(cell.Source, cell.Language, context.CancellationToken)
+                .ConfigureAwait(false);
+            codeCellCount++;
+        }
+
+        await context.WriteOutputAsync(new CellOutput("text/plain",
+            $"Imported {codeCellCount} code cell{(codeCellCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}"))
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Imports a source file by extracting magic commands, sorting them by priority
+    /// (package directives first, then imports, then other directives), and executing the
+    /// reassembled content in the kernel that owns the file extension.
+    /// </summary>
+    private async Task ImportSourceFileAsync(
+        string resolvedPath,
+        ILanguageKernel kernel,
+        IMagicCommandContext context)
+    {
+        var content = await File.ReadAllTextAsync(resolvedPath, context.CancellationToken)
+            .ConfigureAwait(false);
+
+        var (magicLines, codeLines) = ExtractMagicCommands(content);
+
+        // Sort magic commands by execution priority:
+        // 1. Package directives (#r "nuget:...", #!nuget, #!pip, #!npm)
+        // 2. Import directives (#!import)
+        // 3. All other magic commands
+        var packageLines = new List<string>();
+        var importLines = new List<string>();
+        var otherMagicLines = new List<string>();
+
+        foreach (var line in magicLines)
+        {
+            if (IsPackageDirective(line))
+                packageLines.Add(line);
+            else if (line.StartsWith("#!import", StringComparison.OrdinalIgnoreCase))
+                importLines.Add(line);
+            else
+                otherMagicLines.Add(line);
+        }
+
+        // Reassemble: magic commands (priority-ordered) followed by remaining code
+        var reassembled = new List<string>();
+        reassembled.AddRange(packageLines);
+        reassembled.AddRange(importLines);
+        reassembled.AddRange(otherMagicLines);
+        reassembled.AddRange(codeLines);
+
+        var code = string.Join(Environment.NewLine, reassembled);
+
+        if (!string.IsNullOrWhiteSpace(code))
+        {
+            await context.Notebook.ExecuteCodeAsync(code, kernel.LanguageId, context.CancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var fileName = Path.GetFileName(resolvedPath);
+        var magicCount = magicLines.Count;
+        var summary = magicCount > 0
+            ? $"Imported {fileName} ({magicCount} directive{(magicCount == 1 ? "" : "s")} extracted)"
+            : $"Imported {fileName}";
+
+        await context.WriteOutputAsync(new CellOutput("text/plain", summary))
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Finds a registered kernel whose <see cref="ILanguageKernel.FileExtensions"/> includes the given extension.
+    /// </summary>
+    internal static ILanguageKernel? FindKernelByFileExtension(string extension, IExtensionHostContext extensionHost)
+    {
+        if (string.IsNullOrEmpty(extension))
+            return null;
+
+        return extensionHost.GetKernels()
+            .FirstOrDefault(k => k.FileExtensions
+                .Any(ext => string.Equals(ext, extension, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>
+    /// Extracts magic command lines from source file content. Magic commands are lines starting
+    /// with <c>#!</c> or <c>#r "nuget:...</c> (NuGet reference directives). All other lines are
+    /// returned as code.
+    /// </summary>
+    internal static (List<string> MagicLines, List<string> CodeLines) ExtractMagicCommands(string content)
+    {
+        var magicLines = new List<string>();
+        var codeLines = new List<string>();
+
+        foreach (var line in content.Split('\n'))
+        {
+            var trimmed = line.TrimEnd('\r').TrimStart();
+
+            if (trimmed.StartsWith("#!", StringComparison.Ordinal))
+            {
+                magicLines.Add(trimmed);
+            }
+            else if (NuGetReferencePattern.IsMatch(trimmed))
+            {
+                // #r "nuget: PackageName, Version" -- treat as a magic command
+                magicLines.Add(trimmed);
+            }
+            else
+            {
+                codeLines.Add(line.TrimEnd('\r'));
+            }
+        }
+
+        return (magicLines, codeLines);
+    }
+
+    private static readonly Regex NuGetReferencePattern = new(
+        @"^#r\s+""nuget:\s*",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Returns <c>true</c> if the line is a package installation directive
+    /// (NuGet, pip, or npm).
+    /// </summary>
+    private static bool IsPackageDirective(string line)
+    {
+        if (NuGetReferencePattern.IsMatch(line))
+            return true;
+        if (line.StartsWith("#!nuget", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (line.StartsWith("#!pip", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (line.StartsWith("#!npm", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Builds a human-readable list of supported file extensions from serializers and kernels.
+    /// </summary>
+    private static string GetSupportedExtensions(IExtensionHostContext extensionHost)
+    {
+        var extensions = new List<string>();
+
+        foreach (var s in extensionHost.GetSerializers())
+            extensions.AddRange(s.FileExtensions);
+
+        foreach (var k in extensionHost.GetKernels())
+            extensions.AddRange(k.FileExtensions);
+
+        return string.Join(", ", extensions.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(e => e));
     }
 
     /// <summary>

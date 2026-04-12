@@ -75,13 +75,13 @@ public sealed class ImportMagicCommandTests
     // --- Unsupported format ---
 
     [TestMethod]
-    public async Task UnsupportedExtension_WritesNoSerializerError()
+    public async Task UnsupportedExtension_WritesError()
     {
         var command = new ImportMagicCommand();
         var context = CreateContextWithSerializer();
 
-        // Create a temp .dib file (unsupported format)
-        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.dib");
+        // Use an extension that no serializer or kernel handles
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.xyz");
         try
         {
             await File.WriteAllTextAsync(tempFile, "some content");
@@ -91,7 +91,7 @@ public sealed class ImportMagicCommandTests
             Assert.IsTrue(context.SuppressExecution);
             Assert.AreEqual(1, context.WrittenOutputs.Count);
             Assert.IsTrue(context.WrittenOutputs[0].IsError);
-            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("No serializer"));
+            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("No serializer or kernel"));
         }
         finally
         {
@@ -579,12 +579,272 @@ public sealed class ImportMagicCommandTests
         }
     }
 
+    // --- Source file import ---
+
+    [TestMethod]
+    public async Task ImportCsFile_ExecutesInCSharpKernel()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var csharpKernel = new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs", ".csx" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { csharpKernel });
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.cs");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "var x = 1;\nConsole.WriteLine(x);");
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.IsTrue(context.SuppressExecution);
+            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
+            Assert.AreEqual("csharp", notebookOps.ExecutedCodeCalls[0].Language);
+            Assert.IsTrue(notebookOps.ExecutedCodeCalls[0].Code.Contains("var x = 1;"));
+            Assert.IsTrue(context.WrittenOutputs.Any(o => !o.IsError && o.Content.Contains("Imported")));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task ImportPyFile_ExecutesInPythonKernel()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var pythonKernel = new FakeLanguageKernel("python", "Python", fileExtensions: new[] { ".py" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { pythonKernel });
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.py");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "print('hello')");
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.IsTrue(context.SuppressExecution);
+            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
+            Assert.AreEqual("python", notebookOps.ExecutedCodeCalls[0].Language);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task ImportTsFile_ExecutesInJavaScriptKernel()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var jsKernel = new FakeLanguageKernel("javascript", "JavaScript", fileExtensions: new[] { ".js", ".mjs", ".ts", ".tsx" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { jsKernel });
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.ts");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "const x: number = 42;");
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.IsTrue(context.SuppressExecution);
+            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
+            Assert.AreEqual("javascript", notebookOps.ExecutedCodeCalls[0].Language);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task ImportSourceFile_ExtractsMagicCommands_NuGetFirst()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var csharpKernel = new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs", ".csx" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { csharpKernel });
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.cs");
+        try
+        {
+            var content = "#!import helper/Keys.cs\n#r \"nuget: Microsoft.Extensions.AI, 9.6.0\"\nusing Microsoft.Extensions.AI;\nvar client = new ChatClient();";
+            await File.WriteAllTextAsync(tempFile, content);
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
+            var executedCode = notebookOps.ExecutedCodeCalls[0].Code;
+
+            // NuGet should come before import
+            var nugetPos = executedCode.IndexOf("#r \"nuget:", StringComparison.Ordinal);
+            var importPos = executedCode.IndexOf("#!import", StringComparison.Ordinal);
+            Assert.IsTrue(nugetPos >= 0, "NuGet directive should be present");
+            Assert.IsTrue(importPos >= 0, "Import directive should be present");
+            Assert.IsTrue(nugetPos < importPos, "NuGet should appear before import");
+
+            // Code should come after directives
+            var codePos = executedCode.IndexOf("using Microsoft", StringComparison.Ordinal);
+            Assert.IsTrue(codePos > importPos, "Code should appear after directives");
+
+            // Summary should mention extracted directives
+            Assert.IsTrue(context.WrittenOutputs.Any(o => o.Content.Contains("2 directives extracted")));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task ImportSourceFile_PipDirectivesFirst()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var pythonKernel = new FakeLanguageKernel("python", "Python", fileExtensions: new[] { ".py" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { pythonKernel });
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.py");
+        try
+        {
+            var content = "#!import helpers/config.py\n#!pip pandas matplotlib\nimport pandas as pd";
+            await File.WriteAllTextAsync(tempFile, content);
+
+            await command.ExecuteAsync(tempFile, context);
+
+            var executedCode = notebookOps.ExecutedCodeCalls[0].Code;
+            var pipPos = executedCode.IndexOf("#!pip", StringComparison.Ordinal);
+            var importPos = executedCode.IndexOf("#!import", StringComparison.Ordinal);
+            Assert.IsTrue(pipPos < importPos, "pip should appear before import");
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task ImportSourceFile_NoMagicCommands_ExecutesCleanly()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var csharpKernel = new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { csharpKernel });
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.cs");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "Console.WriteLine(\"hello\");");
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
+            Assert.IsTrue(context.WrittenOutputs.Any(o => o.Content.Contains("Imported") && !o.Content.Contains("directive")));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    // --- ExtractMagicCommands ---
+
+    [TestMethod]
+    public void ExtractMagicCommands_SeparatesMagicFromCode()
+    {
+        var content = "#r \"nuget: Newtonsoft.Json, 13.0.3\"\n#!import helper.cs\nusing Newtonsoft.Json;\nvar x = 1;";
+        var (magic, code) = ImportMagicCommand.ExtractMagicCommands(content);
+
+        Assert.AreEqual(2, magic.Count);
+        Assert.IsTrue(magic[0].Contains("nuget:"));
+        Assert.IsTrue(magic[1].Contains("#!import"));
+        Assert.AreEqual(2, code.Count);
+        Assert.IsTrue(code[0].Contains("using"));
+        Assert.IsTrue(code[1].Contains("var x"));
+    }
+
+    [TestMethod]
+    public void ExtractMagicCommands_MagicInMiddleOfFile()
+    {
+        var content = "using System;\n#r \"nuget: Foo, 1.0\"\nConsole.WriteLine(42);";
+        var (magic, code) = ImportMagicCommand.ExtractMagicCommands(content);
+
+        Assert.AreEqual(1, magic.Count);
+        Assert.AreEqual(2, code.Count);
+    }
+
+    [TestMethod]
+    public void ExtractMagicCommands_NoMagicLines()
+    {
+        var content = "var x = 1;\nvar y = 2;";
+        var (magic, code) = ImportMagicCommand.ExtractMagicCommands(content);
+
+        Assert.AreEqual(0, magic.Count);
+        Assert.AreEqual(2, code.Count);
+    }
+
+    [TestMethod]
+    public void ExtractMagicCommands_NonNuGetHashR_TreatedAsCode()
+    {
+        // #r "SomeAssembly.dll" is NOT a NuGet directive and doesn't start with #!
+        var content = "#r \"SomeAssembly.dll\"\nvar x = 1;";
+        var (magic, code) = ImportMagicCommand.ExtractMagicCommands(content);
+
+        Assert.AreEqual(0, magic.Count);
+        Assert.AreEqual(2, code.Count);
+    }
+
+    // --- FindKernelByFileExtension ---
+
+    [TestMethod]
+    public void FindKernel_MatchesExtension()
+    {
+        var host = new SerializerAwareStubExtensionHost(
+            kernels: new[] { new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs", ".csx" }) });
+
+        var kernel = ImportMagicCommand.FindKernelByFileExtension(".cs", host);
+        Assert.IsNotNull(kernel);
+        Assert.AreEqual("csharp", kernel.LanguageId);
+    }
+
+    [TestMethod]
+    public void FindKernel_CaseInsensitive()
+    {
+        var host = new SerializerAwareStubExtensionHost(
+            kernels: new[] { new FakeLanguageKernel("python", "Python", fileExtensions: new[] { ".py" }) });
+
+        var kernel = ImportMagicCommand.FindKernelByFileExtension(".PY", host);
+        Assert.IsNotNull(kernel);
+    }
+
+    [TestMethod]
+    public void FindKernel_NoMatch_ReturnsNull()
+    {
+        var host = new SerializerAwareStubExtensionHost(
+            kernels: new[] { new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs" }) });
+
+        var kernel = ImportMagicCommand.FindKernelByFileExtension(".xyz", host);
+        Assert.IsNull(kernel);
+    }
+
+    [TestMethod]
+    public void FindKernel_EmptyExtension_ReturnsNull()
+    {
+        var host = new SerializerAwareStubExtensionHost(
+            kernels: new[] { new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs" }) });
+
+        var kernel = ImportMagicCommand.FindKernelByFileExtension("", host);
+        Assert.IsNull(kernel);
+    }
+
     // --- Helpers ---
 
     private static StubMagicCommandContext CreateContextWithSerializer(
-        StubNotebookOperations? notebookOps = null)
+        StubNotebookOperations? notebookOps = null,
+        IReadOnlyList<ILanguageKernel>? kernels = null)
     {
-        var extensionHost = new SerializerAwareStubExtensionHost();
+        var extensionHost = new SerializerAwareStubExtensionHost(kernels: kernels);
         var context = new StubMagicCommandContext
         {
             ExtensionHost = extensionHost
@@ -595,7 +855,8 @@ public sealed class ImportMagicCommandTests
     }
 
     /// <summary>
-    /// Stub extension host that returns a <see cref="VersoSerializer"/> from <see cref="GetSerializers"/>.
+    /// Stub extension host that returns a <see cref="VersoSerializer"/> from <see cref="GetSerializers"/>
+    /// and optionally returns registered kernels.
     /// </summary>
     private sealed class SerializerAwareStubExtensionHost : IExtensionHostContext
     {
@@ -604,8 +865,15 @@ public sealed class ImportMagicCommandTests
             new VersoSerializer()
         };
 
+        private readonly IReadOnlyList<ILanguageKernel> _kernels;
+
+        public SerializerAwareStubExtensionHost(IReadOnlyList<ILanguageKernel>? kernels = null)
+        {
+            _kernels = kernels ?? Array.Empty<ILanguageKernel>();
+        }
+
         public IReadOnlyList<IExtension> GetLoadedExtensions() => Array.Empty<IExtension>();
-        public IReadOnlyList<ILanguageKernel> GetKernels() => Array.Empty<ILanguageKernel>();
+        public IReadOnlyList<ILanguageKernel> GetKernels() => _kernels;
         public IReadOnlyList<ICellRenderer> GetRenderers() => Array.Empty<ICellRenderer>();
         public IReadOnlyList<IDataFormatter> GetFormatters() => Array.Empty<IDataFormatter>();
         public IReadOnlyList<ICellType> GetCellTypes() => Array.Empty<ICellType>();
