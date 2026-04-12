@@ -38,9 +38,8 @@ public sealed class CSharpKernel : ILanguageKernel
     private bool _disposed;
 
     /// <summary>
-    /// Tracks variable names that have already been declared in the Roslyn script state.
-    /// Roslyn script chaining disallows redeclaring a <c>var</c>, so previously injected
-    /// variables must use assignment instead of declaration on subsequent executions.
+    /// Tracks variable names that have been declared in the Roslyn script state via
+    /// preamble injection. Used during disposal to clean up tracking state.
     /// </summary>
     private readonly HashSet<string> _injectedStoreVariables = new(StringComparer.Ordinal);
 
@@ -421,18 +420,19 @@ public sealed class CSharpKernel : ILanguageKernel
 
     /// <summary>
     /// Builds a C# preamble that injects shared variables from the <see cref="IVariableStore"/>
-    /// as top-level script identifiers. Runs before every cell so values stay current
-    /// (e.g. slider widgets updated between executions).
-    /// Uses <c>var</c> for first-time declarations and plain assignment for variables
-    /// already in the Roslyn script chain.
+    /// as top-level script identifiers. Only injects variables that are not yet present in
+    /// the Roslyn script state. Once a variable exists (whether from preamble injection or
+    /// user declaration), it is never re-injected to avoid type conflicts (e.g. the user
+    /// re-declaring a preamble-injected <c>object</c> variable as <c>string</c>).
     /// </summary>
     private string? BuildVariableStorePreamble(IExecutionContext context)
     {
         var descriptors = context.Variables.GetAll();
         if (descriptors.Count == 0) return null;
 
-        // Variables already in the Roslyn script state were declared by user code.
-        // Skip them to avoid shadowing typed declarations with object-typed assignments.
+        // Variables already in the Roslyn script state should not be re-injected.
+        // Re-injecting with Get<object>() would cause CS0266 if the user re-declared
+        // the variable with a specific type (e.g. string, long).
         var scriptVars = _stateManager!.GetVariables();
 
         // Parameters were already injected with typed declarations.
@@ -447,24 +447,16 @@ public sealed class CSharpKernel : ILanguageKernel
             if (desc.Name.StartsWith("__verso_", StringComparison.Ordinal)) continue;
             if (parameterNames is not null && parameterNames.Contains(desc.Name)) continue;
 
-            // Skip variables that the user declared in C# code. Only inject
-            // variables that originated from other kernels or widgets.
-            if (scriptVars.ContainsKey(desc.Name) && !_injectedStoreVariables.Contains(desc.Name))
+            // Skip variables already in the script state to avoid type conflicts.
+            if (scriptVars.ContainsKey(desc.Name))
                 continue;
 
             // Skip non-serializable types that can't meaningfully be used in script code
             if (desc.Value is Delegate or CancellationToken or Task or IAsyncDisposable)
                 continue;
 
-            if (_injectedStoreVariables.Contains(desc.Name))
-            {
-                sb.AppendLine($"{desc.Name} = Variables.Get<object>(\"{desc.Name}\");");
-            }
-            else
-            {
-                sb.AppendLine($"var {desc.Name} = Variables.Get<object>(\"{desc.Name}\");");
-                _injectedStoreVariables.Add(desc.Name);
-            }
+            sb.AppendLine($"var {desc.Name} = Variables.Get<object>(\"{desc.Name}\");");
+            _injectedStoreVariables.Add(desc.Name);
         }
 
         return sb.Length > 0 ? sb.ToString() : null;
