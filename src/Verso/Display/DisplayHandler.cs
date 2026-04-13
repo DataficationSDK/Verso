@@ -31,6 +31,14 @@ internal sealed class DisplayHandler
             return;
         }
 
+        // If the caller provided a MIME hint and the value is already a string,
+        // honor it directly — bypasses the formatter pipeline which would emit text/plain.
+        if (mimeTypeHint is not null && value is string rawString)
+        {
+            await _writeOutput(new CellOutput(mimeTypeHint, rawString)).ConfigureAwait(false);
+            return;
+        }
+
         // Build a formatter context, applying the MIME hint if provided
         var formatterContext = mimeTypeHint is not null
             ? new HintedFormatterContext(_defaultFormatterContext, mimeTypeHint)
