@@ -365,9 +365,6 @@ export class BlazorEditorProvider
     const mermaidInterop = toUri(
       "_content/Verso.Blazor.Shared/js/mermaid-interop.js"
     );
-    const scriptInterop = toUri(
-      "_content/Verso.Blazor.Shared/js/script-interop.js"
-    );
     const userPrefsInterop = toUri(
       "_content/Verso.Blazor.Shared/js/user-prefs-interop.js"
     );
@@ -516,7 +513,6 @@ export class BlazorEditorProvider
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
-    <script src="${scriptInterop}"></script>
     <script src="${cellInteractInterop}"></script>
     <script src="${parametersInterop}"></script>
     <script src="${userPrefsInterop}"></script>

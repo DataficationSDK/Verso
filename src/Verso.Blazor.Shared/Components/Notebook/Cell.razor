@@ -271,7 +271,6 @@
     };
 
     private bool _hasMermaidContent;
-    private bool _hasHtmlScriptContent;
     private bool _pendingAutoExecute;
 
     private bool IsInPreviewMode => CollapsesInput && CellData.Outputs.Count > 0 && !IsSelected
@@ -333,9 +332,6 @@
             .ToList();
 
         _hasMermaidContent = CellData.Outputs.Any(o => o.MimeType == "text/x-verso-mermaid");
-        _hasHtmlScriptContent = CellData.Outputs.Any(o =>
-            (o.MimeType == "text/html" || o.MimeType == "image/svg+xml")
-            && o.Content.Contains("<script", StringComparison.OrdinalIgnoreCase));
 
         // Schedule auto-execute for non-editable cells that have no outputs yet
         if (!IsEditable && CellData.Outputs.Count == 0 && !IsExecuting)
@@ -348,19 +344,6 @@
         {
             _pendingAutoExecute = false;
             await OnRunCell.InvokeAsync(CellData.Id);
-        }
-
-        if (_hasHtmlScriptContent)
-        {
-            _hasHtmlScriptContent = false;
-            try
-            {
-                var containers = IsEditable
-                    ? $".verso-cell-outputs[data-cell-id='{CellData.Id}'] .verso-output--html"
-                    : $".verso-cell-rendered-input[data-cell-id='{CellData.Id}'] .verso-output--html";
-                await JS.InvokeVoidAsync("versoScripts.activateAll", containers);
-            }
-            catch (JSException) { }
         }
 
         if (_hasMermaidContent)
