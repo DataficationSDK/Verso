@@ -36,5 +36,7 @@ This package depends on [Verso.Abstractions](https://www.nuget.org/packages/Vers
 | [Verso.PowerShell](https://www.nuget.org/packages/Verso.PowerShell) | PowerShell kernel |
 | [Verso.Python](https://www.nuget.org/packages/Verso.Python) | Python kernel via pythonnet |
 | [Verso.Http](https://www.nuget.org/packages/Verso.Http) | HTTP request cell type |
+| [Verso.JavaScript](https://www.nuget.org/packages/Verso.JavaScript) | JavaScript kernel |
+| [Verso.Cli](https://www.nuget.org/packages/Verso.Cli) | Command-line interface |
 | [Verso.Testing](https://www.nuget.org/packages/Verso.Testing) | Test utilities for extensions |
 | [Verso.Templates](https://www.nuget.org/packages/Verso.Templates) | `dotnet new` project templates |

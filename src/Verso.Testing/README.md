@@ -50,6 +50,19 @@ public async Task MyKernel_ExecutesCode()
     Assert.AreEqual(1, outputs.Count);
     Assert.AreEqual("2", outputs[0].Content);
 }
+
+[TestMethod]
+public async Task MyKernel_DisplayProducesOutput()
+{
+    var context = new StubExecutionContext();
+    var kernel = new MyLanguageKernel();
+
+    // Code that calls Display() mid-cell writes to DisplayedOutputs
+    await kernel.ExecuteAsync("myObject.Display(\"text/html\")", context);
+
+    Assert.AreEqual(1, context.DisplayedOutputs.Count);
+    Assert.AreEqual("text/html", context.DisplayedOutputs[0].MimeType);
+}
 ```
 
 See the [testing extensions guide](https://github.com/DataficationSDK/Verso/blob/main/docs/testing-extensions.md) for full documentation.

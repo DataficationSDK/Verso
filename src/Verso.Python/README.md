@@ -12,7 +12,7 @@ Embeds CPython via pythonnet with a persistent scope across cells. IntelliSense 
 - **IntelliSense** via jedi (completions, diagnostics, hover with type inference and docstrings), with rlcompleter fallback
 - **Bidirectional variable sharing** between Python and other kernels (C#, F#, SQL, PowerShell)
 - **Matplotlib integration** with automatic figure capture (no explicit `plt.show()` required)
-- **`display()` function** supporting `_repr_html_()`, `_repr_png_()`, `_repr_svg_()` output types
+- **`display()` function** supporting `_repr_html_()`, `_repr_png_()`, `_repr_svg_()` output types, with an optional MIME type hint (e.g. `display(obj, "application/json")`)
 - **Last-expression capture** with rich output for objects implementing `_repr_html_()`
 - **Virtual environment support** via the `#!pip` magic command with automatic venv management
 - **Auto-detection** of Python installations across macOS, Linux, and Windows

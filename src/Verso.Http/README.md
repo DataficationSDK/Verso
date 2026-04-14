@@ -10,8 +10,8 @@ Send REST API requests directly in notebook cells using `.http` file syntax, the
 
 - **`.http` file syntax** with support for all HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
 - **Variable interpolation** with `@name = value` declarations and `{{name}}` references
-- **Dynamic variables** (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`, `{{$datetime}}`, `{{$processEnv}}`)
-- **Named request chaining** via `# @name` and response references (`{{name.response.body.$.path}}`)
+- **Dynamic variables** (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`, `{{$datetime}}`, `{{$localDatetime}}`, `{{$processEnv}}`)
+- **Named request chaining** via `# @name` and response references (`{{name.response.body.$.path}}`, `{{name.response.headers.HeaderName}}`)
 - **Multiple requests per cell** separated by `###`
 - **Request directives** (`# @no-redirect`, `# @no-cookie-jar`)
 - **Query continuation** (lines starting with `?` or `&` append to the URL)

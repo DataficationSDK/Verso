@@ -17,10 +17,19 @@ internal sealed class VariableBridge
         "it"
     };
 
-    private readonly FSharpKernelOptions _options;
+    private FSharpKernelOptions _options;
     private HashSet<string> _previousBoundNames = new(StringComparer.OrdinalIgnoreCase);
 
     public VariableBridge(FSharpKernelOptions options)
+    {
+        _options = options;
+    }
+
+    /// <summary>
+    /// Updates the options reference so that runtime setting changes (e.g. publishPrivateBindings)
+    /// take effect without requiring a kernel restart.
+    /// </summary>
+    internal void UpdateOptions(FSharpKernelOptions options)
     {
         _options = options;
     }

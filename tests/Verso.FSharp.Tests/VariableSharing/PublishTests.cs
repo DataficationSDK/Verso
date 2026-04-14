@@ -102,6 +102,24 @@ public class PublishTests
     }
 
     [TestMethod]
+    public async Task PublishPrivateBindings_TakesEffectAfterSettingChange()
+    {
+        // Underscore-prefixed bindings should be excluded by default
+        await _kernel.ExecuteAsync("let _secret = 42", _context);
+        Assert.IsFalse(_context.Variables.GetAll().Any(v => v.Name == "_secret"),
+            "Underscore-prefixed binding should not be published by default");
+
+        // Change the setting without restarting the kernel
+        await ((IExtensionSettings)_kernel).OnSettingChangedAsync("publishPrivateBindings", true);
+
+        // Now underscore-prefixed bindings should be published
+        await _kernel.ExecuteAsync("let _visible = 99", _context);
+        Assert.IsTrue(_context.Variables.TryGet<int>("_visible", out var value),
+            "Underscore-prefixed binding should be published after setting change");
+        Assert.AreEqual(99, value);
+    }
+
+    [TestMethod]
     public async Task VersoHelpersModule_NotPublishedToStore()
     {
         // Execute something to trigger variable publishing

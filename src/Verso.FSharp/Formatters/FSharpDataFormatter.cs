@@ -15,8 +15,10 @@ namespace Verso.FSharp.Formatters;
 [VersoExtension]
 public sealed class FSharpDataFormatter : IDataFormatter
 {
-    private const int MaxCollectionItems = 100;
+    private const int DefaultMaxCollectionItems = 100;
     private const int MaxDepth = 5;
+
+    internal int MaxCollectionLimit { get; set; } = DefaultMaxCollectionItems;
 
     // --- IExtension ---
 
@@ -236,7 +238,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
             var keyProp = kvpType.GetProperty("Key");
             var valProp = kvpType.GetProperty("Value");
             items.Add((keyProp?.GetValue(kvp), valProp?.GetValue(kvp)));
-            if (items.Count > MaxCollectionItems) break;
+            if (items.Count > MaxCollectionLimit) break;
         }
 
         if (items.Count == 0)
@@ -246,7 +248,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
         }
 
         sb.Append("<table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>");
-        var count = Math.Min(items.Count, MaxCollectionItems);
+        var count = Math.Min(items.Count, MaxCollectionLimit);
         for (int i = 0; i < count; i++)
         {
             sb.Append("<tr><td>");
@@ -257,10 +259,10 @@ public sealed class FSharpDataFormatter : IDataFormatter
         }
         sb.Append("</tbody></table>");
 
-        if (items.Count > MaxCollectionItems)
+        if (items.Count > MaxCollectionLimit)
         {
             sb.Append("<div class=\"verso-fsharp-footer\">Showing ")
-              .Append(MaxCollectionItems)
+              .Append(MaxCollectionLimit)
               .Append(" of more items</div>");
         }
     }
@@ -281,7 +283,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
         foreach (var item in enumerable)
         {
             items.Add(item);
-            if (items.Count > MaxCollectionItems) break;
+            if (items.Count > MaxCollectionLimit) break;
         }
 
         if (items.Count == 0)
@@ -290,36 +292,21 @@ public sealed class FSharpDataFormatter : IDataFormatter
             return;
         }
 
-        var count = Math.Min(items.Count, MaxCollectionItems);
+        var count = Math.Min(items.Count, MaxCollectionLimit);
 
-        if (count <= 10)
+        sb.Append("<table><thead><tr><th>Value</th></tr></thead><tbody>");
+        for (int i = 0; i < count; i++)
         {
-            // Inline comma-separated
-            sb.Append("set [");
-            for (int i = 0; i < count; i++)
-            {
-                if (i > 0) sb.Append("; ");
-                sb.Append(WebUtility.HtmlEncode(items[i]?.ToString() ?? ""));
-            }
-            sb.Append(']');
+            sb.Append("<tr><td>");
+            RenderValue(sb, items[i], depth + 1);
+            sb.Append("</td></tr>");
         }
-        else
-        {
-            // Table for larger sets
-            sb.Append("<table><thead><tr><th>Value</th></tr></thead><tbody>");
-            for (int i = 0; i < count; i++)
-            {
-                sb.Append("<tr><td>");
-                RenderValue(sb, items[i], depth + 1);
-                sb.Append("</td></tr>");
-            }
-            sb.Append("</tbody></table>");
-        }
+        sb.Append("</tbody></table>");
 
-        if (items.Count > MaxCollectionItems)
+        if (items.Count > MaxCollectionLimit)
         {
             sb.Append("<div class=\"verso-fsharp-footer\">Showing ")
-              .Append(MaxCollectionItems)
+              .Append(MaxCollectionLimit)
               .Append(" of more items</div>");
         }
     }
@@ -332,7 +319,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
         foreach (var item in enumerable)
         {
             items.Add(item);
-            if (items.Count > MaxCollectionItems) break;
+            if (items.Count > MaxCollectionLimit) break;
         }
 
         if (items.Count == 0)
@@ -354,7 +341,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
             ? Array.Empty<PropertyInfo>()
             : elementType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-        var count = Math.Min(items.Count, MaxCollectionItems);
+        var count = Math.Min(items.Count, MaxCollectionLimit);
 
         if (isPrimitiveLike || columns.Length == 0)
         {
@@ -392,12 +379,12 @@ public sealed class FSharpDataFormatter : IDataFormatter
             sb.Append("</tbody></table>");
         }
 
-        if (items.Count > MaxCollectionItems)
+        if (items.Count > MaxCollectionLimit)
         {
             sb.Append("<div class=\"verso-fsharp-footer\">Showing ")
-              .Append(MaxCollectionItems)
+              .Append(MaxCollectionLimit)
               .Append(" of ")
-              .Append(items.Count > MaxCollectionItems ? "more" : items.Count.ToString())
+              .Append(items.Count > MaxCollectionLimit ? "more" : items.Count.ToString())
               .Append(" items</div>");
         }
     }

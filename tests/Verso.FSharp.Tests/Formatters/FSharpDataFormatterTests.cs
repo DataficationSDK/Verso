@@ -172,6 +172,34 @@ public sealed class FSharpDataFormatterTests
         Assert.IsTrue(result.Content.Contains("Showing"), "Should indicate truncation");
     }
 
+    [TestMethod]
+    public async Task FormatAsync_RespectsCustomMaxCollectionLimit()
+    {
+        var formatter = new FSharpDataFormatter { MaxCollectionLimit = 5 };
+        var items = Enumerable.Range(1, 20).ToArray();
+        var list = ListModule.OfSeq(items);
+        var result = await formatter.FormatAsync(list, _context);
+
+        Assert.IsTrue(result.Content.Contains("Showing"), "Should indicate truncation at custom limit");
+        Assert.IsTrue(result.Content.Contains("5"), "Should reference the custom limit");
+        // Item 6 should not appear in the output
+        var listItems = result.Content.Split("<li>").Length - 1;
+        Assert.AreEqual(5, listItems, "Should render exactly MaxCollectionLimit items");
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_DefaultMaxCollectionLimit_Is100()
+    {
+        var formatter = new FSharpDataFormatter();
+        Assert.AreEqual(100, formatter.MaxCollectionLimit, "Default limit should be 100");
+
+        var items = Enumerable.Range(1, 50).ToArray();
+        var list = ListModule.OfSeq(items);
+        var result = await formatter.FormatAsync(list, _context);
+        Assert.IsFalse(result.Content.Contains("Showing"),
+            "50-item list should not truncate at default limit of 100");
+    }
+
     // --- Map rendering ---
 
     [TestMethod]
@@ -192,11 +220,12 @@ public sealed class FSharpDataFormatterTests
     // --- Set rendering ---
 
     [TestMethod]
-    public async Task FormatAsync_SmallSet_RendersInline()
+    public async Task FormatAsync_SmallSet_RendersAsTable()
     {
         var set = SetModule.OfSeq(new[] { 1, 2, 3 });
         var result = await _formatter.FormatAsync(set, _context);
-        Assert.IsTrue(result.Content.Contains("set ["), "Small set should render inline");
+        Assert.IsTrue(result.Content.Contains("<table>"), "Small set should render as table");
+        Assert.IsTrue(result.Content.Contains("<th>Value</th>"), "Should have Value column header");
     }
 
     [TestMethod]

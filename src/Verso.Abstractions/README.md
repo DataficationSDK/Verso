@@ -30,6 +30,15 @@ These are combined with a primary extension interface to add additional capabili
 | `ICellInteractionHandler` | Handle bidirectional interaction events from rendered cell content |
 | `IExtensionSettings` | Expose configurable settings in the UI |
 
+### Key Types
+
+| Type | Purpose |
+|------|---------|
+| `CellOutput` | Output record returned by kernels and formatters. Provides static factory methods (`CellOutput.Html(...)`, `CellOutput.Json(...)`, `CellOutput.Error(...)`, etc.) for common MIME types |
+| `DisplayContext` | Ambient context for mid-cell rich output via the `Display()` extension method |
+| `VariableDescriptor` | Describes a named variable in the shared `IVariableStore` |
+| `NotebookModel` / `CellModel` | Notebook and cell document models |
+
 ## Installation
 
 ```shell

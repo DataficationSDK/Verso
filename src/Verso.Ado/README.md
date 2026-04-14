@@ -11,11 +11,13 @@ Provider-agnostic SQL support built on the public Verso extension interfaces. Co
 - **Connection management** via `#!sql-connect` and `#!sql-disconnect` with named connections and provider auto-discovery
 - **SQL kernel** with execution, `@parameter` binding from C# variables, `GO` batch separators, and row limiting
 - **IntelliSense** for SQL keywords, table/column names, and `@variable` suggestions
+- **Hover info** for `@variables` (name, type, value), SQL keywords, and table/column names
+- **Parse diagnostics** for missing connections and unresolved `@parameter` references
 - **Paginated HTML result tables** with column type tooltips, NULL styling, and truncation warnings
 - **CSV and JSON export** toolbar actions
 - **Schema inspection** via `#!sql-schema`
 - **EF Core scaffolding** via `#!sql-scaffold`
-- **Polyglot Notebooks migration** with automatic conversion of `#!connect` and `#!sql` patterns during `.ipynb` import
+- **Polyglot Notebooks migration** with automatic conversion of `#!connect` and `#!sql` patterns during `.ipynb` and `.dib` import
 
 ## Installation
 

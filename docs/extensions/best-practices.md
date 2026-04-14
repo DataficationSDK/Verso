@@ -152,7 +152,7 @@ This allows theme authors to override your extension's colors.
 Use `CellOutput` with `IsError = true` rather than throwing exceptions from `ExecuteAsync`. Thrown exceptions propagate to the host and may result in a generic error message:
 
 ```csharp
-// Good - structured error output
+// Good - structured error output using factory method
 public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
 {
     try
@@ -163,10 +163,9 @@ public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionConte
     {
         return Task.FromResult<IReadOnlyList<CellOutput>>(new[]
         {
-            new CellOutput("text/plain", ex.Message,
-                IsError: true,
-                ErrorName: ex.GetType().Name,
-                ErrorStackTrace: ex.StackTrace)
+            CellOutput.Error(ex.Message,
+                errorName: ex.GetType().Name,
+                stackTrace: ex.StackTrace)
         });
     }
 }
@@ -254,7 +253,7 @@ public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     sb.Append("<table>");
     // ... build HTML ...
     sb.Append("</table>");
-    return Task.FromResult(new CellOutput("text/html", sb.ToString()));
+    return Task.FromResult(CellOutput.Html(sb.ToString()));
 }
 
 // Bad - repeated string concatenation
@@ -264,7 +263,7 @@ public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     foreach (var item in collection)
         html += $"<tr><td>{item}</td></tr>"; // Allocates on every iteration
     html += "</table>";
-    return Task.FromResult(new CellOutput("text/html", html));
+    return Task.FromResult(CellOutput.Html(html));
 }
 ```
 
@@ -285,7 +284,7 @@ public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     if (list.Count > displayCount)
         sb.AppendLine($"... and {list.Count - displayCount} more items");
 
-    return Task.FromResult(new CellOutput("text/plain", sb.ToString()));
+    return Task.FromResult(CellOutput.Plain(sb.ToString()));
 }
 ```
 
@@ -383,7 +382,7 @@ public bool CanFormat(object value, IFormatterContext context)
 Extensions may run in different hosts (VS Code, Blazor WebAssembly, standalone). Do not assume:
 - File system access is available (Blazor Wasm has no local file system).
 - `RequestFileDownloadAsync` is supported (check for `NotSupportedException`).
-- Console output is visible (use `WriteOutputAsync` or `DisplayAsync` instead of `Console.WriteLine`).
+- Console output is visible (use `WriteOutputAsync`, `DisplayAsync`, or the `Display()` extension method instead of `Console.WriteLine`).
 
 ## Extension Lifecycle Summary
 

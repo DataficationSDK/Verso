@@ -121,7 +121,7 @@ The `FsiEvaluationSession` is created once during `InitializeAsync()` with the c
 
 ### Workaround
 
-After changing compiler settings, restart the F# kernel via `#!restart` or the toolbar restart button. The `publishPrivateBindings` and `maxCollectionDisplay` settings take effect immediately without a restart.
+After changing compiler settings, restart the F# kernel via `#!restart` or the toolbar restart button. The `publishPrivateBindings` and `maxCollectionDisplay` settings take effect immediately without a restart, as they are applied at execution time rather than during session creation.
 
 ---
 

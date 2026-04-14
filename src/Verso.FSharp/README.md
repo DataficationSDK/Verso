@@ -9,13 +9,13 @@ Full F# scripting powered by FSharp.Compiler.Service. Latest F# language version
 ### Features
 
 - **F# Interactive session** with configurable warning level, language version, and default opens
-- **IntelliSense** including dot-completion, type signatures, documentation, and error diagnostics
+- **IntelliSense** with dot-completion, error diagnostics, and hover info (type signatures and documentation)
 - **NuGet references** via `#r "nuget: PackageName"` with dual-path resolution (FSI built-in or Verso fallback)
 - **Script directives** (`#r`, `#load`, `#I`, `#nowarn`, and `#time`)
 - **Bidirectional variable sharing** between F# and other kernels
 - **Rich data formatting** for discriminated unions, records, options, results, maps, sets, tuples, and collections
 - **Configurable settings** for warning level, language version, private binding visibility, and collection display limits
-- **Polyglot Notebooks migration** with automatic conversion of `#!fsharp`/`#!f#`, `#!set`, and `#!share` patterns during `.ipynb` import
+- **Polyglot Notebooks migration** with automatic conversion of `#!fsharp`/`#!f#`, `#!set`, and `#!share` patterns during `.ipynb` and `.dib` import
 
 ## Installation
 

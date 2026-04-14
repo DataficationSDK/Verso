@@ -14,6 +14,8 @@ Hosts a persistent PowerShell runspace powered by Microsoft.PowerShell.SDK. Stat
 - **Hover information** with AST-aware context (commands, variables, members)
 - **Bidirectional variable sharing** between PowerShell and other kernels (C#, F#, SQL, Python)
 - **Format-aware output** that detects PowerShell format objects and pipes them through `Out-String`
+- **`Display` function** for explicit output rendering from PowerShell cells
+- **`$VersoVariables`** direct access to the shared variable store from PowerShell
 
 ## Installation
 

@@ -98,12 +98,14 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
     public Task ApplySettingsAsync(IReadOnlyDictionary<string, object?> values)
     {
         _options = ApplyValues(_options, values);
+        _variableBridge?.UpdateOptions(_options);
         return Task.CompletedTask;
     }
 
     public Task OnSettingChangedAsync(string name, object? value)
     {
         _options = ApplyValues(_options, new Dictionary<string, object?> { [name] = value });
+        _variableBridge?.UpdateOptions(_options);
         return Task.CompletedTask;
     }
 
@@ -819,7 +821,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         return $"<div><b>Installed Packages</b><ul>{items}</ul></div>";
     }
 
-    private static async Task<CellOutput?> TryFormatAsync(object value, IExecutionContext context)
+    private async Task<CellOutput?> TryFormatAsync(object value, IExecutionContext context)
     {
         var formatters = context.ExtensionHost.GetFormatters();
         if (formatters.Count == 0) return null;
@@ -831,6 +833,12 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             if (formatter.SupportedTypes.Any(t => t.IsInstanceOfType(value))
                 && formatter.CanFormat(value, fmtContext))
             {
+                // Apply kernel settings to the F# data formatter
+                if (formatter is Formatters.FSharpDataFormatter fsharpFormatter)
+                {
+                    fsharpFormatter.MaxCollectionLimit = _options.MaxCollectionDisplay;
+                }
+
                 return await formatter.FormatAsync(value, fmtContext).ConfigureAwait(false);
             }
         }
