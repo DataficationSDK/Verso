@@ -257,6 +257,9 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 catch { /* best effort — FSI will report its own error */ }
             }
 
+            // --- Snapshot store for Variables.Set detection ---
+            _variableBridge!.SnapshotStore(context.Variables);
+
             // --- Snapshot assemblies for FSI-native NuGet detection ---
             HashSet<string>? preEvalAssemblies = null;
             if (_nugetProcessor.UsesFsiNuGet && NuGetReferenceProcessor.ContainsNuGetDirectives(code))

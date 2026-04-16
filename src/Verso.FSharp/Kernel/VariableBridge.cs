@@ -19,6 +19,7 @@ internal sealed class VariableBridge
 
     private FSharpKernelOptions _options;
     private HashSet<string> _previousBoundNames = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, object>? _preExecutionSnapshot;
 
     public VariableBridge(FSharpKernelOptions options)
     {
@@ -139,6 +140,21 @@ let displayAs (mimeType: string) (value: obj) : unit =
     }
 
     /// <summary>
+    /// Captures a snapshot of the variable store before cell execution so that
+    /// <see cref="PublishVariables"/> can detect values that user code explicitly
+    /// set via <c>Variables.Set</c> and avoid overwriting them with stale FSI bindings.
+    /// </summary>
+    public void SnapshotStore(IVariableStore store)
+    {
+        _preExecutionSnapshot = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreach (var desc in store.GetAll())
+        {
+            if (desc.Value is not null)
+                _preExecutionSnapshot[desc.Name] = desc.Value;
+        }
+    }
+
+    /// <summary>
     /// Publishes new or changed F# bound values to the <see cref="IVariableStore"/>.
     /// Removes stale bindings that no longer exist in the session.
     /// Excludes underscore-prefixed names (unless <see cref="FSharpKernelOptions.PublishPrivateBindings"/> is true),
@@ -169,10 +185,12 @@ let displayAs (mimeType: string) (value: obj) : unit =
             if (IsFSharpFunction(type))
                 continue;
 
-            // Only publish new or changed bindings
+            // Only publish new or changed bindings, but don't overwrite values
+            // that user code explicitly set via Variables.Set during execution.
             if (!_previousBoundNames.Contains(name) || HasValueChanged(name, value, store))
             {
-                store.Set(name, value);
+                if (!WasSetDuringExecution(name, store))
+                    store.Set(name, value);
             }
         }
 
@@ -197,6 +215,27 @@ let displayAs (mimeType: string) (value: obj) : unit =
     public void Reset()
     {
         _previousBoundNames.Clear();
+        _preExecutionSnapshot = null;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if the store's current value for <paramref name="name"/> differs
+    /// from the pre-execution snapshot, indicating that user code called <c>Variables.Set</c>.
+    /// </summary>
+    private bool WasSetDuringExecution(string name, IVariableStore store)
+    {
+        if (_preExecutionSnapshot is null)
+            return false;
+
+        if (!store.TryGet<object>(name, out var currentValue) || currentValue is null)
+            return false;
+
+        // Name was absent from the snapshot but now exists -- user code added it
+        if (!_preExecutionSnapshot.TryGetValue(name, out var snapshotValue))
+            return true;
+
+        // Value changed from the snapshot -- user code updated it
+        return !ReferenceEquals(snapshotValue, currentValue) && !snapshotValue.Equals(currentValue);
     }
 
     private static bool IsFSharpFunction(Type type)

@@ -59,8 +59,22 @@ internal sealed class ScriptDirectiveProcessor
         {
             var relativePath = match.Groups[1].Value;
             var resolved = ResolvePath(relativePath, metadata);
-            if (File.Exists(resolved) && !_resolvedAssemblyPaths.Contains(resolved))
-                _resolvedAssemblyPaths.Add(resolved);
+
+            if (File.Exists(resolved))
+            {
+                if (!_resolvedAssemblyPaths.Contains(resolved))
+                    _resolvedAssemblyPaths.Add(resolved);
+                return $"#r @\"{resolved}\"";
+            }
+
+            // Bare filenames not found locally are left for FSI to resolve
+            // via #I include paths (e.g. #I @"C:\libs" then #r "Foo.dll").
+            if (!Path.IsPathRooted(relativePath)
+                && string.IsNullOrEmpty(Path.GetDirectoryName(relativePath)))
+                return match.Value;
+
+            // Paths with directory components keep the resolved absolute path
+            // even when the file is missing (better error context from FSI).
             return $"#r @\"{resolved}\"";
         });
 
