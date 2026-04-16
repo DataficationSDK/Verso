@@ -33,8 +33,8 @@ internal sealed class FSharpCheckerManager : IDisposable
             parallelReferenceResolution: null,
             captureIdentifiersWhenParsing: null,
             documentSource: null,
-            useSyntaxTreeCache: null,
-            useTransparentCompiler: null);
+            useTransparentCompiler: null,
+            transparentCompilerCacheSizes: null);
     }
 
     /// <summary>

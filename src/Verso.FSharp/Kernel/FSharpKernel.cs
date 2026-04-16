@@ -448,7 +448,8 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 lineText,
                 partialName,
                 FSharpOption<FSharpFunc<Unit, FSharpList<AssemblySymbol>>>.None,
-                (FSharpOption<Tuple<global::FSharp.Compiler.Text.Position, FSharpOption<CompletionContext>?>>?)null);
+                (FSharpOption<Tuple<global::FSharp.Compiler.Text.Position, FSharpOption<CompletionContext>?>>?)null,
+                null);
 
             var completions = new List<Completion>();
             foreach (var item in declInfo.Items)
