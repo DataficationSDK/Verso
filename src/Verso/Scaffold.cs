@@ -15,7 +15,11 @@ public sealed class Scaffold : IAsyncDisposable
     private readonly NotebookModel _notebook;
     private readonly object _cellLock = new();
     private readonly Dictionary<string, ILanguageKernel> _kernels = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Task> _initializationTasks = new(StringComparer.OrdinalIgnoreCase);
+    // Lazy<Task> with ExecutionAndPublication ensures the init factory runs exactly
+    // once per kernel even if WarmUpKernelAsync and the execution pipeline's
+    // EnsureInitialized race on a fresh notebook open. ConcurrentDictionary.GetOrAdd
+    // alone does not provide this guarantee.
+    private readonly ConcurrentDictionary<string, Lazy<Task>> _initializationTasks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<Guid, int> _executionCounts = new();
     private readonly VariableStore _variables = new();
     private readonly NotebookMetadataContext _metadata;
@@ -607,12 +611,21 @@ public sealed class Scaffold : IAsyncDisposable
     {
         var kernel = ResolveKernel(languageId);
         if (kernel is null) return Task.CompletedTask;
-        return _initializationTasks.GetOrAdd(languageId, _ => kernel.InitializeAsync());
+        return GetOrCreateInitTask(languageId, kernel);
     }
 
     private Task EnsureInitialized(ILanguageKernel kernel)
     {
-        return _initializationTasks.GetOrAdd(kernel.LanguageId, _ => kernel.InitializeAsync());
+        return GetOrCreateInitTask(kernel.LanguageId, kernel);
+    }
+
+    private Task GetOrCreateInitTask(string languageId, ILanguageKernel kernel)
+    {
+        return _initializationTasks.GetOrAdd(
+            languageId,
+            _ => new Lazy<Task>(
+                () => kernel.InitializeAsync(),
+                LazyThreadSafetyMode.ExecutionAndPublication)).Value;
     }
 
     private ILanguageKernel? ResolveKernel(string languageId)

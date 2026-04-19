@@ -64,6 +64,31 @@ public sealed class ScaffoldExecutionTests
     }
 
     [TestMethod]
+    public async Task WarmUpAndExecute_ConcurrentCalls_InitializeKernelOnce()
+    {
+        // Regression: on a fresh server open, the fire-and-forget warm-up Task.Run
+        // and the user's Run click can both hit Scaffold's init dictionary at the
+        // same time. ConcurrentDictionary.GetOrAdd does not guarantee the factory
+        // runs only once, so without Lazy<Task> both callers race into
+        // kernel.InitializeAsync, which for the F# kernel deadlocks two
+        // concurrent FSI NuGet probes against the same process-global dotnet SDK
+        // machinery and the cell never completes.
+        var kernel = new FakeLanguageKernel(
+            "race-test",
+            initializeDelay: TimeSpan.FromMilliseconds(100));
+        _scaffold.RegisterKernel(kernel);
+        var cell = _scaffold.AddCell(language: "race-test", source: "x");
+
+        var warmUp = Task.Run(() => _scaffold.WarmUpKernelAsync("race-test"));
+        var execute = Task.Run(() => _scaffold.ExecuteCellAsync(cell.Id));
+
+        await Task.WhenAll(warmUp, execute);
+
+        Assert.AreEqual(1, kernel.InitializeCallCount,
+            "InitializeAsync must run exactly once even under concurrent WarmUp + Execute.");
+    }
+
+    [TestMethod]
     public async Task ExecuteCell_UsesCellLanguage_OverDefault()
     {
         var pythonKernel = new FakeLanguageKernel("python", executeFunc: (code, ctx) =>

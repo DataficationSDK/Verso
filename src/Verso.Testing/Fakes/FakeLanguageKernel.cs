@@ -13,13 +13,21 @@ public sealed class FakeLanguageKernel : ILanguageKernel
         string languageId = "fake",
         string displayName = "Fake",
         Func<string, IExecutionContext, Task<IReadOnlyList<CellOutput>>>? executeFunc = null,
-        IReadOnlyList<string>? fileExtensions = null)
+        IReadOnlyList<string>? fileExtensions = null,
+        TimeSpan? initializeDelay = null)
     {
         LanguageId = languageId;
         DisplayName = displayName;
         _executeFunc = executeFunc;
         FileExtensions = fileExtensions ?? Array.Empty<string>();
+        InitializeDelay = initializeDelay ?? TimeSpan.Zero;
     }
+
+    /// <summary>
+    /// Artificial delay applied inside <see cref="InitializeAsync"/>. Used by tests
+    /// that need to open a window where concurrent initializers can race.
+    /// </summary>
+    public TimeSpan InitializeDelay { get; }
 
     public string ExtensionId => $"com.test.{LanguageId}";
     public string Name => DisplayName;
@@ -30,17 +38,20 @@ public sealed class FakeLanguageKernel : ILanguageKernel
     public string DisplayName { get; }
     public IReadOnlyList<string> FileExtensions { get; }
 
-    public int InitializeCallCount { get; private set; }
+    public int InitializeCallCount => _initializeCallCount;
     public int DisposeCallCount { get; private set; }
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
-        InitializeCallCount++;
-        return Task.CompletedTask;
+        Interlocked.Increment(ref _initializeCallCount);
+        if (InitializeDelay > TimeSpan.Zero)
+            await Task.Delay(InitializeDelay).ConfigureAwait(false);
     }
+
+    private int _initializeCallCount;
 
     public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
     {
