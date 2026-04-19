@@ -24,6 +24,12 @@ public sealed class NotebookService : IAsyncDisposable
     /// <summary>Raised after a cell finishes execution.</summary>
     public event Action? OnCellExecuted;
 
+    /// <summary>Raised when a cell is about to begin execution.</summary>
+    public event Action<Guid>? OnCellExecuting;
+
+    /// <summary>Raised after a cell finishes execution, with the cell ID.</summary>
+    public event Action<Guid>? OnCellExecutionCompleted;
+
     /// <summary>Raised when the notebook structure changes (add, remove, move, new, open).</summary>
     public event Action? OnNotebookChanged;
 
@@ -205,9 +211,9 @@ public sealed class NotebookService : IAsyncDisposable
         if (_scaffold is null)
             throw new InvalidOperationException("No notebook is loaded.");
 
-        var result = await _scaffold.ExecuteCellAsync(cellId);
-        OnCellExecuted?.Invoke();
-        return result;
+        // Per-cell OnCellExecuting / OnCellExecuted events are emitted by Scaffold
+        // and forwarded via SubscribeToEngineEvents. Do not fire them here.
+        return await _scaffold.ExecuteCellAsync(cellId);
     }
 
     /// <summary>Execute all cells in order.</summary>
@@ -216,9 +222,7 @@ public sealed class NotebookService : IAsyncDisposable
         if (_scaffold is null)
             throw new InvalidOperationException("No notebook is loaded.");
 
-        var results = await _scaffold.ExecuteAllAsync();
-        OnCellExecuted?.Invoke();
-        return results;
+        return await _scaffold.ExecuteAllAsync();
     }
 
     /// <summary>Add a new cell at the end.</summary>
@@ -448,6 +452,12 @@ public sealed class NotebookService : IAsyncDisposable
         if (_extensionHost is not null)
             _extensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
 
+        if (_scaffold is not null)
+        {
+            _scaffold.OnCellExecuting += HandleScaffoldCellExecuting;
+            _scaffold.OnCellExecuted += HandleScaffoldCellExecuted;
+        }
+
         if (_scaffold?.Variables is VariableStore vs)
             vs.OnVariablesChanged += HandleVariablesChanged;
 
@@ -460,11 +470,28 @@ public sealed class NotebookService : IAsyncDisposable
         if (_extensionHost is not null)
             _extensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
 
+        if (_scaffold is not null)
+        {
+            _scaffold.OnCellExecuting -= HandleScaffoldCellExecuting;
+            _scaffold.OnCellExecuted -= HandleScaffoldCellExecuted;
+        }
+
         if (_scaffold?.Variables is VariableStore vs)
             vs.OnVariablesChanged -= HandleVariablesChanged;
 
         if (_scaffold?.SettingsManager is { } sm)
             sm.OnSettingsChanged -= HandleSettingsChanged;
+    }
+
+    private void HandleScaffoldCellExecuting(Guid cellId)
+    {
+        OnCellExecuting?.Invoke(cellId);
+    }
+
+    private void HandleScaffoldCellExecuted(Guid cellId)
+    {
+        OnCellExecutionCompleted?.Invoke(cellId);
+        OnCellExecuted?.Invoke();
     }
 
     private void HandleExtensionStatusChanged(string extensionId, ExtensionStatus status)

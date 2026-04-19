@@ -173,6 +173,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     // ── Events ─────────────────────────────────────────────────────────
 
     public event Action? OnCellExecuted;
+    public event Action<Guid>? OnCellExecuting;
+    public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
     public event Action? OnThemeChanged;
@@ -407,8 +409,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         if (_scaffold is null)
             throw new InvalidOperationException("No notebook is loaded.");
 
+        // Per-cell events are forwarded from Scaffold via SubscribeToEngineEvents.
         var result = await _scaffold.ExecuteCellAsync(cellId);
-        OnCellExecuted?.Invoke();
         return new ExecutionResultDto(result.CellId, result.Status.ToString(), result.ExecutionCount, result.Elapsed);
     }
 
@@ -418,7 +420,6 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
             throw new InvalidOperationException("No notebook is loaded.");
 
         var results = await _scaffold.ExecuteAllAsync();
-        OnCellExecuted?.Invoke();
         return results.Select(r =>
             new ExecutionResultDto(r.CellId, r.Status.ToString(), r.ExecutionCount, r.Elapsed)).ToList();
     }
@@ -912,6 +913,12 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         if (_extensionHost is not null)
             _extensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
 
+        if (_scaffold is not null)
+        {
+            _scaffold.OnCellExecuting += HandleScaffoldCellExecuting;
+            _scaffold.OnCellExecuted += HandleScaffoldCellExecuted;
+        }
+
         if (_scaffold?.Variables is VariableStore vs)
             vs.OnVariablesChanged += HandleVariablesChanged;
 
@@ -923,6 +930,12 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         if (_extensionHost is not null)
             _extensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+
+        if (_scaffold is not null)
+        {
+            _scaffold.OnCellExecuting -= HandleScaffoldCellExecuting;
+            _scaffold.OnCellExecuted -= HandleScaffoldCellExecuted;
+        }
 
         if (_scaffold?.Variables is VariableStore vs)
             vs.OnVariablesChanged -= HandleVariablesChanged;
@@ -939,6 +952,15 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     private void HandleSettingsChanged(string extensionId, string settingName, object? value)
         => OnSettingsChanged?.Invoke();
+
+    private void HandleScaffoldCellExecuting(Guid cellId)
+        => OnCellExecuting?.Invoke(cellId);
+
+    private void HandleScaffoldCellExecuted(Guid cellId)
+    {
+        OnCellExecutionCompleted?.Invoke(cellId);
+        OnCellExecuted?.Invoke();
+    }
 
     private async Task<bool> RequestConsentFromUIAsync(
         IReadOnlyList<ExtensionConsentInfo> extensions,

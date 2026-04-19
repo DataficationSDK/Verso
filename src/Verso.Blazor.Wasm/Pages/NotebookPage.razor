@@ -275,7 +275,9 @@
 
     protected override void OnInitialized()
     {
-        Service.OnCellExecuted += StateHasChanged;
+        Service.OnCellExecuted += HandleCellExecutedRefresh;
+        Service.OnCellExecuting += HandleCellExecutingEvent;
+        Service.OnCellExecutionCompleted += HandleCellExecutedEvent;
         Service.OnNotebookChanged += HandleNotebookChanged;
         Service.OnLayoutChanged += HandleLayoutChanged;
         Service.OnThemeChanged += HandleThemeChanged;
@@ -286,6 +288,32 @@
 
         if (Service is RemoteNotebookService remoteService)
             remoteService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
+    }
+
+    private void HandleCellExecutedRefresh()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCellExecutingEvent(Guid cellId)
+    {
+        // The JSON-RPC bridge notification dispatch is not guaranteed to run
+        // on the renderer's dispatcher. Marshal before mutating component state.
+        _ = InvokeAsync(() =>
+        {
+            _executingCellId = cellId;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleCellExecutedEvent(Guid cellId)
+    {
+        _ = InvokeAsync(() =>
+        {
+            if (_executingCellId == cellId)
+                _executingCellId = null;
+            StateHasChanged();
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -565,29 +593,16 @@
 
     private async Task HandleRunCell(Guid cellId)
     {
-        _executingCellId = cellId;
-        StateHasChanged();
-
+        // _executingCellId and cell metadata are managed by HandleCellExecutingEvent /
+        // HandleCellExecutedEvent (driven by the host's cell/executionState notifications
+        // and Scaffold.OnCellExecuting/OnCellExecuted on the engine side).
         try
         {
-            var result = await Service.ExecuteCellAsync(cellId);
-
-            // Stamp execution state onto the cell model for UI display
-            var cell = Service.Cells.FirstOrDefault(c => c.Id == cellId);
-            if (cell is not null)
-            {
-                cell.ExecutionCount = result.ExecutionCount;
-                cell.LastElapsed = result.Elapsed;
-                cell.LastStatus = result.Status;
-            }
+            await Service.ExecuteCellAsync(cellId);
         }
         catch (Exception ex)
         {
             _error = $"Execution error: {ex.Message}";
-        }
-        finally
-        {
-            _executingCellId = null;
         }
     }
 
@@ -687,23 +702,13 @@
 
     private async Task HandleRunAll()
     {
+        // Per-cell UI updates flow via HandleCellExecutingEvent / HandleCellExecutedEvent,
+        // driven by the host's cell/executionState notifications that the RemoteNotebookService
+        // decodes. A trailing RefreshCellListAsync inside ExecuteAllAsync re-hydrates cell
+        // metadata (ExecutionCount / LastElapsed / LastStatus) from the host.
         try
         {
-            var results = await Service.ExecuteAllAsync();
-
-            // Stamp execution state onto cell models for UI display
-            foreach (var result in results)
-            {
-                var cell = Service.Cells.FirstOrDefault(c => c.Id == result.CellId);
-                if (cell is not null)
-                {
-                    cell.ExecutionCount = result.ExecutionCount;
-                    cell.LastElapsed = result.Elapsed;
-                    cell.LastStatus = result.Status;
-                }
-            }
-
-            StateHasChanged();
+            await Service.ExecuteAllAsync();
         }
         catch (Exception ex)
         {
@@ -868,7 +873,9 @@
         _panelResizeRef?.Dispose();
         _cellDragRef?.Dispose();
         Bridge.OnNotification -= HandleBridgeNotification;
-        Service.OnCellExecuted -= StateHasChanged;
+        Service.OnCellExecuted -= HandleCellExecutedRefresh;
+        Service.OnCellExecuting -= HandleCellExecutingEvent;
+        Service.OnCellExecutionCompleted -= HandleCellExecutedEvent;
         Service.OnNotebookChanged -= HandleNotebookChanged;
         Service.OnLayoutChanged -= HandleLayoutChanged;
         Service.OnThemeChanged -= HandleThemeChanged;

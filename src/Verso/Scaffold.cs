@@ -325,6 +325,21 @@ public sealed class Scaffold : IAsyncDisposable
 
     // --- Execution ---
 
+    /// <summary>
+    /// Raised when a cell is about to begin execution. Fires once per cell for
+    /// both single-cell and Run All paths. Observers (UI, variable explorer,
+    /// binding router, host RPC bridge) use this to drive per-cell state
+    /// transitions without polling.
+    /// </summary>
+    public event Action<Guid>? OnCellExecuting;
+
+    /// <summary>
+    /// Raised after a cell finishes execution and its <see cref="CellModel"/>
+    /// execution metadata has been stamped (ExecutionCount, LastElapsed,
+    /// LastStatus). Observers may read those fields directly from the cell.
+    /// </summary>
+    public event Action<Guid>? OnCellExecuted;
+
     public async Task<ExecutionResult> ExecuteCellAsync(Guid cellId, CancellationToken ct = default)
     {
         // Ensure parameter defaults are in the variable store before any cell runs
@@ -339,8 +354,28 @@ public sealed class Scaffold : IAsyncDisposable
 
         IncrementExecutionCount(cellId);
 
+        OnCellExecuting?.Invoke(cellId);
+
+        // Yield before starting the pipeline so in-process observers (e.g. the
+        // Blazor Server renderer) get a chance to paint the "running" state before
+        // kernel work may run synchronously enough to starve the dispatcher.
+        await Task.Yield();
+
         var pipeline = BuildPipeline();
-        return await pipeline.ExecuteAsync(cell, ct).ConfigureAwait(false);
+        var result = await pipeline.ExecuteAsync(cell, ct).ConfigureAwait(false);
+
+        cell.ExecutionCount = result.ExecutionCount;
+        cell.LastElapsed = result.Elapsed;
+        cell.LastStatus = result.Status.ToString();
+
+        OnCellExecuted?.Invoke(cellId);
+
+        // Symmetric yield so in-process observers can paint the cell's final
+        // state (outputs, exec count, cleared spinner) before the next cell
+        // starts in a Run All batch.
+        await Task.Yield();
+
+        return result;
     }
 
     public async Task<IReadOnlyList<ExecutionResult>> ExecuteAllAsync(CancellationToken ct = default)

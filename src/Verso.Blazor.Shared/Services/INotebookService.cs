@@ -88,6 +88,12 @@ public interface INotebookService
     /// <summary>Raised after a cell finishes execution.</summary>
     event Action? OnCellExecuted;
 
+    /// <summary>Raised when a cell is about to begin execution. Carries the cell ID.</summary>
+    event Action<Guid>? OnCellExecuting;
+
+    /// <summary>Raised after a cell finishes execution, with the cell ID.</summary>
+    event Action<Guid>? OnCellExecutionCompleted;
+
     /// <summary>Raised when the notebook structure changes (add, remove, move, new, open).</summary>
     event Action? OnNotebookChanged;
 

@@ -68,6 +68,8 @@ public sealed class FakeNotebookService : INotebookService
     // ── Events ─────────────────────────────────────────────────────────
 
     public event Action? OnCellExecuted;
+    public event Action<Guid>? OnCellExecuting;
+    public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
     public event Action? OnThemeChanged;

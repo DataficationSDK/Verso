@@ -319,7 +319,11 @@
 
     protected override void OnInitialized()
     {
-        Service.OnCellExecuted += StateHasChanged;
+        // OnCellExecuted now fires per cell from Scaffold's kernel execution thread,
+        // so StateHasChanged must be marshalled onto the dispatcher.
+        Service.OnCellExecuted += HandleCellExecutedRefresh;
+        Service.OnCellExecuting += HandleCellExecutingEvent;
+        Service.OnCellExecutionCompleted += HandleCellExecutedEvent;
         Service.OnNotebookChanged += StateHasChanged;
         Service.OnLayoutChanged += HandleLayoutChanged;
         Service.OnThemeChanged += HandleThemeChanged;
@@ -330,6 +334,33 @@
 
         if (Service is ServerNotebookService serverService)
             serverService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
+    }
+
+    private void HandleCellExecutedRefresh()
+    {
+        // Marshal to the dispatcher; callers may be on a kernel worker thread.
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCellExecutingEvent(Guid cellId)
+    {
+        // Scaffold fires this on the kernel's execution thread. Marshal the
+        // state mutation and render onto Blazor's dispatcher together.
+        _ = InvokeAsync(() =>
+        {
+            _executingCellId = cellId;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleCellExecutedEvent(Guid cellId)
+    {
+        _ = InvokeAsync(() =>
+        {
+            if (_executingCellId == cellId)
+                _executingCellId = null;
+            StateHasChanged();
+        });
     }
 
     protected override async Task OnInitializedAsync()
@@ -884,29 +915,15 @@
 
     private async Task HandleRunCell(Guid cellId)
     {
-        _executingCellId = cellId;
-        StateHasChanged();
-
+        // _executingCellId and cell metadata are managed by HandleCellExecutingEvent /
+        // HandleCellExecutedEvent (driven by Scaffold.OnCellExecuting/OnCellExecuted).
         try
         {
-            var result = await Service.ExecuteCellAsync(cellId);
-
-            // Stamp execution state onto the cell model for UI display
-            var cell = Service.Cells.FirstOrDefault(c => c.Id == cellId);
-            if (cell is not null)
-            {
-                cell.ExecutionCount = result.ExecutionCount;
-                cell.LastElapsed = result.Elapsed;
-                cell.LastStatus = result.Status;
-            }
+            await Service.ExecuteCellAsync(cellId);
         }
         catch (Exception ex)
         {
             _error = $"Execution error: {ex.Message}";
-        }
-        finally
-        {
-            _executingCellId = null;
         }
     }
 
@@ -1006,23 +1023,13 @@
 
     private async Task HandleRunAll()
     {
+        // Per-cell UI updates (_executingCellId + StateHasChanged) are driven by
+        // HandleCellExecutingEvent / HandleCellExecutedEvent. Cell metadata
+        // (ExecutionCount, LastElapsed, LastStatus) is stamped inside Scaffold
+        // before OnCellExecuted fires, so the UI sees fresh values per cell.
         try
         {
-            var results = await Service.ExecuteAllAsync();
-
-            // Stamp execution state onto cell models for UI display
-            foreach (var result in results)
-            {
-                var cell = Service.Cells.FirstOrDefault(c => c.Id == result.CellId);
-                if (cell is not null)
-                {
-                    cell.ExecutionCount = result.ExecutionCount;
-                    cell.LastElapsed = result.Elapsed;
-                    cell.LastStatus = result.Status;
-                }
-            }
-
-            StateHasChanged();
+            await Service.ExecuteAllAsync();
         }
         catch (Exception ex)
         {
@@ -1190,7 +1197,9 @@
         _panelResizeRef?.Dispose();
         _cellInteractRef?.Dispose();
         _cellDragRef?.Dispose();
-        Service.OnCellExecuted -= StateHasChanged;
+        Service.OnCellExecuted -= HandleCellExecutedRefresh;
+        Service.OnCellExecuting -= HandleCellExecutingEvent;
+        Service.OnCellExecutionCompleted -= HandleCellExecutedEvent;
         Service.OnNotebookChanged -= StateHasChanged;
         Service.OnLayoutChanged -= HandleLayoutChanged;
         Service.OnThemeChanged -= HandleThemeChanged;

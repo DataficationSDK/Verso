@@ -190,6 +190,36 @@ public sealed class ScaffoldExecutionTests
     }
 
     [TestMethod]
+    public async Task ExecuteAll_FiresPerCellEvents_InDeclarationOrder()
+    {
+        var a = _scaffold.AddCell(source: "a");
+        var b = _scaffold.AddCell(source: "b");
+        var c = _scaffold.AddCell(source: "c");
+
+        var executing = new List<Guid>();
+        var executed = new List<Guid>();
+        _scaffold.OnCellExecuting += id => executing.Add(id);
+        _scaffold.OnCellExecuted += id => executed.Add(id);
+
+        await _scaffold.ExecuteAllAsync();
+
+        CollectionAssert.AreEqual(new[] { a.Id, b.Id, c.Id }, executing);
+        CollectionAssert.AreEqual(new[] { a.Id, b.Id, c.Id }, executed);
+    }
+
+    [TestMethod]
+    public async Task ExecuteCell_StampsMetadataOnCellModel()
+    {
+        var cell = _scaffold.AddCell(source: "x");
+
+        var result = await _scaffold.ExecuteCellAsync(cell.Id);
+
+        Assert.AreEqual(result.ExecutionCount, cell.ExecutionCount);
+        Assert.AreEqual(result.Elapsed, cell.LastElapsed);
+        Assert.AreEqual(result.Status.ToString(), cell.LastStatus);
+    }
+
+    [TestMethod]
     public async Task ExecuteAll_Cancellation_StopsBetweenCells()
     {
         var callCount = 0;

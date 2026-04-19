@@ -45,6 +45,8 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     // ── Events ──────────────────────────────────────────────────────────
     public event Action? OnCellExecuted;
+    public event Action<Guid>? OnCellExecuting;
+    public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
     public event Action? OnThemeChanged;
@@ -324,20 +326,29 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             "execution/run",
             new { cellId = cellId.ToString() });
 
-        // Update local cell outputs
+        // Update local cell outputs and execution metadata.
+        // The scaffold runs in the host process, so its metadata stamping
+        // doesn't reach the WASM-side cell cache — stamp it here from the RPC response.
         var cell = _cells.FirstOrDefault(c => c.Id == cellId);
-        if (cell is not null && result.Outputs is not null)
+        if (cell is not null)
         {
-            cell.Outputs.Clear();
-            foreach (var o in result.Outputs)
-                cell.Outputs.Add(MapOutputFromDto(o));
+            if (result.Outputs is not null)
+            {
+                cell.Outputs.Clear();
+                foreach (var o in result.Outputs)
+                    cell.Outputs.Add(MapOutputFromDto(o));
+            }
+            cell.ExecutionCount = result.ExecutionCount;
+            cell.LastElapsed = TimeSpan.FromMilliseconds(result.ElapsedMs);
+            cell.LastStatus = result.Status;
         }
 
         // Refresh variables directly after execution instead of relying
         // solely on the fire-and-forget notification handler.
         await RefreshVariablesSafeAsync();
 
-        OnCellExecuted?.Invoke();
+        // OnCellExecuted is fired per cell by HandleCellExecutionState when the
+        // host sends the "completed"/"failed"/"cancelled" notification. No fire here.
 
         return new ExecutionResultDto(
             cellId,
@@ -357,7 +368,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
         await RefreshCellListAsync();
         await RefreshVariablesSafeAsync();
-        OnCellExecuted?.Invoke();
+
+        // Per-cell OnCellExecuted notifications arrive via HandleCellExecutionState
+        // as the host streams them during the batch. No single trailing fire here.
 
         if (response.Results is null or { Count: 0 })
             return Array.Empty<ExecutionResultDto>();
@@ -367,6 +380,16 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         {
             if (!Guid.TryParse(r.CellId, out var cellId))
                 continue;
+
+            // Stamp local cached cell with execution metadata — RefreshCellListAsync
+            // above re-mapped the cells and MapCellFromDto doesn't carry these fields.
+            var cached = _cells.FirstOrDefault(c => c.Id == cellId);
+            if (cached is not null)
+            {
+                cached.ExecutionCount = r.ExecutionCount;
+                cached.LastElapsed = TimeSpan.FromMilliseconds(r.ElapsedMs);
+                cached.LastStatus = r.Status;
+            }
 
             dtos.Add(new ExecutionResultDto(
                 cellId,
@@ -715,7 +738,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                 _ = HandleNotebookOpenedAsync(paramsJson);
                 break;
             case "cell/executionState":
-                OnCellExecuted?.Invoke();
+                HandleCellExecutionState(paramsJson);
                 break;
             case "settings/changed":
                 OnSettingsChanged?.Invoke();
@@ -746,6 +769,27 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private void HandleOutputUpdate()
     {
         _ = RefreshCellListAsync().ContinueWith(_ => OnOutputUpdated?.Invoke());
+    }
+
+    private void HandleCellExecutionState(string? paramsJson)
+    {
+        if (paramsJson is null) return;
+
+        var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var notif = JsonSerializer.Deserialize<ExecutionStateNotification>(paramsJson, opts);
+        if (notif is null || !Guid.TryParse(notif.CellId, out var id)) return;
+
+        if (string.Equals(notif.State, "running", StringComparison.OrdinalIgnoreCase))
+        {
+            OnCellExecuting?.Invoke(id);
+        }
+        else
+        {
+            OnCellExecutionCompleted?.Invoke(id);
+            // Preserve the parameterless event so existing subscribers (e.g. StateHasChanged)
+            // continue to trigger a UI refresh per cell.
+            OnCellExecuted?.Invoke();
+        }
     }
 
     private void HandleConsentRequest(string? paramsJson)
@@ -1096,6 +1140,12 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string? Title { get; set; }
         public string? DefaultKernel { get; set; }
         public List<CellDto>? Cells { get; set; }
+    }
+
+    private sealed class ExecutionStateNotification
+    {
+        public string CellId { get; set; } = "";
+        public string State { get; set; } = "";
     }
 
     private sealed class SaveResponse

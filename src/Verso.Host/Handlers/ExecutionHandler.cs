@@ -57,7 +57,46 @@ public static class ExecutionHandler
     public static async Task<object> HandleRunAllAsync(NotebookSession ns)
     {
         var ct = ns.GetExecutionToken();
-        var results = await ns.Scaffold.ExecuteAllAsync(ct);
+
+        // Forward per-cell Scaffold events as JSON-RPC notifications so the
+        // browser sees progress incrementally during the batch rather than
+        // in a single burst at the end. Mirrors the single-cell path above.
+        void OnExecuting(Guid id) =>
+            ns.SendNotification(MethodNames.CellExecutionState, new ExecutionStateNotification
+            {
+                CellId = id.ToString(),
+                State = "running"
+            });
+
+        void OnExecuted(Guid id)
+        {
+            var cell = ns.Scaffold.GetCell(id);
+            var state = cell?.LastStatus switch
+            {
+                nameof(Execution.ExecutionResult.ExecutionStatus.Success) => "completed",
+                nameof(Execution.ExecutionResult.ExecutionStatus.Cancelled) => "cancelled",
+                _ => "failed"
+            };
+            ns.SendNotification(MethodNames.CellExecutionState, new ExecutionStateNotification
+            {
+                CellId = id.ToString(),
+                State = state
+            });
+        }
+
+        ns.Scaffold.OnCellExecuting += OnExecuting;
+        ns.Scaffold.OnCellExecuted += OnExecuted;
+
+        IReadOnlyList<Execution.ExecutionResult> results;
+        try
+        {
+            results = await ns.Scaffold.ExecuteAllAsync(ct);
+        }
+        finally
+        {
+            ns.Scaffold.OnCellExecuting -= OnExecuting;
+            ns.Scaffold.OnCellExecuted -= OnExecuted;
+        }
 
         // Notify: variables may have changed after running all cells
         ns.SendNotification(MethodNames.VariableChanged);
