@@ -12,6 +12,7 @@ rootCommand.AddCommand(InfoCommand.Create());
 
 rootCommand.AddCommand(ServeCommand.Create());
 rootCommand.AddCommand(ConvertCommand.Create());
+rootCommand.AddCommand(PublishCommand.Create());
 
 var parser = new CommandLineBuilder(rootCommand)
     .UseDefaults()
