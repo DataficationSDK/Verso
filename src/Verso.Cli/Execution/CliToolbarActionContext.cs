@@ -5,7 +5,7 @@ using Verso.Stubs;
 namespace Verso.Cli.Execution;
 
 /// <summary>
-/// Headless <see cref="IToolbarActionContext"/> used by <c>verso publish</c> to invoke
+/// Headless <see cref="IToolbarActionContext"/> used by <c>verso export</c> to invoke
 /// an export-menu toolbar action and write its output bytes to disk.
 /// </summary>
 internal sealed class CliToolbarActionContext : IToolbarActionContext
