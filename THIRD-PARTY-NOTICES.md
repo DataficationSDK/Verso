@@ -15,6 +15,8 @@ The original copyright notices and license texts are provided for each component
 | Jint | 4.6.4 | BSD-2-Clause | [sebastienros/jint](https://github.com/sebastienros/jint) |
 | pythonnet | 3.1.0-rc.0 | MIT | [pythonnet/pythonnet](https://github.com/pythonnet/pythonnet) |
 | Markdig | 0.37.0 | BSD-2-Clause | [lunet-io/markdig](https://github.com/lunet-io/markdig) |
+| Spectre.Console | 0.49.1 | MIT | [spectreconsole/spectre.console](https://github.com/spectreconsole/spectre.console) |
+| PrettyPrompt | 4.1.0 | MPL-2.0 | [waf/PrettyPrompt](https://github.com/waf/PrettyPrompt) |
 
 ### Roslyn packages included
 
@@ -39,6 +41,7 @@ The following components are licensed under the MIT License:
 - **Microsoft.PowerShell.SDK** - Copyright (c) Microsoft Corporation
 - **FSharp.Compiler.Service** - Copyright (c) Microsoft Corporation and Contributors
 - **pythonnet** - Copyright (c) the contributors of the pythonnet project
+- **Spectre.Console** - Copyright (c) Patrik Svensson, Phil Scott, Nils Andresen
 
 ```
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -270,3 +273,16 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ```
+
+---
+
+## Mozilla Public License 2.0
+
+The following component is licensed under the Mozilla Public License, Version 2.0:
+
+- **PrettyPrompt** - Copyright (c) William Fenton and contributors
+
+The full MPL-2.0 license text is available at
+[https://www.mozilla.org/en-US/MPL/2.0/](https://www.mozilla.org/en-US/MPL/2.0/).
+Source for PrettyPrompt is available at
+[https://github.com/waf/PrettyPrompt](https://github.com/waf/PrettyPrompt).
