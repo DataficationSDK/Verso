@@ -31,7 +31,7 @@ public sealed class ReplSession : IAsyncDisposable
     /// <summary>Active theme id for rendering. Mutated by <c>.theme</c>.</summary>
     public ITheme? ActiveTheme { get; set; }
 
-    /// <summary>Default layout id for <c>.export</c>/<c>.publish</c>. Mutated by <c>.layout</c>.</summary>
+    /// <summary>Default layout id for <c>.export</c>. Mutated by <c>.layout</c>.</summary>
     public string? ActiveLayoutId { get; set; }
 
     /// <summary>Path the session's notebook was loaded from (null for scratch).</summary>

@@ -29,7 +29,8 @@ public sealed class KernelPromptCallbacks : PpCallbacks
             return await GetMetaCommandCompletionsAsync(text, caret);
 
         var kernel = GetActiveKernel();
-        if (kernel is null) return Array.Empty<CompletionItem>();
+        if (kernel is null)
+            return Array.Empty<CompletionItem>();
 
         IReadOnlyList<Completion> completions;
         try
@@ -41,11 +42,26 @@ public sealed class KernelPromptCallbacks : PpCallbacks
             return Array.Empty<CompletionItem>();
         }
 
-        if (completions.Count == 0) return Array.Empty<CompletionItem>();
+        // Pre-filter against what the user has typed so far within the
+        // replacement span. Roslyn's Invoke trigger can return 6000+ items for
+        // a single letter (every visible symbol across all loaded assemblies);
+        // PrettyPrompt silently fails to render a popup that large. Filtering
+        // here keeps the payload under control — PrettyPrompt's own filter
+        // still runs over this smaller list for incremental typing.
+        var prefix = spanToBeReplaced.Length > 0 && spanToBeReplaced.End <= text.Length
+            ? text.Substring(spanToBeReplaced.Start, spanToBeReplaced.Length)
+            : string.Empty;
 
-        var items = new List<CompletionItem>(completions.Count);
+        const int MaxItems = 200;
+        var items = new List<CompletionItem>(Math.Min(completions.Count, MaxItems));
         foreach (var c in completions)
         {
+            if (prefix.Length > 0 &&
+                !c.DisplayText.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             items.Add(new CompletionItem(
                 replacementText: c.InsertText,
                 displayText: new FormattedString(c.DisplayText),
@@ -53,7 +69,10 @@ public sealed class KernelPromptCallbacks : PpCallbacks
                 getExtendedDescription: string.IsNullOrEmpty(c.Description)
                     ? null
                     : (_) => Task.FromResult(new FormattedString(c.Description!))));
+
+            if (items.Count >= MaxItems) break;
         }
+
         return items;
     }
 
@@ -74,16 +93,26 @@ public sealed class KernelPromptCallbacks : PpCallbacks
     }
 
     /// <summary>
-    /// Suppresses the auto-opening completion popup while the user is typing a
-    /// meta-command. Without this, pressing Enter after <c>.exit</c> would commit
-    /// the completion rather than submit the command, forcing a second Enter.
-    /// The user can still trigger completion manually with Ctrl+Space.
+    /// Decides when to auto-open the completion popup.
+    /// Suppresses for meta-commands (leading '.') so Enter after <c>.exit</c>
+    /// submits instead of committing a completion. Otherwise explicitly opens
+    /// on word-char input so the kernel can surface identifier and member
+    /// lists — the PrettyPrompt default alone does not always reopen the popup
+    /// after the replacement span has been broken by a non-identifier char
+    /// (e.g. the '.' in <c>Console.Wr</c>). We intentionally do NOT force-open
+    /// on '.' itself; showing an empty frame when the kernel returns no items
+    /// is worse UX than waiting for the next keystroke to filter the list.
     /// </summary>
     protected override Task<bool> ShouldOpenCompletionWindowAsync(
         string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
     {
         if (text.TrimStart().StartsWith("."))
             return Task.FromResult(false);
+
+        var ch = keyPress.ConsoleKeyInfo.KeyChar;
+        if (char.IsLetterOrDigit(ch) || ch == '_')
+            return Task.FromResult(true);
+
         return base.ShouldOpenCompletionWindowAsync(text, caret, keyPress, cancellationToken);
     }
 
@@ -147,7 +176,6 @@ public sealed class KernelPromptCallbacks : PpCallbacks
         {
             if (char.IsWhiteSpace(text[i]) && text[i] != '\n')
             {
-                // If any whitespace precedes the caret, we're in the arg portion.
                 var firstDot = text.IndexOf('.');
                 if (firstDot >= 0 && firstDot < i)
                     return Task.FromResult((IReadOnlyList<CompletionItem>)Array.Empty<CompletionItem>());
@@ -155,8 +183,6 @@ public sealed class KernelPromptCallbacks : PpCallbacks
         }
 
         var items = new List<CompletionItem>();
-        // We don't have a back-reference to the registry here without adding a dependency —
-        // hard-code the canonical list and let the registry validate at dispatch.
         foreach (var name in MetaCommandNames)
         {
             items.Add(new CompletionItem(
@@ -171,7 +197,7 @@ public sealed class KernelPromptCallbacks : PpCallbacks
     {
         "help", "exit", "quit", "clear", "reset", "kernel", "vars", "list",
         "theme", "layout", "md", "code", "history", "recall", "rerun", "set",
-        "view", "save", "load", "convert", "export", "publish"
+        "view", "save", "load", "convert", "export"
     };
 
     private ILanguageKernel? GetActiveKernel()
@@ -186,5 +212,8 @@ public sealed class KernelPromptCallbacks : PpCallbacks
         return null;
     }
 
-    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_' || c == '.';
+    // '.' is intentionally not an identifier char: after typing 'Console.Wr', the
+    // replacement span must stop at the dot so PrettyPrompt filters the member
+    // list ('Write', 'WriteLine', …) against 'Wr' instead of 'Console.Wr'.
+    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
 }

@@ -56,14 +56,18 @@ public sealed class TerminalRenderer
 
         if (_useColor)
         {
-            var glyph = hasError ? "[red]✗[/]" : "[green]✓[/]";
+            // Emoji glyphs render as double-width in most terminals so they read
+            // at a glance; plain ✓/✗ code points are visually tiny in a
+            // header. Framed with spaces so the header reads as a tab.
+            var glyph = hasError ? "[red bold] ❌ [/]" : "[green bold] ✅ [/]";
             var borderColor = hasError ? Color.Red : Color.Green3;
             var panel = new Panel(body)
             {
                 Border = BoxBorder.Rounded,
                 BorderStyle = new Style(foreground: borderColor),
                 Header = new PanelHeader(glyph),
-                Padding = new Padding(1, 0, 1, 0)
+                Padding = new Padding(1, 0, 1, 0),
+                Expand = true
             };
             _console.Write(panel);
         }

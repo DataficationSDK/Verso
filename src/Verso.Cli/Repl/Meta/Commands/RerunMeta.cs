@@ -10,10 +10,11 @@ public sealed class RerunMeta : IMetaCommand
     public string Name => "rerun";
     public string Summary => "Re-executes a prior cell (or a range) as new cells.";
     public string DetailedHelp =>
-        ".rerun <n>[..<m>] [--fail-fast]\n" +
-        "  Re-executes cell n (or range n..m) verbatim, appending each as a new cell.\n" +
-        "  Does not mutate prior cells. A range submits cells individually so each renders\n" +
-        "  its own outputs; failures within a range do not stop the rest unless --fail-fast.";
+        ".rerun <n>[..<m>]|all [--fail-fast]\n" +
+        "  Re-executes cell n (or range n..m, or every cell with 'all') verbatim,\n" +
+        "  appending each as a new cell. Does not mutate prior cells. A range submits\n" +
+        "  cells individually so each renders its own outputs; failures within a range\n" +
+        "  do not stop the rest unless --fail-fast.";
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -23,13 +24,23 @@ public sealed class RerunMeta : IMetaCommand
 
         if (string.IsNullOrEmpty(range))
         {
-            context.Console.MarkupLine("[red]Usage: .rerun <n>[[..<m>]] [[--fail-fast]][/]");
+            context.Console.MarkupLine("[red]Usage: .rerun <n>[[..<m>]]|all [[--fail-fast]][/]");
             return true;
         }
 
         var cells = context.Session.Notebook.Cells;
         int start, end;
-        if (range.Contains(".."))
+        if (string.Equals(range, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            if (cells.Count == 0)
+            {
+                context.Console.MarkupLine("[dim]No cells to rerun.[/]");
+                return true;
+            }
+            start = 1;
+            end = cells.Count;
+        }
+        else if (range.Contains(".."))
         {
             var pieces = range.Split("..", 2);
             if (!int.TryParse(pieces[0], out start) || !int.TryParse(pieces[1], out end) || start <= 0 || end < start)
@@ -71,7 +82,7 @@ public sealed class RerunMeta : IMetaCommand
 
             var counter = context.Session.NextInputCounter();
 
-            if (type != "code")
+            if (string.Equals(type, "markdown", StringComparison.OrdinalIgnoreCase))
             {
                 context.Renderer.RenderCell(counter, newCell, ExecutionResult.Success(newCell.Id, 0, TimeSpan.Zero), TimeSpan.FromMilliseconds(200));
                 continue;

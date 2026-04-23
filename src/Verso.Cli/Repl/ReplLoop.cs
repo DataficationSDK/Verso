@@ -58,8 +58,7 @@ public sealed class ReplLoop
         _metaRegistry.Register(new SaveMeta());
         _metaRegistry.Register(new LoadMeta());
         _metaRegistry.Register(new ConvertMeta());
-        _metaRegistry.Register(new ExportMeta("export"));
-        _metaRegistry.Register(new ExportMeta("publish"));
+        _metaRegistry.Register(new ExportMeta());
     }
 
     /// <summary>Exposed for tests and future phases to register additional meta-commands.</summary>

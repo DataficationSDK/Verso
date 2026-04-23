@@ -30,17 +30,18 @@ public sealed class HelpMeta : IMetaCommand
 
         if (context.UseColor)
         {
-            var table = new Table { Border = TableBorder.None, ShowHeaders = false };
-            table.AddColumn(new TableColumn("").PadRight(2));
-            table.AddColumn(new TableColumn(""));
+            var table = new Table().Border(TableBorder.Rounded);
+            table.AddColumn("Command");
+            table.AddColumn("Description");
             foreach (var command in context.Registry.AllOrdered)
-                table.AddRow($"[bold].{command.Name}[/]", command.Summary);
+                table.AddRow($"[bold].{command.Name}[/]", Markup.Escape(command.Summary));
             context.Console.Write(table);
         }
         else
         {
+            Console.Out.WriteLine($"{"COMMAND",-12}  DESCRIPTION");
             foreach (var command in context.Registry.AllOrdered)
-                context.Console.WriteLine($".{command.Name}  {command.Summary}");
+                Console.Out.WriteLine($"{"." + command.Name,-12}  {command.Summary}");
         }
         return Task.FromResult(true);
     }

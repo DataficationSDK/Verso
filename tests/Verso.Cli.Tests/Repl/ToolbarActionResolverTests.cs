@@ -6,7 +6,7 @@ namespace Verso.Cli.Tests.Repl;
 
 /// <summary>
 /// Smoke coverage for <see cref="ToolbarActionResolver"/> — the shared resolver behind
-/// both <c>verso publish</c> and the REPL's <c>.export</c>/<c>.publish</c>.
+/// both <c>verso publish</c> and the REPL's <c>.export</c>.
 /// </summary>
 [TestClass]
 public class ToolbarActionResolverTests

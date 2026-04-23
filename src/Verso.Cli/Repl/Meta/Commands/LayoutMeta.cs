@@ -2,7 +2,7 @@ using Spectre.Console;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
-/// <summary>Implements <c>.layout</c>. Prints or sets the default layout id used by .export / .publish.</summary>
+/// <summary>Implements <c>.layout</c>. Prints or sets the default layout id used by .export.</summary>
 public sealed class LayoutMeta : IMetaCommand
 {
     public string Name => "layout";
@@ -10,7 +10,7 @@ public sealed class LayoutMeta : IMetaCommand
     public string DetailedHelp =>
         ".layout [<id>|none]\n" +
         "  With no argument, prints the active layout id.\n" +
-        "  With an id, sets the default ActiveLayoutId for subsequent .export / .publish calls.\n" +
+        "  With an id, sets the default ActiveLayoutId for subsequent .export calls.\n" +
         "  Pass 'none' to clear the layout.";
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)

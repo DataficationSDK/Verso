@@ -6,32 +6,21 @@ using Verso.Contexts;
 namespace Verso.Cli.Repl.Meta.Commands;
 
 /// <summary>
-/// Implements <c>.export</c> and <c>.publish</c>. Dispatches to an export-menu
+/// Implements <c>.export</c>. Dispatches to an export-menu
 /// <see cref="IToolbarAction"/> using the same <see cref="CliToolbarActionContext"/>
 /// that backs <c>verso publish</c>. Inherits any format registered by any extension.
 /// </summary>
 public sealed class ExportMeta : IMetaCommand
 {
-    public string Name { get; }
-    public IReadOnlyList<string> Aliases { get; }
+    public string Name => "export";
     public string Summary => "Exports the session notebook via an ExportMenu toolbar action.";
     public string DetailedHelp =>
-        $".{Name} --format <name> [--output <path>] [--layout <id>] [--theme <name>]\n" +
+        ".export --format <name> [--output <path>] [--layout <id>] [--theme <name>]\n" +
         "  Dispatches to an IToolbarAction registered with ToolbarPlacement.ExportMenu.\n" +
         "  Format is matched by DisplayName (case-insensitive), ActionId as fallback.\n" +
         "  Theme is matched by DisplayName (case-insensitive), ThemeId as fallback.\n" +
         "  Without --output, writes the action's suggested filename to the current directory.\n" +
         "  Identical to 'verso publish'.";
-
-    /// <summary>
-    /// Constructor taking a name enables registering the same implementation twice
-    /// under <c>.export</c> and its alias <c>.publish</c> per spec §6.
-    /// </summary>
-    public ExportMeta(string name = "export", params string[] aliases)
-    {
-        Name = name;
-        Aliases = aliases;
-    }
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -91,7 +80,7 @@ public sealed class ExportMeta : IMetaCommand
             return true;
         }
 
-        context.Console.MarkupLine($"[green]Published[/] session notebook → {Markup.Escape(ctx.WrittenPath)} ({context.Session.Notebook.Cells.Count} cells)");
+        context.Console.MarkupLine($"[green]Exported[/] session notebook → {Markup.Escape(ctx.WrittenPath)} ({context.Session.Notebook.Cells.Count} cells)");
         return true;
     }
 

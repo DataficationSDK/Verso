@@ -50,7 +50,7 @@ public static class ReplCommand
             "Active theme for output rendering. DisplayName case-insensitive with ThemeId fallback.");
 
         var layoutOption = new Option<string?>("--layout",
-            "Default layout id, passed to .export / .publish as ActiveLayoutId unless the command overrides it.");
+            "Default layout id, passed to .export as ActiveLayoutId unless the command overrides it.");
 
         var extensionsOption = new Option<DirectoryInfo?>("--extensions",
             "Additional directory to scan for extension assemblies.");

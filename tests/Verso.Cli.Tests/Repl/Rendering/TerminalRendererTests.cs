@@ -16,7 +16,7 @@ public class TerminalRendererTests
         // Regression guard: the original cell-frame used a bare "[N]" rule, which
         // Spectre's markup parser rejected with "Unbalanced markup stack". The panel
         // form sidesteps that by avoiding counter interpolation entirely; this test
-        // confirms RenderCell stays exception-free and carries the ✓ glyph.
+        // confirms RenderCell stays exception-free and carries the ✅ glyph.
         var console = new TestConsole();
         console.Profile.Width = 80;
         var renderer = new TerminalRenderer(console, useColor: true);
@@ -33,7 +33,7 @@ public class TerminalRendererTests
 
         renderer.RenderCell(inputCounter: 1, cell, result, TimeSpan.FromMilliseconds(200));
 
-        StringAssert.Contains(console.Output, "✓", "Success cells are framed with the green check glyph.");
+        StringAssert.Contains(console.Output, "✅", "Success cells are framed with the green check glyph.");
         StringAssert.Contains(console.Output, "1", "Cell output body must still be present inside the panel.");
     }
 
@@ -55,7 +55,7 @@ public class TerminalRendererTests
 
         renderer.RenderCell(inputCounter: 2, cell, result, TimeSpan.FromMilliseconds(200));
 
-        StringAssert.Contains(console.Output, "✗", "Error outputs should switch the panel header to the red ✗ glyph.");
+        StringAssert.Contains(console.Output, "❌", "Error outputs should switch the panel header to the red cross glyph.");
         StringAssert.Contains(console.Output, "boom");
     }
 
