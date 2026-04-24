@@ -9,11 +9,11 @@ using Verso.Extensions;
 namespace Verso.Cli.Commands;
 
 /// <summary>
-/// Implements the 'verso publish' command: dispatches a notebook to an
+/// Implements the 'verso export' command: dispatches a notebook to an
 /// <see cref="IToolbarAction"/> registered with <see cref="ToolbarPlacement.ExportMenu"/>
 /// and writes the produced bytes to disk.
 /// </summary>
-public static class PublishCommand
+public static class ExportCommand
 {
     public static Command Create()
     {
@@ -29,7 +29,7 @@ public static class PublishCommand
             "Output file path. If omitted, the exporter's suggested filename is written to the current directory.");
 
         var executeOption = new Option<bool>(new[] { "--execute", "-x" }, () => false,
-            "Execute the notebook before publishing so stored outputs are refreshed.");
+            "Execute the notebook before exporting so stored outputs are refreshed.");
 
         var layoutOption = new Option<string?>("--layout",
             "Layout id to apply during export, exposed as ActiveLayoutId on the action context.");
@@ -46,7 +46,7 @@ public static class PublishCommand
         var listThemesOption = new Option<bool>("--list-themes", () => false,
             "List registered themes (DisplayName, Kind, Description) and exit.");
 
-        var command = new Command("publish", "Export a notebook via an ExportMenu toolbar action.")
+        var command = new Command("export", "Export a notebook via an ExportMenu toolbar action.")
         {
             inputArg,
             formatOption,
@@ -105,7 +105,7 @@ public static class PublishCommand
 
                 if (string.IsNullOrWhiteSpace(format))
                 {
-                    Console.Error.WriteLine("Error: --format is required. Use 'verso publish --list' to see available formats.");
+                    Console.Error.WriteLine("Error: --format is required. Use 'verso export --list' to see available formats.");
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -151,7 +151,7 @@ public static class PublishCommand
 
                     if (HasAnyFailure(notebook, results))
                     {
-                        Console.Error.WriteLine("Error: Notebook execution reported errors. Aborting publish.");
+                        Console.Error.WriteLine("Error: Notebook execution reported errors. Aborting export.");
                         context.ExitCode = ExitCodes.CellFailure;
                         return;
                     }
@@ -159,7 +159,7 @@ public static class PublishCommand
 
                 if (!ToolbarActionResolver.TryResolveAction(extensionHost, format, out var action, out var resolveError))
                 {
-                    Console.Error.WriteLine(resolveError + " Run 'verso publish --list' to see available formats.");
+                    Console.Error.WriteLine(resolveError + " Run 'verso export --list' to see available formats.");
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -169,7 +169,7 @@ public static class PublishCommand
                 {
                     if (!ToolbarActionResolver.TryResolveTheme(extensionHost, themeText, out selectedTheme, out var themeError))
                     {
-                        Console.Error.WriteLine(themeError + " Run 'verso publish --list-themes' for details.");
+                        Console.Error.WriteLine(themeError + " Run 'verso export --list-themes' for details.");
                         context.ExitCode = ExitCodes.SerializationError;
                         return;
                     }
@@ -196,7 +196,7 @@ public static class PublishCommand
                     return;
                 }
 
-                Console.WriteLine($"Published '{inputPath}' -> '{ctx.WrittenPath}'");
+                Console.WriteLine($"Exported '{inputPath}' -> '{ctx.WrittenPath}'");
                 context.ExitCode = ExitCodes.Success;
             }
             catch (Exception ex)

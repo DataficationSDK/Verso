@@ -98,6 +98,90 @@ verso convert notebook.verso --to ipynb --output exported.ipynb
 verso convert notebook.verso --to verso --strip-outputs
 ```
 
+### `verso repl`
+
+Starts an interactive REPL in the terminal, hosted by the same `Scaffold` pipeline that powers the editor and `verso run`. Every registered kernel, theme, formatter, serializer, and `ExportMenu` toolbar action is usable at the prompt with no extra wiring.
+
+```bash
+# Empty scratch notebook, C# by default
+verso repl
+
+# Load a notebook, re-execute it, and drop into the prompt
+verso repl pipeline.verso --execute
+
+# Start in F# and force the plain (line-oriented) fallback prompt
+verso repl --kernel fsharp --plain
+
+# Enumerate available kernels / themes and exit
+verso repl --list-kernels
+verso repl --list-themes
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `<notebook>` | none | Optional `.verso`, `.ipynb`, or `.dib` file to load on launch |
+| `--kernel <id>` | `csharp` | Active kernel for the first cell (change at runtime with `.kernel`) |
+| `--execute`, `-x` | false | Execute the loaded notebook's cells before handing control to the prompt |
+| `--theme <name>` | none | Active theme, matched by `DisplayName` (falls back to `ThemeId`) |
+| `--layout <id>` | none | Default layout id, used by `.export` unless the command overrides it |
+| `--extensions <dir>` | none | Additional directory to scan for extension assemblies |
+| `--no-color` | false | Disable ANSI styling; plain UTF-8 output |
+| `--plain` | false | Force the line-oriented fallback prompt (blank line submits; `;;` force-submits) |
+| `--history <path>\|none` | platform state dir | Override or disable persistent history |
+| `--list-kernels` | false | Print registered kernels and exit |
+| `--list-themes` | false | Print registered themes and exit |
+
+**Submitting cells.** In the full-featured (PrettyPrompt) driver, `Enter` inserts a newline unless the buffer already ends with two trailing newlines — a third `Enter` submits. Meta-commands (leading `.`) submit on the first `Enter`. In `--plain` mode, a blank line submits and `;;` on its own line force-submits.
+
+**Meta-commands.** Type `.help` at the prompt for the full list. Common ones:
+
+| Command | Purpose |
+|---------|---------|
+| `.help [<name>]` | Show the command list or detailed help for one command |
+| `.exit` / `.quit` | Leave the REPL (warns once if there are unsaved cells) |
+| `.kernel [<id>]` | Print or switch the active kernel; the new kernel is warmed up so the first completion is snappy |
+| `.vars` | Tabulate variables in the shared variable store |
+| `.list kernels\|themes\|formatters\|renderers\|serializers\|extensions\|exporters` | Enumerate registered extensions of each kind |
+| `.save [<path>]` / `.load <path>` / `.convert <path>` | Serialize the session notebook via a matching `INotebookSerializer` |
+| `.export --format <name> [--output <path>] [--layout <id>] [--theme <name>]` | Dispatch to an `ExportMenu` toolbar action (same pipeline as `verso export`; the CLI sub-command shares this code path) |
+| `.history [<n>]` / `.recall <n>` / `.rerun <n>[..<m>]\|all [--fail-fast]` | Review, re-edit, or re-execute prior cells |
+| `.md` / `.code` | One-shot cell-type override for the next submission |
+| `.theme <name>` / `.layout <id>` | Change active theme or default layout at runtime |
+| `.set preview.rows\|preview.lines\|preview.elapsedThresholdMs <n>` | Adjust row/line caps and the elapsed-time hint |
+| `.view [<n>]` | Reprint the last (or nth) cell's output without truncation |
+| `.clear` / `.reset` | Clear the screen, or rebuild the kernel state without losing cell history |
+
+### `verso export`
+
+Exports a notebook through a registered `ExportMenu` toolbar action. `--format` matches an action's `DisplayName` (case-insensitive, with `ActionId` as a disambiguator).
+
+```bash
+# Export to HTML
+verso export notebook.verso --format html --output out.html
+
+# Apply a theme and layout during export
+verso export notebook.verso --format html --theme verso-dark --layout dashboard -o out.html
+
+# Re-execute the notebook before exporting so outputs are fresh
+verso export notebook.verso --format html --execute -o out.html
+
+# Enumerate available formats / themes and exit
+verso export --list
+verso export --list-themes
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `<input>` | required | `.verso`, `.ipynb`, or `.dib` file to export |
+| `--format`, `-f <name>` | required | `DisplayName` of a registered `IToolbarAction` with `ExportMenu` placement |
+| `--output`, `-o <path>` | action default | Output file path (falls back to the exporter's suggested name) |
+| `--execute`, `-x` | false | Execute the notebook before exporting so stored outputs are refreshed |
+| `--layout <id>` | none | Layout id applied during export |
+| `--theme <name>` | none | Theme matched by `DisplayName` (falls back to `ThemeId`) |
+| `--extensions <dir>` | none | Additional directory to scan for extension assemblies |
+| `--list` | false | List registered export actions and exit |
+| `--list-themes` | false | List registered themes and exit |
+
 ### `verso info`
 
 Displays version, runtime, and extension information.
@@ -200,12 +284,13 @@ In the Verso editor, required parameters without values display a validation err
 
 | Code | Meaning |
 |------|---------|
-| 0 | All executed cells succeeded |
-| 1 | One or more cells failed |
+| 0 | All executed cells succeeded, or clean REPL exit |
+| 1 | One or more cells failed, or fatal error outside a cell |
 | 2 | Execution timed out |
 | 3 | Notebook file not found or unreadable |
 | 4 | Serialization error (invalid notebook format) |
 | 5 | Missing required notebook parameters |
+| 6 | `verso repl --kernel` or `--theme` resolution failed |
 
 ## CI/CD Integration
 

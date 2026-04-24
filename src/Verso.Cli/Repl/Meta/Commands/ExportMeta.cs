@@ -8,7 +8,7 @@ namespace Verso.Cli.Repl.Meta.Commands;
 /// <summary>
 /// Implements <c>.export</c>. Dispatches to an export-menu
 /// <see cref="IToolbarAction"/> using the same <see cref="CliToolbarActionContext"/>
-/// that backs <c>verso publish</c>. Inherits any format registered by any extension.
+/// that backs <c>verso export</c>. Inherits any format registered by any extension.
 /// </summary>
 public sealed class ExportMeta : IMetaCommand
 {
@@ -20,7 +20,7 @@ public sealed class ExportMeta : IMetaCommand
         "  Format is matched by DisplayName (case-insensitive), ActionId as fallback.\n" +
         "  Theme is matched by DisplayName (case-insensitive), ThemeId as fallback.\n" +
         "  Without --output, writes the action's suggested filename to the current directory.\n" +
-        "  Identical to 'verso publish'.";
+        "  Identical to 'verso export'.";
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {

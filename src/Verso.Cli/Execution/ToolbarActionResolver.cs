@@ -5,7 +5,7 @@ namespace Verso.Cli.Execution;
 
 /// <summary>
 /// Resolution helpers for export-menu toolbar actions and themes, shared by
-/// <c>verso publish</c> and <c>verso repl</c>'s <c>.export</c> / <c>.theme</c>
+/// <c>verso export</c> and <c>verso repl</c>'s <c>.export</c> / <c>.theme</c>
 /// meta-commands. Matches the contract documented in
 /// <c>agent-docs/specifications/Verso/Verso-Repl-Specification-v1.0.md §6.1</c>.
 /// </summary>
