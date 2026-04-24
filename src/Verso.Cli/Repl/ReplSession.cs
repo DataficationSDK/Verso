@@ -43,6 +43,14 @@ public sealed class ReplSession : IAsyncDisposable
     /// <summary>True once <see cref="MarkDirty"/> has been called and .save has not followed.</summary>
     public bool IsDirty { get; private set; }
 
+    /// <summary>
+    /// One-shot "the user already saw an unsaved-work warning and is retrying the
+    /// destructive op" flag. Cleared as soon as it is consumed by
+    /// <see cref="ConfirmDiscardUnsavedChanges"/>, and whenever the session becomes
+    /// clean (so a save-then-redirty cycle doesn't silently inherit stale consent).
+    /// </summary>
+    private bool _discardConfirmationPending;
+
     /// <summary>Next-submission cell type override (one-shot, set by <c>.md</c>/<c>.code</c>).</summary>
     public string? NextCellTypeOverride { get; set; }
 
@@ -65,9 +73,49 @@ public sealed class ReplSession : IAsyncDisposable
 
     public int NextInputCounter() => ++InputCounter;
 
-    public void MarkDirty() => IsDirty = true;
+    public void MarkDirty()
+    {
+        IsDirty = true;
+        // New user work invalidates any prior "retry to discard" consent: after
+        // typing fresh cells the user should see a new warning before a destructive
+        // meta-command proceeds.
+        _discardConfirmationPending = false;
+    }
 
-    public void MarkClean() => IsDirty = false;
+    public void MarkClean()
+    {
+        IsDirty = false;
+        // Clearing the dirty flag invalidates any prior "retry to discard" consent:
+        // if the user dirties the session again later, they should see a fresh warning
+        // before a destructive meta-command (.load, etc.) proceeds.
+        _discardConfirmationPending = false;
+    }
+
+    /// <summary>
+    /// Called by destructive meta-commands (e.g. <c>.load</c>) before they overwrite
+    /// session state. Returns <c>true</c> if the caller may proceed — either because
+    /// the session is clean, or because the user already saw the unsaved-work warning
+    /// and is invoking the command a second time. Returns <c>false</c> on the first
+    /// invocation against a dirty session; the caller should print a warning in that
+    /// case and let the user decide whether to retry.
+    /// </summary>
+    public bool ConfirmDiscardUnsavedChanges()
+    {
+        if (!IsDirty)
+        {
+            _discardConfirmationPending = false;
+            return true;
+        }
+
+        if (_discardConfirmationPending)
+        {
+            _discardConfirmationPending = false;
+            return true;
+        }
+
+        _discardConfirmationPending = true;
+        return false;
+    }
 
     /// <summary>
     /// Replaces the current Scaffold with a fresh one bound to the same notebook and

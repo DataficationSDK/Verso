@@ -15,11 +15,9 @@ public sealed class ExitMeta : IMetaCommand
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
-        if (context.Session.IsDirty && context.Session.Settings.ConfirmOnExit)
+        if (context.Session.Settings.ConfirmOnExit && !context.Session.ConfirmDiscardUnsavedChanges())
         {
             context.Console.MarkupLine("[yellow]Session has unsaved cells.[/] Type [bold].save[/] first, or [bold].exit[/] again to discard.");
-            // Clear dirty so a second .exit without intervening work terminates.
-            context.Session.MarkClean();
             return Task.FromResult(true);
         }
         return Task.FromResult(false);

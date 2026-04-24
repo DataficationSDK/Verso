@@ -27,10 +27,9 @@ public sealed class LoadMeta : IMetaCommand
             return true;
         }
 
-        if (context.Session.IsDirty)
+        if (!context.Session.ConfirmDiscardUnsavedChanges())
         {
             context.Console.MarkupLine("[yellow]Session has unsaved cells.[/] Run [bold].save[/] first, or [bold].load[/] again to discard.");
-            context.Session.MarkClean();
             return true;
         }
 
