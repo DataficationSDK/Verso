@@ -11,7 +11,9 @@ namespace Verso.Cli.Commands;
 /// <summary>
 /// Implements the 'verso export' command: dispatches a notebook to an
 /// <see cref="IToolbarAction"/> registered with <see cref="ToolbarPlacement.ExportMenu"/>
-/// and writes the produced bytes to disk.
+/// and writes the produced bytes to disk. The name matches the
+/// <c>Export</c> toolbar placement surfaced by the editor UI and VS Code
+/// extension.
 /// </summary>
 public static class ExportCommand
 {
