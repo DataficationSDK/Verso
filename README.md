@@ -217,18 +217,26 @@ verso run pipeline.verso --param region=us-east --output json
 
 # Convert a Jupyter notebook to Verso format
 verso convert notebook.ipynb --to verso
+
+# Start an interactive REPL (C# by default; switch with .kernel fsharp, .kernel python, ...)
+verso repl
+
+# Export a notebook through a registered ExportMenu action
+verso export notebook.verso --format html --output out.html
 ```
 
-The CLI includes four commands:
+The CLI includes six commands:
 
 | Command | Purpose |
 |---------|---------|
 | `verso serve` | Launch the Verso editor as a local web server |
 | `verso run` | Execute a notebook headlessly and stream outputs |
+| `verso repl` | Interactive REPL hosted in the terminal, backed by the same kernels and extensions as the editor |
 | `verso convert` | Convert between `.verso`, `.ipynb`, and `.dib` formats |
+| `verso export` | Export a notebook via an `ExportMenu` toolbar action (HTML, Markdown, …) |
 | `verso info` | Display CLI version, runtime, and extension details |
 
-`verso run` supports typed parameters (`--param name=value`), JSON output for CI integration, selective cell execution, and fail-fast mode. See the [CLI README](src/Verso.Cli/README.md) for the full option reference, exit codes, and CI/CD examples.
+`verso run` supports typed parameters (`--param name=value`), JSON output for CI integration, selective cell execution, and fail-fast mode. `verso repl` supports completion, persistent history, multi-line cell submission (blank-line to submit), and meta-commands like `.kernel`, `.vars`, `.save`, `.load`, and `.export`. See the [CLI README](src/Verso.Cli/README.md) for the full option reference, meta-command list, exit codes, and CI/CD examples.
 
 ### Run in VS Code
 

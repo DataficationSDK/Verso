@@ -172,6 +172,11 @@ public sealed class CSharpKernel : ILanguageKernel
             {
                 await _stateManager!.RunAsync(storePreamble, _globals, context.CancellationToken)
                     .ConfigureAwait(false);
+
+                // Make the injected declarations visible to IntelliSense. Without this the
+                // Roslyn completion workspace has no record of variables that other kernels
+                // pushed into the store, so they never appear in the REPL popup.
+                _workspaceManager!.AppendExecutedCode(storePreamble);
             }
 
             var scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)

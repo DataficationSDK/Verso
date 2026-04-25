@@ -1,3 +1,4 @@
+using System.Text;
 using Verso.Abstractions;
 
 namespace Verso.FSharp.Kernel;
@@ -74,8 +75,15 @@ let displayAs (mimeType: string) (value: obj) : unit =
     /// FSI bindings so other kernels' outputs are accessible by name.
     /// Called before every cell execution so values stay current.
     /// </summary>
-    public void InjectFromStore(FsiSessionManager session, IVariableStore store)
+    /// <returns>
+    /// F# source for the bindings that were successfully injected this call, suitable
+    /// for feeding into <c>FSharpProjectContext</c> so FCS completion can see them.
+    /// Returns <c>null</c> if nothing was injected.
+    /// </returns>
+    public string? InjectFromStore(FsiSessionManager session, IVariableStore store)
     {
+        var intellisense = new StringBuilder();
+
         foreach (var desc in store.GetAll())
         {
             if (desc.Value is null) continue;
@@ -98,45 +106,62 @@ let displayAs (mimeType: string) (value: obj) : unit =
                 // with F#'s native types. AddBoundValue binds them as their .NET types
                 // (e.g. System.Int32 instead of int, System.Double instead of float),
                 // which F#'s type checker treats differently (e.g. printfn "%d" fails).
+                string? letDecl = null;
                 if (desc.Value is string s)
                 {
                     var escaped = s.Replace("\\", "\\\\").Replace("\"", "\\\"");
-                    session.EvalSilent($"let {desc.Name} = \"{escaped}\"");
+                    letDecl = $"let {desc.Name} = \"{escaped}\"";
+                    session.EvalSilent(letDecl);
                 }
                 else if (desc.Value is int i)
                 {
-                    session.EvalSilent($"let {desc.Name} = {i}");
+                    letDecl = $"let {desc.Name} = {i}";
+                    session.EvalSilent(letDecl);
                 }
                 else if (desc.Value is long l)
                 {
-                    session.EvalSilent($"let {desc.Name} = {l}L");
+                    letDecl = $"let {desc.Name} = {l}L";
+                    session.EvalSilent(letDecl);
                 }
                 else if (desc.Value is double d)
                 {
-                    session.EvalSilent($"let {desc.Name} = {d.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    letDecl = $"let {desc.Name} = {d.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                    session.EvalSilent(letDecl);
                 }
                 else if (desc.Value is float f)
                 {
-                    session.EvalSilent($"let {desc.Name} = {f.ToString(System.Globalization.CultureInfo.InvariantCulture)}f");
+                    letDecl = $"let {desc.Name} = {f.ToString(System.Globalization.CultureInfo.InvariantCulture)}f";
+                    session.EvalSilent(letDecl);
                 }
                 else if (desc.Value is bool b)
                 {
-                    session.EvalSilent($"let {desc.Name} = {(b ? "true" : "false")}");
+                    letDecl = $"let {desc.Name} = {(b ? "true" : "false")}";
+                    session.EvalSilent(letDecl);
                 }
                 else if (desc.Value is decimal m)
                 {
-                    session.EvalSilent($"let {desc.Name} = {m.ToString(System.Globalization.CultureInfo.InvariantCulture)}M");
+                    letDecl = $"let {desc.Name} = {m.ToString(System.Globalization.CultureInfo.InvariantCulture)}M";
+                    session.EvalSilent(letDecl);
                 }
                 else
                 {
                     session.AddBoundValue(desc.Name, desc.Value);
+                    // FCS can't infer a type from AddBoundValue. Emit an obj-typed placeholder
+                    // so the name at least surfaces in the completion popup; hover/members
+                    // will reflect obj rather than the real runtime type.
+                    letDecl = $"let ({desc.Name} : obj) = Unchecked.defaultof<obj>";
                 }
+
+                if (letDecl is not null)
+                    intellisense.AppendLine(letDecl);
             }
             catch
             {
                 // Some values may not be representable in FSI; skip silently
             }
         }
+
+        return intellisense.Length > 0 ? intellisense.ToString() : null;
     }
 
     /// <summary>

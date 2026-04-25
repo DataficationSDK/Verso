@@ -206,8 +206,11 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             }
 
             // Inject shared variables from the store so other kernels' outputs
-            // are accessible by name in F# cells.
-            _variableBridge!.InjectFromStore(_sessionManager!, context.Variables);
+            // are accessible by name in F# cells. Also feed the synthesized let-bindings
+            // into the IntelliSense context so FCS completion can surface the names.
+            var storeSource = _variableBridge!.InjectFromStore(_sessionManager!, context.Variables);
+            if (storeSource is not null)
+                _projectContext?.AppendExecutedCode(storeSource);
 
             var outputs = new List<CellOutput>();
             var processedCode = code;
