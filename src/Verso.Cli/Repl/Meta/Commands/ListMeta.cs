@@ -27,8 +27,8 @@ public sealed class ListMeta : IMetaCommand
         switch (kind)
         {
             case "kernels":
-                RenderTable(context, new[] { "Language", "Display Name", "Description" },
-                    host.GetKernels().Select(k => new[] { k.LanguageId, k.DisplayName, k.Description ?? "" }));
+                RenderTable(context, new[] { "Language", "Description" },
+                    host.GetKernels().Select(k => new[] { k.LanguageId, k.Description ?? "" }));
                 break;
 
             case "themes":
@@ -37,13 +37,13 @@ public sealed class ListMeta : IMetaCommand
                 break;
 
             case "formatters":
-                RenderTable(context, new[] { "Id", "Name", "Priority" },
-                    host.GetFormatters().Select(f => new[] { f.ExtensionId, f.Name, f.Priority.ToString() }));
+                RenderTable(context, new[] { "Name", "Description", "Priority" },
+                    host.GetFormatters().Select(f => new[] { f.Name, f.Description ?? "", f.Priority.ToString() }));
                 break;
 
             case "renderers":
-                RenderTable(context, new[] { "Id", "Name" },
-                    host.GetRenderers().Select(r => new[] { r.ExtensionId, r.Name }));
+                RenderTable(context, new[] { "Name", "Description" },
+                    host.GetRenderers().Select(r => new[] { r.Name, r.Description ?? "" }));
                 break;
 
             case "serializers":
@@ -57,11 +57,11 @@ public sealed class ListMeta : IMetaCommand
                 break;
 
             case "exporters":
-                RenderTable(context, new[] { "Format (DisplayName)", "ActionId", "Description" },
+                RenderTable(context, new[] { "Format", "Description" },
                     host.GetToolbarActions()
                         .Where(a => a.Placement == ToolbarPlacement.ExportMenu)
                         .OrderBy(a => a.Order)
-                        .Select(a => new[] { a.DisplayName, a.ActionId, a.Description ?? "" }));
+                        .Select(a => new[] { a.DisplayName, a.Description ?? "" }));
                 break;
 
             default:
