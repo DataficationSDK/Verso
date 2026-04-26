@@ -1,5 +1,6 @@
 using Markdig;
 using Verso.Abstractions;
+using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Renderers;
 
@@ -32,9 +33,16 @@ public sealed class MarkdownRenderer : ICellRenderer
 
     public Task<RenderResult> RenderInputAsync(string source, ICellRenderContext context)
     {
-        var html = string.IsNullOrEmpty(source)
-            ? string.Empty
-            : Markdown.ToHtml(source, Pipeline);
+        string html;
+        if (string.IsNullOrEmpty(source))
+        {
+            html = string.Empty;
+        }
+        else
+        {
+            var processed = VariableSubstitution.Apply(source, context.Variables);
+            html = Markdown.ToHtml(processed, Pipeline);
+        }
 
         return Task.FromResult(new RenderResult("text/html", html));
     }

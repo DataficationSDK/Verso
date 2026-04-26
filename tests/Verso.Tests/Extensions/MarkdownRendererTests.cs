@@ -147,4 +147,41 @@ public sealed class MarkdownRendererTests
     [TestMethod]
     public void CollapsesInputOnExecute_IsTrue()
         => Assert.IsTrue(_renderer.CollapsesInputOnExecute);
+
+    [TestMethod]
+    public async Task RenderInput_SubstitutesVariableToken()
+    {
+        _context.Variables.Set("name", "World");
+        var result = await _renderer.RenderInputAsync("Hello, @name!", _context);
+        Assert.IsTrue(result.Content.Contains("Hello, World!"),
+            $"Expected substituted text in output, got: {result.Content}");
+    }
+
+    [TestMethod]
+    public async Task RenderInput_SubstitutionRunsBeforeMarkdownParse()
+    {
+        _context.Variables.Set("title", "My Heading");
+        var result = await _renderer.RenderInputAsync("# @title", _context);
+        Assert.IsTrue(result.Content.Contains("<h1"), "Expected <h1 tag");
+        Assert.IsTrue(result.Content.Contains("My Heading"));
+    }
+
+    [TestMethod]
+    public async Task RenderInput_UnresolvedTokenLeftAsIs()
+    {
+        var result = await _renderer.RenderInputAsync("Value is @missing", _context);
+        Assert.IsTrue(result.Content.Contains("@missing"),
+            $"Expected unresolved token to be left in output, got: {result.Content}");
+    }
+
+    [TestMethod]
+    public async Task RenderInput_DoubleAtEscapesToLiteralAt()
+    {
+        _context.Variables.Set("name", "World");
+        var result = await _renderer.RenderInputAsync("Email @@name", _context);
+        Assert.IsTrue(result.Content.Contains("@name"),
+            $"Expected escaped literal '@name' in output, got: {result.Content}");
+        Assert.IsFalse(result.Content.Contains("World"),
+            "Escaped token must not be substituted");
+    }
 }
