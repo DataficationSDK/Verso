@@ -114,14 +114,6 @@ public sealed class CSharpKernel : ILanguageKernel
             var (cleanedCode, nugetResults) = await ProcessNuGetReferencesAsync(
                 code, context, context.CancellationToken).ConfigureAwait(false);
 
-            // Check for resolved packages from #!nuget magic command
-            if (context.Variables.TryGet<List<NuGetResolveResult>>(NuGetMagicCommand.ResolvedPackagesStoreKey, out var magicResults)
-                && magicResults is { Count: > 0 })
-            {
-                nugetResults.AddRange(magicResults);
-                context.Variables.Remove(NuGetMagicCommand.ResolvedPackagesStoreKey);
-            }
-
             // Add references if any
             var nugetAssemblyPaths = nugetResults.SelectMany(r => r.AssemblyPaths).ToList();
             if (nugetAssemblyPaths.Count > 0)

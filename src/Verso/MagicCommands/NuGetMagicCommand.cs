@@ -11,7 +11,6 @@ namespace Verso.MagicCommands;
 public sealed class NuGetMagicCommand : IMagicCommand
 {
     internal const string AssemblyStoreKey = "__verso_nuget_assemblies";
-    internal const string ResolvedPackagesStoreKey = "__verso_nuget_resolved_packages";
 
     // --- IExtension (explicit for descriptive Name) ---
 
@@ -80,14 +79,6 @@ public sealed class NuGetMagicCommand : IMagicCommand
 
             existingPaths.AddRange(result.AssemblyPaths);
             context.Variables.Set(AssemblyStoreKey, existingPaths);
-
-            // Store resolved package info for "Installed Packages" display
-            var existingResults = new List<NuGetResolveResult>();
-            if (context.Variables.TryGet<List<NuGetResolveResult>>(ResolvedPackagesStoreKey, out var existingRes) && existingRes is not null)
-                existingResults.AddRange(existingRes);
-
-            existingResults.Add(result);
-            context.Variables.Set(ResolvedPackagesStoreKey, existingResults);
 
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",

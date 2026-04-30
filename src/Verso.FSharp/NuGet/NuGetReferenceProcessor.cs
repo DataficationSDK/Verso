@@ -25,11 +25,6 @@ internal sealed class NuGetReferenceProcessor
     /// </summary>
     internal const string AssemblyStoreKey = "__verso_nuget_assemblies";
 
-    /// <summary>
-    /// Duplicated from NuGetMagicCommand.ResolvedPackagesStoreKey.
-    /// </summary>
-    internal const string ResolvedPackagesStoreKey = "__verso_nuget_resolved_packages";
-
     private static readonly Regex NuGetDirectiveRegex = new(
         @"^#r\s+""nuget:\s*([^""]+)""",
         RegexOptions.Compiled | RegexOptions.Multiline);

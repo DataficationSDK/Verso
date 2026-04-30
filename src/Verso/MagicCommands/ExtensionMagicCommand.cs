@@ -270,13 +270,6 @@ public sealed class ExtensionMagicCommand : IMagicCommand
             existingPaths.AddRange(result.AssemblyPaths);
             context.Variables.Set(NuGetMagicCommand.AssemblyStoreKey, existingPaths);
 
-            // Store resolved package info
-            var existingResults = new List<NuGetResolveResult>();
-            if (context.Variables.TryGet<List<NuGetResolveResult>>(NuGetMagicCommand.ResolvedPackagesStoreKey, out var existingRes) && existingRes is not null)
-                existingResults.AddRange(existingRes);
-            existingResults.Add(result);
-            context.Variables.Set(NuGetMagicCommand.ResolvedPackagesStoreKey, existingResults);
-
             // Load extensions from each assembly
             var extensionsRegistered = 0;
             if (extensionHost is not null)
