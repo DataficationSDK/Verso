@@ -121,7 +121,11 @@ internal sealed class NotebookOperations : INotebookOperations
     public void SetActiveLayout(string layoutId)
     {
         _scaffold.LayoutManager?.SetActiveLayout(layoutId);
-        _scaffold.Notebook.ActiveLayoutId = layoutId;
+        if (_scaffold.LayoutManager?.ActiveLayout is { } active && active is IExtension ext)
+        {
+            _scaffold.Notebook.ActiveLayout = new LayoutReference(ext.ExtensionId, active.LayoutId);
+            _scaffold.Notebook.RequiresLegacyLayoutResolution = false;
+        }
     }
 
     public string? ActiveThemeId => _scaffold.ThemeEngine?.ActiveTheme?.ThemeId;

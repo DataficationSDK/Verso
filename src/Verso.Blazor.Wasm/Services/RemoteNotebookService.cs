@@ -30,7 +30,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private List<LayoutInfo> _layouts = new();
     private List<ThemeInfo> _themes = new();
     private List<ExtensionInfo> _extensions = new();
-    private string? _activeLayoutId;
+    private LayoutReference? _activeLayout;
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
     private bool _isDashboardLayout;
@@ -132,7 +132,19 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public bool IsDashboardLayout => _isDashboardLayout;
     public ThemeKind? ActiveThemeKind => _activeThemeKind;
     public ThemeData? ActiveThemeData { get; private set; }
-    public string? ActiveLayoutId => _activeLayoutId;
+
+    /// <summary>
+    /// Qualified identity of the currently active layout, or <c>null</c> when no notebook
+    /// is loaded. The pair-shape is the canonical client-side identifier from v1.0 onward.
+    /// </summary>
+    public LayoutReference? ActiveLayout => _activeLayout;
+
+    /// <summary>
+    /// Bare <c>LayoutId</c> of the active layout. Retained as a compatibility forwarder for
+    /// callers that have not yet migrated to <see cref="ActiveLayout"/>; scheduled for
+    /// removal in v2.0.
+    /// </summary>
+    public string? ActiveLayoutId => _activeLayout?.LayoutId;
     public LayoutCapabilities LayoutCapabilities => _layoutCapabilities;
     public bool ActiveLayoutSupportsPropertiesPanel => _activeLayoutSupportsPropertiesPanel;
     public string? ActiveThemeId => _activeThemeId;
@@ -536,14 +548,28 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     // ── Layout & theme switching ────────────────────────────────────────
 
-    public async Task SwitchLayoutAsync(string layoutId)
+    public Task SwitchLayoutAsync(string layoutId)
+        => SwitchLayoutAsync(new LayoutReference(string.Empty, layoutId));
+
+    public async Task SwitchLayoutAsync(LayoutReference reference)
     {
-        await _bridge.RequestVoidAsync("layout/switch", new { layoutId });
-        _activeLayoutId = layoutId;
-        var layout = _layouts.FirstOrDefault(l => l.LayoutId == layoutId);
-        _isDashboardLayout = layout?.RequiresCustomRenderer ?? false;
-        _layoutCapabilities = layout?.Capabilities ?? _layoutCapabilities;
-        _activeLayoutSupportsPropertiesPanel = layout?.SupportsPropertiesPanel ?? false;
+        var payload = string.IsNullOrEmpty(reference.ExtensionId)
+            ? (object)new { layoutId = reference.LayoutId }
+            : new { layoutId = reference.LayoutId, extensionId = reference.ExtensionId };
+
+        await _bridge.RequestVoidAsync("layout/switch", payload);
+
+        var match = _layouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(reference.ExtensionId) ||
+             string.Equals(l.ExtensionId, reference.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+
+        _activeLayout = match is not null && !string.IsNullOrEmpty(match.ExtensionId)
+            ? new LayoutReference(match.ExtensionId, match.LayoutId)
+            : reference;
+        _isDashboardLayout = match?.RequiresCustomRenderer ?? false;
+        _layoutCapabilities = match?.Capabilities ?? _layoutCapabilities;
+        _activeLayoutSupportsPropertiesPanel = match?.SupportsPropertiesPanel ?? false;
         OnLayoutChanged?.Invoke();
     }
 
@@ -715,7 +741,8 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         // Partial implementation: reads user overrides from metadata only (Layer 1).
         // Renderer hint resolution (Layer 2) would require a bridge method.
         var cell = _cells.FirstOrDefault(c => c.Id == cellId);
-        if (cell is null || _activeLayoutId is null) return CellVisibilityState.Visible;
+        var activeLayoutId = _activeLayout?.LayoutId;
+        if (cell is null || activeLayoutId is null) return CellVisibilityState.Visible;
         if (!cell.Metadata.TryGetValue(CellLayoutVisibilityMetadata.MetadataKey, out var obj))
             return CellVisibilityState.Visible;
 
@@ -724,19 +751,19 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         // After JSON round-trip, the value is a JsonElement rather than a typed dictionary
         if (obj is System.Text.Json.JsonElement jsonEl
             && jsonEl.ValueKind == System.Text.Json.JsonValueKind.Object
-            && jsonEl.TryGetProperty(_activeLayoutId, out var prop)
+            && jsonEl.TryGetProperty(activeLayoutId, out var prop)
             && prop.ValueKind == System.Text.Json.JsonValueKind.String)
         {
             valueStr = prop.GetString();
         }
         else if (obj is Dictionary<string, object> dict
-            && dict.TryGetValue(_activeLayoutId, out var val))
+            && dict.TryGetValue(activeLayoutId, out var val))
         {
             valueStr = val?.ToString();
         }
         else if (obj is Dictionary<string, string> dictStr)
         {
-            dictStr.TryGetValue(_activeLayoutId, out valueStr);
+            dictStr.TryGetValue(activeLayoutId, out valueStr);
         }
 
         if (valueStr is not null && Enum.TryParse<CellVisibilityState>(valueStr, true, out var state))
@@ -941,8 +968,17 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);
         _layouts = layoutsResult.Layouts?.Select(l =>
         {
-            if (l.IsActive) { _activeLayoutId = l.Id; _isDashboardLayout = l.RequiresCustomRenderer; _layoutCapabilities = (LayoutCapabilities)l.Capabilities; _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel; }
-            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer, (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel);
+            if (l.IsActive)
+            {
+                _activeLayout = string.IsNullOrEmpty(l.ExtensionId)
+                    ? new LayoutReference(string.Empty, l.Id)
+                    : new LayoutReference(l.ExtensionId, l.Id);
+                _isDashboardLayout = l.RequiresCustomRenderer;
+                _layoutCapabilities = (LayoutCapabilities)l.Capabilities;
+                _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel;
+            }
+            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer,
+                (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel, l.ExtensionId ?? string.Empty);
         }).ToList() ?? new();
 
         // Themes
@@ -1321,6 +1357,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private sealed class LayoutItem
     {
         public string Id { get; set; } = "";
+        public string? ExtensionId { get; set; }
         public string DisplayName { get; set; } = "";
         public bool RequiresCustomRenderer { get; set; }
         public bool IsActive { get; set; }

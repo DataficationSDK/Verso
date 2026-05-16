@@ -218,6 +218,7 @@ export interface LayoutsResult {
 
 export interface LayoutDto {
   id: string;
+  extensionId: string;
   displayName: string;
   icon?: string;
   requiresCustomRenderer: boolean;
@@ -226,6 +227,12 @@ export interface LayoutDto {
 
 export interface LayoutSwitchParams {
   layoutId: string;
+  /**
+   * Owning extension id of the target layout. Required from v1.0 onward; absent
+   * callers fall through the host's legacy resolution path with a deprecation
+   * warning logged. Removed entirely in v2.0.
+   */
+  extensionId?: string;
 }
 
 export interface LayoutRenderResult {

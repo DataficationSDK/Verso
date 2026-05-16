@@ -14,18 +14,29 @@ public static class LayoutHandler
         if (manager is null)
             return new LayoutsResult();
 
-        var activeId = manager.ActiveLayout?.LayoutId;
+        var activeLayout = manager.ActiveLayout;
+        var activeExtensionId = (activeLayout as IExtension)?.ExtensionId;
+        var activeLayoutId = activeLayout?.LayoutId;
+
         return new LayoutsResult
         {
-            Layouts = ns.ExtensionHost.GetLayouts().Select(l => new LayoutDto
+            Layouts = ns.ExtensionHost.GetLayouts().Select(l =>
             {
-                Id = l.LayoutId,
-                DisplayName = l.DisplayName,
-                Icon = l.Icon,
-                RequiresCustomRenderer = l.RequiresCustomRenderer,
-                IsActive = string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase),
-                Capabilities = (int)l.Capabilities,
-                SupportsPropertiesPanel = l.SupportsPropertiesPanel
+                var owningExtensionId = (l as IExtension)?.ExtensionId ?? string.Empty;
+                var isActive = string.Equals(l.LayoutId, activeLayoutId, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(owningExtensionId, activeExtensionId, StringComparison.OrdinalIgnoreCase);
+
+                return new LayoutDto
+                {
+                    Id = l.LayoutId,
+                    ExtensionId = owningExtensionId,
+                    DisplayName = l.DisplayName,
+                    Icon = l.Icon,
+                    RequiresCustomRenderer = l.RequiresCustomRenderer,
+                    IsActive = isActive,
+                    Capabilities = (int)l.Capabilities,
+                    SupportsPropertiesPanel = l.SupportsPropertiesPanel
+                };
             }).ToList()
         };
     }
@@ -38,8 +49,35 @@ public static class LayoutHandler
         var manager = ns.Scaffold.LayoutManager
             ?? throw new InvalidOperationException("No layout manager initialized.");
 
-        manager.SetActiveLayout(p.LayoutId);
-        ns.Scaffold.Notebook.ActiveLayoutId = p.LayoutId;
+        LayoutReference reference;
+        if (!string.IsNullOrEmpty(p.ExtensionId))
+        {
+            reference = new LayoutReference(p.ExtensionId, p.LayoutId);
+        }
+        else
+        {
+            // Legacy bare-string form. Deprecated in v1.0, removed in v2.0.
+            // Log a deprecation warning so we can measure when external clients have migrated.
+            Console.Error.WriteLine(
+                $"[deprecation] layout/switch invoked with bare layoutId '{p.LayoutId}' " +
+                $"and no extensionId. Bare-form support is removed in v2.0.");
+            reference = new LayoutReference(string.Empty, p.LayoutId);
+        }
+
+        manager.SetActiveLayout(reference);
+
+        // Capture the resolved qualified pair from the manager so the saved notebook
+        // carries the fully-qualified form even when the call arrived in legacy shape.
+        if (manager.ActiveLayout is { } resolved && resolved is IExtension resolvedExt)
+        {
+            ns.Scaffold.Notebook.ActiveLayout =
+                new LayoutReference(resolvedExt.ExtensionId, resolved.LayoutId);
+            ns.Scaffold.Notebook.RequiresLegacyLayoutResolution = false;
+        }
+        else
+        {
+            ns.Scaffold.Notebook.ActiveLayout = reference;
+        }
         return null;
     }
 

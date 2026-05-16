@@ -20,7 +20,7 @@ public sealed class FullRoundTripIntegrationTests
         {
             Title = "Integration Test",
             DefaultKernelId = "csharp",
-            ActiveLayoutId = "notebook",
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook"),
             PreferredThemeId = "verso-light",
             Created = DateTimeOffset.UtcNow,
             Modified = DateTimeOffset.UtcNow,
@@ -112,7 +112,7 @@ public sealed class FullRoundTripIntegrationTests
         var notebook = new NotebookModel
         {
             PreferredThemeId = "verso-light",
-            ActiveLayoutId = "notebook"
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook")
         };
 
         var scaffold = new Verso.Scaffold(notebook, extensionHost);

@@ -70,7 +70,8 @@ public sealed class LoadMeta : IMetaCommand
         current.Cells.Clear();
         current.Cells.AddRange(loaded.Cells);
         current.DefaultKernelId = loaded.DefaultKernelId ?? current.DefaultKernelId;
-        current.ActiveLayoutId = loaded.ActiveLayoutId ?? current.ActiveLayoutId;
+        current.ActiveLayout = loaded.ActiveLayout ?? current.ActiveLayout;
+        current.RequiresLegacyLayoutResolution = loaded.RequiresLegacyLayoutResolution;
         current.PreferredThemeId = loaded.PreferredThemeId ?? current.PreferredThemeId;
         current.FormatVersion = loaded.FormatVersion;
         current.Created = loaded.Created;

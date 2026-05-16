@@ -31,9 +31,28 @@ public sealed class NotebookModel
     public string? DefaultKernelId { get; set; }
 
     /// <summary>
-    /// Gets or sets the identifier of the currently active layout, or <see langword="null"/> if no layout is selected.
+    /// Gets or sets the qualified <see cref="LayoutReference"/> for the currently active layout,
+    /// or <see langword="null"/> if no layout is selected. Legacy bare-string references read from
+    /// older notebooks land here with an empty <see cref="LayoutReference.ExtensionId"/> and are
+    /// resolved when the notebook is wired up to the extension host.
     /// </summary>
-    public string? ActiveLayoutId { get; set; }
+    public LayoutReference? ActiveLayout { get; set; }
+
+    /// <summary>
+    /// Convenience getter exposing just the <see cref="LayoutReference.LayoutId"/> half of the
+    /// active layout. Retained as a compatibility forwarder for callers that have not yet been
+    /// migrated to the qualified <see cref="ActiveLayout"/> shape; scheduled for removal in v2.0.
+    /// </summary>
+    public string? ActiveLayoutId => ActiveLayout?.LayoutId;
+
+    /// <summary>
+    /// True when this model was loaded from a legacy notebook whose <c>activeLayout</c> was
+    /// a bare string and required resolution against the loaded extension set. Not persisted;
+    /// consumed by the host wire-up to decide whether to run legacy resolution and whether
+    /// the next serialize should promote the on-disk form.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool RequiresLegacyLayoutResolution { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the preferred theme, or <see langword="null"/> if no theme preference is set.

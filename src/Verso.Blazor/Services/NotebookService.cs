@@ -351,7 +351,7 @@ public sealed class NotebookService : IAsyncDisposable
         if (_scaffold?.LayoutManager is null) return;
 
         _scaffold.LayoutManager.SetActiveLayout(layoutId);
-        _scaffold.Notebook.ActiveLayoutId = layoutId;
+        StampActiveLayoutFromManager();
         OnLayoutChanged?.Invoke();
     }
 
@@ -507,6 +507,16 @@ public sealed class NotebookService : IAsyncDisposable
     private void HandleSettingsChanged(string extensionId, string settingName, object? value)
     {
         OnSettingsChanged?.Invoke();
+    }
+
+    private void StampActiveLayoutFromManager()
+    {
+        if (_scaffold?.LayoutManager?.ActiveLayout is { } active &&
+            active is IExtension ext)
+        {
+            _scaffold.Notebook.ActiveLayout = new LayoutReference(ext.ExtensionId, active.LayoutId);
+            _scaffold.Notebook.RequiresLegacyLayoutResolution = false;
+        }
     }
 
     private async Task DisposeCurrentAsync()

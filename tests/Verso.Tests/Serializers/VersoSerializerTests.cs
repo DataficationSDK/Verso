@@ -53,6 +53,98 @@ public sealed class VersoSerializerTests
     }
 
     [TestMethod]
+    public async Task Deserialize_LegacyBareActiveLayout_LoadsAsUnqualifiedAndFlagsResolution()
+    {
+        const string json = """
+        {
+          "verso": "1.0",
+          "metadata": { "activeLayout": "dashboard" },
+          "cells": []
+        }
+        """;
+
+        var notebook = await _serializer.DeserializeAsync(json);
+
+        Assert.IsNotNull(notebook.ActiveLayout);
+        Assert.AreEqual(string.Empty, notebook.ActiveLayout!.Value.ExtensionId);
+        Assert.AreEqual("dashboard", notebook.ActiveLayout!.Value.LayoutId);
+        Assert.IsTrue(notebook.RequiresLegacyLayoutResolution);
+    }
+
+    [TestMethod]
+    public async Task Deserialize_QualifiedActiveLayout_LoadsDirectlyWithoutLegacyFlag()
+    {
+        const string json = """
+        {
+          "verso": "1.0",
+          "metadata": {
+            "activeLayout": { "extensionId": "verso.layout.dashboard", "layoutId": "dashboard" }
+          },
+          "cells": []
+        }
+        """;
+
+        var notebook = await _serializer.DeserializeAsync(json);
+
+        Assert.IsNotNull(notebook.ActiveLayout);
+        Assert.AreEqual("verso.layout.dashboard", notebook.ActiveLayout!.Value.ExtensionId);
+        Assert.AreEqual("dashboard", notebook.ActiveLayout!.Value.LayoutId);
+        Assert.IsFalse(notebook.RequiresLegacyLayoutResolution);
+    }
+
+    [TestMethod]
+    public async Task Serialize_QualifiedActiveLayout_EmitsObjectForm()
+    {
+        var notebook = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference("verso.layout.dashboard", "dashboard")
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var activeLayout = doc.RootElement.GetProperty("metadata").GetProperty("activeLayout");
+        Assert.AreEqual(JsonValueKind.Object, activeLayout.ValueKind);
+        Assert.AreEqual("verso.layout.dashboard", activeLayout.GetProperty("extensionId").GetString());
+        Assert.AreEqual("dashboard", activeLayout.GetProperty("layoutId").GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_UnqualifiedActiveLayout_EmitsBareStringForRoundTrip()
+    {
+        // When resolution failed (no matching extension loaded), the unqualified reference
+        // round-trips as a bare string so a later load with the extension present can resolve it.
+        var notebook = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference(string.Empty, "missing-layout")
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var activeLayout = doc.RootElement.GetProperty("metadata").GetProperty("activeLayout");
+        Assert.AreEqual(JsonValueKind.String, activeLayout.ValueKind);
+        Assert.AreEqual("missing-layout", activeLayout.GetString());
+    }
+
+    [TestMethod]
+    public async Task RoundTrip_QualifiedActiveLayout_Preserves()
+    {
+        var notebook = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook")
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+        var result = await _serializer.DeserializeAsync(json);
+
+        Assert.IsNotNull(result.ActiveLayout);
+        Assert.AreEqual("verso.layout.notebook", result.ActiveLayout!.Value.ExtensionId);
+        Assert.AreEqual("notebook", result.ActiveLayout!.Value.LayoutId);
+        Assert.IsFalse(result.RequiresLegacyLayoutResolution);
+    }
+
+    [TestMethod]
     public async Task RoundTrip_FullNotebook_PreservesAllFields()
     {
         var created = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.Zero);
@@ -65,7 +157,7 @@ public sealed class VersoSerializerTests
             Created = created,
             Modified = modified,
             DefaultKernelId = "csharp",
-            ActiveLayoutId = "notebook",
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook"),
             PreferredThemeId = "verso-light",
             RequiredExtensions = new List<string> { "verso.kernel.csharp" },
             OptionalExtensions = new List<string> { "verso.theme.dark" }
@@ -156,7 +248,7 @@ public sealed class VersoSerializerTests
         {
             Title = null,
             DefaultKernelId = null,
-            ActiveLayoutId = null,
+            ActiveLayout = null,
             PreferredThemeId = null
         };
         notebook.Cells.Add(new CellModel

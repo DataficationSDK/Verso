@@ -75,7 +75,7 @@ public static class NotebookHandler
         // metadata panel, and newly created cells all behave correctly even when
         // the file is empty or has a blank metadata section.
         notebook.DefaultKernelId ??= "csharp";
-        notebook.ActiveLayoutId ??= "notebook";
+        notebook.ActiveLayout ??= new LayoutReference("verso.layout.notebook", "notebook");
 
         var scaffold = new Scaffold(notebook, extensionHost, p.FilePath);
         scaffold.InitializeSubsystems();

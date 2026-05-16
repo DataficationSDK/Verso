@@ -24,7 +24,8 @@ public sealed record LayoutInfo(
     LayoutCapabilities Capabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
         | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect,
-    bool SupportsPropertiesPanel = false);
+    bool SupportsPropertiesPanel = false,
+    string ExtensionId = "");
 
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(

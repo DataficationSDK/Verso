@@ -129,7 +129,22 @@ public sealed class Scaffold : IAsyncDisposable
         var layouts = _extensionHost.GetLayouts();
 
         _themeEngine = new ThemeEngine(themes, _notebook.PreferredThemeId);
-        _layoutManager = new LayoutManager(layouts, _notebook.ActiveLayoutId);
+        _layoutManager = new LayoutManager(layouts, _notebook.ActiveLayout);
+
+        // If the notebook was loaded with an unqualified (legacy) layout reference and the
+        // LayoutManager resolved it unambiguously, promote the in-memory reference to the
+        // qualified form so the next save writes the qualified shape. When resolution failed
+        // (no match or ambiguous), leave the reference unqualified so the bare string is
+        // round-tripped to disk for the missing extension to resolve on a later load.
+        if (_notebook.RequiresLegacyLayoutResolution &&
+            _notebook.ActiveLayout is { IsUnqualified: true } &&
+            _layoutManager.ActiveLayout is { } resolved &&
+            resolved is IExtension resolvedExt &&
+            string.Equals(resolved.LayoutId, _notebook.ActiveLayout.Value.LayoutId, StringComparison.OrdinalIgnoreCase))
+        {
+            _notebook.ActiveLayout = new LayoutReference(resolvedExt.ExtensionId, resolved.LayoutId);
+            _notebook.RequiresLegacyLayoutResolution = false;
+        }
 
         var settable = _extensionHost.GetSettableExtensions();
         _settingsManager = new SettingsManager(settable);

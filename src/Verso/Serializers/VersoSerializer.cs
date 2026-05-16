@@ -58,7 +58,7 @@ public sealed class VersoSerializer : INotebookSerializer
                 Created = notebook.Created,
                 Modified = notebook.Modified,
                 DefaultKernel = notebook.DefaultKernelId,
-                ActiveLayout = notebook.ActiveLayoutId,
+                ActiveLayout = SerializeActiveLayout(notebook.ActiveLayout),
                 PreferredTheme = notebook.PreferredThemeId,
                 Extensions = (notebook.RequiredExtensions.Count > 0 || notebook.OptionalExtensions.Count > 0)
                     ? new VersoExtensions
@@ -106,6 +106,8 @@ public sealed class VersoSerializer : INotebookSerializer
         var doc = JsonSerializer.Deserialize<VersoDocument>(content, ReadOptions)
             ?? throw new JsonException("Failed to deserialize .verso document.");
 
+        var (activeLayout, requiresLegacyResolution) = DeserializeActiveLayout(doc.Metadata?.ActiveLayout);
+
         var notebook = new NotebookModel
         {
             FormatVersion = doc.Verso ?? "1.0",
@@ -113,7 +115,8 @@ public sealed class VersoSerializer : INotebookSerializer
             Created = doc.Metadata?.Created,
             Modified = doc.Metadata?.Modified,
             DefaultKernelId = doc.Metadata?.DefaultKernel,
-            ActiveLayoutId = doc.Metadata?.ActiveLayout,
+            ActiveLayout = activeLayout,
+            RequiresLegacyLayoutResolution = requiresLegacyResolution,
             PreferredThemeId = doc.Metadata?.PreferredTheme,
             RequiredExtensions = doc.Metadata?.Extensions?.Required ?? new List<string>(),
             OptionalExtensions = doc.Metadata?.Extensions?.Optional ?? new List<string>(),
@@ -165,6 +168,58 @@ public sealed class VersoSerializer : INotebookSerializer
         }
 
         return Task.FromResult(notebook);
+    }
+
+    // --- ActiveLayout serialization helpers ---
+
+    /// <summary>
+    /// Emits the qualified object form when the reference carries an extension id;
+    /// falls back to a bare string when the reference is still unqualified (legacy
+    /// notebook whose layout could not yet be resolved against the loaded extensions).
+    /// </summary>
+    private static JsonElement? SerializeActiveLayout(LayoutReference? reference)
+    {
+        if (reference is not { } r) return null;
+
+        if (string.IsNullOrEmpty(r.ExtensionId))
+        {
+            // Unresolved legacy reference — preserve the bare layoutId so a future load
+            // (with the missing extension present) can still resolve it.
+            return JsonSerializer.SerializeToElement(r.LayoutId, WriteOptions);
+        }
+
+        var obj = new VersoActiveLayout { ExtensionId = r.ExtensionId, LayoutId = r.LayoutId };
+        return JsonSerializer.SerializeToElement(obj, WriteOptions);
+    }
+
+    /// <summary>
+    /// Parses the persisted activeLayout, which may be a bare string (legacy) or an
+    /// object carrying both ids. Returns the parsed reference plus a flag indicating
+    /// whether the load required legacy resolution.
+    /// </summary>
+    private static (LayoutReference? Reference, bool RequiresLegacyResolution) DeserializeActiveLayout(JsonElement? element)
+    {
+        if (element is not { } e || e.ValueKind == JsonValueKind.Null || e.ValueKind == JsonValueKind.Undefined)
+            return (null, false);
+
+        if (e.ValueKind == JsonValueKind.String)
+        {
+            var bare = e.GetString();
+            if (string.IsNullOrEmpty(bare)) return (null, false);
+            return (new LayoutReference(string.Empty, bare), true);
+        }
+
+        if (e.ValueKind == JsonValueKind.Object)
+        {
+            var dto = e.Deserialize<VersoActiveLayout>(ReadOptions);
+            if (dto is null || string.IsNullOrEmpty(dto.LayoutId))
+                return (null, false);
+
+            return (new LayoutReference(dto.ExtensionId ?? string.Empty, dto.LayoutId),
+                    string.IsNullOrEmpty(dto.ExtensionId));
+        }
+
+        return (null, false);
     }
 
     // --- Parameter serialization helpers ---
@@ -369,7 +424,7 @@ public sealed class VersoSerializer : INotebookSerializer
         public DateTimeOffset? Created { get; set; }
         public DateTimeOffset? Modified { get; set; }
         public string? DefaultKernel { get; set; }
-        public string? ActiveLayout { get; set; }
+        public JsonElement? ActiveLayout { get; set; }
         public string? PreferredTheme { get; set; }
         public VersoExtensions? Extensions { get; set; }
         public Dictionary<string, VersoParameterDefinition>? Parameters { get; set; }
@@ -388,6 +443,12 @@ public sealed class VersoSerializer : INotebookSerializer
     {
         public List<string>? Required { get; set; }
         public List<string>? Optional { get; set; }
+    }
+
+    private sealed class VersoActiveLayout
+    {
+        public string? ExtensionId { get; set; }
+        public string? LayoutId { get; set; }
     }
 
     private sealed class VersoCell

@@ -249,7 +249,16 @@ public sealed class LayoutsResult
 
 public sealed class LayoutDto
 {
+    /// <summary>The layout's <see cref="Verso.Abstractions.ILayoutEngine.LayoutId"/>.</summary>
     public string Id { get; set; } = "";
+
+    /// <summary>
+    /// The <see cref="Verso.Abstractions.IExtension.ExtensionId"/> of the extension that owns
+    /// this layout. Together with <see cref="Id"/> forms the qualified identity pair every
+    /// JSON-RPC consumer should use from v1.0 onward.
+    /// </summary>
+    public string ExtensionId { get; set; } = "";
+
     public string DisplayName { get; set; } = "";
     public string? Icon { get; set; }
     public bool RequiresCustomRenderer { get; set; }
@@ -261,6 +270,13 @@ public sealed class LayoutDto
 public sealed class LayoutSwitchParams
 {
     public string LayoutId { get; set; } = "";
+
+    /// <summary>
+    /// The extension id that owns the target layout. Required from v1.0 onward; absent
+    /// callers fall through the legacy resolution path with a deprecation warning logged
+    /// to the diagnostic channel. Removed entirely in v2.0.
+    /// </summary>
+    public string? ExtensionId { get; set; }
 }
 
 public sealed class LayoutRenderResult

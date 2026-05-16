@@ -629,7 +629,11 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         if (_scaffold?.LayoutManager is null) return Task.CompletedTask;
         _scaffold.LayoutManager.SetActiveLayout(layoutId);
-        _scaffold.Notebook.ActiveLayoutId = layoutId;
+        if (_scaffold.LayoutManager.ActiveLayout is { } active && active is IExtension ext)
+        {
+            _scaffold.Notebook.ActiveLayout = new LayoutReference(ext.ExtensionId, active.LayoutId);
+            _scaffold.Notebook.RequiresLegacyLayoutResolution = false;
+        }
         OnLayoutChanged?.Invoke();
         return Task.CompletedTask;
     }

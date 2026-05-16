@@ -496,6 +496,29 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
                 "(e.g. ILanguageKernel, ICellRenderer, IDataFormatter)."));
         }
 
+        // A layout's identity is the pair (ExtensionId, LayoutId). Two ILayoutEngine
+        // classes that share both halves cannot coexist; the offending extension
+        // fails to load. Two extensions with different ExtensionIds may declare the
+        // same LayoutId without conflict.
+        if (extension is ILayoutEngine newLayout && !string.IsNullOrWhiteSpace(id))
+        {
+            lock (_lock)
+            {
+                foreach (var existing in _layouts)
+                {
+                    if (existing is IExtension existingExt &&
+                        string.Equals(existingExt.ExtensionId, id, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(existing.LayoutId, newLayout.LayoutId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        errors.Add(new ExtensionValidationError(id, "LAYOUT_ID_DUPLICATE_IN_EXTENSION",
+                            $"Extension '{id}' already registers a layout with id '{newLayout.LayoutId}'. " +
+                            $"LayoutId must be unique within an extension."));
+                        break;
+                    }
+                }
+            }
+        }
+
         return errors;
     }
 
