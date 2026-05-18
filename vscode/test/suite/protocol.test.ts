@@ -19,6 +19,8 @@ import type {
   VariableInspectParams,
   ToolbarGetEnabledStatesParams,
   ExecutionRunParams,
+  InputRequestNotification,
+  InputResponseParams,
   PropertiesGetSectionsParams,
   PropertiesGetSectionsResult,
   PropertiesUpdatePropertyParams,
@@ -131,6 +133,16 @@ suite("Protocol Message Types", () => {
     }
   });
 
+  test("Input methods follow namespace pattern", () => {
+    const methods = [
+      "input/request",
+      "input/response",
+    ];
+    for (const m of methods) {
+      assert.ok(m.startsWith("input/"), `${m} should start with input/`);
+    }
+  });
+
   test("Kernel methods follow namespace pattern", () => {
     const methods = [
       "kernel/getCompletions",
@@ -171,6 +183,26 @@ suite("Protocol Message Types", () => {
     assert.strictEqual(result.status, "completed");
     assert.strictEqual(result.elapsedMs, 150);
     assert.strictEqual(result.executionCount, 1);
+  });
+
+  test("Input DTOs carry prompt and response details", () => {
+    const request: InputRequestNotification = {
+      notebookId: "nb-1",
+      requestId: "input-1",
+      cellId: "cell-1",
+      prompt: "enter value",
+      isPassword: false,
+    };
+    const response: InputResponseParams = {
+      notebookId: "nb-1",
+      requestId: request.requestId,
+      value: "hello",
+      cancelled: false,
+    };
+
+    assert.strictEqual(request.prompt, "enter value");
+    assert.strictEqual(response.value, "hello");
+    assert.strictEqual(response.cancelled, false);
   });
 
   test("NotebookOpenParams requires content", () => {

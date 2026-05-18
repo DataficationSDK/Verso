@@ -36,7 +36,7 @@ The architecture separates into three layers. The engine knows nothing about the
 |  +------------------------------------------------------+ |
 |  |  First-Party Extension Packages                      | |
 |  |  Verso.FSharp - Verso.JavaScript - Verso.PowerShell  | |
-|  |  Verso.Python - Verso.Ado (SQL) - Verso.Http         | |
+|  |  Verso.Python - Verso.Ado - Verso.Http               | |
 |  +------------------------------------------------------+ |
 +-----------------------------------------------------------+
                            |
@@ -89,6 +89,8 @@ The engine is a headless .NET library with no UI dependencies. Its central class
 
 The engine is designed for embedding. Any .NET application can reference the Verso NuGet package, create a `Scaffold`, load extensions, and execute notebook cells programmatically. The front-ends are consumers of this API, not part of it.
 
+Execution contexts can still request host services through public abstractions. Kernels use `WriteOutputAsync` for live output and `RequestInputAsync` for a single interactive input value. Hosts that support those operations wire them to their UI; hosts that do not support them can keep the default `NotSupportedException` behavior.
+
 See the [engine](engine.md) and [execution-pipeline](execution-pipeline.md) documents for detailed coverage.
 
 ### Front-Ends
@@ -98,6 +100,8 @@ Three front-ends consume the engine:
 **Blazor Server** talks to the engine directly, in-process. A single `ServerNotebookService` wraps a `Scaffold` and `ExtensionHost` instance, exposing notebook operations to the Razor components through the `INotebookService` interface. This is the simplest hosting model and the one used by `verso serve`.
 
 **VS Code** runs Blazor WebAssembly in a webview. The WASM app has no reference to the engine. Instead, a `RemoteNotebookService` forwards all operations through a JavaScript bridge to the VS Code extension, which relays them over JSON-RPC (stdin/stdout) to a `Verso.Host` process. The host process holds the `Scaffold` and runs the engine. This separation means the UI runs in the browser's sandbox while the engine has full .NET runtime access.
+
+During long-running execution, VS Code also receives host-pushed notifications for live output and interactive input. `output/update` refreshes cell outputs before the final `execution/run` response returns, and `input/request` asks the extension to collect a value from the user and answer with `input/response`.
 
 **The CLI** (`verso run`, `verso convert`) drives the engine headlessly with no UI. A `HeadlessRunner` creates a `Scaffold`, loads extensions, resolves parameters, and executes cells sequentially. Output is rendered to the terminal or serialized to JSON. This is the entry point for CI/CD pipelines.
 
@@ -135,7 +139,7 @@ Verso                       (engine: Scaffold, ExtensionHost, Pipeline)
     ^
     |--- Verso.FSharp       (F# kernel extension)
     |--- Verso.JavaScript   (JS/TS kernel extension)
-    |--- Verso.PowerShell   (PowerShell kernel extension)
+    |--- Verso.PowerShell   (PowerShell kernel extension with internal PSHost adapter)
     |--- Verso.Python       (Python kernel extension)
     |--- Verso.Ado          (SQL kernel extension)
     |--- Verso.Http         (HTTP kernel extension)

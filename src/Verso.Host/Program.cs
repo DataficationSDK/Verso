@@ -22,9 +22,9 @@ SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "1.0
 var requests = Channel.CreateUnbounded<(object id, string method, JsonElement? @params)>();
 
 // Background task: continuously read stdin.
-// Consent responses are resolved immediately (they just complete a TCS) to prevent
-// deadlocks when a handler is blocked waiting for consent approval.  All other
-// requests are forwarded to the main loop via the channel.
+// Consent and input responses are resolved immediately (they just complete a TCS)
+// to prevent deadlocks when a handler is blocked waiting for user approval/input.
+// All other requests are forwarded to the main loop via the channel.
 _ = Task.Run(async () =>
 {
     try
@@ -41,7 +41,8 @@ _ = Task.Run(async () =>
                 if (id is null || method is null)
                     continue;
 
-                if (method == MethodNames.ExtensionConsentResponse)
+                if (method == MethodNames.ExtensionConsentResponse ||
+                    method == MethodNames.InputResponse)
                 {
                     // Handle inline — resolves a TCS, no heavy work.
                     var response = await session.DispatchAsync(id, method, @params);

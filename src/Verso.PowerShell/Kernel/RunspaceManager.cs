@@ -5,6 +5,7 @@ using System.Management.Automation.Runspaces;
 using System.Net;
 using System.Text;
 using Verso.Abstractions;
+using Verso.PowerShell.Kernel.Host;
 
 namespace Verso.PowerShell.Kernel;
 
@@ -19,6 +20,8 @@ internal sealed record InvokeResult(
 internal sealed class RunspaceManager : IDisposable
 {
     private Runspace? _runspace;
+    private PowerShellHostOutputCallback? _currentHostOutput;
+    private PowerShellHostInputCallback? _currentHostInput;
     private bool _disposed;
 
     public void Initialize()
@@ -33,11 +36,18 @@ internal sealed class RunspaceManager : IDisposable
             iss.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.RemoteSigned;
         }
 
-        _runspace = RunspaceFactory.CreateRunspace(iss);
+        var host = new VersoPowerShellHost(
+            () => _currentHostOutput,
+            () => _currentHostInput);
+        _runspace = RunspaceFactory.CreateRunspace(host, iss);
         _runspace.Open();
     }
 
-    public InvokeResult Invoke(string code, CancellationToken ct)
+    public InvokeResult Invoke(
+        string code,
+        CancellationToken ct,
+        PowerShellHostOutputCallback? hostOutput = null,
+        PowerShellHostInputCallback? hostInput = null)
     {
         ThrowIfDisposed();
         var runspace = _runspace ?? throw new InvalidOperationException("RunspaceManager not initialized.");
@@ -59,6 +69,8 @@ internal sealed class RunspaceManager : IDisposable
         var informationLines = new List<string>();
         Exception? exception = null;
 
+        _currentHostOutput = hostOutput;
+        _currentHostInput = hostInput;
         try
         {
             Collection<PSObject> results = ps.Invoke();
@@ -131,6 +143,9 @@ internal sealed class RunspaceManager : IDisposable
 
             foreach (var info in ps.Streams.Information)
             {
+                if (IsPowerShellHostInformation(info))
+                    continue;
+
                 var msg = info.MessageData?.ToString();
                 if (!string.IsNullOrEmpty(msg))
                     informationLines.Add(msg);
@@ -146,9 +161,17 @@ internal sealed class RunspaceManager : IDisposable
             exception = ex;
             errorLines.Add(ex.Message);
         }
+        finally
+        {
+            _currentHostOutput = null;
+            _currentHostInput = null;
+        }
 
         return new InvokeResult(outputLines, outputMimeType, errorLines, warningLines, informationLines, exception);
     }
+
+    private static bool IsPowerShellHostInformation(InformationRecord record) =>
+        record.Tags.Any(tag => string.Equals(tag, "PSHOST", StringComparison.OrdinalIgnoreCase));
 
     public void InjectDisplayFunction()
     {

@@ -61,6 +61,7 @@ Extends `IVersoContext` with execution-specific state. Passed to `ILanguageKerne
 | `CellId` | `Guid` | Unique identifier of the cell being executed. |
 | `ExecutionCount` | `int` | Monotonically increasing execution counter for the current cell. |
 | `DisplayAsync(CellOutput)` | `Task` | Sends a display output that can be updated in place during execution. |
+| `RequestInputAsync(string, bool, CancellationToken)` | `Task<string?>` | Requests a single input value from the current host. The second argument controls password masking. Returns `null` when the user cancels. Default implementation throws `NotSupportedException` on non-interactive hosts. |
 
 ### When Available
 
@@ -71,6 +72,12 @@ Only within `ILanguageKernel.ExecuteAsync`. Not available during completions, di
 - `WriteOutputAsync` (from `IVersoContext`) appends output to the cell's output list permanently.
 - `DisplayAsync` sends a live-updating display that can be replaced. Use it for progress indicators, streaming output, or interactive displays.
 - `UpdateOutputAsync` (from `IVersoContext`) replaces the content of a specific output block by ID. Use it for interactive panels that refresh in place (e.g., paginated tables, `ICellInteractionHandler` responses).
+
+### Interactive Input
+
+`RequestInputAsync` is optional host functionality. Use it when a kernel genuinely needs a value from the user during execution, and handle `NotSupportedException` if the same code can run in headless or non-interactive environments.
+
+In VS Code, input requests are shown with a native input box. In headless hosts, the default implementation is unsupported unless that host wires in its own input provider.
 
 ### Usage Example
 
@@ -87,9 +94,22 @@ public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutio
 }
 ```
 
+```csharp
+public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+{
+    var name = await context.RequestInputAsync("Name:", cancellationToken: context.CancellationToken);
+    if (name is null)
+    {
+        return new[] { new CellOutput("text/plain", "Input cancelled.") };
+    }
+
+    return new[] { new CellOutput("text/plain", $"Hello, {name}") };
+}
+```
+
 ### Test Stub
 
-`StubExecutionContext` from `Verso.Testing.Stubs` tracks both `WrittenOutputs` and `DisplayedOutputs` as `List<CellOutput>` for assertion.
+`StubExecutionContext` from `Verso.Testing.Stubs` tracks both `WrittenOutputs` and `DisplayedOutputs` as `List<CellOutput>` for assertion. Tests can set `InputHandler` to provide values for `RequestInputAsync`.
 
 ---
 

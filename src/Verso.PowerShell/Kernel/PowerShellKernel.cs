@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.PowerShell.Kernel.Host;
 
 namespace Verso.PowerShell.Kernel;
 
@@ -72,8 +73,33 @@ public sealed class PowerShellKernel : ILanguageKernel
                 _variableBridge!.InjectFromStore(context.Variables);
             }
 
-            var result = _runspaceManager!.Invoke(code, context.CancellationToken);
             var outputs = new List<CellOutput>();
+
+            Task AppendHostOutput(PowerShellHostOutput output)
+            {
+                var cellOutput = new CellOutput(
+                    output.MimeType,
+                    output.Content,
+                    output.IsError,
+                    output.ErrorName);
+
+                outputs.Add(cellOutput);
+                return context.WriteOutputAsync(cellOutput);
+            }
+
+            Task<string?> RequestHostInput(PowerShellHostInputRequest request)
+            {
+                return context.RequestInputAsync(
+                    request.Prompt,
+                    request.IsPassword,
+                    context.CancellationToken);
+            }
+
+            var result = _runspaceManager!.Invoke(
+                code,
+                context.CancellationToken,
+                AppendHostOutput,
+                RequestHostInput);
 
             // Output stream (objects)
             if (result.OutputLines.Count > 0)
@@ -83,10 +109,13 @@ public sealed class PowerShellKernel : ILanguageKernel
                     outputs.Add(new CellOutput(result.OutputMimeType, text));
             }
 
-            // Information stream (Write-Host)
+            // Information stream (Write-Information)
             if (result.InformationLines.Count > 0)
             {
-                var text = string.Join(Environment.NewLine, result.InformationLines);
+                var informationLines = result.InformationLines
+                    .Where(line => !HasMatchingPlainTextOutput(outputs, line))
+                    .ToList();
+                var text = string.Join(Environment.NewLine, informationLines);
                 if (!string.IsNullOrEmpty(text))
                     outputs.Add(new CellOutput("text/plain", text));
             }
@@ -119,6 +148,18 @@ public sealed class PowerShellKernel : ILanguageKernel
             _executionLock.Release();
         }
     }
+
+    private static bool HasMatchingPlainTextOutput(IEnumerable<CellOutput> outputs, string content) =>
+        outputs.Any(output =>
+            !output.IsError
+            && string.Equals(output.MimeType, "text/plain", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(
+                NormalizePlainText(output.Content),
+                NormalizePlainText(content),
+                StringComparison.Ordinal));
+
+    private static string NormalizePlainText(string value) =>
+        value.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd('\r', '\n');
 
     public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
     {

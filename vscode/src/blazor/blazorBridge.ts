@@ -16,6 +16,7 @@ import { log } from "../log";
  *
  * Some host notifications are handled by the bridge instead of forwarded:
  *   - "file/download" — shows a save dialog and writes the file
+ *   - "input/request" — asks VS Code for user input and replies to the host
  */
 export class BlazorBridge implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
@@ -23,6 +24,7 @@ export class BlazorBridge implements vscode.Disposable {
     "cell/executionState",
     "settings/changed",
     "variable/changed",
+    "output/update",
     "extension/consentRequest",
     "extension/changed",
     "layout/missing",
@@ -115,6 +117,15 @@ export class BlazorBridge implements vscode.Disposable {
     this.host.onNotification("kernel/restartRequested", (params) => {
       const p = params as { kernelId?: string } | undefined;
       this.triggerRestart(p?.kernelId);
+    });
+
+    this.host.onNotification("input/request", (params) => {
+      this.handleInputRequest(params).catch((err) => {
+        log.error(`input/request error: ${err instanceof Error ? err.message : String(err)}`);
+        vscode.window.showErrorMessage(
+          `Input request failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      });
     });
   }
 
@@ -361,6 +372,44 @@ export class BlazorBridge implements vscode.Disposable {
     const bytes = Buffer.from(p.data, "base64");
     await vscode.workspace.fs.writeFile(uri, bytes);
     vscode.window.showInformationMessage(`Exported to ${uri.fsPath}`);
+  }
+
+  /**
+   * Handle "input/request" notification — prompt through VS Code and reply
+   * directly to the host. The reply bypasses the host's sequential execution
+   * queue so a running execution can continue.
+   */
+  private async handleInputRequest(params: unknown): Promise<void> {
+    const p = params as
+      | {
+          notebookId?: string;
+          requestId?: string;
+          prompt?: string;
+          isPassword?: boolean;
+        }
+      | undefined;
+
+    if (!p?.requestId) {
+      return;
+    }
+
+    const notebookId = p.notebookId ?? this.notebookId;
+    if (!notebookId) {
+      throw new Error("No notebookId available for input response.");
+    }
+
+    const value = await vscode.window.showInputBox({
+      prompt: p.prompt || "PowerShell input",
+      password: !!p.isPassword,
+      ignoreFocusOut: true,
+    });
+
+    await this.host.sendRequest("input/response", {
+      notebookId,
+      requestId: p.requestId,
+      value: value ?? null,
+      cancelled: value === undefined,
+    });
   }
 
   /**

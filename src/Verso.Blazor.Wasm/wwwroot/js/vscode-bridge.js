@@ -11,6 +11,7 @@
     const pending = new Map(); // id → { resolve, reject }
     let notificationCallback = null; // DotNetObjectReference for notifications
     const pendingNotifications = []; // queued before handler is registered
+    const pendingResponses = []; // queued before handler is registered
 
     /**
      * Send a JSON-RPC request to the VS Code extension host.
@@ -42,6 +43,29 @@
     }
 
     /**
+     * Send a JSON-RPC request and return immediately. The eventual response is
+     * delivered to .NET through OnResponse. This avoids keeping a long-running
+     * .NET→JS interop promise open while execution notifications are streaming.
+     * @param {number} id - JSON-RPC request id allocated by .NET
+     * @param {string} method - The JSON-RPC method name
+     * @param {string} paramsJson - Serialized JSON params
+     */
+    function sendRequestDetached(id, method, paramsJson) {
+        const message = {
+            type: "jsonrpc-request",
+            id: id,
+            method: method,
+            params: paramsJson ? JSON.parse(paramsJson) : null
+        };
+
+        if (vscode) {
+            vscode.postMessage(message);
+        } else {
+            throw new Error("Not running inside a VS Code webview.");
+        }
+    }
+
+    /**
      * Register a .NET object reference to receive host notifications.
      * The object must have an InvokeMethodAsync-compatible method named "OnNotification".
      * @param {object} dotNetRef - DotNetObjectReference
@@ -52,6 +76,11 @@
         while (pendingNotifications.length > 0) {
             var n = pendingNotifications.shift();
             notificationCallback.invokeMethodAsync("OnNotification", n.method, n.params);
+        }
+
+        while (pendingResponses.length > 0) {
+            var r = pendingResponses.shift();
+            notificationCallback.invokeMethodAsync("OnResponse", r.id, r.result, r.error);
         }
     }
 
@@ -83,13 +112,22 @@
 
         if (msg.type === "jsonrpc-response") {
             const entry = pending.get(msg.id);
-            if (!entry) return;
-            pending.delete(msg.id);
+            if (entry) {
+                pending.delete(msg.id);
 
-            if (msg.error) {
-                entry.reject(new Error(msg.error.message || "JSON-RPC error"));
+                if (msg.error) {
+                    entry.reject(new Error(msg.error.message || "JSON-RPC error"));
+                } else {
+                    entry.resolve(JSON.stringify(msg.result));
+                }
             } else {
-                entry.resolve(JSON.stringify(msg.result));
+                const result = msg.error ? null : JSON.stringify(msg.result);
+                const error = msg.error ? JSON.stringify(msg.error) : null;
+                if (notificationCallback) {
+                    notificationCallback.invokeMethodAsync("OnResponse", msg.id, result, error);
+                } else {
+                    pendingResponses.push({ id: msg.id, result: result, error: error });
+                }
             }
         } else if (msg.type === "editor-settings-changed") {
             if (window.versoMonaco && typeof window.versoMonaco.updateEditorSettings === "function") {
@@ -114,6 +152,7 @@
     // Expose to Blazor JS interop
     window.vscodeBridge = {
         sendRequest: sendRequest,
+        sendRequestDetached: sendRequestDetached,
         registerNotificationHandler: registerNotificationHandler,
         isVsCodeWebview: isVsCodeWebview,
         getThemeKind: getThemeKind

@@ -148,6 +148,23 @@ export interface ExecutionStateNotification {
   state: "running" | "completed" | "failed" | "cancelled";
 }
 
+// --- Interactive Input DTOs ---
+
+export interface InputRequestNotification {
+  notebookId: string;
+  requestId: string;
+  cellId: string;
+  prompt: string;
+  isPassword: boolean;
+}
+
+export interface InputResponseParams {
+  notebookId: string;
+  requestId: string;
+  value?: string | null;
+  cancelled: boolean;
+}
+
 // --- Kernel DTOs ---
 
 export interface KernelRestartParams {

@@ -45,6 +45,10 @@ public static class MethodNames
     public const string OutputClearAll = "output/clearAll";
     public const string OutputUpdate = "output/update";
 
+    // Interactive input
+    public const string InputRequest = "input/request";
+    public const string InputResponse = "input/response";
+
     // Cell interaction
     public const string CellInteract = "cell/interact";
 

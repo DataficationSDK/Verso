@@ -82,7 +82,7 @@ Engine events are forwarded to the UI through `Action?` events on the service, w
 
 ### Project References
 
-Verso.Blazor references the engine (`Verso`), all kernel extension packages (`Verso.FSharp`, `Verso.JavaScript`, `Verso.Python`, `Verso.PowerShell`, `Verso.Ado`, `Verso.Http`), and the shared UI library (`Verso.Blazor.Shared`).
+Verso.Blazor references the engine (`Verso`), all kernel extension packages (`Verso.FSharp`, `Verso.JavaScript`, `Verso.Python`, `Verso.PowerShell`, `Verso.Ado`, `Verso.Http`), and the shared UI library (`Verso.Blazor.Shared`). The PowerShell host adapter is internal to `Verso.PowerShell`.
 
 ## VS Code Extension
 
@@ -154,6 +154,8 @@ The WASM project runs in the webview sandbox. It references only `Verso.Abstract
 
 The WASM app maintains a local state cache populated from the `notebook/opened` notification. Source updates are debounced (250ms) before forwarding to the host to avoid flooding the JSON-RPC channel during fast typing.
 
+Some requests use a detached bridge path instead of awaiting the full JSON-RPC round-trip inside the webview call stack. This allows the webview to keep processing host notifications while a long-running request such as `execution/run` is still pending.
+
 `WebviewNavigationManager` stubs `NavigationManager` with `app:///` as the base URI because the `vscode-webview://` scheme is not parseable by `System.Uri`.
 
 ### Message Flow
@@ -182,13 +184,40 @@ Cell.razor calls NotebookService.ExecuteCellAsync(cellId)
 
 Notifications (execution state changes, variable updates) flow in the reverse direction without a request ID.
 
+### Live Output and Interactive Input
+
+Kernels can append outputs while a cell is still running. In VS Code, this uses the `output/update` host notification:
+
+```
+Kernel calls context.WriteOutputAsync(output)
+  -> ExecutionPipeline appends the output and notifies Scaffold
+  -> HostSession sends output/update { notebookId, cellId }
+  -> BlazorBridge forwards the notification to the webview
+  -> RemoteNotebookService refreshes the local cell output cache
+  -> Notebook components re-render before execution/run completes
+```
+
+Kernels can also request a single input value through `IExecutionContext.RequestInputAsync`. VS Code handles this with `input/request` and `input/response`:
+
+```
+Kernel calls context.RequestInputAsync(prompt, isPassword, ct)
+  -> NotebookSession creates a pending input request
+  -> HostSession sends input/request { notebookId, requestId, cellId, prompt, isPassword }
+  -> BlazorBridge shows a VS Code input box
+  -> BlazorBridge sends input/response { notebookId, requestId, value, cancelled }
+  -> NotebookSession resolves the pending request
+  -> Kernel execution resumes
+```
+
+`input/response` is handled by the host read loop outside the normal sequential request queue. This is required because the queued `execution/run` request is still active while the kernel is waiting for the user's answer.
+
 ## Verso.Host
 
 `Verso.Host` is a console application that serves as the engine host for VS Code. It communicates via line-delimited JSON-RPC on stdin/stdout.
 
 ### Startup
 
-`Program.cs` sets console encoding to UTF-8, emits a `host/ready` notification, then enters a read loop on stdin. A shared `stdoutLock` ensures atomic response writes. Incoming messages are queued through a `Channel<T>` and dispatched sequentially by `HostSession`.
+`Program.cs` sets console encoding to UTF-8, emits a `host/ready` notification, then enters a read loop on stdin. A shared `stdoutLock` ensures atomic response writes. Incoming messages are queued through a `Channel<T>` and dispatched sequentially by `HostSession`. A small set of re-entrant responses, such as `extension/consentResponse` and `input/response`, are handled directly in the read loop so they can unblock an already-running request.
 
 ### HostSession and NotebookSession
 
@@ -212,6 +241,8 @@ Notifications (execution state changes, variable updates) flow in the reverse di
 | `VariableHandler` | list, inspect |
 
 Method names are centralized in `Protocol.MethodNames`. The TypeScript `protocol.ts` in the VS Code extension mirrors the same method names.
+
+`NotebookSession` also owns session-scoped callbacks that are not exposed as standalone handler classes. It subscribes to `Scaffold.OnCellOutputUpdated` and sends `output/update`, and it implements the pending request table for `input/request` / `input/response`.
 
 ## CLI (Verso.Cli)
 

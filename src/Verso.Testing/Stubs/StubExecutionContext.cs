@@ -19,6 +19,7 @@ public sealed class StubExecutionContext : IExecutionContext
 
     public Guid CellId { get; set; } = Guid.NewGuid();
     public int ExecutionCount { get; set; } = 1;
+    public Func<string, bool, CancellationToken, Task<string?>>? InputHandler { get; set; }
 
     public List<CellOutput> WrittenOutputs { get; } = new();
     public List<CellOutput> DisplayedOutputs { get; } = new();
@@ -33,6 +34,17 @@ public sealed class StubExecutionContext : IExecutionContext
     {
         DisplayedOutputs.Add(output);
         return Task.CompletedTask;
+    }
+
+    public Task<string?> RequestInputAsync(
+        string prompt,
+        bool isPassword = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (InputHandler is null)
+            throw new NotSupportedException("Interactive input is not supported by this host.");
+
+        return InputHandler(prompt, isPassword, cancellationToken);
     }
 
     public List<(string OutputBlockId, CellOutput Output)> UpdatedOutputs { get; } = new();

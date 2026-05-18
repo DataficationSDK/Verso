@@ -58,6 +58,7 @@
                     <DashboardGrid Service="Service"
                                    Cells="GetLayoutFilteredCells()"
                                    ExecutingCellId="_executingCellId"
+                                   IsRunDisabled="_executingCellId.HasValue"
                                    OnRunCell="HandleRunCell"
                                    OnCancelCell="HandleCancelCell"
                                    OnSourceChanged="HandleSourceChanged" />
@@ -101,6 +102,7 @@
                                 <Cell CellData="cell"
                                       IsSelected="cell.Id == _selectedCellId"
                                       IsExecuting="cell.Id == _executingCellId"
+                                      IsRunDisabled="_executingCellId.HasValue"
                                       Index="index"
                                       IsLast="index == cells.Count - 1"
                                       CollapsesInput="Service.ShouldCollapseInput(cell.Type)"

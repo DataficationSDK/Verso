@@ -104,6 +104,8 @@ public sealed class FakeNotebookService : INotebookService
     public Dictionary<Guid, CellContainerInfo> CellContainers { get; set; } = new();
     public Dictionary<string, bool> CollapseInputMap { get; set; } = new();
     public string? InteractionResponse { get; set; }
+    public Func<Guid, Task<ExecutionResultDto>>? ExecuteCellAsyncHandler { get; set; }
+    public Func<Task<IReadOnlyList<ExecutionResultDto>>>? ExecuteAllAsyncHandler { get; set; }
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -153,17 +155,27 @@ public sealed class FakeNotebookService : INotebookService
 
     public Task ClearAllOutputsAsync() => Task.CompletedTask;
 
+    public Task SetCellInputCollapsedAsync(Guid cellId, bool collapsed) => Task.CompletedTask;
+
+    public Task SetCellOutputVisibilityAsync(Guid cellId, string visibility) => Task.CompletedTask;
+
     // ── Execution ──────────────────────────────────────────────────────
 
     public Task<ExecutionResultDto> ExecuteCellAsync(Guid cellId)
     {
         ExecutedCellIds.Add(cellId);
+        if (ExecuteCellAsyncHandler is not null)
+            return ExecuteCellAsyncHandler(cellId);
+
         return Task.FromResult(new ExecutionResultDto(cellId, "ok", 1, TimeSpan.FromMilliseconds(42)));
     }
 
     public Task<IReadOnlyList<ExecutionResultDto>> ExecuteAllAsync()
     {
         ExecuteAllCallCount++;
+        if (ExecuteAllAsyncHandler is not null)
+            return ExecuteAllAsyncHandler();
+
         return Task.FromResult<IReadOnlyList<ExecutionResultDto>>(new List<ExecutionResultDto>());
     }
 

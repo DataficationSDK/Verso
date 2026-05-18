@@ -16,7 +16,9 @@ public sealed class NotebookSession : IAsyncDisposable
     private CancellationTokenSource? _executionCts;
     private readonly Action<string, object?> _sendNotification;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _pendingConsents = new();
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<string?>> _pendingInputs = new();
     private int _consentCounter;
+    private int _inputCounter;
 
     public NotebookSession(
         string notebookId,
@@ -34,6 +36,8 @@ public sealed class NotebookSession : IAsyncDisposable
         // extension/layout/theme lists.
         ExtensionHost.OnExtensionLoaded += HandleExtensionLoaded;
         ExtensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
+        Scaffold.OnCellOutputUpdated += HandleCellOutputUpdated;
+        Scaffold.InputRequester = RequestInputAsync;
     }
 
     private void HandleExtensionLoaded(Abstractions.IExtension extension)
@@ -44,6 +48,17 @@ public sealed class NotebookSession : IAsyncDisposable
     private void HandleExtensionStatusChanged(string extensionId, Abstractions.ExtensionStatus status)
     {
         SendNotification(Protocol.MethodNames.ExtensionChanged, null);
+    }
+
+    private void HandleCellOutputUpdated(Guid cellId)
+    {
+        var cell = Scaffold.GetCell(cellId);
+        SendNotification(Protocol.MethodNames.OutputUpdate, new
+        {
+            cellId = cellId.ToString(),
+            outputs = cell?.Outputs.Select(Handlers.NotebookHandler.MapOutput).ToList()
+                ?? new List<Dto.CellOutputDto>()
+        });
     }
 
     public CancellationToken GetExecutionToken()
@@ -100,15 +115,65 @@ public sealed class NotebookSession : IAsyncDisposable
             tcs.TrySetResult(approved);
     }
 
+    /// <summary>
+    /// Sends an interactive input request notification to the client and awaits the response.
+    /// </summary>
+    public async Task<string?> RequestInputAsync(
+        Guid cellId,
+        string prompt,
+        bool isPassword,
+        CancellationToken cancellationToken)
+    {
+        var requestId = $"input-{Interlocked.Increment(ref _inputCounter)}";
+        var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingInputs[requestId] = tcs;
+
+        using var registration = cancellationToken.Register(() =>
+        {
+            if (_pendingInputs.TryRemove(requestId, out var pending))
+                pending.TrySetCanceled(cancellationToken);
+        });
+
+        SendNotification(Protocol.MethodNames.InputRequest, new
+        {
+            requestId,
+            cellId = cellId.ToString(),
+            prompt,
+            isPassword
+        });
+
+        return await tcs.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves a pending input request from the client response.
+    /// </summary>
+    public void ResolveInput(string requestId, string? value, bool cancelled)
+    {
+        if (!_pendingInputs.TryRemove(requestId, out var tcs))
+            return;
+
+        if (cancelled)
+            tcs.TrySetCanceled();
+        else
+            tcs.TrySetResult(value ?? string.Empty);
+    }
+
     public async ValueTask DisposeAsync()
     {
         ExtensionHost.OnExtensionLoaded -= HandleExtensionLoaded;
         ExtensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+        Scaffold.OnCellOutputUpdated -= HandleCellOutputUpdated;
+        Scaffold.InputRequester = null;
 
         // Cancel any pending consent requests
         foreach (var tcs in _pendingConsents.Values)
             tcs.TrySetResult(false);
         _pendingConsents.Clear();
+
+        foreach (var tcs in _pendingInputs.Values)
+            tcs.TrySetCanceled();
+        _pendingInputs.Clear();
 
         _executionCts?.Dispose();
         await Scaffold.DisposeAsync();
@@ -247,6 +312,7 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.ExtensionList => ExtensionHandler.HandleList(ns),
             MethodNames.ExtensionEnable => await ExtensionHandler.HandleEnableAsync(ns, @params),
             MethodNames.ExtensionDisable => await ExtensionHandler.HandleDisableAsync(ns, @params),
+            MethodNames.InputResponse => HandleInputResponse(ns, @params),
             MethodNames.SettingsGetDefinitions => SettingsHandler.HandleGetDefinitions(ns),
             MethodNames.SettingsGet => SettingsHandler.HandleGet(ns, @params),
             MethodNames.SettingsUpdate => await SettingsHandler.HandleUpdateAsync(ns, @params),
@@ -273,6 +339,23 @@ public sealed class HostSession : IAsyncDisposable
         var approved = @params?.GetProperty("approved").GetBoolean() ?? false;
         if (requestId is not null)
             ns.ResolveConsent(requestId, approved);
+        return null;
+    }
+
+    private static object? HandleInputResponse(NotebookSession ns, JsonElement? @params)
+    {
+        var requestId = @params?.GetProperty("requestId").GetString();
+        var cancelled = @params?.TryGetProperty("cancelled", out var cancelledEl) == true &&
+            cancelledEl.GetBoolean();
+        string? value = null;
+        if (@params?.TryGetProperty("value", out var valueEl) == true &&
+            valueEl.ValueKind != JsonValueKind.Null)
+        {
+            value = valueEl.GetString();
+        }
+
+        if (requestId is not null)
+            ns.ResolveInput(requestId, value, cancelled);
         return null;
     }
 

@@ -31,6 +31,8 @@ All three methods call `EnsureParametersInjected()` first, which pushes notebook
 - `Func<Guid, string?>` -- language ID resolution for a cell
 - `Func<Guid, int>` -- execution count lookup
 - `Func<string, IMagicCommand?>` -- magic command resolution delegate
+- Optional `Action<Guid>` -- notified when a running cell appends output
+- Optional input requester delegate -- asks the current host for interactive input
 
 The pipeline has no direct reference to `Scaffold`. All access goes through these delegates and interfaces.
 
@@ -96,11 +98,14 @@ See the [Magic Commands](#magic-commands) section below for details.
 
 An `ExecutionContext` is constructed with the remaining code (after magic commands are stripped), the variable store, theme context, and all other shared services. This context implements `IExecutionContext`, which extends `IVersoContext`.
 
+If the host supplied an input requester, the execution context exposes it through `RequestInputAsync(prompt, isPassword, ct)`. Kernels can use this to pause execution until the front-end returns a value. Hosts that do not provide an input requester keep the default unsupported behavior.
+
 ### 6. Execute
 
 The kernel's `ExecuteAsync(code, context)` is called. The kernel can:
 
 - **Stream outputs** during execution via `context.WriteOutputAsync(output)`, which calls the `AppendOutput` delegate
+- **Request interactive input** during execution via `context.RequestInputAsync(...)`
 - **Return outputs** from the method, which are appended after execution (skipping any already streamed)
 
 ### 7. Post-Processing
@@ -196,6 +201,20 @@ Outputs are collected in `cell.Outputs` (a mutable `List<CellOutput>`). The pipe
 | `text/x-verso-mermaid` | Mermaid diagram source (rendered by the UI) |
 
 Error outputs set `IsError = true` and optionally include `ErrorName` (exception type) and `ErrorStackTrace`.
+
+### Live Output Notifications
+
+When a kernel calls `WriteOutputAsync`, the pipeline appends the output immediately and invokes the optional output-updated callback. `Scaffold` exposes this as `OnCellOutputUpdated`, and interactive hosts can forward it to their UI before the cell finishes executing. VS Code uses this path to send `output/update` and refresh the cell output cache while the `execution/run` request is still pending.
+
+This mechanism streams outputs that are explicitly written through the execution context. Outputs that are only returned from `ILanguageKernel.ExecuteAsync` are still appended after the kernel method completes.
+
+## Interactive Input
+
+`IExecutionContext.RequestInputAsync(prompt, isPassword, ct)` asks the current host to collect a single line of input. It returns the entered value or `null` when the user cancels. The default interface implementation throws `NotSupportedException`, so kernels should treat this as an optional host capability.
+
+The PowerShell kernel uses this capability through its internal host adapter around PowerShell's `PSHost` / `PSHostUserInterface` APIs. It maps host prompts such as `Read-Host`, credential prompts, and choice prompts onto `RequestInputAsync`. In VS Code, the request is delivered as an `input/request` notification and answered with `input/response`.
+
+PowerShell host output (`Write-Host`, warnings, errors, verbose/debug output, and similar `PSHostUserInterface` writes) is converted to `text/plain` `CellOutput` values and written through `WriteOutputAsync`. ANSI escape sequences are currently stripped before display so host output stays readable in cell output. Future work may parse supported ANSI SGR sequences into safe rich output instead of discarding them.
 
 ## Execution Result
 

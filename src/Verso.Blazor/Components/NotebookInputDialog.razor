@@ -1,0 +1,77 @@
+@using Verso.Blazor.Services
+
+@if (IsVisible && Request is not null)
+{
+    <div class="verso-modal-overlay" @onclick="HandleCancel">
+        <div class="verso-modal" @onclick:stopPropagation="true">
+            <div class="verso-modal-header">
+                <span class="verso-modal-title">PowerShell Input</span>
+                <button type="button" class="verso-modal-close" @onclick="HandleCancel" title="Cancel">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="verso-modal-body">
+                <label class="verso-modal-label" for="powerShellInput">@PromptText</label>
+                <input id="powerShellInput"
+                       class="verso-modal-input"
+                       type="@InputType"
+                       @bind="_value"
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       autocomplete="off"
+                       spellcheck="false" />
+            </div>
+            <div class="verso-modal-footer">
+                <button type="button"
+                        class="verso-modal-btn verso-modal-btn--secondary"
+                        @onclick="HandleCancel">Cancel</button>
+                <button type="button"
+                        class="verso-modal-btn verso-modal-btn--primary"
+                        @onclick="HandleSubmit">Submit</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _value = string.Empty;
+    private ServerInputRequest? _lastRequest;
+
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public ServerInputRequest? Request { get; set; }
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string PromptText =>
+        string.IsNullOrWhiteSpace(Request?.Prompt) ? "Input" : Request.Prompt;
+
+    private string InputType => Request?.IsPassword == true ? "password" : "text";
+
+    protected override void OnParametersSet()
+    {
+        if (Request is null)
+        {
+            _lastRequest = null;
+            _value = string.Empty;
+            return;
+        }
+
+        if (_lastRequest != Request)
+        {
+            _lastRequest = Request;
+            _value = string.Empty;
+        }
+    }
+
+    private async Task HandleSubmit() => await OnSubmit.InvokeAsync(_value);
+
+    private async Task HandleCancel() => await OnCancel.InvokeAsync();
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await HandleSubmit();
+        else if (e.Key == "Escape")
+            await HandleCancel();
+    }
+}

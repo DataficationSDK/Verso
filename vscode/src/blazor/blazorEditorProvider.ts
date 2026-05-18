@@ -504,6 +504,9 @@ export class BlazorEditorProvider
 
     // Core WASM framework files
     const frameworkJs = toUri("_framework/blazor.webassembly.js");
+    const frameworkBase = webview.asWebviewUri(
+      vscode.Uri.joinPath(wasmRoot, "_framework")
+    ).toString();
 
     // Shared component static files
     const appCss = toUri("_content/Verso.Blazor.Shared/app.css");
@@ -679,7 +682,7 @@ export class BlazorEditorProvider
     <script>
     // Manually start Blazor with error handling.
     // The real webview resource base (used by loadBootResource to remap framework fetches).
-    var wasmBase = '${webview.asWebviewUri(wasmRoot)}/';
+    var frameworkBase = '${frameworkBase}/';
     var wasmVersion = '${version}';
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof Blazor !== 'undefined') {
@@ -690,7 +693,7 @@ export class BlazorEditorProvider
                     // Remap all framework resource URIs to real webview URIs
                     // since <base href> is a synthetic localhost URI.
                     // Append version query param to bust stale caches on extension update.
-                    return wasmBase + '_framework/' + name + '?v=' + wasmVersion;
+                    return frameworkBase + name + '?v=' + wasmVersion;
                 }
             }).then(function() {
                 if (status) status.textContent = 'Blazor started.';

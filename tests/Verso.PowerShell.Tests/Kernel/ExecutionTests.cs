@@ -48,6 +48,87 @@ public class ExecutionTests
         var outputs = await _kernel.ExecuteAsync("Write-Host 'hello world'", _context);
         var allText = string.Join(" ", outputs.Select(o => o.Content));
         Assert.IsTrue(allText.Contains("hello world"), $"Expected 'hello world', got: {allText}");
+        Assert.AreEqual(1, outputs.Count(o => o.Content.Contains("hello world")));
+    }
+
+    [TestMethod]
+    public async Task WriteInformation_WithContinueAction_ReturnsInformationOutput()
+    {
+        var outputs = await _kernel.ExecuteAsync(
+            "Write-Information 'info message' -InformationAction Continue",
+            _context);
+
+        var allText = string.Join(" ", outputs.Select(o => o.Content));
+        Assert.IsTrue(allText.Contains("info message"), $"Expected 'info message', got: {allText}");
+        Assert.AreEqual(
+            1,
+            outputs.Count(o => o.Content.Contains("info message")),
+            $"Expected 'info message' once, got: {allText}");
+    }
+
+    [TestMethod]
+    public async Task WriteHost_StreamsBeforeCommandCompletes()
+    {
+        var execution = Task.Run(() => _kernel.ExecuteAsync(
+            "Write-Host 'before'\nStart-Sleep -Seconds 2\nWrite-Host 'after'",
+            _context));
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(1);
+        while (DateTimeOffset.UtcNow < deadline &&
+               !_context.WrittenOutputs.Any(o => o.Content.Contains("before")))
+        {
+            await Task.Delay(25);
+        }
+
+        Assert.IsTrue(
+            _context.WrittenOutputs.Any(o => o.Content.Contains("before")),
+            "Expected Write-Host output to be streamed before execution completed.");
+        Assert.IsFalse(execution.IsCompleted, "Execution should still be running after the first streamed output.");
+
+        var outputs = await execution;
+        Assert.IsTrue(outputs.Any(o => o.Content.Contains("before")));
+        Assert.IsTrue(outputs.Any(o => o.Content.Contains("after")));
+    }
+
+    [TestMethod]
+    public async Task WriteHost_StripsAnsiEscapeSequences()
+    {
+        var outputs = await _kernel.ExecuteAsync(
+            "Write-Host \"$([char]27)[93mcolored$([char]27)[0m\"",
+            _context);
+
+        var allText = string.Join(" ", outputs.Select(o => o.Content));
+        Assert.IsTrue(allText.Contains("colored"), $"Expected colored text, got: {allText}");
+        Assert.IsFalse(allText.Contains("\u001b["), $"Did not expect ANSI escape sequences, got: {allText}");
+    }
+
+    [TestMethod]
+    public async Task ReadHost_UsesExecutionContextInput()
+    {
+        _context.InputHandler = (prompt, isPassword, ct) =>
+            Task.FromResult<string?>("typed value");
+
+        var outputs = await _kernel.ExecuteAsync(
+            "$value = Read-Host 'enter value'\nWrite-Host \"value=$value\"",
+            _context);
+
+        Assert.IsFalse(outputs.Any(o => o.IsError), "Did not expect an error output");
+        var allText = string.Join(" ", outputs.Select(o => o.Content));
+        Assert.IsTrue(
+            allText.Contains("value=typed value"),
+            $"Expected provided input in output, got: {allText}");
+    }
+
+    [TestMethod]
+    public async Task ReadHost_ReturnsUnsupportedInteractiveInputErrorWithoutInputHandler()
+    {
+        var outputs = await _kernel.ExecuteAsync("Read-Host 'enter value'", _context);
+
+        Assert.IsTrue(outputs.Any(o => o.IsError), "Expected an error output");
+        var allText = string.Join(" ", outputs.Select(o => o.Content));
+        Assert.IsTrue(
+            allText.Contains("Interactive input is not supported by this host."),
+            $"Expected unsupported interactive input message, got: {allText}");
     }
 
     [TestMethod]

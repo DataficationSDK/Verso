@@ -19,8 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Verso.Blazor\Verso.Blazor.csproj" />
     <ProjectReference Include="..\..\src\Verso.Blazor.Shared\Verso.Blazor.Shared.csproj" />
     <ProjectReference Include="..\..\src\Verso.Abstractions\Verso.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Verso.PowerShell\Verso.PowerShell.csproj" />
     <ProjectReference Include="..\..\src\Verso.Testing\Verso.Testing.csproj" />
   </ItemGroup>
 

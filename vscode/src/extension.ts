@@ -5,6 +5,12 @@ import { registerParticipant } from "./copilot/participant";
 import { registerTools } from "./copilot/tools";
 import { initialize as initializeLog, log } from "./log";
 
+type HostPathResolutionOptions = {
+  existsSync?: (path: string) => boolean;
+  configuredHostPath?: string;
+  workspaceFolders?: readonly vscode.WorkspaceFolder[];
+};
+
 export async function activate(
   context: vscode.ExtensionContext
 ): Promise<void> {
@@ -44,26 +50,37 @@ export function deactivate(): void {
   // Host processes are disposed per-notebook when their webview panels close.
 }
 
-function resolveHostPath(context: vscode.ExtensionContext): string {
+export function resolveHostPath(
+  context: vscode.ExtensionContext,
+  options: HostPathResolutionOptions = {}
+): string {
   const fs = require("fs");
+  const existsSync = options.existsSync ?? fs.existsSync;
+
+  const bundled = path.join(context.extensionPath, "host", "Verso.Host.dll");
+
+  // In F5/development mode the extension should always use the freshly built
+  // bundled host from the workspace, even if a user-level verso.hostPath points
+  // at an older installed host.
+  if (context.extensionMode === vscode.ExtensionMode.Development && existsSync(bundled)) {
+    return bundled;
+  }
 
   // Check user configuration first
-  const configured = vscode.workspace
-    .getConfiguration("verso")
-    .get<string>("hostPath");
-  if (configured && fs.existsSync(configured)) {
+  const configured = options.configuredHostPath ??
+    vscode.workspace.getConfiguration("verso").get<string>("hostPath");
+  if (configured && existsSync(configured)) {
     return configured;
   }
 
   // Check bundled host (inside the installed extension)
-  const bundled = path.join(context.extensionPath, "host", "Verso.Host.dll");
-  if (fs.existsSync(bundled)) {
+  if (existsSync(bundled)) {
     return bundled;
   }
 
   // Search workspace folders for the Verso.Host.dll (check Release first, then Debug)
   const configs = ["Release", "Debug"];
-  const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+  const workspaceFolders = options.workspaceFolders ?? vscode.workspace.workspaceFolders ?? [];
   for (const folder of workspaceFolders) {
     for (const cfg of configs) {
       const candidates = [
@@ -73,7 +90,7 @@ function resolveHostPath(context: vscode.ExtensionContext): string {
         path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
       ];
       for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
+        if (existsSync(candidate)) {
           return candidate;
         }
       }
@@ -83,7 +100,7 @@ function resolveHostPath(context: vscode.ExtensionContext): string {
   // Fallback: relative to extension path (works in dev host / local install)
   for (const cfg of configs) {
     const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll");
-    if (fs.existsSync(extensionRelative)) {
+    if (existsSync(extensionRelative)) {
       return extensionRelative;
     }
   }

@@ -19,8 +19,8 @@
         {
             <button class="verso-cell-btn verso-cell-btn--run"
                     @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
-                    disabled="@IsExecuting"
-                    title="Run">
+                    disabled="@(IsExecuting || IsRunDisabled)"
+                    title="@(IsRunDisabled && !IsExecuting ? "Another cell is running" : "Run")">
                 @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
             </button>
         }
@@ -94,6 +94,7 @@
     [Parameter] public CellModel CellData { get; set; } = default!;
     [Parameter] public CellContainerInfo Position { get; set; } = default!;
     [Parameter] public bool IsExecuting { get; set; }
+    [Parameter] public bool IsRunDisabled { get; set; }
     [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
     [Parameter] public EventCallback<Guid> OnCancelCell { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }

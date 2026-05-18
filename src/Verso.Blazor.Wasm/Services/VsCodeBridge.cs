@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections.Concurrent;
 using Microsoft.JSInterop;
 
 namespace Verso.Blazor.Wasm.Services;
@@ -11,7 +12,9 @@ namespace Verso.Blazor.Wasm.Services;
 public sealed class VsCodeBridge : IAsyncDisposable
 {
     private readonly IJSRuntime _js;
+    private readonly ConcurrentDictionary<int, TaskCompletionSource<string>> _pendingRequests = new();
     private DotNetObjectReference<VsCodeBridge>? _selfRef;
+    private int _nextRequestId;
     private bool _initialized;
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
@@ -57,8 +60,7 @@ public sealed class VsCodeBridge : IAsyncDisposable
     /// </summary>
     public async Task<T> RequestAsync<T>(string method, object? @params = null)
     {
-        var paramsJson = @params is not null ? JsonSerializer.Serialize(@params, s_jsonOptions) : null;
-        var resultJson = await _js.InvokeAsync<string>("vscodeBridge.sendRequest", method, paramsJson);
+        var resultJson = await RequestRawAsync(method, @params);
         return JsonSerializer.Deserialize<T>(resultJson, s_jsonOptions)!;
     }
 
@@ -67,8 +69,27 @@ public sealed class VsCodeBridge : IAsyncDisposable
     /// </summary>
     public async Task RequestVoidAsync(string method, object? @params = null)
     {
+        await RequestRawAsync(method, @params);
+    }
+
+    private async Task<string> RequestRawAsync(string method, object? @params)
+    {
+        var id = Interlocked.Increment(ref _nextRequestId);
+        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!_pendingRequests.TryAdd(id, tcs))
+            throw new InvalidOperationException($"Duplicate VS Code bridge request id '{id}'.");
+
         var paramsJson = @params is not null ? JsonSerializer.Serialize(@params, s_jsonOptions) : null;
-        await _js.InvokeAsync<string>("vscodeBridge.sendRequest", method, paramsJson);
+        try
+        {
+            await _js.InvokeVoidAsync("vscodeBridge.sendRequestDetached", id, method, paramsJson);
+            return await tcs.Task;
+        }
+        catch
+        {
+            _pendingRequests.TryRemove(id, out _);
+            throw;
+        }
     }
 
     /// <summary>
@@ -81,9 +102,48 @@ public sealed class VsCodeBridge : IAsyncDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Called from JS when a detached JSON-RPC request receives a response.
+    /// </summary>
+    [JSInvokable("OnResponse")]
+    public Task OnResponseFromJs(int id, string? resultJson, string? errorJson)
+    {
+        if (!_pendingRequests.TryRemove(id, out var tcs))
+            return Task.CompletedTask;
+
+        if (!string.IsNullOrWhiteSpace(errorJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(errorJson);
+                var root = doc.RootElement;
+                var message = root.TryGetProperty("message", out var messageEl)
+                    ? messageEl.GetString()
+                    : "JSON-RPC error";
+                var code = root.TryGetProperty("code", out var codeEl) && codeEl.TryGetInt32(out var c)
+                    ? c
+                    : 0;
+                tcs.TrySetException(new InvalidOperationException($"{message} (code {code})"));
+            }
+            catch (JsonException)
+            {
+                tcs.TrySetException(new InvalidOperationException(errorJson));
+            }
+        }
+        else
+        {
+            tcs.TrySetResult(resultJson ?? "null");
+        }
+
+        return Task.CompletedTask;
+    }
+
     public ValueTask DisposeAsync()
     {
         _selfRef?.Dispose();
+        foreach (var pending in _pendingRequests.Values)
+            pending.TrySetCanceled();
+        _pendingRequests.Clear();
         return ValueTask.CompletedTask;
     }
 }

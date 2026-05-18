@@ -5,6 +5,7 @@
         <DashboardCell CellData="cell"
                        Position="pos"
                        IsExecuting="cell.Id == ExecutingCellId"
+                       IsRunDisabled="IsRunDisabled"
                        OnRunCell="OnRunCell"
                        OnCancelCell="OnCancelCell"
                        OnSourceChanged="OnSourceChanged"
@@ -17,6 +18,7 @@
     [Parameter] public INotebookService Service { get; set; } = default!;
     [Parameter] public IReadOnlyList<CellModel> Cells { get; set; } = Array.Empty<CellModel>();
     [Parameter] public Guid? ExecutingCellId { get; set; }
+    [Parameter] public bool IsRunDisabled { get; set; }
     [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
     [Parameter] public EventCallback<Guid> OnCancelCell { get; set; }
     [Parameter] public EventCallback<(Guid CellId, string Source)> OnSourceChanged { get; set; }

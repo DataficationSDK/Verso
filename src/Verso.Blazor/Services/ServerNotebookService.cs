@@ -24,6 +24,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     private CancellationTokenSource? _executionCts;
     private readonly IJSRuntime _jsRuntime;
     private readonly NotebookServiceOptions _options;
+    private readonly object _inputLock = new();
+    private TaskCompletionSource<string?>? _inputTcs;
+    private ServerInputRequest? _pendingInputRequest;
     // Monaco is eagerly loaded at page load (before any notebook opens),
     // so by the time cells render, define.amd is already removed and
     // output scripts cannot interfere with the AMD loader.
@@ -36,14 +39,41 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     /// <summary>Raised when extensions need user consent. The UI should show the consent dialog.</summary>
     public event Action? OnExtensionConsentRequested;
 
+    /// <summary>Raised when kernel execution needs a single input value from the UI.</summary>
+    public event Action? OnInputRequested;
+
     /// <summary>The extensions awaiting consent, if any.</summary>
     public IReadOnlyList<ExtensionConsentInfo>? PendingConsentExtensions => _pendingConsentExtensions;
+
+    /// <summary>The pending execution input request, if any.</summary>
+    public ServerInputRequest? PendingInputRequest
+    {
+        get
+        {
+            lock (_inputLock)
+                return _pendingInputRequest;
+        }
+    }
 
     /// <summary>Called by the UI to resolve the pending consent request.</summary>
     public void ResolveConsentResult(bool approved)
     {
         _consentTcs?.TrySetResult(approved);
         _pendingConsentExtensions = null;
+    }
+
+    /// <summary>Called by the UI to resolve the pending execution input request.</summary>
+    public void ResolveInputResult(string? value, bool cancelled)
+    {
+        TaskCompletionSource<string?>? tcs;
+        lock (_inputLock)
+        {
+            tcs = _inputTcs;
+            _inputTcs = null;
+            _pendingInputRequest = null;
+        }
+
+        tcs?.TrySetResult(cancelled ? null : value ?? string.Empty);
     }
 
     public ServerNotebookService(IJSRuntime jsRuntime, NotebookServiceOptions? options = null)
@@ -974,6 +1004,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         {
             _scaffold.OnCellExecuting += HandleScaffoldCellExecuting;
             _scaffold.OnCellExecuted += HandleScaffoldCellExecuted;
+            _scaffold.OnCellOutputUpdated += HandleScaffoldCellOutputUpdated;
+            _scaffold.InputRequester = RequestInputFromUIAsync;
         }
 
         if (_scaffold?.Variables is VariableStore vs)
@@ -992,6 +1024,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         {
             _scaffold.OnCellExecuting -= HandleScaffoldCellExecuting;
             _scaffold.OnCellExecuted -= HandleScaffoldCellExecuted;
+            _scaffold.OnCellOutputUpdated -= HandleScaffoldCellOutputUpdated;
+            _scaffold.InputRequester = null;
         }
 
         if (_scaffold?.Variables is VariableStore vs)
@@ -1017,6 +1051,57 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         OnCellExecutionCompleted?.Invoke(cellId);
         OnCellExecuted?.Invoke();
+    }
+
+    private void HandleScaffoldCellOutputUpdated(Guid cellId)
+        => OnOutputUpdated?.Invoke();
+
+    private async Task<string?> RequestInputFromUIAsync(
+        Guid cellId,
+        string prompt,
+        bool isPassword,
+        CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<string?>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        lock (_inputLock)
+        {
+            if (_inputTcs is not null)
+                throw new InvalidOperationException("Another input request is already pending.");
+
+            _inputTcs = tcs;
+            _pendingInputRequest = new ServerInputRequest(cellId, prompt, isPassword);
+        }
+
+        using var registration = cancellationToken.Register(
+            static state => ((TaskCompletionSource<string?>)state!).TrySetResult(null),
+            tcs);
+
+        OnInputRequested?.Invoke();
+
+        try
+        {
+            return await tcs.Task.ConfigureAwait(false);
+        }
+        finally
+        {
+            if (ClearPendingInputRequest(tcs))
+                OnInputRequested?.Invoke();
+        }
+    }
+
+    private bool ClearPendingInputRequest(TaskCompletionSource<string?> tcs)
+    {
+        lock (_inputLock)
+        {
+            if (!ReferenceEquals(_inputTcs, tcs))
+                return false;
+
+            _inputTcs = null;
+            _pendingInputRequest = null;
+            return true;
+        }
     }
 
     private async Task<bool> RequestConsentFromUIAsync(
@@ -1077,6 +1162,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     private async Task DisposeCurrentAsync()
     {
+        _executionCts?.Cancel();
+        ResolveInputResult(null, cancelled: true);
         UnsubscribeFromEngineEvents();
         if (_scaffold is not null)
         {

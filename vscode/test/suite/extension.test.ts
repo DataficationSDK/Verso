@@ -1,5 +1,7 @@
 import * as assert from "assert";
+import * as path from "path";
 import * as vscode from "vscode";
+import { resolveHostPath } from "../../src/extension";
 
 suite("Extension Activation", () => {
   test("Extension should be present", () => {
@@ -47,5 +49,41 @@ suite("Extension Activation", () => {
     // Verify that deactivate is a callable function pattern
     // The actual deactivation is tested via the extension lifecycle
     assert.ok(true, "Deactivation test placeholder");
+  });
+
+  test("Development mode prefers bundled host over configured hostPath", () => {
+    const extensionPath = path.join("repo", "vscode");
+    const bundled = path.join(extensionPath, "host", "Verso.Host.dll");
+    const configured = path.join("old", "Verso.Host.dll");
+    const context = {
+      extensionPath,
+      extensionMode: vscode.ExtensionMode.Development,
+    } as vscode.ExtensionContext;
+
+    const resolved = resolveHostPath(context, {
+      configuredHostPath: configured,
+      existsSync: candidate => candidate === bundled || candidate === configured,
+      workspaceFolders: [],
+    });
+
+    assert.strictEqual(resolved, bundled);
+  });
+
+  test("Production mode honors configured hostPath before bundled host", () => {
+    const extensionPath = path.join("repo", "vscode");
+    const bundled = path.join(extensionPath, "host", "Verso.Host.dll");
+    const configured = path.join("custom", "Verso.Host.dll");
+    const context = {
+      extensionPath,
+      extensionMode: vscode.ExtensionMode.Production,
+    } as vscode.ExtensionContext;
+
+    const resolved = resolveHostPath(context, {
+      configuredHostPath: configured,
+      existsSync: candidate => candidate === bundled || candidate === configured,
+      workspaceFolders: [],
+    });
+
+    assert.strictEqual(resolved, configured);
   });
 });
