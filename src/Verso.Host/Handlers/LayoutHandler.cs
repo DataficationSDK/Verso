@@ -154,6 +154,56 @@ public static class LayoutHandler
         return null;
     }
 
+    public static async Task<object?> HandleInteractAsync(NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<LayoutInteractParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/interact");
+
+        if (string.IsNullOrWhiteSpace(p.ExtensionId))
+            throw new JsonException("layout/interact requires 'extensionId'.");
+        if (string.IsNullOrWhiteSpace(p.LayoutId))
+            throw new JsonException("layout/interact requires 'layoutId'.");
+
+        if (!ns.ExtensionHost.TryGetLayoutInteractionHandler(p.ExtensionId, p.LayoutId, out var handler))
+        {
+            // The "not found" substring routes this to JsonRpcMessage.ErrorCodes.InvalidParams
+            // via HostSession.DispatchAsync. The symbolic code is included in the message
+            // so clients and tests can key off it.
+            throw new InvalidOperationException(
+                $"LAYOUT_INTERACTION_HANDLER_NOT_FOUND: no layout interaction handler is registered " +
+                $"for (extensionId='{p.ExtensionId}', layoutId='{p.LayoutId}').");
+        }
+
+        var context = new LayoutInteractionContext
+        {
+            ExtensionId = p.ExtensionId,
+            LayoutId = p.LayoutId,
+            FrameInstanceId = p.FrameInstanceId ?? string.Empty,
+            InteractionType = p.InteractionType ?? string.Empty,
+            Payload = p.Payload ?? string.Empty,
+            TargetId = p.TargetId,
+            Verso = new HostVersoContext(ns.Scaffold),
+            CancellationToken = CancellationToken.None
+            // RequestRender / RequestCellRefresh fall through to the
+            // LayoutInteractionContext defaults (no-ops) until the
+            // layout/updated notification path is wired.
+        };
+
+        try
+        {
+            await handler.OnLayoutInteractionAsync(context).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Preserve the originating extension id so dispatch-side errors are
+            // diagnosable. HostSession.DispatchAsync surfaces this as a JSON-RPC
+            // InternalError with the rewrapped message.
+            throw new InvalidOperationException($"[{p.ExtensionId}] {ex.Message}", ex);
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Minimal IVersoContext for rendering layouts on the host side.
     /// </summary>

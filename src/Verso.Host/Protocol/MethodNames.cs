@@ -59,6 +59,7 @@ public static class MethodNames
     public const string LayoutGetCellContainer = "layout/getCellContainer";
     public const string LayoutUpdateCell = "layout/updateCell";
     public const string LayoutSetEditMode = "layout/setEditMode";
+    public const string LayoutInteract = "layout/interact";
     public const string LayoutMissing = "layout/missing";
 
     // Theme

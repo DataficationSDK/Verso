@@ -33,6 +33,12 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IExtensionSettings> _settableExtensions = new();
     private readonly List<ICellPropertyProvider> _propertyProviders = new();
     private readonly List<ICellInteractionHandler> _interactionHandlers = new();
+
+    // Layout interaction handlers are looked up by the (ExtensionId, LayoutId)
+    // identity pair, never by LayoutId alone.
+    private readonly Dictionary<(string ExtensionId, string LayoutId), ILayoutInteractionHandler> _layoutInteractionHandlers =
+        new(LayoutIdentityComparer.Instance);
+
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _approvedExtensionPackages = new(StringComparer.OrdinalIgnoreCase);
@@ -134,6 +140,32 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     public IReadOnlyList<IExtensionSettings> GetSettableExtensions()
     {
         lock (_lock) { return _settableExtensions.Where(s => s is IExtension ext && IsEnabled(ext)).ToList(); }
+    }
+
+    /// <summary>
+    /// Looks up an enabled <see cref="ILayoutInteractionHandler"/> by its
+    /// <c>(ExtensionId, LayoutId)</c> identity pair.
+    /// </summary>
+    /// <param name="extensionId">The owning extension's id.</param>
+    /// <param name="layoutId">The layout id the handler services.</param>
+    /// <param name="handler">The matching handler when found and enabled.</param>
+    /// <returns><c>true</c> when a matching enabled handler exists.</returns>
+    public bool TryGetLayoutInteractionHandler(
+        string extensionId,
+        string layoutId,
+        out ILayoutInteractionHandler handler)
+    {
+        lock (_lock)
+        {
+            if (_layoutInteractionHandlers.TryGetValue((extensionId, layoutId), out var found) &&
+                IsEnabled(found))
+            {
+                handler = found;
+                return true;
+            }
+            handler = null!;
+            return false;
+        }
     }
 
     /// <summary>
@@ -519,6 +551,43 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             }
         }
 
+        // An ILayoutInteractionHandler must be owned by an extension that also
+        // registers an ILayoutEngine with the same LayoutId. Two handlers in the
+        // same extension declaring the same LayoutId cannot coexist.
+        if (extension is ILayoutInteractionHandler newHandler && !string.IsNullOrWhiteSpace(id))
+        {
+            lock (_lock)
+            {
+                if (_layoutInteractionHandlers.ContainsKey((id, newHandler.LayoutId)))
+                {
+                    errors.Add(new ExtensionValidationError(id, "LAYOUT_INTERACTION_DUPLICATE",
+                        $"Extension '{id}' already registers a layout interaction handler for layout " +
+                        $"'{newHandler.LayoutId}'. Only one handler per (ExtensionId, LayoutId) is permitted."));
+                }
+
+                // Orphan check: the extension being loaded must itself implement
+                // ILayoutEngine with the matching LayoutId (the common single-class case),
+                // OR an ILayoutEngine with the same (ExtensionId, LayoutId) must already
+                // be registered (the sibling-class case where the engine loaded first).
+                bool sameClassEngine =
+                    extension is ILayoutEngine selfEngine &&
+                    string.Equals(selfEngine.LayoutId, newHandler.LayoutId, StringComparison.OrdinalIgnoreCase);
+
+                bool registeredEngine = !sameClassEngine && _layouts.Any(l =>
+                    l is IExtension ownerExt &&
+                    string.Equals(ownerExt.ExtensionId, id, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(l.LayoutId, newHandler.LayoutId, StringComparison.OrdinalIgnoreCase));
+
+                if (!sameClassEngine && !registeredEngine)
+                {
+                    errors.Add(new ExtensionValidationError(id, "LAYOUT_HANDLER_ORPHANED",
+                        $"Extension '{id}' registers an ILayoutInteractionHandler for layout " +
+                        $"'{newHandler.LayoutId}' but does not also register an ILayoutEngine with that id. " +
+                        $"A handler must be owned by the same extension that owns the layout."));
+                }
+            }
+        }
+
         return errors;
     }
 
@@ -561,6 +630,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _propertyProviders.Clear();
             _settableExtensions.Clear();
             _interactionHandlers.Clear();
+            _layoutInteractionHandlers.Clear();
             _approvedExtensionPackages.Clear();
             _loadedExtensionPackages.Clear();
 
@@ -607,6 +677,11 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _propertyProviders.Add(provider);
         if (extension is ICellInteractionHandler interactionHandler)
             _interactionHandlers.Add(interactionHandler);
+        if (extension is ILayoutInteractionHandler layoutInteractionHandler)
+        {
+            _layoutInteractionHandlers[(extension.ExtensionId, layoutInteractionHandler.LayoutId)] =
+                layoutInteractionHandler;
+        }
     }
 
     private static bool HasCapabilityInterface(IExtension extension)
@@ -623,7 +698,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             or INotebookPostProcessor
             or IExtensionSettings
             or ICellPropertyProvider
-            or ICellInteractionHandler;
+            or ICellInteractionHandler
+            or ILayoutInteractionHandler;
     }
 
     private static IReadOnlyList<string> GetCapabilityList(IExtension extension)
@@ -642,6 +718,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         if (extension is IExtensionSettings) caps.Add("ExtensionSettings");
         if (extension is ICellPropertyProvider) caps.Add("CellPropertyProvider");
         if (extension is ICellInteractionHandler) caps.Add("CellInteractionHandler");
+        if (extension is ILayoutInteractionHandler) caps.Add("LayoutInteractionHandler");
         return caps;
     }
 
@@ -649,5 +726,19 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(ExtensionHost));
+    }
+
+    private sealed class LayoutIdentityComparer : IEqualityComparer<(string ExtensionId, string LayoutId)>
+    {
+        public static readonly LayoutIdentityComparer Instance = new();
+
+        public bool Equals((string ExtensionId, string LayoutId) x, (string ExtensionId, string LayoutId) y)
+            => string.Equals(x.ExtensionId, y.ExtensionId, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.LayoutId, y.LayoutId, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string ExtensionId, string LayoutId) obj)
+            => HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.ExtensionId),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LayoutId));
     }
 }
