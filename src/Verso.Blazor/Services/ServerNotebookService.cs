@@ -167,6 +167,26 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public string? ActiveLayoutId =>
         _scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
 
+    public LayoutReference? ActiveLayout
+    {
+        get
+        {
+            var layout = _scaffold?.LayoutManager?.ActiveLayout;
+            if (layout is null) return null;
+            var ext = (layout as IExtension)?.ExtensionId ?? string.Empty;
+            return new LayoutReference(ext, layout.LayoutId);
+        }
+    }
+
+    public string? ActiveLayoutRendererIsolation
+    {
+        get
+        {
+            var layout = _scaffold?.LayoutManager?.ActiveLayout;
+            return layout?.RequiresCustomRenderer == true ? layout.RendererIsolation : null;
+        }
+    }
+
     public bool ActiveLayoutSupportsPropertiesPanel =>
         _scaffold?.LayoutManager?.ActiveLayout?.SupportsPropertiesPanel == true;
 
@@ -208,7 +228,14 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public IReadOnlyList<LayoutInfo> AvailableLayouts =>
         _extensionHost?.GetLayouts()
-            .Select(l => new LayoutInfo(l.LayoutId, l.DisplayName, l.RequiresCustomRenderer, l.Capabilities, l.SupportsPropertiesPanel))
+            .Select(l => new LayoutInfo(
+                l.LayoutId,
+                l.DisplayName,
+                l.RequiresCustomRenderer,
+                l.Capabilities,
+                l.SupportsPropertiesPanel,
+                (l as IExtension)?.ExtensionId ?? string.Empty,
+                l.RendererIsolation))
             .ToList()
         ?? (IReadOnlyList<LayoutInfo>)Array.Empty<LayoutInfo>();
 
@@ -654,6 +681,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     }
 
     // ── Layout & theme switching ───────────────────────────────────────
+
+    public Task<string?> RenderActiveLayoutAsync() => Task.FromResult<string?>(null);
 
     public Task SwitchLayoutAsync(string layoutId)
     {

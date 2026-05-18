@@ -34,6 +34,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
     private bool _isDashboardLayout;
+    private string? _activeLayoutRendererIsolation;
     private bool _activeLayoutSupportsPropertiesPanel;
     private LayoutCapabilities _layoutCapabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
@@ -147,6 +148,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public string? ActiveLayoutId => _activeLayout?.LayoutId;
     public LayoutCapabilities LayoutCapabilities => _layoutCapabilities;
     public bool ActiveLayoutSupportsPropertiesPanel => _activeLayoutSupportsPropertiesPanel;
+    public string? ActiveLayoutRendererIsolation => _activeLayoutRendererIsolation;
     public string? ActiveThemeId => _activeThemeId;
 
     // ── Extension data ──────────────────────────────────────────────────
@@ -570,7 +572,14 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         _isDashboardLayout = match?.RequiresCustomRenderer ?? false;
         _layoutCapabilities = match?.Capabilities ?? _layoutCapabilities;
         _activeLayoutSupportsPropertiesPanel = match?.SupportsPropertiesPanel ?? false;
+        _activeLayoutRendererIsolation = match?.RendererIsolation;
         OnLayoutChanged?.Invoke();
+    }
+
+    public async Task<string?> RenderActiveLayoutAsync()
+    {
+        var result = await _bridge.RequestAsync<LayoutRenderResponse>("layout/render", null);
+        return result?.Html;
     }
 
     public async Task SwitchThemeAsync(string themeId)
@@ -1004,9 +1013,11 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                 _isDashboardLayout = l.RequiresCustomRenderer;
                 _layoutCapabilities = (LayoutCapabilities)l.Capabilities;
                 _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel;
+                _activeLayoutRendererIsolation = string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation;
             }
             return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer,
-                (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel, l.ExtensionId ?? string.Empty);
+                (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel, l.ExtensionId ?? string.Empty,
+                string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation);
         }).ToList() ?? new();
 
         // Themes
@@ -1388,12 +1399,18 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public List<LayoutItem>? Layouts { get; set; }
     }
 
+    private sealed class LayoutRenderResponse
+    {
+        public string Html { get; set; } = "";
+    }
+
     private sealed class LayoutItem
     {
         public string Id { get; set; } = "";
         public string? ExtensionId { get; set; }
         public string DisplayName { get; set; } = "";
         public bool RequiresCustomRenderer { get; set; }
+        public string? RendererIsolation { get; set; }
         public bool IsActive { get; set; }
         public int Capabilities { get; set; }
         public bool SupportsPropertiesPanel { get; set; }

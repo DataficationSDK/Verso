@@ -25,7 +25,8 @@ public sealed record LayoutInfo(
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
         | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect,
     bool SupportsPropertiesPanel = false,
-    string ExtensionId = "");
+    string ExtensionId = "",
+    string RendererIsolation = "inline");
 
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(

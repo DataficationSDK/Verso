@@ -33,6 +33,7 @@ public static class LayoutHandler
                     DisplayName = l.DisplayName,
                     Icon = l.Icon,
                     RequiresCustomRenderer = l.RequiresCustomRenderer,
+                    RendererIsolation = l.RendererIsolation,
                     IsActive = isActive,
                     Capabilities = (int)l.Capabilities,
                     SupportsPropertiesPanel = l.SupportsPropertiesPanel

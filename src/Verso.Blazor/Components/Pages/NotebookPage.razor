@@ -97,7 +97,13 @@
     {
         <div class="verso-notebook-body">
             <div class="verso-notebook-main">
-                @if (Service.ActiveLayoutId == "dashboard")
+                @if (IsActiveLayoutCustomInline())
+                {
+                    <div class="verso-custom-layout-placeholder">
+                        Custom layouts are not yet available in this hosting mode.
+                    </div>
+                }
+                else if (Service.ActiveLayoutId == "dashboard")
                 {
                     <DashboardGrid Service="Service"
                                    Cells="GetLayoutFilteredCells()"
@@ -713,6 +719,18 @@
         return Service.Cells
             .Where(c => Service.ResolveCellVisibility(c.Id) != CellVisibilityState.Hidden)
             .ToList();
+    }
+
+    private bool IsActiveLayoutCustomInline()
+    {
+        var active = Service.ActiveLayout;
+        if (active is null) return false;
+        var info = Service.AvailableLayouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, active.Value.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(active.Value.ExtensionId)
+             || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+        return info?.RequiresCustomRenderer == true
+            && string.Equals(Service.ActiveLayoutRendererIsolation, "inline", StringComparison.OrdinalIgnoreCase);
     }
 
     [JSInvokable]

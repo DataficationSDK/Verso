@@ -60,6 +60,15 @@ public interface INotebookService
     /// <summary>Active layout ID.</summary>
     string? ActiveLayoutId { get; }
 
+    /// <summary>Qualified (ExtensionId, LayoutId) identity of the active layout, or null.</summary>
+    LayoutReference? ActiveLayout { get; }
+
+    /// <summary>
+    /// Rendering isolation mode of the active layout when it requires a custom renderer.
+    /// Returns null when there is no active layout or the layout does not require a custom renderer.
+    /// </summary>
+    string? ActiveLayoutRendererIsolation { get; }
+
     /// <summary>Capabilities granted by the active layout (cell insert, delete, execute, etc.).</summary>
     LayoutCapabilities LayoutCapabilities { get; }
 
@@ -200,6 +209,13 @@ public interface INotebookService
     Task<CompletionsResultDto?> GetCompletionsAsync(Guid cellId, string code, int position);
 
     // ── Layout & theme switching ───────────────────────────────────────
+
+    /// <summary>
+    /// Renders the currently active layout, returning the layout-emitted HTML payload.
+    /// Returns null when the active layout does not produce custom-renderer HTML in the
+    /// current hosting mode.
+    /// </summary>
+    Task<string?> RenderActiveLayoutAsync();
 
     /// <summary>Switch the active layout.</summary>
     Task SwitchLayoutAsync(string layoutId);

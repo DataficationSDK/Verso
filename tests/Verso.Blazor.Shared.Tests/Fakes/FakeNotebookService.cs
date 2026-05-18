@@ -39,6 +39,8 @@ public sealed class FakeNotebookService : INotebookService
     public ThemeKind? ActiveThemeKind { get; set; } = ThemeKind.Light;
     public ThemeData? ActiveThemeData { get; set; }
     public string? ActiveLayoutId { get; set; } = "notebook";
+    public LayoutReference? ActiveLayout { get; set; }
+    public string? ActiveLayoutRendererIsolation { get; set; }
     public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
         | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect;
@@ -223,6 +225,18 @@ public sealed class FakeNotebookService : INotebookService
         => Task.FromResult<CompletionsResultDto?>(null);
 
     // ── Layout & theme switching ───────────────────────────────────────
+
+    public int RenderActiveLayoutCallCount { get; private set; }
+    public string? RenderActiveLayoutResult { get; set; }
+    public Func<Task<string?>>? RenderActiveLayoutHandler { get; set; }
+
+    public Task<string?> RenderActiveLayoutAsync()
+    {
+        RenderActiveLayoutCallCount++;
+        if (RenderActiveLayoutHandler is not null)
+            return RenderActiveLayoutHandler();
+        return Task.FromResult(RenderActiveLayoutResult);
+    }
 
     public Task SwitchLayoutAsync(string layoutId)
     {

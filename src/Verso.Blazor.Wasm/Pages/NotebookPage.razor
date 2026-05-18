@@ -53,7 +53,39 @@
     {
         <div class="verso-notebook-body">
             <div class="verso-notebook-main">
-                @if (Service.ActiveLayoutId == "dashboard")
+                @if (IsActiveLayoutCustomInline())
+                {
+                    var poolCells = Service.Cells;
+                    <div class="verso-cell-pool" style="display: contents" @ref="_cellPoolRef">
+                        @foreach (var cell in poolCells)
+                        {
+                            <div @key="cell.Id" data-cell-id="@cell.Id">
+                                <Cell CellData="cell"
+                                      IsSelected="cell.Id == _selectedCellId"
+                                      IsExecuting="cell.Id == _executingCellId"
+                                      IsRunDisabled="_executingCellId.HasValue"
+                                      Index="0"
+                                      IsLast="false"
+                                      CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
+                                      IsEditable="Service.IsCellTypeEditable(cell.Type)"
+                                      IsHeadingCell="false"
+                                      IsSectionCollapsed="false"
+                                      OnRunCell="HandleRunCell"
+                                      OnCancelCell="HandleCancelCell"
+                                      OnDeleteCell="HandleDeleteCell"
+                                      OnSelect="HandleSelectCell"
+                                      OnMoveUp="HandleMoveUp"
+                                      OnMoveDown="HandleMoveDown"
+                                      OnSourceChanged="HandleSourceChanged"
+                                      OnCellAction="HandleCellAction"
+                                      OnCellTypeChanged="HandleCellTypeChanged"
+                                      OnCellLanguageChanged="HandleCellLanguageChanged" />
+                            </div>
+                        }
+                    </div>
+                    <CustomLayoutHtml Service="Service" CellPoolRef="_cellPoolRef" />
+                }
+                else if (Service.ActiveLayoutId == "dashboard")
                 {
                     <DashboardGrid Service="Service"
                                    Cells="GetLayoutFilteredCells()"
@@ -259,6 +291,19 @@
     private DotNetObjectReference<NotebookPage>? _cellDragRef;
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
+    private ElementReference _cellPoolRef;
+
+    private bool IsActiveLayoutCustomInline()
+    {
+        var active = Service.ActiveLayout;
+        if (active is null) return false;
+        var info = Service.AvailableLayouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, active.Value.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(active.Value.ExtensionId)
+             || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+        return info?.RequiresCustomRenderer == true
+            && string.Equals(Service.ActiveLayoutRendererIsolation, "inline", StringComparison.OrdinalIgnoreCase);
+    }
     private bool _panelResizeInitialized;
     private bool _showExtensionConsent;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;

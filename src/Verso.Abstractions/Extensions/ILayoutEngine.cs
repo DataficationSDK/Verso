@@ -33,6 +33,15 @@ public interface ILayoutEngine : IExtension
     bool RequiresCustomRenderer { get; }
 
     /// <summary>
+    /// Identifies the rendering isolation model when <see cref="RequiresCustomRenderer"/> is
+    /// <c>true</c>. Currently the only supported value is <c>"inline"</c>, which renders the
+    /// layout-emitted HTML directly inside the notebook page and uses the <c>data-cell-slot</c>
+    /// portal pattern to mount cell components. Additional isolation modes may be introduced
+    /// in future versions.
+    /// </summary>
+    string RendererIsolation => "inline";
+
+    /// <summary>
     /// Renders the full layout for the given cells.
     /// </summary>
     /// <param name="cells">The ordered list of cell models to arrange.</param>

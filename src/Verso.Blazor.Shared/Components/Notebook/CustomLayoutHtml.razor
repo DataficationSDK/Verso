@@ -1,0 +1,116 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Services
+@implements IDisposable
+@inject IJSRuntime JS
+
+<div class="verso-layout-root"
+     data-extension-id="@_extensionId"
+     data-layout-id="@_layoutId"
+     @ref="_rootRef">
+    @if (_html is not null)
+    {
+        @((MarkupString)_html)
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+
+    /// <summary>
+    /// Reference to the page-level hidden container that holds all Blazor-managed cell
+    /// components. The interop layer moves nodes between this pool and the slots inside
+    /// the layout HTML.
+    /// </summary>
+    [Parameter] public ElementReference? CellPoolRef { get; set; }
+
+    private ElementReference _rootRef;
+    private string? _html;
+    private string _extensionId = "";
+    private string _layoutId = "";
+    private bool _subscribed;
+    private bool _remountNeeded;
+    private bool _disposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Service.OnLayoutChanged += HandleLayoutChanged;
+        _subscribed = true;
+        CaptureIdentity();
+        _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed) return;
+
+        if (firstRender)
+        {
+            await MountSlotsAsync();
+            return;
+        }
+
+        if (_remountNeeded)
+        {
+            _remountNeeded = false;
+            await UnmountSlotsAsync();
+            await MountSlotsAsync();
+        }
+    }
+
+    private async Task MountSlotsAsync()
+    {
+        if (CellPoolRef is not { } pool) return;
+        try
+        {
+            await JS.InvokeVoidAsync("versoCustomLayout.mountSlots", _rootRef, pool);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private async Task UnmountSlotsAsync()
+    {
+        if (CellPoolRef is not { } pool) return;
+        try
+        {
+            await JS.InvokeVoidAsync("versoCustomLayout.unmountSlots", _rootRef, pool);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private void CaptureIdentity()
+    {
+        var active = Service.ActiveLayout;
+        _extensionId = active?.ExtensionId ?? string.Empty;
+        _layoutId = active?.LayoutId ?? string.Empty;
+    }
+
+    private void HandleLayoutChanged()
+    {
+        if (_disposed) return;
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+            await UnmountSlotsAsync();
+            CaptureIdentity();
+            _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+            _remountNeeded = true;
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        if (_subscribed)
+        {
+            Service.OnLayoutChanged -= HandleLayoutChanged;
+            _subscribed = false;
+        }
+    }
+}

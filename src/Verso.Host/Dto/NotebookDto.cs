@@ -262,6 +262,13 @@ public sealed class LayoutDto
     public string DisplayName { get; set; } = "";
     public string? Icon { get; set; }
     public bool RequiresCustomRenderer { get; set; }
+
+    /// <summary>
+    /// Rendering isolation model when <see cref="RequiresCustomRenderer"/> is <c>true</c>.
+    /// Defaults to <c>"inline"</c>, which is currently the only supported value.
+    /// </summary>
+    public string RendererIsolation { get; set; } = "inline";
+
     public bool IsActive { get; set; }
     public int Capabilities { get; set; }
     public bool SupportsPropertiesPanel { get; set; }
