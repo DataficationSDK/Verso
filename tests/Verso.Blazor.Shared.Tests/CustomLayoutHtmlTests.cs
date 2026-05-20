@@ -109,6 +109,56 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
     }
 
     [TestMethod]
+    public void OnFirstRender_WritesFrameInstanceIdAttribute()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+
+        cut.WaitForAssertion(() =>
+        {
+            var value = cut.Find(".verso-layout-root").GetAttribute("data-frame-instance-id");
+            Assert.IsFalse(string.IsNullOrEmpty(value),
+                "Expected data-frame-instance-id to be non-empty after first render.");
+            Assert.IsTrue(value!.Contains("/grid/"),
+                $"Expected data-frame-instance-id to contain '/grid/'; got '{value}'.");
+        });
+    }
+
+    [TestMethod]
+    public void FrameInstanceId_StableAcrossNonLayoutRenders()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        var before = cut.Find(".verso-layout-root").GetAttribute("data-frame-instance-id");
+
+        // Force a re-render that does NOT raise OnLayoutChanged.
+        cut.Render();
+
+        var after = cut.Find(".verso-layout-root").GetAttribute("data-frame-instance-id");
+        Assert.AreEqual(before, after,
+            "Expected data-frame-instance-id to remain stable across non-layout re-renders.");
+    }
+
+    [TestMethod]
+    public void FrameInstanceId_NewIdOnLayoutChange()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        var before = cut.Find(".verso-layout-root").GetAttribute("data-frame-instance-id");
+
+        _service.RenderActiveLayoutResult = "<div class=\"viz-v2\"></div>";
+        cut.InvokeAsync(() => _service.RaiseLayoutChanged()).GetAwaiter().GetResult();
+
+        cut.WaitForAssertion(() =>
+        {
+            var after = cut.Find(".verso-layout-root").GetAttribute("data-frame-instance-id");
+            Assert.AreNotEqual(before, after,
+                "Expected data-frame-instance-id to be reallocated after a layout change.");
+        });
+    }
+
+    [TestMethod]
     public void Dispose_UnsubscribesFromOnLayoutChanged()
     {
         var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));

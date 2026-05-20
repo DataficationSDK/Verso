@@ -8,6 +8,7 @@
 <div class="verso-layout-root"
      data-extension-id="@_extensionId"
      data-layout-id="@_layoutId"
+     data-frame-instance-id="@_frameInstanceId"
      @ref="_rootRef">
     @if (_html is not null)
     {
@@ -29,9 +30,12 @@
     private string? _html;
     private string _extensionId = "";
     private string _layoutId = "";
+    private string _frameInstanceId = "";
     private bool _subscribed;
     private bool _remountNeeded;
     private bool _disposed;
+
+    private static int s_globalSeq;
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,6 +90,10 @@
         var active = Service.ActiveLayout;
         _extensionId = active?.ExtensionId ?? string.Empty;
         _layoutId = active?.LayoutId ?? string.Empty;
+
+        var notebookSegment = Service.FilePath ?? "unsaved";
+        var seq = System.Threading.Interlocked.Increment(ref s_globalSeq);
+        _frameInstanceId = $"{notebookSegment}/{_layoutId}/{seq}";
     }
 
     private void HandleLayoutChanged()

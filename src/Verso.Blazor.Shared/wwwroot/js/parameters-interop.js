@@ -160,3 +160,89 @@ window.versoParameters = (() => {
 
     return {};
 })();
+
+/**
+ * Generic [data-action] event delegation for Tier 1 custom layouts.
+ * Walks DOM ancestry to route clicks/changes/keydowns to either cell/interact
+ * or layout/interact based on the nearest [data-cell-id] or [data-layout-id] ancestor.
+ * Coexists with the parameter-specific handlers above; elements without a
+ * [data-extension-id] ancestor are left alone so the legacy parameter path
+ * continues to operate unaffected.
+ */
+(() => {
+    if (window.__versoActionRouterAttached) return;
+    window.__versoActionRouterAttached = true;
+
+    function getPayload(actionable) {
+        const explicit = actionable.getAttribute('data-payload');
+        if (explicit !== null) return explicit;
+        const tag = actionable.tagName;
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+            if (actionable.type === 'checkbox' || actionable.type === 'radio') {
+                return actionable.checked ? 'true' : 'false';
+            }
+            return actionable.value != null ? String(actionable.value) : '';
+        }
+        return '';
+    }
+
+    function routeAction(target) {
+        const actionable = target && target.closest ? target.closest('[data-action]') : null;
+        if (!actionable) return;
+        const interactionType = actionable.getAttribute('data-action');
+        if (!interactionType) return;
+
+        const cellAncestor = actionable.closest('[data-cell-id]');
+        const layoutAncestor = actionable.closest('[data-layout-id]');
+
+        let cellWins = false;
+        if (cellAncestor) {
+            if (!layoutAncestor || layoutAncestor.contains(cellAncestor)) {
+                cellWins = true;
+            }
+        }
+
+        if (cellWins) {
+            const extEl = actionable.closest('[data-extension-id]');
+            if (!extEl) return; // legacy parameter handlers cover this case
+            const cellId = cellAncestor.getAttribute('data-cell-id');
+            const extensionId = extEl.getAttribute('data-extension-id');
+            const payload = getPayload(actionable);
+            const outputEl = actionable.closest('[data-output-block-id]');
+            const outputBlockId = outputEl ? outputEl.getAttribute('data-output-block-id') : null;
+            if (window.versoCellInteract && typeof window.versoCellInteract.cellInteract === 'function') {
+                window.versoCellInteract
+                    .cellInteract(cellId, extensionId, interactionType, payload, outputBlockId)
+                    .catch(err => console.error('cell/interact failed:', err));
+            }
+            return;
+        }
+
+        if (layoutAncestor) {
+            if (!layoutAncestor.hasAttribute('data-extension-id')) {
+                console.warn(
+                    'Verso layout action ignored: data-extension-id and data-layout-id must be on the same element',
+                    actionable);
+                return;
+            }
+            const extensionId = layoutAncestor.getAttribute('data-extension-id');
+            const layoutId = layoutAncestor.getAttribute('data-layout-id');
+            const frameInstanceId = layoutAncestor.getAttribute('data-frame-instance-id') || '';
+            const payload = getPayload(actionable);
+            const targetId = actionable.getAttribute('data-target-id');
+            if (window.versoLayoutInteract && typeof window.versoLayoutInteract.layoutInteract === 'function') {
+                window.versoLayoutInteract
+                    .layoutInteract(extensionId, layoutId, frameInstanceId, interactionType, payload, targetId)
+                    .catch(err => console.error('layout/interact failed:', err));
+            }
+            return;
+        }
+
+        // Neither a cell nor a layout ancestor: nothing to route to.
+        // Stay silent so unrelated [data-action] usages elsewhere on the page don't spam the console.
+    }
+
+    document.body.addEventListener('click', (e) => routeAction(e.target));
+    document.body.addEventListener('change', (e) => routeAction(e.target));
+    document.body.addEventListener('keydown', (e) => routeAction(e.target));
+})();
