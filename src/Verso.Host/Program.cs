@@ -9,14 +9,24 @@ using Verso.Host.Protocol;
 Console.InputEncoding = Encoding.UTF8;
 Console.OutputEncoding = Encoding.UTF8;
 
+// Bind the protocol writer to the real underlying stdout stream, not Console.Out.
+// Kernels (CSharpKernel, FsiSessionManager) call Console.SetOut to a StringWriter
+// during cell evaluation so they can capture user stdout. If notifications routed
+// through Console.Out, an output/update emitted mid-cell would land in that capture
+// buffer and be re-emitted as a text/plain cell output.
+var stdoutWriter = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false))
+{
+    AutoFlush = false
+};
+
 // Lock ensures atomic line writes when the reader task and main loop
 // send responses/notifications concurrently.
 var stdoutLock = new object();
 
-var session = new HostSession(json => SendLine(json, stdoutLock));
+var session = new HostSession(json => SendLine(json, stdoutWriter, stdoutLock));
 
 // Emit ready signal
-SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "1.0.0" }), stdoutLock);
+SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "1.0.0" }), stdoutWriter, stdoutLock);
 
 // Channel for requests that need sequential processing by the main loop.
 var requests = Channel.CreateUnbounded<(object id, string method, JsonElement? @params)>();
@@ -46,7 +56,7 @@ _ = Task.Run(async () =>
                 {
                     // Handle inline — resolves a TCS, no heavy work.
                     var response = await session.DispatchAsync(id, method, @params);
-                    SendLine(response, stdoutLock);
+                    SendLine(response, stdoutWriter, stdoutLock);
                     continue;
                 }
 
@@ -56,7 +66,7 @@ _ = Task.Run(async () =>
                     // it is trying to interrupt. The dispatch just signals the session CTS,
                     // which the kernel observes through IExecutionContext.CancellationToken.
                     var response = await session.DispatchAsync(id, method, @params);
-                    SendLine(response, stdoutLock);
+                    SendLine(response, stdoutWriter, stdoutLock);
                     continue;
                 }
 
@@ -64,7 +74,7 @@ _ = Task.Run(async () =>
             }
             catch (JsonException)
             {
-                SendLine(JsonRpcMessage.Error(0, JsonRpcMessage.ErrorCodes.ParseError, "Invalid JSON"), stdoutLock);
+                SendLine(JsonRpcMessage.Error(0, JsonRpcMessage.ErrorCodes.ParseError, "Invalid JSON"), stdoutWriter, stdoutLock);
             }
         }
     }
@@ -91,17 +101,17 @@ await foreach (var (id, method, @params) in requests.Reader.ReadAllAsync())
         response = JsonRpcMessage.Error(id, JsonRpcMessage.ErrorCodes.InternalError, ex.Message);
     }
 
-    SendLine(response, stdoutLock);
+    SendLine(response, stdoutWriter, stdoutLock);
 }
 
 await session.DisposeAsync();
 
-static void SendLine(string json, object @lock)
+static void SendLine(string json, TextWriter writer, object @lock)
 {
     lock (@lock)
     {
-        Console.Out.WriteLine(json);
-        Console.Out.Flush();
+        writer.WriteLine(json);
+        writer.Flush();
     }
 }
 
