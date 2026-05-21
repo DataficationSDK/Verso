@@ -79,6 +79,21 @@ public sealed class NotebookSession : IAsyncDisposable
     }
 
     /// <summary>
+    /// Dispatches a <c>layout/updated</c> notification on behalf of an active layout's
+    /// interaction handler. The host wraps the payload with <c>notebookId</c> automatically
+    /// (see <see cref="HostSession.AddSession"/>), so callers supply only the identity
+    /// pair, the originating frame, and the requested scope.
+    /// </summary>
+    public void SendLayoutUpdated(string extensionId, string layoutId, string frameInstanceId, string scope, Guid? cellId = null)
+    {
+        object payload = cellId is null
+            ? new { extensionId, layoutId, frameInstanceId, scope }
+            : new { extensionId, layoutId, frameInstanceId, scope, cellId = cellId.Value.ToString() };
+
+        SendNotification(Protocol.MethodNames.LayoutUpdated, payload);
+    }
+
+    /// <summary>
     /// Sends an extension consent request notification to the client and awaits the response.
     /// </summary>
     public async Task<bool> RequestConsentAsync(

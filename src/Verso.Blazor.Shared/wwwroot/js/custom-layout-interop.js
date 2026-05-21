@@ -51,12 +51,27 @@
         return true;
     }
 
+    function updateSlotPosition(rootEl, cellId, row, col, width, height) {
+        if (!rootEl || !cellId) return false;
+        var slot = rootEl.querySelector('[data-cell-slot="' + CSS.escape(cellId) + '"]');
+        if (!slot) return false;
+        slot.setAttribute('data-row', String(row));
+        slot.setAttribute('data-col', String(col));
+        slot.setAttribute('data-width', String(width));
+        slot.setAttribute('data-height', String(height));
+        slot.style.gridArea =
+            (row + 1) + ' / ' + (col + 1) + ' / ' +
+            (row + 1 + height) + ' / ' + (col + 1 + width);
+        return true;
+    }
+
     window.versoCustomLayout = {
         mountSlots: function (rootEl, poolEl) {
             unmount(rootEl, poolEl);
             return mount(rootEl, poolEl);
         },
         unmountSlots: unmount,
-        mountCellInSlot: mountCellInSlot
+        mountCellInSlot: mountCellInSlot,
+        updateSlotPosition: updateSlotPosition
     };
 })();

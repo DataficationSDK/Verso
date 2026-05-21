@@ -109,6 +109,14 @@ public interface INotebookService
     /// <summary>Raised when the active layout changes.</summary>
     event Action? OnLayoutChanged;
 
+    /// <summary>
+    /// Raised when the host emits a <c>layout/updated</c> notification in response to
+    /// a layout interaction handler calling <c>RequestRender</c> or <c>RequestCellRefresh</c>.
+    /// Subscribers should filter by <see cref="LayoutUpdatedEventArgs.ExtensionId"/> and
+    /// <see cref="LayoutUpdatedEventArgs.LayoutId"/> matching the currently active layout.
+    /// </summary>
+    event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
+
     /// <summary>Raised when the active theme changes.</summary>
     event Action? OnThemeChanged;
 

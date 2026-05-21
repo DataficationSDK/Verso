@@ -12,7 +12,7 @@
     {
       "id": "10000001-0001-0001-0001-000000000001",
       "type": "markdown",
-      "source": "# SQL IntelliSense, Schema Inspection, and Jupyter Import\n\nThis notebook demonstrates the Phase 1C features of Verso.Ado:\n\n- **SQL completions** \u2014 keyword, table, column, and @variable suggestions as you type\n- **SQL diagnostics** \u2014 warnings for missing connections and unresolved parameters\n- **SQL hover** \u2014 inline documentation for keywords, tables, columns, and variables\n- **\u0060#!sql-schema\u0060** \u2014 magic command for browsing database schema\n- **Jupyter import** \u2014 automatic conversion of Polyglot Notebooks SQL patterns"
+      "source": "# SQL IntelliSense, Schema Inspection, and Jupyter Import\n\nThis notebook demonstrates the SQL features of Verso.Ado:\n\n- **SQL completions** \u2014 keyword, table, column, and @variable suggestions as you type\n- **SQL diagnostics** \u2014 warnings for missing connections and unresolved parameters\n- **SQL hover** \u2014 inline documentation for keywords, tables, columns, and variables\n- **\u0060#!sql-schema\u0060** \u2014 magic command for browsing database schema\n- **Jupyter import** \u2014 automatic conversion of Polyglot Notebooks SQL patterns"
     },
     {
       "id": "10000001-0001-0001-0001-000000000002",

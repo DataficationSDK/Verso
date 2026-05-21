@@ -23,6 +23,7 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
 
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.mountSlots", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.unmountSlots", _ => true);
+        TestContext!.JSInterop.SetupVoid("versoCustomLayout.updateSlotPosition", _ => true);
     }
 
     [TestMethod]
@@ -156,6 +157,147 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
             Assert.AreNotEqual(before, after,
                 "Expected data-frame-instance-id to be reallocated after a layout change.");
         });
+    }
+
+    // ─── layout/updated subscription ──────────────────────────────────────────
+
+    private LayoutUpdatedEventArgs MatchingFullScope(string frameInstanceId = "") =>
+        new("com.test.viz", "grid", frameInstanceId, "full", null);
+
+    [TestMethod]
+    public void OnLayoutUpdated_FullScope_RefetchesAndUpdatesMarkup()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        _service.RenderActiveLayoutResult = "<div class=\"viz-updated\">refreshed</div>";
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(MatchingFullScope())).GetAwaiter().GetResult();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.AreEqual(2, _service.RenderActiveLayoutCallCount,
+                "scope=full must re-fetch layout/render.");
+            Assert.IsTrue(cut.Markup.Contains("viz-updated"));
+        });
+    }
+
+    [TestMethod]
+    public void OnLayoutUpdated_DifferentLayoutId_Ignored()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(
+            new LayoutUpdatedEventArgs("com.test.viz", "other-layout", "", "full", null)))
+            .GetAwaiter().GetResult();
+
+        Assert.AreEqual(1, _service.RenderActiveLayoutCallCount,
+            "A notification for a different layoutId must not trigger a re-fetch.");
+    }
+
+    [TestMethod]
+    public void OnLayoutUpdated_DifferentExtensionId_Ignored()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(
+            new LayoutUpdatedEventArgs("com.other.ext", "grid", "", "full", null)))
+            .GetAwaiter().GetResult();
+
+        Assert.AreEqual(1, _service.RenderActiveLayoutCallCount,
+            "A notification for a different extensionId must not trigger a re-fetch.");
+    }
+
+    [TestMethod]
+    public void OnLayoutUpdated_DifferentFrameInstanceId_Ignored()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(
+            new LayoutUpdatedEventArgs("com.test.viz", "grid", "nb-1/grid/999", "full", null)))
+            .GetAwaiter().GetResult();
+
+        Assert.AreEqual(1, _service.RenderActiveLayoutCallCount,
+            "A notification targeted at a different renderer instance must not trigger a re-fetch.");
+    }
+
+    [TestMethod]
+    public void OnLayoutUpdated_EmptyFrameInstanceId_TreatedAsBroadcast()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        // Empty frameInstanceId should match any instance (broadcast).
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(MatchingFullScope())).GetAwaiter().GetResult();
+
+        cut.WaitForAssertion(() =>
+            Assert.AreEqual(2, _service.RenderActiveLayoutCallCount,
+                "Empty frameInstanceId on the notification must broadcast to all instances."));
+    }
+
+    [TestMethod]
+    public void OnLayoutUpdated_CellScope_InvokesUpdateSlotPosition()
+    {
+        var cellId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        _service.CellContainers[cellId] = new CellContainerInfo(cellId, X: 2, Y: 3, Width: 4, Height: 5);
+
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(
+            new LayoutUpdatedEventArgs("com.test.viz", "grid", "", "cell", cellId)))
+            .GetAwaiter().GetResult();
+
+        cut.WaitForAssertion(() =>
+        {
+            var call = TestContext!.JSInterop.Invocations
+                .FirstOrDefault(i => i.Identifier == "versoCustomLayout.updateSlotPosition");
+            Assert.IsNotNull(call, "Expected versoCustomLayout.updateSlotPosition to be invoked.");
+
+            // Args: rootRef, cellId, row (=Y), col (=X), width, height
+            Assert.AreEqual(cellId.ToString(), call.Arguments[1]);
+            Assert.AreEqual(3.0, Convert.ToDouble(call.Arguments[2]));
+            Assert.AreEqual(2.0, Convert.ToDouble(call.Arguments[3]));
+            Assert.AreEqual(4.0, Convert.ToDouble(call.Arguments[4]));
+            Assert.AreEqual(5.0, Convert.ToDouble(call.Arguments[5]));
+        });
+
+        Assert.AreEqual(1, _service.RenderActiveLayoutCallCount,
+            "scope=cell must NOT trigger a full layout/render.");
+    }
+
+    [TestMethod]
+    public void OnLayoutUpdated_MetadataScope_NoOp()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        cut.InvokeAsync(() => _service.RaiseLayoutUpdated(
+            new LayoutUpdatedEventArgs("com.test.viz", "grid", "", "metadata", null)))
+            .GetAwaiter().GetResult();
+
+        Assert.AreEqual(1, _service.RenderActiveLayoutCallCount,
+            "scope=metadata must not trigger a re-fetch in v1.0.");
+        Assert.IsFalse(TestContext!.JSInterop.Invocations.Any(i =>
+            i.Identifier == "versoCustomLayout.updateSlotPosition"),
+            "scope=metadata must not invoke updateSlotPosition.");
+    }
+
+    [TestMethod]
+    public void Dispose_UnsubscribesFromOnLayoutUpdated()
+    {
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
+        cut.WaitForAssertion(() => Assert.AreEqual(1, _service.RenderActiveLayoutCallCount));
+
+        var before = _service.RenderActiveLayoutCallCount;
+        TestContext!.DisposeComponents();
+
+        _service.RaiseLayoutUpdated(MatchingFullScope());
+
+        Assert.AreEqual(before, _service.RenderActiveLayoutCallCount,
+            "Expected the component to have unsubscribed from OnLayoutUpdated on dispose.");
     }
 
     [TestMethod]

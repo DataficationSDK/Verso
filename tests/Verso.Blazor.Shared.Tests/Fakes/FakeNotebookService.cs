@@ -74,6 +74,7 @@ public sealed class FakeNotebookService : INotebookService
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
+    public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
@@ -332,6 +333,7 @@ public sealed class FakeNotebookService : INotebookService
     public void RaiseCellExecuted() => OnCellExecuted?.Invoke();
     public void RaiseNotebookChanged() => OnNotebookChanged?.Invoke();
     public void RaiseLayoutChanged() => OnLayoutChanged?.Invoke();
+    public void RaiseLayoutUpdated(LayoutUpdatedEventArgs args) => OnLayoutUpdated?.Invoke(args);
     public void RaiseThemeChanged() => OnThemeChanged?.Invoke();
     public void RaiseExtensionStatusChanged() => OnExtensionStatusChanged?.Invoke();
     public void RaiseVariablesChanged() => OnVariablesChanged?.Invoke();

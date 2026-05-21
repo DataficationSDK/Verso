@@ -16,6 +16,18 @@ public sealed record ToolbarActionInfo(
     ToolbarPlacement Placement,
     int Order);
 
+/// <summary>
+/// Payload of a <c>layout/updated</c> host-to-client notification. Carries the
+/// identity pair, the originating renderer instance, and a scope describing what
+/// the client should re-fetch.
+/// </summary>
+public sealed record LayoutUpdatedEventArgs(
+    string ExtensionId,
+    string LayoutId,
+    string FrameInstanceId,
+    string Scope,
+    Guid? CellId);
+
 /// <summary>Describes a layout engine available for the notebook.</summary>
 public sealed record LayoutInfo(
     string LayoutId,

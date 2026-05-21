@@ -256,6 +256,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
+#pragma warning disable CS0067 // Event never raised: server-side dispatch for layout/updated is not yet implemented.
+    public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
+#pragma warning restore CS0067
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;

@@ -175,19 +175,22 @@ public static class LayoutHandler
                 $"for (extensionId='{p.ExtensionId}', layoutId='{p.LayoutId}').");
         }
 
+        var extensionId = p.ExtensionId;
+        var layoutId = p.LayoutId;
+        var frameInstanceId = p.FrameInstanceId ?? string.Empty;
+
         var context = new LayoutInteractionContext
         {
-            ExtensionId = p.ExtensionId,
-            LayoutId = p.LayoutId,
-            FrameInstanceId = p.FrameInstanceId ?? string.Empty,
+            ExtensionId = extensionId,
+            LayoutId = layoutId,
+            FrameInstanceId = frameInstanceId,
             InteractionType = p.InteractionType ?? string.Empty,
             Payload = p.Payload ?? string.Empty,
             TargetId = p.TargetId,
             Verso = new HostVersoContext(ns.Scaffold),
-            CancellationToken = CancellationToken.None
-            // RequestRender / RequestCellRefresh fall through to the
-            // LayoutInteractionContext defaults (no-ops) until the
-            // layout/updated notification path is wired.
+            CancellationToken = CancellationToken.None,
+            RequestRender = () => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "full"),
+            RequestCellRefresh = cellId => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "cell", cellId)
         };
 
         try

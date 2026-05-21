@@ -10,20 +10,20 @@ namespace Verso.Host.Tests.Handlers;
 [TestClass]
 public class LayoutHandlerTests
 {
-    private HostSession CreateSession()
+    private (HostSession Session, List<string> Notifications) CreateSession()
     {
         var notifications = new List<string>();
-        return new HostSession(n => notifications.Add(n));
+        return (new HostSession(n => notifications.Add(n)), notifications);
     }
 
-    private async Task<(HostSession Session, string NotebookId)> CreateOpenSession()
+    private async Task<(HostSession Session, string NotebookId, List<string> Notifications)> CreateOpenSession()
     {
-        var session = CreateSession();
+        var (session, notifications) = CreateSession();
         var openParams = JsonSerializer.SerializeToElement(
             new NotebookOpenParams { Content = "" },
             JsonRpcMessage.SerializerOptions);
         var result = await NotebookHandler.HandleOpenAsync(session, openParams);
-        return (session, result.NotebookId);
+        return (session, result.NotebookId, notifications);
     }
 
     private static JsonElement InteractParams(LayoutInteractParams p) =>
@@ -32,7 +32,7 @@ public class LayoutHandlerTests
     [TestMethod]
     public async Task HandleInteract_ValidHandler_InvokesWithContextFields()
     {
-        var (session, notebookId) = await CreateOpenSession();
+        var (session, notebookId, _) = await CreateOpenSession();
         var ns = session.GetSession(notebookId);
 
         var handler = new FakeLayoutInteractionHandler(
@@ -67,7 +67,7 @@ public class LayoutHandlerTests
     [TestMethod]
     public async Task HandleInteract_FrameInstanceIdRoundTrips()
     {
-        var (session, notebookId) = await CreateOpenSession();
+        var (session, notebookId, _) = await CreateOpenSession();
         var ns = session.GetSession(notebookId);
 
         var handler = new FakeLayoutInteractionHandler(
@@ -93,7 +93,7 @@ public class LayoutHandlerTests
     [TestMethod]
     public async Task HandleInteract_MissingHandler_ThrowsWithSymbolicCode()
     {
-        var (session, notebookId) = await CreateOpenSession();
+        var (session, notebookId, _) = await CreateOpenSession();
         var ns = session.GetSession(notebookId);
 
         var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -115,7 +115,7 @@ public class LayoutHandlerTests
     [TestMethod]
     public async Task HandleInteract_HandlerThrows_SurfacedWithExtensionId()
     {
-        var (session, notebookId) = await CreateOpenSession();
+        var (session, notebookId, _) = await CreateOpenSession();
         var ns = session.GetSession(notebookId);
 
         var handler = new FakeLayoutInteractionHandler(
@@ -145,7 +145,7 @@ public class LayoutHandlerTests
     {
         // End-to-end through HostSession.DispatchAsync to confirm the
         // "layout/interact" method name is wired to LayoutHandler.HandleInteractAsync.
-        var (session, notebookId) = await CreateOpenSession();
+        var (session, notebookId, _) = await CreateOpenSession();
         var ns = session.GetSession(notebookId);
 
         var handler = new FakeLayoutInteractionHandler(
@@ -176,7 +176,7 @@ public class LayoutHandlerTests
     [TestMethod]
     public async Task HandleInteract_MissingParams_ReturnsJsonError()
     {
-        var (session, notebookId) = await CreateOpenSession();
+        var (session, notebookId, _) = await CreateOpenSession();
 
         var responseJson = await session.DispatchAsync(
             id: 1,
@@ -187,5 +187,117 @@ public class LayoutHandlerTests
         Assert.IsTrue(doc.RootElement.TryGetProperty("error", out var err),
             $"Expected JSON-RPC error. Got: {responseJson}");
         StringAssert.Contains(err.GetProperty("message").GetString(), "extensionId");
+    }
+
+    // ─── layout/updated notification ──────────────────────────────────────────
+
+    private static IReadOnlyList<JsonElement> ParseLayoutUpdatedNotifications(
+        IReadOnlyList<string> messages)
+    {
+        var matches = new List<JsonElement>();
+        foreach (var msg in messages)
+        {
+            var doc = JsonDocument.Parse(msg);
+            // Notifications have no "id" field; responses do.
+            if (doc.RootElement.TryGetProperty("id", out _)) continue;
+            if (!doc.RootElement.TryGetProperty("method", out var method)) continue;
+            if (method.GetString() != MethodNames.LayoutUpdated) continue;
+            // Clone so the JsonDocument can be safely disposed by the caller's GC.
+            matches.Add(doc.RootElement.Clone());
+        }
+        return matches;
+    }
+
+    [TestMethod]
+    public async Task HandleInteract_HandlerCallsRequestRender_DispatchesFullScopeNotification()
+    {
+        var (session, notebookId, notifications) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var handler = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.requestrender",
+            layoutId: "dashboard");
+        handler.OnInteraction = ctx => { ctx.RequestRender(); return Task.CompletedTask; };
+        await ns.ExtensionHost.LoadExtensionAsync(handler);
+
+        await LayoutHandler.HandleInteractAsync(ns, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = handler.ExtensionId,
+            LayoutId = handler.LayoutId,
+            FrameInstanceId = "nb-1/dashboard/0",
+            InteractionType = "set-mode",
+            Payload = "csharp"
+        }));
+
+        var updates = ParseLayoutUpdatedNotifications(notifications);
+        Assert.AreEqual(1, updates.Count, "Expected exactly one layout/updated notification.");
+
+        var p = updates[0].GetProperty("params");
+        Assert.AreEqual(notebookId, p.GetProperty("notebookId").GetString());
+        Assert.AreEqual(handler.ExtensionId, p.GetProperty("extensionId").GetString());
+        Assert.AreEqual(handler.LayoutId, p.GetProperty("layoutId").GetString());
+        Assert.AreEqual("nb-1/dashboard/0", p.GetProperty("frameInstanceId").GetString());
+        Assert.AreEqual("full", p.GetProperty("scope").GetString());
+        Assert.IsFalse(p.TryGetProperty("cellId", out _),
+            "scope=full must not carry a cellId.");
+    }
+
+    [TestMethod]
+    public async Task HandleInteract_HandlerCallsRequestCellRefresh_DispatchesCellScopeNotification()
+    {
+        var (session, notebookId, notifications) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var cellId = Guid.NewGuid();
+        var handler = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.cellrefresh",
+            layoutId: "grid");
+        handler.OnInteraction = ctx => { ctx.RequestCellRefresh(cellId); return Task.CompletedTask; };
+        await ns.ExtensionHost.LoadExtensionAsync(handler);
+
+        await LayoutHandler.HandleInteractAsync(ns, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = handler.ExtensionId,
+            LayoutId = handler.LayoutId,
+            FrameInstanceId = "nb-1/grid/7",
+            InteractionType = "move-cell",
+            Payload = ""
+        }));
+
+        var updates = ParseLayoutUpdatedNotifications(notifications);
+        Assert.AreEqual(1, updates.Count);
+
+        var p = updates[0].GetProperty("params");
+        Assert.AreEqual("cell", p.GetProperty("scope").GetString());
+        Assert.AreEqual(cellId.ToString(), p.GetProperty("cellId").GetString());
+        Assert.AreEqual("nb-1/grid/7", p.GetProperty("frameInstanceId").GetString());
+    }
+
+    [TestMethod]
+    public async Task HandleInteract_HandlerDoesNotRequestUpdate_NoNotification()
+    {
+        var (session, notebookId, notifications) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var handler = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.silent",
+            layoutId: "dashboard");
+        await ns.ExtensionHost.LoadExtensionAsync(handler);
+
+        await LayoutHandler.HandleInteractAsync(ns, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = handler.ExtensionId,
+            LayoutId = handler.LayoutId,
+            FrameInstanceId = "nb-1/dashboard/0",
+            InteractionType = "ping",
+            Payload = ""
+        }));
+
+        var updates = ParseLayoutUpdatedNotifications(notifications);
+        Assert.AreEqual(0, updates.Count,
+            "A handler that does not call RequestRender/RequestCellRefresh must not dispatch layout/updated.");
     }
 }

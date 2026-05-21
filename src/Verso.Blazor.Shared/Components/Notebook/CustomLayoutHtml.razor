@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.JSInterop
 @using Verso.Abstractions
+@using Verso.Blazor.Shared.Models
 @using Verso.Blazor.Shared.Services
 @implements IDisposable
 @inject IJSRuntime JS
@@ -40,6 +41,7 @@
     protected override async Task OnInitializedAsync()
     {
         Service.OnLayoutChanged += HandleLayoutChanged;
+        Service.OnLayoutUpdated += HandleLayoutUpdated;
         _subscribed = true;
         CaptureIdentity();
         _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
@@ -110,6 +112,60 @@
         });
     }
 
+    private void HandleLayoutUpdated(LayoutUpdatedEventArgs args)
+    {
+        if (_disposed) return;
+        if (!string.Equals(args.ExtensionId, _extensionId, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(args.LayoutId, _layoutId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // When the host scopes the update to a specific renderer instance, ignore notifications
+        // for other instances. An empty FrameInstanceId is treated as a broadcast.
+        if (!string.IsNullOrEmpty(args.FrameInstanceId) &&
+            !string.Equals(args.FrameInstanceId, _frameInstanceId, StringComparison.Ordinal))
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+
+            switch (args.Scope)
+            {
+                case "full":
+                    _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+                    _remountNeeded = true;
+                    StateHasChanged();
+                    break;
+
+                case "cell":
+                    if (args.CellId is { } cellId)
+                        await RefreshCellSlotAsync(cellId);
+                    break;
+
+                case "metadata":
+                    // No client-visible action in v1.0. The LayoutInteractionContext API
+                    // does not currently emit this scope; layouts that depend on metadata
+                    // changes should call RequestRender for a full re-render.
+                    break;
+            }
+        });
+    }
+
+    private async Task RefreshCellSlotAsync(Guid cellId)
+    {
+        try
+        {
+            var info = await Service.GetCellContainerAsync(cellId);
+            await JS.InvokeVoidAsync(
+                "versoCustomLayout.updateSlotPosition",
+                _rootRef,
+                cellId.ToString(),
+                info.Y, info.X, info.Width, info.Height);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -118,6 +174,7 @@
         if (_subscribed)
         {
             Service.OnLayoutChanged -= HandleLayoutChanged;
+            Service.OnLayoutUpdated -= HandleLayoutUpdated;
             _subscribed = false;
         }
     }

@@ -50,6 +50,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
+    public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
@@ -817,6 +818,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             case "layout/missing":
                 HandleLayoutMissing(paramsJson);
                 break;
+            case "layout/updated":
+                HandleLayoutUpdated(paramsJson);
+                break;
         }
     }
 
@@ -851,6 +855,37 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         var layoutId = TryReadStringProperty(paramsJson, "layoutId");
         if (layoutId is not null)
             OnLayoutMissing?.Invoke(layoutId);
+    }
+
+    private void HandleLayoutUpdated(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        LayoutUpdatedNotification? notif;
+        try
+        {
+            notif = JsonSerializer.Deserialize<LayoutUpdatedNotification>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (notif is null || string.IsNullOrEmpty(notif.ExtensionId) || string.IsNullOrEmpty(notif.LayoutId))
+            return;
+
+        Guid? cellId = null;
+        if (!string.IsNullOrEmpty(notif.CellId) && Guid.TryParse(notif.CellId, out var parsed))
+            cellId = parsed;
+
+        OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+            notif.ExtensionId,
+            notif.LayoutId,
+            notif.FrameInstanceId ?? string.Empty,
+            notif.Scope ?? "full",
+            cellId));
     }
 
     private static string? TryReadStringProperty(string? json, string property)
@@ -1299,6 +1334,15 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     {
         public string CellId { get; set; } = "";
         public List<CellOutputDto>? Outputs { get; set; }
+    }
+
+    private sealed class LayoutUpdatedNotification
+    {
+        public string ExtensionId { get; set; } = "";
+        public string LayoutId { get; set; } = "";
+        public string? FrameInstanceId { get; set; }
+        public string? Scope { get; set; }
+        public string? CellId { get; set; }
     }
 
     private sealed class SaveResponse
