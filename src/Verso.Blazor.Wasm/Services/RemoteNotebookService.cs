@@ -665,10 +665,38 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         return new CellContainerInfo(cellId, result.Col, result.Row, result.Width, result.Height);
     }
 
-    public async Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
+    public Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null)
     {
-        await _bridge.RequestVoidAsync("layout/updateCell",
-            new { cellId = cellId.ToString(), row, col, width = colSpan, height = rowSpan });
+        return _bridge.RequestVoidAsync("layout/interact", new
+        {
+            extensionId,
+            layoutId,
+            frameInstanceId = frameInstanceId ?? string.Empty,
+            interactionType,
+            payload,
+            targetId
+        });
+    }
+
+    [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
+    public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
+    {
+        var payload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row,
+            col,
+            width = colSpan,
+            height = rowSpan
+        });
+
+        return LayoutInteractAsync("verso.layout.dashboard", "dashboard", "updateCellPosition", payload);
     }
 
     // ── Cell type helpers ───────────────────────────────────────────────

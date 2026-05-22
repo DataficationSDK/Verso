@@ -11,7 +11,7 @@ namespace Verso.Extensions.Layouts;
 /// Shows output-only cells with optional edit toggles and resize handles.
 /// </summary>
 [VersoExtension]
-public sealed class DashboardLayout : ILayoutEngine
+public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
 {
     private const int GridColumns = 12;
     private const int DefaultCellWidth = 6;
@@ -264,6 +264,80 @@ public sealed class DashboardLayout : ILayoutEngine
     {
         var visible = _gridPositions.TryGetValue(cellId, out var existing) ? existing.Visible : true;
         _gridPositions[cellId] = new GridPosition(row, column, width, height, visible);
+    }
+
+    // --- ILayoutInteractionHandler ---
+
+    public Task OnLayoutInteractionAsync(LayoutInteractionContext context)
+    {
+        switch (context.InteractionType)
+        {
+            case "updateCellPosition":
+                ApplyUpdateCellPosition(context);
+                return Task.CompletedTask;
+
+            case "setEditMode":
+                _isEditMode = ParseSetEditModePayload(context.Payload);
+                return Task.CompletedTask;
+
+            default:
+                throw new InvalidOperationException(
+                    $"DASHBOARD_INTERACTION_UNSUPPORTED: Dashboard layout does not handle " +
+                    $"interactionType '{context.InteractionType}'. Supported types: " +
+                    $"'updateCellPosition', 'setEditMode'.");
+        }
+    }
+
+    private void ApplyUpdateCellPosition(LayoutInteractionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(context.Payload))
+            throw new InvalidOperationException(
+                "DASHBOARD_INTERACTION_INVALID_PAYLOAD: updateCellPosition requires a JSON payload.");
+
+        using var doc = JsonDocument.Parse(context.Payload);
+        var root = doc.RootElement;
+
+        Guid cellId;
+        if (root.TryGetProperty("cellId", out var cellIdProp) && cellIdProp.ValueKind == JsonValueKind.String)
+        {
+            if (!Guid.TryParse(cellIdProp.GetString(), out cellId))
+                throw new InvalidOperationException(
+                    "DASHBOARD_INTERACTION_INVALID_PAYLOAD: 'cellId' is not a valid Guid.");
+        }
+        else if (!string.IsNullOrWhiteSpace(context.TargetId) && Guid.TryParse(context.TargetId, out cellId))
+        {
+            // TargetId fallback covers DOM-originated events that bind the cell id
+            // to the data-target-id attribute instead of including it in the payload.
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                "DASHBOARD_INTERACTION_INVALID_PAYLOAD: updateCellPosition requires a 'cellId' " +
+                "property in the payload or a Guid-shaped 'targetId'.");
+        }
+
+        int row = root.TryGetProperty("row", out var rowProp) ? rowProp.GetInt32() : 0;
+        int col = root.TryGetProperty("col", out var colProp) ? colProp.GetInt32() : 0;
+        int width = root.TryGetProperty("width", out var widthProp) ? widthProp.GetInt32() : DefaultCellWidth;
+        int height = root.TryGetProperty("height", out var heightProp) ? heightProp.GetInt32() : DefaultCellHeight;
+
+        UpdateCellPosition(cellId, row, col, width, height);
+    }
+
+    private static bool ParseSetEditModePayload(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            throw new InvalidOperationException(
+                "DASHBOARD_INTERACTION_INVALID_PAYLOAD: setEditMode requires a 'true' or 'false' payload.");
+
+        // Accept the spec-canonical bare string ("true"/"false") and a JSON-boolean form
+        // ("true"/"false" wrapped or unwrapped) for robustness across client serializers.
+        var trimmed = payload.Trim();
+        if (bool.TryParse(trimmed, out var value))
+            return value;
+
+        throw new InvalidOperationException(
+            $"DASHBOARD_INTERACTION_INVALID_PAYLOAD: setEditMode payload '{payload}' is not 'true' or 'false'.");
     }
 
     // --- Private helpers ---

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Verso.Extensions.Layouts;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
 using Verso.Host.Protocol;
@@ -273,6 +274,89 @@ public class LayoutHandlerTests
         Assert.AreEqual("cell", p.GetProperty("scope").GetString());
         Assert.AreEqual(cellId.ToString(), p.GetProperty("cellId").GetString());
         Assert.AreEqual("nb-1/grid/7", p.GetProperty("frameInstanceId").GetString());
+    }
+
+    // ─── Deprecated method forwarders ─────────────────────────────────────────
+
+    private static DashboardLayout GetLoadedDashboard(NotebookSession ns)
+    {
+        return ns.ExtensionHost.GetLayouts().OfType<DashboardLayout>().Single();
+    }
+
+    [TestMethod]
+    public async Task HandleUpdateCell_ForwardsToHandleInteract_AppliesSameStateAsNewPath()
+    {
+        // Two parallel sessions: one drives Dashboard via the deprecated method,
+        // the other drives it via the new generic path. Both must converge.
+        var (legacySession, legacyNotebookId, _) = await CreateOpenSession();
+        var legacyNs = legacySession.GetSession(legacyNotebookId);
+        var legacyDashboard = GetLoadedDashboard(legacyNs);
+
+        var (genericSession, genericNotebookId, _) = await CreateOpenSession();
+        var genericNs = genericSession.GetSession(genericNotebookId);
+        var genericDashboard = GetLoadedDashboard(genericNs);
+
+        var cellId = Guid.NewGuid();
+
+        var legacyParams = JsonSerializer.SerializeToElement(new LayoutUpdateCellParams
+        {
+            CellId = cellId.ToString(),
+            Row = 4,
+            Col = 1,
+            Width = 8,
+            Height = 5
+        }, JsonRpcMessage.SerializerOptions);
+        await LayoutHandler.HandleUpdateCell(legacyNs, legacyParams);
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row = 4,
+            col = 1,
+            width = 8,
+            height = 5
+        }, JsonRpcMessage.SerializerOptions);
+        await LayoutHandler.HandleInteractAsync(genericNs, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = genericNotebookId,
+            ExtensionId = "verso.layout.dashboard",
+            LayoutId = "dashboard",
+            FrameInstanceId = string.Empty,
+            InteractionType = "updateCellPosition",
+            Payload = payload
+        }));
+
+        var stubContext = new Verso.Testing.Stubs.StubVersoContext();
+        var legacyContainer = await legacyDashboard.GetCellContainerAsync(cellId, stubContext);
+        var genericContainer = await genericDashboard.GetCellContainerAsync(cellId, stubContext);
+
+        Assert.AreEqual(genericContainer.X, legacyContainer.X);
+        Assert.AreEqual(genericContainer.Y, legacyContainer.Y);
+        Assert.AreEqual(genericContainer.Width, legacyContainer.Width);
+        Assert.AreEqual(genericContainer.Height, legacyContainer.Height);
+        Assert.AreEqual(1.0, legacyContainer.X);
+        Assert.AreEqual(4.0, legacyContainer.Y);
+        Assert.AreEqual(8.0, legacyContainer.Width);
+        Assert.AreEqual(5.0, legacyContainer.Height);
+    }
+
+    [TestMethod]
+    public async Task HandleSetEditMode_ForwardsToHandleInteract_TogglesIsEditMode()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+        var dashboard = GetLoadedDashboard(ns);
+        dashboard.IsEditMode = false;
+
+        Assert.IsFalse(dashboard.IsEditMode);
+
+        await LayoutHandler.HandleSetEditMode(ns, JsonSerializer.SerializeToElement(
+            new LayoutSetEditModeParams { EditMode = true }, JsonRpcMessage.SerializerOptions));
+        Assert.IsTrue(dashboard.IsEditMode);
+
+        await LayoutHandler.HandleSetEditMode(ns, JsonSerializer.SerializeToElement(
+            new LayoutSetEditModeParams { EditMode = false }, JsonRpcMessage.SerializerOptions));
+        Assert.IsFalse(dashboard.IsEditMode);
     }
 
     [TestMethod]

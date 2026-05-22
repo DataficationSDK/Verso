@@ -311,14 +311,32 @@ public sealed class FakeNotebookService : INotebookService
     public CellVisibilityState ResolveCellVisibility(Guid cellId)
         => CellVisibilityMap.GetValueOrDefault(cellId, CellVisibilityState.Visible);
 
+    // ── Layout interaction ─────────────────────────────────────────────
+
+    public List<(string ExtensionId, string LayoutId, string InteractionType, string Payload, string? FrameInstanceId, string? TargetId)> LayoutInteractCalls { get; } = new();
+
+    public Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null)
+    {
+        LayoutInteractCalls.Add((extensionId, layoutId, interactionType, payload, frameInstanceId, targetId));
+        return Task.CompletedTask;
+    }
+
     // ── Dashboard layout ───────────────────────────────────────────────
 
     public Task<CellContainerInfo> GetCellContainerAsync(Guid cellId)
         => Task.FromResult(CellContainers.GetValueOrDefault(cellId,
             new CellContainerInfo(cellId, 0, 0, 6, 4)));
 
+#pragma warning disable CS0618 // UpdateCellPositionAsync is obsolete; the fake retains it for callers that haven't migrated.
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
         => Task.CompletedTask;
+#pragma warning restore CS0618
 
     // ── Cell type helpers ──────────────────────────────────────────────
 

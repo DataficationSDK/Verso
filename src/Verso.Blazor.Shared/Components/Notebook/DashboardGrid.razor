@@ -1,3 +1,4 @@
+@using System.Text.Json
 <div class="verso-dashboard-grid">
     @foreach (var cell in Cells)
     {
@@ -38,12 +39,12 @@
     private async Task HandleCellResized((Guid CellId, int ColSpan, int RowSpan) args)
     {
         var current = _positions.GetValueOrDefault(args.CellId, new CellContainerInfo(args.CellId, 0, 0, 6, 4));
-        await Service.UpdateCellPositionAsync(
+        await InvokeDashboardUpdateCellPosition(
             args.CellId,
-            (int)current.Y,     // preserve row
-            (int)current.X,     // preserve column
-            args.ColSpan,
-            args.RowSpan);
+            row: (int)current.Y,
+            col: (int)current.X,
+            width: args.ColSpan,
+            height: args.RowSpan);
         _positions[args.CellId] = await Service.GetCellContainerAsync(args.CellId);
         StateHasChanged();
     }
@@ -51,13 +52,30 @@
     private async Task HandleCellMoved((Guid CellId, int Col, int Row) args)
     {
         var current = _positions.GetValueOrDefault(args.CellId, new CellContainerInfo(args.CellId, 0, 0, 6, 4));
-        await Service.UpdateCellPositionAsync(
+        await InvokeDashboardUpdateCellPosition(
             args.CellId,
-            args.Row,
-            args.Col,
-            (int)current.Width,   // preserve width
-            (int)current.Height); // preserve height
+            row: args.Row,
+            col: args.Col,
+            width: (int)current.Width,
+            height: (int)current.Height);
         _positions[args.CellId] = await Service.GetCellContainerAsync(args.CellId);
         StateHasChanged();
+    }
+
+    private Task InvokeDashboardUpdateCellPosition(Guid cellId, int row, int col, int width, int height)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row,
+            col,
+            width,
+            height
+        });
+        return Service.LayoutInteractAsync(
+            extensionId: "verso.layout.dashboard",
+            layoutId: "dashboard",
+            interactionType: "updateCellPosition",
+            payload: payload);
     }
 }

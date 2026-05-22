@@ -831,12 +831,48 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         return layout.GetCellContainerAsync(cellId, context);
     }
 
+    public async Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null)
+    {
+        if (_extensionHost is null) return;
+        if (!_extensionHost.TryGetLayoutInteractionHandler(extensionId, layoutId, out var handler))
+            return;
+
+        var context = new LayoutInteractionContext
+        {
+            ExtensionId = extensionId,
+            LayoutId = layoutId,
+            FrameInstanceId = frameInstanceId ?? string.Empty,
+            InteractionType = interactionType,
+            Payload = payload,
+            TargetId = targetId,
+            Verso = new BlazorToolbarActionContext(_scaffold!, new List<Guid>()),
+            CancellationToken = CancellationToken.None
+            // RequestRender / RequestCellRefresh stay as the no-op defaults; the
+            // server-side notification path is deferred (see 1E ServerNotebookService stub).
+        };
+
+        await handler.OnLayoutInteractionAsync(context).ConfigureAwait(false);
+    }
+
+    [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
     {
-        var layout = _scaffold?.LayoutManager?.ActiveLayout;
-        if (layout is DashboardLayout dashboard)
-            dashboard.UpdateCellPosition(cellId, row, col, colSpan, rowSpan);
-        return Task.CompletedTask;
+        var payload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row,
+            col,
+            width = colSpan,
+            height = rowSpan
+        });
+
+        return LayoutInteractAsync("verso.layout.dashboard", "dashboard", "updateCellPosition", payload);
     }
 
     // ── Cell type helpers ──────────────────────────────────────────────

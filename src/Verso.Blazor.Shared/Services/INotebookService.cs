@@ -273,12 +273,29 @@ public interface INotebookService
     /// <summary>Resolve the visibility state of a cell for the current active layout.</summary>
     CellVisibilityState ResolveCellVisibility(Guid cellId);
 
+    // ── Layout interaction ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Routes a layout-scoped interaction to the layout's
+    /// <c>ILayoutInteractionHandler</c> via the <c>layout/interact</c> JSON-RPC
+    /// method. First-party razor components call this directly; DOM events
+    /// flow through the JS bridge instead.
+    /// </summary>
+    Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null);
+
     // ── Dashboard layout ───────────────────────────────────────────────
 
     /// <summary>Get the grid position for a cell in the dashboard layout.</summary>
     Task<CellContainerInfo> GetCellContainerAsync(Guid cellId);
 
     /// <summary>Update cell position in dashboard layout.</summary>
+    [Obsolete("Forwards to LayoutInteractAsync. Call LayoutInteractAsync(\"verso.layout.dashboard\", \"dashboard\", \"updateCellPosition\", ...) directly. Scheduled for removal in v2.0.")]
     Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan);
 
     // ── Cell type helpers ──────────────────────────────────────────────

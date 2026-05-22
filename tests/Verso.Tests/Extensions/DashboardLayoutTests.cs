@@ -224,4 +224,75 @@ public sealed class DashboardLayoutTests
         var metadata = _layout.GetLayoutMetadata();
         Assert.AreEqual(0, metadata.Count);
     }
+
+    // ─── ILayoutInteractionHandler ────────────────────────────────────────
+
+    private LayoutInteractionContext BuildContext(string interactionType, string payload, string? targetId = null) =>
+        new()
+        {
+            ExtensionId = "verso.layout.dashboard",
+            LayoutId = "dashboard",
+            FrameInstanceId = "nb/dashboard/0",
+            InteractionType = interactionType,
+            Payload = payload,
+            TargetId = targetId,
+            Verso = _context,
+            CancellationToken = CancellationToken.None
+        };
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_UpdateCellPosition_UpdatesGridPosition()
+    {
+        var cellId = Guid.NewGuid();
+        var payload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row = 2,
+            col = 5,
+            width = 7,
+            height = 3
+        });
+
+        await _layout.OnLayoutInteractionAsync(BuildContext("updateCellPosition", payload));
+
+        var container = await _layout.GetCellContainerAsync(cellId, _context);
+        Assert.AreEqual(5.0, container.X);
+        Assert.AreEqual(2.0, container.Y);
+        Assert.AreEqual(7.0, container.Width);
+        Assert.AreEqual(3.0, container.Height);
+    }
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_SetEditModeTrue_EnablesEditMode()
+    {
+        Assert.IsFalse(_layout.IsEditMode);
+
+        await _layout.OnLayoutInteractionAsync(BuildContext("setEditMode", "true"));
+
+        Assert.IsTrue(_layout.IsEditMode);
+        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
+        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
+    }
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_SetEditModeFalse_DisablesEditMode()
+    {
+        _layout.IsEditMode = true;
+
+        await _layout.OnLayoutInteractionAsync(BuildContext("setEditMode", "false"));
+
+        Assert.IsFalse(_layout.IsEditMode);
+        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+    }
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_UnknownType_Throws()
+    {
+        var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            () => _layout.OnLayoutInteractionAsync(BuildContext("nope", "{}")));
+
+        StringAssert.Contains(ex.Message, "DASHBOARD_INTERACTION_UNSUPPORTED");
+        StringAssert.Contains(ex.Message, "nope");
+    }
 }

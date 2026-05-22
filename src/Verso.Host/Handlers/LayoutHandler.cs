@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Verso.Abstractions;
-using Verso.Extensions.Layouts;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
 
@@ -120,39 +119,52 @@ public static class LayoutHandler
         };
     }
 
-    public static object? HandleUpdateCell(NotebookSession ns, JsonElement? @params)
+    public static async Task<object?> HandleUpdateCell(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<LayoutUpdateCellParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for layout/updateCell");
 
-        var manager = ns.Scaffold.LayoutManager
-            ?? throw new InvalidOperationException("No layout manager initialized.");
+        if (!Guid.TryParse(p.CellId, out _))
+            throw new JsonException($"Invalid cell ID: {p.CellId}");
 
-        if (manager.ActiveLayout is DashboardLayout dashboard)
-        {
-            if (!Guid.TryParse(p.CellId, out var cellId))
-                throw new JsonException($"Invalid cell ID: {p.CellId}");
+        Console.Error.WriteLine(
+            "[deprecation] layout/updateCell is forwarded to layout/interact and will be removed in v2.0. " +
+            "Migrate clients to layout/interact with interactionType 'updateCellPosition'.");
 
-            dashboard.UpdateCellPosition(cellId, p.Row, p.Col, p.Width, p.Height);
-        }
+        var payload = JsonSerializer.Serialize(
+            new { cellId = p.CellId, row = p.Row, col = p.Col, width = p.Width, height = p.Height },
+            JsonRpcMessage.SerializerOptions);
 
-        return null;
+        return await HandleInteractAsync(ns, BuildDashboardInteractParams("updateCellPosition", payload))
+            .ConfigureAwait(false);
     }
 
-    public static object? HandleSetEditMode(NotebookSession ns, JsonElement? @params)
+    public static async Task<object?> HandleSetEditMode(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<LayoutSetEditModeParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for layout/setEditMode");
 
-        var manager = ns.Scaffold.LayoutManager
-            ?? throw new InvalidOperationException("No layout manager initialized.");
+        Console.Error.WriteLine(
+            "[deprecation] layout/setEditMode is forwarded to layout/interact and will be removed in v2.0. " +
+            "Migrate clients to layout/interact with interactionType 'setEditMode'.");
 
-        if (manager.ActiveLayout is DashboardLayout dashboard)
+        var payload = p.EditMode ? "true" : "false";
+
+        return await HandleInteractAsync(ns, BuildDashboardInteractParams("setEditMode", payload))
+            .ConfigureAwait(false);
+    }
+
+    private static JsonElement BuildDashboardInteractParams(string interactionType, string payload)
+    {
+        var interactParams = new LayoutInteractParams
         {
-            dashboard.IsEditMode = p.EditMode;
-        }
-
-        return null;
+            ExtensionId = "verso.layout.dashboard",
+            LayoutId = "dashboard",
+            FrameInstanceId = string.Empty,
+            InteractionType = interactionType,
+            Payload = payload
+        };
+        return JsonSerializer.SerializeToElement(interactParams, JsonRpcMessage.SerializerOptions);
     }
 
     public static async Task<object?> HandleInteractAsync(NotebookSession ns, JsonElement? @params)

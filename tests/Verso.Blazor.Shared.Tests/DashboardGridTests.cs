@@ -137,6 +137,31 @@ public sealed class DashboardGridTests : BunitTestContext
     }
 
     [TestMethod]
+    public async Task Grid_ResizeAndMove_RouteThroughLayoutInteract()
+    {
+        var cell = CreateCell("resizable");
+        var cells = new List<CellModel> { cell };
+        _service.CellContainers[cell.Id] = new CellContainerInfo(cell.Id, 0, 0, 6, 4);
+
+        var cut = RenderComponent<DashboardGrid>(p => p
+            .Add(g => g.Service, _service)
+            .Add(g => g.Cells, cells));
+
+        var dashboardCell = cut.FindComponent<DashboardCell>();
+        await cut.InvokeAsync(() => dashboardCell.Instance.OnResizeComplete(8, 6));
+        await cut.InvokeAsync(() => dashboardCell.Instance.OnMoveComplete(3, 2));
+
+        Assert.AreEqual(2, _service.LayoutInteractCalls.Count);
+        foreach (var call in _service.LayoutInteractCalls)
+        {
+            Assert.AreEqual("verso.layout.dashboard", call.ExtensionId);
+            Assert.AreEqual("dashboard", call.LayoutId);
+            Assert.AreEqual("updateCellPosition", call.InteractionType);
+            StringAssert.Contains(call.Payload, cell.Id.ToString());
+        }
+    }
+
+    [TestMethod]
     public void DashboardCell_ExecutingState_ShowsSpinner()
     {
         var cell = CreateCell("executing");
