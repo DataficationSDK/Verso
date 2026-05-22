@@ -3,8 +3,9 @@ using System.Text;
 namespace Verso.Ado.Helpers;
 
 /// <summary>
-/// Splits SQL text on <c>;</c> boundaries while respecting quoted strings and comments.
-/// Also handles <c>GO</c> batch separators when SQL Server provider is detected.
+/// Splits SQL text on <c>;</c> boundaries while respecting quoted strings, comments,
+/// and <c>BEGIN ... END</c> control-flow blocks. Also handles <c>GO</c> batch
+/// separators when SQL Server provider is detected.
 /// </summary>
 internal static class SqlStatementSplitter
 {
@@ -15,6 +16,8 @@ internal static class SqlStatementSplitter
 
         var statements = new List<string>();
         var current = new StringBuilder();
+        int blockDepth = 0;
+        int caseDepth = 0;
         int i = 0;
 
         while (i < sql.Length)
@@ -93,9 +96,54 @@ internal static class SqlStatementSplitter
                 continue;
             }
 
+            // Block-tracking keywords (BEGIN / END / CASE) — must be whole words.
+            if (IsWordBoundaryStart(sql, i))
+            {
+                if (MatchKeyword(sql, i, "BEGIN"))
+                {
+                    // BEGIN TRANSACTION / TRAN / DISTRIBUTED / DIALOG / CONVERSATION
+                    // do not pair with END, so they must not increment block depth.
+                    if (!IsTransactionalBegin(sql, i + 5))
+                        blockDepth++;
+                    current.Append(sql, i, 5);
+                    i += 5;
+                    continue;
+                }
+
+                if (MatchKeyword(sql, i, "CASE"))
+                {
+                    caseDepth++;
+                    current.Append(sql, i, 4);
+                    i += 4;
+                    continue;
+                }
+
+                if (MatchKeyword(sql, i, "END"))
+                {
+                    // END pairs with the nearest enclosing CASE first, then BEGIN.
+                    // `END TRY` / `END CATCH` are just a regular END followed by a
+                    // separate keyword and are handled by the natural decrement.
+                    if (caseDepth > 0)
+                        caseDepth--;
+                    else if (blockDepth > 0)
+                        blockDepth--;
+                    current.Append(sql, i, 3);
+                    i += 3;
+                    continue;
+                }
+            }
+
             // Statement separator: semicolon
             if (sql[i] == ';')
             {
+                if (blockDepth > 0)
+                {
+                    // Inside a BEGIN...END block — semicolon is statement-internal.
+                    current.Append(sql[i]);
+                    i++;
+                    continue;
+                }
+
                 var stmt = current.ToString().Trim();
                 if (!string.IsNullOrEmpty(stmt))
                     statements.Add(stmt);
@@ -149,5 +197,43 @@ internal static class SqlStatementSplitter
             return false;
 
         return true;
+    }
+
+    private static bool IsWordChar(char c) =>
+        char.IsLetterOrDigit(c) || c == '_';
+
+    private static bool IsWordBoundaryStart(string sql, int pos) =>
+        pos == 0 || !IsWordChar(sql[pos - 1]);
+
+    private static bool MatchKeyword(string sql, int pos, string keyword)
+    {
+        if (pos + keyword.Length > sql.Length)
+            return false;
+
+        for (int k = 0; k < keyword.Length; k++)
+        {
+            if (char.ToUpperInvariant(sql[pos + k]) != keyword[k])
+                return false;
+        }
+
+        int after = pos + keyword.Length;
+        return after == sql.Length || !IsWordChar(sql[after]);
+    }
+
+    private static bool IsTransactionalBegin(string sql, int afterBegin)
+    {
+        // Skip whitespace after BEGIN
+        int p = afterBegin;
+        while (p < sql.Length && char.IsWhiteSpace(sql[p]))
+            p++;
+
+        if (p >= sql.Length)
+            return false;
+
+        return MatchKeyword(sql, p, "TRANSACTION")
+            || MatchKeyword(sql, p, "TRAN")
+            || MatchKeyword(sql, p, "DISTRIBUTED")
+            || MatchKeyword(sql, p, "DIALOG")
+            || MatchKeyword(sql, p, "CONVERSATION");
     }
 }
