@@ -122,6 +122,62 @@ public sealed class ThemeProviderTests : BunitTestContext
         Assert.IsTrue(style.Contains(":root"));
     }
 
+    [TestMethod]
+    public void LayoutExtensionPalette_AllNineTokensEmitted()
+    {
+        var themeData = CreateDefaultThemeData();
+
+        var cut = RenderComponent<ThemeProvider>(p => p
+            .Add(t => t.Theme, themeData));
+
+        var style = cut.Find("style").TextContent;
+
+        // Coarse semantic palette consumed by layout extensions via var(--verso-bg-default) etc.
+        Assert.IsTrue(style.Contains("--verso-bg-default:"), "missing --verso-bg-default");
+        Assert.IsTrue(style.Contains("--verso-bg-elevated:"), "missing --verso-bg-elevated");
+        Assert.IsTrue(style.Contains("--verso-fg-default:"), "missing --verso-fg-default");
+        Assert.IsTrue(style.Contains("--verso-fg-muted:"), "missing --verso-fg-muted");
+        Assert.IsTrue(style.Contains("--verso-border-default:"), "missing --verso-border-default");
+        Assert.IsTrue(style.Contains("--verso-accent:"), "missing --verso-accent");
+        Assert.IsTrue(style.Contains("--verso-font-family-mono:"), "missing --verso-font-family-mono");
+        Assert.IsTrue(style.Contains("--verso-font-family-sans:"), "missing --verso-font-family-sans");
+        Assert.IsTrue(style.Contains("--verso-font-size-base:"), "missing --verso-font-size-base");
+    }
+
+    [TestMethod]
+    public void TypographyLoop_StillEmitsFontDescriptorTokens()
+    {
+        // Regression: the typography loop was generalized to also accept string/double
+        // properties; FontDescriptor-shaped tokens must still emit the four-part shape.
+        var themeData = CreateDefaultThemeData();
+
+        var cut = RenderComponent<ThemeProvider>(p => p
+            .Add(t => t.Theme, themeData));
+
+        var style = cut.Find("style").TextContent;
+
+        Assert.IsTrue(style.Contains("--verso-editor-font-family:"));
+        Assert.IsTrue(style.Contains("--verso-editor-font-size:"));
+        Assert.IsTrue(style.Contains("--verso-editor-font-weight:"));
+        Assert.IsTrue(style.Contains("--verso-editor-font-line-height:"));
+    }
+
+    [TestMethod]
+    public void FontSizeBase_EmittedWithPxUnit()
+    {
+        var themeData = new ThemeData(
+            new ThemeColorTokens(),
+            new ThemeTypography { FontSizeBase = 16.0 },
+            new ThemeSpacing());
+
+        var cut = RenderComponent<ThemeProvider>(p => p
+            .Add(t => t.Theme, themeData));
+
+        var style = cut.Find("style").TextContent;
+
+        Assert.IsTrue(style.Contains("--verso-font-size-base: 16px;"));
+    }
+
     private static ThemeData CreateDefaultThemeData()
     {
         return new ThemeData(

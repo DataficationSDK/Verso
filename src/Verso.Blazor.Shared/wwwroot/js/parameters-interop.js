@@ -162,7 +162,7 @@ window.versoParameters = (() => {
 })();
 
 /**
- * Generic [data-action] event delegation for Tier 1 custom layouts.
+ * Generic [data-action] event delegation for extension-rendered custom layouts.
  * Walks DOM ancestry to route clicks/changes/keydowns to either cell/interact
  * or layout/interact based on the nearest [data-cell-id] or [data-layout-id] ancestor.
  * Coexists with the parameter-specific handlers above; elements without a

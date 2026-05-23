@@ -35,4 +35,15 @@ public sealed record ThemeTypography
 
     /// <summary>Font used for code execution output and console text.</summary>
     public FontDescriptor CodeOutputFont { get; init; } = new("Cascadia Mono", 13);
+
+    // Coarse typography primitives consumed by layout extensions.
+
+    /// <summary>Monospace font stack exposed to layout extensions as <c>--verso-font-family-mono</c>.</summary>
+    public string FontFamilyMono { get; init; } = "Cascadia Mono, Consolas, monospace";
+
+    /// <summary>Sans-serif font stack exposed to layout extensions as <c>--verso-font-family-sans</c>.</summary>
+    public string FontFamilySans { get; init; } = "Segoe UI, system-ui, sans-serif";
+
+    /// <summary>Base font size in pixels exposed to layout extensions as <c>--verso-font-size-base</c>.</summary>
+    public double FontSizeBase { get; init; } = 13.0;
 }

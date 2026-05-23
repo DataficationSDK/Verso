@@ -44,6 +44,21 @@ public sealed class VersoDarkThemeTests
     }
 
     [TestMethod]
+    public void LayoutExtensionPalette_TunedForDark()
+    {
+        // Coarse semantic palette consumed by layout extensions through
+        // var(--verso-bg-default) etc. must reflect this theme, not the record defaults.
+        Assert.AreEqual("#1E1E1E", _dark.Colors.BgDefault);
+        Assert.AreEqual("#252526", _dark.Colors.BgElevated);
+        Assert.AreEqual("#D4D4D4", _dark.Colors.FgDefault);
+        Assert.AreEqual("#007ACC", _dark.Colors.Accent);
+
+        Assert.AreNotEqual(_light.Colors.BgDefault, _dark.Colors.BgDefault);
+        Assert.AreNotEqual(_light.Colors.FgDefault, _dark.Colors.FgDefault);
+        Assert.AreNotEqual(_light.Colors.Accent, _dark.Colors.Accent);
+    }
+
+    [TestMethod]
     public void Typography_SameAsLight()
     {
         Assert.AreEqual(_light.Typography.EditorFont, _dark.Typography.EditorFont);

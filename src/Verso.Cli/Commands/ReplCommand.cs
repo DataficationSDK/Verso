@@ -13,9 +13,8 @@ using Verso.Extensions;
 namespace Verso.Cli.Commands;
 
 /// <summary>
-/// Implements the <c>verso repl</c> command — an interactive Read-Eval-Print Loop
-/// hosted in the existing Verso CLI. See
-/// <c>agent-docs/specifications/Verso/Verso-Repl-Specification-v1.0.md</c>.
+/// Implements the <c>verso repl</c> command, an interactive Read-Eval-Print Loop
+/// hosted in the existing Verso CLI.
 /// </summary>
 /// <remarks>
 /// Exit code mapping:
@@ -25,9 +24,8 @@ namespace Verso.Cli.Commands;
 ///   <item><description>3 — notebook file does not exist.</description></item>
 ///   <item><description>4 — notebook file could not be deserialized.</description></item>
 ///   <item><description>6 — <c>--kernel</c> or <c>--theme</c> resolution failed.
-///     (The spec assigns this to code 5 conceptually; the CLI reserves 5 for
-///     <see cref="ExitCodes.MissingParameters"/> and uses <see cref="ExitCodes.ResolutionFailure"/>
-///     for REPL resolution failures.)</description></item>
+///     (Code 5 is reserved for <see cref="ExitCodes.MissingParameters"/>; REPL
+///     resolution failures use <see cref="ExitCodes.ResolutionFailure"/>.)</description></item>
 /// </list>
 /// </remarks>
 public static class ReplCommand

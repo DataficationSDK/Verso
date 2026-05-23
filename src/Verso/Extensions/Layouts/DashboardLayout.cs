@@ -330,8 +330,8 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
             throw new InvalidOperationException(
                 "DASHBOARD_INTERACTION_INVALID_PAYLOAD: setEditMode requires a 'true' or 'false' payload.");
 
-        // Accept the spec-canonical bare string ("true"/"false") and a JSON-boolean form
-        // ("true"/"false" wrapped or unwrapped) for robustness across client serializers.
+        // Accept the bare string ("true"/"false") and a JSON-boolean form (wrapped or
+        // unwrapped) for robustness across client serializers.
         var trimmed = payload.Trim();
         if (bool.TryParse(trimmed, out var value))
             return value;
