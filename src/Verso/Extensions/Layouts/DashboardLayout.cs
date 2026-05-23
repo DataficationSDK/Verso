@@ -99,13 +99,13 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
               .Append(pos.Column + 1).Append("/span ").Append(pos.Width)
               .Append(";grid-row:")
               .Append(pos.Row + 1).Append("/span ").Append(pos.Height)
-              .Append(";position:relative;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,0.08);\">");
+              .Append(";position:relative;border:1px solid var(--verso-border-default);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,0.08);\">");
 
             // Drag handle + toolbar
-            sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" style=\"display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid #e0e0e0;background:#f5f5f5;cursor:grab;flex-shrink:0;\">");
+            sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" style=\"display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid var(--verso-border-default);background:var(--verso-bg-elevated);cursor:grab;flex-shrink:0;\">");
             sb.Append("<button data-action=\"run\" data-cell-id=\"").Append(cell.Id).Append("\" style=\"cursor:pointer;\">&#x25B6; Run</button>");
             sb.Append("<button data-action=\"edit\" data-cell-id=\"").Append(cell.Id).Append("\" style=\"cursor:pointer;\">Edit</button>");
-            sb.Append("<span class=\"verso-dashboard-drag-icon\" style=\"margin-left:auto;color:#858585;font-size:14px;cursor:grab;user-select:none;\">&#x2630;</span>");
+            sb.Append("<span class=\"verso-dashboard-drag-icon\" style=\"margin-left:auto;color:var(--verso-fg-muted);font-size:14px;cursor:grab;user-select:none;\">&#x2630;</span>");
             sb.Append("</div>");
 
             // Output-only rendering
