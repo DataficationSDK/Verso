@@ -18,7 +18,8 @@ namespace Verso.Ado.Kernel;
 /// </summary>
 public sealed class SqlKernel : ILanguageKernel
 {
-    private static readonly Regex ParamPattern = new(@"@(\w+)", RegexOptions.Compiled);
+    // Negative lookbehind avoids matching the second @ in T-SQL/MySQL globals like @@SPID, @@VERSION.
+    private static readonly Regex ParamPattern = new(@"(?<!@)@(\w+)", RegexOptions.Compiled);
     private readonly SemaphoreSlim _executionLock = new(1, 1);
 
     internal const int DefaultMaxFetchRows = 10_000;

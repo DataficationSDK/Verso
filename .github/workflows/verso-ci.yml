@@ -19,6 +19,7 @@ on:
       - "vscode/**"
       - "Verso.sln"
       - ".github/workflows/verso-ci.yml"
+  workflow_dispatch:
 
 jobs:
   dotnet:

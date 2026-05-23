@@ -133,4 +133,173 @@ public sealed class SqlStatementSplitterTests
         Assert.AreEqual(1, result.Count);
         Assert.AreEqual("SELECT 1", result[0]);
     }
+
+    [TestMethod]
+    public void Split_IfBeginEndBlock_TreatedAsSingleStatement()
+    {
+        var sql = "IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'master')\n" +
+                  "BEGIN\n" +
+                  "    PRINT 'Works';\n" +
+                  "END;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(1, result.Count);
+        Assert.IsTrue(result[0].Contains("BEGIN"));
+        Assert.IsTrue(result[0].Contains("END"));
+        Assert.IsTrue(result[0].Contains("PRINT 'Works'"));
+    }
+
+    [TestMethod]
+    public void Split_NestedBeginEnd_TreatedAsSingleStatement()
+    {
+        var sql = "IF (1=1)\n" +
+                 "BEGIN\n" +
+                 "    IF (2=2)\n" +
+                 "    BEGIN\n" +
+                 "        PRINT 'nested';\n" +
+                 "    END;\n" +
+                 "END;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(1, result.Count);
+    }
+
+    [TestMethod]
+    public void Split_TwoIndependentBlocks_SplitAfterOuterEnd()
+    {
+        var sql = "IF (1=1) BEGIN PRINT 'a'; END;\n" +
+                 "SELECT 2";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result[0].Contains("PRINT 'a'"));
+        Assert.AreEqual("SELECT 2", result[1]);
+    }
+
+    [TestMethod]
+    public void Split_BeginTryEndTry_NotSplitInside()
+    {
+        var sql = "BEGIN TRY\n" +
+                 "    SELECT 1;\n" +
+                 "    SELECT 2;\n" +
+                 "END TRY\n" +
+                 "BEGIN CATCH\n" +
+                 "    PRINT ERROR_MESSAGE();\n" +
+                 "END CATCH;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(1, result.Count);
+        Assert.IsTrue(result[0].Contains("BEGIN TRY"));
+        Assert.IsTrue(result[0].Contains("END CATCH"));
+    }
+
+    [TestMethod]
+    public void Split_BeginTransaction_DoesNotAffectBlockDepth()
+    {
+        var sql = "BEGIN TRANSACTION;\n" +
+                 "UPDATE t SET x = 1;\n" +
+                 "COMMIT;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(3, result.Count);
+        Assert.AreEqual("BEGIN TRANSACTION", result[0]);
+        Assert.IsTrue(result[1].Contains("UPDATE"));
+        Assert.AreEqual("COMMIT", result[2]);
+    }
+
+    [TestMethod]
+    public void Split_BeginTran_DoesNotAffectBlockDepth()
+    {
+        var sql = "BEGIN TRAN;\nSELECT 1;\nCOMMIT TRAN;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(3, result.Count);
+    }
+
+    [TestMethod]
+    public void Split_CaseEndInsideBlock_DoesNotCloseBlock()
+    {
+        var sql = "IF (1=1)\n" +
+                 "BEGIN\n" +
+                 "    SELECT CASE WHEN 1=1 THEN 'a' ELSE 'b' END AS Val;\n" +
+                 "    PRINT 'after case';\n" +
+                 "END;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(1, result.Count);
+        Assert.IsTrue(result[0].Contains("CASE WHEN"));
+        Assert.IsTrue(result[0].Contains("PRINT 'after case'"));
+    }
+
+    [TestMethod]
+    public void Split_WhileBeginEnd_TreatedAsSingleStatement()
+    {
+        var sql = "DECLARE @i INT = 0;\n" +
+                 "WHILE @i < 3\n" +
+                 "BEGIN\n" +
+                 "    SET @i = @i + 1;\n" +
+                 "END;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result[0].StartsWith("DECLARE"));
+        Assert.IsTrue(result[1].StartsWith("WHILE"));
+    }
+
+    [TestMethod]
+    public void Split_StrayEnd_DoesNotUnderflow()
+    {
+        var sql = "SELECT 1; END; SELECT 2;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(3, result.Count);
+        Assert.AreEqual("SELECT 1", result[0]);
+        Assert.AreEqual("END", result[1]);
+        Assert.AreEqual("SELECT 2", result[2]);
+    }
+
+    [TestMethod]
+    public void Split_BeginInsideStringLiteral_NotTreatedAsKeyword()
+    {
+        var sql = "SELECT 'BEGIN'; SELECT 'END';";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result[0].Contains("'BEGIN'"));
+        Assert.IsTrue(result[1].Contains("'END'"));
+    }
+
+    [TestMethod]
+    public void Split_BeginningIdentifier_NotTreatedAsBegin()
+    {
+        var sql = "SELECT BEGINNING FROM t; SELECT 2;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result[0].Contains("BEGINNING"));
+        Assert.AreEqual("SELECT 2", result[1]);
+    }
+
+    [TestMethod]
+    public void Split_LowercaseBeginEnd_RecognizedCaseInsensitive()
+    {
+        var sql = "if (1=1) begin print 'x'; end;\nselect 2;";
+
+        var result = SqlStatementSplitter.Split(sql);
+
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result[0].Contains("begin"));
+        Assert.AreEqual("select 2", result[1]);
+    }
 }

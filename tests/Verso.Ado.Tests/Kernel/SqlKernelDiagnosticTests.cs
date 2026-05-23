@@ -152,4 +152,58 @@ public sealed class SqlKernelDiagnosticTests
 
         Assert.AreEqual(2, paramWarnings.Count);
     }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_SqlServerGlobalVariable_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "SELECT * FROM sys.dm_exec_sessions WHERE session_id != @@SPID");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("@SPID")),
+            "Should not warn about @@SPID — it is a SQL Server global, not a parameter.");
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("Unresolved")),
+            "Should produce no Unresolved-parameter warnings for a query using only globals.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_MixedParamAndGlobal_OnlyWarnsOnParam()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "SELECT * FROM sessions WHERE id = @userId AND session_id != @@SPID");
+
+        var paramWarnings = diagnostics.Where(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("Unresolved")).ToList();
+
+        Assert.AreEqual(1, paramWarnings.Count, "Only @userId should warn.");
+        Assert.IsTrue(paramWarnings[0].Message.Contains("@userId"));
+        Assert.IsFalse(paramWarnings.Any(d => d.Message.Contains("@SPID")));
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_GlobalAtStartOfQuery_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync("SELECT @@VERSION");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("Unresolved")),
+            "Should not warn for @@VERSION at start of query.");
+    }
 }
