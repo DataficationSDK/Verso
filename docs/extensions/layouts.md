@@ -139,26 +139,16 @@ public Task<RenderResult> RenderLayoutAsync(
     IVersoContext context)
 ```
 
+The host wraps your returned HTML in a `<div class="verso-layout-root">` automatically and mounts it into the active notebook view. Two complementary mechanisms then connect your layout to the host:
+
+- **Cell slots** let you arrange existing cell components without re-rendering them yourself. The host mounts a real `<Cell>` component into every `[data-cell-slot]` placeholder you emit.
+- **Data-attribute routing** lets buttons, inputs, and selects inside your HTML send interaction events back to your extension with no JavaScript on your side.
+
+The sections below cover identity, slots, routing, the interaction handler, the re-render protocol, and how to style against the host theme. Always HTML-encode user-supplied content with `WebUtility.HtmlEncode()` to prevent XSS.
+
 ### HTML Conventions
 
-Follow these conventions for front-end integration:
-
-1. **`data-cell-id` attributes**: Every cell container must include a `data-cell-id` attribute with the cell's GUID for the front-end to identify interactive elements:
-
-```html
-<div class="my-layout-cell" data-cell-id="a1b2c3d4-...">
-    <!-- cell content -->
-</div>
-```
-
-2. **`data-action` attributes**: Use `data-action` on interactive elements for the front-end to handle clicks:
-
-```html
-<button data-action="run" data-cell-id="...">Run</button>
-<button data-action="prev-slide">Previous</button>
-```
-
-3. **CSS class naming**: Prefix all CSS classes with `verso-` followed by your layout name:
+Prefix CSS classes with `verso-` followed by your layout name to avoid clashing with host or other-extension styles:
 
 ```html
 <div class="verso-dashboard-grid">
@@ -166,7 +156,7 @@ Follow these conventions for front-end integration:
     <div class="verso-dashboard-resize-handle">
 ```
 
-4. **Output rendering**: Use the standard output pattern for cell outputs:
+Use the standard output pattern when rendering cell outputs:
 
 ```csharp
 if (output.IsError)
@@ -177,7 +167,198 @@ else
     sb.Append($"<div class=\"verso-output verso-output--text\"><pre>{escaped}</pre></div>");
 ```
 
-Always HTML-encode user content with `WebUtility.HtmlEncode()` to prevent XSS.
+## Layout Identity
+
+Every layout has a two-part identity: `(ExtensionId, LayoutId)`. `LayoutId` is required to be unique within an extension but not globally. Two third-party extensions may both ship a `kanban` layout without conflict. The registry, notebook metadata, JSON-RPC surface, and DOM data attributes all carry both halves.
+
+The single source of truth for the layout's `ExtensionId` is the `IExtension.ExtensionId` of the class implementing `ILayoutEngine`. Interaction handlers do not declare a target extension; their own `ExtensionId` (inherited from `IExtension`) defines the scope, and a handler may only target a layout owned by the same extension.
+
+Registration is validated when an assembly loads. The following diagnostics surface load failures:
+
+| Diagnostic | Trigger |
+|---|---|
+| `LAYOUT_ID_DUPLICATE_IN_EXTENSION` | Two `ILayoutEngine` classes in the same extension declare the same `LayoutId`. |
+| `LAYOUT_INTERACTION_DUPLICATE` | Two `ILayoutInteractionHandler` classes in the same extension declare the same `LayoutId`. |
+| `LAYOUT_HANDLER_ORPHANED` | An interaction handler declares a `LayoutId` for which the same extension does not also register an `ILayoutEngine`. |
+
+Registry lookups always require both halves; there is no fallback search by bare `LayoutId`.
+
+## Embedding Cells with `data-cell-slot`
+
+A custom layout does not render cell internals itself. Instead it emits placeholder slot elements, and the host mounts the real `<Cell>` Blazor components into them from a hidden cell pool:
+
+```html
+<div class="my-layout-grid">
+  <div class="my-layout-cell-slot"
+       data-cell-slot="00000000-0000-0000-0000-000000000001">
+    <!-- Cell component is mounted here by the host -->
+  </div>
+</div>
+```
+
+When the host encounters a `[data-cell-slot]` element it locates the matching cell in the pool by its GUID and mounts the `<Cell>` component into the slot. The cell continues to participate in execution, parameter editing, output streaming, and `cell/interact` exactly as it would in the default notebook layout.
+
+The host wraps your `RenderLayoutAsync` output in `<div class="verso-layout-root" data-extension-id="..." data-layout-id="...">` automatically, so you typically do not need to add those attributes on the outermost element. You may add them on inner scopes if a portion of your layout should act as an interaction root with different identity.
+
+## Event Routing
+
+A global event delegator intercepts clicks, changes, and keydowns on any element with a `[data-action]` attribute inside your rendered layout, then routes the event back to your extension.
+
+### Data attributes
+
+| Attribute | Role |
+|---|---|
+| `data-action` | Names the interaction type (e.g. `set-mode`, `parameter-update`). Required on any interactive element. |
+| `data-cell-id` | Scopes the event to a specific cell. Required to route to `cell/interact`. |
+| `data-extension-id` | Identifies the owning extension. Must be present on a `[data-cell-id]` or `[data-layout-id]` ancestor for the event to route. |
+| `data-layout-id` | Marks an element as a layout interaction root. Must co-locate with `data-extension-id` on the same ancestor. |
+| `data-payload` | Optional string sent as the interaction's `Payload`. Inputs, selects, and checkboxes fall back to the element's `value` (or `checked` state) when `data-payload` is absent. |
+| `data-target-id` | Optional. Echoed back unchanged in `LayoutInteractionContext.TargetId`, typically the id of a specific sub-control. |
+
+### Routing rules
+
+Given an event whose target carries `[data-action]`:
+
+| Target ancestry | Routes to |
+|---|---|
+| Target has a `[data-cell-id]` ancestor inside a `[data-extension-id]` ancestor | `cell/interact` for that cell |
+| Target has a `[data-layout-id]` ancestor (with no `[data-cell-id]` between them) | `layout/interact` for that layout |
+| Target has neither | Silently ignored |
+
+If `data-layout-id` and `data-extension-id` are on different ancestors of the same target, the router logs a warning and drops the event. The two must be co-located on the same element.
+
+### Worked example
+
+A workbench layout that toggles all cells between two execution modes:
+
+```csharp
+[VersoExtension]
+public sealed class DotNetWorkbenchLayout : ILayoutEngine, ILayoutInteractionHandler
+{
+    private string _mode = "csharp";
+
+    public string ExtensionId => "com.mycompany.dotnet-workbench";
+    public string Version => "1.0.0";
+    public string LayoutId => "dotnet-workbench";
+    public string DisplayName => ".NET Workbench";
+    public bool RequiresCustomRenderer => true;
+
+    public LayoutCapabilities Capabilities =>
+        LayoutCapabilities.CellExecute | LayoutCapabilities.CellEdit;
+
+    public Task<RenderResult> RenderLayoutAsync(
+        IReadOnlyList<CellModel> cells, IVersoContext ctx)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<div class=\"workbench-toolbar\">");
+        sb.Append($"<button data-action=\"set-mode\" data-payload=\"csharp\" " +
+                  $"class=\"{(_mode == "csharp" ? "active" : "")}\">C#</button>");
+        sb.Append($"<button data-action=\"set-mode\" data-payload=\"fsharp\" " +
+                  $"class=\"{(_mode == "fsharp" ? "active" : "")}\">F#</button>");
+        sb.Append("</div>");
+        sb.Append("<div class=\"workbench-cells\">");
+        foreach (var cell in cells)
+            sb.Append($"<div data-cell-slot=\"{cell.Id}\"></div>");
+        sb.Append("</div>");
+        return Task.FromResult(new RenderResult("text/html", sb.ToString()));
+    }
+
+    public Task OnLayoutInteractionAsync(LayoutInteractionContext context)
+    {
+        if (context.InteractionType == "set-mode")
+        {
+            _mode = context.Payload;
+            context.RequestRender();
+        }
+        return Task.CompletedTask;
+    }
+
+    public Dictionary<string, object> GetLayoutMetadata() =>
+        new() { ["mode"] = _mode };
+
+    public Task ApplyLayoutMetadata(Dictionary<string, object> m, IVersoContext _)
+    {
+        if (m.TryGetValue("mode", out var v) && v is string s) _mode = s;
+        return Task.CompletedTask;
+    }
+
+    // Other ILayoutEngine members elided.
+}
+```
+
+The toolbar buttons emit `data-action="set-mode"` with `data-payload="csharp"` or `"fsharp"`. Because the buttons sit inside the host-injected `[data-layout-id]` wrapper but outside any `[data-cell-id]` ancestor, the router sends them to `layout/interact`, which lands in `OnLayoutInteractionAsync`. The handler updates `_mode` and asks the host to re-render. No JavaScript, no inline scripts, no iframe.
+
+## ILayoutInteractionHandler
+
+`ILayoutInteractionHandler` is a sibling capability interface to `ILayoutEngine`. It receives `layout/interact` events for a layout owned by the same extension:
+
+```csharp
+public interface ILayoutInteractionHandler : IExtension
+{
+    string LayoutId { get; }
+    Task OnLayoutInteractionAsync(LayoutInteractionContext context);
+}
+```
+
+The handler may live in the same class as the layout engine (as in the worked example above) or in a separate class with the same `LayoutId`. Either way, the handler's owning extension must also register the matching `ILayoutEngine`. Cross-extension handler attachment is not supported.
+
+`LayoutInteractionContext` carries:
+
+| Field | Purpose |
+|---|---|
+| `ExtensionId`, `LayoutId` | Identity of the target layout. |
+| `FrameInstanceId` | Host-allocated opaque id for the live renderer mount. Stable for the lifetime of that mount. |
+| `InteractionType` | The string from the originating element's `data-action`. |
+| `Payload` | The string from `data-payload`, or the element's `value` for inputs and selects. |
+| `TargetId` | The optional `data-target-id`, echoed back unchanged. |
+| `RequestRender` | Invoke to ask the host to re-fetch `layout/render` and replace the HTML. |
+| `RequestCellRefresh(cellId)` | Invoke to refresh a single cell container's position. |
+| Notebook accessors | Standard `IVersoContext` access to cells, variables, and the extension host. |
+
+## Re-render Protocol
+
+After your interaction handler returns, the host does not refresh the UI by default. Call one of the context methods to request an update:
+
+- `context.RequestRender()` — the host re-fetches `layout/render` and replaces the HTML in place. Use this for any change that affects the layout's visible structure.
+- `context.RequestCellRefresh(cellId)` — the host re-fetches `layout/getCellContainer` for that cell and updates only that container's position and size. Other DOM is untouched.
+
+Both translate to a `layout/updated` notification with `scope: "full" | "cell" | "metadata"`. Clients receive the notification and act accordingly.
+
+The full-render path diffs the new HTML against the existing DOM via Blazor's renderer. DOM identity is not preserved across renders, so do not rely on element references from one render in the next. Client-side state lives in attributes and form values that your extension serializes into each render's output.
+
+## Theming
+
+Layouts inherit the host page's CSS automatically. The host publishes a documented palette of CSS custom properties on `:root` that you should style against rather than hardcoding colors or fonts:
+
+| Variable | Purpose |
+|---|---|
+| `--verso-bg-default` | Default page background. |
+| `--verso-bg-elevated` | Elevated surface background (toolbars, cards). |
+| `--verso-fg-default` | Default foreground color. |
+| `--verso-fg-muted` | Muted / secondary foreground. |
+| `--verso-border-default` | Default border color. |
+| `--verso-accent` | Accent / brand color. |
+| `--verso-font-family-mono` | Monospace font stack. |
+| `--verso-font-family-sans` | Sans-serif font stack. |
+| `--verso-font-size-base` | Base font size in pixels. |
+
+When the user switches themes, the host updates these variables on `:root` and your HTML re-styles automatically. No interaction handler call is required. Style your layout inline or in a single `<style>` block:
+
+```html
+<style>
+  .my-layout-toolbar {
+    background: var(--verso-bg-elevated);
+    color: var(--verso-fg-default);
+    border-bottom: 1px solid var(--verso-border-default);
+    font-family: var(--verso-font-family-sans);
+  }
+  .my-layout-toolbar button.active {
+    color: var(--verso-accent);
+  }
+</style>
+```
+
+For authors of theme extensions (which set the values these variables resolve to), see [Theme Authoring](theme-authoring.md).
 
 ## Cell Lifecycle Notifications
 
@@ -458,6 +639,49 @@ public async Task MetadataRoundTrip_PreservesState()
     Assert.IsTrue(container.IsVisible);
 }
 ```
+
+## JSON-RPC Surface
+
+Layouts communicate with clients over a small set of JSON-RPC methods. Most extensions never call these directly; they are invoked by host components in response to user gestures and your `RequestRender` calls. The names are summarized here for diagnostics, custom clients, and integration tests. Canonical wire-name constants live in `MethodNames.cs` in the host protocol.
+
+| Method | Direction | Purpose |
+|---|---|---|
+| `layout/getLayouts` | Client → Host | List registered layouts, each keyed by `(extensionId, layoutId)`. |
+| `layout/switch` | Client → Host | Activate a layout for a notebook by qualified reference. |
+| `layout/render` | Client → Host | Fetch the layout's HTML for the current cell list. |
+| `layout/getCellContainer` | Client → Host | Fetch a cell's container position and visibility within the layout. |
+| `layout/interact` | Client → Host | Dispatch an event to the layout's `ILayoutInteractionHandler`. |
+| `layout/updated` | Host → Client | Push notification triggered by `RequestRender` / `RequestCellRefresh`. Carries `scope` of `full`, `cell`, or `metadata`. |
+
+Two earlier methods, `layout/updateCell` and `layout/setEditMode`, remain in the protocol as deprecated forwarders. New code should use `layout/interact` with the corresponding `InteractionType` instead; the forwarders will be removed in a future major version.
+
+## Migration from Legacy Notebooks
+
+Notebook metadata represents the active layout as a qualified reference:
+
+```json
+{
+  "metadata": {
+    "activeLayout": {
+      "extensionId": "verso.layout.dashboard",
+      "layoutId": "dashboard"
+    }
+  },
+  "layouts": {
+    "verso.layout.dashboard:dashboard": { /* per-layout state */ },
+    "com.mycompany.kanban:kanban":      { /* per-layout state */ }
+  }
+}
+```
+
+Older notebooks may carry a bare-string form (`"activeLayout": "dashboard"`) with per-layout state keyed by bare `LayoutId`. These continue to load:
+
+1. The host resolves the bare string against built-in layouts first by their well-known `ExtensionId`s.
+2. If exactly one loaded extension provides a layout with that `LayoutId`, the host promotes the reference and writes the qualified form on the next save.
+3. If multiple loaded extensions match, the host shows a `LayoutMissing` banner and falls back to the default layout. The user resolves the ambiguity by editing the notebook metadata.
+4. If no match, the existing `LayoutMissing` banner fires.
+
+Promotion is one-way and silent on save; on-disk notebooks gradually move to qualified form without explicit migration. No action is required from extension authors to support legacy notebooks.
 
 ## Complete Examples
 

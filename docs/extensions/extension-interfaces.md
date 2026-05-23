@@ -97,7 +97,7 @@ Renders the input (editor) and output (result) areas of a cell. Each renderer is
 | `CellTypeId` | `string` | Identifier of the cell type this renderer handles. |
 | `DisplayName` | `string` | Human-readable name for this renderer. |
 | `CollapsesInputOnExecute` | `bool` | Whether the input editor collapses after execution, showing only output. Defaults to `false`. |
-| `DefaultVisibility` | `CellVisibilityHint` | Hint to layouts about the cell type's presentability. Default interface member, defaults to `CellVisibilityHint.Content`. See [Layout Authoring](layout-authoring.md) for how layouts use this. |
+| `DefaultVisibility` | `CellVisibilityHint` | Hint to layouts about the cell type's presentability. Default interface member, defaults to `CellVisibilityHint.Content`. See [Layout Authoring](layouts.md) for how layouts use this. |
 | `RenderInputAsync(string, ICellRenderContext)` | `Task<RenderResult>` | Renders the cell's source code as visual content. |
 | `RenderOutputAsync(CellOutput, ICellRenderContext)` | `Task<RenderResult>` | Renders a single execution output. |
 | `GetEditorLanguage()` | `string?` | Returns the editor language ID for syntax highlighting, or `null`. |
