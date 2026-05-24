@@ -353,8 +353,19 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
             await sm.SaveSettingsAsync(_scaffold.Notebook);
 
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
-        var serializer = new VersoSerializer();
+        INotebookSerializer serializer = ResolveSerializer();
         return await serializer.SerializeAsync(_scaffold.Notebook);
+    }
+
+    private INotebookSerializer ResolveSerializer()
+    {
+        if (_options.PreserveFormat
+            && !string.IsNullOrEmpty(_filePath)
+            && _filePath.EndsWith(".ipynb", StringComparison.OrdinalIgnoreCase))
+        {
+            return new JupyterSerializer();
+        }
+        return new VersoSerializer();
     }
 
     // ── Cell operations ────────────────────────────────────────────────

@@ -63,6 +63,13 @@ public sealed class ReplSession : IAsyncDisposable
     /// <summary>Runtime-mutable settings (row/line caps, elapsed threshold). Mutated by <c>.set</c>.</summary>
     public ReplSettings Settings { get; set; } = new();
 
+    /// <summary>
+    /// When true, <c>.save</c> with no explicit path writes back to the loaded notebook's
+    /// original format (e.g. <c>.ipynb</c>) instead of converting to <c>.verso</c>.
+    /// Set by <c>--preserve-format</c> at startup.
+    /// </summary>
+    public bool PreserveFormat { get; set; }
+
     public ReplSession(NotebookModel notebook, Scaffold scaffold, ExtensionHost extensionHost, string? notebookPath)
     {
         Notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));

@@ -122,7 +122,7 @@ Three built-in themes (Light, Dark, High Contrast) are hot-swappable at runtime.
 
 ### Import from Jupyter and Polyglot Notebooks
 
-Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot Notebook patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import. Saving writes to a `.verso` file, preserving the original.
+Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot Notebook patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import. By default, saving writes to a sibling `.verso` file and leaves the original untouched. To save `.ipynb` notebooks back to `.ipynb` (cell outputs preserved), enable the `verso.preserveOriginalFormat` setting in VS Code, or pass `--preserve-format` to `verso repl` / `verso serve`.
 
 ## Extension Model
 
@@ -147,7 +147,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types, SQL result sets |
-| **Serializers** | `.verso` (native JSON), `.ipynb` import, `.dib` import |
+| **Serializers** | `.verso` (native JSON, read/write), `.ipynb` (read/write, write opt-in), `.dib` (read only) |
 
 ## The `.verso` File Format
 

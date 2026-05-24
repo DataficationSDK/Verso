@@ -32,6 +32,9 @@ public static class ServeCommand
         var verboseOption = new Option<bool>("--verbose", () => false,
             "Print startup details to stderr.");
 
+        var preserveFormatOption = new Option<bool>("--preserve-format", () => false,
+            "When a loaded .ipynb notebook is saved, write back to .ipynb instead of converting to .verso. Cell outputs are preserved.");
+
         var command = new Command("serve", "Launch the Verso Blazor application as a local web server.")
         {
             notebookArg,
@@ -39,7 +42,8 @@ public static class ServeCommand
             noBrowserOption,
             noHttpsOption,
             extensionsOption,
-            verboseOption
+            verboseOption,
+            preserveFormatOption
         };
 
         command.SetHandler(async (context) =>
@@ -50,6 +54,7 @@ public static class ServeCommand
             var noHttps = context.ParseResult.GetValueForOption(noHttpsOption);
             var extensions = context.ParseResult.GetValueForOption(extensionsOption);
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
+            var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
 
             // Validate notebook path if provided
             string? notebookPath = null;
@@ -71,7 +76,8 @@ public static class ServeCommand
                     Port = port,
                     NoHttps = noHttps,
                     Verbose = verbose,
-                    ExtensionsDirectory = extensions?.FullName
+                    ExtensionsDirectory = extensions?.FullName,
+                    PreserveFormat = preserveFormat
                 };
 
                 var app = BlazorHostBuilder.Build(options);

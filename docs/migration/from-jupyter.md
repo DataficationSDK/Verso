@@ -28,7 +28,7 @@ The original file is not modified. Use `--output` to specify a different output 
 verso convert notebook.ipynb --to verso --output cleaned.verso --strip-outputs
 ```
 
-Saving an imported notebook in Verso always writes to a new `.verso` file, preserving the original.
+By default, saving an imported notebook in Verso writes to a sibling `.verso` file and leaves the original untouched. To save back to `.ipynb` with cell outputs preserved, enable the `verso.preserveOriginalFormat` setting in VS Code, or pass `--preserve-format` to `verso repl` / `verso serve`. The flag is off by default to keep existing convert-on-save behavior for users who rely on it.
 
 ## What Gets Converted
 
@@ -149,7 +149,7 @@ Jupyter uses a kernel/server extension model. Verso's extension model is based o
 
 ## Limitations
 
-- **Export back to `.ipynb` is not supported.** Conversion is one-way. If you need to maintain a Jupyter-compatible version, keep the original `.ipynb` file.
+- **Round-trip to `.ipynb` is opt-in and lossy for non-standard cell types.** With `verso.preserveOriginalFormat` (or `--preserve-format`) on, `.ipynb` files save back as `.ipynb` with code, markdown, and cell outputs preserved. Verso-specific cell types (HTML, Mermaid, SQL, HTTP) are written as Jupyter `raw` cells with the original type stashed in `cell.metadata.verso_type`; notebook-level features like layouts, parameter definitions, and theme preferences are not represented in the Jupyter format.
 - **Jupyter notebook format versions below 4 are not supported.** Notebooks created with very old versions of Jupyter (nbformat 1-3) need to be upgraded to nbformat 4 first (open and re-save in JupyterLab).
 - **IPython magics are not converted.** Cell and line magics (`%`, `%%`) are Python kernel-specific and pass through as literal text.
 - **Jupyter widgets are not supported.** Interactive widgets (`ipywidgets`) do not have a Verso equivalent. Static output from widgets (HTML snapshots) may be preserved in cell outputs.

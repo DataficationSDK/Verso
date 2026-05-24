@@ -123,7 +123,7 @@ When a `.verso` file is opened:
 
 Each open notebook gets its own host process and bridge. When the editor panel is closed, the host process is terminated.
 
-Save operations flow through the host: `saveCustomDocument` sends `notebook/save` to the host, receives serialized content, and writes it via `vscode.workspace.fs.writeFile`.
+Save operations flow through the host: `saveCustomDocument` sends `notebook/save` to the host, receives serialized content, and writes it via `vscode.workspace.fs.writeFile`. The request carries an optional `format` parameter (default `"verso"`) that selects the serializer by `FormatId`. When the `verso.preserveOriginalFormat` setting is enabled and the document's extension matches a writable non-native serializer (currently `.ipynb`), the editor sends `format: "jupyter"` so the file round-trips in place; otherwise it falls back to the original convert-to-`.verso` behavior.
 
 ### HostProcess
 
