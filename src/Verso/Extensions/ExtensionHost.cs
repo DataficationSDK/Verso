@@ -143,6 +143,37 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     }
 
     /// <summary>
+    /// Looks up an enabled <see cref="ILayoutEngine"/> by its <c>(ExtensionId, LayoutId)</c>
+    /// identity pair.
+    /// </summary>
+    /// <param name="extensionId">The owning extension's id.</param>
+    /// <param name="layoutId">The layout id the engine services.</param>
+    /// <param name="engine">The matching engine when found and enabled.</param>
+    /// <returns><c>true</c> when a matching enabled engine exists.</returns>
+    public bool TryGetLayoutEngine(
+        string extensionId,
+        string layoutId,
+        out ILayoutEngine engine)
+    {
+        lock (_lock)
+        {
+            foreach (var layout in _layouts)
+            {
+                if (!IsEnabled(layout)) continue;
+                var owningExtensionId = (layout as IExtension)?.ExtensionId ?? string.Empty;
+                if (string.Equals(owningExtensionId, extensionId, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(layout.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase))
+                {
+                    engine = layout;
+                    return true;
+                }
+            }
+            engine = null!;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Looks up an enabled <see cref="ILayoutInteractionHandler"/> by its
     /// <c>(ExtensionId, LayoutId)</c> identity pair.
     /// </summary>

@@ -684,6 +684,31 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         });
     }
 
+    public async Task<LayoutRendererPackageDto?> GetLayoutRendererPackageAsync(
+        string extensionId,
+        string layoutId)
+    {
+        var response = await _bridge.RequestAsync<LayoutRendererPackageResponse?>(
+            "layout/getRendererPackage",
+            new { extensionId, layoutId });
+
+        if (response is null) return null;
+
+        var decoded = new Dictionary<string, byte[]>(
+            response.Files?.Count ?? 0,
+            StringComparer.Ordinal);
+        if (response.Files is not null)
+        {
+            foreach (var (path, base64) in response.Files)
+                decoded[path] = Convert.FromBase64String(base64);
+        }
+
+        return new LayoutRendererPackageDto(
+            response.EntryPoint,
+            decoded,
+            response.ContentSecurityPolicy);
+    }
+
     [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
     {
@@ -1474,6 +1499,13 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private sealed class LayoutRenderResponse
     {
         public string Html { get; set; } = "";
+    }
+
+    private sealed class LayoutRendererPackageResponse
+    {
+        public string EntryPoint { get; set; } = "";
+        public Dictionary<string, string>? Files { get; set; }
+        public string? ContentSecurityPolicy { get; set; }
     }
 
     private sealed class LayoutItem

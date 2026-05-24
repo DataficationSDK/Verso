@@ -40,6 +40,16 @@ public sealed record LayoutInfo(
     string ExtensionId = "",
     string RendererIsolation = "inline");
 
+/// <summary>
+/// Client-facing form of a layout renderer package. Bytes are already base64-decoded.
+/// Returned by <c>RemoteNotebookService.GetLayoutRendererPackageAsync</c>; <c>null</c> when
+/// the layout is inline or no package is available.
+/// </summary>
+public sealed record LayoutRendererPackageDto(
+    string EntryPoint,
+    IReadOnlyDictionary<string, byte[]> Files,
+    string? ContentSecurityPolicy);
+
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(
     string ThemeId,

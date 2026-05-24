@@ -359,6 +359,153 @@ public class LayoutHandlerTests
         Assert.IsFalse(dashboard.IsEditMode);
     }
 
+    // ─── layout/getRendererPackage ────────────────────────────────────────────
+
+    private static JsonElement GetPackageParams(string notebookId, string extensionId, string layoutId) =>
+        JsonSerializer.SerializeToElement(new LayoutGetRendererPackageParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = extensionId,
+            LayoutId = layoutId
+        }, JsonRpcMessage.SerializerOptions);
+
+    [TestMethod]
+    public async Task HandleGetRendererPackage_IsolatedFixture_ReturnsEncodedFilesAndCsp()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeIsolatedLayoutEngine(
+            extensionId: "com.test.layout.iso.pkg",
+            layoutId: "iso-pkg");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetRendererPackageAsync(
+            ns, GetPackageParams(notebookId, fake.ExtensionId, fake.LayoutId));
+
+        Assert.IsNotNull(result, "Isolated layout should return a package.");
+        Assert.AreEqual(FakeIsolatedLayoutEngine.DefaultEntryPoint, result!.EntryPoint);
+        Assert.AreEqual(FakeIsolatedLayoutEngine.DefaultContentSecurityPolicy,
+            result.ContentSecurityPolicy);
+        Assert.IsTrue(result.Files.TryGetValue(FakeIsolatedLayoutEngine.DefaultEntryPoint,
+                out var base64),
+            "Result must contain the entry file.");
+        var decoded = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64!));
+        Assert.AreEqual(FakeIsolatedLayoutEngine.DefaultMainJs, decoded);
+    }
+
+    [TestMethod]
+    public async Task HandleGetRendererPackage_InlineLayout_ReturnsNull()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        // FakeLayoutInteractionHandler implements ILayoutEngine with the default
+        // RendererIsolation (Inline), so it stands in as the inline fixture here.
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.inline.pkg",
+            layoutId: "inline-pkg");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetRendererPackageAsync(
+            ns, GetPackageParams(notebookId, fake.ExtensionId, fake.LayoutId));
+
+        Assert.IsNull(result, "Inline layout must not return a renderer package.");
+    }
+
+    [TestMethod]
+    public async Task HandleGetRendererPackage_IsolatedFixtureWithoutPackage_ReturnsNull()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeIsolatedLayoutEngine(
+            extensionId: "com.test.layout.iso.nopkg",
+            layoutId: "iso-nopkg")
+        {
+            Package = null
+        };
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetRendererPackageAsync(
+            ns, GetPackageParams(notebookId, fake.ExtensionId, fake.LayoutId));
+
+        Assert.IsNull(result,
+            "An isolated layout that returns no package should surface as null at the wire.");
+    }
+
+    [TestMethod]
+    public async Task HandleGetRendererPackage_UnknownLayout_ThrowsWithSymbolicCode()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            () => LayoutHandler.HandleGetRendererPackageAsync(
+                ns, GetPackageParams(notebookId, "com.unknown.layout", "ghost")));
+
+        StringAssert.Contains(ex.Message, "LAYOUT_ENGINE_NOT_FOUND");
+        StringAssert.Contains(ex.Message, "com.unknown.layout");
+        StringAssert.Contains(ex.Message, "ghost");
+    }
+
+    [TestMethod]
+    public async Task HandleGetRendererPackage_DispatchedThroughHostSession_RoutesViaMethodName()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeIsolatedLayoutEngine(
+            extensionId: "com.test.layout.iso.dispatch",
+            layoutId: "iso-dispatch");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var responseJson = await session.DispatchAsync(
+            id: 1,
+            method: MethodNames.LayoutGetRendererPackage,
+            @params: GetPackageParams(notebookId, fake.ExtensionId, fake.LayoutId));
+
+        using var doc = JsonDocument.Parse(responseJson);
+        Assert.IsTrue(doc.RootElement.TryGetProperty("result", out var result),
+            $"Expected a successful JSON-RPC response. Got: {responseJson}");
+        Assert.AreEqual(FakeIsolatedLayoutEngine.DefaultEntryPoint,
+            result.GetProperty("entryPoint").GetString());
+    }
+
+    [TestMethod]
+    public async Task HandleGetLayouts_IsolatedFixture_EmitsIsolatedRendererIsolation()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeIsolatedLayoutEngine(
+            extensionId: "com.test.layout.iso.dto",
+            layoutId: "iso-dto");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = LayoutHandler.HandleGetLayouts(ns);
+        var dto = result.Layouts.Single(l =>
+            l.ExtensionId == fake.ExtensionId && l.Id == fake.LayoutId);
+        Assert.AreEqual("isolated", dto.RendererIsolation);
+    }
+
+    [TestMethod]
+    public async Task HandleGetLayouts_InlineFixture_EmitsInlineRendererIsolation()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.inline.dto",
+            layoutId: "inline-dto");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = LayoutHandler.HandleGetLayouts(ns);
+        var dto = result.Layouts.Single(l =>
+            l.ExtensionId == fake.ExtensionId && l.Id == fake.LayoutId);
+        Assert.AreEqual("inline", dto.RendererIsolation);
+    }
+
     [TestMethod]
     public async Task HandleInteract_HandlerDoesNotRequestUpdate_NoNotification()
     {

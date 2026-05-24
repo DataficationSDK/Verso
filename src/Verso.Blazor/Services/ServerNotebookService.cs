@@ -183,7 +183,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         get
         {
             var layout = _scaffold?.LayoutManager?.ActiveLayout;
-            return layout?.RequiresCustomRenderer == true ? layout.RendererIsolation : null;
+            return layout?.RequiresCustomRenderer == true
+                ? layout.RendererIsolation.ToWireString()
+                : null;
         }
     }
 
@@ -235,7 +237,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
                 l.Capabilities,
                 l.SupportsPropertiesPanel,
                 (l as IExtension)?.ExtensionId ?? string.Empty,
-                l.RendererIsolation))
+                l.RendererIsolation.ToWireString()))
             .ToList()
         ?? (IReadOnlyList<LayoutInfo>)Array.Empty<LayoutInfo>();
 

@@ -33,13 +33,21 @@ public interface ILayoutEngine : IExtension
     bool RequiresCustomRenderer { get; }
 
     /// <summary>
-    /// Identifies the rendering isolation model when <see cref="RequiresCustomRenderer"/> is
-    /// <c>true</c>. Currently the only supported value is <c>"inline"</c>, which renders the
-    /// layout-emitted HTML directly inside the notebook page and uses the <c>data-cell-slot</c>
-    /// portal pattern to mount cell components. Additional isolation modes may be introduced
-    /// in future versions.
+    /// Indicates how the layout's renderer relates to the host's UI execution context.
+    /// Defaults to <see cref="LayoutRendererIsolation.Inline"/>. Layouts that need a private
+    /// execution context should return <see cref="LayoutRendererIsolation.Isolated"/> and
+    /// ship a renderer module via <see cref="GetRendererPackageAsync"/>.
     /// </summary>
-    string RendererIsolation => "inline";
+    LayoutRendererIsolation RendererIsolation => LayoutRendererIsolation.Inline;
+
+    /// <summary>
+    /// Returns the package required to instantiate the layout's renderer in the client.
+    /// Only consulted when <see cref="RendererIsolation"/> is
+    /// <see cref="LayoutRendererIsolation.Isolated"/>; returning <c>null</c> signals that no
+    /// package is available, in which case the host falls back to its default rendering path.
+    /// </summary>
+    Task<LayoutRendererPackage?> GetRendererPackageAsync(IVersoContext context)
+        => Task.FromResult<LayoutRendererPackage?>(null);
 
     /// <summary>
     /// Renders the full layout for the given cells.

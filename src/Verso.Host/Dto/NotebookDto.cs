@@ -264,8 +264,9 @@ public sealed class LayoutDto
     public bool RequiresCustomRenderer { get; set; }
 
     /// <summary>
-    /// Rendering isolation model when <see cref="RequiresCustomRenderer"/> is <c>true</c>.
-    /// Defaults to <c>"inline"</c>, which is currently the only supported value.
+    /// Rendering isolation model declared by the layout: <c>"inline"</c> (default) or
+    /// <c>"isolated"</c>. Isolated layouts are served via <c>layout/getRendererPackage</c>;
+    /// inline layouts produce their content through <c>layout/render</c>.
     /// </summary>
     public string RendererIsolation { get; set; } = "inline";
 
@@ -316,6 +317,28 @@ public sealed class LayoutUpdateCellParams
 public sealed class LayoutSetEditModeParams
 {
     public bool EditMode { get; set; }
+}
+
+public sealed class LayoutGetRendererPackageParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+}
+
+public sealed class LayoutGetRendererPackageResult
+{
+    /// <summary>Relative path of the entry module within <see cref="Files"/>.</summary>
+    public string EntryPoint { get; set; } = "";
+
+    /// <summary>
+    /// Bundle files keyed by relative path. Values are base64-encoded byte arrays so the
+    /// JSON-RPC transport can carry binary payloads without modification.
+    /// </summary>
+    public Dictionary<string, string> Files { get; set; } = new();
+
+    /// <summary>Optional Content Security Policy hint.</summary>
+    public string? ContentSecurityPolicy { get; set; }
 }
 
 // --- Theme ---

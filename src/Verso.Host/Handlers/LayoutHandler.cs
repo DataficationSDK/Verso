@@ -32,7 +32,7 @@ public static class LayoutHandler
                     DisplayName = l.DisplayName,
                     Icon = l.Icon,
                     RequiresCustomRenderer = l.RequiresCustomRenderer,
-                    RendererIsolation = l.RendererIsolation,
+                    RendererIsolation = l.RendererIsolation.ToWireString(),
                     IsActive = isActive,
                     Capabilities = (int)l.Capabilities,
                     SupportsPropertiesPanel = l.SupportsPropertiesPanel
@@ -165,6 +165,46 @@ public static class LayoutHandler
             Payload = payload
         };
         return JsonSerializer.SerializeToElement(interactParams, JsonRpcMessage.SerializerOptions);
+    }
+
+    public static async Task<LayoutGetRendererPackageResult?> HandleGetRendererPackageAsync(
+        NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<LayoutGetRendererPackageParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/getRendererPackage");
+
+        if (string.IsNullOrWhiteSpace(p.ExtensionId))
+            throw new JsonException("layout/getRendererPackage requires 'extensionId'.");
+        if (string.IsNullOrWhiteSpace(p.LayoutId))
+            throw new JsonException("layout/getRendererPackage requires 'layoutId'.");
+
+        if (!ns.ExtensionHost.TryGetLayoutEngine(p.ExtensionId, p.LayoutId, out var engine))
+        {
+            // The "not found" substring routes this to JsonRpcMessage.ErrorCodes.InvalidParams
+            // via HostSession.DispatchAsync. The symbolic code is included in the message
+            // so clients and tests can key off it.
+            throw new InvalidOperationException(
+                $"LAYOUT_ENGINE_NOT_FOUND: no layout engine is registered " +
+                $"for (extensionId='{p.ExtensionId}', layoutId='{p.LayoutId}').");
+        }
+
+        if (engine.RendererIsolation != LayoutRendererIsolation.Isolated)
+            return null;
+
+        var context = new HostVersoContext(ns.Scaffold);
+        var package = await engine.GetRendererPackageAsync(context).ConfigureAwait(false);
+        if (package is null) return null;
+
+        var encodedFiles = new Dictionary<string, string>(package.Files.Count);
+        foreach (var (path, bytes) in package.Files)
+            encodedFiles[path] = Convert.ToBase64String(bytes);
+
+        return new LayoutGetRendererPackageResult
+        {
+            EntryPoint = package.EntryPoint,
+            Files = encodedFiles,
+            ContentSecurityPolicy = package.ContentSecurityPolicy
+        };
     }
 
     public static async Task<object?> HandleInteractAsync(NotebookSession ns, JsonElement? @params)
