@@ -120,13 +120,10 @@ public sealed class PowerShellKernel : ILanguageKernel
                     outputs.Add(new CellOutput("text/plain", text));
             }
 
-            // Warning stream
-            if (result.WarningLines.Count > 0)
-            {
-                var text = string.Join(Environment.NewLine,
-                    result.WarningLines.Select(w => $"[WARNING] {w}"));
-                outputs.Add(new CellOutput("text/plain", text));
-            }
+            // Warning records also surface through the host UI's WriteWarningLine
+            // (see VersoPowerShellHostUserInterface) and are emitted live as the
+            // pipeline runs. Don't aggregate ps.Streams.Warning here or each
+            // Write-Warning would appear twice.
 
             // Error stream
             if (result.ErrorLines.Count > 0)
