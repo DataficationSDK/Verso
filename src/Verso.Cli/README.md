@@ -45,6 +45,7 @@ verso serve --no-browser
 | `--no-https` | false | Serve over HTTP only |
 | `--extensions <dir>` | none | Additional directory to scan for extension assemblies |
 | `--verbose` | false | Enable detailed startup logging |
+| `--preserve-format` | false | When a `.ipynb` notebook is loaded, save back to `.ipynb` (cell outputs preserved) instead of converting to `.verso` |
 
 ### `verso run`
 
@@ -130,6 +131,7 @@ verso repl --list-themes
 | `--history <path>\|none` | platform state dir | Override or disable persistent history |
 | `--list-kernels` | false | Print registered kernels and exit |
 | `--list-themes` | false | Print registered themes and exit |
+| `--preserve-format` | false | When a `.ipynb` notebook is loaded, `.save` with no argument writes back to `.ipynb` instead of converting to `.verso` |
 
 **Submitting cells.** In the full-featured (PrettyPrompt) driver, `Enter` inserts a newline unless the buffer already ends with two trailing newlines — a third `Enter` submits. Meta-commands (leading `.`) submit on the first `Enter`. In `--plain` mode, a blank line submits and `;;` on its own line force-submits.
 
