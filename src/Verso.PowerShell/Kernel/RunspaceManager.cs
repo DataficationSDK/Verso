@@ -13,7 +13,6 @@ internal sealed record InvokeResult(
     IReadOnlyList<string> OutputLines,
     string OutputMimeType,
     IReadOnlyList<string> ErrorLines,
-    IReadOnlyList<string> WarningLines,
     IReadOnlyList<string> InformationLines,
     Exception? Exception);
 
@@ -65,7 +64,6 @@ internal sealed class RunspaceManager : IDisposable
         var outputLines = new List<string>();
         var outputMimeType = "text/plain";
         var errorLines = new List<string>();
-        var warningLines = new List<string>();
         var informationLines = new List<string>();
         Exception? exception = null;
 
@@ -136,10 +134,9 @@ internal sealed class RunspaceManager : IDisposable
                 errorLines.Add(err.ToString());
             }
 
-            foreach (var warn in ps.Streams.Warning)
-            {
-                warningLines.Add(warn.ToString());
-            }
+            // ps.Streams.Warning is intentionally not consumed here. Warnings are
+            // streamed live via VersoPowerShellHostUserInterface.WriteWarningLine
+            // so that long-running scripts surface them progressively.
 
             foreach (var info in ps.Streams.Information)
             {
@@ -167,7 +164,7 @@ internal sealed class RunspaceManager : IDisposable
             _currentHostInput = null;
         }
 
-        return new InvokeResult(outputLines, outputMimeType, errorLines, warningLines, informationLines, exception);
+        return new InvokeResult(outputLines, outputMimeType, errorLines, informationLines, exception);
     }
 
     private static bool IsPowerShellHostInformation(InformationRecord record) =>

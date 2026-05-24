@@ -147,8 +147,60 @@ public class ExecutionTests
     {
         var outputs = await _kernel.ExecuteAsync("Write-Warning 'caution'", _context);
         var allText = string.Join(" ", outputs.Select(o => o.Content));
-        Assert.IsTrue(allText.Contains("[WARNING]") && allText.Contains("caution"),
-            $"Expected '[WARNING] caution', got: {allText}");
+        Assert.IsTrue(allText.Contains("WARNING:") && allText.Contains("caution"),
+            $"Expected 'WARNING: caution', got: {allText}");
+    }
+
+    [TestMethod]
+    public async Task WriteWarning_EmitsOnlyOnce()
+    {
+        var outputs = await _kernel.ExecuteAsync("Write-Warning 'low disk'", _context);
+        var warningOutputs = outputs
+            .Where(o => o.Content.Contains("low disk", StringComparison.Ordinal))
+            .ToList();
+        Assert.AreEqual(1, warningOutputs.Count,
+            "Write-Warning should produce exactly one output. Got: "
+            + string.Join(" | ", outputs.Select(o => o.Content)));
+    }
+
+    [TestMethod]
+    public async Task WriteError_EmitsOnlyOnce()
+    {
+        var outputs = await _kernel.ExecuteAsync("Write-Error 'something failed'", _context);
+        var errorOutputs = outputs
+            .Where(o => o.Content.Contains("something failed", StringComparison.Ordinal))
+            .ToList();
+        Assert.AreEqual(1, errorOutputs.Count,
+            "Write-Error should produce exactly one output. Got: "
+            + string.Join(" | ", outputs.Select(o => o.Content)));
+    }
+
+    [TestMethod]
+    public async Task WriteVerbose_EmitsOnlyOnce()
+    {
+        var outputs = await _kernel.ExecuteAsync(
+            "$VerbosePreference = 'Continue'; Write-Verbose 'tracing'",
+            _context);
+        var verboseOutputs = outputs
+            .Where(o => o.Content.Contains("tracing", StringComparison.Ordinal))
+            .ToList();
+        Assert.AreEqual(1, verboseOutputs.Count,
+            "Write-Verbose should produce exactly one output. Got: "
+            + string.Join(" | ", outputs.Select(o => o.Content)));
+    }
+
+    [TestMethod]
+    public async Task WriteDebug_EmitsOnlyOnce()
+    {
+        var outputs = await _kernel.ExecuteAsync(
+            "$DebugPreference = 'Continue'; Write-Debug 'breadcrumb'",
+            _context);
+        var debugOutputs = outputs
+            .Where(o => o.Content.Contains("breadcrumb", StringComparison.Ordinal))
+            .ToList();
+        Assert.AreEqual(1, debugOutputs.Count,
+            "Write-Debug should produce exactly one output. Got: "
+            + string.Join(" | ", outputs.Select(o => o.Content)));
     }
 
     [TestMethod]
