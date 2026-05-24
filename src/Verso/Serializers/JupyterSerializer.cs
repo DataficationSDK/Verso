@@ -168,7 +168,11 @@ public sealed class JupyterSerializer : INotebookSerializer
             };
         }
 
-        if (string.Equals(output.MimeType, "text/plain", StringComparison.OrdinalIgnoreCase))
+        // Null/empty MimeType is treated as text/plain rather than producing a
+        // display_data with an invalid empty MIME key.
+        var mimeType = string.IsNullOrEmpty(output.MimeType) ? "text/plain" : output.MimeType;
+
+        if (string.Equals(mimeType, "text/plain", StringComparison.OrdinalIgnoreCase))
         {
             return new JupyterWriteOutput
             {
@@ -183,7 +187,7 @@ public sealed class JupyterSerializer : INotebookSerializer
             OutputType = "display_data",
             Data = new Dictionary<string, List<string>>
             {
-                [output.MimeType] = SplitSourceForJupyter(output.Content ?? "")
+                [mimeType] = SplitSourceForJupyter(output.Content ?? "")
             },
             Metadata = new Dictionary<string, object>()
         };

@@ -342,6 +342,27 @@ public class HandlerTests
     }
 
     [TestMethod]
+    public async Task NotebookSave_NonObjectParams_FallsBackToVerso()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        // JSON null, an array, and a primitive are all legal JSON-RPC params shapes;
+        // none should cause TryGetProperty to throw.
+        var jsonNull = JsonDocument.Parse("null").RootElement;
+        var jsonArray = JsonDocument.Parse("[1,2,3]").RootElement;
+        var jsonNumber = JsonDocument.Parse("42").RootElement;
+
+        var nullResult = await NotebookHandler.HandleSaveAsync(ns, jsonNull);
+        var arrayResult = await NotebookHandler.HandleSaveAsync(ns, jsonArray);
+        var numberResult = await NotebookHandler.HandleSaveAsync(ns, jsonNumber);
+
+        Assert.IsTrue(nullResult.Content.Contains("\"verso\""));
+        Assert.IsTrue(arrayResult.Content.Contains("\"verso\""));
+        Assert.IsTrue(numberResult.Content.Contains("\"verso\""));
+    }
+
+    [TestMethod]
     public async Task CellMove_ReordersCells()
     {
         var (session, notebookId) = await CreateOpenSession();

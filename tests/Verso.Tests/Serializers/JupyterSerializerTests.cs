@@ -436,6 +436,30 @@ public sealed class JupyterSerializerTests
     }
 
     [TestMethod]
+    public async Task Serialize_EmptyMimeType_TreatsAsTextPlain()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells =
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Source = "x",
+                    Outputs = { new CellOutput("", "hello") }
+                }
+            }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var output = doc.RootElement.GetProperty("cells")[0].GetProperty("outputs")[0];
+        Assert.AreEqual("stream", output.GetProperty("output_type").GetString(),
+            "Empty MimeType should coerce to text/plain stream rather than emit an empty MIME key.");
+        Assert.AreEqual("stdout", output.GetProperty("name").GetString());
+    }
+
+    [TestMethod]
     public async Task Serialize_ErrorOutput_PreservesENameAndTraceback()
     {
         var notebook = new NotebookModel

@@ -211,7 +211,8 @@ public static class NotebookHandler
     public static async Task<NotebookSaveResult> HandleSaveAsync(NotebookSession ns, JsonElement? @params)
     {
         var format = "verso";
-        if (@params?.TryGetProperty("format", out var fmtEl) == true
+        if (@params is { ValueKind: JsonValueKind.Object } p
+            && p.TryGetProperty("format", out var fmtEl)
             && fmtEl.ValueKind == JsonValueKind.String
             && !string.IsNullOrWhiteSpace(fmtEl.GetString()))
         {
