@@ -294,7 +294,7 @@ public class HandlerTests
     }
 
     [TestMethod]
-    public async Task NotebookSave_ReturnsVersoContent()
+    public async Task NotebookSave_NoParams_ReturnsVersoContent()
     {
         var (session, notebookId) = await CreateOpenSession();
         var ns = GetNs(session, notebookId);
@@ -302,10 +302,43 @@ public class HandlerTests
             new CellAddParams { Source = "Console.WriteLine(\"test\");" },
             JsonRpcMessage.SerializerOptions));
 
-        var result = await NotebookHandler.HandleSaveAsync(ns);
+        var result = await NotebookHandler.HandleSaveAsync(ns, null);
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.Content));
         Assert.IsTrue(result.Content.Contains("Console.WriteLine"));
+        Assert.IsTrue(result.Content.TrimStart().StartsWith("{"), "Verso format is JSON.");
+        Assert.IsTrue(result.Content.Contains("\"verso\""), "Verso format includes a 'verso' format-version field.");
+    }
+
+    [TestMethod]
+    public async Task NotebookSave_JupyterFormat_ReturnsIpynbContent()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        CellHandler.HandleAdd(ns, JsonSerializer.SerializeToElement(
+            new CellAddParams { Source = "print hello" },
+            JsonRpcMessage.SerializerOptions));
+
+        var paramsEl = JsonSerializer.SerializeToElement(new { format = "jupyter" });
+        var result = await NotebookHandler.HandleSaveAsync(ns, paramsEl);
+
+        using var doc = JsonDocument.Parse(result.Content);
+        Assert.AreEqual(4, doc.RootElement.GetProperty("nbformat").GetInt32());
+        var source = doc.RootElement.GetProperty("cells")[0].GetProperty("source");
+        Assert.AreEqual("print hello", source[0].GetString());
+    }
+
+    [TestMethod]
+    public async Task NotebookSave_UnknownFormat_FallsBackToVerso()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        var paramsEl = JsonSerializer.SerializeToElement(new { format = "no-such-format" });
+        var result = await NotebookHandler.HandleSaveAsync(ns, paramsEl);
+
+        Assert.IsTrue(result.Content.Contains("\"verso\""),
+            "Unknown format should fall back to verso, not throw.");
     }
 
     [TestMethod]

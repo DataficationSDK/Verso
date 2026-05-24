@@ -13,4 +13,11 @@ public sealed record NotebookServiceOptions
     /// built-in extensions are loaded.
     /// </summary>
     public string? ExtensionsDirectory { get; init; }
+
+    /// <summary>
+    /// When true, saving a notebook that was loaded from a non-.verso file (e.g.
+    /// <c>.ipynb</c>) writes back to the original format instead of converting
+    /// to <c>.verso</c>. Defaults to false.
+    /// </summary>
+    public bool PreserveFormat { get; init; }
 }

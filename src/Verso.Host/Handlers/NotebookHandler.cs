@@ -208,20 +208,36 @@ public static class NotebookHandler
         return new { success = true };
     }
 
-    public static async Task<NotebookSaveResult> HandleSaveAsync(NotebookSession ns)
+    public static async Task<NotebookSaveResult> HandleSaveAsync(NotebookSession ns, JsonElement? @params)
     {
+        var format = "verso";
+        if (@params?.TryGetProperty("format", out var fmtEl) == true
+            && fmtEl.ValueKind == JsonValueKind.String
+            && !string.IsNullOrWhiteSpace(fmtEl.GetString()))
+        {
+            format = fmtEl.GetString()!;
+        }
+
         // Flush layout metadata (grid positions, etc.) into the notebook model
         if (ns.Scaffold.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(ns.Scaffold.Notebook);
-        // Run post-processors before serialization
+
+        // Run post-processors before serialization. The format key the post-processor
+        // sees matches the requested serializer so format-specific processors can opt in.
+        var postProcessorFormat = string.Equals(format, "verso", StringComparison.OrdinalIgnoreCase)
+            ? "verso-native"
+            : format;
         var notebook = ns.Scaffold.Notebook;
         var postProcessors = ns.ExtensionHost.GetPostProcessors()
-            .Where(pp => pp.CanProcess(null, "verso-native"))
+            .Where(pp => pp.CanProcess(null, postProcessorFormat))
             .OrderBy(pp => pp.Priority);
         foreach (var pp in postProcessors)
             notebook = await pp.PreSerializeAsync(notebook, null);
 
-        var serializer = new VersoSerializer();
+        var serializer = ns.ExtensionHost.GetSerializers()
+            .FirstOrDefault(s => string.Equals(s.FormatId, format, StringComparison.OrdinalIgnoreCase))
+            ?? (INotebookSerializer)new VersoSerializer();
+
         var content = await serializer.SerializeAsync(notebook);
         return new NotebookSaveResult { Content = content };
     }

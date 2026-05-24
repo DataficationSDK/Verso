@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Verso.Serializers;
 
 namespace Verso.Tests.Serializers;
@@ -32,13 +33,6 @@ public sealed class JupyterSerializerTests
     public void CanImport_Verso_ReturnsFalse()
     {
         Assert.IsFalse(_serializer.CanImport("notebook.verso"));
-    }
-
-    [TestMethod]
-    public void SerializeAsync_ThrowsNotSupported()
-    {
-        Assert.ThrowsExceptionAsync<NotSupportedException>(
-            () => _serializer.SerializeAsync(new NotebookModel()));
     }
 
     [TestMethod]
@@ -368,5 +362,224 @@ public sealed class JupyterSerializerTests
         var notebook = await _serializer.DeserializeAsync(json);
 
         Assert.AreEqual("line1\nline2\n", notebook.Cells[0].Outputs[0].Content);
+    }
+
+    // --- Serialize ---
+
+    [TestMethod]
+    public async Task Serialize_EmptyNotebook_ProducesNbformat4()
+    {
+        var notebook = new NotebookModel();
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.AreEqual(4, doc.RootElement.GetProperty("nbformat").GetInt32());
+        Assert.AreEqual(5, doc.RootElement.GetProperty("nbformat_minor").GetInt32());
+        Assert.AreEqual(0, doc.RootElement.GetProperty("cells").GetArrayLength());
+    }
+
+    [TestMethod]
+    public async Task Serialize_KernelSpec_FromDefaultKernel()
+    {
+        var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var kernelspec = doc.RootElement.GetProperty("metadata").GetProperty("kernelspec");
+        Assert.AreEqual("csharp", kernelspec.GetProperty("name").GetString());
+        Assert.AreEqual("C#", kernelspec.GetProperty("display_name").GetString());
+        Assert.AreEqual("csharp", kernelspec.GetProperty("language").GetString());
+        Assert.AreEqual("csharp",
+            doc.RootElement.GetProperty("metadata").GetProperty("language_info").GetProperty("name").GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_MultiLineSource_AsStringList()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells = { new CellModel { Type = "code", Source = "line1\nline2\nline3" } }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var source = doc.RootElement.GetProperty("cells")[0].GetProperty("source");
+        Assert.AreEqual(JsonValueKind.Array, source.ValueKind);
+        Assert.AreEqual(3, source.GetArrayLength());
+        Assert.AreEqual("line1\n", source[0].GetString());
+        Assert.AreEqual("line2\n", source[1].GetString());
+        Assert.AreEqual("line3", source[2].GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_StreamOutput_FromTextPlain()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells =
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Source = "x",
+                    Outputs = { new CellOutput("text/plain", "hello\n") }
+                }
+            }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var output = doc.RootElement.GetProperty("cells")[0].GetProperty("outputs")[0];
+        Assert.AreEqual("stream", output.GetProperty("output_type").GetString());
+        Assert.AreEqual("stdout", output.GetProperty("name").GetString());
+        Assert.AreEqual("hello\n", output.GetProperty("text")[0].GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_ErrorOutput_PreservesENameAndTraceback()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells =
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Source = "x",
+                    Outputs =
+                    {
+                        new CellOutput(
+                            "text/plain",
+                            "bad value",
+                            IsError: true,
+                            ErrorName: "ValueError",
+                            ErrorStackTrace: "frame 1\nframe 2")
+                    }
+                }
+            }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var output = doc.RootElement.GetProperty("cells")[0].GetProperty("outputs")[0];
+        Assert.AreEqual("error", output.GetProperty("output_type").GetString());
+        Assert.AreEqual("ValueError", output.GetProperty("ename").GetString());
+        Assert.AreEqual("bad value", output.GetProperty("evalue").GetString());
+        var tb = output.GetProperty("traceback");
+        Assert.AreEqual(2, tb.GetArrayLength());
+        Assert.AreEqual("frame 1", tb[0].GetString());
+        Assert.AreEqual("frame 2", tb[1].GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_DisplayData_FromImagePng()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells =
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Source = "plot()",
+                    Outputs = { new CellOutput("image/png", "iVBORw0KGgo=") }
+                }
+            }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var output = doc.RootElement.GetProperty("cells")[0].GetProperty("outputs")[0];
+        Assert.AreEqual("display_data", output.GetProperty("output_type").GetString());
+        var data = output.GetProperty("data");
+        Assert.AreEqual("iVBORw0KGgo=", data.GetProperty("image/png")[0].GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_MarkdownCell_HasNoOutputs()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells = { new CellModel { Type = "markdown", Source = "# Title" } }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var cell = doc.RootElement.GetProperty("cells")[0];
+        Assert.AreEqual("markdown", cell.GetProperty("cell_type").GetString());
+        Assert.IsFalse(cell.TryGetProperty("outputs", out _));
+        Assert.IsFalse(cell.TryGetProperty("execution_count", out _));
+    }
+
+    [TestMethod]
+    public async Task Serialize_NonStandardCellType_FallsBackToRaw()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells = { new CellModel { Type = "sql", Source = "SELECT 1" } }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var cell = doc.RootElement.GetProperty("cells")[0];
+        Assert.AreEqual("raw", cell.GetProperty("cell_type").GetString());
+        Assert.AreEqual("sql", cell.GetProperty("metadata").GetProperty("verso_type").GetString());
+    }
+
+    [TestMethod]
+    public async Task Serialize_ExecutionCount_FromMetadata()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells =
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Source = "x = 1",
+                    Metadata = { ["execution_count"] = 7 }
+                }
+            }
+        };
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        var cell = doc.RootElement.GetProperty("cells")[0];
+        Assert.AreEqual(7, cell.GetProperty("execution_count").GetInt32());
+        Assert.IsFalse(cell.GetProperty("metadata").TryGetProperty("execution_count", out _),
+            "execution_count should not be duplicated in cell metadata.");
+    }
+
+    [TestMethod]
+    public async Task RoundTrip_StreamOutput_PreservesContent()
+    {
+        var original = @"{
+            ""nbformat"": 4, ""nbformat_minor"": 5,
+            ""metadata"": { ""kernelspec"": { ""language"": ""python"" } },
+            ""cells"": [{
+                ""cell_type"": ""code"",
+                ""source"": ""print('hi')"",
+                ""outputs"": [{
+                    ""output_type"": ""stream"",
+                    ""name"": ""stdout"",
+                    ""text"": ""hi\n""
+                }],
+                ""metadata"": {},
+                ""execution_count"": 3
+            }]
+        }";
+
+        var notebook = await _serializer.DeserializeAsync(original);
+        var roundtripped = await _serializer.SerializeAsync(notebook);
+        var reread = await _serializer.DeserializeAsync(roundtripped);
+
+        Assert.AreEqual(1, reread.Cells.Count);
+        Assert.AreEqual("code", reread.Cells[0].Type);
+        Assert.AreEqual("python", reread.Cells[0].Language);
+        Assert.AreEqual("print('hi')", reread.Cells[0].Source);
+        Assert.AreEqual(1, reread.Cells[0].Outputs.Count);
+        Assert.AreEqual("text/plain", reread.Cells[0].Outputs[0].MimeType);
+        Assert.AreEqual("hi\n", reread.Cells[0].Outputs[0].Content);
+        Assert.AreEqual(3, Convert.ToInt32(reread.Cells[0].Metadata["execution_count"]));
     }
 }
