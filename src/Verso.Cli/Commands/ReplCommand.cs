@@ -68,6 +68,9 @@ public static class ReplCommand
         var listThemesOption = new Option<bool>("--list-themes", () => false,
             "Print registered themes and exit.");
 
+        var preserveFormatOption = new Option<bool>("--preserve-format", () => false,
+            "When the loaded notebook is .ipynb, .save (no arg) writes back to .ipynb instead of converting to .verso. Cell outputs are preserved.");
+
         var command = new Command("repl", "Start an interactive Verso REPL in the terminal.")
         {
             notebookArg,
@@ -80,7 +83,8 @@ public static class ReplCommand
             plainOption,
             historyOption,
             listKernelsOption,
-            listThemesOption
+            listThemesOption,
+            preserveFormatOption
         };
 
         command.SetHandler(async (context) =>
@@ -96,6 +100,7 @@ public static class ReplCommand
             var historyArg = context.ParseResult.GetValueForOption(historyOption);
             var listKernels = context.ParseResult.GetValueForOption(listKernelsOption);
             var listThemes = context.ParseResult.GetValueForOption(listThemesOption);
+            var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
 
             var ct = context.GetCancellationToken();
 
@@ -110,7 +115,8 @@ public static class ReplCommand
                 NoColor = noColor,
                 Plain = plain,
                 HistoryPath = string.Equals(historyArg, "none", StringComparison.OrdinalIgnoreCase) ? null : historyArg,
-                HistoryDisabled = string.Equals(historyArg, "none", StringComparison.OrdinalIgnoreCase)
+                HistoryDisabled = string.Equals(historyArg, "none", StringComparison.OrdinalIgnoreCase),
+                PreserveFormat = preserveFormat
             };
 
             context.ExitCode = await RunAsync(options, listKernels, listThemes, ct);
@@ -228,7 +234,8 @@ public static class ReplCommand
                 ActiveKernelId = notebook.DefaultKernelId,
                 ActiveTheme = activeTheme,
                 ActiveLayoutId = options.LayoutId,
-                Settings = ReplSettingsLoader.Load()
+                Settings = ReplSettingsLoader.Load(),
+                PreserveFormat = options.PreserveFormat
             };
 
             // Execute pre-loaded cells when --execute is set.

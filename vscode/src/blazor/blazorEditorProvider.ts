@@ -371,6 +371,13 @@ export class BlazorEditorProvider
 
   // --- Save / Revert ---
 
+  // Extensions Verso can write back in their original format. Anything not listed
+  // here falls through to the convert-to-.verso path even when the
+  // verso.preserveOriginalFormat setting is on.
+  private static readonly preservableFormats: Record<string, string> = {
+    ".ipynb": "jupyter",
+  };
+
   async saveCustomDocument(
     document: VersoDocument,
     _cancellation: vscode.CancellationToken
@@ -380,10 +387,16 @@ export class BlazorEditorProvider
     if (!session || !notebookId) return;
     const host = session.host;
 
-    // If the source file is not a .verso file (e.g. imported .dib or .ipynb),
-    // redirect the save to a .verso file to avoid overwriting the original format.
     const fsPath = document.uri.fsPath;
-    if (!fsPath.endsWith(".verso")) {
+    const ext = path.extname(fsPath).toLowerCase();
+    const preserveSetting = vscode.workspace.getConfiguration("verso")
+      .get<boolean>("preserveOriginalFormat", false);
+    const preservableFormat = BlazorEditorProvider.preservableFormats[ext];
+    const shouldPreserve = ext !== ".verso" && preserveSetting && preservableFormat !== undefined;
+
+    // Source isn't .verso and the user hasn't opted in to preservation (or the
+    // format isn't writable back): redirect to a sibling .verso file.
+    if (ext !== ".verso" && !shouldPreserve) {
       const versoPath = fsPath.replace(/\.[^.]+$/, ".verso");
       const versoUri = vscode.Uri.file(versoPath);
 
@@ -406,9 +419,10 @@ export class BlazorEditorProvider
       return;
     }
 
+    const format = ext === ".verso" ? "verso" : preservableFormat;
     const result = await host.sendRequest<NotebookSaveResult>(
       "notebook/save",
-      { notebookId }
+      { notebookId, format }
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(document.uri, data);
@@ -424,16 +438,27 @@ export class BlazorEditorProvider
     if (!session || !notebookId) return;
     const host = session.host;
 
-    // If the destination is not a .verso file, adjust the extension
+    const destExt = path.extname(destination.fsPath).toLowerCase();
+    const preserveSetting = vscode.workspace.getConfiguration("verso")
+      .get<boolean>("preserveOriginalFormat", false);
+    const preservableFormat = BlazorEditorProvider.preservableFormats[destExt];
+    const shouldPreserve = destExt !== ".verso" && preserveSetting && preservableFormat !== undefined;
+
     let targetUri = destination;
-    if (!destination.fsPath.endsWith(".verso")) {
+    let format = "verso";
+    if (destExt === ".verso") {
+      format = "verso";
+    } else if (shouldPreserve) {
+      format = preservableFormat;
+    } else {
+      // Destination isn't writable in its requested format: coerce to .verso.
       const versoPath = destination.fsPath.replace(/\.[^.]+$/, ".verso");
       targetUri = vscode.Uri.file(versoPath);
     }
 
     const result = await host.sendRequest<NotebookSaveResult>(
       "notebook/save",
-      { notebookId }
+      { notebookId, format }
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(targetUri, data);

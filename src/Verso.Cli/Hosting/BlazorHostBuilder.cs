@@ -18,6 +18,7 @@ public sealed record ServeOptions
     public bool NoHttps { get; init; }
     public bool Verbose { get; init; }
     public string? ExtensionsDirectory { get; init; }
+    public bool PreserveFormat { get; init; }
 }
 
 /// <summary>
@@ -74,6 +75,7 @@ public static class BlazorHostBuilder
         builder.Services.AddSingleton(new NotebookServiceOptions
         {
             ExtensionsDirectory = options.ExtensionsDirectory,
+            PreserveFormat = options.PreserveFormat,
         });
         builder.Services.AddScoped<INotebookService, ServerNotebookService>();
 

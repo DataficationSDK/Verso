@@ -205,7 +205,7 @@ public class PropertiesHandlerTests
             await PropertiesHandler.HandleUpdatePropertyAsync(ns, updateParams);
         }
 
-        var saved = await NotebookHandler.HandleSaveAsync(ns);
+        var saved = await NotebookHandler.HandleSaveAsync(ns, null);
 
         var reopenParams = JsonSerializer.SerializeToElement(
             new NotebookOpenParams { Content = saved.Content, FilePath = "roundtrip.verso" },

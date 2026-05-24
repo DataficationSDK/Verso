@@ -12,17 +12,32 @@ public sealed class SaveMeta : IMetaCommand
     public string DetailedHelp =>
         ".save [<path>]\n" +
         "  Serializes the session notebook. When <path> is omitted, saves to the original\n" +
-        "  loaded path (if any) or reports an error. Format is inferred from the extension.";
+        "  loaded path (if any) or reports an error. Format is inferred from the extension.\n" +
+        "  Without --preserve-format, a .save with no arg against an .ipynb-loaded notebook\n" +
+        "  converts to a sibling .verso file; with --preserve-format the original format is kept.";
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var arg = argumentText.Trim();
-        var targetPath = string.IsNullOrEmpty(arg) ? context.Session.NotebookPath : Path.GetFullPath(arg);
+        var explicitTarget = !string.IsNullOrEmpty(arg);
+        var targetPath = explicitTarget ? Path.GetFullPath(arg) : context.Session.NotebookPath;
 
         if (string.IsNullOrEmpty(targetPath))
         {
             context.Console.MarkupLine("[red].save requires a path when the session has no loaded notebook.[/] Usage: .save <path>");
             return true;
+        }
+
+        // Implicit-target saves on a non-.verso path: when the user has not asked to preserve
+        // the original format, route to a sibling .verso file (matching the VS Code default).
+        // Explicit `.save foo.ipynb` always honors the path the user typed.
+        if (!explicitTarget
+            && !context.Session.PreserveFormat
+            && !targetPath.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Console.MarkupLine(
+                $"[yellow]Converting to .verso; use --preserve-format to keep[/] {Markup.Escape(Path.GetExtension(targetPath))}.");
+            targetPath = Path.ChangeExtension(targetPath, ".verso");
         }
 
         INotebookSerializer serializer;

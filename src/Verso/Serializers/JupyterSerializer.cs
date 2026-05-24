@@ -5,7 +5,7 @@ using Verso.Abstractions;
 namespace Verso.Serializers;
 
 /// <summary>
-/// Import-only serializer for Jupyter <c>.ipynb</c> notebooks (nbformat v4).
+/// Serializer for Jupyter <c>.ipynb</c> notebooks (nbformat v4).
 /// </summary>
 [VersoExtension]
 public sealed class JupyterSerializer : INotebookSerializer
@@ -15,13 +15,19 @@ public sealed class JupyterSerializer : INotebookSerializer
         PropertyNameCaseInsensitive = true
     };
 
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.jupyter";
     public string Name => "Jupyter Serializer";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Import-only serializer for Jupyter .ipynb notebooks.";
+    public string? Description => "Serializer for Jupyter .ipynb notebooks (nbformat v4).";
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -39,7 +45,17 @@ public sealed class JupyterSerializer : INotebookSerializer
 
     public Task<string> SerializeAsync(NotebookModel notebook)
     {
-        throw new NotSupportedException("Jupyter .ipynb export is not supported. Use the Verso native format.");
+        ArgumentNullException.ThrowIfNull(notebook);
+
+        var doc = new JupyterWriteNotebook
+        {
+            NbFormat = 4,
+            NbFormatMinor = 5,
+            Metadata = BuildMetadata(notebook.DefaultKernelId),
+            Cells = notebook.Cells.Select(BuildCell).ToList()
+        };
+
+        return Task.FromResult(JsonSerializer.Serialize(doc, WriteOptions));
     }
 
     public Task<NotebookModel> DeserializeAsync(string content)
@@ -94,6 +110,144 @@ public sealed class JupyterSerializer : INotebookSerializer
         }
 
         return Task.FromResult(notebook);
+    }
+
+    // --- Write helpers ---
+
+    // Code/markdown round-trip cleanly. Other cell types collapse to "raw" so structure
+    // survives — the Verso type label is preserved in cell.metadata.verso_type.
+    private static JupyterWriteCell BuildCell(CellModel cell)
+    {
+        var jupyterType = cell.Type?.ToLowerInvariant() switch
+        {
+            "code" => "code",
+            "markdown" => "markdown",
+            _ => "raw"
+        };
+
+        var writeCell = new JupyterWriteCell
+        {
+            CellType = jupyterType,
+            Source = SplitSourceForJupyter(cell.Source ?? "")
+        };
+
+        if (!string.Equals(jupyterType, cell.Type, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(cell.Type))
+        {
+            writeCell.Metadata["verso_type"] = cell.Type!;
+        }
+
+        foreach (var (key, value) in cell.Metadata)
+        {
+            if (key == "execution_count") continue;
+            writeCell.Metadata[key] = value;
+        }
+
+        if (string.Equals(jupyterType, "code", StringComparison.OrdinalIgnoreCase))
+        {
+            writeCell.ExecutionCount = TryGetExecutionCount(cell.Metadata);
+            writeCell.Outputs = cell.Outputs.Select(BuildOutput).ToList();
+        }
+
+        return writeCell;
+    }
+
+    private static JupyterWriteOutput BuildOutput(CellOutput output)
+    {
+        if (output.IsError)
+        {
+            var lines = string.IsNullOrEmpty(output.ErrorStackTrace)
+                ? new List<string>()
+                : output.ErrorStackTrace.Split('\n').ToList();
+            return new JupyterWriteOutput
+            {
+                OutputType = "error",
+                EName = output.ErrorName ?? "Error",
+                EValue = output.Content ?? "",
+                Traceback = lines
+            };
+        }
+
+        // Null/empty MimeType is treated as text/plain rather than producing a
+        // display_data with an invalid empty MIME key.
+        var mimeType = string.IsNullOrEmpty(output.MimeType) ? "text/plain" : output.MimeType;
+
+        if (string.Equals(mimeType, "text/plain", StringComparison.OrdinalIgnoreCase))
+        {
+            return new JupyterWriteOutput
+            {
+                OutputType = "stream",
+                Name = "stdout",
+                Text = SplitSourceForJupyter(output.Content ?? "")
+            };
+        }
+
+        return new JupyterWriteOutput
+        {
+            OutputType = "display_data",
+            Data = new Dictionary<string, List<string>>
+            {
+                [mimeType] = SplitSourceForJupyter(output.Content ?? "")
+            },
+            Metadata = new Dictionary<string, object>()
+        };
+    }
+
+    private static JupyterWriteMetadata BuildMetadata(string? defaultKernelId)
+    {
+        if (string.IsNullOrWhiteSpace(defaultKernelId))
+            return new JupyterWriteMetadata();
+
+        var (name, displayName, language) = ReverseNormalizeKernel(defaultKernelId);
+        return new JupyterWriteMetadata
+        {
+            Kernelspec = new JupyterKernelSpec
+            {
+                Name = name,
+                DisplayName = displayName,
+                Language = language
+            },
+            LanguageInfo = new JupyterLanguageInfo { Name = language }
+        };
+    }
+
+    private static (string Name, string DisplayName, string Language) ReverseNormalizeKernel(string kernelId)
+    {
+        return kernelId.ToLowerInvariant() switch
+        {
+            "csharp" => ("csharp", "C#", "csharp"),
+            "fsharp" => ("fsharp", "F#", "fsharp"),
+            "python" => ("python3", "Python 3", "python"),
+            _ => (kernelId, kernelId, kernelId)
+        };
+    }
+
+    private static List<string> SplitSourceForJupyter(string source)
+    {
+        if (string.IsNullOrEmpty(source))
+            return new List<string>();
+
+        var lines = source.Split('\n');
+        var result = new List<string>(lines.Length);
+        for (int i = 0; i < lines.Length - 1; i++)
+            result.Add(lines[i] + "\n");
+        result.Add(lines[lines.Length - 1]);
+        return result;
+    }
+
+    private static int? TryGetExecutionCount(Dictionary<string, object> metadata)
+    {
+        if (!metadata.TryGetValue("execution_count", out var value))
+            return null;
+
+        return value switch
+        {
+            int i => i,
+            long l => (int)l,
+            double d => (int)d,
+            JsonElement je when je.ValueKind == JsonValueKind.Number && je.TryGetInt32(out var v) => v,
+            _ => null
+        };
     }
 
     // --- Mapping helpers ---
@@ -253,7 +407,96 @@ public sealed class JupyterSerializer : INotebookSerializer
         };
     }
 
-    // --- Internal DTOs ---
+    // --- Internal write DTOs ---
+
+    private sealed class JupyterWriteNotebook
+    {
+        [JsonPropertyName("cells")]
+        public List<JupyterWriteCell> Cells { get; set; } = new();
+
+        [JsonPropertyName("metadata")]
+        public JupyterWriteMetadata Metadata { get; set; } = new();
+
+        [JsonPropertyName("nbformat")]
+        public int NbFormat { get; set; }
+
+        [JsonPropertyName("nbformat_minor")]
+        public int NbFormatMinor { get; set; }
+    }
+
+    private sealed class JupyterWriteMetadata
+    {
+        [JsonPropertyName("kernelspec")]
+        public JupyterKernelSpec? Kernelspec { get; set; }
+
+        [JsonPropertyName("language_info")]
+        public JupyterLanguageInfo? LanguageInfo { get; set; }
+    }
+
+    private sealed class JupyterKernelSpec
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonPropertyName("display_name")]
+        public string DisplayName { get; set; } = "";
+
+        [JsonPropertyName("language")]
+        public string Language { get; set; } = "";
+    }
+
+    private sealed class JupyterLanguageInfo
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class JupyterWriteCell
+    {
+        [JsonPropertyName("cell_type")]
+        public string CellType { get; set; } = "code";
+
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, object> Metadata { get; set; } = new();
+
+        [JsonPropertyName("source")]
+        public List<string> Source { get; set; } = new();
+
+        [JsonPropertyName("execution_count")]
+        public int? ExecutionCount { get; set; }
+
+        [JsonPropertyName("outputs")]
+        public List<JupyterWriteOutput>? Outputs { get; set; }
+    }
+
+    private sealed class JupyterWriteOutput
+    {
+        [JsonPropertyName("output_type")]
+        public string OutputType { get; set; } = "";
+
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("text")]
+        public List<string>? Text { get; set; }
+
+        [JsonPropertyName("data")]
+        public Dictionary<string, List<string>>? Data { get; set; }
+
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, object>? Metadata { get; set; }
+
+        [JsonPropertyName("ename")]
+        public string? EName { get; set; }
+
+        [JsonPropertyName("evalue")]
+        public string? EValue { get; set; }
+
+        [JsonPropertyName("traceback")]
+        public List<string>? Traceback { get; set; }
+    }
+
+    // --- Internal read DTOs ---
 
     private sealed class JupyterNotebook
     {

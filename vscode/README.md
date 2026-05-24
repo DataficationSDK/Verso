@@ -99,6 +99,12 @@ The Python kernel requires **Python 3.8-3.12** installed on your system. Python 
 
 To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` file.
 
+### Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `verso.preserveOriginalFormat` | `false` | When opening an `.ipynb` file, save changes back to `.ipynb` (cell outputs preserved) instead of converting to a sibling `.verso` file. Leave off to keep the existing convert-on-save behavior. |
+
 ## Supported Languages
 
 | Language | IntelliSense | Variable Sharing |

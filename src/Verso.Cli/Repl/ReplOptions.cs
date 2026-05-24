@@ -15,4 +15,5 @@ public sealed class ReplOptions
     public bool Plain { get; init; }
     public string? HistoryPath { get; init; }
     public bool HistoryDisabled { get; init; }
+    public bool PreserveFormat { get; init; }
 }

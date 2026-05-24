@@ -64,6 +64,11 @@
           "type": "string",
           "default": "",
           "description": "Directory of third-party Verso extension assemblies to load on notebook open. Changes apply on next notebook open or kernel restart."
+        },
+        "verso.preserveOriginalFormat": {
+          "type": "boolean",
+          "default": false,
+          "description": "When opening an .ipynb file, save changes back to .ipynb instead of converting to .verso. Cell outputs are preserved. Default off keeps the existing convert-on-save behavior."
         }
       }
     },

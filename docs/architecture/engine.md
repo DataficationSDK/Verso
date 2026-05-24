@@ -198,10 +198,10 @@ Notebooks are serialized and deserialized through the `INotebookSerializer` inte
 | Serializer | Format ID | Extensions | Read | Write |
 |------------|-----------|------------|:----:|:-----:|
 | `VersoSerializer` | `verso.serializer.verso` | `.verso` | Yes | Yes |
-| `JupyterSerializer` | `verso.serializer.jupyter` | `.ipynb` | Yes | No |
+| `JupyterSerializer` | `verso.serializer.jupyter` | `.ipynb` | Yes | Yes |
 | `DibSerializer` | `verso.serializer.dib` | `.dib` | Yes | No |
 
-The `.verso` format is native JSON. Jupyter and Polyglot Notebook (`.dib`) files are import-only. Saving always writes `.verso` format.
+The `.verso` format is native JSON. Polyglot Notebook (`.dib`) files are import-only. Jupyter (`.ipynb`) files round-trip when the host receives `format: "jupyter"` on `notebook/save`; otherwise the host writes the native `.verso` format. Front-ends expose this opt-in through the `verso.preserveOriginalFormat` VS Code setting and the `--preserve-format` flag on `verso repl` and `verso serve`. When preservation is off, opening a non-`.verso` notebook and saving produces a sibling `.verso` file.
 
 The `VersoSerializer` intentionally omits parameters cell outputs during serialization because those outputs are always re-rendered from `metadata.parameters` at display time.
 
