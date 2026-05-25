@@ -298,10 +298,14 @@ else if (_srcdoc is not null)
                 source = c.Source
             }).ToArray(),
             ["capabilities"] = (int)Service.LayoutCapabilities,
-            ["theme"] = new { },
             ["layoutMetadata"] = new { },
             ["extension"] = extra
         };
+
+        if (RemoteService.CurrentTheme is { } themeBundle)
+        {
+            initPayload["theme"] = themeBundle;
+        }
 
         try
         {
@@ -418,7 +422,8 @@ else if (_srcdoc is not null)
     private void HandleThemeChanged()
     {
         if (_disposed || !_initSent) return;
-        _ = PostToIframeAsync("verso/themeChanged", new { theme = new { } });
+        if (RemoteService.CurrentTheme is not { } themeBundle) return;
+        _ = PostToIframeAsync("verso/themeChanged", new { theme = themeBundle });
     }
 
     private void HandleLayoutUpdated(LayoutUpdatedEventArgs args)

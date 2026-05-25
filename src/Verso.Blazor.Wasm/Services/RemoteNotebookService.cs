@@ -150,6 +150,14 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public ThemeData? ActiveThemeData { get; private set; }
 
     /// <summary>
+    /// Resolved theme bundle for iframe-isolated layout renderers. Returns <c>null</c> until
+    /// <see cref="ActiveThemeData"/> has been populated. The bundle's token keys match the
+    /// host's documented CSS custom-property palette so iframe stylesheets can reference
+    /// the same variable names as the host page.
+    /// </summary>
+    public LayoutThemeBundle? CurrentTheme => LayoutThemeBundleBuilder.Build(_activeThemeKind, ActiveThemeData);
+
+    /// <summary>
     /// Qualified identity of the currently active layout, or <c>null</c> when no notebook
     /// is loaded. The pair-shape is the canonical client-side identifier from v1.0 onward.
     /// </summary>

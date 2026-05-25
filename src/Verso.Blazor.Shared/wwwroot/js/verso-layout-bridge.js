@@ -13,9 +13,37 @@
     var bound = null;
     var inboundHandlers = [];
 
+    // Applies a resolved theme bundle ({ kind, tokens }) to the iframe's :root.
+    // Token keys use dotted notation ("bg.default") and are converted to the
+    // host's CSS custom-property naming ("--verso-bg-default") so iframe
+    // stylesheets can reference the same variables as the host page.
+    function applyTheme(theme) {
+        if (!theme || !theme.tokens || typeof theme.tokens !== 'object') return;
+        var root = document.documentElement;
+        var tokens = theme.tokens;
+        for (var key in tokens) {
+            if (!Object.prototype.hasOwnProperty.call(tokens, key)) continue;
+            var value = tokens[key];
+            if (typeof value !== 'string') continue;
+            var cssName = '--verso-' + key.replace(/\./g, '-');
+            try { root.style.setProperty(cssName, value); } catch (_) {}
+        }
+        if (typeof theme.kind === 'string' && theme.kind.length > 0) {
+            try { root.style.setProperty('--verso-theme-kind', theme.kind); } catch (_) {}
+            try { root.setAttribute('data-verso-theme-kind', theme.kind); } catch (_) {}
+        }
+    }
+
     window.addEventListener('message', function (event) {
         var data = event.data;
         if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
+        if ((data.type === 'verso/init' || data.type === 'verso/themeChanged')
+            && data.payload && data.payload.theme) {
+            try { applyTheme(data.payload.theme); }
+            catch (e) {
+                try { console.error('verso bridge applyTheme error:', e); } catch (_) {}
+            }
+        }
         for (var i = 0; i < inboundHandlers.length; i++) {
             try {
                 inboundHandlers[i](data.type, data.payload);

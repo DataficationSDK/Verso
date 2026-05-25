@@ -83,6 +83,48 @@ public sealed record ThemeData(
     ThemeTypography Typography,
     ThemeSpacing Spacing);
 
+/// <summary>Resolved theme bundle sent to iframe-isolated layout renderers.</summary>
+public sealed record LayoutThemeBundle(string Kind, IReadOnlyDictionary<string, string> Tokens);
+
+/// <summary>
+/// Builds a <see cref="LayoutThemeBundle"/> from the active <see cref="ThemeData"/>.
+/// The bundle's token keys use the documented dotted-name palette
+/// (<c>bg.default</c>, <c>fg.default</c>, etc.); the iframe bridge maps each key
+/// to a <c>--verso-{key-with-dashes}</c> CSS custom property on the iframe root.
+/// </summary>
+public static class LayoutThemeBundleBuilder
+{
+    public static LayoutThemeBundle? Build(ThemeKind? kind, ThemeData? data)
+    {
+        if (data is null) return null;
+        var c = data.Colors;
+        var t = data.Typography;
+        var tokens = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["bg.default"]       = c.BgDefault,
+            ["bg.elevated"]      = c.BgElevated,
+            ["fg.default"]       = c.FgDefault,
+            ["fg.muted"]         = c.FgMuted,
+            ["border.default"]   = c.BorderDefault,
+            ["accent"]           = c.Accent,
+            ["font.family.mono"] = t.FontFamilyMono,
+            ["font.family.sans"] = t.FontFamilySans,
+            ["font.size.base"]   = FormatFontSize(t.FontSizeBase),
+        };
+        return new LayoutThemeBundle(KindToWire(kind), tokens);
+    }
+
+    public static string KindToWire(ThemeKind? k) => k switch
+    {
+        ThemeKind.Dark => "dark",
+        ThemeKind.HighContrast => "high-contrast",
+        _ => "light",
+    };
+
+    private static string FormatFontSize(double px) =>
+        px.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "px";
+}
+
 /// <summary>Result of a hover info request.</summary>
 public sealed record HoverResultDto(string Content, HoverRangeDto? Range);
 
