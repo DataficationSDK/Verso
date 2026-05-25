@@ -372,6 +372,24 @@ public sealed class LayoutRendererMountedResult
     public IDictionary<string, object>? Extension { get; set; }
 }
 
+public sealed class LayoutRendererUnmountedParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+    public string FrameInstanceId { get; set; } = "";
+}
+
+public sealed class LogExtensionParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+    public string FrameInstanceId { get; set; } = "";
+    public string Level { get; set; } = "";
+    public string Message { get; set; } = "";
+}
+
 // --- Theme ---
 
 public sealed class ThemeResult

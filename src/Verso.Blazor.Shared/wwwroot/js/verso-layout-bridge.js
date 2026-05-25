@@ -61,6 +61,72 @@
         inboundHandlers.push(handler);
     }
 
+    // Layout interaction. The bridge stamps identity (extensionId/layoutId/
+    // frameInstanceId) from the mount-bound values; the frame cannot spoof
+    // another layout.
+    function interact(interactionType, payload, targetId) {
+        ensureBound();
+        if (typeof interactionType !== 'string' || interactionType.length === 0) {
+            throw new Error('verso.interact: interactionType must be a non-empty string.');
+        }
+        window.parent.postMessage({
+            type: 'verso/interact',
+            payload: {
+                extensionId: bound.extensionId,
+                layoutId: bound.layoutId,
+                frameInstanceId: bound.frameInstanceId,
+                interactionType: interactionType,
+                payload: payload,
+                targetId: typeof targetId === 'string' ? targetId : null
+            }
+        }, '*');
+    }
+
+    // Cell interaction. extensionId is stamped from bound identity; the frame
+    // supplies cellId, interactionType, payload, and optional region/outputBlockId.
+    function cellInteract(cellId, interactionType, payload, options) {
+        ensureBound();
+        if (typeof cellId !== 'string' || cellId.length === 0) {
+            throw new Error('verso.cellInteract: cellId must be a non-empty string.');
+        }
+        if (typeof interactionType !== 'string' || interactionType.length === 0) {
+            throw new Error('verso.cellInteract: interactionType must be a non-empty string.');
+        }
+        var opts = options || {};
+        window.parent.postMessage({
+            type: 'verso/cellInteract',
+            payload: {
+                cellId: cellId,
+                extensionId: bound.extensionId,
+                interactionType: interactionType,
+                payload: payload,
+                outputBlockId: typeof opts.outputBlockId === 'string' ? opts.outputBlockId : null,
+                region: typeof opts.region === 'string' ? opts.region : null
+            }
+        }, '*');
+    }
+
+    function executeCell(cellId) {
+        ensureBound();
+        if (typeof cellId !== 'string' || cellId.length === 0) {
+            throw new Error('verso.executeCell: cellId must be a non-empty string.');
+        }
+        window.parent.postMessage({
+            type: 'verso/executeCell',
+            payload: { cellId: cellId }
+        }, '*');
+    }
+
+    function log(level, message) {
+        ensureBound();
+        var lvl = typeof level === 'string' && level.length > 0 ? level : 'info';
+        var msg = message == null ? '' : String(message);
+        window.parent.postMessage({
+            type: 'verso/log',
+            payload: { level: lvl, message: msg }
+        }, '*');
+    }
+
     window.versoBridgeInit = function (identity) {
         if (bound) return;
         if (!identity || !identity.extensionId || !identity.layoutId || !identity.frameInstanceId) {
@@ -74,7 +140,11 @@
         window.verso = {
             ready: ready,
             send: send,
-            onMessage: onMessage
+            onMessage: onMessage,
+            interact: interact,
+            cellInteract: cellInteract,
+            executeCell: executeCell,
+            log: log
         };
     };
 })();

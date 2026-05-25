@@ -57,6 +57,20 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public event Action? OnSettingsChanged;
     public event Action? OnOutputUpdated;
 
+    /// <summary>
+    /// Raised for each <c>output/update</c> notification with the cell id and raw
+    /// outputs payload so isolated-layout iframes can re-broadcast as
+    /// <c>verso/cellOutputs</c> without re-fetching the cell list.
+    /// </summary>
+    public event Action<CellOutputUpdatedEventArgs>? OnCellOutputUpdated;
+
+    /// <summary>
+    /// Raised for each <c>layout/frameMessage</c> notification. Subscribers should
+    /// filter by <see cref="LayoutFrameMessageEventArgs.FrameInstanceId"/> and
+    /// forward the message to the matching iframe.
+    /// </summary>
+    public event Action<LayoutFrameMessageEventArgs>? OnLayoutFrameMessage;
+
     /// <summary>Raised when the host requests extension consent. The UI should show the consent dialog.</summary>
     public event Action? OnExtensionConsentRequested;
 
@@ -732,6 +746,24 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         return response?.Extension;
     }
 
+    public Task LayoutRendererUnmountedAsync(
+        string extensionId,
+        string layoutId,
+        string frameInstanceId)
+        => _bridge.RequestVoidAsync(
+            "layout/rendererUnmounted",
+            new { extensionId, layoutId, frameInstanceId });
+
+    public Task LogExtensionAsync(
+        string extensionId,
+        string layoutId,
+        string frameInstanceId,
+        string level,
+        string message)
+        => _bridge.RequestVoidAsync(
+            "log/extension",
+            new { extensionId, layoutId, frameInstanceId, level, message });
+
     [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
     {
@@ -897,7 +929,38 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             case "layout/updated":
                 HandleLayoutUpdated(paramsJson);
                 break;
+            case "layout/frameMessage":
+                HandleLayoutFrameMessage(paramsJson);
+                break;
         }
+    }
+
+    private void HandleLayoutFrameMessage(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("frameInstanceId", out var idEl)
+                || idEl.ValueKind != JsonValueKind.String)
+                return;
+            if (!root.TryGetProperty("type", out var typeEl)
+                || typeEl.ValueKind != JsonValueKind.String)
+                return;
+
+            JsonElement? payload = root.TryGetProperty("payload", out var p)
+                ? p.Clone()
+                : null;
+
+            OnLayoutFrameMessage?.Invoke(new LayoutFrameMessageEventArgs(
+                idEl.GetString() ?? string.Empty,
+                typeEl.GetString() ?? string.Empty,
+                payload));
+        }
+        catch (JsonException) { }
     }
 
     private void HandleKernelRestarting(string? paramsJson)
@@ -1005,6 +1068,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                             cell.Outputs.Add(MapOutputFromDto(output));
 
                         OnOutputUpdated?.Invoke();
+                        RaiseCellOutputUpdated(paramsJson!, cellId);
                         return;
                     }
                 }
@@ -1016,6 +1080,20 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         }
 
         _ = RefreshCellListAsync().ContinueWith(_ => OnOutputUpdated?.Invoke());
+    }
+
+    private void RaiseCellOutputUpdated(string paramsJson, Guid cellId)
+    {
+        if (OnCellOutputUpdated is null) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            if (doc.RootElement.TryGetProperty("outputs", out var outputsEl))
+            {
+                OnCellOutputUpdated.Invoke(new CellOutputUpdatedEventArgs(cellId, outputsEl.Clone()));
+            }
+        }
+        catch (JsonException) { }
     }
 
     private void HandleCellExecutionState(string? paramsJson)

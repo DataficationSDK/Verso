@@ -330,6 +330,35 @@ public static class LayoutHandler
         return new LayoutRendererMountedResult { Extension = extra };
     }
 
+    public static async Task<object?> HandleRendererUnmountedAsync(
+        NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<LayoutRendererUnmountedParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/rendererUnmounted");
+
+        if (string.IsNullOrWhiteSpace(p.ExtensionId))
+            throw new JsonException("layout/rendererUnmounted requires 'extensionId'.");
+        if (string.IsNullOrWhiteSpace(p.LayoutId))
+            throw new JsonException("layout/rendererUnmounted requires 'layoutId'.");
+        if (string.IsNullOrWhiteSpace(p.FrameInstanceId))
+            throw new JsonException("layout/rendererUnmounted requires 'frameInstanceId'.");
+
+        try
+        {
+            await ns.FrameTracker.InvokeUnmountedAsync(
+                p.ExtensionId,
+                p.LayoutId,
+                p.FrameInstanceId,
+                LayoutRendererIsolation.Isolated).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"[{p.ExtensionId}] {ex.Message}", ex);
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Minimal IVersoContext for rendering layouts on the host side.
     /// </summary>

@@ -11,7 +11,10 @@
 
 @if (_errorMessage is not null)
 {
-    <div class="verso-layout-error">@_errorMessage</div>
+    <div class="verso-layout-error">
+        <span class="verso-layout-error-message">@_errorMessage</span>
+        <button type="button" class="verso-layout-error-retry" @onclick="RetryAsync">Retry</button>
+    </div>
 }
 else if (_srcdoc is not null)
 {
@@ -26,6 +29,12 @@ else if (_srcdoc is not null)
     [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
     [Parameter, EditorRequired] public RemoteNotebookService RemoteService { get; set; } = default!;
 
+    /// <summary>
+    /// Maximum time the iframe has to send <c>verso/ready</c> before the mount is
+    /// considered failed and the retry banner is shown. Defaults to 10 seconds.
+    /// </summary>
+    [Parameter] public int ReadyTimeoutMs { get; set; } = 10_000;
+
     private static string? s_cachedBridgeScript;
 
     private ElementReference _iframeRef;
@@ -38,8 +47,21 @@ else if (_srcdoc is not null)
     private string _frameInstanceId = "";
     private bool _initSent;
     private bool _disposed;
+    private bool _readyReceived;
+    private CancellationTokenSource? _readyTimeoutCts;
+
+    private Action? _onNotebookChangedHandler;
+    private Action<CellOutputUpdatedEventArgs>? _onCellOutputUpdatedHandler;
+    private Action? _onThemeChangedHandler;
+    private Action<LayoutUpdatedEventArgs>? _onLayoutUpdatedHandler;
+    private Action<LayoutFrameMessageEventArgs>? _onLayoutFrameMessageHandler;
 
     protected override async Task OnInitializedAsync()
+    {
+        await InitializeMountAsync();
+    }
+
+    private async Task InitializeMountAsync()
     {
         if (Service.ActiveLayout is not { } active || string.IsNullOrEmpty(active.LayoutId))
         {
@@ -107,8 +129,102 @@ else if (_srcdoc is not null)
             _listenerHandle = await JS.InvokeAsync<int?>(
                 "versoLayoutFrame.attach", _iframeRef, _selfRef, _frameInstanceId);
         }
-        catch (JSDisconnectedException) { }
-        catch (Microsoft.JSInterop.JSException) { }
+        catch (JSDisconnectedException) { return; }
+        catch (Microsoft.JSInterop.JSException) { return; }
+
+        SubscribeToHostEvents();
+        StartReadyTimeout();
+    }
+
+    private void SubscribeToHostEvents()
+    {
+        _onNotebookChangedHandler = HandleNotebookChanged;
+        _onCellOutputUpdatedHandler = HandleCellOutputUpdated;
+        _onThemeChangedHandler = HandleThemeChanged;
+        _onLayoutUpdatedHandler = HandleLayoutUpdated;
+        _onLayoutFrameMessageHandler = HandleLayoutFrameMessage;
+
+        RemoteService.OnNotebookChanged += _onNotebookChangedHandler;
+        RemoteService.OnCellOutputUpdated += _onCellOutputUpdatedHandler;
+        RemoteService.OnThemeChanged += _onThemeChangedHandler;
+        RemoteService.OnLayoutUpdated += _onLayoutUpdatedHandler;
+        RemoteService.OnLayoutFrameMessage += _onLayoutFrameMessageHandler;
+    }
+
+    private void UnsubscribeFromHostEvents()
+    {
+        if (_onNotebookChangedHandler is not null)
+            RemoteService.OnNotebookChanged -= _onNotebookChangedHandler;
+        if (_onCellOutputUpdatedHandler is not null)
+            RemoteService.OnCellOutputUpdated -= _onCellOutputUpdatedHandler;
+        if (_onThemeChangedHandler is not null)
+            RemoteService.OnThemeChanged -= _onThemeChangedHandler;
+        if (_onLayoutUpdatedHandler is not null)
+            RemoteService.OnLayoutUpdated -= _onLayoutUpdatedHandler;
+        if (_onLayoutFrameMessageHandler is not null)
+            RemoteService.OnLayoutFrameMessage -= _onLayoutFrameMessageHandler;
+
+        _onNotebookChangedHandler = null;
+        _onCellOutputUpdatedHandler = null;
+        _onThemeChangedHandler = null;
+        _onLayoutUpdatedHandler = null;
+        _onLayoutFrameMessageHandler = null;
+    }
+
+    private void StartReadyTimeout()
+    {
+        if (ReadyTimeoutMs <= 0) return;
+
+        _readyTimeoutCts = new CancellationTokenSource();
+        var token = _readyTimeoutCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(ReadyTimeoutMs, token);
+            }
+            catch (OperationCanceledException) { return; }
+
+            if (_disposed || _readyReceived) return;
+
+            await InvokeAsync(() =>
+            {
+                if (_disposed || _readyReceived) return;
+                _errorMessage = $"Layout failed to load: ready signal not received within {ReadyTimeoutMs / 1000}s.";
+                _srcdoc = null;
+                StateHasChanged();
+            });
+        });
+    }
+
+    private async Task RetryAsync()
+    {
+        if (_disposed) return;
+
+        UnsubscribeFromHostEvents();
+        _readyTimeoutCts?.Cancel();
+        _readyTimeoutCts?.Dispose();
+        _readyTimeoutCts = null;
+
+        if (_listenerHandle is { } handle)
+        {
+            try { await JS.InvokeVoidAsync("versoLayoutFrame.detach", handle); }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+        _listenerHandle = null;
+
+        _errorMessage = null;
+        _srcdoc = null;
+        _initSent = false;
+        _readyReceived = false;
+        _frameInstanceId = "";
+        StateHasChanged();
+
+        await InitializeMountAsync();
+        StateHasChanged();
     }
 
     [JSInvokable]
@@ -116,39 +232,56 @@ else if (_srcdoc is not null)
     {
         if (_disposed) return;
 
-        if (string.Equals(type, "verso/ready", StringComparison.Ordinal))
+        try
         {
-            await HandleReadyAsync(payloadJson);
-            return;
+            switch (type)
+            {
+                case "verso/ready":
+                    await HandleReadyAsync(payloadJson);
+                    break;
+                case "verso/interact":
+                    await HandleInteractAsync(payloadJson);
+                    break;
+                case "verso/cellInteract":
+                    await HandleCellInteractAsync(payloadJson);
+                    break;
+                case "verso/executeCell":
+                    HandleExecuteCell(payloadJson);
+                    break;
+                case "verso/log":
+                    await HandleLogAsync(payloadJson);
+                    break;
+            }
         }
-
-        // Other inbound types (verso/interact, verso/cellInteract, verso/executeCell,
-        // verso/log) are wired in a subsequent phase. For now drop silently to avoid
-        // noise during partial integration.
+        catch (Exception ex)
+        {
+            // Never let a malformed frame message take down the component.
+            // Forward to host so the failure is diagnosable.
+            await TryForwardLogAsync("error", $"OnFrameMessage('{type}') failed: {ex.Message}");
+        }
     }
 
     private async Task HandleReadyAsync(string? payloadJson)
     {
         if (_initSent) return;
 
-        // The frame is expected to echo back the identity it was bound with. A
-        // mismatch indicates either a stale ready from a previous mount or an
-        // attempt to mount a different layout; refuse to proceed in either case.
         if (!TryReadFrameInstanceId(payloadJson, out var echoedFrameInstanceId)
             || !string.Equals(echoedFrameInstanceId, _frameInstanceId, StringComparison.Ordinal))
         {
             return;
         }
 
+        _readyReceived = true;
+        _readyTimeoutCts?.Cancel();
+
         IDictionary<string, JsonElement>? extra;
         try
         {
             extra = await RemoteService.LayoutRendererMountedAsync(_extensionId, _layoutId, _frameInstanceId);
         }
-        catch
+        catch (Exception ex)
         {
-            // The lifecycle handler threw on the host. Proceed with framework-only
-            // init so the frame can still come up.
+            await TryForwardLogAsync("error", $"OnRendererMountedAsync failed: {ex.Message}");
             extra = null;
         }
 
@@ -177,6 +310,156 @@ else if (_srcdoc is not null)
         }
         catch (JSDisconnectedException) { }
         catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private async Task HandleInteractAsync(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var root = doc.RootElement;
+
+        var interactionType = TryGetString(root, "interactionType") ?? "";
+        if (string.IsNullOrEmpty(interactionType)) return;
+
+        var payloadText = root.TryGetProperty("payload", out var pEl)
+            ? pEl.GetRawText()
+            : "null";
+        var targetId = TryGetString(root, "targetId");
+
+        // Overwrite identity with bound values regardless of what the iframe sent.
+        await RemoteService.LayoutInteractAsync(
+            _extensionId, _layoutId, interactionType, payloadText, _frameInstanceId, targetId);
+    }
+
+    private async Task HandleCellInteractAsync(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var root = doc.RootElement;
+
+        var cellIdStr = TryGetString(root, "cellId");
+        var interactionType = TryGetString(root, "interactionType");
+        if (string.IsNullOrEmpty(cellIdStr) || string.IsNullOrEmpty(interactionType)) return;
+        if (!Guid.TryParse(cellIdStr, out var cellId)) return;
+
+        var payloadText = root.TryGetProperty("payload", out var pEl)
+            ? pEl.GetRawText()
+            : "null";
+        var outputBlockId = TryGetString(root, "outputBlockId");
+
+        var regionText = TryGetString(root, "region");
+        if (!Enum.TryParse<CellRegion>(regionText, ignoreCase: true, out var region))
+            region = CellRegion.Output;
+
+        await RemoteService.HandleCellInteractionAsync(
+            cellId, _extensionId, interactionType, payloadText, outputBlockId, region);
+    }
+
+    private void HandleExecuteCell(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var cellIdStr = TryGetString(doc.RootElement, "cellId");
+        if (string.IsNullOrEmpty(cellIdStr)) return;
+        if (!Guid.TryParse(cellIdStr, out var cellId)) return;
+
+        // Fire-and-forget: cell execution can take arbitrarily long; do not block
+        // the inbound message pump.
+        _ = RemoteService.ExecuteCellAsync(cellId);
+    }
+
+    private async Task HandleLogAsync(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var root = doc.RootElement;
+
+        var level = TryGetString(root, "level") ?? "info";
+        var message = TryGetString(root, "message") ?? "";
+
+        await RemoteService.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
+    }
+
+    private async Task TryForwardLogAsync(string level, string message)
+    {
+        try
+        {
+            await RemoteService.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
+        }
+        catch { /* host log forwarding is best-effort */ }
+    }
+
+    private void HandleNotebookChanged()
+    {
+        if (_disposed || !_initSent) return;
+        var payload = new
+        {
+            cells = Service.Cells.Select(c => new
+            {
+                cellId = c.Id.ToString(),
+                cellType = c.Type,
+                language = c.Language,
+                source = c.Source
+            }).ToArray()
+        };
+        _ = PostToIframeAsync("verso/cellsChanged", payload);
+    }
+
+    private void HandleCellOutputUpdated(CellOutputUpdatedEventArgs args)
+    {
+        if (_disposed || !_initSent) return;
+        _ = PostToIframeAsync("verso/cellOutputs", new
+        {
+            cellId = args.CellId.ToString(),
+            outputs = args.Outputs
+        });
+    }
+
+    private void HandleThemeChanged()
+    {
+        if (_disposed || !_initSent) return;
+        _ = PostToIframeAsync("verso/themeChanged", new { theme = new { } });
+    }
+
+    private void HandleLayoutUpdated(LayoutUpdatedEventArgs args)
+    {
+        if (_disposed || !_initSent) return;
+        if (!string.Equals(args.ExtensionId, _extensionId, StringComparison.Ordinal)) return;
+        if (!string.Equals(args.LayoutId, _layoutId, StringComparison.Ordinal)) return;
+        // Absent FrameInstanceId means broadcast to every frame for this layout.
+        if (!string.IsNullOrEmpty(args.FrameInstanceId)
+            && !string.Equals(args.FrameInstanceId, _frameInstanceId, StringComparison.Ordinal))
+            return;
+
+        _ = PostToIframeAsync("verso/layoutUpdated", new
+        {
+            scope = args.Scope,
+            cellId = args.CellId?.ToString()
+        });
+    }
+
+    private void HandleLayoutFrameMessage(LayoutFrameMessageEventArgs args)
+    {
+        if (_disposed || !_initSent) return;
+        if (!string.Equals(args.FrameInstanceId, _frameInstanceId, StringComparison.Ordinal)) return;
+        _ = PostToIframeAsync(args.Type, args.Payload);
+    }
+
+    private async Task PostToIframeAsync(string type, object? payload)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoLayoutFrame.postToIframe", _iframeRef, type, payload);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private static string? TryGetString(JsonElement el, string property)
+    {
+        if (el.TryGetProperty(property, out var p) && p.ValueKind == JsonValueKind.String)
+            return p.GetString();
+        return null;
     }
 
     private static bool TryReadFrameInstanceId(string? payloadJson, out string frameInstanceId)
@@ -227,7 +510,6 @@ else if (_srcdoc is not null)
         {
             var endIdx = lower.IndexOf(';', idx);
             var directive = endIdx >= 0 ? lower.Substring(idx, endIdx - idx) : lower.Substring(idx);
-            // Allow only 'none', 'self', and blob: as connect-src sources.
             var rest = directive.Substring("connect-src".Length).Trim();
             var tokens = rest.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var token in tokens)
@@ -266,11 +548,6 @@ else if (_srcdoc is not null)
         sb.Append(bridgeScript);
         sb.Append("</script>");
 
-        // Loader: rebuild the bundle as blob URLs, bind the bridge to this frame's
-        // identity, and import the entry-point module from its blob URL. The blob
-        // approach keeps script-src 'self' from being needed while satisfying the
-        // base CSP (script-src 'unsafe-inline' covers the inlined bootstrap; the
-        // imported module URL falls under default-src + blob:).
         sb.Append("<script>");
         sb.Append("(function(){");
         sb.Append("var files={};");
@@ -343,6 +620,28 @@ else if (_srcdoc is not null)
     {
         if (_disposed) return;
         _disposed = true;
+
+        UnsubscribeFromHostEvents();
+
+        _readyTimeoutCts?.Cancel();
+        _readyTimeoutCts?.Dispose();
+        _readyTimeoutCts = null;
+
+        if (_initSent && !string.IsNullOrEmpty(_frameInstanceId))
+        {
+            try
+            {
+                await RemoteService.LayoutRendererUnmountedAsync(_extensionId, _layoutId, _frameInstanceId);
+            }
+            catch { /* host-side teardown is best-effort during dispose */ }
+
+            try
+            {
+                await JS.InvokeVoidAsync("versoLayoutFrame.postToIframe", _iframeRef, "verso/dispose", new { });
+            }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        }
 
         if (_listenerHandle is { } handle)
         {

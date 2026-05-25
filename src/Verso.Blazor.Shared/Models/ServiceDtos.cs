@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Verso.Abstractions;
 
 namespace Verso.Blazor.Shared.Models;
@@ -27,6 +28,26 @@ public sealed record LayoutUpdatedEventArgs(
     string FrameInstanceId,
     string Scope,
     Guid? CellId);
+
+/// <summary>
+/// Payload of a <c>layout/frameMessage</c> host-to-client notification, used to
+/// forward extension push messages from <c>ILayoutFrameChannel.PostMessageAsync</c>
+/// into the matching isolated-layout iframe. The <c>Type</c> field already carries
+/// the <c>ext/</c> prefix applied by the host channel.
+/// </summary>
+public sealed record LayoutFrameMessageEventArgs(
+    string FrameInstanceId,
+    string Type,
+    JsonElement? Payload);
+
+/// <summary>
+/// Payload of a per-cell <c>output/update</c> notification. Carries the cell id
+/// and the raw outputs array element so subscribers can re-broadcast without
+/// having to re-deserialize the cell list.
+/// </summary>
+public sealed record CellOutputUpdatedEventArgs(
+    Guid CellId,
+    JsonElement Outputs);
 
 /// <summary>Describes a layout engine available for the notebook.</summary>
 public sealed record LayoutInfo(

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Verso.Abstractions;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
 using Verso.Host.Layouts;
@@ -70,6 +71,40 @@ public class IframeFrameChannelTests
         var channel = new IframeFrameChannel($"{notebookId}/sparkline/1", ns);
         channel.MarkDead();
 
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            () => channel.PostMessageAsync("data-frame", null));
+    }
+
+    [TestMethod]
+    public async Task InvokeUnmountedAsync_FlipsIsAliveAndBlocksFurtherPosts()
+    {
+        var (session, notebookId, _) = await CreateOpenSessionAsync();
+        var ns = session.GetSession(notebookId);
+
+        var extension = new RecordingLifecycleExtension(
+            extensionId: "com.test.channel.unmount",
+            layoutId: "sparkline");
+        await ns.ExtensionHost.LoadExtensionAsync(extension);
+
+        var frameInstanceId = ns.FrameTracker.AllocateFrameInstanceId(extension.LayoutId);
+        var channel = new IframeFrameChannel(frameInstanceId, ns);
+
+        await ns.FrameTracker.InvokeMountedAsync(
+            extension.ExtensionId,
+            extension.LayoutId,
+            frameInstanceId,
+            LayoutRendererIsolation.Isolated,
+            channel);
+
+        Assert.IsTrue(channel.IsAlive, "Channel should be alive immediately after mount.");
+
+        await ns.FrameTracker.InvokeUnmountedAsync(
+            extension.ExtensionId,
+            extension.LayoutId,
+            frameInstanceId,
+            LayoutRendererIsolation.Isolated);
+
+        Assert.IsFalse(channel.IsAlive, "Channel should be dead after unmount.");
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             () => channel.PostMessageAsync("data-frame", null));
     }

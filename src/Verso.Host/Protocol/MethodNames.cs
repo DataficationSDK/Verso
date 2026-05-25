@@ -63,9 +63,13 @@ public static class MethodNames
     public const string LayoutGetRendererPackage = "layout/getRendererPackage";
     public const string LayoutAllocateFrameInstance = "layout/allocateFrameInstance";
     public const string LayoutRendererMounted = "layout/rendererMounted";
+    public const string LayoutRendererUnmounted = "layout/rendererUnmounted";
     public const string LayoutFrameMessage = "layout/frameMessage";
     public const string LayoutUpdated = "layout/updated";
     public const string LayoutMissing = "layout/missing";
+
+    // Diagnostic log channel (extensions/iframes → host)
+    public const string LogExtension = "log/extension";
 
     // Theme
     public const string ThemeGetThemes = "theme/getThemes";
