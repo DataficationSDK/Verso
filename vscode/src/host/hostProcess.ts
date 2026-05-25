@@ -49,14 +49,22 @@ export class HostProcess implements vscode.Disposable {
         reject(err);
       });
 
-      this.process.on("exit", (code) => {
+      this.process.on("exit", (code, signal) => {
+        const detail = describeExit(code, signal);
         if (!this.disposed) {
-          log.warn(`Verso.Host exited unexpectedly with code ${code}`);
+          log.warn(`Verso.Host exited unexpectedly (${detail.log})`);
+          if (signal) {
+            log.warn(
+              `Host termination by signal indicates a native crash. ` +
+                `On macOS, see ~/Library/Logs/DiagnosticReports/dotnet-*.ips ` +
+                `for the faulting stack; on Linux, see your distro's coredump location.`
+            );
+          }
           vscode.window.showWarningMessage(
-            `Verso host process exited with code ${code}`
+            `Verso host process exited (${detail.toast})`
           );
         } else {
-          log.info(`Verso.Host exited with code ${code}`);
+          log.info(`Verso.Host exited (${detail.log})`);
         }
         this.cleanup();
       });
@@ -211,4 +219,25 @@ export class HostProcess implements vscode.Disposable {
     }
     this.cleanup();
   }
+}
+
+// Node fires the `exit` event with `(code, signal)`. When a child is killed by
+// a signal, `code` is `null` and `signal` carries the name ("SIGSEGV" etc.);
+// when it returns from `main`, `signal` is `null` and `code` is the integer
+// exit status. Surfacing both in the log makes it possible to tell a managed
+// exit apart from a native crash without re-reading the source.
+function describeExit(
+  code: number | null,
+  signal: NodeJS.Signals | null
+): { log: string; toast: string } {
+  if (signal) {
+    return {
+      log: `killed by signal ${signal}`,
+      toast: `signal ${signal} — likely a native crash`,
+    };
+  }
+  if (code === null) {
+    return { log: "code null, no signal", toast: "code null" };
+  }
+  return { log: `code ${code}`, toast: `code ${code}` };
 }
