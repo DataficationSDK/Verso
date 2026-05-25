@@ -341,6 +341,37 @@ public sealed class LayoutGetRendererPackageResult
     public string? ContentSecurityPolicy { get; set; }
 }
 
+public sealed class LayoutAllocateFrameInstanceParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+}
+
+public sealed class LayoutAllocateFrameInstanceResult
+{
+    public string FrameInstanceId { get; set; } = "";
+}
+
+public sealed class LayoutRendererMountedParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+    public string FrameInstanceId { get; set; } = "";
+}
+
+public sealed class LayoutRendererMountedResult
+{
+    /// <summary>
+    /// Dictionary returned by <c>ILayoutLifecycleHandler.OnRendererMountedAsync</c>,
+    /// to be merged into the <c>verso/init</c> payload as the <c>extension</c> field.
+    /// Null when no lifecycle handler is registered for the layout, or when the
+    /// handler returned null.
+    /// </summary>
+    public IDictionary<string, object>? Extension { get; set; }
+}
+
 // --- Theme ---
 
 public sealed class ThemeResult

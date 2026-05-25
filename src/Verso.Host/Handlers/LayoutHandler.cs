@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Host.Dto;
+using Verso.Host.Layouts;
 using Verso.Host.Protocol;
 
 namespace Verso.Host.Handlers;
@@ -258,6 +259,75 @@ public static class LayoutHandler
         }
 
         return null;
+    }
+
+    public static LayoutAllocateFrameInstanceResult HandleAllocateFrameInstance(
+        NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<LayoutAllocateFrameInstanceParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/allocateFrameInstance");
+
+        if (string.IsNullOrWhiteSpace(p.ExtensionId))
+            throw new JsonException("layout/allocateFrameInstance requires 'extensionId'.");
+        if (string.IsNullOrWhiteSpace(p.LayoutId))
+            throw new JsonException("layout/allocateFrameInstance requires 'layoutId'.");
+
+        if (!ns.ExtensionHost.TryGetLayoutEngine(p.ExtensionId, p.LayoutId, out var engine))
+        {
+            throw new InvalidOperationException(
+                $"LAYOUT_ENGINE_NOT_FOUND: no layout engine is registered " +
+                $"for (extensionId='{p.ExtensionId}', layoutId='{p.LayoutId}').");
+        }
+
+        if (engine!.RendererIsolation != LayoutRendererIsolation.Isolated)
+        {
+            throw new InvalidOperationException(
+                $"LAYOUT_NOT_ISOLATED: layout (extensionId='{p.ExtensionId}', " +
+                $"layoutId='{p.LayoutId}') does not declare RendererIsolation.Isolated; " +
+                $"frame instances are only allocated for isolated renderers.");
+        }
+
+        return new LayoutAllocateFrameInstanceResult
+        {
+            FrameInstanceId = ns.FrameTracker.AllocateFrameInstanceId(p.LayoutId)
+        };
+    }
+
+    public static async Task<LayoutRendererMountedResult> HandleRendererMountedAsync(
+        NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<LayoutRendererMountedParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/rendererMounted");
+
+        if (string.IsNullOrWhiteSpace(p.ExtensionId))
+            throw new JsonException("layout/rendererMounted requires 'extensionId'.");
+        if (string.IsNullOrWhiteSpace(p.LayoutId))
+            throw new JsonException("layout/rendererMounted requires 'layoutId'.");
+        if (string.IsNullOrWhiteSpace(p.FrameInstanceId))
+            throw new JsonException("layout/rendererMounted requires 'frameInstanceId'.");
+
+        var channel = new IframeFrameChannel(p.FrameInstanceId, ns);
+
+        IDictionary<string, object>? extra;
+        try
+        {
+            extra = await ns.FrameTracker.InvokeMountedAsync(
+                p.ExtensionId,
+                p.LayoutId,
+                p.FrameInstanceId,
+                LayoutRendererIsolation.Isolated,
+                channel).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Preserve the originating extension id so dispatch-side errors are
+            // diagnosable. The WASM caller falls back to omitting the 'extension'
+            // field from verso/init when this surfaces as an InternalError, per
+            // the lifecycle failure-mode contract.
+            throw new InvalidOperationException($"[{p.ExtensionId}] {ex.Message}", ex);
+        }
+
+        return new LayoutRendererMountedResult { Extension = extra };
     }
 
     /// <summary>

@@ -709,6 +709,29 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             response.ContentSecurityPolicy);
     }
 
+    public async Task<string> AllocateLayoutFrameInstanceAsync(string extensionId, string layoutId)
+    {
+        var response = await _bridge.RequestAsync<AllocateFrameInstanceResponse>(
+            "layout/allocateFrameInstance",
+            new { extensionId, layoutId });
+
+        return response?.FrameInstanceId
+            ?? throw new InvalidOperationException(
+                "layout/allocateFrameInstance returned no frame instance id.");
+    }
+
+    public async Task<IDictionary<string, JsonElement>?> LayoutRendererMountedAsync(
+        string extensionId,
+        string layoutId,
+        string frameInstanceId)
+    {
+        var response = await _bridge.RequestAsync<LayoutRendererMountedResponse>(
+            "layout/rendererMounted",
+            new { extensionId, layoutId, frameInstanceId });
+
+        return response?.Extension;
+    }
+
     [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
     {
@@ -1506,6 +1529,16 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string EntryPoint { get; set; } = "";
         public Dictionary<string, string>? Files { get; set; }
         public string? ContentSecurityPolicy { get; set; }
+    }
+
+    private sealed class AllocateFrameInstanceResponse
+    {
+        public string FrameInstanceId { get; set; } = "";
+    }
+
+    private sealed class LayoutRendererMountedResponse
+    {
+        public Dictionary<string, JsonElement>? Extension { get; set; }
     }
 
     private sealed class LayoutItem

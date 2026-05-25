@@ -332,6 +332,8 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.LayoutSetEditMode => await LayoutHandler.HandleSetEditMode(ns, @params),
             MethodNames.LayoutInteract => await LayoutHandler.HandleInteractAsync(ns, @params),
             MethodNames.LayoutGetRendererPackage => await LayoutHandler.HandleGetRendererPackageAsync(ns, @params),
+            MethodNames.LayoutAllocateFrameInstance => LayoutHandler.HandleAllocateFrameInstance(ns, @params),
+            MethodNames.LayoutRendererMounted => await LayoutHandler.HandleRendererMountedAsync(ns, @params),
             MethodNames.ThemeGetThemes => ThemeHandler.HandleGetThemes(ns),
             MethodNames.ThemeSwitch => ThemeHandler.HandleSwitchTheme(ns, @params),
             MethodNames.ExtensionList => ExtensionHandler.HandleList(ns),

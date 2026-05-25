@@ -1,0 +1,80 @@
+// In-iframe bridge shim for isolated layout renderers. The host injects this
+// script into every isolated-layout iframe's srcdoc. It exposes a small `verso`
+// global that the extension's entry-point module uses to communicate with the
+// host. Outbound messages reach the host via window.parent.postMessage; inbound
+// messages reach the renderer via the handler registered through verso.onMessage.
+//
+// The host calls window.versoBridgeInit({extensionId, layoutId, frameInstanceId})
+// before importing the entry-point module so identity is captured up front and
+// stamped onto every outbound verso/ready and verso/* envelope. Extensions cannot
+// override these identity fields from inside the frame.
+
+(function () {
+    var bound = null;
+    var inboundHandlers = [];
+
+    window.addEventListener('message', function (event) {
+        var data = event.data;
+        if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
+        for (var i = 0; i < inboundHandlers.length; i++) {
+            try {
+                inboundHandlers[i](data.type, data.payload);
+            } catch (e) {
+                // Don't let a handler exception block the others.
+                try { console.error('verso bridge handler error:', e); } catch (_) {}
+            }
+        }
+    });
+
+    function ensureBound() {
+        if (!bound) {
+            throw new Error('verso bridge has not been initialized; verso.ready() called before versoBridgeInit.');
+        }
+    }
+
+    function ready() {
+        ensureBound();
+        window.parent.postMessage({
+            type: 'verso/ready',
+            payload: {
+                extensionId: bound.extensionId,
+                layoutId: bound.layoutId,
+                frameInstanceId: bound.frameInstanceId
+            }
+        }, '*');
+    }
+
+    function send(type, payload) {
+        if (typeof type !== 'string' || type.length === 0) {
+            throw new Error('verso.send: type must be a non-empty string.');
+        }
+        if (type.indexOf('verso/') === 0) {
+            throw new Error('verso.send: type "' + type + '" is in the reserved verso/ namespace.');
+        }
+        window.parent.postMessage({ type: type, payload: payload }, '*');
+    }
+
+    function onMessage(handler) {
+        if (typeof handler !== 'function') {
+            throw new Error('verso.onMessage: handler must be a function.');
+        }
+        inboundHandlers.push(handler);
+    }
+
+    window.versoBridgeInit = function (identity) {
+        if (bound) return;
+        if (!identity || !identity.extensionId || !identity.layoutId || !identity.frameInstanceId) {
+            throw new Error('versoBridgeInit requires extensionId, layoutId, and frameInstanceId.');
+        }
+        bound = {
+            extensionId: identity.extensionId,
+            layoutId: identity.layoutId,
+            frameInstanceId: identity.frameInstanceId
+        };
+        window.verso = {
+            ready: ready,
+            send: send,
+            onMessage: onMessage
+        };
+    };
+})();

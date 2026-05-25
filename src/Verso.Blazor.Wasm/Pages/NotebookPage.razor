@@ -85,6 +85,10 @@
                     </div>
                     <CustomLayoutHtml Service="Service" CellPoolRef="_cellPoolRef" />
                 }
+                else if (IsActiveLayoutCustomIsolated() && Service is RemoteNotebookService remoteSvc)
+                {
+                    <CustomLayoutFrame Service="Service" RemoteService="remoteSvc" />
+                }
                 else if (Service.ActiveLayoutId == "dashboard")
                 {
                     <DashboardGrid Service="Service"
@@ -303,6 +307,18 @@
              || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
         return info?.RequiresCustomRenderer == true
             && string.Equals(Service.ActiveLayoutRendererIsolation, "inline", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsActiveLayoutCustomIsolated()
+    {
+        var active = Service.ActiveLayout;
+        if (active is null) return false;
+        var info = Service.AvailableLayouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, active.Value.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(active.Value.ExtensionId)
+             || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+        return info?.RequiresCustomRenderer == true
+            && string.Equals(Service.ActiveLayoutRendererIsolation, "isolated", StringComparison.OrdinalIgnoreCase);
     }
     private bool _panelResizeInitialized;
     private bool _showExtensionConsent;
