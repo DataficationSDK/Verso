@@ -73,7 +73,7 @@ public sealed class DashboardLayoutTests
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_HidesCodeShowsOutput()
+    public async Task RenderLayoutAsync_EmitsSlotPlaceholdersWithoutInlineContent()
     {
         var cellId = Guid.NewGuid();
         var cells = new List<CellModel>
@@ -88,10 +88,24 @@ public sealed class DashboardLayoutTests
 
         var result = await _layout.RenderLayoutAsync(cells, _context);
 
-        // Output should be present
-        Assert.IsTrue(result.Content.Contains("hello"));
-        // Source code should not appear (output takes precedence)
-        Assert.IsFalse(result.Content.Contains("Console.WriteLine"));
+        // The Tier 1 migration moves all per-cell rendering to the <Cell> Blazor component
+        // portaled into [data-cell-slot]; the layout HTML is chrome only.
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cellId}\""));
+        Assert.IsFalse(result.Content.Contains("Console.WriteLine"),
+            "Layout HTML must not inline cell source.");
+        Assert.IsFalse(result.Content.Contains(">hello<"),
+            "Layout HTML must not inline cell output content.");
+    }
+
+    [TestMethod]
+    public async Task RenderLayoutAsync_EmitsEditModeToggleButton()
+    {
+        var cells = new List<CellModel> { new() { Id = Guid.NewGuid() } };
+
+        var result = await _layout.RenderLayoutAsync(cells, _context);
+
+        Assert.IsTrue(result.Content.Contains("data-action=\"setEditMode\""),
+            "Edit-mode toggle is a layout-scoped button routed via layout/interact.");
     }
 
     [TestMethod]

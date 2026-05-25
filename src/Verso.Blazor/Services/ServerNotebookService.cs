@@ -178,6 +178,10 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         }
     }
 
+    public string ActiveLayoutKey => ActiveLayout is { } layout
+        ? $"{layout.ExtensionId}:{layout.LayoutId}"
+        : "verso.layout:none";
+
     public string? ActiveLayoutRendererIsolation
     {
         get
@@ -698,7 +702,19 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     // ── Layout & theme switching ───────────────────────────────────────
 
-    public Task<string?> RenderActiveLayoutAsync() => Task.FromResult<string?>(null);
+    public async Task<string?> RenderActiveLayoutAsync()
+    {
+        var layout = _scaffold?.LayoutManager?.ActiveLayout;
+        if (layout is null || _scaffold is null) return null;
+        if (!layout.RequiresCustomRenderer) return null;
+        if (layout.RendererIsolation != LayoutRendererIsolation.Inline) return null;
+
+        var ctx = new BlazorLayoutRenderContext(_scaffold);
+        var result = await layout.RenderLayoutAsync(_scaffold.Notebook.Cells, ctx);
+        return string.Equals(result.MimeType, "text/html", StringComparison.OrdinalIgnoreCase)
+            ? result.Content
+            : null;
+    }
 
     public Task SwitchLayoutAsync(string layoutId)
     {

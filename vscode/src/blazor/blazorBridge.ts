@@ -27,7 +27,11 @@ export class BlazorBridge implements vscode.Disposable {
     "output/update",
     "extension/consentRequest",
     "extension/changed",
+    "kernel/restarting",
+    "kernel/restarted",
     "layout/missing",
+    "layout/updated",
+    "layout/frameMessage",
   ];
 
   private static readonly mutationMethods = new Set([

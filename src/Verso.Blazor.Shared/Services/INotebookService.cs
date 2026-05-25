@@ -64,6 +64,13 @@ public interface INotebookService
     LayoutReference? ActiveLayout { get; }
 
     /// <summary>
+    /// Stable composite key for the active layout in the form <c>{ExtensionId}:{LayoutId}</c>,
+    /// or a sentinel value when no layout is loaded. Used by <c>NotebookPage</c> to <c>@key</c>
+    /// the layout-renderer subtree so Blazor tears the prior layout's DOM down on switch.
+    /// </summary>
+    string ActiveLayoutKey { get; }
+
+    /// <summary>
     /// Rendering isolation mode of the active layout when it requires a custom renderer.
     /// Returns null when there is no active layout or the layout does not require a custom renderer.
     /// </summary>

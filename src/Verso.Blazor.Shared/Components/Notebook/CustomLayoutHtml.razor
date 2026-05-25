@@ -3,8 +3,44 @@
 @using Verso.Abstractions
 @using Verso.Blazor.Shared.Models
 @using Verso.Blazor.Shared.Services
-@implements IDisposable
+@implements IAsyncDisposable
 @inject IJSRuntime JS
+
+@* The pool owns every cell as a live Blazor component. The portal-interop JS
+   moves cell DOM nodes out of the pool into the [data-cell-slot] elements that
+   live inside the layout root; pool wrappers stay hidden via inline display:none
+   so cells without a matching slot do not appear in flow. The pool and root live
+   in the same component so the @ref captures are stable in the same OnAfterRender. *@
+<div class="verso-cell-pool" style="display: none" @ref="_poolRef">
+    @if (Context is not null)
+    {
+        @foreach (var cell in Service.Cells)
+        {
+            <div @key="cell.Id" data-cell-id="@cell.Id">
+                <Cell CellData="cell"
+                      IsSelected="cell.Id == Context.SelectedCellId"
+                      IsExecuting="cell.Id == Context.ExecutingCellId"
+                      IsRunDisabled="Context.IsRunDisabled"
+                      Index="0"
+                      IsLast="false"
+                      CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
+                      IsEditable="Service.IsCellTypeEditable(cell.Type)"
+                      IsHeadingCell="false"
+                      IsSectionCollapsed="false"
+                      OnRunCell="Context.OnRunCell"
+                      OnCancelCell="Context.OnCancelCell"
+                      OnDeleteCell="Context.OnDeleteCell"
+                      OnSelect="Context.OnSelectCell"
+                      OnMoveUp="Context.OnMoveUp"
+                      OnMoveDown="Context.OnMoveDown"
+                      OnSourceChanged="Context.OnSourceChanged"
+                      OnCellAction="Context.OnCellAction"
+                      OnCellTypeChanged="Context.OnCellTypeChanged"
+                      OnCellLanguageChanged="Context.OnCellLanguageChanged" />
+            </div>
+        }
+    }
+</div>
 
 <div class="verso-layout-root"
      data-extension-id="@_extensionId"
@@ -20,20 +56,17 @@
 @code {
     [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
 
-    /// <summary>
-    /// Reference to the page-level hidden container that holds all Blazor-managed cell
-    /// components. The interop layer moves nodes between this pool and the slots inside
-    /// the layout HTML.
-    /// </summary>
-    [Parameter] public ElementReference? CellPoolRef { get; set; }
+    [CascadingParameter] public NotebookCellContext? Context { get; set; }
 
     private ElementReference _rootRef;
+    private ElementReference _poolRef;
     private string? _html;
     private string _extensionId = "";
     private string _layoutId = "";
     private string _frameInstanceId = "";
     private bool _subscribed;
     private bool _remountNeeded;
+    private bool _mounted;
     private bool _disposed;
 
     private static int s_globalSeq;
@@ -51,26 +84,33 @@
     {
         if (_disposed) return;
 
-        if (firstRender)
-        {
-            await MountSlotsAsync();
-            return;
-        }
-
+        // Mount only after _html is populated. OnInitializedAsync awaits the host's
+        // layout/render call, so Blazor renders this component once with _html=null
+        // before the slot HTML is in the DOM; mounting against that render finds
+        // no [data-cell-slot] elements and silently leaves cells in the hidden pool.
         if (_remountNeeded)
         {
             _remountNeeded = false;
             await UnmountSlotsAsync();
+            _mounted = false;
+        }
+
+        if (!_mounted && !string.IsNullOrEmpty(_html))
+        {
+            _mounted = true;
             await MountSlotsAsync();
         }
     }
 
     private async Task MountSlotsAsync()
     {
-        if (CellPoolRef is not { } pool) return;
         try
         {
-            await JS.InvokeVoidAsync("versoCustomLayout.mountSlots", _rootRef, pool);
+            await JS.InvokeVoidAsync("versoCustomLayout.mountSlots", _rootRef, _poolRef);
+            // Fire a generic post-mount hook so layout-specific JS (e.g. dashboard drag/
+            // resize handlers) can attach to the freshly-mounted root without owning a
+            // direct reference to it. Hook is a no-op if no handler is registered.
+            await JS.InvokeVoidAsync("versoCustomLayout.notifyMounted", _rootRef, _extensionId, _layoutId);
         }
         catch (JSDisconnectedException) { }
         catch (Microsoft.JSInterop.JSException) { }
@@ -78,10 +118,9 @@
 
     private async Task UnmountSlotsAsync()
     {
-        if (CellPoolRef is not { } pool) return;
         try
         {
-            await JS.InvokeVoidAsync("versoCustomLayout.unmountSlots", _rootRef, pool);
+            await JS.InvokeVoidAsync("versoCustomLayout.unmountSlots", _rootRef, _poolRef);
         }
         catch (JSDisconnectedException) { }
         catch (Microsoft.JSInterop.JSException) { }
@@ -104,9 +143,11 @@
         _ = InvokeAsync(async () =>
         {
             if (_disposed) return;
-            await UnmountSlotsAsync();
             CaptureIdentity();
             _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+            // OnAfterRender handles unmount+mount via _remountNeeded so the JS
+            // interop awaits don't interleave with the dispatcher work that the
+            // re-render triggered by StateHasChanged depends on.
             _remountNeeded = true;
             StateHasChanged();
         });
@@ -133,6 +174,7 @@
             {
                 case "full":
                     _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+                    // OnAfterRender handles the cell teardown+remount via _remountNeeded.
                     _remountNeeded = true;
                     StateHasChanged();
                     break;
@@ -166,7 +208,7 @@
         catch (Microsoft.JSInterop.JSException) { }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
         _disposed = true;
@@ -177,5 +219,11 @@
             Service.OnLayoutUpdated -= HandleLayoutUpdated;
             _subscribed = false;
         }
+
+        // Move any cells that were portaled into layout slots back to the page-level pool
+        // before Blazor strips this component's subtree. Without this, the cell DOM nodes
+        // ride along into the removed subtree and are orphaned from their owning <Cell>
+        // components.
+        await UnmountSlotsAsync();
     }
 }

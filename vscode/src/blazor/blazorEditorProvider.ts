@@ -541,6 +541,15 @@ export class BlazorEditorProvider
     const dashboardInterop = toUri(
       "_content/Verso.Blazor.Shared/js/dashboard-interop.js"
     );
+    const customLayoutInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/custom-layout-interop.js"
+    );
+    const versoLayoutFrame = toUri(
+      "_content/Verso.Blazor.Shared/js/verso-layout-frame.js"
+    );
+    const layoutInteractInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/layout-interact-interop.js"
+    );
     const panelResizeInterop = toUri(
       "_content/Verso.Blazor.Shared/js/panel-resize-interop.js"
     );
@@ -695,10 +704,13 @@ export class BlazorEditorProvider
     <script src="${monacoCdn}/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
     <script src="${monacoInterop}"></script>
     <script src="${dashboardInterop}"></script>
+    <script src="${customLayoutInterop}"></script>
+    <script src="${versoLayoutFrame}"></script>
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
     <script src="${cellInteractInterop}"></script>
+    <script src="${layoutInteractInterop}"></script>
     <script src="${parametersInterop}"></script>
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>

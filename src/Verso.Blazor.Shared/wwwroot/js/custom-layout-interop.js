@@ -40,6 +40,14 @@
             }
         }
         rootEl._versoMountedCells = mounted;
+
+        // Mermaid diagrams in the cell pool render at zero width because the pool is
+        // display:none until the cell is portaled. Re-run renderAll now that the
+        // diagrams are in a sized container so they layout correctly.
+        if (mounted.length > 0 && window.versoMermaid && typeof window.versoMermaid.renderAll === 'function') {
+            try { window.versoMermaid.renderAll(); } catch (e) { /* mermaid may not be loaded */ }
+        }
+
         return mounted.length;
     }
 
@@ -65,6 +73,25 @@
         return true;
     }
 
+    // Layout-specific post-mount hooks. Modules like dashboard-interop.js register an
+    // entry keyed by `${extensionId}:${layoutId}`; CustomLayoutHtml calls notifyMounted
+    // after the layout HTML is in the DOM. Hooks attach drag/resize handlers, refresh
+    // visualizations, etc., without the framework knowing about them.
+    var mountHooks = {};
+
+    function registerMountHook(extensionId, layoutId, fn) {
+        if (typeof fn !== 'function') return;
+        mountHooks[extensionId + ':' + layoutId] = fn;
+    }
+
+    function notifyMounted(rootEl, extensionId, layoutId) {
+        if (!rootEl) return;
+        var hook = mountHooks[extensionId + ':' + layoutId];
+        if (hook) {
+            try { hook(rootEl); } catch (e) { console.warn('Verso layout mount hook failed:', e); }
+        }
+    }
+
     window.versoCustomLayout = {
         mountSlots: function (rootEl, poolEl) {
             unmount(rootEl, poolEl);
@@ -72,6 +99,8 @@
         },
         unmountSlots: unmount,
         mountCellInSlot: mountCellInSlot,
-        updateSlotPosition: updateSlotPosition
+        updateSlotPosition: updateSlotPosition,
+        registerMountHook: registerMountHook,
+        notifyMounted: notifyMounted
     };
 })();

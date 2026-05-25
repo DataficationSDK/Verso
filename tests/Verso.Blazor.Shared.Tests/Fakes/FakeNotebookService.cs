@@ -40,6 +40,10 @@ public sealed class FakeNotebookService : INotebookService
     public ThemeData? ActiveThemeData { get; set; }
     public string? ActiveLayoutId { get; set; } = "notebook";
     public LayoutReference? ActiveLayout { get; set; }
+    public string ActiveLayoutKey =>
+        ActiveLayout is { } layout
+            ? $"{layout.ExtensionId}:{layout.LayoutId}"
+            : $"verso.layout:{ActiveLayoutId ?? "none"}";
     public string? ActiveLayoutRendererIsolation { get; set; }
     public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize

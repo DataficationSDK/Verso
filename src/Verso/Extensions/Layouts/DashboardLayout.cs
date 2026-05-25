@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
@@ -18,6 +17,7 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
     private const int DefaultCellHeight = 4;
 
     private readonly Dictionary<Guid, GridPosition> _gridPositions = new();
+    private readonly HashSet<Guid> _cellsInEdit = new();
     private bool _isEditMode;
 
     // --- IExtension ---
@@ -75,7 +75,26 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
     {
         var renderers = context.ExtensionHost.GetRenderers();
         var sb = new StringBuilder();
-        sb.Append("<div class=\"verso-dashboard-grid\" style=\"display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:50px;gap:8px;padding:16px;align-content:start;\">");
+
+        var editMode = _isEditMode ? "true" : "false";
+
+        // Outer wrapper: toolbar sits above the grid so it isn't subject to grid
+        // auto-placement (which would otherwise drop it below the last cell).
+        sb.Append("<div class=\"verso-dashboard-root\" data-edit-mode=\"")
+          .Append(editMode)
+          .Append("\">");
+
+        sb.Append("<div class=\"verso-dashboard-toolbar\">")
+          .Append("<button class=\"verso-dashboard-edit-toggle\" data-action=\"setEditMode\" data-payload=\"")
+          .Append(_isEditMode ? "false" : "true")
+          .Append("\">")
+          .Append(_isEditMode ? "Done" : "Edit")
+          .Append("</button>")
+          .Append("</div>");
+
+        sb.Append("<div class=\"verso-dashboard-grid\" data-edit-mode=\"")
+          .Append(editMode)
+          .Append("\">");
 
         foreach (var cell in cells)
         {
@@ -93,62 +112,51 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
 
             if (!pos.Visible) continue;
 
-            sb.Append("<div class=\"verso-dashboard-cell\" data-cell-id=\"")
+            var cellEdit = _cellsInEdit.Contains(cell.Id) ? "true" : "false";
+            var editLabel = _cellsInEdit.Contains(cell.Id) ? "Hide Code" : "Edit";
+
+            // Slot wrapper: the WASM portal injects the live <Cell> Blazor component here.
+            // The toolbar and resize handle are siblings of the slot content so portal nodes
+            // stay intact across layout updates.
+            // No data-cell-id on the slot wrapper: that attribute is reserved for the
+            // portal-mounted cell DOM node living inside. Tagging the wrapper would
+            // confuse the [data-action] router into routing the toolbar buttons through
+            // cell/interact rather than layout/interact.
+            sb.Append("<div class=\"verso-dashboard-cell\" data-cell-slot=\"")
               .Append(cell.Id)
+              .Append("\" data-target-id=\"")
+              .Append(cell.Id)
+              .Append("\" data-cell-edit=\"")
+              .Append(cellEdit)
               .Append("\" style=\"grid-column:")
               .Append(pos.Column + 1).Append("/span ").Append(pos.Width)
               .Append(";grid-row:")
               .Append(pos.Row + 1).Append("/span ").Append(pos.Height)
-              .Append(";position:relative;border:1px solid var(--verso-border-default);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,0.08);\">");
+              .Append("\">");
 
-            // Drag handle + toolbar
-            sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" style=\"display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid var(--verso-border-default);background:var(--verso-bg-elevated);cursor:grab;flex-shrink:0;\">");
-            sb.Append("<button data-action=\"run\" data-cell-id=\"").Append(cell.Id).Append("\" style=\"cursor:pointer;\">&#x25B6; Run</button>");
-            sb.Append("<button data-action=\"edit\" data-cell-id=\"").Append(cell.Id).Append("\" style=\"cursor:pointer;\">Edit</button>");
-            sb.Append("<span class=\"verso-dashboard-drag-icon\" style=\"margin-left:auto;color:var(--verso-fg-muted);font-size:14px;cursor:grab;user-select:none;\">&#x2630;</span>");
-            sb.Append("</div>");
+            // Toolbar IS the drag handle: clicking empty space drags, clicking buttons fires
+            // their data-action via layout-interact. dashboard-interop.js skips drag when the
+            // mousedown target is inside a <button>.
+            sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" title=\"Drag to move\">")
+              .Append("<button class=\"verso-cell-btn verso-cell-btn--run\" data-action=\"run\" data-target-id=\"")
+              .Append(cell.Id)
+              .Append("\" title=\"Run\"><span>&#x25B6;</span></button>")
+              .Append("<button class=\"verso-dashboard-edit-toggle\" data-action=\"toggleCellEdit\" data-target-id=\"")
+              .Append(cell.Id)
+              .Append("\" title=\"Toggle Code\">")
+              .Append(editLabel)
+              .Append("</button>")
+              .Append("<span class=\"verso-dashboard-drag-icon\" title=\"Drag to move\">&#x2630;</span>")
+              .Append("</div>");
 
-            // Output-only rendering
-            sb.Append("<div class=\"verso-dashboard-cell-output\" style=\"flex:1;overflow:auto;padding:10px 12px;\">");
-            if (cell.Outputs.Count > 0)
-            {
-                foreach (var output in cell.Outputs)
-                {
-                    if (output.IsError)
-                    {
-                        sb.Append("<div class=\"verso-output verso-output--error\">");
-                        sb.Append(WebUtility.HtmlEncode(output.Content));
-                        sb.Append("</div>");
-                    }
-                    else if (output.MimeType == "text/html")
-                    {
-                        sb.Append("<div class=\"verso-output verso-output--html\">");
-                        sb.Append(output.Content);
-                        sb.Append("</div>");
-                    }
-                    else
-                    {
-                        sb.Append("<div class=\"verso-output verso-output--text\"><pre style=\"margin:0;white-space:pre-wrap;\">");
-                        sb.Append(WebUtility.HtmlEncode(output.Content));
-                        sb.Append("</pre></div>");
-                    }
-                }
-            }
-            else
-            {
-                sb.Append("<div class=\"verso-output verso-output--text\"><pre style=\"margin:0;white-space:pre-wrap;\">");
-                sb.Append(WebUtility.HtmlEncode(cell.Source));
-                sb.Append("</pre></div>");
-            }
-            sb.Append("</div>");
-
-            // Resize handle
-            sb.Append("<div class=\"verso-dashboard-resize-handle\" data-cell-id=\"").Append(cell.Id).Append("\" style=\"position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:se-resize;\"></div>");
+            // Resize handle (bottom-right corner).
+            sb.Append("<div class=\"verso-dashboard-resize-handle\"></div>");
 
             sb.Append("</div>");
         }
 
-        sb.Append("</div>");
+        sb.Append("</div>"); // close .verso-dashboard-grid
+        sb.Append("</div>"); // close .verso-dashboard-root
 
         return Task.FromResult(new RenderResult("text/html", sb.ToString()));
     }
@@ -177,6 +185,7 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
     public Task OnCellRemovedAsync(Guid cellId, IVersoContext context)
     {
         _gridPositions.Remove(cellId);
+        _cellsInEdit.Remove(cellId);
         return Task.CompletedTask;
     }
 
@@ -268,24 +277,47 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
 
     // --- ILayoutInteractionHandler ---
 
-    public Task OnLayoutInteractionAsync(LayoutInteractionContext context)
+    public async Task OnLayoutInteractionAsync(LayoutInteractionContext context)
     {
         switch (context.InteractionType)
         {
             case "updateCellPosition":
                 ApplyUpdateCellPosition(context);
-                return Task.CompletedTask;
+                return;
 
             case "setEditMode":
                 _isEditMode = ParseSetEditModePayload(context.Payload);
-                return Task.CompletedTask;
+                context.RequestRender();
+                return;
+
+            case "run":
+                if (TryParseTargetCellId(context, out var runCellId))
+                    await context.Verso.Notebook.ExecuteCellAsync(runCellId);
+                return;
+
+            case "toggleCellEdit":
+                if (TryParseTargetCellId(context, out var editCellId))
+                {
+                    if (!_cellsInEdit.Add(editCellId))
+                        _cellsInEdit.Remove(editCellId);
+                    context.RequestRender();
+                }
+                return;
 
             default:
                 throw new InvalidOperationException(
                     $"DASHBOARD_INTERACTION_UNSUPPORTED: Dashboard layout does not handle " +
                     $"interactionType '{context.InteractionType}'. Supported types: " +
-                    $"'updateCellPosition', 'setEditMode'.");
+                    $"'updateCellPosition', 'setEditMode', 'run', 'toggleCellEdit'.");
         }
+    }
+
+    private static bool TryParseTargetCellId(LayoutInteractionContext context, out Guid cellId)
+    {
+        if (!string.IsNullOrWhiteSpace(context.TargetId) && Guid.TryParse(context.TargetId, out cellId))
+            return true;
+        cellId = Guid.Empty;
+        return false;
     }
 
     private void ApplyUpdateCellPosition(LayoutInteractionContext context)

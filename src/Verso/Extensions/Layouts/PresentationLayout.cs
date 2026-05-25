@@ -58,53 +58,32 @@ public sealed class PresentationLayout : ILayoutEngine
             if (visibility == CellVisibilityState.Hidden)
                 continue;
 
+            // Cells without any output have nothing meaningful to show in a read-only
+            // presentation; the portal would mount the Cell component into an empty
+            // wrapper that the presentation CSS strips down to nothing.
             if (cell.Outputs.Count == 0)
                 continue;
 
-            sb.Append("<div class=\"verso-presentation-cell\" data-cell-id=\"")
-              .Append(cell.Id)
-              .Append("\">");
-
-            if (visibility == CellVisibilityState.Visible)
+            // For cells the author marked Visible (source + output), render the source as
+            // a static read-only block before the slot. OutputOnly cells skip this block.
+            // The portal then injects the live <Cell> Blazor component into the slot below
+            // for the outputs; CSS under .verso-presentation-cell hides the inner editor
+            // chrome to keep the presentation read-only.
+            if (visibility == CellVisibilityState.Visible && !string.IsNullOrEmpty(cell.Source))
             {
-                sb.Append("<div class=\"verso-presentation-input\"><pre style=\"margin:0;white-space:pre-wrap;\">")
+                sb.Append("<div class=\"verso-presentation-input\"><pre>")
                   .Append(WebUtility.HtmlEncode(cell.Source))
                   .Append("</pre></div>");
             }
 
-            foreach (var output in cell.Outputs)
-            {
-                if (output.IsError)
-                {
-                    sb.Append("<div class=\"verso-output verso-output--error\">");
-                    sb.Append(WebUtility.HtmlEncode(output.Content));
-                    sb.Append("</div>");
-                }
-                else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
-                {
-                    sb.Append("<div class=\"verso-output verso-output--html\">");
-                    sb.Append(output.Content);
-                    sb.Append("</div>");
-                }
-                else if (output.MimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                {
-                    sb.Append("<div class=\"verso-output verso-output--html\">");
-                    sb.Append("<img src=\"data:")
-                      .Append(WebUtility.HtmlEncode(output.MimeType))
-                      .Append(";base64,")
-                      .Append(WebUtility.HtmlEncode(output.Content))
-                      .Append("\" style=\"max-width:100%\" />");
-                    sb.Append("</div>");
-                }
-                else
-                {
-                    sb.Append("<div class=\"verso-output verso-output--text\"><pre style=\"margin:0;white-space:pre-wrap;\">");
-                    sb.Append(WebUtility.HtmlEncode(output.Content));
-                    sb.Append("</pre></div>");
-                }
-            }
-
-            sb.Append("</div>");
+            var visibilityClass = visibility == CellVisibilityState.OutputOnly
+                ? " verso-presentation-cell--output-only"
+                : " verso-presentation-cell--visible";
+            sb.Append("<div class=\"verso-presentation-cell")
+              .Append(visibilityClass)
+              .Append("\" data-cell-slot=\"")
+              .Append(cell.Id)
+              .Append("\"></div>");
         }
 
         sb.Append("</div>");

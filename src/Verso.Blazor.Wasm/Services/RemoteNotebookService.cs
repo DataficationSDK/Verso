@@ -169,6 +169,9 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     /// removal in v2.0.
     /// </summary>
     public string? ActiveLayoutId => _activeLayout?.LayoutId;
+    public string ActiveLayoutKey => _activeLayout is { } layout
+        ? $"{layout.ExtensionId}:{layout.LayoutId}"
+        : "verso.layout:none";
     public LayoutCapabilities LayoutCapabilities => _layoutCapabilities;
     public bool ActiveLayoutSupportsPropertiesPanel => _activeLayoutSupportsPropertiesPanel;
     public string? ActiveLayoutRendererIsolation => _activeLayoutRendererIsolation;

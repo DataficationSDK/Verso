@@ -42,7 +42,7 @@ public sealed class PresentationLayoutVisibilityTests
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_ShowsInputForVisibleOverride()
+    public async Task RenderLayoutAsync_EmitsSlotForVisibleOverride()
     {
         var renderer = new FakeCellRenderer(cellTypeId: "parameters", defaultVisibility: CellVisibilityHint.Infrastructure);
         var context = MakeContext(renderer);
@@ -58,10 +58,9 @@ public sealed class PresentationLayoutVisibilityTests
 
         var result = await _layout.RenderLayoutAsync(new List<CellModel> { cell }, context);
 
-        Assert.IsTrue(result.Content.Contains(cell.Id.ToString()));
-        Assert.IsTrue(result.Content.Contains("verso-presentation-input"));
-        Assert.IsTrue(result.Content.Contains("param1 = 42"));
-        Assert.IsTrue(result.Content.Contains("param1: 42"));
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cell.Id}\""));
+        // No output-only modifier on a Visible-state cell.
+        Assert.IsFalse(result.Content.Contains("verso-presentation-cell--output-only"));
     }
 
     [TestMethod]
@@ -84,7 +83,7 @@ public sealed class PresentationLayoutVisibilityTests
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_ShowsOutputOnlyForOutputOnlyCell()
+    public async Task RenderLayoutAsync_TagsOutputOnlyForOutputOnlyCell()
     {
         var renderer = new FakeCellRenderer(cellTypeId: "sql", defaultVisibility: CellVisibilityHint.OutputOnly);
         var context = MakeContext(renderer);
@@ -99,10 +98,8 @@ public sealed class PresentationLayoutVisibilityTests
 
         var result = await _layout.RenderLayoutAsync(new List<CellModel> { cell }, context);
 
-        Assert.IsTrue(result.Content.Contains(cell.Id.ToString()));
-        Assert.IsFalse(result.Content.Contains("verso-presentation-input"));
-        Assert.IsFalse(result.Content.Contains("SELECT * FROM users"));
-        Assert.IsTrue(result.Content.Contains("<table><tr><td>data</td></tr></table>"));
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cell.Id}\""));
+        Assert.IsTrue(result.Content.Contains("verso-presentation-cell--output-only"));
     }
 
     [TestMethod]
@@ -139,10 +136,8 @@ public sealed class PresentationLayoutVisibilityTests
 
         var result = await _layout.RenderLayoutAsync(new List<CellModel> { cell }, context);
 
-        Assert.IsTrue(result.Content.Contains(cell.Id.ToString()));
-        Assert.IsTrue(result.Content.Contains("verso-presentation-input"));
-        Assert.IsTrue(result.Content.Contains("some input"));
-        Assert.IsTrue(result.Content.Contains("some output"));
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cell.Id}\""));
+        Assert.IsFalse(result.Content.Contains("verso-presentation-cell--output-only"));
     }
 
     [TestMethod]
@@ -175,15 +170,8 @@ public sealed class PresentationLayoutVisibilityTests
         var cells = new List<CellModel> { visibleCell, hiddenCell, outputOnlyCell };
         var result = await _layout.RenderLayoutAsync(cells, context);
 
-        // Visible cell: input + output shown
-        Assert.IsTrue(result.Content.Contains(visibleCell.Id.ToString()));
-        Assert.IsTrue(result.Content.Contains("# Title"));
-
-        // Infrastructure cell: hidden
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{visibleCell.Id}\""));
         Assert.IsFalse(result.Content.Contains(hiddenCell.Id.ToString()));
-
-        // OutputOnly cell: output shown, input not shown
-        Assert.IsTrue(result.Content.Contains(outputOnlyCell.Id.ToString()));
-        Assert.IsFalse(result.Content.Contains("SELECT 1"));
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{outputOnlyCell.Id}\""));
     }
 }

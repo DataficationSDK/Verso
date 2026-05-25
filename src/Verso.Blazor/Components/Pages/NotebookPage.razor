@@ -97,114 +97,9 @@
     {
         <div class="verso-notebook-body">
             <div class="verso-notebook-main">
-                @if (IsActiveLayoutCustomInline())
-                {
-                    <div class="verso-custom-layout-placeholder">
-                        Custom layouts are not yet available in this hosting mode.
-                    </div>
-                }
-                else if (Service.ActiveLayoutId == "dashboard")
-                {
-                    <DashboardGrid Service="Service"
-                                   Cells="GetLayoutFilteredCells()"
-                                   ExecutingCellId="_executingCellId"
-                                   IsRunDisabled="_executionInProgress"
-                                   OnRunCell="HandleRunCell"
-                                   OnCancelCell="HandleCancelCell"
-                                   OnSourceChanged="HandleSourceChanged" />
-                }
-                else if (Service.ActiveLayoutId == "presentation")
-                {
-                    <PresentationView Service="Service"
-                                      Cells="GetLayoutFilteredCells()" />
-                }
-                else
-                {
-                    <div class="verso-cell-list" @onclick="HandleCellListClick">
-                        @{
-                            var cells = Service.Cells;
-                            var cellTypes = Service.AvailableCellTypes;
-                        }
-                        @{
-                            int? skipUntilLevel = null;
-                        }
-                        @for (int i = 0; i < cells.Count; i++)
-                        {
-                            var cell = cells[i];
-                            var index = i;
-                            var headingLevel = HeadingDetector.GetHeadingLevel(cell);
-
-                            if (skipUntilLevel is not null)
-                            {
-                                if (headingLevel is not null && headingLevel.Value <= skipUntilLevel.Value)
-                                {
-                                    skipUntilLevel = null;
-                                }
-                                else
-                                {
-                                    continue;
-                                }
-                            }
-
-                            var isSectionCollapsed = _collapsedSections.Contains(cell.Id);
-
-                            <div @onclick:stopPropagation="true" data-cell-index="@index">
-                                <Cell CellData="cell"
-                                      IsSelected="cell.Id == _selectedCellId"
-                                      IsExecuting="cell.Id == _executingCellId"
-                                      IsRunDisabled="_executionInProgress"
-                                      Index="index"
-                                      IsLast="index == cells.Count - 1"
-                                      CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
-                                      IsEditable="Service.IsCellTypeEditable(cell.Type)"
-                                      IsHeadingCell="headingLevel is not null"
-                                      IsSectionCollapsed="isSectionCollapsed"
-                                      OnToggleSection="HandleToggleSection"
-                                      OnRunCell="HandleRunCell"
-                                      OnCancelCell="HandleCancelCell"
-                                      OnDeleteCell="HandleDeleteCell"
-                                      OnSelect="HandleSelectCell"
-                                      OnMoveUp="HandleMoveUp"
-                                      OnMoveDown="HandleMoveDown"
-                                      OnSourceChanged="HandleSourceChanged"
-                                      OnCellAction="HandleCellAction"
-                                      OnCellTypeChanged="HandleCellTypeChanged"
-                                      OnCellLanguageChanged="HandleCellLanguageChanged" />
-                            </div>
-
-                            @if (headingLevel is not null && isSectionCollapsed)
-                            {
-                                skipUntilLevel = headingLevel;
-                            }
-
-                            @if (index < cells.Count - 1)
-                            {
-                                var insertIndex = index + 1;
-                                <div class="verso-insert-cell-row @(cell.Id == _selectedCellId ? "verso-insert-cell-row--visible" : "")">
-                                    <div class="verso-insert-cell-line"></div>
-                                    @foreach (var ct in cellTypes)
-                                    {
-                                        var idx = insertIndex;
-                                        var typeId = ct.Id;
-                                        <button class="verso-insert-cell-btn" @onclick="() => HandleInsertCell(idx, typeId)">+ @ct.DisplayName</button>
-                                    }
-                                    <div class="verso-insert-cell-line"></div>
-                                </div>
-                            }
-                        }
-
-                        @if (Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))
-                        {
-                            <div class="verso-add-cell-row">
-                                @foreach (var ct in cellTypes)
-                                {
-                                    var typeId = ct.Id;
-                                    <button class="verso-add-cell-btn" @onclick="() => HandleAddCell(typeId)">+ @ct.DisplayName Cell</button>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
+                <CascadingValue Value="@CellContext" IsFixed="false">
+                    <LayoutRenderer @key="Service.ActiveLayoutKey" Service="Service" />
+                </CascadingValue>
             </div>
 
             <div class="verso-panel-container">
@@ -714,24 +609,27 @@
         _activePanel = null;
     }
 
-    private IReadOnlyList<CellModel> GetLayoutFilteredCells()
+    private NotebookCellContext CellContext => new()
     {
-        return Service.Cells
-            .Where(c => Service.ResolveCellVisibility(c.Id) != CellVisibilityState.Hidden)
-            .ToList();
-    }
-
-    private bool IsActiveLayoutCustomInline()
-    {
-        var active = Service.ActiveLayout;
-        if (active is null) return false;
-        var info = Service.AvailableLayouts.FirstOrDefault(l =>
-            string.Equals(l.LayoutId, active.Value.LayoutId, StringComparison.OrdinalIgnoreCase) &&
-            (string.IsNullOrEmpty(active.Value.ExtensionId)
-             || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
-        return info?.RequiresCustomRenderer == true
-            && string.Equals(Service.ActiveLayoutRendererIsolation, "inline", StringComparison.OrdinalIgnoreCase);
-    }
+        SelectedCellId = _selectedCellId,
+        ExecutingCellId = _executingCellId,
+        IsRunDisabled = _executionInProgress,
+        CollapsedSections = _collapsedSections,
+        OnRunCell = EventCallback.Factory.Create<Guid>(this, HandleRunCell),
+        OnCancelCell = EventCallback.Factory.Create<Guid>(this, HandleCancelCell),
+        OnDeleteCell = EventCallback.Factory.Create<Guid>(this, HandleDeleteCell),
+        OnSelectCell = EventCallback.Factory.Create<Guid>(this, HandleSelectCell),
+        OnMoveUp = EventCallback.Factory.Create<Guid>(this, HandleMoveUp),
+        OnMoveDown = EventCallback.Factory.Create<Guid>(this, HandleMoveDown),
+        OnToggleSection = EventCallback.Factory.Create<Guid>(this, HandleToggleSection),
+        OnSourceChanged = EventCallback.Factory.Create<(Guid, string)>(this, HandleSourceChanged),
+        OnCellAction = EventCallback.Factory.Create<(Guid, string)>(this, HandleCellAction),
+        OnCellTypeChanged = EventCallback.Factory.Create<(Guid, string)>(this, HandleCellTypeChanged),
+        OnCellLanguageChanged = EventCallback.Factory.Create<(Guid, string)>(this, HandleCellLanguageChanged),
+        OnInsertCell = EventCallback.Factory.Create<(int, string)>(this, args => HandleInsertCell(args.Item1, args.Item2)),
+        OnAddCell = EventCallback.Factory.Create<string>(this, HandleAddCell),
+        OnCellListClick = EventCallback.Factory.Create(this, HandleCellListClick),
+    };
 
     [JSInvokable]
     public void OnPanelResized(int width)

@@ -1,0 +1,53 @@
+@using Microsoft.AspNetCore.Components
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Services
+
+@if (RequiresIsolatedRenderer() && IsolatedRenderer is not null)
+{
+    @IsolatedRenderer
+}
+else if (RequiresInlineCustomRenderer())
+{
+    @* CustomLayoutHtml owns both the hidden cell pool and the layout root so the
+       @ref captures used by the portal-mount JS are valid in the same component. *@
+    <CustomLayoutHtml Service="Service" />
+}
+else
+{
+    <DefaultCellList Service="Service" />
+}
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+
+    /// <summary>
+    /// WASM-only injection point for the iframe-isolated renderer. The server page leaves
+    /// this null because <c>CustomLayoutFrame</c> lives in <c>Verso.Blazor.Wasm</c> and
+    /// the server host does not run iframe-isolated layouts in v1.0.
+    /// </summary>
+    [Parameter] public RenderFragment? IsolatedRenderer { get; set; }
+
+    [CascadingParameter] public NotebookCellContext Context { get; set; } = default!;
+
+    private bool RequiresIsolatedRenderer()
+        => string.Equals(Service.ActiveLayoutRendererIsolation, "isolated", StringComparison.OrdinalIgnoreCase);
+
+    private bool RequiresInlineCustomRenderer()
+    {
+        var active = Service.ActiveLayout;
+        if (active is null) return false;
+
+        var info = Service.AvailableLayouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, active.Value.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(active.Value.ExtensionId)
+             || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+
+        if (info?.RequiresCustomRenderer != true) return false;
+
+        // Default to inline when the host did not specify an isolation mode. Matches the
+        // ILayoutEngine default of RendererIsolation.Inline.
+        var iso = Service.ActiveLayoutRendererIsolation;
+        return string.IsNullOrEmpty(iso)
+            || string.Equals(iso, "inline", StringComparison.OrdinalIgnoreCase);
+    }
+}

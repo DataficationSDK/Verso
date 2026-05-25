@@ -1219,6 +1219,23 @@ html, body {
 
 /* === Dashboard Grid Layout === */
 
+.verso-dashboard-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.verso-dashboard-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--verso-cell-border, #E0E0E0);
+    background: var(--verso-toolbar-background, transparent);
+    flex-shrink: 0;
+}
+
 .verso-dashboard-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -1228,6 +1245,7 @@ html, body {
     align-content: start;
     overflow-y: auto;
     flex: 1;
+    min-height: 0;
 }
 
 .verso-dashboard-cell {
@@ -1262,18 +1280,6 @@ html, body {
 
 .verso-dashboard-cell:hover .verso-dashboard-cell-toolbar {
     opacity: 1;
-}
-
-.verso-dashboard-cell-output {
-    flex: 1;
-    overflow: auto;
-    padding: 10px 12px;
-}
-
-.verso-dashboard-cell-output pre {
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
 .verso-dashboard-resize-handle {
@@ -1348,12 +1354,6 @@ html, body {
     color: var(--verso-editor-foreground, #1E1E1E);
 }
 
-.verso-dashboard-edit-modal {
-    margin: 0 12px 8px;
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 2px;
-}
-
 /* === Presentation Layout === */
 
 .verso-presentation-view {
@@ -1367,6 +1367,26 @@ html, body {
     margin-bottom: 16px;
 }
 
+.verso-presentation-cell--output-only {
+    margin-top: 0;
+}
+
+.verso-presentation-input {
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--verso-cell-border, #E0E0E0);
+    border-radius: var(--verso-cell-border-radius, 4px);
+    background: var(--verso-editor-background, #FAFAFA);
+}
+
+.verso-presentation-input pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: var(--verso-font-mono, 'Cascadia Code', 'Consolas', 'Courier New', monospace);
+    font-size: var(--verso-font-size, 13px);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
 .verso-presentation-cell .verso-output {
     padding: 8px 12px;
 }
@@ -1376,6 +1396,62 @@ html, body {
     white-space: pre-wrap;
     font-family: var(--verso-font-mono, 'Cascadia Code', 'Consolas', 'Courier New', monospace);
     font-size: var(--verso-font-size, 13px);
+}
+
+/* Presentation/dashboard portal: when a cell is rendered into a layout slot we
+   want to hide the editor and chrome by default so only outputs remain visible.
+   The portal moves the page-level pool wrapper (a bare <div data-cell-id>)
+   into the slot, with the <div class="verso-cell"> Cell root nested inside —
+   so the chrome selectors descend through both. */
+
+.verso-presentation-cell .verso-cell-gutter,
+.verso-presentation-cell .verso-cell-toolbar,
+.verso-presentation-cell .verso-cell-editor,
+.verso-presentation-cell .verso-cell-source-preview {
+    display: none;
+}
+
+.verso-dashboard-cell .verso-cell-gutter,
+.verso-dashboard-cell .verso-cell-toolbar,
+.verso-dashboard-cell .verso-cell-editor,
+.verso-dashboard-cell .verso-cell-source-preview {
+    display: none;
+}
+
+/* Show the inner cell's editor + gutter when the grid is in edit mode OR the
+   individual cell's Edit toggle is on. `display: revert` falls back to each
+   element's own CSS rule so we don't have to hardcode their display value here. */
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-gutter,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-toolbar,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-editor,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-source-preview,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-gutter,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-toolbar,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-editor,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-source-preview {
+    display: revert;
+}
+
+/* The drag/resize handles are layout chrome, not Blazor's chrome; the Cell
+   component is still painted normally, so we drop its outer border to avoid a
+   double border inside the dashboard cell wrapper. */
+
+.verso-dashboard-cell .verso-cell {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* When a cell is in edit mode, its native gutter (with its own Run button)
+   appears, making the host toolbar's Run redundant. Hide it so we don't ship
+   two Run buttons stacked on top of each other. */
+.verso-dashboard-cell[data-cell-edit="true"] .verso-dashboard-cell-toolbar .verso-cell-btn--run {
+    display: none;
+}
+
+/* Same when the grid is globally in edit mode. */
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell-toolbar .verso-cell-btn--run {
+    display: none;
 }
 
 /* Layout switcher active button */

@@ -24,6 +24,7 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.mountSlots", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.unmountSlots", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.updateSlotPosition", _ => true);
+        TestContext!.JSInterop.SetupVoid("versoCustomLayout.notifyMounted", _ => true);
     }
 
     [TestMethod]
@@ -70,9 +71,7 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
     [TestMethod]
     public void OnFirstRender_InvokesMountSlots()
     {
-        var cut = RenderComponent<CustomLayoutHtml>(p => p
-            .Add(c => c.Service, _service)
-            .Add(c => c.CellPoolRef, new ElementReference()));
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
 
         cut.WaitForAssertion(() =>
         {
@@ -87,9 +86,7 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
     [TestMethod]
     public void OnLayoutChanged_InvokesUnmountSlotsBeforeSwap()
     {
-        var cut = RenderComponent<CustomLayoutHtml>(p => p
-            .Add(c => c.Service, _service)
-            .Add(c => c.CellPoolRef, new ElementReference()));
+        var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
 
         cut.WaitForAssertion(() =>
         {
