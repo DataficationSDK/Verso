@@ -205,6 +205,7 @@
     private DotNetObjectReference<NotebookPage>? _panelResizeRef;
     private DotNetObjectReference<NotebookPage>? _cellInteractRef;
     private DotNetObjectReference<NotebookPage>? _cellDragRef;
+    private DotNetObjectReference<NotebookPage>? _layoutInteractRef;
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
@@ -310,6 +311,9 @@
 
             _cellDragRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("versoCellDrag.init", _cellDragRef);
+
+            _layoutInteractRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("versoLayoutInteract.register", _layoutInteractRef);
 
             await SyncMonacoThemeAsync();
 
@@ -584,6 +588,17 @@
 
         return await Service.HandleCellInteractionAsync(
             cellGuid, extensionId, interactionType, payloadJson, outputBlockId, CellRegion.Output);
+    }
+
+    [JSInvokable]
+    public async Task<string?> OnLayoutInteract(
+        string extensionId, string layoutId, string? frameInstanceId,
+        string interactionType, string payloadJson, string? targetId)
+    {
+        await Service.LayoutInteractAsync(
+            extensionId, layoutId, interactionType, payloadJson ?? string.Empty,
+            frameInstanceId, targetId);
+        return null;
     }
 
     private async Task SyncMonacoThemeAsync()
@@ -1169,6 +1184,7 @@
         _panelResizeRef?.Dispose();
         _cellInteractRef?.Dispose();
         _cellDragRef?.Dispose();
+        _layoutInteractRef?.Dispose();
         Service.OnCellExecuted -= HandleCellExecutedRefresh;
         Service.OnCellExecuting -= HandleCellExecutingEvent;
         Service.OnCellExecutionCompleted -= HandleCellExecutedEvent;

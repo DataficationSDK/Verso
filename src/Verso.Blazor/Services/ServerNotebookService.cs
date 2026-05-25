@@ -262,9 +262,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
-#pragma warning disable CS0067 // Event never raised: server-side dispatch for layout/updated is not yet implemented.
     public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
-#pragma warning restore CS0067
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
@@ -881,9 +879,11 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
             Payload = payload,
             TargetId = targetId,
             Verso = new BlazorToolbarActionContext(_scaffold!, new List<Guid>()),
-            CancellationToken = CancellationToken.None
-            // RequestRender / RequestCellRefresh stay as the no-op defaults; the
-            // server-side notification path is deferred (see 1E ServerNotebookService stub).
+            CancellationToken = CancellationToken.None,
+            RequestRender = () => OnLayoutUpdated?.Invoke(
+                new LayoutUpdatedEventArgs(extensionId, layoutId, frameInstanceId ?? string.Empty, "full", null)),
+            RequestCellRefresh = cellId => OnLayoutUpdated?.Invoke(
+                new LayoutUpdatedEventArgs(extensionId, layoutId, frameInstanceId ?? string.Empty, "cell", cellId))
         };
 
         await handler.OnLayoutInteractionAsync(context).ConfigureAwait(false);
@@ -974,6 +974,20 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var context = new BlazorCellRenderContext(_scaffold, cell);
         await provider.OnPropertyChangedAsync(cell, propertyName, value, context);
         OnNotebookChanged?.Invoke();
+
+        // Property changes (e.g. per-layout visibility) can affect what an
+        // extension-rendered layout chooses to emit. CustomLayoutHtml re-fetches
+        // HTML only on OnLayoutUpdated, so signal a cell-scoped refresh.
+        var activeLayout = _scaffold.LayoutManager?.ActiveLayout;
+        if (activeLayout?.RequiresCustomRenderer == true)
+        {
+            OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+                activeLayout.ExtensionId,
+                activeLayout.LayoutId,
+                string.Empty,
+                "cell",
+                cellId));
+        }
     }
 
     public CellVisibilityState ResolveCellVisibility(Guid cellId)
