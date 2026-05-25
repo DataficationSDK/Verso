@@ -54,9 +54,9 @@ public class InterfaceContractTests
             .Where(t => t.IsInterface && typeof(IExtension).IsAssignableFrom(t))
             .ToList();
 
-        // IExtension + 12 derived = 13
-        Assert.AreEqual(13, extensionInterfaces.Count,
-            $"Expected 12 derived extension interfaces (plus IExtension itself), found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
+        // IExtension + 13 derived = 14
+        Assert.AreEqual(14, extensionInterfaces.Count,
+            $"Expected 13 derived extension interfaces (plus IExtension itself), found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
     }
 
     [TestMethod]

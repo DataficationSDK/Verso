@@ -3,6 +3,7 @@ using System.Text.Json;
 using Verso.Extensions;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
+using Verso.Host.Layouts;
 using Verso.Host.Protocol;
 
 namespace Verso.Host;
@@ -12,6 +13,8 @@ public sealed class NotebookSession : IAsyncDisposable
     public Scaffold Scaffold { get; }
     public ExtensionHost ExtensionHost { get; }
     public string NotebookId { get; }
+
+    internal LayoutSessionFrameTracker FrameTracker { get; }
 
     private CancellationTokenSource? _executionCts;
     private readonly Action<string, object?> _sendNotification;
@@ -30,6 +33,10 @@ public sealed class NotebookSession : IAsyncDisposable
         Scaffold = scaffold;
         ExtensionHost = extensionHost;
         _sendNotification = sendNotification;
+        FrameTracker = new LayoutSessionFrameTracker(
+            notebookId,
+            extensionHost,
+            () => new LayoutHandler.HostVersoContext(scaffold));
 
         // Notify the client when extensions are dynamically loaded (e.g. via #!extension)
         // or enabled/disabled at runtime, so the WASM UI can refresh its cached
@@ -191,6 +198,7 @@ public sealed class NotebookSession : IAsyncDisposable
         _pendingInputs.Clear();
 
         _executionCts?.Dispose();
+        await FrameTracker.DisposeAsync();
         await Scaffold.DisposeAsync();
         await ExtensionHost.DisposeAsync();
     }
