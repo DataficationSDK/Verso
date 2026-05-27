@@ -125,6 +125,40 @@ public sealed class SqlKernelTests
     }
 
     [TestMethod]
+    public async Task ExecuteAsync_DeclaredLocal_NoSpuriousBindingWarning()
+    {
+        // The reported bug: locally DECLAREd T-SQL variables triggered
+        // "No variable '@xxx' found for parameter binding" warnings even
+        // though the variable is introduced by the SQL itself. SQLite cannot
+        // execute DECLARE syntax so the statement itself fails — but the
+        // binding pass runs first, and that is where the spurious warning
+        // used to appear. Asserting on the warning text alone is enough to
+        // pin the fix.
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+
+        var outputs = await kernel.ExecuteAsync(
+            "DECLARE @rows INT = 1; SELECT @rows", ctx);
+
+        Assert.IsFalse(outputs.Any(o => o.Content.Contains("No variable '@rows'")),
+            "Locally DECLAREd @rows must not produce a binding warning.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ParamInLineComment_NoBindingWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+
+        await kernel.ExecuteAsync("CREATE TABLE T9 (X INTEGER)", ctx);
+        var outputs = await kernel.ExecuteAsync(
+            "-- legacy: @oldparam was renamed\nSELECT * FROM T9", ctx);
+
+        Assert.IsFalse(outputs.Any(o => o.Content.Contains("No variable '@oldparam'")),
+            "@x inside a single-line comment must not produce a binding warning.");
+    }
+
+    [TestMethod]
     public async Task ExecuteAsync_NoDisplayDirective_SuppressesOutputButPublishesVariable()
     {
         var ctx = CreateContextWithConnection();
