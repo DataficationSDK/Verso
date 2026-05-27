@@ -206,4 +206,116 @@ public sealed class SqlKernelDiagnosticTests
             d.Message.Contains("Unresolved")),
             "Should not warn for @@VERSION at start of query.");
     }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_DeclaredLocal_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "DECLARE @x INT; SELECT @x");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("@x")),
+            "Should not warn about a locally DECLAREd variable.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_DeclareMultiVarUserScenario_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        // The kernel variable @waitTime IS in the store and is referenced in the
+        // initializer; the locally declared @rows/@waitDelay/@serverName must
+        // not produce binding warnings.
+        ctx.Variables.Set("waitTime", 30);
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var sql = @"DECLARE @rows INT = 1,
+        @waitDelay CHAR(8) = '00:' + RIGHT('0' + CAST(@waitTime AS VARCHAR(2)) + '', 2),
+        @serverName SYSNAME = @@SERVERNAME;
+SELECT @rows, @waitDelay, @serverName";
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(sql);
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            (d.Message.Contains("@rows") || d.Message.Contains("@waitDelay")
+                || d.Message.Contains("@serverName"))),
+            "Should not warn about locally DECLAREd variables.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_ParamInLineComment_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "-- TODO: handle @legacy column\nSELECT 1");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("@legacy")),
+            "Should not warn about @x inside a -- single-line comment.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_ParamInBlockComment_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "/* uses @legacy column */ SELECT 1");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("@legacy")),
+            "Should not warn about @x inside a /* block comment */.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_ParamInStringLiteral_NoWarning()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "INSERT INTO Emails VALUES ('alice@example.com')");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("@example")),
+            "Should not warn about @x inside a single-quoted string literal.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_DirectiveHeader_SpanRelativeToOriginal()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        // Line 0: directive header, Line 1: the query. The @missing token is at
+        // column 27 of line 1 (same column as in the bare-query span test, but
+        // shifted down by one line because of the directive header).
+        var code = "--connection testdb\nSELECT * FROM T WHERE Id = @missing";
+        var diagnostics = await kernel.GetDiagnosticsAsync(code);
+
+        var paramDiag = diagnostics.FirstOrDefault(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("@missing"));
+
+        Assert.IsNotNull(paramDiag);
+        Assert.AreEqual(1, paramDiag!.StartLine,
+            "@missing is on line 1 (after the directive header on line 0).");
+        Assert.AreEqual(27, paramDiag.StartColumn);
+    }
 }
