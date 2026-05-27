@@ -2,7 +2,6 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
 using Verso.Abstractions;
 using Verso.Ado.Formatters;
 using Verso.Ado.Helpers;
@@ -18,8 +17,6 @@ namespace Verso.Ado.Kernel;
 /// </summary>
 public sealed class SqlKernel : ILanguageKernel
 {
-    // Negative lookbehind avoids matching the second @ in T-SQL/MySQL globals like @@SPID, @@VERSION.
-    private static readonly Regex ParamPattern = new(@"(?<!@)@(\w+)", RegexOptions.Compiled);
     private readonly SemaphoreSlim _executionLock = new(1, 1);
 
     internal const int DefaultMaxFetchRows = 10_000;
@@ -76,8 +73,9 @@ public sealed class SqlKernel : ILanguageKernel
             return outputs;
         }
 
-        // Determine if this is a SQL Server provider (for GO batch handling)
-        bool isSqlServer = connInfo.ProviderName?.Contains("SqlClient", StringComparison.OrdinalIgnoreCase) ?? false;
+        // Resolve dialect for parameter scanning and GO batch handling
+        var dialect = SqlDialectResolver.FromProviderName(connInfo.ProviderName);
+        bool isSqlServer = dialect == SqlDialect.SqlServer;
 
         // Split statements
         var statements = SqlStatementSplitter.Split(sqlCode, handleGoBatches: isSqlServer);
@@ -103,7 +101,7 @@ public sealed class SqlKernel : ILanguageKernel
                 cmd.CommandText = statement;
 
                 // Bind parameters
-                BindParameters(cmd, statement, context.Variables, outputs);
+                BindParameters(cmd, statement, dialect, context.Variables, outputs);
 
                 using var reader = await cmd.ExecuteReaderAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -290,10 +288,12 @@ public sealed class SqlKernel : ILanguageKernel
 
         var (directives, sqlCode) = SqlDirectives.Parse(code);
 
-        // Check for missing connection
+        // Resolve connection (and dialect for parameter scanning)
+        SqlConnectionInfo? connInfo = null;
+        var dialect = SqlDialect.Unknown;
         if (_lastVariableStore is not null)
         {
-            var connInfo = ConnectionResolver.Resolve(directives.ConnectionName, _lastVariableStore);
+            connInfo = ConnectionResolver.Resolve(directives.ConnectionName, _lastVariableStore);
             if (connInfo is null)
             {
                 diagnostics.Add(new Diagnostic(
@@ -302,6 +302,10 @@ public sealed class SqlKernel : ILanguageKernel
                         ? $"Connection '{directives.ConnectionName}' not found. Use #!sql-connect to establish a connection."
                         : "No database connection. Use #!sql-connect to establish a connection.",
                     0, 0, 0, 0));
+            }
+            else
+            {
+                dialect = SqlDialectResolver.FromProviderName(connInfo.ProviderName);
             }
         }
         else
@@ -312,14 +316,19 @@ public sealed class SqlKernel : ILanguageKernel
                 0, 0, 0, 0));
         }
 
-        // Check for unresolved @parameters
-        var matches = ParamPattern.Matches(code);
+        // Scan for unresolved @parameters in the post-directive-strip SQL,
+        // then translate offsets back to the original cell's line numbering.
+        int lineOffset = sqlCode.Length < code.Length ? 1 : 0;
+
+        var localNames = SqlLocalScopeAnalyzer.FindLocalNames(sqlCode, dialect);
+        var references = SqlParameterScanner.Scan(sqlCode, dialect);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (Match match in matches)
+        foreach (var reference in references)
         {
-            var paramName = match.Groups[1].Value;
-            if (!seen.Add(paramName))
+            if (localNames.Contains(reference.Name))
+                continue;
+            if (!seen.Add(reference.Name))
                 continue;
 
             bool resolved = false;
@@ -327,18 +336,18 @@ public sealed class SqlKernel : ILanguageKernel
             {
                 var allVars = _lastVariableStore.GetAll();
                 resolved = allVars.Any(v =>
-                    string.Equals(v.Name, paramName, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(v.Name, reference.Name, StringComparison.OrdinalIgnoreCase));
             }
 
             if (!resolved)
             {
-                var (startLine, startCol) = OffsetToLineCol(code, match.Index);
-                var (endLine, endCol) = OffsetToLineCol(code, match.Index + match.Length);
+                var (startLine, startCol) = OffsetToLineCol(sqlCode, reference.Offset);
+                var (endLine, endCol) = OffsetToLineCol(sqlCode, reference.Offset + reference.Length);
 
                 diagnostics.Add(new Diagnostic(
                     DiagnosticSeverity.Warning,
-                    $"Unresolved parameter '@{paramName}'. No matching variable found in the variable store.",
-                    startLine, startCol, endLine, endCol));
+                    $"Unresolved parameter '@{reference.Name}'. No matching variable found in the variable store.",
+                    startLine + lineOffset, startCol, endLine + lineOffset, endCol));
             }
         }
 
@@ -541,53 +550,37 @@ public sealed class SqlKernel : ILanguageKernel
         return str.Length > maxLength ? str.Substring(0, maxLength) + "..." : str;
     }
 
-    private static bool IsInsideStringLiteral(string sql, int position)
-    {
-        bool inString = false;
-        for (int i = 0; i < position && i < sql.Length; i++)
-        {
-            if (sql[i] == '\'')
-            {
-                // Handle escaped single quotes ('')
-                if (inString && i + 1 < sql.Length && sql[i + 1] == '\'')
-                    i++; // skip the escaped quote
-                else
-                    inString = !inString;
-            }
-        }
-        return inString;
-    }
-
     private static void BindParameters(
-        DbCommand cmd, string sql, IVariableStore variables, List<CellOutput> outputs)
+        DbCommand cmd, string sql, SqlDialect dialect,
+        IVariableStore variables, List<CellOutput> outputs)
     {
-        var matches = ParamPattern.Matches(sql);
+        var localNames = SqlLocalScopeAnalyzer.FindLocalNames(sql, dialect);
+        var references = SqlParameterScanner.Scan(sql, dialect);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (Match match in matches)
+        foreach (var reference in references)
         {
-            // Skip @params that appear inside single-quoted string literals
-            if (IsInsideStringLiteral(sql, match.Index))
+            // Skip names introduced by the SQL itself (T-SQL DECLARE / proc params, etc.)
+            if (localNames.Contains(reference.Name))
                 continue;
 
-            var paramName = match.Groups[1].Value;
-            if (!seen.Add(paramName))
+            if (!seen.Add(reference.Name))
                 continue;
 
             var allVars = variables.GetAll();
             var descriptor = allVars.FirstOrDefault(v =>
-                string.Equals(v.Name, paramName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(v.Name, reference.Name, StringComparison.OrdinalIgnoreCase));
 
             if (descriptor is null || descriptor.Value is null)
             {
                 outputs.Add(new CellOutput("text/plain",
-                    $"Warning: No variable '@{paramName}' found for parameter binding.",
+                    $"Warning: No variable '@{reference.Name}' found for parameter binding.",
                     IsError: false));
                 continue;
             }
 
             var param = cmd.CreateParameter();
-            param.ParameterName = $"@{paramName}";
+            param.ParameterName = $"@{reference.Name}";
 
             if (DbTypeMapper.TryMapDbType(descriptor.Type, out var dbType))
             {
@@ -597,7 +590,7 @@ public sealed class SqlKernel : ILanguageKernel
             else
             {
                 outputs.Add(new CellOutput("text/plain",
-                    $"Warning: Type '{descriptor.Type.Name}' for '@{paramName}' is not a supported DbType. Passing as-is.",
+                    $"Warning: Type '{descriptor.Type.Name}' for '@{reference.Name}' is not a supported DbType. Passing as-is.",
                     IsError: false));
                 param.Value = descriptor.Value;
             }
