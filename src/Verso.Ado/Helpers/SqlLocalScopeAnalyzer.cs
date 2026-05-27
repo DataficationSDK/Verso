@@ -78,7 +78,11 @@ internal static class SqlLocalScopeAnalyzer
             // DECLARE syntax is never parenthesized at the top level; each
             // comma-separated item is a single local declaration whose name
             // is the first @token. Subsequent @tokens are initializer references.
-            ExtractFirstAtPerItem(m.Groups["list"].Value, names);
+            // Trim first to guard against the capture spilling past an
+            // unterminated DECLARE into a following statement (T-SQL semicolons
+            // are optional).
+            var list = TrimDeclareCaptureToStatement(m.Groups["list"].Value);
+            ExtractFirstAtPerItem(list, names);
         }
 
         foreach (Match m in ProcedurePattern.Matches(sanitized))
@@ -141,9 +145,46 @@ internal static class SqlLocalScopeAnalyzer
     }
 
     /// <summary>
+    /// Trims a DECLARE list capture to its actual statement boundary. Because
+    /// <see cref="DeclarePattern"/> grabs everything up to the next <c>;</c>
+    /// and T-SQL semicolons are optional, the raw capture can spill into a
+    /// following statement. A DECLARE that continues onto a new line always
+    /// ends the preceding line with a top-level <c>,</c>; once a non-comma
+    /// line ending appears at depth 0, the statement has ended and any
+    /// further input belongs to the next statement.
+    /// </summary>
+    private static string TrimDeclareCaptureToStatement(string capture)
+    {
+        int depth = 0;
+        char lastSignificantAtDepth0 = ',';
+
+        for (int i = 0; i < capture.Length; i++)
+        {
+            char c = capture[i];
+            if (c == '(') depth++;
+            else if (c == ')') depth = Math.Max(0, depth - 1);
+
+            if (c == '\n')
+            {
+                if (lastSignificantAtDepth0 != ',')
+                    return capture.Substring(0, i);
+            }
+            else if (!char.IsWhiteSpace(c) && depth == 0)
+            {
+                lastSignificantAtDepth0 = c;
+            }
+        }
+
+        return capture;
+    }
+
+    /// <summary>
     /// Splits <paramref name="list"/> on commas at paren-depth 0 and, for each item,
     /// extracts the first <c>@name</c> token. Initializer references that appear
     /// after the name (e.g. <c>= @other</c> or <c>= @@SERVERNAME</c>) are ignored.
+    /// Stops at the first item whose first non-whitespace character is not <c>@</c>.
+    /// This guards against DECLARE captures that spill into a following statement
+    /// when the DECLARE is not semicolon-terminated (T-SQL terminators are optional).
     /// </summary>
     private static void ExtractFirstAtPerItem(string list, HashSet<string> names)
     {
@@ -157,20 +198,30 @@ internal static class SqlLocalScopeAnalyzer
             else if (c == ')') depth = Math.Max(0, depth - 1);
             else if (c == ',' && depth == 0)
             {
-                AddFirstAtName(list, itemStart, i, names);
+                if (!TryAddFirstAtName(list, itemStart, i, names))
+                    return;
                 itemStart = i + 1;
             }
         }
-        AddFirstAtName(list, itemStart, list.Length, names);
+        TryAddFirstAtName(list, itemStart, list.Length, names);
     }
 
-    private static void AddFirstAtName(string list, int start, int end, HashSet<string> names)
+    /// <summary>
+    /// Reads the first <c>@name</c> token in <c>[start, end)</c> and adds the
+    /// bare name to <paramref name="names"/>. Returns <c>false</c> when the
+    /// first non-whitespace character is not <c>@</c>, signaling to the caller
+    /// that the item (and any subsequent items) does not belong to the
+    /// declaration list and iteration should stop. Empty/whitespace-only items
+    /// (e.g. a trailing comma) return <c>true</c> so iteration continues.
+    /// </summary>
+    private static bool TryAddFirstAtName(string list, int start, int end, HashSet<string> names)
     {
         int i = start;
         while (i < end && char.IsWhiteSpace(list[i])) i++;
-        if (i >= end || list[i] != '@') return;
-        // Skip the @@global form — it's not a local introduction.
-        if (i + 1 < end && list[i + 1] == '@') return;
+        if (i >= end) return true;
+        if (list[i] != '@') return false;
+        // Skip the @@global form: it's not a local introduction.
+        if (i + 1 < end && list[i + 1] == '@') return true;
 
         int nameStart = i + 1;
         int nameEnd = nameStart;
@@ -179,6 +230,7 @@ internal static class SqlLocalScopeAnalyzer
 
         if (nameEnd > nameStart)
             names.Add(list.Substring(nameStart, nameEnd - nameStart));
+        return true;
     }
 
     /// <summary>

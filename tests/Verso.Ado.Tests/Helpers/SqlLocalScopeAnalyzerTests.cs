@@ -199,8 +199,56 @@ public sealed class SqlLocalScopeAnalyzerTests
         Assert.IsTrue(names.Contains("rows"), "Expected 'rows' in local names");
         Assert.IsTrue(names.Contains("waitDelay"), "Expected 'waitDelay' in local names");
         Assert.IsTrue(names.Contains("serverName"), "Expected 'serverName' in local names");
-        // @waitTime is REFERENCED from a kernel variable, not declared — must stay out.
+        // @waitTime is REFERENCED from a kernel variable, not declared, so it must stay out.
         Assert.IsFalse(names.Contains("waitTime"),
             "'waitTime' is a kernel variable reference, not a local declaration");
+    }
+
+    [TestMethod]
+    public void FindLocalNames_UnterminatedDeclareFollowedByStatement_DoesNotConsumeFollowing()
+    {
+        // T-SQL statement terminators are optional. When a DECLARE has no trailing
+        // semicolon and is followed by another statement that contains @-prefixed
+        // references, the DECLARE capture spills into the follow-on statement.
+        // The first-@-per-item walker must stop at the first item whose first
+        // non-whitespace character is not '@', so kernel variable references in
+        // the follow-on statement are not silently registered as locals (which
+        // would suppress binding and cause silent execution failures).
+        var sql = @"
+            DECLARE @local INT
+            SELECT 1, @kernelVar, @anotherKernel";
+
+        var names = SqlLocalScopeAnalyzer.FindLocalNames(sql, SqlDialect.SqlServer);
+
+        Assert.IsTrue(names.Contains("local"), "Expected 'local' in local names");
+        Assert.IsFalse(names.Contains("kernelVar"),
+            "'kernelVar' belongs to a following SELECT, not the DECLARE list");
+        Assert.IsFalse(names.Contains("anotherKernel"),
+            "'anotherKernel' belongs to a following SELECT, not the DECLARE list");
+    }
+
+    [TestMethod]
+    public void FindLocalNames_ReportedUserScenarioUnterminated_NoLeakIntoWhile()
+    {
+        // Same shape as ReportedUserScenario but with the trailing semicolon on
+        // DECLARE removed and a WHILE that references @rows. The WHILE's @rows
+        // must not be wrongly extended into the local set via a new item.
+        var sql = @"
+            DECLARE @rows INT = 1,
+                    @waitDelay CHAR(8) = '00:' + CAST(@waitTime AS VARCHAR(2)),
+                    @serverName SYSNAME = @@SERVERNAME
+            WHILE (@rows > 0)
+            BEGIN
+                WAITFOR DELAY @waitDelay;
+                SET @rows = @rows - 1;
+            END";
+
+        var names = SqlLocalScopeAnalyzer.FindLocalNames(sql, SqlDialect.SqlServer);
+
+        Assert.IsTrue(names.Contains("rows"));
+        Assert.IsTrue(names.Contains("waitDelay"));
+        Assert.IsTrue(names.Contains("serverName"));
+        Assert.IsFalse(names.Contains("waitTime"),
+            "'waitTime' is a kernel variable reference inside an initializer");
     }
 }
