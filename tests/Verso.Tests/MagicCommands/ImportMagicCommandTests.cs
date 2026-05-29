@@ -134,7 +134,7 @@ public sealed class ImportMagicCommandTests
             // Confirmation message
             Assert.AreEqual(1, context.WrittenOutputs.Count);
             Assert.IsFalse(context.WrittenOutputs[0].IsError);
-            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("2 code cells"));
+            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("2 cells"));
         }
         finally
         {
@@ -162,8 +162,49 @@ public sealed class ImportMagicCommandTests
             await command.ExecuteAsync(tempFile, context);
 
             Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
-            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("1 code cell"));
+            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("1 cell"));
             Assert.IsFalse(context.WrittenOutputs[0].Content.Contains("cells"));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task SuccessfulImport_ExecutesNonCodeCellTypes_WithLanguageRouting()
+    {
+        // Regression: native .verso files store SQL cells as Type="sql" (likewise for python,
+        // fsharp, etc). The earlier filter only counted Type=="code" and silently skipped them,
+        // surfacing as "Imported 0 code cells" even when the imported notebook clearly had
+        // runnable cells. Mixed-type imports must execute every cell that carries source.
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var context = CreateContextWithSerializer(notebookOps);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.verso");
+        try
+        {
+            var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "var x = 1;" });
+            notebook.Cells.Add(new CellModel { Type = "markdown", Source = "# skip me" });
+            notebook.Cells.Add(new CellModel { Type = "sql", Language = "sql", Source = "SELECT 1" });
+            notebook.Cells.Add(new CellModel { Type = "raw", Source = "skip me too" });
+            notebook.Cells.Add(new CellModel { Type = "python", Language = "python", Source = "print('hi')" });
+
+            var serializer = new VersoSerializer();
+            await File.WriteAllTextAsync(tempFile, await serializer.SerializeAsync(notebook));
+
+            await command.ExecuteAsync(tempFile, context);
+
+            Assert.AreEqual(3, notebookOps.ExecutedCodeCalls.Count);
+            Assert.AreEqual("var x = 1;", notebookOps.ExecutedCodeCalls[0].Code);
+            Assert.AreEqual("csharp", notebookOps.ExecutedCodeCalls[0].Language);
+            Assert.AreEqual("SELECT 1", notebookOps.ExecutedCodeCalls[1].Code);
+            Assert.AreEqual("sql", notebookOps.ExecutedCodeCalls[1].Language);
+            Assert.AreEqual("print('hi')", notebookOps.ExecutedCodeCalls[2].Code);
+            Assert.AreEqual("python", notebookOps.ExecutedCodeCalls[2].Language);
+            Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("3 cells"));
         }
         finally
         {

@@ -7,8 +7,9 @@ namespace Verso.MagicCommands;
 
 /// <summary>
 /// <c>#!import path [--param name=value ...]</c> -- reads a notebook file or source file, deserializes
-/// or parses it, resolves parameters against the imported notebook's definitions, and executes all code
-/// cells in the current kernel session. Variables and state persist for subsequent cells.
+/// or parses it, resolves parameters against the imported notebook's definitions, and executes every
+/// cell whose type carries source (any type other than <c>markdown</c> or <c>raw</c>), dispatching to
+/// the kernel that handles each cell's language. Variables and state persist for subsequent cells.
 /// <para>
 /// Supported formats:
 /// <list type="bullet">
@@ -33,7 +34,7 @@ public sealed class ImportMagicCommand : IMagicCommand
     // --- IMagicCommand ---
 
     public string Name => "import";
-    public string Description => "Imports and executes all code cells from another notebook file, with optional parameter overrides.";
+    public string Description => "Imports another notebook file and executes its cells (any cell type other than markdown or raw), with optional parameter overrides.";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
@@ -147,22 +148,39 @@ public sealed class ImportMagicCommand : IMagicCommand
             return;
         }
 
-        var codeCellCount = 0;
+        var executedCount = 0;
         foreach (var cell in notebook.Cells)
         {
-            if (!string.Equals(cell.Type, "code", StringComparison.OrdinalIgnoreCase))
+            if (!IsExecutableCellType(cell.Type))
                 continue;
             if (string.IsNullOrWhiteSpace(cell.Source))
                 continue;
 
             await context.Notebook.ExecuteCodeAsync(cell.Source, cell.Language, context.CancellationToken)
                 .ConfigureAwait(false);
-            codeCellCount++;
+            executedCount++;
         }
 
         await context.WriteOutputAsync(new CellOutput("text/plain",
-            $"Imported {codeCellCount} code cell{(codeCellCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}"))
+            $"Imported {executedCount} cell{(executedCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}"))
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> for cell types that carry executable source. Markdown and raw cells
+    /// hold documentation only and are skipped during import. Every other type (including
+    /// kernel-specific types like "sql", "python", or custom extension types) is dispatched
+    /// through <see cref="INotebookOperations.ExecuteCodeAsync"/>, which routes by language.
+    /// </summary>
+    internal static bool IsExecutableCellType(string? type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+            return false;
+        if (string.Equals(type, "markdown", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (string.Equals(type, "raw", StringComparison.OrdinalIgnoreCase))
+            return false;
+        return true;
     }
 
     /// <summary>
