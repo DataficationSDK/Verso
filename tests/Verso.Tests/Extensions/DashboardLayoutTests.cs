@@ -67,7 +67,10 @@ public sealed class DashboardLayoutTests
         Assert.AreEqual("text/html", result.MimeType);
         Assert.IsTrue(result.Content.Contains("verso-dashboard-grid"));
         Assert.IsTrue(result.Content.Contains("verso-dashboard-cell"));
-        Assert.IsTrue(result.Content.Contains("grid-template-columns"));
+        // The grid container's track template lives in app.css; per-cell placement is
+        // emitted inline so each slot's row/column is data-bound to GridPosition.
+        Assert.IsTrue(result.Content.Contains("style=\"grid-column:"),
+            "Each cell wrapper carries inline grid-column/grid-row positioning.");
         Assert.IsTrue(result.Content.Contains(cellId1.ToString()));
         Assert.IsTrue(result.Content.Contains(cellId2.ToString()));
     }
