@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.JSInterop;
 using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
 using Verso.Blazor.Shared.Services;
@@ -13,6 +14,13 @@ namespace Verso.Blazor.Wasm.Services;
 public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 {
     private readonly VsCodeBridge _bridge;
+    private readonly IJSRuntime _js;
+
+    // Cache of blob URLs already minted for (extensionId, layoutId, assetId). Survives across
+    // re-renders so switching to a layout we've seen this session does not refetch bytes or
+    // re-create blob URLs. Cleared on extension reload via HandleExtensionChangedAsync.
+    private readonly Dictionary<(string ExtensionId, string LayoutId, string AssetId), string>
+        _layoutAssetUrlCache = new();
 
     // ── Local cache ─────────────────────────────────────────────────────
     private bool _isLoaded;
@@ -102,9 +110,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             new { requestId, approved });
     }
 
-    public RemoteNotebookService(VsCodeBridge bridge)
+    public RemoteNotebookService(VsCodeBridge bridge, IJSRuntime js)
     {
         _bridge = bridge;
+        _js = js;
         _bridge.OnNotification += HandleNotification;
     }
 
@@ -734,6 +743,66 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             response.ContentSecurityPolicy);
     }
 
+    public async Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId,
+        string layoutId)
+    {
+        // Capabilities are fixed for the HTML hosts in v1.x. When other content types
+        // or render formats arrive (Skia, native), surface this through a per-host
+        // capabilities object instead of hardcoding here.
+        var response = await _bridge.RequestAsync<LayoutStaticAssetsResponse?>(
+            "layout/getStaticAssets",
+            new
+            {
+                extensionId,
+                layoutId,
+                supportedAssetContentTypes = new[] { "text/css" },
+                supportedRenderFormats = new[] { "text/html" }
+            });
+
+        if (response?.Assets is null || response.Assets.Count == 0)
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        var descriptors = new List<LayoutStaticAssetDescriptor>(response.Assets.Count);
+        foreach (var asset in response.Assets)
+        {
+            var key = (extensionId, layoutId, asset.AssetId);
+            if (!_layoutAssetUrlCache.TryGetValue(key, out var url))
+            {
+                // The interop helper materializes the base64 into a Blob and returns a
+                // stable blob: URL kept alive by the layout's release-on-switch hook.
+                url = await _js.InvokeAsync<string>(
+                    "versoLayoutAssets.registerAsset",
+                    extensionId, layoutId, asset.AssetId, asset.ContentType, asset.Content);
+                _layoutAssetUrlCache[key] = url;
+            }
+            descriptors.Add(new LayoutStaticAssetDescriptor(asset.AssetId, asset.ContentType, url));
+        }
+
+        return descriptors;
+    }
+
+    /// <summary>
+    /// Releases every cached blob URL scoped to a given layout. Called by the host
+    /// component when the layout is switched away so blobs are not retained beyond
+    /// their useful lifetime.
+    /// </summary>
+    public async Task ReleaseLayoutStaticAssetsAsync(string extensionId, string layoutId)
+    {
+        var keysToRemove = _layoutAssetUrlCache.Keys
+            .Where(k => k.ExtensionId == extensionId && k.LayoutId == layoutId)
+            .ToList();
+        foreach (var key in keysToRemove)
+            _layoutAssetUrlCache.Remove(key);
+
+        try
+        {
+            await _js.InvokeVoidAsync("versoLayoutAssets.releaseLayout", extensionId, layoutId);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+
     public async Task<string> AllocateLayoutFrameInstanceAsync(string extensionId, string layoutId)
     {
         var response = await _bridge.RequestAsync<AllocateFrameInstanceResponse>(
@@ -1053,6 +1122,13 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     private async Task HandleExtensionChangedAsync()
     {
+        // Drop cached blob URLs so a reloaded extension re-fetches its assets at the
+        // next layout mount. The JS-side blob map is cleared as a side effect of the
+        // host component's release-on-switch hook firing during the resulting layout
+        // refresh; we drop our key map here so cache hits are not served from stale
+        // entries the JS side already revoked.
+        _layoutAssetUrlCache.Clear();
+
         await RefreshExtensionDataAsync();
         OnExtensionStatusChanged?.Invoke();
         OnLayoutChanged?.Invoke();
@@ -1618,6 +1694,19 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string EntryPoint { get; set; } = "";
         public Dictionary<string, string>? Files { get; set; }
         public string? ContentSecurityPolicy { get; set; }
+    }
+
+    private sealed class LayoutStaticAssetsResponse
+    {
+        public List<LayoutStaticAssetItem>? Assets { get; set; }
+    }
+
+    private sealed class LayoutStaticAssetItem
+    {
+        public string AssetId { get; set; } = "";
+        public string ContentType { get; set; } = "";
+        // Base64-encoded asset bytes.
+        public string Content { get; set; } = "";
     }
 
     private sealed class AllocateFrameInstanceResponse

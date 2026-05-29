@@ -250,6 +250,13 @@ public sealed class FakeNotebookService : INotebookService
         return Task.CompletedTask;
     }
 
+    public IReadOnlyList<LayoutStaticAssetDescriptor> LayoutStaticAssets { get; set; }
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+
+    public Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId, string layoutId)
+        => Task.FromResult(LayoutStaticAssets);
+
     public Task SwitchThemeAsync(string themeId)
     {
         SwitchThemeCalls.Add(themeId);

@@ -341,6 +341,46 @@ public sealed class LayoutGetRendererPackageResult
     public string? ContentSecurityPolicy { get; set; }
 }
 
+public sealed class LayoutGetStaticAssetsParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+
+    /// <summary>
+    /// IANA media types the host can load as layout-scoped static assets
+    /// (e.g. <c>"text/css"</c>). The engine is expected to return only assets whose
+    /// content type appears here; the host filters defensively on receipt.
+    /// </summary>
+    public List<string> SupportedAssetContentTypes { get; set; } = new();
+
+    /// <summary>
+    /// IANA media types the host can render from the engine (e.g. <c>"text/html"</c>).
+    /// Reserved for a future render-format negotiation.
+    /// </summary>
+    public List<string> SupportedRenderFormats { get; set; } = new();
+}
+
+public sealed class LayoutStaticAssetDto
+{
+    /// <summary>Stable, layout-relative asset key (e.g. <c>"dashboard.css"</c>).</summary>
+    public string AssetId { get; set; } = "";
+
+    /// <summary>IANA media type of the asset.</summary>
+    public string ContentType { get; set; } = "";
+
+    /// <summary>
+    /// Asset bytes, base64-encoded so the JSON-RPC transport can carry them without
+    /// modification.
+    /// </summary>
+    public string Content { get; set; } = "";
+}
+
+public sealed class LayoutGetStaticAssetsResult
+{
+    public List<LayoutStaticAssetDto> Assets { get; set; } = new();
+}
+
 public sealed class LayoutAllocateFrameInstanceParams
 {
     public string NotebookId { get; set; } = "";

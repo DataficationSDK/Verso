@@ -71,6 +71,17 @@ public sealed record LayoutRendererPackageDto(
     IReadOnlyDictionary<string, byte[]> Files,
     string? ContentSecurityPolicy);
 
+/// <summary>
+/// One CSS (or other media-type) asset declared by a layout, resolved to a URL the host
+/// component can drop into a <c>&lt;link rel="stylesheet"&gt;</c> tag. The Server host
+/// resolves to a static-files endpoint URL; the WASM host resolves to a <c>blob:</c> URL
+/// produced by JS interop. The Razor component is agnostic to the resolution strategy.
+/// </summary>
+public sealed record LayoutStaticAssetDescriptor(
+    string AssetId,
+    string ContentType,
+    string Url);
+
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(
     string ThemeId,

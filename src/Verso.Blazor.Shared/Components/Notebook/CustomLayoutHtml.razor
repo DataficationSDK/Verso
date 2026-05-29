@@ -42,6 +42,16 @@
     }
 </div>
 
+@foreach (var asset in _assetLinks)
+{
+    <link @key="@($"{_extensionId}|{_layoutId}|{asset.AssetId}")"
+          rel="stylesheet"
+          href="@asset.Url"
+          data-verso-extension-id="@_extensionId"
+          data-verso-layout-id="@_layoutId"
+          data-verso-asset-id="@asset.AssetId" />
+}
+
 <div class="verso-layout-root"
      data-extension-id="@_extensionId"
      data-layout-id="@_layoutId"
@@ -68,6 +78,13 @@
     private bool _remountNeeded;
     private bool _mounted;
     private bool _disposed;
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _assetLinks
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+    // Previous identity captured before re-fetching assets on layout switch, so we can
+    // release the prior layout's blob URLs (WASM host) or simply drop our DOM links
+    // (Server host) without leaking the previous layout's stylesheet into the new one.
+    private string _previousExtensionId = "";
+    private string _previousLayoutId = "";
 
     private static int s_globalSeq;
 
@@ -78,6 +95,7 @@
         _subscribed = true;
         CaptureIdentity();
         _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+        await RefreshLayoutAssetsAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -129,12 +147,35 @@
     private void CaptureIdentity()
     {
         var active = Service.ActiveLayout;
+        _previousExtensionId = _extensionId;
+        _previousLayoutId = _layoutId;
         _extensionId = active?.ExtensionId ?? string.Empty;
         _layoutId = active?.LayoutId ?? string.Empty;
 
         var notebookSegment = Service.FilePath ?? "unsaved";
         var seq = System.Threading.Interlocked.Increment(ref s_globalSeq);
         _frameInstanceId = $"{notebookSegment}/{_layoutId}/{seq}";
+    }
+
+    private async Task RefreshLayoutAssetsAsync()
+    {
+        // Release any links held for a previous layout before fetching the new set, so
+        // a stale stylesheet doesn't linger if the new layout has no assets at all.
+        if (!string.IsNullOrEmpty(_previousExtensionId)
+            && !string.IsNullOrEmpty(_previousLayoutId)
+            && (!string.Equals(_previousExtensionId, _extensionId, StringComparison.Ordinal)
+                || !string.Equals(_previousLayoutId, _layoutId, StringComparison.Ordinal)))
+        {
+            await Service.ReleaseLayoutStaticAssetsAsync(_previousExtensionId, _previousLayoutId);
+        }
+
+        if (string.IsNullOrEmpty(_extensionId) || string.IsNullOrEmpty(_layoutId))
+        {
+            _assetLinks = Array.Empty<LayoutStaticAssetDescriptor>();
+            return;
+        }
+
+        _assetLinks = await Service.GetLayoutStaticAssetsAsync(_extensionId, _layoutId);
     }
 
     private void HandleLayoutChanged()
@@ -145,6 +186,7 @@
             if (_disposed) return;
             CaptureIdentity();
             _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+            await RefreshLayoutAssetsAsync();
             // OnAfterRender handles unmount+mount via _remountNeeded so the JS
             // interop awaits don't interleave with the dispatcher work that the
             // re-render triggered by StateHasChanged depends on.

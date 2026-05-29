@@ -208,6 +208,56 @@ public static class LayoutHandler
         };
     }
 
+    public static async Task<LayoutGetStaticAssetsResult> HandleGetStaticAssetsAsync(
+        NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<LayoutGetStaticAssetsParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for layout/getStaticAssets");
+
+        if (string.IsNullOrWhiteSpace(p.ExtensionId))
+            throw new JsonException("layout/getStaticAssets requires 'extensionId'.");
+        if (string.IsNullOrWhiteSpace(p.LayoutId))
+            throw new JsonException("layout/getStaticAssets requires 'layoutId'.");
+
+        if (!ns.ExtensionHost.TryGetLayoutEngine(p.ExtensionId, p.LayoutId, out var engine))
+        {
+            // The "not found" substring routes this to JsonRpcMessage.ErrorCodes.InvalidParams
+            // via HostSession.DispatchAsync. The symbolic code is included in the message
+            // so clients and tests can key off it.
+            throw new InvalidOperationException(
+                $"LAYOUT_ENGINE_NOT_FOUND: no layout engine is registered " +
+                $"for (extensionId='{p.ExtensionId}', layoutId='{p.LayoutId}').");
+        }
+
+        var capabilities = new LayoutHostCapabilities(
+            new HashSet<string>(p.SupportedAssetContentTypes ?? new(), StringComparer.Ordinal),
+            new HashSet<string>(p.SupportedRenderFormats ?? new(), StringComparer.Ordinal));
+
+        var context = new HostVersoContext(ns.Scaffold);
+        var assets = await engine.GetStaticAssetsAsync(context, capabilities).ConfigureAwait(false);
+
+        var result = new LayoutGetStaticAssetsResult();
+        if (assets is null) return result;
+
+        foreach (var asset in assets)
+        {
+            // Defensive filter: drop anything the host did not advertise. The engine is
+            // expected to honor the capability set, but a stale or misbehaving engine
+            // should not poison the host pipeline.
+            if (!capabilities.SupportedAssetContentTypes.Contains(asset.ContentType))
+                continue;
+
+            result.Assets.Add(new LayoutStaticAssetDto
+            {
+                AssetId = asset.AssetId,
+                ContentType = asset.ContentType,
+                Content = Convert.ToBase64String(asset.Content)
+            });
+        }
+
+        return result;
+    }
+
     public static async Task<object?> HandleInteractAsync(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<LayoutInteractParams>(JsonRpcMessage.SerializerOptions)

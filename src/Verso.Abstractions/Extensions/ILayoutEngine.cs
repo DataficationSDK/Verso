@@ -50,6 +50,29 @@ public interface ILayoutEngine : IExtension
         => Task.FromResult<LayoutRendererPackage?>(null);
 
     /// <summary>
+    /// Returns the layout-scoped static assets (CSS today; future content types as the
+    /// host adds them) that the host should load whenever this layout is active. The
+    /// engine receives the host's <see cref="LayoutHostCapabilities"/> and is expected to
+    /// return only assets whose content type the host advertised; the host filters
+    /// defensively on receipt.
+    /// </summary>
+    /// <param name="context">Verso context providing theme, dimensions, and services.</param>
+    /// <param name="hostCapabilities">Content types the host can consume.</param>
+    /// <returns>
+    /// The assets to load alongside the layout, or <c>null</c> when the engine has none.
+    /// An empty list is treated the same as <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    /// Targets layouts with <see cref="RendererIsolation"/> equal to
+    /// <see cref="LayoutRendererIsolation.Inline"/>. Isolated layouts continue to carry
+    /// their assets through <see cref="LayoutRendererPackage.Files"/>.
+    /// </remarks>
+    Task<IReadOnlyList<LayoutStaticAsset>?> GetStaticAssetsAsync(
+        IVersoContext context,
+        LayoutHostCapabilities hostCapabilities)
+        => Task.FromResult<IReadOnlyList<LayoutStaticAsset>?>(null);
+
+    /// <summary>
     /// Renders the full layout for the given cells.
     /// </summary>
     /// <param name="cells">The ordered list of cell models to arrange.</param>

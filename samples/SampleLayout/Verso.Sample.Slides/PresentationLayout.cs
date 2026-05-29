@@ -54,6 +54,36 @@ public sealed class PresentationLayout : ILayoutEngine
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
+    // Layout-scoped CSS delivered via GetStaticAssetsAsync. Selectors are prefixed with
+    // the layout-root data attributes so two third-party layouts on the same host page
+    // do not collide. Inline styles in RenderLayoutAsync remain for the moving parts
+    // (per-cell display:block/none toggles) since those are state-bound, not structural.
+    private const string LayoutRootPrefix =
+        ".verso-layout-root[data-extension-id=\"com.verso.sample.presentation\"][data-layout-id=\"presentation\"] ";
+
+    private static readonly string SlidesCss = string.Concat(
+        LayoutRootPrefix, ".verso-presentation { font-family: var(--verso-ui-font-family, sans-serif); }\n",
+        LayoutRootPrefix, ".verso-slide-container { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border-radius: 4px; }\n",
+        LayoutRootPrefix, ".verso-slide-title { font-size: 1.5em; font-weight: 600; }\n",
+        LayoutRootPrefix, ".verso-slide-nav button { padding: 6px 14px; border: 1px solid var(--verso-border-default, #ccc); background: var(--verso-bg-elevated, #f8f8f8); border-radius: 3px; }\n",
+        LayoutRootPrefix, ".verso-slide-counter { font-variant-numeric: tabular-nums; min-width: 4em; text-align: center; }\n");
+
+    public Task<IReadOnlyList<LayoutStaticAsset>?> GetStaticAssetsAsync(
+        IVersoContext context, LayoutHostCapabilities hostCapabilities)
+    {
+        if (!hostCapabilities.SupportedAssetContentTypes.Contains("text/css"))
+            return Task.FromResult<IReadOnlyList<LayoutStaticAsset>?>(null);
+
+        IReadOnlyList<LayoutStaticAsset> assets = new[]
+        {
+            new LayoutStaticAsset(
+                AssetId: "slides.css",
+                ContentType: "text/css",
+                Content: Encoding.UTF8.GetBytes(SlidesCss))
+        };
+        return Task.FromResult<IReadOnlyList<LayoutStaticAsset>?>(assets);
+    }
+
     public Task<RenderResult> RenderLayoutAsync(IReadOnlyList<CellModel> cells, IVersoContext context)
     {
         var sb = new StringBuilder();

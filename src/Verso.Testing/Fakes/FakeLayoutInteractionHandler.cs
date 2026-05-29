@@ -48,6 +48,27 @@ public sealed class FakeLayoutInteractionHandler : IExtension, ILayoutEngine, IL
     public Dictionary<string, object> GetLayoutMetadata() => new();
     public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context) => Task.CompletedTask;
 
+    /// <summary>
+    /// Optional static-asset payload returned from <see cref="GetStaticAssetsAsync"/>.
+    /// When non-null, overrides the default-interface-method return of <c>null</c>;
+    /// tests opt in by assigning a list.
+    /// </summary>
+    public IReadOnlyList<LayoutStaticAsset>? StaticAssets { get; set; }
+
+    /// <summary>
+    /// Capabilities the fake observed on the most recent
+    /// <see cref="GetStaticAssetsAsync"/> call. Tests assert on this to verify the
+    /// host forwarded its capability set through the JSON-RPC boundary.
+    /// </summary>
+    public LayoutHostCapabilities? LastObservedCapabilities { get; private set; }
+
+    public Task<IReadOnlyList<LayoutStaticAsset>?> GetStaticAssetsAsync(
+        IVersoContext context, LayoutHostCapabilities hostCapabilities)
+    {
+        LastObservedCapabilities = hostCapabilities;
+        return Task.FromResult(StaticAssets);
+    }
+
     // --- ILayoutInteractionHandler ---
 
     public List<LayoutInteractionContext> ReceivedInteractions { get; } = new();

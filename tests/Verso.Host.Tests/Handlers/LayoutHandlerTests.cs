@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Verso.Abstractions;
 using Verso.Extensions.Layouts;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
@@ -504,6 +505,172 @@ public class LayoutHandlerTests
         var dto = result.Layouts.Single(l =>
             l.ExtensionId == fake.ExtensionId && l.Id == fake.LayoutId);
         Assert.AreEqual("inline", dto.RendererIsolation);
+    }
+
+    // ─── layout/getStaticAssets ───────────────────────────────────────────────
+
+    private static JsonElement GetStaticAssetsParams(
+        string notebookId, string extensionId, string layoutId,
+        params string[] supportedAssetContentTypes) =>
+        JsonSerializer.SerializeToElement(new LayoutGetStaticAssetsParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = extensionId,
+            LayoutId = layoutId,
+            SupportedAssetContentTypes = supportedAssetContentTypes.ToList(),
+            SupportedRenderFormats = new List<string> { "text/html" }
+        }, JsonRpcMessage.SerializerOptions);
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_EngineWithAssets_ReturnsBase64Encoded()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.assets",
+            layoutId: "with-assets")
+        {
+            StaticAssets = new[]
+            {
+                new LayoutStaticAsset(
+                    "main.css", "text/css",
+                    System.Text.Encoding.UTF8.GetBytes(":root { color: red; }"))
+            }
+        };
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetStaticAssetsAsync(
+            ns, GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId, "text/css"));
+
+        Assert.AreEqual(1, result.Assets.Count);
+        Assert.AreEqual("main.css", result.Assets[0].AssetId);
+        Assert.AreEqual("text/css", result.Assets[0].ContentType);
+        var decoded = System.Text.Encoding.UTF8.GetString(
+            Convert.FromBase64String(result.Assets[0].Content));
+        Assert.AreEqual(":root { color: red; }", decoded);
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_EngineWithoutAssets_ReturnsEmpty()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.noassets",
+            layoutId: "no-assets");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetStaticAssetsAsync(
+            ns, GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId, "text/css"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.Assets.Count);
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_UnsupportedContentType_FilteredOut()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.filter",
+            layoutId: "filter")
+        {
+            StaticAssets = new[]
+            {
+                new LayoutStaticAsset("a.css", "text/css", new byte[] { 1 }),
+                new LayoutStaticAsset("script.js", "text/javascript", new byte[] { 2 })
+            }
+        };
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        // Host advertises only text/css; the JS asset must be dropped defensively.
+        var result = await LayoutHandler.HandleGetStaticAssetsAsync(
+            ns, GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId, "text/css"));
+
+        Assert.AreEqual(1, result.Assets.Count);
+        Assert.AreEqual("a.css", result.Assets[0].AssetId);
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_CapabilitiesRoundTripToEngine()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.caps",
+            layoutId: "caps");
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        await LayoutHandler.HandleGetStaticAssetsAsync(
+            ns, GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId,
+                "text/css", "application/x-tela-skin"));
+
+        Assert.IsNotNull(fake.LastObservedCapabilities);
+        Assert.IsTrue(fake.LastObservedCapabilities!.SupportedAssetContentTypes.Contains("text/css"));
+        Assert.IsTrue(fake.LastObservedCapabilities.SupportedAssetContentTypes
+            .Contains("application/x-tela-skin"));
+        Assert.IsTrue(fake.LastObservedCapabilities.SupportedRenderFormats.Contains("text/html"));
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_UnknownLayout_ThrowsWithSymbolicCode()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            () => LayoutHandler.HandleGetStaticAssetsAsync(
+                ns, GetStaticAssetsParams(notebookId, "com.unknown.layout", "ghost", "text/css")));
+
+        StringAssert.Contains(ex.Message, "LAYOUT_ENGINE_NOT_FOUND");
+        StringAssert.Contains(ex.Message, "com.unknown.layout");
+        StringAssert.Contains(ex.Message, "ghost");
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_MissingExtensionId_ThrowsJsonException()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        await Assert.ThrowsExceptionAsync<JsonException>(
+            () => LayoutHandler.HandleGetStaticAssetsAsync(
+                ns, GetStaticAssetsParams(notebookId, "", "anything", "text/css")));
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_DispatchedThroughHostSession_RoutesViaMethodName()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.assets.dispatch",
+            layoutId: "assets-dispatch")
+        {
+            StaticAssets = new[]
+            {
+                new LayoutStaticAsset("a.css", "text/css", new byte[] { 1, 2, 3 })
+            }
+        };
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var responseJson = await session.DispatchAsync(
+            id: 1,
+            method: MethodNames.LayoutGetStaticAssets,
+            @params: GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId, "text/css"));
+
+        using var doc = JsonDocument.Parse(responseJson);
+        Assert.IsTrue(doc.RootElement.TryGetProperty("result", out var result),
+            $"Expected a successful JSON-RPC response. Got: {responseJson}");
+        var assets = result.GetProperty("assets");
+        Assert.AreEqual(1, assets.GetArrayLength());
+        Assert.AreEqual("a.css", assets[0].GetProperty("assetId").GetString());
     }
 
     [TestMethod]

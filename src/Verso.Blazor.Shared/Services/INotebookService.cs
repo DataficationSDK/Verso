@@ -235,6 +235,24 @@ public interface INotebookService
     /// <summary>Switch the active layout.</summary>
     Task SwitchLayoutAsync(string layoutId);
 
+    /// <summary>
+    /// Returns the layout-scoped static assets for the given layout, each resolved to a URL
+    /// the host can drop into a <c>&lt;link rel="stylesheet"&gt;</c> tag. Server hosts
+    /// resolve to a static-files endpoint URL; WASM hosts resolve to a <c>blob:</c> URL
+    /// produced via JS interop. Returns an empty list when the layout has no assets.
+    /// </summary>
+    Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId,
+        string layoutId);
+
+    /// <summary>
+    /// Releases any per-session resources the host allocated for a given layout's assets
+    /// (e.g. <c>blob:</c> URLs minted by the WASM host). Default is a no-op for hosts that
+    /// resolve assets via plain server URLs.
+    /// </summary>
+    Task ReleaseLayoutStaticAssetsAsync(string extensionId, string layoutId)
+        => Task.CompletedTask;
+
     /// <summary>Switch the active theme.</summary>
     Task SwitchThemeAsync(string themeId);
 

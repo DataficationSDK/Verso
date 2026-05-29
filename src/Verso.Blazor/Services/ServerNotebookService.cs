@@ -24,6 +24,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     private CancellationTokenSource? _executionCts;
     private readonly IJSRuntime _jsRuntime;
     private readonly NotebookServiceOptions _options;
+    private readonly LayoutAssetCache _layoutAssetCache;
     private readonly object _inputLock = new();
     private TaskCompletionSource<string?>? _inputTcs;
     private ServerInputRequest? _pendingInputRequest;
@@ -76,9 +77,13 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         tcs?.TrySetResult(cancelled ? null : value ?? string.Empty);
     }
 
-    public ServerNotebookService(IJSRuntime jsRuntime, NotebookServiceOptions? options = null)
+    public ServerNotebookService(
+        IJSRuntime jsRuntime,
+        LayoutAssetCache layoutAssetCache,
+        NotebookServiceOptions? options = null)
     {
         _jsRuntime = jsRuntime;
+        _layoutAssetCache = layoutAssetCache;
         _options = options ?? new NotebookServiceOptions();
     }
 
@@ -712,6 +717,44 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         return string.Equals(result.MimeType, "text/html", StringComparison.OrdinalIgnoreCase)
             ? result.Content
             : null;
+    }
+
+    private static readonly LayoutHostCapabilities HtmlHostCapabilities = new(
+        new HashSet<string>(StringComparer.Ordinal) { "text/css" },
+        new HashSet<string>(StringComparer.Ordinal) { "text/html" });
+
+    public async Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId,
+        string layoutId)
+    {
+        if (_scaffold is null || _extensionHost is null)
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        if (!_extensionHost.TryGetLayoutEngine(extensionId, layoutId, out var engine))
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        var ctx = new BlazorLayoutRenderContext(_scaffold);
+        var assets = await engine.GetStaticAssetsAsync(ctx, HtmlHostCapabilities);
+        if (assets is null || assets.Count == 0)
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        var descriptors = new List<LayoutStaticAssetDescriptor>(assets.Count);
+        foreach (var asset in assets)
+        {
+            // Drop anything outside the advertised content-type set. Mirrors the
+            // defensive filter in LayoutHandler.HandleGetStaticAssetsAsync.
+            if (!HtmlHostCapabilities.SupportedAssetContentTypes.Contains(asset.ContentType))
+                continue;
+
+            _layoutAssetCache.Register(extensionId, layoutId, asset.AssetId,
+                asset.ContentType, asset.Content);
+            descriptors.Add(new LayoutStaticAssetDescriptor(
+                asset.AssetId,
+                asset.ContentType,
+                LayoutAssetCache.BuildUrl(extensionId, layoutId, asset.AssetId)));
+        }
+
+        return descriptors;
     }
 
     public Task SwitchLayoutAsync(string layoutId)

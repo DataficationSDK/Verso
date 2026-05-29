@@ -61,6 +61,7 @@ public static class MethodNames
     public const string LayoutSetEditMode = "layout/setEditMode";
     public const string LayoutInteract = "layout/interact";
     public const string LayoutGetRendererPackage = "layout/getRendererPackage";
+    public const string LayoutGetStaticAssets = "layout/getStaticAssets";
     public const string LayoutAllocateFrameInstance = "layout/allocateFrameInstance";
     public const string LayoutRendererMounted = "layout/rendererMounted";
     public const string LayoutRendererUnmounted = "layout/rendererUnmounted";
