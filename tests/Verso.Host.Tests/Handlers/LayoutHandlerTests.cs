@@ -698,4 +698,145 @@ public class LayoutHandlerTests
         Assert.AreEqual(0, updates.Count,
             "A handler that does not call RequestRender/RequestCellRefresh must not dispatch layout/updated.");
     }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_LoadHintsAndCsp_RoundTripThroughDto()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.scripthints",
+            layoutId: "script-hints")
+        {
+            StaticAssets = new[]
+            {
+                new LayoutStaticAsset("main.js", "text/javascript", new byte[] { 1, 2 })
+                {
+                    LoadHints = new LayoutStaticAssetLoadHints(
+                        LayoutScriptModuleKind.Module,
+                        LayoutScriptLoadMode.Async,
+                        LayoutScriptPlacement.BeforeLayoutHtml),
+                    ContentSecurityPolicy = "script-src 'self'",
+                },
+            },
+        };
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetStaticAssetsAsync(
+            ns, GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId,
+                "text/javascript"));
+
+        Assert.AreEqual(1, result.Assets.Count);
+        var dto = result.Assets[0];
+        Assert.IsNotNull(dto.LoadHints);
+        Assert.AreEqual("module", dto.LoadHints!.ModuleKind);
+        Assert.AreEqual("async", dto.LoadHints.LoadMode);
+        Assert.AreEqual("beforeLayoutHtml", dto.LoadHints.Placement);
+        Assert.AreEqual("script-src 'self'", dto.ContentSecurityPolicy);
+    }
+
+    [TestMethod]
+    public async Task HandleGetStaticAssets_NoLoadHints_DtoFieldIsNull()
+    {
+        var (session, notebookId, _) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var fake = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.nohints",
+            layoutId: "no-hints")
+        {
+            StaticAssets = new[]
+            {
+                new LayoutStaticAsset("plain.css", "text/css", new byte[] { 1 }),
+            },
+        };
+        await ns.ExtensionHost.LoadExtensionAsync(fake);
+
+        var result = await LayoutHandler.HandleGetStaticAssetsAsync(
+            ns, GetStaticAssetsParams(notebookId, fake.ExtensionId, fake.LayoutId, "text/css"));
+
+        Assert.AreEqual(1, result.Assets.Count);
+        Assert.IsNull(result.Assets[0].LoadHints);
+        Assert.IsNull(result.Assets[0].ContentSecurityPolicy);
+    }
+
+    [TestMethod]
+    public async Task HandleInteract_ReservedRequestRender_BypassesHandlerAndDispatchesFullScope()
+    {
+        var (session, notebookId, notifications) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        var handler = new FakeLayoutInteractionHandler(
+            extensionId: "com.test.layout.reserved",
+            layoutId: "reserved");
+        handler.OnInteraction = _ =>
+            throw new InvalidOperationException("Handler must NOT be invoked for reserved verso/* interactions.");
+        await ns.ExtensionHost.LoadExtensionAsync(handler);
+
+        await LayoutHandler.HandleInteractAsync(ns, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = handler.ExtensionId,
+            LayoutId = handler.LayoutId,
+            FrameInstanceId = "nb-1/reserved/0",
+            InteractionType = "verso/requestRender",
+            Payload = "",
+        }));
+
+        Assert.AreEqual(0, handler.ReceivedInteractions.Count,
+            "Reserved verso/* interactions must be intercepted before the handler runs.");
+
+        var updates = ParseLayoutUpdatedNotifications(notifications);
+        Assert.AreEqual(1, updates.Count);
+        var p = updates[0].GetProperty("params");
+        Assert.AreEqual(handler.ExtensionId, p.GetProperty("extensionId").GetString());
+        Assert.AreEqual(handler.LayoutId, p.GetProperty("layoutId").GetString());
+        Assert.AreEqual("nb-1/reserved/0", p.GetProperty("frameInstanceId").GetString());
+        Assert.AreEqual("full", p.GetProperty("scope").GetString());
+    }
+
+    [TestMethod]
+    public async Task HandleInteract_ReservedRequestRender_WithoutRegisteredHandler_StillDispatches()
+    {
+        var (session, notebookId, notifications) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        // No handler is registered for this layout id. The reserved-interaction shortcut
+        // must still fire so author scripts can request a re-render without forcing the
+        // layout to implement ILayoutInteractionHandler.
+        await LayoutHandler.HandleInteractAsync(ns, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = "com.test.layout.noregistration",
+            LayoutId = "no-handler",
+            FrameInstanceId = "nb-1/noh/0",
+            InteractionType = "verso/requestRender",
+            Payload = "",
+        }));
+
+        var updates = ParseLayoutUpdatedNotifications(notifications);
+        Assert.AreEqual(1, updates.Count);
+        Assert.AreEqual("full", updates[0].GetProperty("params").GetProperty("scope").GetString());
+    }
+
+    [TestMethod]
+    public async Task HandleInteract_UnknownReservedType_DropsSilentlyWithoutNotification()
+    {
+        var (session, notebookId, notifications) = await CreateOpenSession();
+        var ns = session.GetSession(notebookId);
+
+        await LayoutHandler.HandleInteractAsync(ns, InteractParams(new LayoutInteractParams
+        {
+            NotebookId = notebookId,
+            ExtensionId = "com.test.layout.unkreserved",
+            LayoutId = "unk",
+            FrameInstanceId = "",
+            InteractionType = "verso/madeUpFutureAction",
+            Payload = "",
+        }));
+
+        Assert.AreEqual(0, ParseLayoutUpdatedNotifications(notifications).Count,
+            "Unknown verso/* types must be dropped silently so older hosts don't throw when clients learn new ones.");
+    }
 }

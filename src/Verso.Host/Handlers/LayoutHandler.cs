@@ -251,11 +251,37 @@ public static class LayoutHandler
             {
                 AssetId = asset.AssetId,
                 ContentType = asset.ContentType,
-                Content = Convert.ToBase64String(asset.Content)
+                Content = Convert.ToBase64String(asset.Content),
+                LoadHints = SerializeLoadHints(asset.LoadHints),
+                ContentSecurityPolicy = asset.ContentSecurityPolicy,
             });
         }
 
         return result;
+    }
+
+    private static LayoutStaticAssetLoadHintsDto? SerializeLoadHints(LayoutStaticAssetLoadHints? hints)
+    {
+        if (hints is null) return null;
+        return new LayoutStaticAssetLoadHintsDto
+        {
+            ModuleKind = hints.ModuleKind switch
+            {
+                LayoutScriptModuleKind.Module => "module",
+                _ => "classic",
+            },
+            LoadMode = hints.LoadMode switch
+            {
+                LayoutScriptLoadMode.Async => "async",
+                LayoutScriptLoadMode.Blocking => "blocking",
+                _ => "defer",
+            },
+            Placement = hints.Placement switch
+            {
+                LayoutScriptPlacement.BeforeLayoutHtml => "beforeLayoutHtml",
+                _ => "afterLayoutHtml",
+            },
+        };
     }
 
     public static async Task<object?> HandleInteractAsync(NotebookSession ns, JsonElement? @params)
@@ -267,6 +293,16 @@ public static class LayoutHandler
             throw new JsonException("layout/interact requires 'extensionId'.");
         if (string.IsNullOrWhiteSpace(p.LayoutId))
             throw new JsonException("layout/interact requires 'layoutId'.");
+
+        // Reserved interaction types in the "verso/" namespace are handled by the host
+        // before any registered ILayoutInteractionHandler is consulted. These shortcuts
+        // let layout-author scripts trigger host actions (e.g. re-render) without forcing
+        // every layout to implement a handler just to forward the action.
+        if (IsReservedInteractionType(p.InteractionType))
+        {
+            await DispatchReservedInteractionAsync(ns, p).ConfigureAwait(false);
+            return null;
+        }
 
         if (!ns.ExtensionHost.TryGetLayoutInteractionHandler(p.ExtensionId, p.LayoutId, out var handler))
         {
@@ -407,6 +443,39 @@ public static class LayoutHandler
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reserved interaction-type namespace. Types prefixed with <c>verso/</c> are
+    /// intercepted by the host and routed to built-in actions rather than dispatched to
+    /// a registered <see cref="ILayoutInteractionHandler"/>.
+    /// </summary>
+    public const string ReservedInteractionPrefix = "verso/";
+
+    /// <summary>Reserved type that asks the host to re-render the layout.</summary>
+    public const string ReservedInteractionRequestRender = "verso/requestRender";
+
+    private static bool IsReservedInteractionType(string? interactionType) =>
+        !string.IsNullOrEmpty(interactionType)
+        && interactionType.StartsWith(ReservedInteractionPrefix, StringComparison.Ordinal);
+
+    private static Task DispatchReservedInteractionAsync(NotebookSession ns, LayoutInteractParams p)
+    {
+        var extensionId = p.ExtensionId;
+        var layoutId = p.LayoutId;
+        var frameInstanceId = p.FrameInstanceId ?? string.Empty;
+
+        switch (p.InteractionType)
+        {
+            case ReservedInteractionRequestRender:
+                ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "full");
+                return Task.CompletedTask;
+
+            default:
+                // Unknown reserved type. Drop silently so future additions on the client
+                // do not throw against older hosts that have not yet learned them.
+                return Task.CompletedTask;
+        }
     }
 
     /// <summary>

@@ -374,6 +374,29 @@ public sealed class LayoutStaticAssetDto
     /// modification.
     /// </summary>
     public string Content { get; set; } = "";
+
+    /// <summary>
+    /// Optional load-order and timing hints. Consulted only for script content types.
+    /// </summary>
+    public LayoutStaticAssetLoadHintsDto? LoadHints { get; set; }
+
+    /// <summary>
+    /// Optional Content Security Policy hint. Carried verbatim through the contract;
+    /// current Blazor hosts do not enforce a strict CSP and ignore this field at runtime.
+    /// </summary>
+    public string? ContentSecurityPolicy { get; set; }
+}
+
+public sealed class LayoutStaticAssetLoadHintsDto
+{
+    /// <summary>"classic" or "module". Defaults to "classic" when omitted.</summary>
+    public string? ModuleKind { get; set; }
+
+    /// <summary>"defer", "async", or "blocking". Defaults to "defer" when omitted.</summary>
+    public string? LoadMode { get; set; }
+
+    /// <summary>"beforeLayoutHtml" or "afterLayoutHtml". Defaults to "afterLayoutHtml".</summary>
+    public string? Placement { get; set; }
 }
 
 public sealed class LayoutGetStaticAssetsResult

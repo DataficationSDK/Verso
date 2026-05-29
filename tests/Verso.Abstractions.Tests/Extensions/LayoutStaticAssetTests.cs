@@ -37,6 +37,91 @@ public class LayoutStaticAssetTests
 
         Assert.AreNotEqual(a, b);
     }
+
+    [TestMethod]
+    public void LoadHints_DefaultIsNull()
+    {
+        var asset = new LayoutStaticAsset("a.css", "text/css", new byte[] { 1 });
+        Assert.IsNull(asset.LoadHints);
+        Assert.IsNull(asset.ContentSecurityPolicy);
+    }
+
+    [TestMethod]
+    public void WithLoadHints_RoundTripsValue()
+    {
+        var hints = new LayoutStaticAssetLoadHints(
+            LayoutScriptModuleKind.Module,
+            LayoutScriptLoadMode.Async,
+            LayoutScriptPlacement.BeforeLayoutHtml);
+        var asset = new LayoutStaticAsset("a.js", "text/javascript", new byte[] { 1 })
+        {
+            LoadHints = hints,
+        };
+
+        Assert.AreSame(hints, asset.LoadHints);
+    }
+
+    [TestMethod]
+    public void WithCsp_RoundTripsValue()
+    {
+        var asset = new LayoutStaticAsset("a.js", "text/javascript", new byte[] { 1 })
+        {
+            ContentSecurityPolicy = "script-src 'self'",
+        };
+
+        Assert.AreEqual("script-src 'self'", asset.ContentSecurityPolicy);
+    }
+
+    [TestMethod]
+    public void Equals_LoadHintsConsideredInEquality()
+    {
+        var bytes = new byte[] { 1 };
+        var hintsA = new LayoutStaticAssetLoadHints(
+            LayoutScriptModuleKind.Module, LayoutScriptLoadMode.Async, LayoutScriptPlacement.BeforeLayoutHtml);
+        var hintsB = new LayoutStaticAssetLoadHints(
+            LayoutScriptModuleKind.Classic, LayoutScriptLoadMode.Defer, LayoutScriptPlacement.AfterLayoutHtml);
+
+        var a = new LayoutStaticAsset("x.js", "text/javascript", bytes) { LoadHints = hintsA };
+        var b = new LayoutStaticAsset("x.js", "text/javascript", bytes) { LoadHints = hintsA };
+        var c = new LayoutStaticAsset("x.js", "text/javascript", bytes) { LoadHints = hintsB };
+
+        Assert.AreEqual(a, b);
+        Assert.AreNotEqual(a, c);
+    }
+}
+
+[TestClass]
+public class LayoutStaticAssetLoadHintsTests
+{
+    [TestMethod]
+    public void Defaults_AreClassicDeferAfterLayoutHtml()
+    {
+        var hints = new LayoutStaticAssetLoadHints();
+
+        Assert.AreEqual(LayoutScriptModuleKind.Classic, hints.ModuleKind);
+        Assert.AreEqual(LayoutScriptLoadMode.Defer, hints.LoadMode);
+        Assert.AreEqual(LayoutScriptPlacement.AfterLayoutHtml, hints.Placement);
+    }
+
+    [TestMethod]
+    public void Equals_SameValues_AreEqual()
+    {
+        var a = new LayoutStaticAssetLoadHints(
+            LayoutScriptModuleKind.Module, LayoutScriptLoadMode.Async, LayoutScriptPlacement.BeforeLayoutHtml);
+        var b = new LayoutStaticAssetLoadHints(
+            LayoutScriptModuleKind.Module, LayoutScriptLoadMode.Async, LayoutScriptPlacement.BeforeLayoutHtml);
+
+        Assert.AreEqual(a, b);
+    }
+
+    [TestMethod]
+    public void Equals_DifferentValues_AreNotEqual()
+    {
+        var a = new LayoutStaticAssetLoadHints(LoadMode: LayoutScriptLoadMode.Defer);
+        var b = new LayoutStaticAssetLoadHints(LoadMode: LayoutScriptLoadMode.Async);
+
+        Assert.AreNotEqual(a, b);
+    }
 }
 
 [TestClass]

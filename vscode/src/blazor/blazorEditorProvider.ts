@@ -553,6 +553,9 @@ export class BlazorEditorProvider
     const layoutInteractInterop = toUri(
       "_content/Verso.Blazor.Shared/js/layout-interact-interop.js"
     );
+    const versoInlineLayoutBridge = toUri(
+      "_content/Verso.Blazor.Shared/js/verso-inline-layout-bridge.js"
+    );
     const panelResizeInterop = toUri(
       "_content/Verso.Blazor.Shared/js/panel-resize-interop.js"
     );
@@ -592,7 +595,7 @@ export class BlazorEditorProvider
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
     <base id="blazor-base" href="/" />
     <script>
     // Set base href to match the webview origin so Blazor's NavigationManager
@@ -715,6 +718,7 @@ export class BlazorEditorProvider
     <script src="${mermaidInterop}"></script>
     <script src="${cellInteractInterop}"></script>
     <script src="${layoutInteractInterop}"></script>
+    <script src="${versoInlineLayoutBridge}"></script>
     <script src="${parametersInterop}"></script>
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>

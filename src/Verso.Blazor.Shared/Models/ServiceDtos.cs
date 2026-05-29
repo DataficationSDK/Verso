@@ -80,7 +80,20 @@ public sealed record LayoutRendererPackageDto(
 public sealed record LayoutStaticAssetDescriptor(
     string AssetId,
     string ContentType,
-    string Url);
+    string Url)
+{
+    /// <summary>
+    /// Load-order and timing hints for script assets. Null applies host defaults
+    /// (classic script, defer load mode, after-layout placement).
+    /// </summary>
+    public LayoutStaticAssetLoadHints? LoadHints { get; init; }
+
+    /// <summary>
+    /// Optional Content Security Policy hint carried verbatim from the layout engine.
+    /// Current hosts do not enforce a strict CSP and ignore this field at runtime.
+    /// </summary>
+    public string? ContentSecurityPolicy { get; init; }
+}
 
 /// <summary>Describes a theme available for the notebook.</summary>
 public sealed record ThemeInfo(

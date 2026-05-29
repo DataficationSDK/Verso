@@ -720,7 +720,12 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     }
 
     private static readonly LayoutHostCapabilities HtmlHostCapabilities = new(
-        new HashSet<string>(StringComparer.Ordinal) { "text/css" },
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "text/css",
+            "text/javascript",
+            "application/javascript",
+        },
         new HashSet<string>(StringComparer.Ordinal) { "text/html" });
 
     public async Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
@@ -751,7 +756,11 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
             descriptors.Add(new LayoutStaticAssetDescriptor(
                 asset.AssetId,
                 asset.ContentType,
-                LayoutAssetCache.BuildUrl(extensionId, layoutId, asset.AssetId)));
+                LayoutAssetCache.BuildUrl(extensionId, layoutId, asset.AssetId))
+            {
+                LoadHints = asset.LoadHints,
+                ContentSecurityPolicy = asset.ContentSecurityPolicy,
+            });
         }
 
         return descriptors;
@@ -901,6 +910,18 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         return layout.GetCellContainerAsync(cellId, context);
     }
 
+    /// <summary>
+    /// Reserved interaction-type namespace. Types prefixed with <c>verso/</c> are
+    /// intercepted by the host and routed to built-in actions rather than dispatched to
+    /// a registered <see cref="ILayoutInteractionHandler"/>. Layout-author handlers MUST
+    /// NOT use this prefix; any such interactions are short-circuited before the handler
+    /// lookup runs.
+    /// </summary>
+    public const string ReservedInteractionPrefix = "verso/";
+
+    /// <summary>Reserved type that asks the host to re-render the layout.</summary>
+    public const string ReservedInteractionRequestRender = "verso/requestRender";
+
     public async Task LayoutInteractAsync(
         string extensionId,
         string layoutId,
@@ -910,6 +931,17 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         string? targetId = null)
     {
         if (_extensionHost is null) return;
+
+        // Reserved interaction shortcuts run before any handler lookup so a layout
+        // without an ILayoutInteractionHandler can still trigger host actions (e.g. a
+        // script that wants to request a re-render after mutating its own DOM state).
+        if (!string.IsNullOrEmpty(interactionType)
+            && interactionType.StartsWith(ReservedInteractionPrefix, StringComparison.Ordinal))
+        {
+            DispatchReservedInteraction(extensionId, layoutId, frameInstanceId, interactionType);
+            return;
+        }
+
         if (!_extensionHost.TryGetLayoutInteractionHandler(extensionId, layoutId, out var handler))
             return;
 
@@ -930,6 +962,24 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         };
 
         await handler.OnLayoutInteractionAsync(context).ConfigureAwait(false);
+    }
+
+    private void DispatchReservedInteraction(
+        string extensionId, string layoutId, string? frameInstanceId, string interactionType)
+    {
+        var frame = frameInstanceId ?? string.Empty;
+        switch (interactionType)
+        {
+            case ReservedInteractionRequestRender:
+                OnLayoutUpdated?.Invoke(
+                    new LayoutUpdatedEventArgs(extensionId, layoutId, frame, "full", null));
+                return;
+
+            default:
+                // Unknown reserved type: drop silently so future additions on the client
+                // side do not throw against older Server hosts.
+                return;
+        }
     }
 
     [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]

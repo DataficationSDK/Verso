@@ -42,14 +42,27 @@
     }
 </div>
 
-@foreach (var asset in _assetLinks)
+@foreach (var asset in _stylesheetAssets)
 {
-    <link @key="@($"{_extensionId}|{_layoutId}|{asset.AssetId}")"
+    <link @key="@($"css|{_extensionId}|{_layoutId}|{asset.AssetId}")"
           rel="stylesheet"
           href="@asset.Url"
           data-verso-extension-id="@_extensionId"
           data-verso-layout-id="@_layoutId"
           data-verso-asset-id="@asset.AssetId" />
+}
+
+@foreach (var asset in _scriptsBefore)
+{
+    <script @key="@($"js|{_extensionId}|{_layoutId}|{asset.AssetId}")"
+            src="@asset.Url"
+            type="@ScriptTypeAttr(asset)"
+            defer="@DeferAttr(asset)"
+            async="@AsyncAttr(asset)"
+            data-verso-extension-id="@_extensionId"
+            data-verso-layout-id="@_layoutId"
+            data-verso-frame-instance-id="@_frameInstanceId"
+            data-verso-asset-id="@asset.AssetId"></script>
 }
 
 <div class="verso-layout-root"
@@ -62,6 +75,19 @@
         @((MarkupString)_html)
     }
 </div>
+
+@foreach (var asset in _scriptsAfter)
+{
+    <script @key="@($"js|{_extensionId}|{_layoutId}|{asset.AssetId}")"
+            src="@asset.Url"
+            type="@ScriptTypeAttr(asset)"
+            defer="@DeferAttr(asset)"
+            async="@AsyncAttr(asset)"
+            data-verso-extension-id="@_extensionId"
+            data-verso-layout-id="@_layoutId"
+            data-verso-frame-instance-id="@_frameInstanceId"
+            data-verso-asset-id="@asset.AssetId"></script>
+}
 
 @code {
     [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
@@ -78,7 +104,11 @@
     private bool _remountNeeded;
     private bool _mounted;
     private bool _disposed;
-    private IReadOnlyList<LayoutStaticAssetDescriptor> _assetLinks
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _stylesheetAssets
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _scriptsBefore
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _scriptsAfter
         = Array.Empty<LayoutStaticAssetDescriptor>();
     // Previous identity captured before re-fetching assets on layout switch, so we can
     // release the prior layout's blob URLs (WASM host) or simply drop our DOM links
@@ -171,12 +201,51 @@
 
         if (string.IsNullOrEmpty(_extensionId) || string.IsNullOrEmpty(_layoutId))
         {
-            _assetLinks = Array.Empty<LayoutStaticAssetDescriptor>();
+            _stylesheetAssets = Array.Empty<LayoutStaticAssetDescriptor>();
+            _scriptsBefore = Array.Empty<LayoutStaticAssetDescriptor>();
+            _scriptsAfter = Array.Empty<LayoutStaticAssetDescriptor>();
             return;
         }
 
-        _assetLinks = await Service.GetLayoutStaticAssetsAsync(_extensionId, _layoutId);
+        var assets = await Service.GetLayoutStaticAssetsAsync(_extensionId, _layoutId);
+        var styles = new List<LayoutStaticAssetDescriptor>();
+        var before = new List<LayoutStaticAssetDescriptor>();
+        var after = new List<LayoutStaticAssetDescriptor>();
+        foreach (var asset in assets)
+        {
+            if (IsScriptContentType(asset.ContentType))
+            {
+                if (asset.LoadHints?.Placement == LayoutScriptPlacement.BeforeLayoutHtml)
+                    before.Add(asset);
+                else
+                    after.Add(asset);
+            }
+            else
+            {
+                styles.Add(asset);
+            }
+        }
+        _stylesheetAssets = styles;
+        _scriptsBefore = before;
+        _scriptsAfter = after;
     }
+
+    private static bool IsScriptContentType(string contentType) =>
+        string.Equals(contentType, "text/javascript", StringComparison.Ordinal)
+        || string.Equals(contentType, "application/javascript", StringComparison.Ordinal);
+
+    private static string? ScriptTypeAttr(LayoutStaticAssetDescriptor asset) =>
+        asset.LoadHints?.ModuleKind == LayoutScriptModuleKind.Module ? "module" : null;
+
+    private static bool? DeferAttr(LayoutStaticAssetDescriptor asset)
+    {
+        // Default load mode is Defer. async/blocking explicitly omit the defer attribute.
+        var mode = asset.LoadHints?.LoadMode ?? LayoutScriptLoadMode.Defer;
+        return mode == LayoutScriptLoadMode.Defer ? true : null;
+    }
+
+    private static bool? AsyncAttr(LayoutStaticAssetDescriptor asset) =>
+        asset.LoadHints?.LoadMode == LayoutScriptLoadMode.Async ? true : (bool?)null;
 
     private void HandleLayoutChanged()
     {

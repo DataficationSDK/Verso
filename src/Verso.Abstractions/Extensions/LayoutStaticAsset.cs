@@ -13,8 +13,8 @@ namespace Verso.Abstractions;
 /// (e.g. <c>"dashboard.css?v=2"</c>); the bare id alone is not content-hashed.
 /// </param>
 /// <param name="ContentType">
-/// IANA media type of the asset (e.g. <c>"text/css"</c>). The host only loads assets whose
-/// content type was advertised in the capabilities exchange.
+/// IANA media type of the asset (e.g. <c>"text/css"</c>, <c>"text/javascript"</c>). The
+/// host only loads assets whose content type was advertised in the capabilities exchange.
 /// </param>
 /// <param name="Content">
 /// The asset bytes. The host is free to serve them via a host-appropriate transport
@@ -24,4 +24,20 @@ namespace Verso.Abstractions;
 public sealed record LayoutStaticAsset(
     string AssetId,
     string ContentType,
-    byte[] Content);
+    byte[] Content)
+{
+    /// <summary>
+    /// Optional load-order and timing hints for script assets. Ignored for stylesheets and
+    /// other content types. Null applies default behavior: classic (non-module) script,
+    /// <c>defer</c> load mode, placed after the layout root in DOM order.
+    /// </summary>
+    public LayoutStaticAssetLoadHints? LoadHints { get; init; }
+
+    /// <summary>
+    /// Optional Content Security Policy hint the layout would like applied to this asset.
+    /// Carried verbatim through the contract and surfaced to host integrations; current
+    /// Blazor hosts do not enforce a strict CSP and ignore this field at runtime. Reserved
+    /// so future enforcement does not require a contract change.
+    /// </summary>
+    public string? ContentSecurityPolicy { get; init; }
+}

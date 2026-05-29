@@ -756,7 +756,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             {
                 extensionId,
                 layoutId,
-                supportedAssetContentTypes = new[] { "text/css" },
+                supportedAssetContentTypes = new[] { "text/css", "text/javascript", "application/javascript" },
                 supportedRenderFormats = new[] { "text/html" }
             });
 
@@ -776,10 +776,32 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                     extensionId, layoutId, asset.AssetId, asset.ContentType, asset.Content);
                 _layoutAssetUrlCache[key] = url;
             }
-            descriptors.Add(new LayoutStaticAssetDescriptor(asset.AssetId, asset.ContentType, url));
+            descriptors.Add(new LayoutStaticAssetDescriptor(asset.AssetId, asset.ContentType, url)
+            {
+                LoadHints = DecodeLoadHints(asset.LoadHints),
+                ContentSecurityPolicy = asset.ContentSecurityPolicy,
+            });
         }
 
         return descriptors;
+    }
+
+    private static LayoutStaticAssetLoadHints? DecodeLoadHints(LayoutStaticAssetLoadHintsItem? wire)
+    {
+        if (wire is null) return null;
+        var moduleKind = string.Equals(wire.ModuleKind, "module", StringComparison.Ordinal)
+            ? LayoutScriptModuleKind.Module
+            : LayoutScriptModuleKind.Classic;
+        var loadMode = wire.LoadMode switch
+        {
+            "async" => LayoutScriptLoadMode.Async,
+            "blocking" => LayoutScriptLoadMode.Blocking,
+            _ => LayoutScriptLoadMode.Defer,
+        };
+        var placement = string.Equals(wire.Placement, "beforeLayoutHtml", StringComparison.Ordinal)
+            ? LayoutScriptPlacement.BeforeLayoutHtml
+            : LayoutScriptPlacement.AfterLayoutHtml;
+        return new LayoutStaticAssetLoadHints(moduleKind, loadMode, placement);
     }
 
     /// <summary>
@@ -1707,6 +1729,15 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public string ContentType { get; set; } = "";
         // Base64-encoded asset bytes.
         public string Content { get; set; } = "";
+        public LayoutStaticAssetLoadHintsItem? LoadHints { get; set; }
+        public string? ContentSecurityPolicy { get; set; }
+    }
+
+    private sealed class LayoutStaticAssetLoadHintsItem
+    {
+        public string? ModuleKind { get; set; }
+        public string? LoadMode { get; set; }
+        public string? Placement { get; set; }
     }
 
     private sealed class AllocateFrameInstanceResponse

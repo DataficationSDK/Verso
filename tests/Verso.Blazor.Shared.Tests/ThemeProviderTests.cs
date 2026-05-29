@@ -3,6 +3,15 @@ namespace Verso.Blazor.Shared.Tests;
 [TestClass]
 public sealed class ThemeProviderTests : BunitTestContext
 {
+    [TestInitialize]
+    public void EnableLooseJSInterop()
+    {
+        // ThemeProvider invokes "verso.theme.dispatchChange" from OnAfterRenderAsync so
+        // bridge-subscribed scripts get notified when the theme actually changes. Tests
+        // here only assert on the rendered <style> contents, so accept any JS call.
+        TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
     [TestMethod]
     public void RendersStyleElement_WithCssVariables()
     {

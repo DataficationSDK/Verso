@@ -11,7 +11,7 @@ namespace Verso.Sample.Slides;
 /// Each cell is assigned to a slide; only cells on the current slide are visible.
 /// </summary>
 [VersoExtension]
-public sealed class PresentationLayout : ILayoutEngine
+public sealed class PresentationLayout : ILayoutEngine, ILayoutInteractionHandler
 {
     private readonly Dictionary<Guid, SlideAssignment> _slideAssignments = new();
     private int _currentSlide;
@@ -68,20 +68,80 @@ public sealed class PresentationLayout : ILayoutEngine
         LayoutRootPrefix, ".verso-slide-nav button { padding: 6px 14px; border: 1px solid var(--verso-border-default, #ccc); background: var(--verso-bg-elevated, #f8f8f8); border-radius: 3px; }\n",
         LayoutRootPrefix, ".verso-slide-counter { font-variant-numeric: tabular-nums; min-width: 4em; text-align: center; }\n");
 
+    // Layout-author script that wires the [data-action="prev-slide"] /
+    // [data-action="next-slide"] buttons rendered by RenderLayoutAsync into typed
+    // interactions through the host-provided bridge. Delegated from document so the
+    // listener survives layout re-renders; scoped to this layout's root via the
+    // layout-id data attribute so a second presentation on the same page does not
+    // cross-fire.
+    private static readonly string SlidesJs =
+        "(function () {\n" +
+        "  var bridge = window.verso && window.verso.layout && window.verso.layout.bindCurrentScript();\n" +
+        "  if (!bridge) return;\n" +
+        "  document.addEventListener('click', function (e) {\n" +
+        "    var btn = e.target && e.target.closest && e.target.closest('button[data-action]');\n" +
+        "    if (!btn) return;\n" +
+        "    var root = btn.closest('.verso-layout-root[data-extension-id=\"com.verso.sample.presentation\"][data-layout-id=\"presentation\"]');\n" +
+        "    if (!root) return;\n" +
+        "    var action = btn.getAttribute('data-action');\n" +
+        "    if (action === 'prev-slide' || action === 'next-slide') {\n" +
+        "      e.preventDefault();\n" +
+        "      bridge.interact(action, '');\n" +
+        "    }\n" +
+        "  });\n" +
+        "})();\n";
+
     public Task<IReadOnlyList<LayoutStaticAsset>?> GetStaticAssetsAsync(
         IVersoContext context, LayoutHostCapabilities hostCapabilities)
     {
-        if (!hostCapabilities.SupportedAssetContentTypes.Contains("text/css"))
-            return Task.FromResult<IReadOnlyList<LayoutStaticAsset>?>(null);
-
-        IReadOnlyList<LayoutStaticAsset> assets = new[]
+        var assets = new List<LayoutStaticAsset>();
+        if (hostCapabilities.SupportedAssetContentTypes.Contains("text/css"))
         {
-            new LayoutStaticAsset(
+            assets.Add(new LayoutStaticAsset(
                 AssetId: "slides.css",
                 ContentType: "text/css",
-                Content: Encoding.UTF8.GetBytes(SlidesCss))
-        };
-        return Task.FromResult<IReadOnlyList<LayoutStaticAsset>?>(assets);
+                Content: Encoding.UTF8.GetBytes(SlidesCss)));
+        }
+        if (hostCapabilities.SupportedAssetContentTypes.Contains("text/javascript"))
+        {
+            assets.Add(new LayoutStaticAsset(
+                AssetId: "slides.js",
+                ContentType: "text/javascript",
+                Content: Encoding.UTF8.GetBytes(SlidesJs))
+            {
+                LoadHints = new LayoutStaticAssetLoadHints(
+                    ModuleKind: LayoutScriptModuleKind.Classic,
+                    LoadMode: LayoutScriptLoadMode.Defer,
+                    Placement: LayoutScriptPlacement.AfterLayoutHtml),
+            });
+        }
+        return Task.FromResult<IReadOnlyList<LayoutStaticAsset>?>(
+            assets.Count == 0 ? null : assets);
+    }
+
+    // --- ILayoutInteractionHandler ---
+
+    public Task OnLayoutInteractionAsync(LayoutInteractionContext context)
+    {
+        switch (context.InteractionType)
+        {
+            case "prev-slide":
+                if (_currentSlide > 1)
+                {
+                    _currentSlide--;
+                    context.RequestRender();
+                }
+                break;
+
+            case "next-slide":
+                if (_currentSlide < SlideCount)
+                {
+                    _currentSlide++;
+                    context.RequestRender();
+                }
+                break;
+        }
+        return Task.CompletedTask;
     }
 
     public Task<RenderResult> RenderLayoutAsync(IReadOnlyList<CellModel> cells, IVersoContext context)

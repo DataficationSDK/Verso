@@ -27,5 +27,13 @@ public interface ILayoutInteractionHandler : IExtension
     /// updates. Returns <see cref="Task"/> only; layout interactions do not
     /// return payloads to the client.
     /// </summary>
+    /// <remarks>
+    /// Interaction types in the <c>verso/</c> namespace are reserved by the host and
+    /// are intercepted before this handler is invoked (for example
+    /// <c>verso/requestRender</c> routes directly to
+    /// <see cref="LayoutInteractionContext.RequestRender"/>). Handler implementations
+    /// MUST NOT depend on receiving them; using a <c>verso/</c> prefix as an
+    /// application-defined type will silently never reach the handler.
+    /// </remarks>
     Task OnLayoutInteractionAsync(LayoutInteractionContext context);
 }
