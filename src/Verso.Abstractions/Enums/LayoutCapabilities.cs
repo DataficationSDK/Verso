@@ -44,5 +44,15 @@ public enum LayoutCapabilities
     /// <summary>
     /// Multiple cells can be selected at the same time.
     /// </summary>
-    MultiSelect = 64
+    MultiSelect = 64,
+
+    /// <summary>
+    /// The layout receives notebook state-change events pushed from the host
+    /// (cell executing/completed, outputs updated, variables changed, notebook
+    /// structure changed, theme changed, kernel restarting/restarted). The host
+    /// dispatches each as a <c>verso:notebookevent</c> CustomEvent on the page;
+    /// inline layout scripts subscribe via <c>bridge.onNotebookEvent(...)</c>.
+    /// Layouts that do not declare this capability incur no dispatch overhead.
+    /// </summary>
+    NotebookEvents = 128
 }

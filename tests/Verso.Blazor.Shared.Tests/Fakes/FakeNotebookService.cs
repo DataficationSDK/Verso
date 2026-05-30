@@ -84,6 +84,8 @@ public sealed class FakeNotebookService : INotebookService
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
     public event Action? OnOutputUpdated;
+    public event Action<string?>? OnKernelRestarting;
+    public event Action<string?>? OnKernelRestarted;
 
     // ── Call tracking ──────────────────────────────────────────────────
 
@@ -368,4 +370,6 @@ public sealed class FakeNotebookService : INotebookService
     public void RaiseVariablesChanged() => OnVariablesChanged?.Invoke();
     public void RaiseSettingsChanged() => OnSettingsChanged?.Invoke();
     public void RaiseOutputUpdated() => OnOutputUpdated?.Invoke();
+    public void RaiseKernelRestarting(string? kernelId = null) => OnKernelRestarting?.Invoke(kernelId);
+    public void RaiseKernelRestarted(string? kernelId = null) => OnKernelRestarted?.Invoke(kernelId);
 }

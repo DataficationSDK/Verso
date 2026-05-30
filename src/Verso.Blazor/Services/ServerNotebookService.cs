@@ -273,6 +273,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
     public event Action? OnOutputUpdated;
+    public event Action<string?>? OnKernelRestarting;
+    public event Action<string?>? OnKernelRestarted;
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -553,7 +555,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public async Task RestartKernelAsync()
     {
         if (_scaffold is null) return;
+        OnKernelRestarting?.Invoke(null);
         await _scaffold.RestartKernelAsync();
+        OnKernelRestarted?.Invoke(null);
     }
 
     private CancellationToken ResetExecutionToken()

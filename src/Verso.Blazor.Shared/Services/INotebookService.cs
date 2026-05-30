@@ -139,6 +139,15 @@ public interface INotebookService
     /// <summary>Raised when a cell output is updated in place by an interaction handler.</summary>
     event Action? OnOutputUpdated;
 
+    /// <summary>Raised when the kernel begins restarting. The kernel ID is provided where the
+    /// host tracks it (WASM); it may be null on hosts that do not surface a per-kernel identity.</summary>
+    event Action<string?>? OnKernelRestarting;
+
+    /// <summary>Raised after the kernel has finished restarting and notebook state has been
+    /// re-synchronized. The kernel ID is provided where the host tracks it (WASM); it may be null
+    /// on hosts that do not surface a per-kernel identity.</summary>
+    event Action<string?>? OnKernelRestarted;
+
     // ── File operations ────────────────────────────────────────────────
 
     /// <summary>Create a new empty notebook.</summary>

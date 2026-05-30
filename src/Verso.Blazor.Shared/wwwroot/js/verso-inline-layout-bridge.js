@@ -77,6 +77,22 @@
                 window.addEventListener('verso:themechanged', wrapped);
                 return function () { window.removeEventListener('verso:themechanged', wrapped); };
             },
+
+            /**
+             * Subscribe to host notebook state-change notifications (cell executing/
+             * completed, outputs/variables changed, notebook structure changed, theme
+             * changed, kernel restarting/restarted). The handler receives the event
+             * detail: { type, cellId? }, where type is a stable kebab string such as
+             * "cell-executing" or "cell-execution-completed". Returns an unsubscribe
+             * function. Requires the layout to declare the NotebookEvents capability;
+             * otherwise the host never dispatches and the handler is never called.
+             */
+            onNotebookEvent(handler) {
+                if (typeof handler !== 'function') return function () { };
+                const wrapped = function (e) { handler(e.detail); };
+                window.addEventListener('verso:notebookevent', wrapped);
+                return function () { window.removeEventListener('verso:notebookevent', wrapped); };
+            },
         };
     }
 
@@ -89,6 +105,20 @@
         dispatchChange(kind, tokens) {
             window.dispatchEvent(new CustomEvent('verso:themechanged', {
                 detail: { kind: kind || null, tokens: tokens || {} }
+            }));
+        },
+    };
+
+    /**
+     * Notebook state-change dispatch surface. Called by CustomLayoutHtml when a
+     * host notebook event fires and the active layout declared NotebookEvents, so
+     * layout scripts subscribed via bridge.onNotebookEvent() receive a structured
+     * payload they can react to (incremental update, or a debounced requestRender).
+     */
+    window.verso.notebook = window.verso.notebook || {
+        dispatchEvent(type, detail) {
+            window.dispatchEvent(new CustomEvent('verso:notebookevent', {
+                detail: Object.assign({ type: type || '' }, detail || {})
             }));
         },
     };

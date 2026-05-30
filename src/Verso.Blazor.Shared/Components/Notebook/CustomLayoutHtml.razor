@@ -122,6 +122,20 @@
     {
         Service.OnLayoutChanged += HandleLayoutChanged;
         Service.OnLayoutUpdated += HandleLayoutUpdated;
+
+        // Notebook state-change events are pushed to inline layouts that declare the
+        // NotebookEvents capability. We subscribe unconditionally and gate the dispatch
+        // per-event on the active layout's capabilities, so the check stays correct even
+        // though this component is torn down and recreated on layout switch.
+        Service.OnCellExecuting += HandleCellExecuting;
+        Service.OnCellExecutionCompleted += HandleCellExecutionCompleted;
+        Service.OnOutputUpdated += HandleOutputUpdated;
+        Service.OnNotebookChanged += HandleNotebookStateChanged;
+        Service.OnVariablesChanged += HandleVariablesChanged;
+        Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
+        Service.OnThemeChanged += HandleThemeChangedEvent;
+        Service.OnKernelRestarting += HandleKernelRestarting;
+        Service.OnKernelRestarted += HandleKernelRestarted;
         _subscribed = true;
         CaptureIdentity();
         _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
@@ -319,6 +333,50 @@
         catch (Microsoft.JSInterop.JSException) { }
     }
 
+    // ── Notebook state-change push ─────────────────────────────────────
+    // Each host event is forwarded to the inline layout's script as a
+    // verso:notebookevent CustomEvent (bridge.onNotebookEvent). This is a pure
+    // push: it never re-renders the layout. The layout decides whether to update
+    // incrementally or call bridge.requestRender() for a full server re-render.
+
+    private void HandleCellExecuting(Guid cellId)
+        => DispatchNotebookEvent("cell-executing", new { cellId = cellId.ToString() });
+
+    private void HandleCellExecutionCompleted(Guid cellId)
+        => DispatchNotebookEvent("cell-execution-completed", new { cellId = cellId.ToString() });
+
+    private void HandleOutputUpdated() => DispatchNotebookEvent("outputs-changed");
+
+    private void HandleNotebookStateChanged() => DispatchNotebookEvent("notebook-changed");
+
+    private void HandleVariablesChanged() => DispatchNotebookEvent("variables-changed");
+
+    private void HandleExtensionStatusChanged() => DispatchNotebookEvent("extension-status-changed");
+
+    private void HandleThemeChangedEvent() => DispatchNotebookEvent("theme-changed");
+
+    private void HandleKernelRestarting(string? kernelId)
+        => DispatchNotebookEvent("kernel-restarting", kernelId is null ? null : new { kernelId });
+
+    private void HandleKernelRestarted(string? kernelId)
+        => DispatchNotebookEvent("kernel-restarted", kernelId is null ? null : new { kernelId });
+
+    private void DispatchNotebookEvent(string type, object? detail = null)
+    {
+        if (_disposed) return;
+        if (!Service.LayoutCapabilities.HasFlag(LayoutCapabilities.NotebookEvents)) return;
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+            try
+            {
+                await JS.InvokeVoidAsync("verso.notebook.dispatchEvent", type, detail);
+            }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        });
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
@@ -328,6 +386,15 @@
         {
             Service.OnLayoutChanged -= HandleLayoutChanged;
             Service.OnLayoutUpdated -= HandleLayoutUpdated;
+            Service.OnCellExecuting -= HandleCellExecuting;
+            Service.OnCellExecutionCompleted -= HandleCellExecutionCompleted;
+            Service.OnOutputUpdated -= HandleOutputUpdated;
+            Service.OnNotebookChanged -= HandleNotebookStateChanged;
+            Service.OnVariablesChanged -= HandleVariablesChanged;
+            Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+            Service.OnThemeChanged -= HandleThemeChangedEvent;
+            Service.OnKernelRestarting -= HandleKernelRestarting;
+            Service.OnKernelRestarted -= HandleKernelRestarted;
             _subscribed = false;
         }
 

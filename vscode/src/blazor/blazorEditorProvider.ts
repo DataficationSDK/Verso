@@ -677,6 +677,14 @@ export class BlazorEditorProvider
             --verso-success: var(--vscode-testing-iconPassed, #73C991);
             --verso-foreground-muted: var(--vscode-disabledForeground, #999);
             --verso-hover-background: var(--vscode-list-hoverBackground, #F5F5F5);
+            /* Coarse semantic palette consumed by custom layouts. Mapped from the editor
+               surfaces so layouts that derive their look from these tokens blend into the
+               active VS Code theme. */
+            --verso-bg-default: var(--vscode-editor-background);
+            --verso-bg-elevated: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+            --verso-fg-default: var(--vscode-editor-foreground);
+            --verso-fg-muted: var(--vscode-disabledForeground, var(--vscode-editorLineNumber-foreground, #858585));
+            --verso-font-family-mono: var(--vscode-editor-font-family, 'Cascadia Mono', Consolas, monospace);
         }
     </style>
 </head>
