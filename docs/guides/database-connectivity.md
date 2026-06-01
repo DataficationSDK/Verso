@@ -69,16 +69,25 @@ You can always specify the provider explicitly when auto-detection does not fit 
 
 Verso.Ado works with any ADO.NET provider. The following are recognized by name for direct resolution:
 
-| Invariant name | Provider |
-|----------------|----------|
-| `Microsoft.Data.SqlClient` | SQL Server |
-| `Microsoft.Data.Sqlite` | SQLite |
-| `Npgsql` | PostgreSQL |
-| `MySql.Data.MySqlClient` | MySQL (Oracle connector) |
-| `MySqlConnector` | MySQL (MySqlConnector) |
-| `Oracle.ManagedDataAccess.Client` | Oracle |
+| Invariant name (`--provider`) | NuGet package | Provider |
+|-------------------------------|---------------|----------|
+| `Microsoft.Data.SqlClient` | `Microsoft.Data.SqlClient` | SQL Server |
+| `Microsoft.Data.Sqlite` | `Microsoft.Data.Sqlite` | SQLite |
+| `Npgsql` | `Npgsql` | PostgreSQL |
+| `MySql.Data.MySqlClient` | `MySql.Data` | MySQL (Oracle connector) |
+| `MySqlConnector` | `MySqlConnector` | MySQL (MySqlConnector) |
+| `Oracle.ManagedDataAccess.Client` | `Oracle.ManagedDataAccess.Core` | Oracle |
 
-Provider assemblies are not bundled with Verso.Ado. Install the NuGet package for your provider before connecting:
+For most providers the invariant name and the NuGet package id are the same. Oracle is the
+exception: the invariant name you pass to `--provider` is `Oracle.ManagedDataAccess.Client`,
+but the package to install on .NET is `Oracle.ManagedDataAccess.Core`. The un-suffixed
+`Oracle.ManagedDataAccess` package targets .NET Framework and will not connect from Verso.
+`#!sql-connect --provider Oracle.ManagedDataAccess.Client` resolves the correct package
+automatically.
+
+Provider assemblies are not bundled with Verso.Ado. When you let `#!sql-connect` resolve the
+provider it downloads the package for you; to install it yourself first, use the package id
+from the table above:
 
 ```
 #!nuget Microsoft.Data.SqlClient
@@ -461,7 +470,8 @@ If the original notebook used `--create-dbcontext`, Verso inserts a `#!sql-scaff
 
 ### Oracle
 
-- Provider: `Oracle.ManagedDataAccess.Client`
+- Provider (invariant name): `Oracle.ManagedDataAccess.Client`
+- NuGet package: `Oracle.ManagedDataAccess.Core` (resolved automatically; the un-suffixed `Oracle.ManagedDataAccess` is .NET Framework only and will not connect)
 - Recognized for provider resolution but has no special-case handling in schema inspection (uses `INFORMATION_SCHEMA`)
 
 ### Firebird
