@@ -39,6 +39,36 @@ internal static class ProviderDiscovery
         };
 
     /// <summary>
+    /// Provider invariant names whose NuGet package id or assembly file name differs from the
+    /// invariant name itself. Auto-resolution assumes the three are equal — true for
+    /// <c>Microsoft.Data.SqlClient</c>, <c>Npgsql</c>, <c>MySqlConnector</c>, and most others —
+    /// so only the exceptions are listed here. Oracle is the notable one: its invariant name is
+    /// <c>Oracle.ManagedDataAccess.Client</c>, the package that supplies it on modern .NET is
+    /// <c>Oracle.ManagedDataAccess.Core</c> (the un-suffixed <c>Oracle.ManagedDataAccess</c>
+    /// targets .NET Framework and fails to connect here), and the assembly it ships is
+    /// <c>Oracle.ManagedDataAccess.dll</c>.
+    /// </summary>
+    private static readonly Dictionary<string, (string PackageId, string AssemblyName)> KnownProviderPackages =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Oracle.ManagedDataAccess.Client"] = ("Oracle.ManagedDataAccess.Core", "Oracle.ManagedDataAccess"),
+        };
+
+    /// <summary>
+    /// The NuGet package id that supplies the given provider. Defaults to the provider invariant
+    /// name, which is the package id for most ADO.NET providers.
+    /// </summary>
+    internal static string GetPackageId(string providerName) =>
+        KnownProviderPackages.TryGetValue(providerName, out var info) ? info.PackageId : providerName;
+
+    /// <summary>
+    /// The simple assembly name (no extension) that contains the given provider's factory.
+    /// Defaults to the provider invariant name, which is the assembly name for most providers.
+    /// </summary>
+    internal static string GetAssemblyName(string providerName) =>
+        KnownProviderPackages.TryGetValue(providerName, out var info) ? info.AssemblyName : providerName;
+
+    /// <summary>
     /// Attempts to discover a <see cref="DbProviderFactory"/> for the given connection string.
     /// If <paramref name="explicitProvider"/> is specified, it is used directly.
     /// </summary>
@@ -146,10 +176,13 @@ internal static class ProviderDiscovery
     {
         if (paths is null or { Count: 0 }) return null;
 
-        // Find the assembly file matching the provider name
+        // Find the assembly file matching the provider's assembly name. For most providers the
+        // assembly name equals the invariant name; Oracle ships its factory in
+        // Oracle.ManagedDataAccess.dll while its invariant name is Oracle.ManagedDataAccess.Client.
+        var assemblyName = GetAssemblyName(providerName);
         var assemblyPath = paths.FirstOrDefault(p =>
             Path.GetFileNameWithoutExtension(p)?
-                .Equals(providerName, StringComparison.OrdinalIgnoreCase) == true);
+                .Equals(assemblyName, StringComparison.OrdinalIgnoreCase) == true);
 
         if (assemblyPath is null || !File.Exists(assemblyPath)) return null;
 

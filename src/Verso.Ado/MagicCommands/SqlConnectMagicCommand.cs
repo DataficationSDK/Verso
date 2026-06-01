@@ -96,16 +96,22 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
 
         // If discovery failed and an explicit provider was given, attempt to auto-resolve
         // it as a NuGet package — but only if the provider's DLL isn't already in the
-        // assembly path list. ADO.NET provider invariant names match their package IDs by
-        // convention (Microsoft.Data.SqlClient, Microsoft.Data.Sqlite, Npgsql, MySql.Data,
-        // ...), so users shouldn't have to run a separate `#r "nuget:..."` cell first. If
-        // the DLL IS already in the path list, discovery failed for a different reason
-        // (e.g. type initializer exception) and re-downloading won't help.
-        var providerAlreadyLoaded = nugetPaths is { Count: > 0 } && nugetPaths.Any(p =>
-            string.Equals(
-                Path.GetFileNameWithoutExtension(p),
-                resolvedProvider,
-                StringComparison.OrdinalIgnoreCase));
+        // assembly path list. For most ADO.NET providers the invariant name, package id,
+        // and assembly name are identical (Microsoft.Data.SqlClient, Microsoft.Data.Sqlite,
+        // Npgsql, MySqlConnector, ...), so users shouldn't have to run a separate
+        // `#r "nuget:..."` cell first. Where they diverge — notably Oracle, whose package on
+        // modern .NET is Oracle.ManagedDataAccess.Core and whose assembly is
+        // Oracle.ManagedDataAccess.dll — ProviderDiscovery maps the invariant name to the
+        // right package and assembly. If the DLL IS already in the path list, discovery
+        // failed for a different reason (e.g. type initializer exception) and re-downloading
+        // won't help.
+        var providerAlreadyLoaded = nugetPaths is { Count: > 0 }
+            && !string.IsNullOrWhiteSpace(resolvedProvider)
+            && nugetPaths.Any(p =>
+                string.Equals(
+                    Path.GetFileNameWithoutExtension(p),
+                    ProviderDiscovery.GetAssemblyName(resolvedProvider!),
+                    StringComparison.OrdinalIgnoreCase));
 
         if (factory is null && !string.IsNullOrWhiteSpace(resolvedProvider) && !providerAlreadyLoaded)
         {
@@ -115,7 +121,8 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
 
             if (nugetCommand is not null)
             {
-                await nugetCommand.ExecuteAsync(resolvedProvider!, context).ConfigureAwait(false);
+                var packageId = ProviderDiscovery.GetPackageId(resolvedProvider!);
+                await nugetCommand.ExecuteAsync(packageId, context).ConfigureAwait(false);
                 context.SuppressExecution = true; // restore — nuget command resets it
 
                 if (context.Variables.TryGet<List<string>>("__verso_nuget_assemblies", out var freshPaths)

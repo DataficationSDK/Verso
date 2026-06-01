@@ -109,6 +109,37 @@ public sealed class ProviderDiscoveryTests
     }
 
     [TestMethod]
+    public void GetPackageId_OracleProvider_MapsToCorePackage()
+    {
+        // The Oracle invariant name is not a NuGet package id; the package on modern .NET
+        // is Oracle.ManagedDataAccess.Core (the un-suffixed package is .NET Framework only).
+        Assert.AreEqual(
+            "Oracle.ManagedDataAccess.Core",
+            ProviderDiscovery.GetPackageId("Oracle.ManagedDataAccess.Client"));
+    }
+
+    [TestMethod]
+    public void GetAssemblyName_OracleProvider_MapsToShippedAssembly()
+    {
+        // Oracle ships its factory in Oracle.ManagedDataAccess.dll, not a file named after
+        // the invariant name, so assembly-path matching must use the mapped name.
+        Assert.AreEqual(
+            "Oracle.ManagedDataAccess",
+            ProviderDiscovery.GetAssemblyName("Oracle.ManagedDataAccess.Client"));
+    }
+
+    [TestMethod]
+    public void GetPackageId_And_GetAssemblyName_DefaultToProviderName()
+    {
+        // Providers whose invariant name, package id, and assembly name agree pass through
+        // unchanged — the mapping only carries the exceptions.
+        Assert.AreEqual("Npgsql", ProviderDiscovery.GetPackageId("Npgsql"));
+        Assert.AreEqual("Microsoft.Data.SqlClient", ProviderDiscovery.GetPackageId("Microsoft.Data.SqlClient"));
+        Assert.AreEqual("Npgsql", ProviderDiscovery.GetAssemblyName("Npgsql"));
+        Assert.AreEqual("Microsoft.Data.SqlClient", ProviderDiscovery.GetAssemblyName("Microsoft.Data.SqlClient"));
+    }
+
+    [TestMethod]
     public void Discover_WithNuGetPaths_NullPaths_DoesNotThrow()
     {
         // Null paths should be handled gracefully
