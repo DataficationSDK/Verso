@@ -114,7 +114,7 @@ Verso.JavaScript provides full JavaScript and TypeScript execution in notebook c
 
 ### Rich Content Cells
 
-Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support `@variable` substitution from the shared variable store, enabling dynamic documents that update when data changes.
+Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support `@variable` substitution from the shared variable store, enabling dynamic documents that update when data changes. See the [Mermaid diagrams guide](docs/guides/mermaid-diagrams.md) for diagram types, variable-driven charts, and theming.
 
 ### Themes
 
