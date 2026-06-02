@@ -156,7 +156,10 @@ The first line is only treated as directives if it starts with `--` and contains
 
 ### Variable Binding
 
-SQL cells can reference notebook variables as parameters using `@variableName` syntax:
+SQL cells can reference notebook variables as parameters. Use your database's
+native bind syntax: `@variableName` for SQL Server, PostgreSQL, MySQL, and SQLite;
+`:variableName` for Oracle. Verso binds the notebook variable whose name matches
+the bind name (without the prefix).
 
 ```csharp
 var region = "US-East";
@@ -164,11 +167,27 @@ var minAmount = 100.0m;
 ```
 
 ```sql
+-- SQL Server / PostgreSQL / MySQL / SQLite
 SELECT * FROM Orders
 WHERE Region = @region AND TotalAmount > @minAmount
 ```
 
-Variable names are matched case-insensitively from the notebook's variable store. The kernel maps .NET types to `DbType` values automatically. If a referenced variable does not exist, IntelliSense shows a diagnostic warning.
+```sql
+-- Oracle
+SELECT * FROM Orders
+WHERE Region = :region AND TotalAmount > :minAmount
+```
+
+Both cells bind the same `region` and `minAmount` variables. Because each cell uses
+its database's real bind syntax, queries copied from Oracle SQL Developer (or any
+other client) run unchanged.
+
+Variable names are matched case-insensitively from the notebook's variable store. The kernel maps .NET types to `DbType` values automatically. If a referenced variable does not exist, IntelliSense shows a diagnostic warning that names the parameter with the dialect's prefix.
+
+For Oracle, a colon only introduces a bind when it is followed by an identifier, so
+the PL/SQL assignment operator (`:=`), positional binds (`:1`), and trigger
+pseudorecords (`:new`, `:old`) are left untouched. Verso enables named binding for
+Oracle so a parameter referenced more than once in a query resolves correctly.
 
 ### Multi-Statement Execution
 
@@ -419,8 +438,10 @@ The export actions appear only on cells that have a stored query result.
 The SQL kernel provides completions, diagnostics, and hover information:
 
 - **Completions** include table names, column names (scoped to tables in the query), SQL keywords, and `@variable` references from the notebook variable store
-- **Diagnostics** warn when no connection is found or when `@parameter` references have no matching variable
+- **Diagnostics** warn when no connection is found or when a parameter reference has no matching variable, naming the parameter with the dialect's prefix (`@name`, or `:name` for Oracle)
 - **Hover** on a table name shows its columns, on a column shows its type and nullability, on `@variable` shows its current type and value, and on SQL keywords shows descriptions
+
+> Completion and hover for parameter references currently trigger on the `@` prefix. Oracle `:name` binds execute and are diagnosed correctly; completion and hover for the `:` prefix are planned.
 
 IntelliSense uses the same schema cache as `#!sql-schema`, so schema is fetched once and reused.
 

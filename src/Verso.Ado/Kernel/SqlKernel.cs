@@ -316,9 +316,10 @@ public sealed class SqlKernel : ILanguageKernel
                 0, 0, 0, 0));
         }
 
-        // Scan for unresolved @parameters in the post-directive-strip SQL,
+        // Scan for unresolved parameters in the post-directive-strip SQL,
         // then translate offsets back to the original cell's line numbering.
         int lineOffset = sqlCode.Length < code.Length ? 1 : 0;
+        char prefix = dialect.ParameterPrefix();
 
         var localNames = SqlLocalScopeAnalyzer.FindLocalNames(sqlCode, dialect);
         var references = SqlParameterScanner.Scan(sqlCode, dialect);
@@ -346,7 +347,7 @@ public sealed class SqlKernel : ILanguageKernel
 
                 diagnostics.Add(new Diagnostic(
                     DiagnosticSeverity.Warning,
-                    $"Unresolved parameter '@{reference.Name}'. No matching variable found in the variable store.",
+                    $"Unresolved parameter '{prefix}{reference.Name}'. No matching variable found in the variable store.",
                     startLine + lineOffset, startCol, endLine + lineOffset, endCol));
             }
         }
@@ -557,6 +558,9 @@ public sealed class SqlKernel : ILanguageKernel
         var localNames = SqlLocalScopeAnalyzer.FindLocalNames(sql, dialect);
         var references = SqlParameterScanner.Scan(sql, dialect);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        char prefix = dialect.ParameterPrefix();
+
+        ConfigureBindingForDialect(cmd, dialect);
 
         foreach (var reference in references)
         {
@@ -574,13 +578,13 @@ public sealed class SqlKernel : ILanguageKernel
             if (descriptor is null || descriptor.Value is null)
             {
                 outputs.Add(new CellOutput("text/plain",
-                    $"Warning: No variable '@{reference.Name}' found for parameter binding.",
+                    $"Warning: No variable '{prefix}{reference.Name}' found for parameter binding.",
                     IsError: false));
                 continue;
             }
 
             var param = cmd.CreateParameter();
-            param.ParameterName = $"@{reference.Name}";
+            param.ParameterName = $"{prefix}{reference.Name}";
 
             if (DbTypeMapper.TryMapDbType(descriptor.Type, out var dbType))
             {
@@ -590,12 +594,46 @@ public sealed class SqlKernel : ILanguageKernel
             else
             {
                 outputs.Add(new CellOutput("text/plain",
-                    $"Warning: Type '{descriptor.Type.Name}' for '@{reference.Name}' is not a supported DbType. Passing as-is.",
+                    $"Warning: Type '{descriptor.Type.Name}' for '{prefix}{reference.Name}' is not a supported DbType. Passing as-is.",
                     IsError: false));
                 param.Value = descriptor.Value;
             }
 
             cmd.Parameters.Add(param);
+        }
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo?>
+        _bindByNameProperties = new();
+
+    /// <summary>
+    /// Applies dialect-specific command configuration before parameters are added.
+    /// Oracle's ADO.NET provider binds parameters positionally by default; because
+    /// the binder adds one parameter per distinct name, named binding must be
+    /// enabled so a query that reuses a bind or lists parameters out of source
+    /// order resolves correctly. The provider is resolved at runtime with no
+    /// compile-time reference, so the well-known <c>BindByName</c> property is set
+    /// reflectively when the concrete command exposes it.
+    /// </summary>
+    private static void ConfigureBindingForDialect(DbCommand cmd, SqlDialect dialect)
+    {
+        if (dialect != SqlDialect.Oracle)
+            return;
+
+        var prop = _bindByNameProperties.GetOrAdd(
+            cmd.GetType(),
+            static t => t.GetProperty("BindByName", typeof(bool)));
+
+        if (prop is null || !prop.CanWrite)
+            return;
+
+        try
+        {
+            prop.SetValue(cmd, true);
+        }
+        catch
+        {
+            // Provider does not honor BindByName; fall back to its default behavior.
         }
     }
 

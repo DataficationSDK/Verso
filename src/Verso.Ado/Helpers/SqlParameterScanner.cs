@@ -1,20 +1,24 @@
 namespace Verso.Ado.Helpers;
 
 /// <summary>
-/// Single-pass character walker that finds <c>@name</c> parameter references
-/// in SQL text while correctly skipping comments, string literals, and quoted
-/// identifiers. Recognized contexts:
+/// Single-pass character walker that finds named parameter references in SQL
+/// text while correctly skipping comments, string literals, and quoted
+/// identifiers. The prefix character is dialect-dependent: <c>@name</c> for
+/// SQL Server, PostgreSQL, MySQL, and SQLite; <c>:name</c> for Oracle (see
+/// <see cref="SqlDialectExtensions.ParameterPrefix"/>). Recognized contexts:
 /// <list type="bullet">
 ///   <item><c>-- single-line</c> comments through end of line</item>
 ///   <item><c>/* block */</c> comments</item>
 ///   <item><c>'…'</c> and <c>N'…'</c> string literals (including doubled-quote escapes)</item>
-///   <item><c>"…"</c> double-quoted identifiers (ANSI / Postgres / Sqlite)</item>
+///   <item><c>"…"</c> double-quoted identifiers (ANSI / Postgres / Sqlite / Oracle)</item>
 ///   <item><c>[…]</c> bracketed identifiers (T-SQL)</item>
 /// </list>
 /// The leading <c>@</c> of a T-SQL global like <c>@@SPID</c> is not emitted as a
 /// reference (the lookbehind on the previous character mirrors the prior regex).
-/// Oracle uses <c>:name</c> binds, so this scanner emits no references for
-/// <see cref="SqlDialect.Oracle"/>.
+/// For Oracle, a colon only begins a bind when it is followed by an identifier
+/// character, so the PL/SQL assignment operator <c>:=</c>, positional binds such
+/// as <c>:1</c>, and stray <c>::</c> are not treated as references; the trigger
+/// pseudorecords <c>:new</c> and <c>:old</c> are likewise excluded.
 /// </summary>
 internal static class SqlParameterScanner
 {
@@ -33,8 +37,10 @@ internal static class SqlParameterScanner
     /// </summary>
     internal static IReadOnlyList<ParameterReference> Scan(string sql, SqlDialect dialect)
     {
-        if (string.IsNullOrEmpty(sql) || dialect == SqlDialect.Oracle)
+        if (string.IsNullOrEmpty(sql))
             return Array.Empty<ParameterReference>();
+
+        char prefix = dialect.ParameterPrefix();
 
         var results = new List<ParameterReference>();
         var context = CharContext.Code;
@@ -98,19 +104,34 @@ internal static class SqlParameterScanner
                         continue;
                     }
 
-                    // Parameter candidate: @name
-                    if (c == '@')
+                    // Parameter candidate: <prefix>name
+                    if (c == prefix)
                     {
-                        // Skip the second @ in @@globals (e.g. @@SPID)
-                        bool precededByAt = i > 0 && sql[i - 1] == '@';
-                        // Skip the @ itself if the next char is also @ (we'll see it as
-                        // the second @ on the next iteration and won't emit).
-                        bool followedByAt = i + 1 < len && sql[i + 1] == '@';
-
-                        if (precededByAt || followedByAt)
+                        if (prefix == '@')
                         {
-                            i++;
-                            continue;
+                            // Skip the second @ in @@globals (e.g. @@SPID)
+                            bool precededByAt = i > 0 && sql[i - 1] == '@';
+                            // Skip the @ itself if the next char is also @ (we'll see it as
+                            // the second @ on the next iteration and won't emit).
+                            bool followedByAt = i + 1 < len && sql[i + 1] == '@';
+
+                            if (precededByAt || followedByAt)
+                            {
+                                i++;
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            // Oracle ':' only begins a bind when followed by an
+                            // identifier character. This skips the PL/SQL assignment
+                            // operator ':=', positional binds like ':1', and stray '::'.
+                            char next = i + 1 < len ? sql[i + 1] : '\0';
+                            if (!(char.IsLetter(next) || next == '_'))
+                            {
+                                i++;
+                                continue;
+                            }
                         }
 
                         int nameStart = i + 1;
@@ -118,7 +139,7 @@ internal static class SqlParameterScanner
                         while (nameEnd < len && IsNameChar(sql[nameEnd]))
                             nameEnd++;
 
-                        if (nameEnd > nameStart)
+                        if (nameEnd > nameStart && !IsExcludedName(prefix, sql, nameStart, nameEnd))
                         {
                             results.Add(new ParameterReference(
                                 Name: sql.Substring(nameStart, nameEnd - nameStart),
@@ -190,6 +211,24 @@ internal static class SqlParameterScanner
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Names that look like parameters syntactically but are not binds. For
+    /// Oracle this excludes the trigger pseudorecords <c>:new</c> and <c>:old</c>.
+    /// </summary>
+    private static bool IsExcludedName(char prefix, string sql, int nameStart, int nameEnd)
+    {
+        if (prefix != ':')
+            return false;
+
+        int length = nameEnd - nameStart;
+        if (length != 3)
+            return false;
+
+        ReadOnlySpan<char> name = sql.AsSpan(nameStart, length);
+        return name.Equals("new", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("old", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsNameChar(char c) =>
