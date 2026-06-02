@@ -26,14 +26,18 @@ public sealed class SqlKernelDiagnosticTests
         try { DbProviderFactories.UnregisterFactory("Microsoft.Data.Sqlite"); } catch { }
     }
 
-    private StubExecutionContext CreateContextWithConnection()
+    private StubExecutionContext CreateContextWithConnection(
+        string providerName = "Microsoft.Data.Sqlite")
     {
         var ctx = new StubExecutionContext();
 
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        var connInfo = new SqlConnectionInfo("testdb", "Data Source=:memory:", "Microsoft.Data.Sqlite", _connection);
+        // The declared provider name drives dialect resolution. Diagnostics never
+        // execute against the connection, so a SQLite connection can stand in while
+        // exercising a different dialect's parameter conventions (e.g. Oracle ':').
+        var connInfo = new SqlConnectionInfo("testdb", "Data Source=:memory:", providerName, _connection);
         var connections = new Dictionary<string, SqlConnectionInfo>(StringComparer.OrdinalIgnoreCase)
         {
             ["testdb"] = connInfo
@@ -294,6 +298,57 @@ SELECT @rows, @waitDelay, @serverName";
             d.Severity == DiagnosticSeverity.Warning &&
             d.Message.Contains("@example")),
             "Should not warn about @x inside a single-quoted string literal.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_Oracle_UnresolvedColonParam_WarnsWithColonPrefix()
+    {
+        var ctx = CreateContextWithConnection("Oracle.ManagedDataAccess.Client");
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "SELECT * FROM T WHERE Id = :userId");
+
+        Assert.IsTrue(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains(":userId")),
+            "Oracle unresolved-parameter diagnostics should reference ':userId'.");
+        Assert.IsFalse(diagnostics.Any(d => d.Message.Contains("@userId")),
+            "Oracle diagnostics must not reference the '@' prefix.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_Oracle_ResolvedColonParam_NoWarning()
+    {
+        var ctx = CreateContextWithConnection("Oracle.ManagedDataAccess.Client");
+        ctx.Variables.Set("userId", 7);
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "SELECT * FROM T WHERE Id = :userId");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("Unresolved")),
+            "A bound Oracle ':userId' parameter should not warn.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_Oracle_AtParam_NotTreatedAsParameter()
+    {
+        var ctx = CreateContextWithConnection("Oracle.ManagedDataAccess.Client");
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        var diagnostics = await kernel.GetDiagnosticsAsync(
+            "SELECT * FROM T WHERE Id = @userId");
+
+        Assert.IsFalse(diagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Warning &&
+            d.Message.Contains("Unresolved")),
+            "Under Oracle, '@userId' is not a bind parameter and must not warn.");
     }
 
     [TestMethod]

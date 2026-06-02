@@ -111,10 +111,129 @@ public sealed class SqlParameterScannerTests
     }
 
     [TestMethod]
-    public void Scan_OracleDialect_AlwaysEmpty()
+    public void Scan_Oracle_AtParam_NotRecognized()
     {
+        // Oracle binds with ':', not '@'. An '@' token must not be treated as a
+        // parameter under the Oracle dialect.
         var refs = SqlParameterScanner.Scan(
             "SELECT * FROM T WHERE Id = @x", SqlDialect.Oracle);
+
+        Assert.AreEqual(0, refs.Count);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_ColonParam_Found()
+    {
+        var refs = SqlParameterScanner.Scan(
+            "SELECT * FROM T WHERE Id = :userId", SqlDialect.Oracle);
+
+        Assert.AreEqual(1, refs.Count);
+        Assert.AreEqual("userId", refs[0].Name);
+        Assert.AreEqual(27, refs[0].Offset);
+        Assert.AreEqual(7, refs[0].Length); // ":userId"
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_MultipleColonParams_AllFound()
+    {
+        var refs = SqlParameterScanner.Scan(
+            "WHERE a = :a AND b = :b AND c = :c", SqlDialect.Oracle);
+
+        Assert.AreEqual(3, refs.Count);
+        CollectionAssert.AreEqual(
+            new[] { "a", "b", "c" },
+            refs.Select(r => r.Name).ToArray());
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_RepeatedColonParam_EmittedEachOccurrence()
+    {
+        // The scanner reports every occurrence; the binder deduplicates by name.
+        var refs = SqlParameterScanner.Scan(
+            "WHERE a = :x OR b = :x", SqlDialect.Oracle);
+
+        Assert.AreEqual(2, refs.Count);
+        Assert.AreEqual("x", refs[0].Name);
+        Assert.AreEqual("x", refs[1].Name);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_AssignmentOperator_NotEmitted()
+    {
+        // ':=' is the PL/SQL assignment operator, not a bind.
+        var refs = SqlParameterScanner.Scan(
+            "BEGIN total := 0; END;", SqlDialect.Oracle);
+
+        Assert.AreEqual(0, refs.Count);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_PositionalBind_NotEmitted()
+    {
+        // ':1' is a positional bind, not a named one — the name must start with
+        // a letter or underscore.
+        var refs = SqlParameterScanner.Scan(
+            "SELECT * FROM T WHERE Id = :1", SqlDialect.Oracle);
+
+        Assert.AreEqual(0, refs.Count);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_TriggerPseudorecords_NotEmitted()
+    {
+        // ':new' and ':old' are trigger correlation names, not binds.
+        var refs = SqlParameterScanner.Scan(
+            "IF :new.salary > :old.salary THEN NULL; END IF;", SqlDialect.Oracle);
+
+        Assert.AreEqual(0, refs.Count);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_ColonInStringLiteral_Excluded()
+    {
+        var refs = SqlParameterScanner.Scan(
+            "SELECT 'time is :value' FROM dual", SqlDialect.Oracle);
+
+        Assert.AreEqual(0, refs.Count);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_ColonInComment_Excluded()
+    {
+        var refs = SqlParameterScanner.Scan(
+            "-- bind :ignored here\nSELECT :keep FROM dual", SqlDialect.Oracle);
+
+        Assert.AreEqual(1, refs.Count);
+        Assert.AreEqual("keep", refs[0].Name);
+    }
+
+    [TestMethod]
+    public void Scan_Oracle_ColonInQuotedIdentifier_Excluded()
+    {
+        var refs = SqlParameterScanner.Scan(
+            "SELECT \":col\" FROM T WHERE Id = :keep", SqlDialect.Oracle);
+
+        Assert.AreEqual(1, refs.Count);
+        Assert.AreEqual("keep", refs[0].Name);
+    }
+
+    [TestMethod]
+    public void Scan_Postgres_DoubleColonCast_NotEmitted()
+    {
+        // Regression guard: ':' is only a bind prefix for Oracle. A PostgreSQL
+        // '::' cast must not be scanned as a parameter, and '@' still works.
+        var refs = SqlParameterScanner.Scan(
+            "SELECT value::int FROM T WHERE Id = @id", SqlDialect.Postgres);
+
+        Assert.AreEqual(1, refs.Count);
+        Assert.AreEqual("id", refs[0].Name);
+    }
+
+    [TestMethod]
+    public void Scan_SqlServer_ColonNotTreatedAsParam()
+    {
+        var refs = SqlParameterScanner.Scan(
+            "SELECT * FROM T WHERE Id = :notAParam", SqlDialect.SqlServer);
 
         Assert.AreEqual(0, refs.Count);
     }
