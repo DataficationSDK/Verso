@@ -21,9 +21,10 @@ else
     [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
 
     /// <summary>
-    /// WASM-only injection point for the iframe-isolated renderer. The server page leaves
-    /// this null because <c>CustomLayoutFrame</c> lives in <c>Verso.Blazor.Wasm</c> and
-    /// the server host does not run iframe-isolated layouts in v1.0.
+    /// Injection point for the iframe-isolated renderer. Both hosts supply the shared
+    /// <c>CustomLayoutFrame</c> here: the server host drives it in-process, the WASM host
+    /// over the JSON-RPC bridge. Left null only by hosts that do not support isolated
+    /// layouts, in which case an isolated layout falls back to the default cell list.
     /// </summary>
     [Parameter] public RenderFragment? IsolatedRenderer { get; set; }
 

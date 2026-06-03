@@ -6,6 +6,8 @@ This guide explains how to create custom layout engines for Verso notebooks. Lay
 
 A Verso layout engine implements the `ILayoutEngine` interface and defines how notebook cells are spatially arranged. The platform ships two built-in layouts (`NotebookLayout` for linear top-to-bottom, `DashboardLayout` for grid-based dashboards) and supports third-party layouts loaded via the extension system.
 
+A layout renderer runs in one of two isolation modes. **Inline** layouts (the default) supply HTML that the host injects into its own page and style against shared CSS variables; everything up to [Complete Examples](#complete-examples) describes this mode. **Isolated** layouts ship a renderer module that the host runs inside a sandboxed iframe with its own DOM, scripts, and styles, bridged to the host over a message contract. See [Isolated (iframe) layouts](#isolated-iframe-layouts) for that mode.
+
 Layouts handle:
 - Cell arrangement and positioning
 - Visual rendering of the layout container
@@ -718,6 +720,270 @@ Slide-based presentation layout that maps cells to numbered slides with navigati
 - `SlideAssignment` record for cell-to-slide mapping
 - Navigation controls and slide counter in rendered HTML
 - Metadata round-trip with `currentSlide` and per-cell slide assignments
+
+### Verso.Sample.Sparkline (Isolated, iframe renderer)
+
+A minimal isolated layout that draws a sparkline on a `<canvas>` from a numeric kernel variable. It is the worked example for the [Isolated (iframe) layouts](#isolated-iframe-layouts) section below.
+
+- **Source**: `samples/SampleLayout/Verso.Sample.Sparkline/SparklineLayout.cs`
+- **Renderer**: `samples/SampleLayout/Verso.Sample.Sparkline/assets/main.js`
+- **Tests**: `samples/SampleLayout/Verso.Sample.Sparkline.Tests/SparklineLayoutTests.cs`
+- `RendererIsolation = Isolated`; single self-contained `main.js` (no external script, so no extra CSP)
+- `ILayoutLifecycleHandler` subscribes to the `series` variable and pushes updates into the live frame
+- `ILayoutInteractionHandler` handles a `select-point` interaction and writes the chosen index to `selectedPoint`
+- Reads `--verso-*` theme tokens so the chart tracks the active theme
+
+## Isolated (iframe) layouts
+
+Everything above describes **inline** layouts: your `RenderLayoutAsync` HTML is injected into the host's own page, shares its DOM and CSS, and routes events through host-provided delegation. That is the right default for toolbars, grids, and mode toggles.
+
+An **isolated** layout instead ships a renderer module that the host runs inside a sandboxed iframe with its own DOM, its own scripts, and its own styles. Reach for it when you need arbitrary JavaScript, a third-party visualization library, a private DOM, or CSS that must not leak into (or inherit unexpectedly from) the host page. Examples: a charting dashboard with brushing, a custom code surface, a 3D scene.
+
+### Inline vs isolated
+
+| Property | Inline | Isolated |
+|---|---|---|
+| Extension code | C# only | C# + a JS renderer bundle |
+| Script isolation | None (shares the host page realm) | Full (sandboxed iframe) |
+| Style isolation | None (inherits host CSS) | Full |
+| Reuse host `<Cell>` components | Yes, via `data-cell-slot` | No; the frame renders its own content |
+| Theme propagation | Automatic via `:root` CSS variables | Host sends tokens; you apply them |
+| Network access | Host page's policy | None inside the frame (fetch kernel-side) |
+| Suitable for | Toolbars, grids, mode toggles | Visualizations, custom editors, rich UIs |
+
+A layout picks one mode and stays on it. Both modes share the same `ILayoutInteractionHandler` contract; only the transport differs, so your interaction handler does not know or care which mode delivered the event.
+
+### Opting into isolation
+
+Set `RendererIsolation` to `Isolated` and implement `GetRendererPackageAsync` to return the renderer bundle. `RenderLayoutAsync` is never consulted in this mode, so return an empty result.
+
+```csharp
+[VersoExtension]
+public sealed class SparklineLayout
+    : ILayoutEngine, ILayoutLifecycleHandler, ILayoutInteractionHandler
+{
+    public LayoutRendererIsolation RendererIsolation => LayoutRendererIsolation.Isolated;
+
+    public Task<LayoutRendererPackage?> GetRendererPackageAsync(IVersoContext context)
+    {
+        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["main.js"] = Encoding.UTF8.GetBytes(MainJs),
+        };
+
+        return Task.FromResult<LayoutRendererPackage?>(
+            new LayoutRendererPackage(EntryPoint: "main.js", Files: files, ContentSecurityPolicy: null));
+    }
+
+    // Never called for an isolated renderer, but required by the interface.
+    public Task<RenderResult> RenderLayoutAsync(IReadOnlyList<CellModel> cells, IVersoContext context)
+        => Task.FromResult(new RenderResult("text/html", string.Empty));
+
+    // ... lifecycle and interaction members below ...
+}
+```
+
+`LayoutRendererPackage` carries three things:
+
+| Field | Meaning |
+|---|---|
+| `EntryPoint` | Relative path of the entry module within `Files` (for example `"main.js"`). |
+| `Files` | The complete bundle, keyed by relative path, as `byte[]`. Must contain the entry point. |
+| `ContentSecurityPolicy` | Optional CSP additions appended to the host's base policy. `null` keeps the base policy as-is. |
+
+**Ship a self-contained entry module.** The host materializes each file as a separate blob and loads the entry point as an ES module (`import(entryBlobUrl)`). The other files' URLs are not exposed to the entry module, so a relative `import "./chart.js"` will not resolve. Bundle your renderer into a single entry file (or inline its dependencies). Embedding the script as an assembly resource, as the Sparkline sample does, keeps the extension a single deployable `.dll`.
+
+### The renderer bridge
+
+Before your entry module runs, the host installs a `window.verso` bridge in the frame. Your module uses it to talk to the host; it is the only channel out of the sandbox.
+
+| Call | Purpose |
+|---|---|
+| `verso.ready()` | Signal that the frame finished initializing. The host then runs your lifecycle handler and replies with `verso/init`. Call it once, after you have registered `onMessage`. |
+| `verso.onMessage((type, payload) => …)` | Receive host-to-frame messages. Register before calling `ready()` so you do not miss `verso/init`. |
+| `verso.interact(interactionType, payload, targetId?)` | Raise a layout interaction. Routes to your `ILayoutInteractionHandler`. The host stamps the layout identity; the frame cannot spoof another layout. |
+| `verso.cellInteract(cellId, interactionType, payload, options?)` | Raise a cell interaction from inside the frame. |
+| `verso.executeCell(cellId)` | Request execution of a cell. |
+| `verso.send(type, payload)` | Send a custom message to the host. The `verso/` prefix is reserved and rejected. |
+| `verso.log(level, message)` | Write to the host's log channel. |
+
+### Pushing data into a live frame
+
+`ILayoutLifecycleHandler` gives you a per-mount handle on the frame. Implement it to supply authoritative initial state and to stream updates while the frame is alive.
+
+```csharp
+public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+{
+    var frame = context.Frame;
+    var variables = context.Verso.Variables;
+
+    // The variable-store change event does not name the changed variable, so
+    // re-read the series each time and push it to the live frame.
+    void PushSeries()
+    {
+        if (!frame.IsAlive) return;
+        _ = frame.PostMessageAsync("data", new { values = ReadSeries(variables) }, context.CancellationToken);
+    }
+
+    variables.OnVariablesChanged += PushSeries;
+    _unsubscribers[context.FrameInstanceId] = () => variables.OnVariablesChanged -= PushSeries;
+
+    // Returned dictionary is delivered to the frame on `verso/init` under `extension`.
+    return Task.FromResult<IDictionary<string, object>?>(new Dictionary<string, object>
+    {
+        ["variable"] = "series",
+        ["values"] = ReadSeries(variables),
+    });
+}
+
+public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context)
+{
+    if (_unsubscribers.TryRemove(context.FrameInstanceId, out var unsubscribe))
+        unsubscribe();   // cancel the subscription so a torn-down frame is never pushed to
+    return Task.CompletedTask;
+}
+```
+
+Two contract details worth calling out:
+
+- **Watch variables through the change event.** `IVariableStore` exposes `event Action OnVariablesChanged` plus `TryGet<T>` / `Get<T>`; there is no per-variable watch. Subscribe to the event and re-read the variable you care about inside the handler.
+- **`PostMessageAsync` types are namespaced for you.** The host prefixes the type you pass with `ext/` before delivery, so `PostMessageAsync("data", …)` arrives in the frame as `ext/data`. Passing a `verso/`-prefixed type throws.
+
+On the renderer side, the entry module consumes both the init payload and the live pushes:
+
+```js
+const verso = window.verso;
+
+verso.onMessage((type, payload) => {
+  switch (type) {
+    case "verso/init":
+      // Initial state from OnRendererMountedAsync arrives under `extension`.
+      if (payload?.extension?.values) setValues(payload.extension.values);
+      break;
+    case "ext/data":
+      // Live push from PostMessageAsync("data", { values }).
+      if (payload?.values) setValues(payload.values);
+      break;
+    case "verso/themeChanged":
+      draw();   // tokens already applied to :root; just repaint
+      break;
+  }
+});
+
+verso.ready();
+```
+
+### Receiving interactions
+
+Isolated layouts use the same `ILayoutInteractionHandler` as inline layouts. The frame raises an interaction with `verso.interact(...)`; the host routes it to `OnLayoutInteractionAsync`.
+
+```js
+canvas.addEventListener("click", (event) => {
+  const index = nearestIndex(event.clientX);
+  verso.interact("select-point", { index, value: values[index] });
+});
+```
+
+```csharp
+public Task OnLayoutInteractionAsync(LayoutInteractionContext context)
+{
+    if (context.InteractionType == "select-point" && TryParseIndex(context.Payload, out var index))
+    {
+        // The frame owns its DOM and highlights the selection itself, so there is no
+        // RequestRender here; we only surface the choice as a kernel variable.
+        context.Verso.Variables.Set("selectedPoint", index);
+    }
+    return Task.CompletedTask;
+}
+```
+
+Unlike inline layouts, an isolated handler usually does **not** call `RequestRender`: the frame manages its own DOM and repaints from the data you push, so a host-driven re-render is neither needed nor possible.
+
+### Mount and unmount sequencing
+
+```
+Host mounts the frame (writes the package into a sandboxed iframe, installs the bridge)
+  Frame  → Host:  verso/ready
+  Host:            OnRendererMountedAsync(context with Frame)   // subscribe, return init extras
+  Host   → Frame:  verso/init { …, extension: <your dict> }
+  Frame is alive
+    Frame → Host:  verso/interact, verso/cellInteract, verso/executeCell, verso/log
+    Host  → Frame: verso/cellsChanged, verso/cellOutputs, verso/themeChanged, verso/layoutUpdated, ext/*
+  Teardown (notebook close, layout switch, kernel restart, manual remount)
+  Host:            OnRendererUnmountedAsync(context)            // cancel subscriptions; Frame.IsAlive → false
+  Host   → Frame:  verso/dispose
+  Host detaches the iframe
+```
+
+`OnRendererMountedAsync` runs once per mount, after the frame's `verso/ready` and before `verso/init`. `OnRendererUnmountedAsync` always runs before `verso/dispose`, so you get a chance to release per-frame resources.
+
+### Message contract
+
+Frame to host (sent through the bridge):
+
+| Type | Payload | Purpose |
+|---|---|---|
+| `verso/ready` | `{ extensionId, layoutId, frameInstanceId }` | Frame finished initializing. |
+| `verso/interact` | `{ interactionType, payload, targetId? }` | Routes to `ILayoutInteractionHandler`. Identity is stamped by the host. |
+| `verso/cellInteract` | `{ cellId, interactionType, payload, … }` | A cell interaction originating in the frame. |
+| `verso/executeCell` | `{ cellId }` | Request cell execution. |
+| `verso/log` | `{ level, message }` | Log to the host channel. |
+
+Host to frame (received in `onMessage`):
+
+| Type | Payload | Purpose |
+|---|---|---|
+| `verso/init` | `{ extensionId, layoutId, frameInstanceId, cells, capabilities, theme, layoutMetadata, extension? }` | Initial state. `extension` is the dictionary your mount handler returned. |
+| `verso/cellsChanged` | `{ cells }` | The notebook's cell list changed. |
+| `verso/cellOutputs` | `{ cellId, outputs }` | A cell's outputs changed. |
+| `verso/themeChanged` | `{ theme }` | The active theme changed. |
+| `verso/layoutUpdated` | `{ scope, cellId? }` | Server-side update notification; the frame decides what to redraw. |
+| `verso/dispose` | `{}` | The host is unmounting the frame. |
+| `ext/<type>` | extension-defined | A push from `ILayoutFrameChannel.PostMessageAsync(type, …)`, delivered with the `ext/` prefix. |
+
+The frame maintains its own DOM state across these events; the host never reaches into the iframe.
+
+### Sandbox and Content Security Policy
+
+The host mounts the iframe with `sandbox="allow-scripts"` (no `allow-same-origin`, `allow-forms`, or `allow-top-navigation`) and composes this base Content Security Policy, which your package cannot relax:
+
+```
+default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none';
+```
+
+Implications:
+
+- **No network from inside the frame.** `connect-src 'none'` is the default. If your package adds a `connect-src`, only `'none'`, `blob:`, and `'self'` are accepted; anything else fails the mount. Fetch data kernel-side and push it in via `PostMessageAsync` or `verso/cellOutputs`.
+- **Inline scripts and styles are allowed**, which is why a pure-`<canvas>` renderer like Sparkline needs no CSP additions at all and returns `ContentSecurityPolicy: null`.
+- **An external library needs a hash.** If your entry module loads a third-party script, add its `script-src` hash through the package CSP; it is appended to the base policy.
+
+### Theming isolated renderers
+
+The host resolves the active theme to a small token bundle and applies it to the frame's `:root` as `--verso-*` custom properties, both on `verso/init` and on every `verso/themeChanged`. The tokens (dotted keys in the message, dash-cased as CSS properties) are:
+
+| Token key | CSS property |
+|---|---|
+| `bg.default` | `--verso-bg-default` |
+| `bg.elevated` | `--verso-bg-elevated` |
+| `fg.default` | `--verso-fg-default` |
+| `fg.muted` | `--verso-fg-muted` |
+| `border.default` | `--verso-border-default` |
+| `accent` | `--verso-accent` |
+| `font.family.mono` | `--verso-font-family-mono` |
+| `font.family.sans` | `--verso-font-family-sans` |
+| `font.size.base` | `--verso-font-size-base` |
+
+CSS that uses `var(--verso-accent)` re-colors automatically. A `<canvas>` does not, so read the value with `getComputedStyle(document.documentElement).getPropertyValue('--verso-accent')` and repaint when you receive `verso/themeChanged`.
+
+### Failure modes
+
+- **The frame never signals `verso/ready`.** After a timeout (default 10 seconds) the host treats the mount as failed, skips `OnRendererMountedAsync`, and shows an error banner with a Retry button that remounts the frame from scratch.
+- **`OnRendererMountedAsync` throws.** The host logs the error and sends `verso/init` without the `extension` field, so the frame initializes with framework-only state. The unmount callback still runs at teardown.
+- **Clean unmount.** On notebook close, layout switch, kernel restart, or manual remount, the host runs `OnRendererUnmountedAsync`, then sends `verso/dispose`, then detaches the iframe. `Frame.IsAlive` flips to `false` before the unmount callback returns, so an in-flight push is a no-op.
+
+### Worked example
+
+`samples/SampleLayout/Verso.Sample.Sparkline` exercises this entire surface in about a hundred lines of C# and a single `main.js`: isolation opt-in, a self-contained canvas renderer, a lifecycle handler that streams a kernel variable, an interaction handler that writes the selection back to the kernel, and theme-token styling. Its README has build and run instructions.
 
 ## See Also
 

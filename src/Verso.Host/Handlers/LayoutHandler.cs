@@ -344,6 +344,13 @@ public static class LayoutHandler
             throw new InvalidOperationException($"[{p.ExtensionId}] {ex.Message}", ex);
         }
 
+        // A layout interaction handler may mutate kernel variables (e.g. surfacing a
+        // selection as a variable). Cell execution and kernel restart announce variable
+        // changes explicitly; do the same here so the client refreshes its variable view.
+        // The in-process server host surfaces this automatically via the live store's
+        // change event, so this notification closes the gap for the out-of-process host.
+        ns.SendNotification(MethodNames.VariableChanged);
+
         return null;
     }
 

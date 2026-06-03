@@ -12,6 +12,8 @@
 (function () {
     var bound = null;
     var inboundHandlers = [];
+    var firstInbound = false;
+    var readyTimer = null;
 
     // Applies a resolved theme bundle ({ kind, tokens }) to the iframe's :root.
     // Token keys use dotted notation ("bg.default") and are converted to the
@@ -37,6 +39,12 @@
     window.addEventListener('message', function (event) {
         var data = event.data;
         if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
+        // The first valid inbound message proves the host has wired up its listener
+        // and is answering, so stop re-announcing readiness (see ready()).
+        if (!firstInbound) {
+            firstInbound = true;
+            if (readyTimer !== null) { clearInterval(readyTimer); readyTimer = null; }
+        }
         if ((data.type === 'verso/init' || data.type === 'verso/themeChanged')
             && data.payload && data.payload.theme) {
             try { applyTheme(data.payload.theme); }
@@ -60,8 +68,7 @@
         }
     }
 
-    function ready() {
-        ensureBound();
+    function postReady() {
         window.parent.postMessage({
             type: 'verso/ready',
             payload: {
@@ -70,6 +77,28 @@
                 frameInstanceId: bound.frameInstanceId
             }
         }, '*');
+    }
+
+    function ready() {
+        ensureBound();
+        postReady();
+
+        // The host registers its message listener after the iframe element renders.
+        // If this frame loads and posts a single ready() before that listener exists,
+        // the signal is lost and no verso/init ever arrives. Re-announce on an interval
+        // until the first inbound message confirms the host is answering. Capped so a
+        // genuinely unresponsive host still stops (the host applies its own ready
+        // timeout independently).
+        if (firstInbound || readyTimer !== null) return;
+        var attempts = 0;
+        readyTimer = setInterval(function () {
+            if (firstInbound || ++attempts >= 25) {
+                clearInterval(readyTimer);
+                readyTimer = null;
+                return;
+            }
+            postReady();
+        }, 200);
     }
 
     function send(type, payload) {

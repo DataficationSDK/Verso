@@ -11,7 +11,7 @@ namespace Verso.Blazor.Wasm.Services;
 /// operations to the Verso.Host process through the VS Code postMessage ↔ JSON-RPC bridge.
 /// Maintains a local state cache that is populated on open and updated from responses/notifications.
 /// </summary>
-public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
+public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposable
 {
     private readonly VsCodeBridge _bridge;
     private readonly IJSRuntime _js;

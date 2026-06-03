@@ -5,7 +5,6 @@
 @using Verso.Abstractions
 @using Verso.Blazor.Shared.Models
 @using Verso.Blazor.Shared.Services
-@using Verso.Blazor.Wasm.Services
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 
@@ -27,7 +26,7 @@ else if (_srcdoc is not null)
 
 @code {
     [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
-    [Parameter, EditorRequired] public RemoteNotebookService RemoteService { get; set; } = default!;
+    [Parameter, EditorRequired] public IIsolatedLayoutHost Host { get; set; } = default!;
 
     /// <summary>
     /// Maximum time the iframe has to send <c>verso/ready</c> before the mount is
@@ -46,6 +45,7 @@ else if (_srcdoc is not null)
     private string _layoutId = "";
     private string _frameInstanceId = "";
     private bool _initSent;
+    private bool _attached;
     private bool _disposed;
     private bool _readyReceived;
     private CancellationTokenSource? _readyTimeoutCts;
@@ -74,7 +74,7 @@ else if (_srcdoc is not null)
 
         try
         {
-            _frameInstanceId = await RemoteService.AllocateLayoutFrameInstanceAsync(_extensionId, _layoutId);
+            _frameInstanceId = await Host.AllocateLayoutFrameInstanceAsync(_extensionId, _layoutId);
         }
         catch (Exception ex)
         {
@@ -85,7 +85,7 @@ else if (_srcdoc is not null)
         LayoutRendererPackageDto? package;
         try
         {
-            package = await RemoteService.GetLayoutRendererPackageAsync(_extensionId, _layoutId);
+            package = await Host.GetLayoutRendererPackageAsync(_extensionId, _layoutId);
         }
         catch (Exception ex)
         {
@@ -121,8 +121,15 @@ else if (_srcdoc is not null)
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _disposed || _srcdoc is null) return;
+        // The iframe is rendered only after the async mount sets _srcdoc, which
+        // normally lands on a later render than the first one. Gating attach on
+        // firstRender would therefore miss the iframe entirely: the host listener
+        // would never be wired up, so the frame's verso/ready is never heard and
+        // verso/init is never sent back. Attach the first time the iframe is
+        // actually present instead, exactly once.
+        if (_disposed || _srcdoc is null || _attached) return;
 
+        _attached = true;
         _selfRef = DotNetObjectReference.Create(this);
         try
         {
@@ -144,25 +151,25 @@ else if (_srcdoc is not null)
         _onLayoutUpdatedHandler = HandleLayoutUpdated;
         _onLayoutFrameMessageHandler = HandleLayoutFrameMessage;
 
-        RemoteService.OnNotebookChanged += _onNotebookChangedHandler;
-        RemoteService.OnCellOutputUpdated += _onCellOutputUpdatedHandler;
-        RemoteService.OnThemeChanged += _onThemeChangedHandler;
-        RemoteService.OnLayoutUpdated += _onLayoutUpdatedHandler;
-        RemoteService.OnLayoutFrameMessage += _onLayoutFrameMessageHandler;
+        Host.OnNotebookChanged += _onNotebookChangedHandler;
+        Host.OnCellOutputUpdated += _onCellOutputUpdatedHandler;
+        Host.OnThemeChanged += _onThemeChangedHandler;
+        Host.OnLayoutUpdated += _onLayoutUpdatedHandler;
+        Host.OnLayoutFrameMessage += _onLayoutFrameMessageHandler;
     }
 
     private void UnsubscribeFromHostEvents()
     {
         if (_onNotebookChangedHandler is not null)
-            RemoteService.OnNotebookChanged -= _onNotebookChangedHandler;
+            Host.OnNotebookChanged -= _onNotebookChangedHandler;
         if (_onCellOutputUpdatedHandler is not null)
-            RemoteService.OnCellOutputUpdated -= _onCellOutputUpdatedHandler;
+            Host.OnCellOutputUpdated -= _onCellOutputUpdatedHandler;
         if (_onThemeChangedHandler is not null)
-            RemoteService.OnThemeChanged -= _onThemeChangedHandler;
+            Host.OnThemeChanged -= _onThemeChangedHandler;
         if (_onLayoutUpdatedHandler is not null)
-            RemoteService.OnLayoutUpdated -= _onLayoutUpdatedHandler;
+            Host.OnLayoutUpdated -= _onLayoutUpdatedHandler;
         if (_onLayoutFrameMessageHandler is not null)
-            RemoteService.OnLayoutFrameMessage -= _onLayoutFrameMessageHandler;
+            Host.OnLayoutFrameMessage -= _onLayoutFrameMessageHandler;
 
         _onNotebookChangedHandler = null;
         _onCellOutputUpdatedHandler = null;
@@ -219,6 +226,7 @@ else if (_srcdoc is not null)
         _errorMessage = null;
         _srcdoc = null;
         _initSent = false;
+        _attached = false;
         _readyReceived = false;
         _frameInstanceId = "";
         StateHasChanged();
@@ -277,7 +285,7 @@ else if (_srcdoc is not null)
         IDictionary<string, JsonElement>? extra;
         try
         {
-            extra = await RemoteService.LayoutRendererMountedAsync(_extensionId, _layoutId, _frameInstanceId);
+            extra = await Host.LayoutRendererMountedAsync(_extensionId, _layoutId, _frameInstanceId);
         }
         catch (Exception ex)
         {
@@ -302,7 +310,7 @@ else if (_srcdoc is not null)
             ["extension"] = extra
         };
 
-        if (RemoteService.CurrentTheme is { } themeBundle)
+        if (Host.CurrentTheme is { } themeBundle)
         {
             initPayload["theme"] = themeBundle;
         }
@@ -331,7 +339,7 @@ else if (_srcdoc is not null)
         var targetId = TryGetString(root, "targetId");
 
         // Overwrite identity with bound values regardless of what the iframe sent.
-        await RemoteService.LayoutInteractAsync(
+        await Host.LayoutInteractAsync(
             _extensionId, _layoutId, interactionType, payloadText, _frameInstanceId, targetId);
     }
 
@@ -355,7 +363,7 @@ else if (_srcdoc is not null)
         if (!Enum.TryParse<CellRegion>(regionText, ignoreCase: true, out var region))
             region = CellRegion.Output;
 
-        await RemoteService.HandleCellInteractionAsync(
+        await Host.HandleCellInteractionAsync(
             cellId, _extensionId, interactionType, payloadText, outputBlockId, region);
     }
 
@@ -369,7 +377,7 @@ else if (_srcdoc is not null)
 
         // Fire-and-forget: cell execution can take arbitrarily long; do not block
         // the inbound message pump.
-        _ = RemoteService.ExecuteCellAsync(cellId);
+        _ = Host.ExecuteCellAsync(cellId);
     }
 
     private async Task HandleLogAsync(string? payloadJson)
@@ -381,14 +389,14 @@ else if (_srcdoc is not null)
         var level = TryGetString(root, "level") ?? "info";
         var message = TryGetString(root, "message") ?? "";
 
-        await RemoteService.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
+        await Host.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
     }
 
     private async Task TryForwardLogAsync(string level, string message)
     {
         try
         {
-            await RemoteService.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
+            await Host.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
         }
         catch { /* host log forwarding is best-effort */ }
     }
@@ -422,7 +430,7 @@ else if (_srcdoc is not null)
     private void HandleThemeChanged()
     {
         if (_disposed || !_initSent) return;
-        if (RemoteService.CurrentTheme is not { } themeBundle) return;
+        if (Host.CurrentTheme is not { } themeBundle) return;
         _ = PostToIframeAsync("verso/themeChanged", new { theme = themeBundle });
     }
 
@@ -497,7 +505,12 @@ else if (_srcdoc is not null)
         string? packageCsp, out string composed, out string error)
     {
         error = string.Empty;
-        var baseCsp = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+        // The renderer package's files are exposed to the frame as blob: URLs and the
+        // entry module is loaded with a dynamic import(blobUrl), so script-src must allow
+        // blob: in addition to the inline bootstrap. 'unsafe-inline' alone blocks the
+        // blob module import. connect-src stays 'none' so the frame still cannot reach the
+        // network; the blob URLs are same-origin artifacts the host itself created.
+        var baseCsp = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; "
             + "img-src data: blob:; connect-src 'none';";
 
         if (string.IsNullOrWhiteSpace(packageCsp))
@@ -636,7 +649,7 @@ else if (_srcdoc is not null)
         {
             try
             {
-                await RemoteService.LayoutRendererUnmountedAsync(_extensionId, _layoutId, _frameInstanceId);
+                await Host.LayoutRendererUnmountedAsync(_extensionId, _layoutId, _frameInstanceId);
             }
             catch { /* host-side teardown is best-effort during dispose */ }
 

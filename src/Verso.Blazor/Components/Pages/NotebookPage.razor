@@ -98,7 +98,9 @@
         <div class="verso-notebook-body">
             <div class="verso-notebook-main">
                 <CascadingValue Value="@CellContext" IsFixed="false">
-                    <LayoutRenderer @key="Service.ActiveLayoutKey" Service="Service" />
+                    <LayoutRenderer @key="Service.ActiveLayoutKey"
+                                    Service="Service"
+                                    IsolatedRenderer="@RenderIsolatedLayout" />
                 </CascadingValue>
             </div>
 
@@ -644,6 +646,17 @@
         OnInsertCell = EventCallback.Factory.Create<(int, string)>(this, args => HandleInsertCell(args.Item1, args.Item2)),
         OnAddCell = EventCallback.Factory.Create<string>(this, HandleAddCell),
         OnCellListClick = EventCallback.Factory.Create(this, HandleCellListClick),
+    };
+
+    private RenderFragment RenderIsolatedLayout => builder =>
+    {
+        if (Service is IIsolatedLayoutHost host)
+        {
+            builder.OpenComponent<CustomLayoutFrame>(0);
+            builder.AddAttribute(1, nameof(CustomLayoutFrame.Service), Service);
+            builder.AddAttribute(2, nameof(CustomLayoutFrame.Host), host);
+            builder.CloseComponent();
+        }
     };
 
     [JSInvokable]

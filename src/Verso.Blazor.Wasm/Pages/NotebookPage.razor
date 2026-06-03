@@ -187,11 +187,11 @@
 
     private RenderFragment RenderIsolatedLayout => builder =>
     {
-        if (Service is RemoteNotebookService remoteSvc)
+        if (Service is IIsolatedLayoutHost host)
         {
             builder.OpenComponent<CustomLayoutFrame>(0);
             builder.AddAttribute(1, nameof(CustomLayoutFrame.Service), Service);
-            builder.AddAttribute(2, nameof(CustomLayoutFrame.RemoteService), remoteSvc);
+            builder.AddAttribute(2, nameof(CustomLayoutFrame.Host), host);
             builder.CloseComponent();
         }
     };

@@ -15,7 +15,7 @@ The docs below cover everything an extension author needs, from a first `dotnet 
 
 ## Authoring guides
 
-- **[Layouts](layouts.md)** — write a custom layout extension. Covers `ILayoutEngine`, the `data-cell-slot` slot-mount pattern, data-attribute event routing, the `ILayoutInteractionHandler` capability, the re-render protocol, and how to style against the host theme. Targeted at inline (in-page) layouts.
+- **[Layouts](layouts.md)** — write a custom layout extension. Covers both renderer isolation modes: **inline** layouts (`ILayoutEngine`, the `data-cell-slot` slot-mount pattern, data-attribute event routing, the `ILayoutInteractionHandler` capability, the re-render protocol, theming against host CSS variables) and **isolated** iframe layouts (`RendererIsolation`, the renderer package, the `window.verso` bridge, `ILayoutLifecycleHandler` and the frame channel, the message contract, the sandbox/CSP policy, and theme-token propagation).
 - **[Theme Authoring](theme-authoring.md)** — define color palettes, typography, and the layout-extension theme tokens that custom layouts inherit through CSS variables on `:root`.
 
 ## Workflow

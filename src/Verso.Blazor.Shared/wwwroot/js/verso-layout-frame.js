@@ -12,6 +12,25 @@
     var handles = new Map();
     var nextId = 1;
 
+    // Resolve the sibling bridge script's URL from this script's own URL rather than
+    // against document.baseURI. Hosts that point <base href> at a synthetic origin
+    // (e.g. the VS Code webview, whose base is vscode-webview://<id>/ so Blazor's
+    // NavigationManager works) would otherwise resolve a relative "_content/..." fetch
+    // to a path the resource server rejects with 403. This script is always served from
+    // the real, access-permitted resource location, so deriving the bridge URL from it
+    // works in the browser, the server host, and the VS Code webview alike.
+    function resolveBridgeUrl() {
+        try {
+            var self = document.currentScript && document.currentScript.src;
+            if (self) {
+                return self.replace(/verso-layout-frame\.js(\?.*)?$/, 'verso-layout-bridge.js$1');
+            }
+        } catch (_) { /* fall through to the relative path */ }
+        return '_content/Verso.Blazor.Shared/js/verso-layout-bridge.js';
+    }
+
+    var bridgeUrl = resolveBridgeUrl();
+
     function attach(iframeElem, dotnetRef, frameInstanceId) {
         if (!iframeElem || !dotnetRef) return null;
 
@@ -53,7 +72,7 @@
     var bridgeScriptPromise = null;
     function getBridgeScript() {
         if (bridgeScriptPromise) return bridgeScriptPromise;
-        bridgeScriptPromise = fetch('_content/Verso.Blazor.Shared/js/verso-layout-bridge.js')
+        bridgeScriptPromise = fetch(bridgeUrl)
             .then(function (resp) {
                 if (!resp.ok) throw new Error('verso bridge fetch failed: ' + resp.status);
                 return resp.text();

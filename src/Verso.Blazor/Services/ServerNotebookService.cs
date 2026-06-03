@@ -16,7 +16,7 @@ namespace Verso.Blazor.Services;
 /// In-process implementation of <see cref="INotebookService"/> for Blazor Server.
 /// Wraps Scaffold + ExtensionHost, projecting engine types through the interface surface.
 /// </summary>
-public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
+public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncDisposable
 {
     private Scaffold? _scaffold;
     private ExtensionHost? _extensionHost;
@@ -1262,7 +1262,10 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     }
 
     private void HandleScaffoldCellOutputUpdated(Guid cellId)
-        => OnOutputUpdated?.Invoke();
+    {
+        OnOutputUpdated?.Invoke();
+        RaiseCellOutputUpdated(cellId);
+    }
 
     private async Task<string?> RequestInputFromUIAsync(
         Guid cellId,
@@ -1372,6 +1375,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         _executionCts?.Cancel();
         ResolveInputResult(null, cancelled: true);
+        await UnmountAllFramesAsync();
         UnsubscribeFromEngineEvents();
         if (_scaffold is not null)
         {
