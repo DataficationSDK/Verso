@@ -82,7 +82,7 @@ public static class LayoutHandler
         return null;
     }
 
-    public static async Task<LayoutRenderResult> HandleRenderAsync(NotebookSession ns)
+    public static async Task<LayoutRenderResult> HandleRenderAsync(NotebookSession ns, JsonElement? @params)
     {
         var manager = ns.Scaffold.LayoutManager
             ?? throw new InvalidOperationException("No layout manager initialized.");
@@ -91,10 +91,25 @@ public static class LayoutHandler
             ?? throw new InvalidOperationException("No active layout.");
 
         var cells = ns.Scaffold.Cells;
-        var context = new HostVersoContext(ns.Scaffold);
+        var context = new HostVersoContext(ns.Scaffold, ParseCollapsedSections(@params));
         var result = await layout.RenderLayoutAsync(cells, context).ConfigureAwait(false);
 
         return new LayoutRenderResult { Html = result.Content };
+    }
+
+    private static IReadOnlySet<Guid> ParseCollapsedSections(JsonElement? @params)
+    {
+        var set = new HashSet<Guid>();
+        var p = @params?.Deserialize<LayoutRenderParams>(JsonRpcMessage.SerializerOptions);
+        if (p?.CollapsedSections is { } ids)
+        {
+            foreach (var id in ids)
+            {
+                if (Guid.TryParse(id, out var cellId))
+                    set.Add(cellId);
+            }
+        }
+        return set;
     }
 
     public static async Task<LayoutGetCellContainerResult> HandleGetCellContainerAsync(NotebookSession ns, JsonElement? @params)
@@ -332,6 +347,10 @@ public static class LayoutHandler
             RequestCellRefresh = cellId => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "cell", cellId)
         };
 
+        // Snapshot the cell identity sequence so we can tell whether the interaction mutated the
+        // cell collection (insert, remove, or reorder). Joined ids capture order changes too.
+        var cellsBefore = string.Join(",", ns.Scaffold.Cells.Select(c => c.Id));
+
         try
         {
             await handler.OnLayoutInteractionAsync(context).ConfigureAwait(false);
@@ -350,6 +369,15 @@ public static class LayoutHandler
         // The in-process server host surfaces this automatically via the live store's
         // change event, so this notification closes the gap for the out-of-process host.
         ns.SendNotification(MethodNames.VariableChanged);
+
+        // If the interaction changed the cell collection (e.g. a custom layout's own insert/move/
+        // delete affordance, which mutates the host's cells rather than the client's), tell the
+        // client to refresh its cell cache. Without this its pool stays stale and a newly added
+        // cell's slot renders empty. The in-process server host shares one cell collection and so
+        // does not need this.
+        var cellsAfter = string.Join(",", ns.Scaffold.Cells.Select(c => c.Id));
+        if (!string.Equals(cellsBefore, cellsAfter, StringComparison.Ordinal))
+            ns.SendNotification(MethodNames.NotebookCellsChanged);
 
         return null;
     }
@@ -491,8 +519,13 @@ public static class LayoutHandler
     internal sealed class HostVersoContext : IVersoContext
     {
         private readonly Scaffold _scaffold;
+        private readonly IReadOnlySet<Guid> _collapsedSections;
 
-        public HostVersoContext(Scaffold scaffold) => _scaffold = scaffold;
+        public HostVersoContext(Scaffold scaffold, IReadOnlySet<Guid>? collapsedSections = null)
+        {
+            _scaffold = scaffold;
+            _collapsedSections = collapsedSections ?? new HashSet<Guid>();
+        }
 
         public IVariableStore Variables => _scaffold.Variables;
         public CancellationToken CancellationToken => CancellationToken.None;
@@ -502,6 +535,7 @@ public static class LayoutHandler
         public INotebookMetadata NotebookMetadata => new HostNotebookMetadata(_scaffold);
         public INotebookOperations Notebook => _scaffold.NotebookOps;
         public string? ActiveLayoutId => _scaffold.LayoutManager?.ActiveLayout?.LayoutId;
+        public IReadOnlySet<Guid> CollapsedSections => _collapsedSections;
         public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 
         private sealed class HostNotebookMetadata : INotebookMetadata

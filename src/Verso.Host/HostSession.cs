@@ -326,7 +326,7 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.NotebookGetCellTypes => NotebookHandler.HandleGetCellTypes(ns),
             MethodNames.LayoutGetLayouts => LayoutHandler.HandleGetLayouts(ns),
             MethodNames.LayoutSwitch => LayoutHandler.HandleSwitch(ns, @params),
-            MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(ns),
+            MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(ns, @params),
             MethodNames.LayoutGetCellContainer => await LayoutHandler.HandleGetCellContainerAsync(ns, @params),
             MethodNames.LayoutUpdateCell => await LayoutHandler.HandleUpdateCell(ns, @params),
             MethodNames.LayoutSetEditMode => await LayoutHandler.HandleSetEditMode(ns, @params),

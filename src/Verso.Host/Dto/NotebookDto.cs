@@ -287,6 +287,15 @@ public sealed class LayoutSwitchParams
     public string? ExtensionId { get; set; }
 }
 
+public sealed class LayoutRenderParams
+{
+    /// <summary>
+    /// Cell ids (as strings) of heading cells whose sections are collapsed, so a custom layout can
+    /// fold the cells beneath them. Null or empty when nothing is collapsed.
+    /// </summary>
+    public List<string>? CollapsedSections { get; set; }
+}
+
 public sealed class LayoutRenderResult
 {
     public string Html { get; set; } = "";

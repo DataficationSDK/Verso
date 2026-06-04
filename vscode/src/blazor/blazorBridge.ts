@@ -32,6 +32,7 @@ export class BlazorBridge implements vscode.Disposable {
     "layout/missing",
     "layout/updated",
     "layout/frameMessage",
+    "notebook/cellsChanged",
   ];
 
   private static readonly mutationMethods = new Set([

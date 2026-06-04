@@ -52,6 +52,15 @@ public interface IVersoContext
     /// </summary>
     string? ActiveLayoutId => null;
 
+    private static readonly IReadOnlySet<Guid> EmptyCollapsedSections = new HashSet<Guid>();
+
+    /// <summary>
+    /// Gets the identifiers of the heading cells whose sections are currently collapsed. A layout
+    /// can use this to fold (omit) the cells that fall under a collapsed heading, mirroring the
+    /// built-in cell list. Empty when the host does not track section collapse state.
+    /// </summary>
+    IReadOnlySet<Guid> CollapsedSections => EmptyCollapsedSections;
+
     /// <summary>
     /// Requests that the host deliver a file download to the user.
     /// </summary>

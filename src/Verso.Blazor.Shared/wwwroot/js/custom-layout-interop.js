@@ -26,6 +26,71 @@
         rootEl._versoMountedCells = [];
     }
 
+    // Move every portaled cell currently inside the layout root back into the hidden pool. Unlike
+    // unmount(), this scans the live DOM rather than the tracked list, so it reclaims the cells even
+    // if the list is stale — which it is right before an innerHTML swap that would otherwise destroy
+    // them. The cell wrappers carry data-cell-id and sit directly inside their [data-cell-slot].
+    function harvestToPool(rootEl, poolEl) {
+        if (!rootEl || !poolEl) return;
+        var nodes = rootEl.querySelectorAll('[data-cell-slot] > [data-cell-id]');
+        for (var i = 0; i < nodes.length; i++) {
+            poolEl.appendChild(nodes[i]);
+        }
+        rootEl._versoMountedCells = [];
+    }
+
+    // Nearest scrollable ancestor, so a layout re-render can capture and restore scroll position and
+    // not jump the page. Falls back to the document scroller when nothing closer scrolls.
+    function findScrollParent(el) {
+        var node = el && el.parentElement;
+        while (node) {
+            var oy = window.getComputedStyle(node).overflowY;
+            if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+            node = node.parentElement;
+        }
+        return document.scrollingElement || document.documentElement;
+    }
+
+    // Atomically replace the layout chrome and re-portal the live cells in ONE synchronous frame:
+    // harvest the portaled cells back to the pool (so the innerHTML swap can't destroy the live
+    // <Cell> DOM that Blazor still owns), swap in the new HTML, then move the cells back into their
+    // slots — all before the browser paints. Because no paint happens between the swap and the
+    // re-portal, the layout never flashes empty. (Binding the HTML through a Blazor MarkupString
+    // instead paints the new empty slots first and only re-portals on the next OnAfterRender, which
+    // is what made fold/insert/reorder flash.) Scroll position is preserved across the swap.
+    function setLayoutHtml(rootEl, poolEl, html) {
+        if (!rootEl) return 0;
+        var scroller = findScrollParent(rootEl);
+        var prevTop = scroller ? scroller.scrollTop : 0;
+        harvestToPool(rootEl, poolEl);
+        rootEl.innerHTML = html || '';
+        var count = mount(rootEl, poolEl);
+        if (scroller) scroller.scrollTop = prevTop;
+        return count;
+    }
+
+    // After portaling cells into visible slots: re-run mermaid (it renders at zero width inside
+    // the display:none pool) and re-lay-out the Monaco editors (created hidden, they come up
+    // unmeasured). Deferred a frame so the slots are laid out before Monaco measures them.
+    function afterPortal(nodes) {
+        if (!nodes || nodes.length === 0) return;
+        if (window.versoMermaid && typeof window.versoMermaid.renderAll === 'function') {
+            try { window.versoMermaid.renderAll(); } catch (e) { /* mermaid may not be loaded */ }
+        }
+        if (window.versoMonaco && typeof window.versoMonaco.relayout === 'function') {
+            requestAnimationFrame(function () {
+                for (var m = 0; m < nodes.length; m++) {
+                    var eds = nodes[m].querySelectorAll('.verso-monaco-editor');
+                    for (var e = 0; e < eds.length; e++) {
+                        if (eds[e].id) {
+                            try { window.versoMonaco.relayout(eds[e].id); } catch (err) { /* editor gone */ }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     function mount(rootEl, poolEl) {
         if (!rootEl || !poolEl) return [];
         var slots = rootEl.querySelectorAll('[data-cell-slot]');
@@ -40,15 +105,32 @@
             }
         }
         rootEl._versoMountedCells = mounted;
-
-        // Mermaid diagrams in the cell pool render at zero width because the pool is
-        // display:none until the cell is portaled. Re-run renderAll now that the
-        // diagrams are in a sized container so they layout correctly.
-        if (mounted.length > 0 && window.versoMermaid && typeof window.versoMermaid.renderAll === 'function') {
-            try { window.versoMermaid.renderAll(); } catch (e) { /* mermaid may not be loaded */ }
-        }
-
+        afterPortal(mounted);
         return mounted.length;
+    }
+
+    // Fill only slots that are still empty by moving their cell out of the pool. Unlike mount(),
+    // this leaves already-portaled cells untouched (so it never steals focus or tears down an
+    // editor mid-edit). Used after a structural change whose pool update and layout re-render
+    // arrive separately: the new cell's slot exists but the cell only just appeared in the pool.
+    function portalPending(rootEl, poolEl) {
+        if (!rootEl || !poolEl) return 0;
+        var slots = rootEl.querySelectorAll('[data-cell-slot]');
+        var added = [];
+        for (var i = 0; i < slots.length; i++) {
+            var slot = slots[i];
+            if (slot.querySelector('[data-cell-id]')) continue; // already holds its cell
+            var cellNode = findCellNode(poolEl, getCellId(slot));
+            if (cellNode) {
+                slot.appendChild(cellNode);
+                added.push(cellNode);
+            }
+        }
+        if (added.length) {
+            rootEl._versoMountedCells = (rootEl._versoMountedCells || []).concat(added);
+            afterPortal(added);
+        }
+        return added.length;
     }
 
     function mountCellInSlot(cellId, slotEl, poolEl) {
@@ -97,7 +179,9 @@
             unmount(rootEl, poolEl);
             return mount(rootEl, poolEl);
         },
+        setLayoutHtml: setLayoutHtml,
         unmountSlots: unmount,
+        portalPending: portalPending,
         mountCellInSlot: mountCellInSlot,
         updateSlotPosition: updateSlotPosition,
         registerMountHook: registerMountHook,

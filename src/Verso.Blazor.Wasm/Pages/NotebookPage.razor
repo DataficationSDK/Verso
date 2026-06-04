@@ -233,6 +233,10 @@
             remoteService.OnKernelRestarting += HandleKernelRestarting;
             remoteService.OnKernelRestarted += HandleKernelRestarted;
             remoteService.OnLayoutMissing += HandleLayoutMissing;
+            // Hand the service the live collapsed-section set so a custom layout can fold sections
+            // (including when switching to one with a section already collapsed). The set is shared
+            // by reference; toggles re-assign it to trigger a layout re-render.
+            remoteService.CollapsedSections = _collapsedSections;
         }
     }
 
@@ -599,6 +603,11 @@
     {
         if (!_collapsedSections.Remove(cellId))
             _collapsedSections.Add(cellId);
+
+        // The built-in cell list folds via its own render path (Blazor re-render). A custom layout
+        // needs the host to re-render it with the updated set, which assigning here triggers.
+        if (Service is RemoteNotebookService remoteService)
+            remoteService.CollapsedSections = _collapsedSections;
     }
 
     private async Task HandleCellAction((Guid CellId, string Action) args)

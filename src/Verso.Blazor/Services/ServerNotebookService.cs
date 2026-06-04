@@ -187,6 +187,29 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         ? $"{layout.ExtensionId}:{layout.LayoutId}"
         : "verso.layout:none";
 
+    private IReadOnlySet<Guid> _collapsedSections = new HashSet<Guid>();
+
+    /// <summary>
+    /// The heading cells whose sections are currently collapsed. The page holds the source of
+    /// truth and hands its live set here; assigning re-renders the active custom layout so it can
+    /// fold the cells under a collapsed heading. The built-in cell list folds via its own render
+    /// path and does not depend on this.
+    /// </summary>
+    public IReadOnlySet<Guid> CollapsedSections
+    {
+        get => _collapsedSections;
+        set
+        {
+            _collapsedSections = value ?? new HashSet<Guid>();
+            if (_scaffold?.LayoutManager?.ActiveLayout?.RequiresCustomRenderer == true
+                && ActiveLayout is { } reference)
+            {
+                OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+                    reference.ExtensionId, reference.LayoutId, string.Empty, "full", null));
+            }
+        }
+    }
+
     public string? ActiveLayoutRendererIsolation
     {
         get
@@ -716,7 +739,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         if (!layout.RequiresCustomRenderer) return null;
         if (layout.RendererIsolation != LayoutRendererIsolation.Inline) return null;
 
-        var ctx = new BlazorLayoutRenderContext(_scaffold);
+        var ctx = new BlazorLayoutRenderContext(_scaffold, _collapsedSections);
         var result = await layout.RenderLayoutAsync(_scaffold.Notebook.Cells, ctx);
         return string.Equals(result.MimeType, "text/html", StringComparison.OrdinalIgnoreCase)
             ? result.Content

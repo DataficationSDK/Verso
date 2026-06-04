@@ -14,19 +14,28 @@
 <div class="verso-cell-pool" style="display: none" @ref="_poolRef">
     @if (Context is not null)
     {
-        @foreach (var cell in Service.Cells)
+        var poolCells = Service.Cells;
+        @for (int i = 0; i < poolCells.Count; i++)
         {
+            var cell = poolCells[i];
+            var index = i;
+            var headingLevel = HeadingDetector.GetHeadingLevel(cell);
             <div @key="cell.Id" data-cell-id="@cell.Id">
+                @* Index, IsLast, and heading state are computed per cell exactly as the default
+                   cell list does, so a cell portaled into a custom layout shows the same toolbar
+                   affordances (move up/down with correct edge hiding, the index badge, and the
+                   section-collapse control on heading cells). *@
                 <Cell CellData="cell"
                       IsSelected="cell.Id == Context.SelectedCellId"
                       IsExecuting="cell.Id == Context.ExecutingCellId"
                       IsRunDisabled="Context.IsRunDisabled"
-                      Index="0"
-                      IsLast="false"
+                      Index="index"
+                      IsLast="index == poolCells.Count - 1"
                       CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
                       IsEditable="Service.IsCellTypeEditable(cell.Type)"
-                      IsHeadingCell="false"
-                      IsSectionCollapsed="false"
+                      IsHeadingCell="headingLevel is not null"
+                      IsSectionCollapsed="Context.CollapsedSections.Contains(cell.Id)"
+                      OnToggleSection="Context.OnToggleSection"
                       OnRunCell="Context.OnRunCell"
                       OnCancelCell="Context.OnCancelCell"
                       OnDeleteCell="Context.OnDeleteCell"
@@ -65,16 +74,18 @@
             data-verso-asset-id="@asset.AssetId"></script>
 }
 
+@* The root content is driven entirely by JS (versoCustomLayout.setLayoutHtml), not by a Blazor
+   MarkupString. Binding the HTML through Blazor would replace this subtree on every re-render,
+   destroying the portaled live cells and forcing a full unmount+remount on the next
+   OnAfterRender — which paints empty slots for a frame (a visible flash) and drops scroll. The
+   JS path swaps the chrome and re-portals the cells in one synchronous frame, so fold/insert/
+   reorder re-renders stay flicker-free. Blazor still owns this element; only its children are
+   managed out-of-band. *@
 <div class="verso-layout-root"
      data-extension-id="@_extensionId"
      data-layout-id="@_layoutId"
      data-frame-instance-id="@_frameInstanceId"
-     @ref="_rootRef">
-    @if (_html is not null)
-    {
-        @((MarkupString)_html)
-    }
-</div>
+     @ref="_rootRef"></div>
 
 @foreach (var asset in _scriptsAfter)
 {
@@ -101,8 +112,8 @@
     private string _layoutId = "";
     private string _frameInstanceId = "";
     private bool _subscribed;
-    private bool _remountNeeded;
-    private bool _mounted;
+    private bool _setHtmlNeeded;
+    private bool _portalPendingNeeded;
     private bool _disposed;
     private IReadOnlyList<LayoutStaticAssetDescriptor> _stylesheetAssets
         = Array.Empty<LayoutStaticAssetDescriptor>();
@@ -140,39 +151,54 @@
         CaptureIdentity();
         _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
         await RefreshLayoutAssetsAsync();
+        // Push the initial HTML to the root and portal the cells in once the element exists.
+        _setHtmlNeeded = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_disposed) return;
 
-        // Mount only after _html is populated. OnInitializedAsync awaits the host's
-        // layout/render call, so Blazor renders this component once with _html=null
-        // before the slot HTML is in the DOM; mounting against that render finds
-        // no [data-cell-slot] elements and silently leaves cells in the hidden pool.
-        if (_remountNeeded)
+        // Push the current layout HTML into the (Blazor-owned but JS-managed) root and re-portal
+        // the live cells in one synchronous frame. Runs on first render once _html is populated
+        // and again whenever the chrome changes (layout switch, fold, insert, reorder). Because the
+        // swap + re-portal happen together in JS, there is no empty-slot frame and no flash.
+        if (_setHtmlNeeded)
         {
-            _remountNeeded = false;
-            await UnmountSlotsAsync();
-            _mounted = false;
+            _setHtmlNeeded = false;
+            if (!string.IsNullOrEmpty(_html))
+                await SetLayoutHtmlAsync();
         }
 
-        if (!_mounted && !string.IsNullOrEmpty(_html))
+        // A structural change re-rendered the pool (e.g. a cell added via a layout affordance,
+        // whose pool update and layout re-render arrive as separate messages). Portal any cell
+        // whose slot is now present but still empty, without disturbing already-portaled cells.
+        else if (_portalPendingNeeded)
         {
-            _mounted = true;
-            await MountSlotsAsync();
+            _portalPendingNeeded = false;
+            if (!string.IsNullOrEmpty(_html))
+                await PortalPendingAsync();
         }
     }
 
-    private async Task MountSlotsAsync()
+    private async Task SetLayoutHtmlAsync()
     {
         try
         {
-            await JS.InvokeVoidAsync("versoCustomLayout.mountSlots", _rootRef, _poolRef);
-            // Fire a generic post-mount hook so layout-specific JS (e.g. dashboard drag/
-            // resize handlers) can attach to the freshly-mounted root without owning a
-            // direct reference to it. Hook is a no-op if no handler is registered.
+            await JS.InvokeVoidAsync("versoCustomLayout.setLayoutHtml", _rootRef, _poolRef, _html);
+            // Fire the generic post-mount hook so layout-specific JS (e.g. dashboard drag/resize
+            // handlers) can attach to the freshly-swapped root. No-op when no handler is registered.
             await JS.InvokeVoidAsync("versoCustomLayout.notifyMounted", _rootRef, _extensionId, _layoutId);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private async Task PortalPendingAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoCustomLayout.portalPending", _rootRef, _poolRef);
         }
         catch (JSDisconnectedException) { }
         catch (Microsoft.JSInterop.JSException) { }
@@ -270,10 +296,10 @@
             CaptureIdentity();
             _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
             await RefreshLayoutAssetsAsync();
-            // OnAfterRender handles unmount+mount via _remountNeeded so the JS
-            // interop awaits don't interleave with the dispatcher work that the
-            // re-render triggered by StateHasChanged depends on.
-            _remountNeeded = true;
+            // OnAfterRender pushes the new chrome and re-portals via _setHtmlNeeded, so the JS
+            // interop awaits don't interleave with the dispatcher work that the re-render
+            // triggered by StateHasChanged depends on.
+            _setHtmlNeeded = true;
             StateHasChanged();
         });
     }
@@ -299,8 +325,8 @@
             {
                 case "full":
                     _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
-                    // OnAfterRender handles the cell teardown+remount via _remountNeeded.
-                    _remountNeeded = true;
+                    // OnAfterRender swaps the chrome and re-portals the cells via _setHtmlNeeded.
+                    _setHtmlNeeded = true;
                     StateHasChanged();
                     break;
 
@@ -347,7 +373,21 @@
 
     private void HandleOutputUpdated() => DispatchNotebookEvent("outputs-changed");
 
-    private void HandleNotebookStateChanged() => DispatchNotebookEvent("notebook-changed");
+    private void HandleNotebookStateChanged()
+    {
+        DispatchNotebookEvent("notebook-changed");
+
+        // A structural change re-renders the cell pool. Schedule a portal pass so any cell whose
+        // slot already exists but is still empty (e.g. one added via a layout affordance, where
+        // the pool update and the layout re-render arrive separately) gets moved into its slot.
+        if (_disposed) return;
+        _ = InvokeAsync(() =>
+        {
+            if (_disposed) return;
+            _portalPendingNeeded = true;
+            StateHasChanged();
+        });
+    }
 
     private void HandleVariablesChanged() => DispatchNotebookEvent("variables-changed");
 

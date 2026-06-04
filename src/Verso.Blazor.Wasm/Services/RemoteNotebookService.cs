@@ -611,9 +611,33 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         OnLayoutChanged?.Invoke();
     }
 
+    private IReadOnlySet<Guid> _collapsedSections = new HashSet<Guid>();
+
+    /// <summary>
+    /// The heading cells whose sections are collapsed. The page holds the source of truth and hands
+    /// its live set here; assigning re-renders the active custom layout (the render request carries
+    /// the set to the host so the layout folds the cells under a collapsed heading). The built-in
+    /// cell list folds client-side and does not depend on this.
+    /// </summary>
+    public IReadOnlySet<Guid> CollapsedSections
+    {
+        get => _collapsedSections;
+        set
+        {
+            _collapsedSections = value ?? new HashSet<Guid>();
+            if (_isDashboardLayout && _activeLayout is { } layout)
+            {
+                OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+                    layout.ExtensionId, layout.LayoutId, string.Empty, "full", null));
+            }
+        }
+    }
+
     public async Task<string?> RenderActiveLayoutAsync()
     {
-        var result = await _bridge.RequestAsync<LayoutRenderResponse>("layout/render", null);
+        var collapsed = _collapsedSections.Select(id => id.ToString()).ToList();
+        var result = await _bridge.RequestAsync<LayoutRenderResponse>(
+            "layout/render", new { collapsedSections = collapsed });
         return result?.Html;
     }
 
@@ -1031,6 +1055,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "layout/updated":
                 HandleLayoutUpdated(paramsJson);
                 break;
+            case "notebook/cellsChanged":
+                _ = HandleCellsChangedAsync();
+                break;
             case "layout/frameMessage":
                 HandleLayoutFrameMessage(paramsJson);
                 break;
@@ -1280,6 +1307,16 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         var result = await _bridge.RequestAsync<CellListResponse>("cell/list", null);
         _cells = result.Cells?.Select(MapCellFromDto).ToList() ?? new();
+    }
+
+    // The host signalled that its cell collection changed from an operation we did not initiate
+    // directly (e.g. a custom layout's own insert/move/delete affordance). Re-pull the cell list
+    // and announce it so the cell pool re-renders and the layout re-portals the affected cells.
+    private async Task HandleCellsChangedAsync()
+    {
+        try { await RefreshCellListAsync(); }
+        catch { return; /* leave the cache as-is; the UI stays usable */ }
+        OnNotebookChanged?.Invoke();
     }
 
     private async Task RefreshExtensionDataAsync()

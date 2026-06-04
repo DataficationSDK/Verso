@@ -10,10 +10,12 @@ namespace Verso.Blazor.Services;
 internal sealed class BlazorLayoutRenderContext : IVersoContext
 {
     private readonly Scaffold _scaffold;
+    private readonly IReadOnlySet<Guid> _collapsedSections;
 
-    public BlazorLayoutRenderContext(Scaffold scaffold)
+    public BlazorLayoutRenderContext(Scaffold scaffold, IReadOnlySet<Guid>? collapsedSections = null)
     {
         _scaffold = scaffold ?? throw new ArgumentNullException(nameof(scaffold));
+        _collapsedSections = collapsedSections ?? new HashSet<Guid>();
     }
 
     public IVariableStore Variables => _scaffold.Variables;
@@ -24,6 +26,7 @@ internal sealed class BlazorLayoutRenderContext : IVersoContext
     public INotebookMetadata NotebookMetadata => new BlazorNotebookMetadata(_scaffold);
     public INotebookOperations Notebook => _scaffold.NotebookOps;
     public string? ActiveLayoutId => _scaffold.LayoutManager?.ActiveLayout?.LayoutId;
+    public IReadOnlySet<Guid> CollapsedSections => _collapsedSections;
 
     public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 

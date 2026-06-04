@@ -16,6 +16,10 @@ public static class MethodNames
     public const string NotebookClose = "notebook/close";
     public const string NotebookSetFilePath = "notebook/setFilePath";
     public const string NotebookSetDefaultKernel = "notebook/setDefaultKernel";
+    // Notification (host → client): the cell collection changed as a side effect of a host-side
+    // operation the client did not initiate directly (e.g. an insert/move/delete affordance in a
+    // custom layout). Tells the client to refresh its cell cache so its pool isn't stale.
+    public const string NotebookCellsChanged = "notebook/cellsChanged";
 
     // Cell operations
     public const string CellAdd = "cell/add";
