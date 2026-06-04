@@ -21,8 +21,10 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
         };
         TestContext!.Services.AddSingleton<INotebookService>(_service);
 
+        TestContext!.JSInterop.SetupVoid("versoCustomLayout.setLayoutHtml", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.mountSlots", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.unmountSlots", _ => true);
+        TestContext!.JSInterop.SetupVoid("versoCustomLayout.portalPending", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.updateSlotPosition", _ => true);
         TestContext!.JSInterop.SetupVoid("versoCustomLayout.notifyMounted", _ => true);
     }
@@ -37,6 +39,15 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
             "Expected RenderActiveLayoutAsync to be invoked exactly once on first render.");
     }
 
+    // The layout HTML is pushed to the (JS-managed) root via versoCustomLayout.setLayoutHtml rather
+    // than bound through a Blazor MarkupString, so it never appears in the component's own markup.
+    // This returns the html argument of the most recent setLayoutHtml interop call.
+    private string? LastPushedHtml() =>
+        TestContext!.JSInterop.Invocations
+            .Where(i => i.Identifier == "versoCustomLayout.setLayoutHtml")
+            .Select(i => i.Arguments.Count > 2 ? i.Arguments[2] as string : null)
+            .LastOrDefault();
+
     [TestMethod]
     public void Rendered_WrapsHtmlInLayoutRootWithIdentityAttributes()
     {
@@ -44,10 +55,14 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
 
         cut.WaitForAssertion(() =>
         {
+            // The layout-root element and its identity attributes are Blazor-owned, so they appear
+            // in the component markup. The slot HTML is pushed to the root through setLayoutHtml.
             Assert.IsTrue(cut.Markup.Contains("verso-layout-root"));
             Assert.IsTrue(cut.Markup.Contains("data-extension-id=\"com.test.viz\""));
             Assert.IsTrue(cut.Markup.Contains("data-layout-id=\"grid\""));
-            Assert.IsTrue(cut.Markup.Contains("data-cell-slot=\"00000000-0000-0000-0000-000000000001\""));
+            Assert.IsTrue(
+                LastPushedHtml()?.Contains("data-cell-slot=\"00000000-0000-0000-0000-000000000001\"") == true,
+                "Expected the slot HTML to be pushed to the root via setLayoutHtml.");
         });
     }
 
@@ -64,45 +79,48 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
         {
             Assert.AreEqual(2, _service.RenderActiveLayoutCallCount,
                 "Expected a re-fetch after OnLayoutChanged.");
-            Assert.IsTrue(cut.Markup.Contains("viz-v2"));
+            Assert.IsTrue(LastPushedHtml()?.Contains("viz-v2") == true,
+                "Expected the refreshed HTML to be pushed to the root via setLayoutHtml.");
         });
     }
 
     [TestMethod]
-    public void OnFirstRender_InvokesMountSlots()
+    public void OnFirstRender_InvokesSetLayoutHtml()
     {
         var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
 
         cut.WaitForAssertion(() =>
         {
             var calls = TestContext!.JSInterop.Invocations
-                .Where(i => i.Identifier == "versoCustomLayout.mountSlots")
+                .Where(i => i.Identifier == "versoCustomLayout.setLayoutHtml")
                 .ToList();
             Assert.IsTrue(calls.Count >= 1,
-                "Expected at least one versoCustomLayout.mountSlots interop call after first render.");
+                "Expected at least one versoCustomLayout.setLayoutHtml interop call after first render.");
         });
     }
 
     [TestMethod]
-    public void OnLayoutChanged_InvokesUnmountSlotsBeforeSwap()
+    public void OnLayoutChanged_PushesNewHtmlViaSetLayoutHtml()
     {
         var cut = RenderComponent<CustomLayoutHtml>(p => p.Add(c => c.Service, _service));
 
         cut.WaitForAssertion(() =>
         {
-            Assert.IsTrue(TestContext!.JSInterop.Invocations.Any(i => i.Identifier == "versoCustomLayout.mountSlots"));
+            Assert.IsTrue(TestContext!.JSInterop.Invocations.Any(i => i.Identifier == "versoCustomLayout.setLayoutHtml"));
         });
 
-        var unmountBefore = TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoCustomLayout.unmountSlots");
+        var pushesBefore = TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoCustomLayout.setLayoutHtml");
 
         _service.RenderActiveLayoutResult = "<div class=\"viz-v2\"></div>";
         cut.InvokeAsync(() => _service.RaiseLayoutChanged()).GetAwaiter().GetResult();
 
         cut.WaitForAssertion(() =>
         {
-            var unmountAfter = TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoCustomLayout.unmountSlots");
-            Assert.IsTrue(unmountAfter > unmountBefore,
-                "Expected versoCustomLayout.unmountSlots to be invoked when the layout changes.");
+            var pushesAfter = TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoCustomLayout.setLayoutHtml");
+            Assert.IsTrue(pushesAfter > pushesBefore,
+                "Expected versoCustomLayout.setLayoutHtml to be invoked again when the layout changes.");
+            Assert.IsTrue(LastPushedHtml()?.Contains("viz-v2") == true,
+                "Expected the new layout HTML to be pushed via setLayoutHtml.");
         });
     }
 
@@ -174,7 +192,8 @@ public sealed class CustomLayoutHtmlTests : BunitTestContext
         {
             Assert.AreEqual(2, _service.RenderActiveLayoutCallCount,
                 "scope=full must re-fetch layout/render.");
-            Assert.IsTrue(cut.Markup.Contains("viz-updated"));
+            Assert.IsTrue(LastPushedHtml()?.Contains("viz-updated") == true,
+                "scope=full must push the refreshed HTML to the root via setLayoutHtml.");
         });
     }
 
