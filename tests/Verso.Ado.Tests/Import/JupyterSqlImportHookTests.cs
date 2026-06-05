@@ -152,7 +152,7 @@ public sealed class JupyterSqlImportHookTests
         var result = await _hook.PostDeserializeAsync(notebook, "test.ipynb");
 
         var sqlCell = result.Cells[0];
-        Assert.AreEqual("code", sqlCell.Type);
+        Assert.AreEqual("sql", sqlCell.Type);
         Assert.AreEqual("sql", sqlCell.Language);
         Assert.AreEqual("SELECT * FROM Products", sqlCell.Source);
     }
@@ -298,6 +298,99 @@ public sealed class JupyterSqlImportHookTests
         Assert.AreEqual("csharp", result.Cells[0].Language);
         Assert.AreEqual("markdown", result.Cells[1].Type);
         Assert.IsFalse(result.RequiredExtensions.Contains("verso.ado"));
+    }
+
+    [TestMethod]
+    public async Task PostDeserialize_PolyglotKernelMetadata_ConvertsToSqlCellWithConnection()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells = new List<CellModel>
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Language = "sql",
+                    Source = "SELECT * FROM sys.databases;",
+                    Metadata = new Dictionary<string, object> { ["polyglotKernelName"] = "sql-PrimaryServer" }
+                }
+            }
+        };
+
+        var result = await _hook.PostDeserializeAsync(notebook, "test.ipynb");
+
+        var sqlCell = result.Cells[0];
+        Assert.AreEqual("sql", sqlCell.Type);
+        Assert.AreEqual("sql", sqlCell.Language);
+        Assert.AreEqual("--connection PrimaryServer\nSELECT * FROM sys.databases;", sqlCell.Source);
+        // The transient kernel-name hint must not leak into the output document.
+        Assert.IsFalse(sqlCell.Metadata.ContainsKey("polyglotKernelName"));
+        Assert.IsTrue(result.RequiredExtensions.Contains("verso.ado"));
+    }
+
+    [TestMethod]
+    public async Task PostDeserialize_MultipleConnectsWithConnectionStringFlag_TranslatesEachInPlace()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells = new List<CellModel>
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Language = "csharp",
+                    Source =
+                        "#!connect mssql --kernel-name \"PrimaryServer\" --connection-string \"Data Source=A\"\n" +
+                        "#!connect mssql --kernel-name \"SecondaryServer\" --connection-string \"Data Source=B\""
+                }
+            }
+        };
+
+        var result = await _hook.PostDeserializeAsync(notebook, "test.ipynb");
+
+        var connectCell = result.Cells.First(c => c.Source.Contains("#!sql-connect"));
+        Assert.IsTrue(connectCell.Source.Contains("#!sql-connect --name PrimaryServer"));
+        Assert.IsTrue(connectCell.Source.Contains("#!sql-connect --name SecondaryServer"));
+        Assert.IsTrue(connectCell.Source.Contains("--connection-string \"Data Source=A\""));
+        Assert.IsTrue(connectCell.Source.Contains("--connection-string \"Data Source=B\""));
+
+        // A single provider nuget reference is inserted, not one per connect line.
+        var nugetCells = result.Cells.Where(c => c.Source.Contains("#r \"nuget:")).ToList();
+        Assert.AreEqual(1, nugetCells.Count);
+    }
+
+    [TestMethod]
+    public async Task PostDeserialize_InteractiveNuGetReference_SwappedForProviderPackage()
+    {
+        var notebook = new NotebookModel
+        {
+            Cells = new List<CellModel>
+            {
+                new CellModel
+                {
+                    Type = "code",
+                    Language = "csharp",
+                    Source = "#r nuget:Microsoft.DotNet.Interactive.SqlServer"
+                },
+                new CellModel
+                {
+                    Type = "code",
+                    Language = "csharp",
+                    Source = "#!connect mssql --kernel-name PrimaryServer --connection-string \"Data Source=A\""
+                }
+            }
+        };
+
+        var result = await _hook.PostDeserializeAsync(notebook, "test.ipynb");
+
+        // The Polyglot interactive package is replaced with the ADO provider package...
+        Assert.IsTrue(result.Cells.Any(c => c.Source == "#r \"nuget:Microsoft.Data.SqlClient\""));
+        Assert.IsFalse(result.Cells.Any(c => c.Source.Contains("Microsoft.DotNet.Interactive")));
+        // ...and the #!connect handler does not add a second copy of the provider reference.
+        var providerCells = result.Cells
+            .Where(c => c.Source.Contains("Microsoft.Data.SqlClient") && c.Source.Contains("#r"))
+            .ToList();
+        Assert.AreEqual(1, providerCells.Count);
     }
 
     [TestMethod]

@@ -108,6 +108,25 @@ public static class ConvertCommand
                     return;
                 }
 
+                // Run post-processors after deserialization. The host open path does the
+                // same; without this, format-specific transforms (e.g. Polyglot SQL import)
+                // never run for CLI conversions, leaving SQL cells and #!connect commands
+                // untranslated.
+                try
+                {
+                    var postProcessors = extensionHost.GetPostProcessors()
+                        .Where(pp => pp.CanProcess(inputPath, inputSerializer.FormatId))
+                        .OrderBy(pp => pp.Priority);
+                    foreach (var pp in postProcessors)
+                        notebook = await pp.PostDeserializeAsync(notebook, inputPath);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error: Post-processing failed: {ex.Message}");
+                    context.ExitCode = ExitCodes.SerializationError;
+                    return;
+                }
+
                 // Strip outputs if requested
                 if (stripOutputs)
                 {
