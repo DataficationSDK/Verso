@@ -75,18 +75,38 @@ public sealed class JupyterSerializer : INotebookSerializer
             DefaultKernelId = ExtractKernelLanguage(jupyterDoc.Metadata)
         };
 
+        // Polyglot Notebooks record a per-cell kernel via metadata.polyglot_notebook.kernelName
+        // and a notebook-level kernel table under metadata.polyglot_notebook.kernelInfo. The
+        // table maps a kernel name (e.g. "csharp", "sql-PrimaryServer") to its language; we use
+        // it to give each cell its own language rather than collapsing everything onto the
+        // notebook default.
+        var kernelLanguages = ExtractPolyglotKernelLanguages(jupyterDoc.Metadata);
+
         if (jupyterDoc.Cells is not null)
         {
             foreach (var jCell in jupyterDoc.Cells)
             {
+                var isCode = string.Equals(jCell.CellType, "code", StringComparison.OrdinalIgnoreCase);
+                var kernelName = isCode ? ExtractCellKernelName(jCell.Metadata) : null;
+
                 var cellModel = new CellModel
                 {
                     Type = MapCellType(jCell.CellType),
-                    Language = string.Equals(jCell.CellType, "code", StringComparison.OrdinalIgnoreCase)
-                        ? notebook.DefaultKernelId
+                    Language = isCode
+                        ? ResolveCellLanguage(kernelName, kernelLanguages, notebook.DefaultKernelId)
                         : null,
                     Source = JoinSource(jCell.Source)
                 };
+
+                // Carry the raw Polyglot kernel name for SQL cells so the SQL import
+                // post-processor can recover the connection name (e.g. "sql-PrimaryServer"
+                // selects the "PrimaryServer" connection). The post-processor strips this
+                // key once consumed so it never reaches the output document.
+                if (kernelName is not null &&
+                    kernelName.StartsWith("sql-", StringComparison.OrdinalIgnoreCase))
+                {
+                    cellModel.Metadata["polyglotKernelName"] = kernelName;
+                }
 
                 // Execution count
                 if (jCell.ExecutionCount.HasValue)
@@ -403,8 +423,104 @@ public sealed class JupyterSerializer : INotebookSerializer
         {
             "c#" => "csharp",
             "f#" => "fsharp",
+            "t-sql" => "sql",
+            "tsql" => "sql",
+            "pwsh" => "powershell",
             _ => language.ToLowerInvariant()
         };
+    }
+
+    /// <summary>
+    /// Builds a kernel-name to language map from <c>metadata.polyglot_notebook.kernelInfo.items</c>.
+    /// Each item carries a <c>name</c> and an optional <c>languageName</c>; when the language is
+    /// absent the kernel name doubles as the language (e.g. "csharp"). SQL kernels are named
+    /// <c>sql-&lt;connection&gt;</c> with a <c>languageName</c> of "T-SQL", which normalizes to "sql".
+    /// </summary>
+    private static Dictionary<string, string> ExtractPolyglotKernelLanguages(JsonElement? metadata)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (metadata is null || metadata.Value.ValueKind != JsonValueKind.Object)
+            return map;
+
+        if (!metadata.Value.TryGetProperty("polyglot_notebook", out var polyglot) ||
+            polyglot.ValueKind != JsonValueKind.Object ||
+            !polyglot.TryGetProperty("kernelInfo", out var kernelInfo) ||
+            kernelInfo.ValueKind != JsonValueKind.Object ||
+            !kernelInfo.TryGetProperty("items", out var items) ||
+            items.ValueKind != JsonValueKind.Array)
+        {
+            return map;
+        }
+
+        foreach (var item in items.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object) continue;
+            if (!item.TryGetProperty("name", out var nameEl) ||
+                nameEl.ValueKind != JsonValueKind.String)
+                continue;
+
+            var name = nameEl.GetString();
+            if (string.IsNullOrEmpty(name)) continue;
+
+            string? language = name;
+            if (item.TryGetProperty("languageName", out var langEl) &&
+                langEl.ValueKind == JsonValueKind.String &&
+                !string.IsNullOrWhiteSpace(langEl.GetString()))
+            {
+                language = langEl.GetString();
+            }
+
+            var normalized = NormalizeLanguage(language);
+            if (normalized is not null)
+                map[name] = normalized;
+        }
+
+        return map;
+    }
+
+    /// <summary>
+    /// Reads <c>metadata.polyglot_notebook.kernelName</c> from a cell, returning the raw kernel
+    /// name (e.g. "csharp", "sql-PrimaryServer") or <c>null</c> when absent.
+    /// </summary>
+    private static string? ExtractCellKernelName(JsonElement? metadata)
+    {
+        if (metadata is null || metadata.Value.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (metadata.Value.TryGetProperty("polyglot_notebook", out var polyglot) &&
+            polyglot.ValueKind == JsonValueKind.Object &&
+            polyglot.TryGetProperty("kernelName", out var kernelName) &&
+            kernelName.ValueKind == JsonValueKind.String)
+        {
+            var value = kernelName.GetString();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves a code cell's language from its Polyglot kernel name, falling back to the
+    /// notebook default when the cell carries no per-cell kernel metadata.
+    /// </summary>
+    private static string? ResolveCellLanguage(
+        string? kernelName,
+        Dictionary<string, string> kernelLanguages,
+        string? defaultKernelId)
+    {
+        if (kernelName is null)
+            return defaultKernelId;
+
+        if (kernelLanguages.TryGetValue(kernelName, out var mapped))
+            return mapped;
+
+        // SQL connection kernels follow the "sql-<connection>" convention even when the
+        // notebook omits a kernelInfo table.
+        if (kernelName.StartsWith("sql-", StringComparison.OrdinalIgnoreCase))
+            return "sql";
+
+        return NormalizeLanguage(kernelName) ?? defaultKernelId;
     }
 
     // --- Internal write DTOs ---

@@ -258,7 +258,11 @@ dotnet test Verso.sln
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss what you'd like to work on. A formal `CONTRIBUTING.md` guide is coming as part of an upcoming milestone.
+Contributions are welcome. Open an issue to discuss what you'd like to work on.
+
+## Sponsors
+
+Thanks to [@fluentfoundation](https://github.com/fluentfoundation) for supporting this project.
 
 ## License
 

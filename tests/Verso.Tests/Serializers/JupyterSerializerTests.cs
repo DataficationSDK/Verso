@@ -606,4 +606,55 @@ public sealed class JupyterSerializerTests
         Assert.AreEqual("hi\n", reread.Cells[0].Outputs[0].Content);
         Assert.AreEqual(3, Convert.ToInt32(reread.Cells[0].Metadata["execution_count"]));
     }
+
+    [TestMethod]
+    public async Task Deserialize_PolyglotPerCellKernel_AssignsLanguagePerCell()
+    {
+        // A Polyglot notebook: notebook default is C#, but each code cell carries its own
+        // kernel via metadata.polyglot_notebook.kernelName, and the SQL kernels are listed in
+        // metadata.polyglot_notebook.kernelInfo with a "T-SQL" language.
+        var original = @"{
+            ""nbformat"": 4,
+            ""nbformat_minor"": 5,
+            ""metadata"": {
+                ""kernelspec"": { ""language"": ""C#"", ""name"": "".net-csharp"" },
+                ""language_info"": { ""name"": ""polyglot-notebook"" },
+                ""polyglot_notebook"": {
+                    ""kernelInfo"": {
+                        ""defaultKernelName"": ""csharp"",
+                        ""items"": [
+                            { ""name"": ""csharp"" },
+                            { ""name"": ""sql-PrimaryServer"", ""languageName"": ""T-SQL"" }
+                        ]
+                    }
+                }
+            },
+            ""cells"": [
+                {
+                    ""cell_type"": ""code"",
+                    ""metadata"": { ""polyglot_notebook"": { ""kernelName"": ""csharp"" } },
+                    ""source"": [""var x = 1;""]
+                },
+                {
+                    ""cell_type"": ""code"",
+                    ""metadata"": { ""polyglot_notebook"": { ""kernelName"": ""sql-PrimaryServer"" } },
+                    ""source"": [""SELECT * FROM sys.databases;""]
+                }
+            ]
+        }";
+
+        var notebook = await _serializer.DeserializeAsync(original);
+
+        Assert.AreEqual("csharp", notebook.DefaultKernelId);
+        Assert.AreEqual(2, notebook.Cells.Count);
+
+        // C# cell keeps the C# language and carries no transient kernel metadata.
+        Assert.AreEqual("csharp", notebook.Cells[0].Language);
+        Assert.IsFalse(notebook.Cells[0].Metadata.ContainsKey("polyglotKernelName"));
+
+        // SQL cell resolves to the "sql" language and surfaces its raw kernel name so the
+        // SQL import post-processor can recover the connection.
+        Assert.AreEqual("sql", notebook.Cells[1].Language);
+        Assert.AreEqual("sql-PrimaryServer", notebook.Cells[1].Metadata["polyglotKernelName"]);
+    }
 }

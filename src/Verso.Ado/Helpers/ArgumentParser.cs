@@ -39,7 +39,7 @@ internal static class ArgumentParser
         return result;
     }
 
-    private static List<string> Tokenize(string input)
+    internal static List<string> Tokenize(string input)
     {
         var tokens = new List<string>();
         int i = 0;
