@@ -128,17 +128,30 @@ internal static class NotebookLayoutStyles
         R(".vmd-cell.vmd-drop-after", "box-shadow:0 3px 0 0 var(--md-primary), var(--md-elev-1);");
 
         // --- Insert rail (between cells) ----------------------------------------------------
-        // An affordance that fades in on hover and offers every available cell type.
+        // Compact at rest so cells sit close together; a brief hover over the gap expands the
+        // rail and fades in the divider line and the per-type insert buttons. The reveal is
+        // delayed so a quick mouse pass across the gap doesn't pop the affordance, while leaving
+        // collapses it immediately (the delay lives only on the :hover rules).
         R(".vmd-insert",
-            "display:flex; align-items:center; justify-content:center; height:20px; position:relative;");
+            "display:flex; align-items:center; justify-content:center; height:8px;" +
+            "position:relative; transition:height 140ms ease;");
+        // A transparent band slightly taller than the rail makes the thin resting gap easy to
+        // hover without enlarging the visible spacing between cells.
+        R(".vmd-insert::after",
+            "content:''; position:absolute; left:0; right:0; top:-4px; bottom:-4px;");
+        // Divider line, hidden until this gap is hovered.
         R(".vmd-insert::before",
             "content:''; position:absolute; left:8px; right:8px; height:1px;" +
             "background:var(--md-outline-variant); opacity:0; transition:opacity 140ms ease;");
-        R(".vmd-cells:hover .vmd-insert::before", "opacity:1;");
         R(".vmd-insert-buttons",
             "position:relative; z-index:1; display:inline-flex; gap:6px; opacity:0;" +
-            "transition:opacity 140ms ease;");
-        R(".vmd-cells:hover .vmd-insert:hover .vmd-insert-buttons", "opacity:1;");
+            "pointer-events:none; transition:opacity 140ms ease;");
+        // Reveal on a brief hover. The transition-delay sits only on the hover state, so the
+        // affordance appears after a short pause but collapses instantly when the pointer leaves.
+        R(".vmd-insert:hover", "height:32px; transition-delay:400ms;");
+        R(".vmd-insert:hover::before", "opacity:1; transition-delay:400ms;");
+        R(".vmd-insert:hover .vmd-insert-buttons",
+            "opacity:1; pointer-events:auto; transition-delay:400ms;");
         R(".vmd-insert-btn",
             "cursor:pointer; display:inline-flex; align-items:center; gap:4px;" +
             "padding:3px 12px; border-radius:var(--md-shape-full); font-family:inherit; font-size:12px;" +
