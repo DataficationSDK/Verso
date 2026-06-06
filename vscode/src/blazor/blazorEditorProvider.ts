@@ -639,7 +639,10 @@ export class BlazorEditorProvider
             --verso-cell-error-background: var(--vscode-inputValidation-errorBackground, #5A1D1D);
             --verso-cell-error-foreground: var(--vscode-errorForeground, #F48771);
             --verso-cell-running-indicator: var(--vscode-progressBar-background, #0078D4);
-            --verso-toolbar-background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+            /* Toolbar and the right panel-strip rail share this token. Use the workbench side
+               panel background (Explorer / Source Control) so Verso's chrome frames the notebook
+               canvas like a native VS Code panel, falling back to the tab header then editor bg. */
+            --verso-toolbar-background: var(--vscode-sideBar-background, var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background)));
             --verso-toolbar-foreground: var(--vscode-foreground);
             --verso-toolbar-button-hover: var(--vscode-toolbar-hoverBackground);
             --verso-toolbar-separator: var(--vscode-panel-border, #E0E0E0);
