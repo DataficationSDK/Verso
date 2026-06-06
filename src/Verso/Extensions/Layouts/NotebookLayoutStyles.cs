@@ -98,7 +98,7 @@ internal static class NotebookLayoutStyles
         // pickers) extend past the card edge, and clipping them to the rounded card crops the
         // menu. The card stays visually rounded via its border, background, and the inset stripe.
         R(".vmd-cell",
-            "position:relative; border-radius:var(--md-shape-lg); background:var(--md-surface-container);" +
+            "position:relative; border-radius:var(--md-shape-lg); background:var(--md-surface);" +
             "border:1px solid var(--md-outline-variant); box-shadow:var(--md-elev-1);" +
             "transition:box-shadow 160ms ease, border-color 160ms ease;");
         R(".vmd-cell:hover", "box-shadow:var(--md-elev-2);");
@@ -108,7 +108,6 @@ internal static class NotebookLayoutStyles
             "content:''; position:absolute; left:0; top:10px; bottom:10px; width:3px; opacity:0;" +
             "border-radius:0 3px 3px 0; background:var(--md-primary); transition:opacity 160ms ease;");
         R(".vmd-cell:hover::before, .vmd-cell.is-running::before, .vmd-cell:has(.verso-cell--executing)::before", "opacity:1;");
-        R(".vmd-cell--markdown", "background:var(--md-surface);");
         // Running cell: tonal accent border + animated stripe so progress reads at a glance. The
         // card responds both to the script's is-running marker and, as a robust fallback driven by
         // the cell's real execution state, to a descendant cell carrying verso-cell--executing.
@@ -116,6 +115,47 @@ internal static class NotebookLayoutStyles
         R(".vmd-cell.is-running::before, .vmd-cell:has(.verso-cell--executing)::before", "animation:vmd-run-pulse 1200ms ease-in-out infinite;");
         // Give the portaled cell room to breathe inside the card.
         R(".vmd-cell > *", "padding:4px 6px;");
+
+        // --- Editor: flatten into the card -------------------------------------------------
+        // The live cell's Monaco editor normally draws its own 1px border, which reads as a
+        // box-inside-the-card. Inside this layout the card already IS the surface, so the editor
+        // sits flush (border kept but made transparent, so there is no layout shift). To keep the
+        // click target discoverable without that constant outline, a faint border fades in on
+        // hover (right as the pointer arrives) and a stronger one marks the selected cell, so you
+        // can always tell where the editor is and which one has focus.
+        R(".verso-monaco-editor",
+            "border-color:transparent; border-radius:var(--md-shape-sm);" +
+            "transition:border-color 140ms ease;");
+        R(".verso-monaco-editor:hover", "border-color:var(--md-outline-variant);");
+        R(".verso-cell--selected .verso-monaco-editor", "border-color:var(--md-outline);");
+
+        // --- Always-on type / language badges ----------------------------------------------
+        // The cell's type and language badges normally live in a toolbar that only appears on
+        // hover or selection. Keep them visible at all times so the cell's kind and language are
+        // always legible, but keep the run/move/delete action buttons hover-only so the resting
+        // chrome stays quiet.
+        R(".verso-cell-toolbar", "opacity:1; pointer-events:auto;");
+        R(".verso-cell-toolbar-actions",
+            "opacity:0; pointer-events:none; transition:opacity 140ms ease;");
+        R(".verso-cell:hover .verso-cell-toolbar-actions," +
+          ".verso-cell--selected .verso-cell-toolbar-actions," +
+          ".verso-cell--executing .verso-cell-toolbar-actions",
+            "opacity:1; pointer-events:auto;");
+
+        // --- Rendered markdown: chromeless, reads as document prose -------------------------
+        // A markdown (or any preview) cell that has been run shows its rendered content. The cell
+        // component already strips its own border/background in that state, but the layout card
+        // would still box it. Drop the card chrome so the rendered content flows like prose, and
+        // keep the badges quiet there to avoid floating chrome over the text. Hovering restores
+        // the card surface, badges, and actions so it's clearly an editable cell.
+        R(".vmd-cell:has(.verso-cell--preview)",
+            "background:transparent; border-color:transparent; box-shadow:none;");
+        R(".vmd-cell:has(.verso-cell--preview):hover",
+            "background:var(--md-surface); border-color:var(--md-outline-variant); box-shadow:var(--md-elev-1);");
+        R(".verso-cell--preview .verso-cell-toolbar", "opacity:0; pointer-events:none;");
+        R(".verso-cell--preview:hover .verso-cell-toolbar," +
+          ".verso-cell--preview:hover .verso-cell-toolbar-actions",
+            "opacity:1; pointer-events:auto;");
 
         // --- Drag to reorder ----------------------------------------------------------------
         // Dragging starts from the cell gutter (the run/index rail).
