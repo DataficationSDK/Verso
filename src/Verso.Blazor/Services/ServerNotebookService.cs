@@ -1155,7 +1155,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         {
             var enabledLayouts = _extensionHost.GetLayouts();
             var defaultLayout = enabledLayouts
-                .FirstOrDefault(l => !l.RequiresCustomRenderer)
+                .FirstOrDefault(l => string.Equals(l.LayoutId, LayoutDefaults.LayoutId, StringComparison.OrdinalIgnoreCase))
+                ?? enabledLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
                 ?? enabledLayouts.FirstOrDefault();
             if (defaultLayout is not null)
                 lm.SetActiveLayout(defaultLayout.LayoutId);

@@ -70,11 +70,13 @@ public sealed class LayoutManager
                  (l is IExtension ext && string.Equals(ext.ExtensionId, activeExtension, StringComparison.OrdinalIgnoreCase))));
         }
 
-        // If the previously active layout was disabled, fall back to the first
-        // non-custom-renderer layout (e.g. "notebook"), or the first available.
+        // If the previously active layout was disabled, fall back to the well-known default
+        // layout by id, then any non-custom-renderer layout, then the first available.
         if (_activeLayout is null && _availableLayouts.Count > 0)
         {
-            var fallback = _availableLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
+            var fallback = _availableLayouts.FirstOrDefault(l =>
+                    string.Equals(l.LayoutId, LayoutDefaults.LayoutId, StringComparison.OrdinalIgnoreCase))
+                ?? _availableLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
                 ?? _availableLayouts[0];
             _activeLayout = fallback;
             OnLayoutChanged?.Invoke(fallback);

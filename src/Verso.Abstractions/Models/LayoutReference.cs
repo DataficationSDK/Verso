@@ -55,3 +55,20 @@ public readonly record struct LayoutReference(string ExtensionId, string LayoutI
 
     public override string ToString() => Qualified;
 }
+
+/// <summary>
+/// Well-known layout identity used as the startup default when a notebook does not name an
+/// active layout of its own. Centralizing it here keeps the host's default-selection logic from
+/// scattering the id as a literal, and gives a single place to repoint the startup layout.
+/// </summary>
+public static class LayoutDefaults
+{
+    /// <summary>The <see cref="IExtension.ExtensionId"/> of the default layout.</summary>
+    public const string ExtensionId = "verso.layout.notebook";
+
+    /// <summary>The <see cref="ILayoutEngine.LayoutId"/> of the default layout.</summary>
+    public const string LayoutId = "notebook";
+
+    /// <summary>The default layout as a fully qualified <see cref="LayoutReference"/>.</summary>
+    public static LayoutReference Reference => new(ExtensionId, LayoutId);
+}

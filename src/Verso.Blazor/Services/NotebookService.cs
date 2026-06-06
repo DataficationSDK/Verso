@@ -414,12 +414,14 @@ public sealed class NotebookService : IAsyncDisposable
     {
         if (_scaffold is null || _extensionHost is null) return;
 
-        // Default layout: prefer the first non-custom-renderer layout (i.e. "notebook")
+        // Default layout: prefer the well-known default by id, then any non-custom-renderer
+        // layout, then the first available.
         if (_scaffold.LayoutManager is { ActiveLayout: null } lm)
         {
             var enabledLayouts = _extensionHost.GetLayouts();
             var defaultLayout = enabledLayouts
-                .FirstOrDefault(l => !l.RequiresCustomRenderer)
+                .FirstOrDefault(l => string.Equals(l.LayoutId, LayoutDefaults.LayoutId, StringComparison.OrdinalIgnoreCase))
+                ?? enabledLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
                 ?? enabledLayouts.FirstOrDefault();
             if (defaultLayout is not null)
                 lm.SetActiveLayout(defaultLayout.LayoutId);
