@@ -127,6 +127,10 @@
             var startRect = cellEl.getBoundingClientRect();
             var startX = e.clientX;
             var startY = e.clientY;
+            // Where inside the tile the pointer grabbed, so the drop target tracks the
+            // tile's top-left corner (matching the ghost) rather than the cursor itself.
+            var grabOffsetX = startX - startRect.left;
+            var grabOffsetY = startY - startRect.top;
 
             var ghost = cellEl.cloneNode(true);
             ghost.style.cssText = 'position:fixed;pointer-events:none;z-index:1000;opacity:0.7;width:' +
@@ -149,8 +153,8 @@
                 ghost.style.left = (startRect.left + dx) + 'px';
                 ghost.style.top = (startRect.top + dy) + 'px';
 
-                var cursorX = ev.clientX - gridRect.left - m.paddingLeft;
-                var cursorY = ev.clientY - gridRect.top - m.paddingTop;
+                var cursorX = ev.clientX - grabOffsetX - gridRect.left - m.paddingLeft;
+                var cursorY = ev.clientY - grabOffsetY - gridRect.top - m.paddingTop;
                 var targetCol = Math.max(0, Math.min(11, Math.floor(cursorX / m.colWidth)));
                 var targetRow = Math.max(0, Math.floor(cursorY / (m.rowHeight + m.gap)));
 
@@ -169,8 +173,8 @@
                 ghost.remove();
                 placeholder.remove();
 
-                var cursorX = ev.clientX - gridRect.left - m.paddingLeft;
-                var cursorY = ev.clientY - gridRect.top - m.paddingTop;
+                var cursorX = ev.clientX - grabOffsetX - gridRect.left - m.paddingLeft;
+                var cursorY = ev.clientY - grabOffsetY - gridRect.top - m.paddingTop;
                 var targetCol = Math.max(0, Math.min(11, Math.floor(cursorX / m.colWidth)));
                 var targetRow = Math.max(0, Math.floor(cursorY / (m.rowHeight + m.gap)));
 

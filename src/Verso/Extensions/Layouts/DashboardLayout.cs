@@ -283,6 +283,11 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
         {
             case "updateCellPosition":
                 ApplyUpdateCellPosition(context);
+                // The client gesture is a ghost/placeholder overlay that is torn down on
+                // mouseup, leaving the real cell at its original grid slot. Only a re-render
+                // emits the new grid-column/grid-row, so the move/resize must request one or
+                // the tile snaps back until the next layout switch.
+                context.RequestRender();
                 return;
 
             case "setEditMode":
