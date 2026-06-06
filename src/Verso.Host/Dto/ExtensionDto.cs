@@ -5,6 +5,16 @@ namespace Verso.Host.Dto;
 public sealed class ExtensionListResult
 {
     public List<ExtensionInfoDto> Extensions { get; set; } = new();
+
+    /// <summary>Packages the notebook requires, for the panel's installed list and uninstall affordance.</summary>
+    public List<InstalledExtensionItemDto> Installed { get; set; } = new();
+}
+
+public sealed class InstalledExtensionItemDto
+{
+    public string Id { get; set; } = "";
+    public string? Version { get; set; }
+    public bool IsLocal { get; set; }
 }
 
 public sealed class ExtensionInfoDto
@@ -64,6 +74,14 @@ public sealed class ExtensionInstallResult
     public string? ResolvedVersion { get; set; }
     public string? ErrorMessage { get; set; }
     public int ExtensionsRegistered { get; set; }
+}
+
+public sealed class ExtensionInstallLocalParams
+{
+    public string NotebookId { get; set; } = "";
+
+    /// <summary>Absolute path to the local <c>.dll</c> or <c>.nupkg</c> on the host machine.</summary>
+    public string Path { get; set; } = "";
 }
 
 public sealed class ExtensionUninstallParams

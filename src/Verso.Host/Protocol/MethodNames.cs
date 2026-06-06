@@ -89,6 +89,7 @@ public static class MethodNames
     public const string ExtensionChanged = "extension/changed";
     public const string ExtensionSearch = "extension/search";
     public const string ExtensionInstall = "extension/install";
+    public const string ExtensionInstallLocal = "extension/installLocal";
     public const string ExtensionUninstall = "extension/uninstall";
 
     // Settings

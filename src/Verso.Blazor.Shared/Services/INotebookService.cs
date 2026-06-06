@@ -304,6 +304,41 @@ public interface INotebookService
     /// </summary>
     Task UninstallExtensionAsync(string packageId);
 
+    /// <summary>
+    /// The packages this notebook currently requires, in declaration order. This is the
+    /// canonical "what is installed for this notebook" list the extension panel renders so a
+    /// user can uninstall any package, including sideloaded local files that never appear in
+    /// NuGet search results. Hosts that do not track required extensions return an empty list.
+    /// </summary>
+    IReadOnlyList<InstalledExtensionDto> InstalledExtensions => Array.Empty<InstalledExtensionDto>();
+
+    /// <summary>
+    /// How this host lets the user pick a local extension file to sideload, or
+    /// <see cref="LocalExtensionPickMode.None"/> when sideloading is unavailable. The extension
+    /// panel uses this to decide which acquisition path the "load from file" button drives.
+    /// </summary>
+    LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.None;
+
+    /// <summary>
+    /// Installs a local extension file supplied as a byte stream (a browser upload). A
+    /// <c>.dll</c> is copied into the managed extensions directory; a <c>.nupkg</c> is resolved
+    /// like a NuGet package. The result is recorded in the notebook's required extensions with a
+    /// local marker so it reloads on the next open, and trust is persisted via the existing
+    /// consent prompt. Used by hosts whose <see cref="LocalExtensionPickMode"/> is
+    /// <see cref="LocalExtensionPickMode.Upload"/>.
+    /// </summary>
+    Task<PackageInstallResultDto> InstallLocalExtensionAsync(string fileName, Stream content, CancellationToken ct)
+        => throw new NotSupportedException("This host does not support uploading a local extension file.");
+
+    /// <summary>
+    /// Shows the host's native file picker for a local extension file and installs the chosen
+    /// <c>.dll</c> or <c>.nupkg</c>. Returns a result with <c>Success=false</c> and a null error
+    /// message when the user cancels. Used by hosts whose <see cref="LocalExtensionPickMode"/> is
+    /// <see cref="LocalExtensionPickMode.NativeBrowse"/>.
+    /// </summary>
+    Task<PackageInstallResultDto> BrowseAndInstallLocalExtensionAsync(CancellationToken ct)
+        => throw new NotSupportedException("This host does not support browsing for a local extension file.");
+
     // ── Settings ───────────────────────────────────────────────────────
 
     /// <summary>Get all setting definitions grouped by extension.</summary>

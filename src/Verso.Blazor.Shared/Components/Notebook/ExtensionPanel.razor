@@ -3,11 +3,31 @@
     {
         <div class="verso-marketplace">
             <div class="verso-marketplace-search">
-                <input class="verso-marketplace-input"
-                       type="text"
-                       placeholder="Search NuGet for extensions..."
-                       value="@_searchQuery"
-                       @oninput="HandleSearchInput" />
+                <div class="verso-marketplace-search-row">
+                    <input class="verso-marketplace-input"
+                           type="text"
+                           placeholder="Search NuGet for extensions..."
+                           value="@_searchQuery"
+                           @oninput="HandleSearchInput" />
+                    @if (Service.LocalExtensionPickMode == LocalExtensionPickMode.Upload)
+                    {
+                        <label class="verso-marketplace-more @(_isBusy ? "verso-marketplace-more--disabled" : "")"
+                               title="Install from a local .dll or .nupkg file">
+                            &#8943;
+                            <InputFile class="verso-marketplace-file"
+                                       OnChange="HandleLocalFileSelectedAsync"
+                                       accept=".dll,.nupkg" />
+                        </label>
+                    }
+                    else if (Service.LocalExtensionPickMode == LocalExtensionPickMode.NativeBrowse)
+                    {
+                        <button class="verso-marketplace-more"
+                                type="button"
+                                disabled="@_isBusy"
+                                title="Install from a local .dll or .nupkg file"
+                                @onclick="BrowseLocalAsync">&#8943;</button>
+                    }
+                </div>
                 @if (_isSearching)
                 {
                     <span class="verso-marketplace-status">Searching...</span>
@@ -17,6 +37,36 @@
             @if (_installError is not null)
             {
                 <div class="verso-marketplace-error">@_installError</div>
+            }
+
+            @{
+                var installed = Service.InstalledExtensions;
+            }
+            @if (installed.Count > 0)
+            {
+                <div class="verso-marketplace-installed">
+                    <div class="verso-marketplace-installed-label">Installed</div>
+                    @foreach (var ext in installed)
+                    {
+                        var e = ext;
+                        <div class="verso-marketplace-installed-item">
+                            <div class="verso-marketplace-installed-info">
+                                <span class="verso-marketplace-installed-id" title="@e.Id">@e.Id</span>
+                                @if (e.Version is not null)
+                                {
+                                    <span class="verso-marketplace-installed-version">@e.Version</span>
+                                }
+                                @if (e.IsLocal)
+                                {
+                                    <span class="verso-marketplace-installed-badge" title="Sideloaded from a local file">Local</span>
+                                }
+                            </div>
+                            <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
+                                    disabled="@_isBusy"
+                                    @onclick="() => UninstallAsync(e.Id)">Uninstall</button>
+                        </div>
+                    }
+                </div>
             }
 
             @if (_searchResults is not null)
@@ -123,6 +173,7 @@
     }
 </div>
 
+@using Microsoft.AspNetCore.Components.Forms
 @implements IDisposable
 
 @code {
@@ -301,6 +352,70 @@
         {
             await Service.UninstallExtensionAsync(packageId);
             await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // Ceiling for a sideloaded package; comfortably above a typical extension .dll/.nupkg.
+    private const long MaxLocalExtensionBytes = 64L * 1024 * 1024;
+
+    private async Task HandleLocalFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null)
+            return;
+
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxLocalExtensionBytes);
+            var result = await Service.InstallLocalExtensionAsync(file.Name, stream, CancellationToken.None);
+            if (!result.Success)
+                _installError = result.ErrorMessage ?? "Installation failed.";
+            else
+                await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task BrowseLocalAsync()
+    {
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Service.BrowseAndInstallLocalExtensionAsync(CancellationToken.None);
+            // A cancelled native dialog returns Success=false with no error; leave the UI quiet.
+            if (!result.Success)
+            {
+                if (result.ErrorMessage is not null)
+                    _installError = result.ErrorMessage;
+            }
+            else
+            {
+                await RefreshSearchResultsAsync();
+            }
         }
         catch (Exception ex)
         {

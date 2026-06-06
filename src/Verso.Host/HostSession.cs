@@ -344,6 +344,7 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.ExtensionDisable => await ExtensionHandler.HandleDisableAsync(ns, @params),
             MethodNames.ExtensionSearch => await ExtensionHandler.HandleSearchAsync(ns, @params),
             MethodNames.ExtensionInstall => await ExtensionHandler.HandleInstallAsync(ns, @params),
+            MethodNames.ExtensionInstallLocal => await ExtensionHandler.HandleInstallLocalAsync(ns, @params),
             MethodNames.ExtensionUninstall => ExtensionHandler.HandleUninstall(ns, @params),
             MethodNames.InputResponse => HandleInputResponse(ns, @params),
             MethodNames.SettingsGetDefinitions => SettingsHandler.HandleGetDefinitions(ns),

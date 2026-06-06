@@ -81,7 +81,7 @@ public static class MarketplaceLoader
             }
         }
 
-        foreach (var (id, version) in refs)
+        foreach (var (id, version, source) in refs)
         {
             if (extensionHost.IsExtensionPackageLoaded(id))
                 continue;
@@ -90,8 +90,22 @@ public static class MarketplaceLoader
 
             try
             {
-                var install = await marketplace.EnsureInstalledAsync(id, version, managedDir, ct);
-                await LoadAssembliesAsync(extensionHost, install.AssemblyPaths);
+                IReadOnlyList<string>? assemblyPaths;
+                if (source == ExtensionSource.Local)
+                {
+                    // A sideloaded file can't be re-fetched; load it from the managed directory
+                    // only. If it isn't present (e.g. the notebook was opened on another machine),
+                    // skip it — there's nothing to download.
+                    assemblyPaths = marketplace.TryResolveInstalled(id, version, managedDir)?.AssemblyPaths;
+                    if (assemblyPaths is null)
+                        continue;
+                }
+                else
+                {
+                    assemblyPaths = (await marketplace.EnsureInstalledAsync(id, version, managedDir, ct)).AssemblyPaths;
+                }
+
+                await LoadAssembliesAsync(extensionHost, assemblyPaths);
                 extensionHost.MarkExtensionPackageLoaded(id);
                 extensionHost.ApprovePackage(id);
             }
@@ -100,5 +114,75 @@ public static class MarketplaceLoader
                 // A required extension that fails to resolve or load must not block the open.
             }
         }
+    }
+
+    /// <summary>
+    /// The outcome of installing a sideloaded local extension file: the derived package id and
+    /// resolved version on success, or an error message on failure (including a declined consent
+    /// prompt).
+    /// </summary>
+    public sealed record LocalInstallOutcome(
+        bool Success,
+        string? PackageId,
+        string? ResolvedVersion,
+        string? ErrorMessage,
+        int ExtensionsRegistered);
+
+    /// <summary>
+    /// Installs a sideloaded local extension file (a <c>.dll</c> or <c>.nupkg</c>) into the
+    /// managed directory and loads it. The package identity is read from the file first so the
+    /// consent prompt names the real extension; on approval trust is persisted, the file is
+    /// installed, and its assemblies are loaded. The caller is responsible for recording the
+    /// result in the notebook's required extensions and firing change events, since notebook
+    /// mutation differs between hosts.
+    /// </summary>
+    public static async Task<LocalInstallOutcome> InstallLocalFileAsync(
+        ExtensionHost extensionHost,
+        NuGetMarketplaceService marketplace,
+        ExtensionTrustStore trustStore,
+        string localFilePath,
+        string managedDir,
+        CancellationToken ct = default)
+    {
+        var identity = NuGetMarketplaceService.PeekLocalIdentity(localFilePath);
+        if (identity is null)
+            return new LocalInstallOutcome(false, null, null, "Unsupported file. Choose a .dll or .nupkg.", 0);
+
+        var (id, version) = identity.Value;
+
+        if (!trustStore.IsApproved(id, version))
+        {
+            var consent = new[] { new ExtensionConsentInfo(id, version, $"local file: {Path.GetFileName(localFilePath)}") };
+            var approved = await extensionHost.RequestExtensionConsentAsync(consent, ct);
+            if (!approved)
+                return new LocalInstallOutcome(false, id, version, "Installation was not approved.", 0);
+
+            trustStore.Approve(id, version);
+            trustStore.Save();
+        }
+        extensionHost.ApprovePackage(id);
+
+        LocalInstallResult install;
+        try
+        {
+            install = await marketplace.InstallFromFileAsync(localFilePath, managedDir, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new LocalInstallOutcome(false, id, version, ex.Message, 0);
+        }
+
+        var registered = 0;
+        if (!extensionHost.IsExtensionPackageLoaded(install.PackageId))
+        {
+            registered = await LoadAssembliesAsync(extensionHost, install.AssemblyPaths);
+            extensionHost.MarkExtensionPackageLoaded(install.PackageId);
+        }
+
+        return new LocalInstallOutcome(true, install.PackageId, install.ResolvedVersion, null, registered);
     }
 }

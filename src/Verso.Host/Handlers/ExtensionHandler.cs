@@ -96,6 +96,41 @@ public static class ExtensionHandler
         }
     }
 
+    public static async Task<ExtensionInstallResult> HandleInstallLocalAsync(NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<ExtensionInstallLocalParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for extension/installLocal");
+
+        if (string.IsNullOrWhiteSpace(p.Path))
+            return new ExtensionInstallResult { Success = false, ErrorMessage = "No file path was provided." };
+
+        try
+        {
+            var managedDir = ExtensionDirectoryResolver.GetDefaultManagedDir();
+            var outcome = await MarketplaceLoader.InstallLocalFileAsync(
+                ns.ExtensionHost, Marketplace, TrustStore, p.Path, managedDir, CancellationToken.None);
+
+            if (!outcome.Success)
+                return new ExtensionInstallResult { Success = false, ResolvedVersion = outcome.ResolvedVersion, ErrorMessage = outcome.ErrorMessage };
+
+            RecordRequiredExtension(ns, outcome.PackageId!, outcome.ResolvedVersion!, ExtensionSource.Local);
+            ns.Scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
+
+            ns.SendNotification(MethodNames.ExtensionChanged, null);
+
+            return new ExtensionInstallResult
+            {
+                Success = true,
+                ResolvedVersion = outcome.ResolvedVersion,
+                ExtensionsRegistered = outcome.ExtensionsRegistered
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ExtensionInstallResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
     public static object HandleUninstall(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<ExtensionUninstallParams>(JsonRpcMessage.SerializerOptions)
@@ -112,9 +147,10 @@ public static class ExtensionHandler
         return new { success = true };
     }
 
-    private static void RecordRequiredExtension(NotebookSession ns, string packageId, string resolvedVersion)
+    private static void RecordRequiredExtension(
+        NotebookSession ns, string packageId, string resolvedVersion, ExtensionSource source = ExtensionSource.NuGet)
     {
-        var refString = ExtensionPackageRef.Format(packageId, resolvedVersion);
+        var refString = ExtensionPackageRef.Format(packageId, resolvedVersion, source);
         var list = ns.Scaffold.Notebook.RequiredExtensions;
         var index = list.FindIndex(r =>
             string.Equals(ExtensionPackageRef.ParseId(r), packageId, StringComparison.OrdinalIgnoreCase));
@@ -138,7 +174,20 @@ public static class ExtensionHandler
                 Description = i.Description,
                 Status = i.Status.ToString(),
                 Capabilities = i.Capabilities.ToList()
-            }).ToList()
+            }).ToList(),
+            Installed = ns.Scaffold.Notebook.RequiredExtensions
+                .Select(r =>
+                {
+                    var (id, version, source) = ExtensionPackageRef.Parse(r);
+                    return new InstalledExtensionItemDto
+                    {
+                        Id = id,
+                        Version = version,
+                        IsLocal = source == ExtensionSource.Local
+                    };
+                })
+                .Where(e => !string.IsNullOrEmpty(e.Id))
+                .ToList()
         };
     }
 

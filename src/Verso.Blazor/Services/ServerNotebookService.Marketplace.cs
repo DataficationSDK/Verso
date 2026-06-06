@@ -90,6 +90,75 @@ public sealed partial class ServerNotebookService
     }
 
     /// <inheritdoc />
+    public LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.Upload;
+
+    /// <inheritdoc />
+    public async Task<PackageInstallResultDto> InstallLocalExtensionAsync(
+        string fileName, Stream content, CancellationToken ct)
+    {
+        if (_scaffold is null || _extensionHost is null)
+            return new PackageInstallResultDto(false, null, "No notebook is open.", 0);
+
+        var tempDir = Directory.CreateTempSubdirectory("verso-sideload");
+        try
+        {
+            var safeName = Path.GetFileName(fileName);
+            if (string.IsNullOrWhiteSpace(safeName))
+                safeName = "extension.dll";
+
+            var tempPath = Path.Combine(tempDir.FullName, safeName);
+            await using (var fileStream = File.Create(tempPath))
+                await content.CopyToAsync(fileStream, ct);
+
+            var outcome = await MarketplaceLoader.InstallLocalFileAsync(
+                _extensionHost, _marketplace, _trustStore, tempPath,
+                ExtensionDirectoryResolver.GetDefaultManagedDir(), ct);
+
+            if (!outcome.Success)
+                return new PackageInstallResultDto(false, outcome.ResolvedVersion, outcome.ErrorMessage, 0);
+
+            RecordRequiredExtension(outcome.PackageId!, outcome.ResolvedVersion!, ExtensionSource.Local);
+
+            _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
+            OnExtensionStatusChanged?.Invoke();
+            OnNotebookChanged?.Invoke();
+
+            return new PackageInstallResultDto(true, outcome.ResolvedVersion, null, outcome.ExtensionsRegistered);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new PackageInstallResultDto(false, null, ex.Message, 0);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<InstalledExtensionDto> InstalledExtensions
+    {
+        get
+        {
+            if (_scaffold is null)
+                return Array.Empty<InstalledExtensionDto>();
+
+            return _scaffold.Notebook.RequiredExtensions
+                .Select(r =>
+                {
+                    var (id, version, source) = ExtensionPackageRef.Parse(r);
+                    return new InstalledExtensionDto(id, version, source == ExtensionSource.Local);
+                })
+                .Where(e => !string.IsNullOrEmpty(e.Id))
+                .ToList();
+        }
+    }
+
+    /// <inheritdoc />
     public Task UninstallExtensionAsync(string packageId)
     {
         if (_scaffold is null)
@@ -130,12 +199,13 @@ public sealed partial class ServerNotebookService
     }
 
     /// <summary>Records or updates a required-extension entry, pinning the resolved version.</summary>
-    private void RecordRequiredExtension(string packageId, string resolvedVersion)
+    private void RecordRequiredExtension(
+        string packageId, string resolvedVersion, ExtensionSource source = ExtensionSource.NuGet)
     {
         if (_scaffold is null)
             return;
 
-        var refString = ExtensionPackageRef.Format(packageId, resolvedVersion);
+        var refString = ExtensionPackageRef.Format(packageId, resolvedVersion, source);
         var list = _scaffold.Notebook.RequiredExtensions;
         var index = list.FindIndex(r =>
             string.Equals(ExtensionPackageRef.ParseId(r), packageId, StringComparison.OrdinalIgnoreCase));

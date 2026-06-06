@@ -1794,9 +1794,53 @@ html, body {
 
 .verso-marketplace-search {
     display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+}
+
+.verso-marketplace-search-row {
+    display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px;
+}
+
+.verso-marketplace-more {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.verso-marketplace-more:hover {
+    border-color: var(--verso-accent, #0078D4);
+}
+
+.verso-marketplace-more--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* The native file input is driven by the surrounding label; keep it out of the layout. */
+.verso-marketplace-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
 
 .verso-marketplace-input {
@@ -1915,6 +1959,63 @@ html, body {
 .verso-marketplace-btn--uninstall {
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-marketplace-installed {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 0 8px;
+}
+
+.verso-marketplace-installed-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-installed-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+}
+
+.verso-marketplace-installed-info {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.verso-marketplace-installed-id {
+    font-weight: 600;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.verso-marketplace-installed-version {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-installed-badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
 }
 
 /* === Variable Explorer === */

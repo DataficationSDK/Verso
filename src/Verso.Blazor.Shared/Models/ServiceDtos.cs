@@ -217,3 +217,30 @@ public sealed record PackageInstallResultDto(
     string? ResolvedVersion,
     string? ErrorMessage,
     int ExtensionsRegistered);
+
+/// <summary>
+/// A package this notebook requires (recorded in its required-extensions list), surfaced so the
+/// extension panel can list and uninstall it independently of NuGet search. <paramref name="IsLocal"/>
+/// is true for files sideloaded from disk, which never appear in NuGet search results.
+/// </summary>
+public sealed record InstalledExtensionDto(
+    string Id,
+    string? Version,
+    bool IsLocal);
+
+/// <summary>
+/// How a host lets the user pick a local extension file (a <c>.dll</c> or <c>.nupkg</c>) to
+/// sideload. The extension panel uses this to decide whether to show its "load from file"
+/// affordance and which acquisition path to drive.
+/// </summary>
+public enum LocalExtensionPickMode
+{
+    /// <summary>Sideloading a local file is not available in this host.</summary>
+    None,
+
+    /// <summary>The user picks a file in the browser; its bytes are uploaded to the server (Blazor Server).</summary>
+    Upload,
+
+    /// <summary>The host shows a native open dialog and reads the chosen file from disk (VS Code).</summary>
+    NativeBrowse,
+}

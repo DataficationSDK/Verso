@@ -38,6 +38,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private List<LayoutInfo> _layouts = new();
     private List<ThemeInfo> _themes = new();
     private List<ExtensionInfo> _extensions = new();
+    private List<InstalledExtensionDto> _installedExtensions = new();
     private LayoutReference? _activeLayout;
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
@@ -192,6 +193,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public IReadOnlyList<LayoutInfo> AvailableLayouts => _layouts;
     public IReadOnlyList<ThemeInfo> AvailableThemes => _themes;
     public IReadOnlyList<ExtensionInfo> Extensions => _extensions;
+    public IReadOnlyList<InstalledExtensionDto> InstalledExtensions => _installedExtensions;
 
     // ── File operations ─────────────────────────────────────────────────
 
@@ -712,6 +714,32 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         await _bridge.RequestVoidAsync("extension/uninstall", new { packageId });
         await RefreshExtensionDataAsync();
         OnExtensionStatusChanged?.Invoke();
+    }
+
+    public LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.NativeBrowse;
+
+    public Task<PackageInstallResultDto> InstallLocalExtensionAsync(string fileName, Stream content, CancellationToken ct)
+        => throw new NotSupportedException("The embedded host browses for files natively; use BrowseAndInstallLocalExtensionAsync.");
+
+    public async Task<PackageInstallResultDto> BrowseAndInstallLocalExtensionAsync(CancellationToken ct)
+    {
+        // The bridge intercepts this locally and shows VS Code's native open dialog rather than
+        // forwarding to the host, so the chosen path is a real path on the host machine.
+        var picked = await _bridge.RequestAsync<BrowseFileResponse>("extension/browseLocalFile", null);
+        if (string.IsNullOrEmpty(picked?.Path))
+            return new PackageInstallResultDto(false, null, null, 0); // user cancelled
+
+        var response = await _bridge.RequestAsync<ExtensionInstallResponse>(
+            "extension/installLocal", new { path = picked.Path });
+
+        if (response.Success)
+        {
+            await RefreshExtensionDataAsync();
+            OnExtensionStatusChanged?.Invoke();
+        }
+
+        return new PackageInstallResultDto(
+            response.Success, response.ResolvedVersion, response.ErrorMessage, response.ExtensionsRegistered);
     }
 
     // ── Settings ────────────────────────────────────────────────────────
@@ -1414,6 +1442,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         // Extensions
         var extsResult = await _bridge.RequestAsync<ExtensionsResponse>("extension/list", null);
         _extensions = extsResult.Extensions?.ToList() ?? new();
+        _installedExtensions = extsResult.Installed?
+            .Select(i => new InstalledExtensionDto(i.Id ?? "", i.Version, i.IsLocal))
+            .Where(i => !string.IsNullOrEmpty(i.Id))
+            .ToList() ?? new();
 
         // Settings
         await RefreshSettingsAsync();
@@ -1862,6 +1894,14 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private sealed class ExtensionsResponse
     {
         public List<ExtensionInfo>? Extensions { get; set; }
+        public List<InstalledExtensionItemResponse>? Installed { get; set; }
+    }
+
+    private sealed class InstalledExtensionItemResponse
+    {
+        public string? Id { get; set; }
+        public string? Version { get; set; }
+        public bool IsLocal { get; set; }
     }
 
     private sealed class ThemeDataResponse
@@ -1958,6 +1998,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? ResolvedVersion { get; set; }
         public string? ErrorMessage { get; set; }
         public int ExtensionsRegistered { get; set; }
+    }
+
+    private sealed class BrowseFileResponse
+    {
+        public string? Path { get; set; }
     }
 
     private sealed class SettingsExtensionDto
