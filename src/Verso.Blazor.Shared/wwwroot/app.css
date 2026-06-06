@@ -371,7 +371,6 @@ html, body {
 
 .verso-cell--selected {
     border-color: var(--verso-cell-border, #E0E0E0);
-    border-left-color: var(--verso-cell-active-border, #0078D4);
 }
 
 .verso-cell--selected:hover {
@@ -752,6 +751,16 @@ html, body {
     min-height: 60px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: 2px;
+}
+
+/* Mark the active line in the gutter: tint that line's number cell with the
+   neutral border color. Scoped to the selected cell so only the active cell's
+   editor flags its line in the margin, not every editor on the page. Uses
+   --verso-border-default rather than --verso-cell-border because the notebook
+   layout overrides the cell-border token to transparent (its cards use shadows,
+   not borders), which would make the highlight invisible. */
+.verso-cell--selected .verso-monaco-editor .monaco-editor .margin-view-overlays .active-line-number {
+    background-color: var(--verso-border-default, #E0E0E0);
 }
 
 /* === Cell Execution Status === */
