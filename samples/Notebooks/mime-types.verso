@@ -5,7 +5,10 @@
     "created": "2026-03-21T00:00:00+00:00",
     "modified": "2026-03-21T00:00:00+00:00",
     "defaultKernel": "csharp",
-    "activeLayout": "notebook",
+    "activeLayout": {
+      "extensionId": "verso.layout.notebook",
+      "layoutId": "notebook"
+    },
     "preferredTheme": "verso-dark"
   },
   "cells": [
@@ -23,7 +26,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000010",
       "type": "markdown",
-      "source": "---\n## text/plain\n\nThe default. Any MIME type that doesn\u0027t match a specific handler renders as preformatted text."
+      "source": "## text/plain\n\nThe default. Any MIME type that doesn\u0027t match a specific handler renders as preformatted text."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000011",
@@ -34,7 +37,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000020",
       "type": "markdown",
-      "source": "---\n## text/html\n\nRaw HTML injected directly into the output. Supports inline styles and CSS custom properties."
+      "source": "## text/html\n\nRaw HTML injected directly into the output. Supports inline styles and CSS custom properties."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000021",
@@ -45,7 +48,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000030",
       "type": "markdown",
-      "source": "---\n## image/svg\u002Bxml\n\nInline SVG with support for animations."
+      "source": "## image/svg\u002Bxml\n\nInline SVG with support for animations."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000031",
@@ -56,7 +59,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000040",
       "type": "markdown",
-      "source": "---\n## image/png (also image/jpeg, image/gif, image/webp)\n\nBase64-encoded image data rendered as an \u0060\u003Cimg\u003E\u0060 tag. The example below creates a 1px red PNG."
+      "source": "## image/png (also image/jpeg, image/gif, image/webp)\n\nBase64-encoded image data rendered as an \u0060\u003Cimg\u003E\u0060 tag. The example below creates a 1px red PNG."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000041",
@@ -72,7 +75,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000050",
       "type": "markdown",
-      "source": "---\n## application/json\n\nCollapsible, syntax-highlighted JSON tree. Objects and arrays auto-expand for the first two levels."
+      "source": "## application/json\n\nCollapsible, syntax-highlighted JSON tree. Objects and arrays auto-expand for the first two levels."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000051",
@@ -83,7 +86,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000060",
       "type": "markdown",
-      "source": "---\n## text/csv\n\nCSV content rendered as a styled, scrollable HTML table. The first row is treated as headers."
+      "source": "## text/csv\n\nCSV content rendered as a styled, scrollable HTML table. The first row is treated as headers."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000061",
@@ -94,7 +97,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000070",
       "type": "markdown",
-      "source": "---\n## text/x-verso-mermaid\n\nMermaid diagram syntax rendered via the built-in Mermaid integration."
+      "source": "## text/x-verso-mermaid\n\nMermaid diagram syntax rendered via the built-in Mermaid integration."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000071",
@@ -105,7 +108,7 @@
     {
       "id": "a0000000-0000-0000-0000-000000000080",
       "type": "markdown",
-      "source": "---\n## Error Output\n\nAny \u0060CellOutput\u0060 with \u0060IsError: true\u0060 renders in the error block, regardless of MIME type."
+      "source": "## Error Output\n\nAny \u0060CellOutput\u0060 with \u0060IsError: true\u0060 renders in the error block, regardless of MIME type."
     },
     {
       "id": "a0000000-0000-0000-0000-000000000081",
