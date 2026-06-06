@@ -7,7 +7,12 @@ public sealed class NotebookOpenParams
     public string Content { get; set; } = "";
     public string? FilePath { get; set; }
     public string? WorkingDir { get; set; }
+
+    /// <summary>Single extensions directory (retained for back-compat with older clients).</summary>
     public string? ExtensionsDirectory { get; set; }
+
+    /// <summary>Multiple extensions directories to scan, in order.</summary>
+    public List<string>? ExtensionsDirectories { get; set; }
 }
 
 public sealed class NotebookOpenResult

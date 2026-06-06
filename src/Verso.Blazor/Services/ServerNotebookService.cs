@@ -91,9 +91,22 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         await _extensionHost!.LoadBuiltInExtensionsAsync();
 
-        var dir = _options.ExtensionsDirectory;
-        if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
-            await _extensionHost.LoadFromDirectoryAsync(dir);
+        // Scan all configured directories plus the managed extensions directory. Marketplace
+        // installs live in versioned subfolders (managed/{id}/{version}/) which the
+        // non-recursive directory scan ignores; those load via required-extension resolution.
+        var dirs = ExtensionDirectoryResolver.Resolve(_options.GetAllExtensionsDirectories(), out _);
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+            try
+            {
+                await _extensionHost.LoadFromDirectoryAsync(dir);
+            }
+            catch (ExtensionLoadException)
+            {
+                // A bad or duplicate assembly in one directory must not stop the others.
+            }
+        }
     }
 
     // ── State ──────────────────────────────────────────────────────────
@@ -344,6 +357,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
         var notebook = await serializer.DeserializeAsync(content);
 
+        // Load the notebook's declared extensions before building subsystems so a required
+        // layout engine is registered before the active layout is chosen and the first
+        // render happens (otherwise the notebook would paint with the fallback layout).
+        await LoadRequiredExtensionsAsync(notebook);
+
         _scaffold = new Scaffold(notebook, _extensionHost, filePath);
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
@@ -378,6 +396,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             ?? (INotebookSerializer)new VersoSerializer();
 
         var notebook = await serializer.DeserializeAsync(content);
+
+        // See OpenAsync: required extensions must load before subsystems and first render.
+        await LoadRequiredExtensionsAsync(notebook);
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();

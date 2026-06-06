@@ -217,13 +217,25 @@ export class BlazorEditorProvider
     workingDir: string,
     options: { addDefaultCellIfEmpty: boolean }
   ): Promise<NotebookOpenResult> {
-    const extensionsDirectory = vscode.workspace
+    // verso.extensionsPath accepts either a single string (legacy) or an array of paths.
+    const rawExtensionsPath = vscode.workspace
       .getConfiguration("verso")
-      .get<string>("extensionsPath") || undefined;
+      .get<string | string[]>("extensionsPath");
+
+    let extensionsDirectory: string | undefined;
+    let extensionsDirectories: string[] | undefined;
+    if (Array.isArray(rawExtensionsPath)) {
+      const dirs = rawExtensionsPath.filter(
+        (d) => typeof d === "string" && d.trim().length > 0
+      );
+      extensionsDirectories = dirs.length > 0 ? dirs : undefined;
+    } else if (typeof rawExtensionsPath === "string" && rawExtensionsPath.trim().length > 0) {
+      extensionsDirectory = rawExtensionsPath;
+    }
 
     const result = await host.sendRequest<NotebookOpenResult>(
       "notebook/open",
-      { content, filePath, workingDir, extensionsDirectory }
+      { content, filePath, workingDir, extensionsDirectory, extensionsDirectories }
     );
 
     const notebookId = result.notebookId;

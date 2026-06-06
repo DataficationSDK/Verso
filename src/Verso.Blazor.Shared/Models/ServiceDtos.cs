@@ -196,3 +196,24 @@ public sealed record ExtensionSettingsGroup(
 public sealed record PropertySectionResult(
     string ProviderExtensionId,
     PropertySection Section);
+
+/// <summary>
+/// A package returned by an extension marketplace search. <see cref="IsInstalled"/> reflects
+/// whether the package is already recorded in the open notebook's required extensions.
+/// </summary>
+public sealed record PackageSearchResultDto(
+    string Id,
+    string? Version,
+    string? Description,
+    string? Authors,
+    long? DownloadCount,
+    string? IconUrl,
+    string? ProjectUrl,
+    bool IsInstalled);
+
+/// <summary>The outcome of installing an extension package.</summary>
+public sealed record PackageInstallResultDto(
+    bool Success,
+    string? ResolvedVersion,
+    string? ErrorMessage,
+    int ExtensionsRegistered);

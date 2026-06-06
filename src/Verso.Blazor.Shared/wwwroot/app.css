@@ -1784,6 +1784,139 @@ html, body {
     letter-spacing: 0.3px;
 }
 
+/* === Extension Marketplace === */
+
+.verso-marketplace {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+}
+
+.verso-marketplace-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+}
+
+.verso-marketplace-input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: 12px;
+}
+
+.verso-marketplace-input:focus {
+    outline: none;
+    border-color: var(--verso-accent, #0078D4);
+}
+
+.verso-marketplace-status {
+    font-size: 10px;
+    color: var(--verso-editor-line-number, #858585);
+    white-space: nowrap;
+}
+
+.verso-marketplace-error {
+    margin: 4px;
+    padding: 6px 8px;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-status-error, #D13438);
+    font-size: 11px;
+}
+
+.verso-marketplace-empty {
+    margin: 4px;
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.verso-marketplace-result {
+    padding: 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+}
+
+.verso-marketplace-result-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.verso-marketplace-result-id {
+    font-weight: 600;
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.verso-marketplace-result-version {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-result-authors {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-top: 2px;
+}
+
+.verso-marketplace-result-desc {
+    font-size: 11px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    margin-top: 4px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.verso-marketplace-result-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.verso-marketplace-btn {
+    padding: 3px 12px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.verso-marketplace-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.verso-marketplace-btn--install {
+    background: var(--verso-accent, #0078D4);
+    color: #FFFFFF;
+    border-color: var(--verso-accent, #0078D4);
+}
+
+.verso-marketplace-btn--uninstall {
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
 /* === Variable Explorer === */
 
 .verso-variable-toolbar {

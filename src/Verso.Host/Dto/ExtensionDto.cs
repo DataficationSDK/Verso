@@ -22,3 +22,52 @@ public sealed class ExtensionToggleParams
 {
     public string ExtensionId { get; set; } = "";
 }
+
+// --- Extension Marketplace ---
+
+public sealed class ExtensionSearchParams
+{
+    public string NotebookId { get; set; } = "";
+    public string Query { get; set; } = "";
+    public int Skip { get; set; }
+    public int Take { get; set; } = 20;
+    public bool IncludePrerelease { get; set; }
+}
+
+public sealed class ExtensionSearchResult
+{
+    public List<PackageSearchItemDto> Packages { get; set; } = new();
+}
+
+public sealed class PackageSearchItemDto
+{
+    public string Id { get; set; } = "";
+    public string? Version { get; set; }
+    public string? Description { get; set; }
+    public string? Authors { get; set; }
+    public long? DownloadCount { get; set; }
+    public string? IconUrl { get; set; }
+    public string? ProjectUrl { get; set; }
+    public bool IsInstalled { get; set; }
+}
+
+public sealed class ExtensionInstallParams
+{
+    public string NotebookId { get; set; } = "";
+    public string PackageId { get; set; } = "";
+    public string? Version { get; set; }
+}
+
+public sealed class ExtensionInstallResult
+{
+    public bool Success { get; set; }
+    public string? ResolvedVersion { get; set; }
+    public string? ErrorMessage { get; set; }
+    public int ExtensionsRegistered { get; set; }
+}
+
+public sealed class ExtensionUninstallParams
+{
+    public string NotebookId { get; set; } = "";
+    public string PackageId { get; set; } = "";
+}

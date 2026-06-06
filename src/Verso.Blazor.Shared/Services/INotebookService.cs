@@ -273,6 +273,37 @@ public interface INotebookService
     /// <summary>Disable an extension by ID.</summary>
     Task DisableExtensionAsync(string extensionId);
 
+    // ── Extension marketplace ──────────────────────────────────────────
+
+    /// <summary>
+    /// Whether this host supports searching for and installing extensions from NuGet.
+    /// The extension panel hides its search box when this is false.
+    /// </summary>
+    bool IsMarketplaceSupported { get; }
+
+    /// <summary>
+    /// Searches NuGet for extension packages matching <paramref name="query"/>. Results
+    /// carry an installed flag relative to the current notebook's required extensions.
+    /// </summary>
+    Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
+        string query, int skip, int take, bool includePrerelease, CancellationToken ct);
+
+    /// <summary>
+    /// Downloads and installs a NuGet package into the managed extensions directory, loads
+    /// its extensions, records it in the notebook's required extensions, and persists trust
+    /// so future opens load it without prompting. Surfaces the existing consent dialog when
+    /// the package is not yet trusted.
+    /// </summary>
+    Task<PackageInstallResultDto> InstallExtensionAsync(
+        string packageId, string? version, CancellationToken ct);
+
+    /// <summary>
+    /// Removes a package from the notebook's required extensions and revokes its trust. The
+    /// extension's capabilities remain active until the next open; the on-disk files are kept
+    /// so it can be reinstalled.
+    /// </summary>
+    Task UninstallExtensionAsync(string packageId);
+
     // ── Settings ───────────────────────────────────────────────────────
 
     /// <summary>Get all setting definitions grouped by extension.</summary>

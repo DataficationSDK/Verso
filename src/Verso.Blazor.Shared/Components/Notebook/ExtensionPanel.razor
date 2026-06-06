@@ -1,4 +1,74 @@
 <div class="verso-sidebar-panel">
+    @if (Service.IsLoaded && Service.IsMarketplaceSupported)
+    {
+        <div class="verso-marketplace">
+            <div class="verso-marketplace-search">
+                <input class="verso-marketplace-input"
+                       type="text"
+                       placeholder="Search NuGet for extensions..."
+                       value="@_searchQuery"
+                       @oninput="HandleSearchInput" />
+                @if (_isSearching)
+                {
+                    <span class="verso-marketplace-status">Searching...</span>
+                }
+            </div>
+
+            @if (_installError is not null)
+            {
+                <div class="verso-marketplace-error">@_installError</div>
+            }
+
+            @if (_searchResults is not null)
+            {
+                @if (_searchResults.Count == 0 && !_isSearching && !string.IsNullOrWhiteSpace(_searchQuery))
+                {
+                    <div class="verso-marketplace-empty">No packages found.</div>
+                }
+                else
+                {
+                    <div class="verso-marketplace-results">
+                        @foreach (var pkg in _searchResults)
+                        {
+                            var p = pkg;
+                            <div class="verso-marketplace-result">
+                                <div class="verso-marketplace-result-header">
+                                    <span class="verso-marketplace-result-id" title="@p.Id">@p.Id</span>
+                                    @if (p.Version is not null)
+                                    {
+                                        <span class="verso-marketplace-result-version">@p.Version</span>
+                                    }
+                                </div>
+                                @if (p.Authors is not null)
+                                {
+                                    <div class="verso-marketplace-result-authors">@p.Authors</div>
+                                }
+                                @if (p.Description is not null)
+                                {
+                                    <div class="verso-marketplace-result-desc">@p.Description</div>
+                                }
+                                <div class="verso-marketplace-result-actions">
+                                    @if (p.IsInstalled)
+                                    {
+                                        <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
+                                                disabled="@_isBusy"
+                                                @onclick="() => UninstallAsync(p.Id)">Uninstall</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="verso-marketplace-btn verso-marketplace-btn--install"
+                                                disabled="@_isBusy"
+                                                @onclick="() => InstallAsync(p.Id, p.Version)">Install</button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+
     @if (Service.IsLoaded)
     {
         var infos = Service.Extensions;
@@ -60,6 +130,14 @@
 
     private readonly HashSet<string> _expandedCategories = new();
     private INotebookService? _subscribedService;
+
+    // Marketplace search state
+    private string _searchQuery = string.Empty;
+    private IReadOnlyList<PackageSearchResultDto>? _searchResults;
+    private bool _isSearching;
+    private bool _isBusy;
+    private string? _installError;
+    private CancellationTokenSource? _searchCts;
 
     private static readonly Dictionary<string, string> CategoryDisplayNames = new()
     {
@@ -139,8 +217,122 @@
             await Service.EnableExtensionAsync(extensionId);
     }
 
+    // ── Marketplace ────────────────────────────────────────────────────
+
+    private async Task HandleSearchInput(ChangeEventArgs e)
+    {
+        _searchQuery = e.Value?.ToString() ?? string.Empty;
+        _installError = null;
+
+        // Cancel any in-flight search; this input supersedes it.
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            _searchCts = null;
+            _searchResults = null;
+            _isSearching = false;
+            return;
+        }
+
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
+        var query = _searchQuery;
+
+        _isSearching = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Debounce so each keystroke doesn't fire a NuGet round-trip.
+            await Task.Delay(300, ct);
+            var results = await Service.SearchExtensionsAsync(query, 0, 20, includePrerelease: false, ct);
+            if (ct.IsCancellationRequested) return;
+
+            _searchResults = results;
+            _isSearching = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer keystroke; the newer search owns the UI state.
+        }
+        catch (Exception ex)
+        {
+            _isSearching = false;
+            _installError = ex.Message;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task InstallAsync(string packageId, string? version)
+    {
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Service.InstallExtensionAsync(packageId, version, CancellationToken.None);
+            if (!result.Success)
+                _installError = result.ErrorMessage ?? "Installation failed.";
+            else
+                await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task UninstallAsync(string packageId)
+    {
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Service.UninstallExtensionAsync(packageId);
+            await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RefreshSearchResultsAsync()
+    {
+        // Re-run the current query so each result's installed state reflects the change.
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return;
+        try
+        {
+            _searchResults = await Service.SearchExtensionsAsync(
+                _searchQuery, 0, 20, includePrerelease: false, CancellationToken.None);
+        }
+        catch
+        {
+            // Keep the previous results if the refresh fails.
+        }
+    }
+
     public void Dispose()
     {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
         if (_subscribedService is not null)
             _subscribedService.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
     }

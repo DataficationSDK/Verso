@@ -87,6 +87,9 @@ public static class MethodNames
     public const string ExtensionConsentRequest = "extension/consentRequest";
     public const string ExtensionConsentResponse = "extension/consentResponse";
     public const string ExtensionChanged = "extension/changed";
+    public const string ExtensionSearch = "extension/search";
+    public const string ExtensionInstall = "extension/install";
+    public const string ExtensionUninstall = "extension/uninstall";
 
     // Settings
     public const string SettingsGetDefinitions = "settings/getDefinitions";

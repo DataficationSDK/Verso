@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Extensions;
+using Verso.Extensions.Marketplace;
 using Verso.Extensions.Utilities;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
@@ -24,16 +25,30 @@ public static class NotebookHandler
         var extensionHost = new ExtensionHost();
         await extensionHost.LoadBuiltInExtensionsAsync();
 
+        // Combine the legacy single directory with the multi-directory list, then add the
+        // managed extensions directory, and scan each one.
+        var configuredDirs = new List<string?>();
         if (!string.IsNullOrWhiteSpace(p.ExtensionsDirectory))
+            configuredDirs.Add(p.ExtensionsDirectory);
+        if (p.ExtensionsDirectories is not null)
+            configuredDirs.AddRange(p.ExtensionsDirectories);
+
+        var scanDirs = ExtensionDirectoryResolver.Resolve(configuredDirs, out _);
+        foreach (var dir in scanDirs)
         {
-            if (Directory.Exists(p.ExtensionsDirectory))
+            if (!Directory.Exists(dir))
             {
-                Console.Error.WriteLine($"[Verso] Loading third-party extensions from '{p.ExtensionsDirectory}'");
-                await extensionHost.LoadFromDirectoryAsync(p.ExtensionsDirectory);
+                Console.Error.WriteLine($"[Verso] Extensions directory not found, skipping: '{dir}'");
+                continue;
             }
-            else
+            try
             {
-                Console.Error.WriteLine($"[Verso] Extensions directory not found, skipping: '{p.ExtensionsDirectory}'");
+                Console.Error.WriteLine($"[Verso] Loading third-party extensions from '{dir}'");
+                await extensionHost.LoadFromDirectoryAsync(dir);
+            }
+            catch (ExtensionLoadException)
+            {
+                // A bad or duplicate assembly in one directory must not stop the others.
             }
         }
 
@@ -77,6 +92,18 @@ public static class NotebookHandler
         notebook.DefaultKernelId ??= "csharp";
         notebook.ActiveLayout ??= LayoutDefaults.Reference;
 
+        // Load already-trusted required extensions before building subsystems so a required
+        // layout engine is registered before the active layout is resolved (otherwise the
+        // notebook would surface a missing-layout banner on first render). Untrusted required
+        // extensions are loaded after the session exists, since consent needs the client.
+        await MarketplaceLoader.LoadRequiredAsync(
+            extensionHost,
+            notebook,
+            ExtensionHandler.SharedTrustStore,
+            ExtensionHandler.SharedMarketplace,
+            ExtensionDirectoryResolver.GetDefaultManagedDir(),
+            promptForConsent: false);
+
         var scaffold = new Scaffold(notebook, extensionHost, p.FilePath);
         scaffold.InitializeSubsystems();
 
@@ -99,6 +126,31 @@ public static class NotebookHandler
         // Wire consent handler so extension commands can request consent via the client
         var ns = session.GetSession(notebookId);
         extensionHost.ConsentHandler = (extensions, ct) => ns.RequestConsentAsync(extensions, ct);
+
+        // Now that the consent channel exists, prompt for and load any required extensions
+        // that are not yet trusted. Fire-and-forget so the open response is not blocked; each
+        // loaded extension raises extension/changed so the client refreshes its caches.
+        if (notebook.RequiredExtensions.Count > 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await MarketplaceLoader.LoadRequiredAsync(
+                        extensionHost,
+                        notebook,
+                        ExtensionHandler.SharedTrustStore,
+                        ExtensionHandler.SharedMarketplace,
+                        ExtensionDirectoryResolver.GetDefaultManagedDir(),
+                        promptForConsent: true);
+                }
+                catch
+                {
+                    // Non-fatal: the notebook is already open; the layout banner covers a
+                    // still-missing required layout until the user reloads.
+                }
+            });
+        }
 
         // Delegate kernel restart to the supervisor (e.g. VS Code extension) so the
         // entire host process can be killed and respawned to release pinned DLLs.

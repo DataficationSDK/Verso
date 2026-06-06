@@ -667,6 +667,53 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         OnExtensionStatusChanged?.Invoke();
     }
 
+    // ── Extension marketplace ───────────────────────────────────────────
+
+    public bool IsMarketplaceSupported => true;
+
+    public async Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
+        string query, int skip, int take, bool includePrerelease, CancellationToken ct)
+    {
+        var response = await _bridge.RequestAsync<ExtensionSearchResponse>(
+            "extension/search",
+            new { query, skip, take, includePrerelease });
+
+        return response.Packages?.Select(p => new PackageSearchResultDto(
+            p.Id ?? "",
+            p.Version,
+            p.Description,
+            p.Authors,
+            p.DownloadCount,
+            p.IconUrl,
+            p.ProjectUrl,
+            p.IsInstalled)).ToList()
+            ?? (IReadOnlyList<PackageSearchResultDto>)Array.Empty<PackageSearchResultDto>();
+    }
+
+    public async Task<PackageInstallResultDto> InstallExtensionAsync(
+        string packageId, string? version, CancellationToken ct)
+    {
+        var response = await _bridge.RequestAsync<ExtensionInstallResponse>(
+            "extension/install",
+            new { packageId, version });
+
+        if (response.Success)
+        {
+            await RefreshExtensionDataAsync();
+            OnExtensionStatusChanged?.Invoke();
+        }
+
+        return new PackageInstallResultDto(
+            response.Success, response.ResolvedVersion, response.ErrorMessage, response.ExtensionsRegistered);
+    }
+
+    public async Task UninstallExtensionAsync(string packageId)
+    {
+        await _bridge.RequestVoidAsync("extension/uninstall", new { packageId });
+        await RefreshExtensionDataAsync();
+        OnExtensionStatusChanged?.Invoke();
+    }
+
     // ── Settings ────────────────────────────────────────────────────────
 
     public IReadOnlyList<ExtensionSettingsGroup> GetSettingDefinitions()
@@ -1886,6 +1933,31 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private sealed class SettingsDefinitionsResponse
     {
         public List<SettingsExtensionDto>? Extensions { get; set; }
+    }
+
+    private sealed class ExtensionSearchResponse
+    {
+        public List<PackageSearchItemResponse>? Packages { get; set; }
+    }
+
+    private sealed class PackageSearchItemResponse
+    {
+        public string? Id { get; set; }
+        public string? Version { get; set; }
+        public string? Description { get; set; }
+        public string? Authors { get; set; }
+        public long? DownloadCount { get; set; }
+        public string? IconUrl { get; set; }
+        public string? ProjectUrl { get; set; }
+        public bool IsInstalled { get; set; }
+    }
+
+    private sealed class ExtensionInstallResponse
+    {
+        public bool Success { get; set; }
+        public string? ResolvedVersion { get; set; }
+        public string? ErrorMessage { get; set; }
+        public int ExtensionsRegistered { get; set; }
     }
 
     private sealed class SettingsExtensionDto

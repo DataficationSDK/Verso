@@ -83,9 +83,11 @@ public sealed class LayoutAssetProvider
             var host = new ExtensionHost();
             await host.LoadBuiltInExtensionsAsync();
 
-            var dir = _options.ExtensionsDirectory;
-            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
-                await host.LoadFromDirectoryAsync(dir);
+            foreach (var dir in _options.GetAllExtensionsDirectories())
+            {
+                if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+                    await host.LoadFromDirectoryAsync(dir);
+            }
 
             _context = new BlazorLayoutRenderContext(new Scaffold(new NotebookModel(), host));
             _host = host;

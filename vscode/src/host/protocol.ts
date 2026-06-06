@@ -31,7 +31,10 @@ export interface JsonRpcError {
 export interface NotebookOpenParams {
   content: string;
   workingDir?: string;
+  /** Single extensions directory (retained for back-compat). */
   extensionsDirectory?: string;
+  /** Multiple extensions directories to scan, in order. */
+  extensionsDirectories?: string[];
 }
 
 export interface NotebookSetFilePathParams {

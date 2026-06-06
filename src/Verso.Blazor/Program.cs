@@ -1,5 +1,6 @@
 using Verso.Blazor.Services;
 using Verso.Blazor.Shared.Services;
+using Verso.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,13 @@ builder.Services.AddRazorComponents()
     {
         options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromHours(1);
     });
+
+// Seed the host options with the managed extensions directory so marketplace installs have
+// a stable, persistent home and the directory scan picks up user-dropped extension assemblies.
+builder.Services.AddSingleton(new NotebookServiceOptions
+{
+    ExtensionsDirectories = new[] { ExtensionDirectoryResolver.GetDefaultManagedDir() }
+});
 
 builder.Services.AddSingleton<LayoutAssetCache>();
 builder.Services.AddSingleton<LayoutAssetProvider>();
