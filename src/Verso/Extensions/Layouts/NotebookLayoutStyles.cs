@@ -128,6 +128,12 @@ internal static class NotebookLayoutStyles
             "transition:border-color 140ms ease;");
         R(".verso-monaco-editor:hover", "border-color:var(--md-outline-variant);");
         R(".verso-cell--selected .verso-monaco-editor", "border-color:var(--md-outline);");
+        // Monaco draws a 1px outline around the active line (the built-in theme's
+        // lineHighlightBorder). On the top line its edge pokes into the scrollbar lane and past
+        // the editor's rounded corner, which reads as the selected line overlapping the scroll
+        // area. Drop that outline here; the active line stays marked by its highlighted line
+        // number in the gutter. Scoped to this layout so other layouts keep Monaco's default.
+        R(".monaco-editor .view-overlays .current-line", "border-color:transparent;");
 
         // --- Always-on type / language badges ----------------------------------------------
         // The cell's type and language badges normally live in a toolbar that only appears on
