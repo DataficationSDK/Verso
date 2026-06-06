@@ -169,9 +169,17 @@ public sealed class HttpKernel : ILanguageKernel
                 if (request.Name is not null)
                     _namedResponses[request.Name] = responseData;
 
-                // Format and add output
-                var html = HttpResponseFormatter.FormatResponseHtml(responseData);
+                // Format and add output. JSON bodies are emitted as a separate
+                // application/json output so the notebook renders them as a tree (and the
+                // CLI through its JSON renderer); the HTML then carries only the status line
+                // and headers. Non-JSON bodies stay inline in the HTML as before.
+                bool bodyIsJson = HttpResponseFormatter.IsJsonBody(responseData);
+
+                var html = HttpResponseFormatter.FormatResponseHtml(responseData, includeBody: !bodyIsJson);
                 outputs.Add(new CellOutput("text/html", html));
+
+                if (bodyIsJson)
+                    outputs.Add(new CellOutput("application/json", responseData.Body!));
 
                 // Store last response in variable store
                 context.Variables.Set("httpResponse", responseBody);
