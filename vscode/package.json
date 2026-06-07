@@ -30,10 +30,18 @@
     "copilot"
   ],
   "activationEvents": [
-    "onCustomEditor:verso.blazorNotebook"
+    "onCustomEditor:verso.blazorNotebook",
+    "onCommand:verso.newNotebook"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "verso.newNotebook",
+        "title": "New Notebook",
+        "category": "Verso"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "verso.blazorNotebook",

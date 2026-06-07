@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import * as os from "os";
 import { HostProcess } from "../host/hostProcess";
 import { hostRegistry } from "../host/hostRegistry";
 import { notebookRegistry } from "../host/notebookRegistry";
@@ -42,6 +43,14 @@ export class BlazorEditorProvider
   private readonly documents = new Map<vscode.WebviewPanel, VersoDocument>();
   /** Per-panel mutex serializing host restarts so concurrent clicks coalesce. */
   private readonly restartLocks = new Map<vscode.WebviewPanel, Promise<void>>();
+
+  /**
+   * `uri.toString()` of scratch notebooks created via the "New Notebook"
+   * command that have not yet been kept (saved to a real location). The backing
+   * temp file is deleted when such a document is closed or promoted.
+   */
+  private readonly scratchUris = new Set<string>();
+  private scratchCounter = 0;
 
   // --- Edit tracking ---
   private readonly _onDidChangeCustomDocument =
@@ -105,6 +114,54 @@ export class BlazorEditorProvider
   }
 
   // --- CustomEditorProvider lifecycle ---
+
+  /**
+   * Creates a blank scratch notebook and opens it, backing the command-palette
+   * "Verso: New Notebook" entry. The notebook is written to a temp file so it
+   * can flow through the normal custom-editor open path; it is tracked in
+   * {@link scratchUris} so it is deleted on close unless the user keeps it via
+   * Save (which promotes it to a real location — see {@link promoteScratch}).
+   */
+  async createScratchNotebook(): Promise<void> {
+    const dir = path.join(os.tmpdir(), "verso-scratch");
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Verso: Could not create a scratch notebook: ${
+          err instanceof Error ? err.message : err
+        }`
+      );
+      return;
+    }
+
+    // Pick an Untitled-N name that doesn't collide with an existing scratch file.
+    let tempPath: string;
+    do {
+      tempPath = path.join(dir, `Untitled-${++this.scratchCounter}.verso`);
+    } while (fs.existsSync(tempPath));
+
+    // Empty content is the already-supported new-notebook path: the host creates
+    // a blank notebook and resolveCustomEditor seeds a default C# cell.
+    try {
+      fs.writeFileSync(tempPath, "");
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Verso: Could not create a scratch notebook: ${
+          err instanceof Error ? err.message : err
+        }`
+      );
+      return;
+    }
+
+    const uri = vscode.Uri.file(tempPath);
+    this.scratchUris.add(uri.toString());
+    await vscode.commands.executeCommand(
+      "vscode.openWith",
+      uri,
+      BlazorEditorProvider.viewType
+    );
+  }
 
   async openCustomDocument(
     uri: vscode.Uri,
@@ -175,6 +232,12 @@ export class BlazorEditorProvider
       const h = this.hosts.get(webviewPanel);
       h?.dispose();
       this.hosts.delete(webviewPanel);
+
+      // An un-promoted scratch notebook was closed without being kept. Dispose
+      // fires after VS Code's save prompt resolves, so reaching here with the
+      // URI still tracked means the user discarded it — delete the temp file.
+      // (Keeping it via Save promotes it first, removing it from the set.)
+      this.deleteScratch(document.uri);
     });
 
     // Open the notebook in the host process and notify the webview
@@ -382,6 +445,13 @@ export class BlazorEditorProvider
     document: VersoDocument,
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
+    // A scratch notebook lives in a temp dir, so a plain save would silently
+    // write back there. Instead prompt for a real location and promote it.
+    if (this.scratchUris.has(document.uri.toString())) {
+      await this.promoteScratch(document);
+      return;
+    }
+
     const notebookId = notebookRegistry.getByUri(document.uri);
     const session = hostRegistry.getByUri(document.uri);
     if (!session || !notebookId) return;
@@ -462,6 +532,13 @@ export class BlazorEditorProvider
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(targetUri, data);
+
+    // Save As on a scratch keeps it at the chosen location: rebind the editor to
+    // the real file (once this save completes) so later saves write in place.
+    if (this.scratchUris.has(document.uri.toString())) {
+      this.deleteScratch(document.uri);
+      this.scheduleScratchSwap(document.uri, targetUri);
+    }
   }
 
   async revertCustomDocument(
@@ -493,6 +570,94 @@ export class BlazorEditorProvider
   }
 
   // --- Private helpers ---
+
+  /**
+   * Saves a scratch notebook to a user-chosen location, then deletes the temp
+   * file and reopens the editor on the real file. If the user cancels the save
+   * dialog the document stays a scratch (still dirty, still cleaned on close).
+   */
+  private async promoteScratch(document: VersoDocument): Promise<void> {
+    const notebookId = notebookRegistry.getByUri(document.uri);
+    const session = hostRegistry.getByUri(document.uri);
+    if (!session || !notebookId) return;
+
+    const defaultDir =
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? os.homedir();
+    const target = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(defaultDir, "Untitled.verso")),
+      filters: { "Verso Notebook": ["verso"] },
+    });
+    if (!target) return;
+
+    const result = await session.host.sendRequest<NotebookSaveResult>(
+      "notebook/save",
+      { notebookId, format: "verso" }
+    );
+    const data = new TextEncoder().encode(result.content);
+    await vscode.workspace.fs.writeFile(target, data);
+
+    this.deleteScratch(document.uri);
+
+    // Swap the editor over to the kept file once this save completes (deferred —
+    // see scheduleScratchSwap). The reopened editor is a normal saved .verso, so
+    // subsequent saves write in place with no further prompt.
+    this.scheduleScratchSwap(document.uri, target);
+  }
+
+  /**
+   * Drops a scratch notebook from tracking and deletes its temp file
+   * best-effort. No-op if the URI was never a scratch.
+   */
+  private deleteScratch(uri: vscode.Uri): void {
+    if (!this.scratchUris.delete(uri.toString())) return;
+    fs.promises.rm(uri.fsPath, { force: true }).catch(() => {
+      /* best-effort; the temp file may already be gone */
+    });
+  }
+
+  /**
+   * Replaces the scratch editor with one bound to the kept file. Deferred to a
+   * macrotask so it runs *after* VS Code finishes the in-progress save and marks
+   * the scratch document clean — otherwise closing it would raise a save prompt.
+   * The scratch tab is closed by its URI (not "active editor"), since opening the
+   * kept file first makes that the active one.
+   */
+  private scheduleScratchSwap(scratchUri: vscode.Uri, target: vscode.Uri): void {
+    setTimeout(async () => {
+      try {
+        await vscode.commands.executeCommand(
+          "vscode.openWith",
+          target,
+          BlazorEditorProvider.viewType
+        );
+        await this.closeEditorFor(scratchUri);
+      } catch (err) {
+        log.warn(
+          `Scratch promote swap failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+      }
+    }, 0);
+  }
+
+  /** Closes the custom-editor tab backed by the given URI, if one is open. */
+  private async closeEditorFor(uri: vscode.Uri): Promise<void> {
+    const key = uri.toString();
+    for (const group of vscode.window.tabGroups.all) {
+      for (const tab of group.tabs) {
+        const input = tab.input;
+        if (
+          input instanceof vscode.TabInputCustom &&
+          input.viewType === BlazorEditorProvider.viewType &&
+          input.uri.toString() === key
+        ) {
+          await vscode.window.tabGroups.close(tab);
+          return;
+        }
+      }
+    }
+  }
 
   /**
    * Returns the URI to the blazor-wasm static files directory.
