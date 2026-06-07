@@ -37,6 +37,14 @@ export async function activate(
     )
   );
 
+  // Command-palette entry to start a blank notebook without first creating a
+  // file. Opens a scratch .verso the provider cleans up if it's never kept.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("verso.newNotebook", () =>
+      blazorProvider.createScratchNotebook()
+    )
+  );
+
   // Register Copilot chat participant and tools (requires vscode.chat and vscode.lm APIs,
   // which are not available in VSCodium or other VS Code forks that strip Copilot)
   if (typeof vscode.chat?.createChatParticipant === "function" &&
