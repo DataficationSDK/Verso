@@ -1001,7 +1001,10 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             InteractionType = interactionType,
             Payload = payload,
             TargetId = targetId,
-            Verso = new BlazorToolbarActionContext(_scaffold!, new List<Guid>()),
+            // Pass the JS runtime so a layout interaction can deliver a file download
+            // (e.g. export PNG) through the same versoFileDownload path the toolbar
+            // export actions use. Without it RequestFileDownloadAsync throws.
+            Verso = new BlazorToolbarActionContext(_scaffold!, new List<Guid>(), _jsRuntime),
             CancellationToken = CancellationToken.None,
             RequestRender = () => OnLayoutUpdated?.Invoke(
                 new LayoutUpdatedEventArgs(extensionId, layoutId, frameInstanceId ?? string.Empty, "full", null)),

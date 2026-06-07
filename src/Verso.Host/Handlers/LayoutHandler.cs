@@ -341,7 +341,7 @@ public static class LayoutHandler
             InteractionType = p.InteractionType ?? string.Empty,
             Payload = p.Payload ?? string.Empty,
             TargetId = p.TargetId,
-            Verso = new HostVersoContext(ns.Scaffold),
+            Verso = new HostVersoContext(ns.Scaffold, ns: ns),
             CancellationToken = CancellationToken.None,
             RequestRender = () => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "full"),
             RequestCellRefresh = cellId => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "cell", cellId)
@@ -520,11 +520,13 @@ public static class LayoutHandler
     {
         private readonly Scaffold _scaffold;
         private readonly IReadOnlySet<Guid> _collapsedSections;
+        private readonly NotebookSession? _ns;
 
-        public HostVersoContext(Scaffold scaffold, IReadOnlySet<Guid>? collapsedSections = null)
+        public HostVersoContext(Scaffold scaffold, IReadOnlySet<Guid>? collapsedSections = null, NotebookSession? ns = null)
         {
             _scaffold = scaffold;
             _collapsedSections = collapsedSections ?? new HashSet<Guid>();
+            _ns = ns;
         }
 
         public IVariableStore Variables => _scaffold.Variables;
@@ -537,6 +539,22 @@ public static class LayoutHandler
         public string? ActiveLayoutId => _scaffold.LayoutManager?.ActiveLayout?.LayoutId;
         public IReadOnlySet<Guid> CollapsedSections => _collapsedSections;
         public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
+
+        public Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data)
+        {
+            // Reuse the same file/download path the toolbar export actions use, so a layout
+            // interaction (e.g. export PNG) gets a native save dialog in the VS Code host.
+            if (_ns is null)
+                throw new NotSupportedException("File download is not supported by this host context.");
+
+            _ns.SendNotification(MethodNames.FileDownload, new
+            {
+                fileName,
+                contentType,
+                data = Convert.ToBase64String(data)
+            });
+            return Task.CompletedTask;
+        }
 
         private sealed class HostNotebookMetadata : INotebookMetadata
         {

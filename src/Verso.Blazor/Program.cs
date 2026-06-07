@@ -8,6 +8,13 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents(options =>
     {
         options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromHours(1);
+    })
+    .AddHubOptions(options =>
+    {
+        // Allow large client to server interop payloads. An isolated layout can post a
+        // rendered image back to the host for download (e.g. export PNG); the 32 KB default
+        // silently tears down the circuit when that payload is exceeded.
+        options.MaximumReceiveMessageSize = 32 * 1024 * 1024;
     });
 
 // Seed the host options with the managed extensions directory so marketplace installs have
