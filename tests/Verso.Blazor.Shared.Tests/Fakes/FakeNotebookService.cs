@@ -280,6 +280,35 @@ public sealed class FakeNotebookService : INotebookService
         return Task.CompletedTask;
     }
 
+    // ── Extension marketplace ──────────────────────────────────────────
+
+    public bool IsMarketplaceSupported { get; set; } = true;
+    public IReadOnlyList<PackageSearchResultDto> SearchResults { get; set; } = new List<PackageSearchResultDto>();
+    public PackageInstallResultDto InstallResult { get; set; } = new(true, "1.0.0", null, 1);
+    public List<(string Query, int Skip, int Take, bool IncludePrerelease)> SearchExtensionCalls { get; } = new();
+    public List<(string PackageId, string? Version)> InstallExtensionCalls { get; } = new();
+    public List<string> UninstallExtensionCalls { get; } = new();
+
+    public Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
+        string query, int skip, int take, bool includePrerelease, CancellationToken ct)
+    {
+        SearchExtensionCalls.Add((query, skip, take, includePrerelease));
+        return Task.FromResult(SearchResults);
+    }
+
+    public Task<PackageInstallResultDto> InstallExtensionAsync(
+        string packageId, string? version, CancellationToken ct)
+    {
+        InstallExtensionCalls.Add((packageId, version));
+        return Task.FromResult(InstallResult);
+    }
+
+    public Task UninstallExtensionAsync(string packageId)
+    {
+        UninstallExtensionCalls.Add(packageId);
+        return Task.CompletedTask;
+    }
+
     // ── Settings ───────────────────────────────────────────────────────
 
     public IReadOnlyList<ExtensionSettingsGroup> GetSettingDefinitions() => SettingDefinitions;
