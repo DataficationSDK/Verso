@@ -137,6 +137,25 @@
             if (window.versoMonaco && typeof window.versoMonaco.setTheme === "function") {
                 window.versoMonaco.setTheme(msg.kind === "dark" ? "vs-dark" : "vs");
             }
+            // Tell .NET the theme changed so isolated layout frames are re-sent the
+            // current theme. Defer one frame so the webview's --vscode-* custom
+            // properties have settled before the frame interop reads them.
+            if (notificationCallback) {
+                const cb = notificationCallback;
+                const fire = function () {
+                    try {
+                        cb.invokeMethodAsync(
+                            "OnNotification",
+                            "theme/vscodeKindChanged",
+                            JSON.stringify({ kind: msg.kind }));
+                    } catch (_) { /* handler may have detached */ }
+                };
+                if (typeof requestAnimationFrame === "function") {
+                    requestAnimationFrame(fire);
+                } else {
+                    setTimeout(fire, 0);
+                }
+            }
         } else if (msg.type === "jsonrpc-notification") {
             var method = msg.method;
             var params = msg.params ? JSON.stringify(msg.params) : null;

@@ -430,8 +430,10 @@ else if (_srcdoc is not null)
     private void HandleThemeChanged()
     {
         if (_disposed || !_initSent) return;
-        if (Host.CurrentTheme is not { } themeBundle) return;
-        _ = PostToIframeAsync("verso/themeChanged", new { theme = themeBundle });
+        // Post even when the host has no server-resolved bundle: in the VS Code webview
+        // the frame interop injects the live theme from the page's CSS variables. The
+        // iframe bridge ignores a null/empty theme, so this is a no-op elsewhere.
+        _ = PostToIframeAsync("verso/themeChanged", new { theme = Host.CurrentTheme });
     }
 
     private void HandleLayoutUpdated(LayoutUpdatedEventArgs args)

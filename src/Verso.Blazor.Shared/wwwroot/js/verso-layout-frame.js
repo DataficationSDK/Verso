@@ -57,8 +57,60 @@
         return handleId;
     }
 
+    // Reads the live theme from the host page's --verso-* custom properties and
+    // shapes it into the bundle the iframe bridge expects. Only meaningful inside a
+    // VS Code webview, where the host page maps --verso-* onto the active --vscode-*
+    // theme (so these values track the editor theme, including on theme change).
+    // Returns null on hosts that resolve the bundle server-side (e.g. Blazor Server),
+    // leaving any host-supplied theme payload untouched.
+    function readVsCodeThemeBundle() {
+        var cs;
+        try { cs = getComputedStyle(document.documentElement); } catch (_) { return null; }
+        if (!cs || !cs.getPropertyValue('--vscode-editor-background').trim()) return null;
+
+        function read(name, fallbackName) {
+            var v = cs.getPropertyValue(name).trim();
+            if (!v && fallbackName) v = cs.getPropertyValue(fallbackName).trim();
+            return v;
+        }
+
+        var map = {
+            'bg.default': read('--verso-bg-default'),
+            'bg.elevated': read('--verso-bg-elevated', '--verso-bg-default'),
+            'fg.default': read('--verso-fg-default'),
+            'fg.muted': read('--verso-fg-muted'),
+            'border.default': read('--verso-border-default'),
+            'accent': read('--verso-accent'),
+            'font.family.mono': read('--verso-font-family-mono', '--verso-ui-font-family'),
+            'font.family.sans': read('--verso-font-family-sans', '--verso-ui-font-family'),
+            'font.size.base': read('--verso-font-size-base', '--verso-ui-font-size')
+        };
+
+        var tokens = {};
+        for (var k in map) { if (map[k]) tokens[k] = map[k]; }
+        if (!tokens['bg.default'] && !tokens['fg.default']) return null;
+
+        var body = document.body;
+        var kind = body && body.classList.contains('vscode-high-contrast')
+            ? 'high-contrast'
+            : (body && body.classList.contains('vscode-dark')) ? 'dark' : 'light';
+
+        return { kind: kind, tokens: tokens };
+    }
+
     function postToIframe(iframeElem, type, payload) {
         if (!iframeElem || !iframeElem.contentWindow) return;
+        // Isolated frames are cross-origin and cannot inherit the host page's CSS
+        // variable cascade, so the theme must be pushed to them. When the host
+        // resolves the theme on the page (VS Code webview), feed the live values on
+        // mount and on every theme change so the frame stays in sync.
+        if (type === 'verso/init' || type === 'verso/themeChanged') {
+            var bundle = readVsCodeThemeBundle();
+            if (bundle) {
+                payload = payload || {};
+                payload.theme = bundle;
+            }
+        }
         iframeElem.contentWindow.postMessage({ type: type, payload: payload }, '*');
     }
 

@@ -1136,7 +1136,27 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "layout/frameMessage":
                 HandleLayoutFrameMessage(paramsJson);
                 break;
+            case "theme/vscodeKindChanged":
+                HandleVsCodeThemeKindChanged(paramsJson);
+                break;
         }
+    }
+
+    /// <summary>
+    /// The VS Code color theme changed. The actual colors live in the webview page's
+    /// --vscode-* variables (which the isolated-frame interop reads when posting), so
+    /// here we just track the kind and raise <see cref="OnThemeChanged"/> so the active
+    /// isolated layout frame is re-sent the current theme.
+    /// </summary>
+    private void HandleVsCodeThemeKindChanged(string? paramsJson)
+    {
+        var kind = TryReadStringProperty(paramsJson, "kind");
+        if (string.Equals(kind, "dark", StringComparison.OrdinalIgnoreCase))
+            _activeThemeKind = ThemeKind.Dark;
+        else if (string.Equals(kind, "light", StringComparison.OrdinalIgnoreCase))
+            _activeThemeKind = ThemeKind.Light;
+
+        OnThemeChanged?.Invoke();
     }
 
     private void HandleLayoutFrameMessage(string? paramsJson)
