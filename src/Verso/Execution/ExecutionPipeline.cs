@@ -169,6 +169,7 @@ internal sealed class ExecutionPipeline
         var currentSource = cell.Source;
         bool reportElapsedTime = false;
         bool anyMagicProcessed = false;
+        bool suppressExecution = false;
 
         while (true)
         {
@@ -207,11 +208,13 @@ internal sealed class ExecutionPipeline
 
             await magicCommand.ExecuteAsync(parseResult.Arguments ?? "", magicContext).ConfigureAwait(false);
 
+            // A suppressing command (e.g. #!sql-connect, #!nuget) means the cell's
+            // trailing code must not run on the kernel — but any further magic commands
+            // on subsequent lines still must, so two #!sql-connect lines each register
+            // their connection. Record the request and keep processing magic lines
+            // instead of returning here.
             if (magicContext.SuppressExecution)
-            {
-                stopwatch.Stop();
-                return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
-            }
+                suppressExecution = true;
 
             if (magicContext.ReportElapsedTime)
                 reportElapsedTime = true;
@@ -223,6 +226,14 @@ internal sealed class ExecutionPipeline
                 stopwatch.Stop();
                 return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
             }
+        }
+
+        // A processed magic command requested suppression: this is a setup-only cell
+        // (connections, package installs, ...), so do not pass trailing code to the kernel.
+        if (suppressExecution)
+        {
+            stopwatch.Stop();
+            return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
         }
 
         // Determine the code to execute: if any magic commands were processed, use the remaining code
