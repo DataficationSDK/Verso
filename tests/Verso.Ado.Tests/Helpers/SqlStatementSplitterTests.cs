@@ -302,4 +302,61 @@ public sealed class SqlStatementSplitterTests
         Assert.IsTrue(result[0].Contains("begin"));
         Assert.AreEqual("select 2", result[1]);
     }
+
+    [TestMethod]
+    public void Split_SemicolonSplittingDisabled_KeepsStatementsTogether()
+    {
+        var result = SqlStatementSplitter.Split(
+            "SELECT 1; SELECT 2", splitOnSemicolon: false);
+
+        // With semicolon splitting off the cell stays a single batch.
+        Assert.AreEqual(1, result.Count);
+        Assert.IsTrue(result[0].Contains("SELECT 1; SELECT 2"));
+    }
+
+    [TestMethod]
+    public void Split_SemicolonSplittingDisabled_DeclareThenExecStayInOneBatch()
+    {
+        // The reported bug: a DECLARE terminated by a semicolon was severed from the
+        // EXEC that reads its locals, so each ran as its own batch and the variables
+        // were out of scope ("Must declare the scalar variable @SP_Add_RetCode").
+        // SQL Server is split only on GO, so the whole script must remain one statement.
+        var sql =
+            "DECLARE @LS_BackupJobId AS UNIQUEIDENTIFIER,\n" +
+            "        @SP_Add_RetCode AS INT;\n" +
+            "EXEC @SP_Add_RetCode = master.dbo.sp_add_log_shipping_primary_database\n" +
+            "        @database = N'db1',\n" +
+            "        @backup_job_id = @LS_BackupJobId OUTPUT";
+
+        var result = SqlStatementSplitter.Split(
+            sql, handleGoBatches: true, splitOnSemicolon: false);
+
+        Assert.AreEqual(1, result.Count);
+        Assert.IsTrue(result[0].Contains("DECLARE"));
+        Assert.IsTrue(result[0].Contains("EXEC"));
+    }
+
+    [TestMethod]
+    public void Split_SemicolonSplittingDisabled_StillSplitsOnGo()
+    {
+        // GO remains a batch boundary even when semicolons do not split.
+        var sql = "DECLARE @x INT = 1; SELECT @x\nGO\nSELECT 2";
+
+        var result = SqlStatementSplitter.Split(
+            sql, handleGoBatches: true, splitOnSemicolon: false);
+
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result[0].Contains("DECLARE @x"));
+        Assert.IsTrue(result[0].Contains("SELECT @x"));
+        Assert.AreEqual("SELECT 2", result[1]);
+    }
+
+    [TestMethod]
+    public void Split_SemicolonSplittingEnabledByDefault_Unchanged()
+    {
+        // The default keeps the historical per-statement behavior.
+        var result = SqlStatementSplitter.Split("SELECT 1; SELECT 2");
+
+        Assert.AreEqual(2, result.Count);
+    }
 }

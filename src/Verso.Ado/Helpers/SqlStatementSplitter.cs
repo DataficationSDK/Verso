@@ -7,9 +7,17 @@ namespace Verso.Ado.Helpers;
 /// and <c>BEGIN ... END</c> control-flow blocks. Also handles <c>GO</c> batch
 /// separators when SQL Server provider is detected.
 /// </summary>
+/// <remarks>
+/// Semicolon splitting can be disabled via <paramref name="splitOnSemicolon"/>. On
+/// SQL Server a semicolon is only a statement terminator, not a batch boundary, so the
+/// whole cell (or each <c>GO</c>-delimited batch) must be sent to the server as a single
+/// command. Splitting on <c>;</c> there would run each statement as its own batch and
+/// drop the shared variable scope, breaking scripts such as <c>DECLARE @x …; EXEC … @x …</c>.
+/// </remarks>
 internal static class SqlStatementSplitter
 {
-    internal static IReadOnlyList<string> Split(string sql, bool handleGoBatches = false)
+    internal static IReadOnlyList<string> Split(
+        string sql, bool handleGoBatches = false, bool splitOnSemicolon = true)
     {
         if (string.IsNullOrWhiteSpace(sql))
             return Array.Empty<string>();
@@ -134,7 +142,7 @@ internal static class SqlStatementSplitter
             }
 
             // Statement separator: semicolon
-            if (sql[i] == ';')
+            if (splitOnSemicolon && sql[i] == ';')
             {
                 if (blockDepth > 0)
                 {

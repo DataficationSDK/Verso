@@ -77,8 +77,13 @@ public sealed class SqlKernel : ILanguageKernel
         var dialect = SqlDialectResolver.FromProviderName(connInfo.ProviderName);
         bool isSqlServer = dialect == SqlDialect.SqlServer;
 
-        // Split statements
-        var statements = SqlStatementSplitter.Split(sqlCode, handleGoBatches: isSqlServer);
+        // Split statements. On SQL Server a semicolon terminates a statement but does
+        // not start a new batch, so the cell is split only on GO and each batch is sent
+        // as a single command — this preserves T-SQL variable scope across statements
+        // (e.g. a DECLARE whose locals are read by a later EXEC). Other dialects, which
+        // execute one statement per command, keep splitting on semicolons.
+        var statements = SqlStatementSplitter.Split(
+            sqlCode, handleGoBatches: isSqlServer, splitOnSemicolon: !isSqlServer);
 
         int maxRows = directives.PageSize ?? DefaultMaxFetchRows;
         int displayPageSize = DefaultDisplayPageSize;
@@ -107,22 +112,36 @@ public sealed class SqlKernel : ILanguageKernel
 
                 sw.Stop();
 
-                if (reader.HasRows || reader.FieldCount > 0)
+                // A single command may carry several result sets — multiple SELECTs in
+                // one SQL Server batch, or a stored procedure that returns more than one.
+                // Walk every result set so each is displayed.
+                bool anyResultSet = false;
+                do
                 {
-                    // Flush any pending non-query summary before showing query results
-                    FlushNonQuerySummary(outputs, ref pendingAffected, ref pendingStatements, ref pendingElapsedMs, directives, context);
-
-                    var resultSet = await ReadResultSetAsync(reader, maxRows, context.CancellationToken)
-                        .ConfigureAwait(false);
-                    lastResultSet = resultSet;
-
-                    if (!directives.NoDisplay)
+                    if (reader.FieldCount > 0)
                     {
-                        var html = ResultSetFormatter.FormatResultSetHtml(resultSet, context.Theme, displayPageSize);
-                        outputs.Add(new CellOutput("text/html", html));
+                        anyResultSet = true;
+
+                        // Flush any pending non-query summary before showing query results
+                        FlushNonQuerySummary(outputs, ref pendingAffected, ref pendingStatements, ref pendingElapsedMs, directives, context);
+
+                        var resultSet = await ReadResultSetAsync(reader, maxRows, context.CancellationToken)
+                            .ConfigureAwait(false);
+                        lastResultSet = resultSet;
+
+                        if (!directives.NoDisplay)
+                        {
+                            var html = ResultSetFormatter.FormatResultSetHtml(resultSet, context.Theme, displayPageSize);
+                            outputs.Add(new CellOutput("text/html", html));
+                        }
                     }
                 }
-                else
+                while (await reader.NextResultAsync(context.CancellationToken).ConfigureAwait(false));
+
+                // RecordsAffected is cumulative for the whole command and reliable only
+                // once the reader is fully consumed. Summarize the non-query work for a
+                // batch that produced no result sets to display.
+                if (!anyResultSet)
                 {
                     var affected = reader.RecordsAffected;
                     if (affected >= 0)
@@ -577,9 +596,12 @@ public sealed class SqlKernel : ILanguageKernel
 
             if (descriptor is null || descriptor.Value is null)
             {
-                outputs.Add(new CellOutput("text/plain",
-                    $"Warning: No variable '{prefix}{reference.Name}' found for parameter binding.",
-                    IsError: false));
+                // No matching notebook variable. The token is left in the SQL untouched
+                // for the database to interpret — in T-SQL an unmatched @name is almost
+                // always a native local (DECLARE) or a stored-procedure parameter name
+                // (EXEC proc @p = …), not a notebook binding. Warning on every such token
+                // produced alarming noise on valid SQL, so unmatched tokens are skipped
+                // silently; a genuinely missing reference surfaces as a clear database error.
                 continue;
             }
 

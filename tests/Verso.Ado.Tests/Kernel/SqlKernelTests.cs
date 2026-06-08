@@ -145,6 +145,43 @@ public sealed class SqlKernelTests
     }
 
     [TestMethod]
+    public async Task ExecuteAsync_UnmatchedAtToken_ProducesNoBindingWarning()
+    {
+        // An @token with no matching notebook variable must not produce a
+        // "found for parameter binding" warning. In SQL an unmatched @name is
+        // typically a native local or a stored-procedure parameter name
+        // (e.g. EXEC sp_who2 @loginname = 'sa'), not a notebook binding, so the
+        // alarming-but-harmless warning was removed. The statement may still fail
+        // to execute, but no binding warning should appear.
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+
+        var outputs = await kernel.ExecuteAsync("SELECT @loginname", ctx);
+
+        Assert.IsFalse(outputs.Any(o => o.Content.Contains("found for parameter binding")),
+            "An unmatched @token must not produce a parameter-binding warning.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_MultipleSelectsInOneCell_DisplaysEachResult()
+    {
+        // The execution loop walks every result set a command produces. Two
+        // semicolon-separated SELECTs must each render, regardless of whether the
+        // dialect splits on the semicolon (SQLite) or sends one batch (SQL Server).
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+
+        await kernel.ExecuteAsync("CREATE TABLE Nums (N INTEGER)", ctx);
+        await kernel.ExecuteAsync("INSERT INTO Nums VALUES (1), (2)", ctx);
+
+        var outputs = await kernel.ExecuteAsync(
+            "SELECT N FROM Nums WHERE N = 1; SELECT N FROM Nums WHERE N = 2", ctx);
+
+        var htmlResults = outputs.Where(o => o.MimeType == "text/html" && !o.IsError).ToList();
+        Assert.AreEqual(2, htmlResults.Count, "Both SELECT result sets should be displayed.");
+    }
+
+    [TestMethod]
     public async Task ExecuteAsync_ParamInLineComment_NoBindingWarning()
     {
         var ctx = CreateContextWithConnection();
