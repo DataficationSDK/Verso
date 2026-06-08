@@ -87,4 +87,50 @@ public sealed class SqlDirectivesTests
         Assert.AreEqual("mydb", directives.ConnectionName);
         Assert.AreEqual("SELECT *\nFROM Orders\nWHERE Id > 1", remaining);
     }
+
+    [TestMethod]
+    public void Parse_DirectiveWithSpaceAfterDashes_TreatedAsComment()
+    {
+        // A space after "--" makes it a comment, not a directive — the connection
+        // is silently ignored. (DetectMisusedDirective surfaces a hint for this.)
+        var code = "-- connection Tertiary\nSELECT @@SERVERNAME";
+
+        var (directives, remaining) = SqlDirectives.Parse(code);
+
+        Assert.IsNull(directives.ConnectionName);
+        Assert.AreEqual(code, remaining);
+    }
+
+    [TestMethod]
+    public void DetectMisusedDirective_SpaceAfterDashes_ReturnsHint()
+    {
+        var hint = SqlDirectives.DetectMisusedDirective("-- connection Tertiary\nSELECT 1");
+
+        Assert.IsNotNull(hint);
+        Assert.IsTrue(hint!.Contains("--connection"));
+    }
+
+    [TestMethod]
+    public void DetectMisusedDirective_OtherKeys_ReturnHint()
+    {
+        Assert.IsNotNull(SqlDirectives.DetectMisusedDirective("-- name result\nSELECT 1"));
+        Assert.IsNotNull(SqlDirectives.DetectMisusedDirective("-- no-display\nSELECT 1"));
+        Assert.IsNotNull(SqlDirectives.DetectMisusedDirective("-- page-size 50\nSELECT 1"));
+    }
+
+    [TestMethod]
+    public void DetectMisusedDirective_CorrectDirective_ReturnsNull()
+    {
+        Assert.IsNull(SqlDirectives.DetectMisusedDirective("--connection Tertiary\nSELECT 1"));
+    }
+
+    [TestMethod]
+    public void DetectMisusedDirective_OrdinaryComment_ReturnsNull()
+    {
+        // Prose comments and keyword-prefixed comments that are not directive-shaped
+        // must not trigger a false hint.
+        Assert.IsNull(SqlDirectives.DetectMisusedDirective("-- This is a regular comment\nSELECT 1"));
+        Assert.IsNull(SqlDirectives.DetectMisusedDirective("-- name: report query\nSELECT 1"));
+        Assert.IsNull(SqlDirectives.DetectMisusedDirective("SELECT 1"));
+    }
 }

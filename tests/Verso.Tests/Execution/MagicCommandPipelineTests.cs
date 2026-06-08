@@ -107,6 +107,43 @@ public sealed class MagicCommandPipelineTests
         Assert.AreEqual(0, kernel.ExecutionCount, "Kernel should not be called when remaining code is empty");
     }
 
+    [TestMethod]
+    public async Task MultipleSuppressingMagicCommands_AllExecute()
+    {
+        // Two suppressing magic commands in one cell (e.g. two #!sql-connect lines
+        // registering separate connections). Both must run; previously the cell
+        // returned after the first and silently dropped the rest.
+        var magicCommand = new CountingSuppressingMagicCommand();
+        var (pipeline, kernel) = CreatePipeline(name =>
+            string.Equals(name, "suppress", StringComparison.OrdinalIgnoreCase) ? magicCommand : null);
+
+        var cell = new CellModel { Type = "code", Language = "csharp", Source = "#!suppress\n#!suppress" };
+
+        var result = await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        Assert.AreEqual(ExecutionResult.ExecutionStatus.Success, result.Status);
+        Assert.AreEqual(2, magicCommand.ExecutionCount, "Both magic command lines must execute");
+        Assert.AreEqual(0, kernel.ExecutionCount, "Kernel must not be called for a suppress-only cell");
+    }
+
+    [TestMethod]
+    public async Task SuppressingThenCode_StillSuppressesKernel()
+    {
+        // Suppression must still prevent trailing code from reaching the kernel,
+        // even though the loop now continues past the suppressing command.
+        var magicCommand = new CountingSuppressingMagicCommand();
+        var (pipeline, kernel) = CreatePipeline(name =>
+            string.Equals(name, "suppress", StringComparison.OrdinalIgnoreCase) ? magicCommand : null);
+
+        var cell = new CellModel { Type = "code", Language = "csharp", Source = "#!suppress\nvar x = 1;" };
+
+        var result = await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        Assert.AreEqual(ExecutionResult.ExecutionStatus.Success, result.Status);
+        Assert.AreEqual(1, magicCommand.ExecutionCount);
+        Assert.AreEqual(0, kernel.ExecutionCount, "Trailing code must not run after a suppressing command");
+    }
+
     // --- Test doubles ---
 
     private sealed class TrackingKernel : ILanguageKernel
@@ -157,6 +194,28 @@ public sealed class MagicCommandPipelineTests
 
         public Task ExecuteAsync(string arguments, IMagicCommandContext context)
         {
+            context.SuppressExecution = true;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CountingSuppressingMagicCommand : IMagicCommand
+    {
+        public string ExtensionId => "test.suppress";
+        public string Name => "suppress";
+        public string Version => "0.1.0";
+        public string? Author => null;
+        public string Description => "Counts invocations and suppresses execution.";
+        public IReadOnlyList<ParameterDefinition> Parameters => Array.Empty<ParameterDefinition>();
+
+        public int ExecutionCount { get; private set; }
+
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+
+        public Task ExecuteAsync(string arguments, IMagicCommandContext context)
+        {
+            ExecutionCount++;
             context.SuppressExecution = true;
             return Task.CompletedTask;
         }

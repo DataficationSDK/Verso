@@ -51,6 +51,12 @@ public sealed class SqlKernel : ILanguageKernel
         // Parse directives
         var (directives, sqlCode) = SqlDirectives.Parse(code);
 
+        // Surface a directive typed with a space after the dashes (e.g. "-- connection
+        // Primary"), which SQL reads as a comment and silently ignores.
+        var directiveHint = SqlDirectives.DetectMisusedDirective(code);
+        if (directiveHint is not null)
+            outputs.Add(new CellOutput("text/plain", directiveHint, IsError: false));
+
         if (string.IsNullOrWhiteSpace(sqlCode))
         {
             outputs.Add(new CellOutput("text/plain", "No SQL to execute.", IsError: true));

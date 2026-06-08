@@ -49,11 +49,51 @@ internal sealed record SqlDirectives(
         return (new SqlDirectives(connectionName, variableName, noDisplay, pageSize), remaining);
     }
 
+    private static readonly string[] DirectiveKeys =
+        { "connection", "name", "no-display", "page-size" };
+
     private static bool ContainsDirectiveKey(string line)
     {
-        return line.Contains("--connection") ||
-               line.Contains("--name") ||
-               line.Contains("--no-display") ||
-               line.Contains("--page-size");
+        foreach (var key in DirectiveKeys)
+        {
+            if (line.Contains("--" + key))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Detects a first line that looks like a directive typed with a space after the
+    /// dashes (e.g. <c>-- connection Primary</c>). SQL treats that as an ordinary
+    /// comment, so the directive is silently ignored and the cell falls back to the
+    /// default connection. Returns a hint message describing the fix, or <c>null</c>
+    /// when the first line is not a misused directive.
+    /// </summary>
+    internal static string? DetectMisusedDirective(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return null;
+
+        var firstLine = code.Split('\n')[0].TrimStart();
+
+        // Only relevant for a comment that was NOT already parsed as a directive
+        // (real directives start with "--connection" etc. and have no space).
+        if (!firstLine.StartsWith("--") || ContainsDirectiveKey(firstLine))
+            return null;
+
+        var afterDashes = firstLine.Substring(2).TrimStart();
+        foreach (var key in DirectiveKeys)
+        {
+            // The directive name must be the first token, bounded by whitespace or
+            // end of line, so prose comments like "-- name: report" do not match.
+            if (afterDashes.StartsWith(key, StringComparison.OrdinalIgnoreCase)
+                && (afterDashes.Length == key.Length || char.IsWhiteSpace(afterDashes[key.Length])))
+            {
+                return $"Hint: '--{key}' must have no space after '--'. This line was read as a " +
+                       "SQL comment and ignored, so the cell used the default connection.";
+            }
+        }
+
+        return null;
     }
 }
