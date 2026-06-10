@@ -12,6 +12,7 @@ internal sealed class PythonScopeManager : IDisposable
 {
     private PyModule? _scope;
     private readonly HashSet<string> _injectedRefs = new();
+    private Dictionary<string, object>? _preExecutionSnapshot;
 
     /// <summary>
     /// Creates the persistent Python scope.
@@ -93,6 +94,23 @@ internal sealed class PythonScopeManager : IDisposable
     }
 
     /// <summary>
+    /// Captures the variable store immediately before a cell runs, so <see cref="PublishToStore"/>
+    /// can distinguish a value the cell produced from one an external actor (for example a layout
+    /// interaction handler) wrote to the store while the cell was executing. A store entry that
+    /// changed during execution is left as-is rather than being overwritten with the scope's
+    /// pre-execution copy. Requires the GIL only insofar as <paramref name="store"/> access does.
+    /// </summary>
+    public void SnapshotStore(IVariableStore store)
+    {
+        _preExecutionSnapshot = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var descriptor in store.GetAll())
+        {
+            if (descriptor.Value is not null)
+                _preExecutionSnapshot[descriptor.Name] = descriptor.Value;
+        }
+    }
+
+    /// <summary>
     /// Reads non-dunder, non-module, non-callable locals from the Python scope,
     /// converts them to .NET types, and publishes them to the <see cref="IVariableStore"/>.
     /// Removes stale variables that no longer exist in the scope.
@@ -111,6 +129,9 @@ internal sealed class PythonScopeManager : IDisposable
 
             // Skip dunder names, verso internals, and module-level objects
             if (name.StartsWith("_") || name.StartsWith("__")) continue;
+
+            // Never overwrite a store entry that an external actor changed while this cell ran.
+            if (WasSetDuringExecution(name, store)) continue;
 
             try
             {
@@ -137,6 +158,27 @@ internal sealed class PythonScopeManager : IDisposable
                 // Skip variables that can't be converted
             }
         }
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> when the store's current value for <paramref name="name"/> differs from
+    /// the pre-execution snapshot, meaning code outside this cell wrote it during execution. The
+    /// scope's stale copy must not overwrite that newer value.
+    /// </summary>
+    private bool WasSetDuringExecution(string name, IVariableStore store)
+    {
+        if (_preExecutionSnapshot is null)
+            return false;
+
+        if (!store.TryGet<object>(name, out var currentValue) || currentValue is null)
+            return false;
+
+        // Absent from the snapshot but present now -- added by something other than this cell.
+        if (!_preExecutionSnapshot.TryGetValue(name, out var snapshotValue))
+            return true;
+
+        // Changed from the snapshot -- updated by something other than this cell.
+        return !ReferenceEquals(snapshotValue, currentValue) && !snapshotValue.Equals(currentValue);
     }
 
     /// <summary>
@@ -214,6 +256,7 @@ internal sealed class PythonScopeManager : IDisposable
         _scope?.Dispose();
         _scope = null;
         _injectedRefs.Clear();
+        _preExecutionSnapshot = null;
     }
 
     private static bool ShouldSkipForInjection(object value)

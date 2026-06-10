@@ -18,6 +18,15 @@ public sealed partial class ServerNotebookService
         new(StringComparer.Ordinal);
     private int _frameSeq;
 
+    // Isolated-frame messages (the mount seed and every ext/* push) must be camelCase to match the
+    // frame bridge and the out-of-process host (JsonRpcMessage.SerializerOptions). The default
+    // serializer would emit PascalCase, so a frame reading payload.id / data.columns would see
+    // undefined.
+    private static readonly JsonSerializerOptions FrameMessageOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     /// <inheritdoc />
     public event Action<CellOutputUpdatedEventArgs>? OnCellOutputUpdated;
 
@@ -187,7 +196,7 @@ public sealed partial class ServerNotebookService
 
         var result = new Dictionary<string, JsonElement>(seed.Count, StringComparer.Ordinal);
         foreach (var (key, value) in seed)
-            result[key] = JsonSerializer.SerializeToElement(value);
+            result[key] = JsonSerializer.SerializeToElement(value, FrameMessageOptions);
         return result;
     }
 
@@ -231,7 +240,7 @@ public sealed partial class ServerNotebookService
 
             JsonElement? payloadElement = payload is null
                 ? null
-                : JsonSerializer.SerializeToElement(payload);
+                : JsonSerializer.SerializeToElement(payload, FrameMessageOptions);
 
             _owner.OnLayoutFrameMessage?.Invoke(
                 new LayoutFrameMessageEventArgs(FrameInstanceId, "ext/" + type, payloadElement));

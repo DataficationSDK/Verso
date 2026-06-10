@@ -73,6 +73,10 @@ public sealed class PowerShellKernel : ILanguageKernel
                 _variableBridge!.InjectFromStore(context.Variables);
             }
 
+            // Snapshot the store after injection so the post-execution publish can preserve any
+            // value an external actor (e.g. a layout interaction) writes while this cell runs.
+            _variableBridge!.SnapshotStore(context.Variables);
+
             var outputs = new List<CellOutput>();
 
             Task AppendHostOutput(PowerShellHostOutput output)

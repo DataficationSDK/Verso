@@ -254,6 +254,12 @@ public sealed class PythonKernel : ILanguageKernel
                     "sys.stderr = _verso_stderr\n" +
                     "_verso_display_outputs.clear()");
 
+                // Snapshot the store just before user code runs so the post-execution publish can
+                // preserve any value an external actor (e.g. a layout interaction) writes while the
+                // cell is executing.
+                if (_options.InjectVariables)
+                    _scopeManager!.SnapshotStore(context.Variables);
+
                 // Execute user code
                 _scopeManager.Exec(code);
 
