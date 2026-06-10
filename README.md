@@ -11,17 +11,72 @@
 
 ![Verso in action](https://datafication.co/assets/verso/UsingVerso32026.gif)
 
+## Quick Start
+
+**In VS Code**, install the extension from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook), then open any `.verso`, `.ipynb`, or `.dib` file:
+
+```bash
+code --install-extension Datafication.verso-notebook
+```
+
+**In the browser**, install the CLI as a .NET global tool and launch the editor:
+
+```bash
+dotnet tool install -g Verso.Cli
+verso serve
+```
+
+Requirements: the [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). [Node.js 18+](https://nodejs.org/) and [Python 3.8-3.12](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
+
 ## Why Verso
 
 Microsoft deprecated Polyglot Notebooks on February 11, 2026, and .NET Interactive, the engine that powered it, followed the same path. Together they were the primary way to run interactive C#, F#, PowerShell, and SQL in a notebook. Their deprecation left a gap in the .NET ecosystem: no maintained notebook platform, and no maintained embeddable execution engine.
 
 Verso fills both roles.
 
-**As a notebook platform**, Verso runs in VS Code or any browser, ships with IntelliSense and variable sharing across nine languages, and imports existing `.ipynb` and `.dib` files. If you used Polyglot Notebooks, the experience will feel familiar.
+**As a notebook platform**, Verso runs in VS Code or any browser, ships with IntelliSense and variable sharing across every language it supports, and imports existing `.ipynb` and `.dib` files. If you used Polyglot Notebooks, the experience will feel familiar.
 
 **As an engine**, the core is a headless .NET library with no UI dependencies. It provides multi-language execution, an extension host, a variable store, and a layout manager through a clean set of public interfaces. If you embedded .NET Interactive in a tool, service, or workflow, the Verso engine serves the same purpose with a fully extensible architecture. Reference the NuGet package, wire up a `Scaffold`, and you have a programmable notebook runtime in any .NET application.
 
 The architecture is built on one principle: every feature is an extension, and every extension uses the same public interfaces available to anyone. The C# kernel, the dark theme, and the dashboard layout all ship as extensions with no special access to engine internals. If a built-in feature needs an internal API to work, the interfaces are incomplete.
+
+## Features
+
+### Code Execution with IntelliSense
+
+![C# code execution with IntelliSense](https://datafication.co/assets/verso/VersoIntelliSense.gif)
+
+All language kernels provide completions, diagnostics, and hover information. NuGet packages are referenced inline with `#r "nuget: PackageName/Version"`, and custom package sources are supported with `#i "nuget: <url>"`. Python uses `#!pip` for package management, and JavaScript uses `#!npm` for npm packages. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
+
+### Layouts
+
+The same notebook can be viewed as a linear document or rearranged into a 12-column grid dashboard. Drag cells to reposition them, resize with handles, and the layout metadata is saved in the `.verso` file. Switch between layouts at runtime. Layouts are an extension point like everything else: custom layout engines plug in through the same public interfaces as the built-ins.
+
+![Side-by-side comparison of Notebook Layout and Dashboard Layout](https://datafication.co/assets/verso/VersoLayouts.gif)
+
+### Database Connectivity
+
+Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect to any supported database, execute queries with paginated result tables, inspect schema, and scaffold EF Core DbContext classes at runtime. SQL results are shared to the variable store for use in C#, F#, and other cells. See the [database connectivity guide](docs/guides/database-connectivity.md) for connection setup, provider support, EF Core scaffolding, and CI/CD pipeline examples.
+
+### HTTP Requests
+
+Verso.Http uses `.http` file syntax (the same format supported by VS Code REST Client and JetBrains HTTP Client). Features include variable interpolation, dynamic variables, named request chaining, and cross-kernel integration where response data is shared to C#, F#, and other cells.
+
+### JavaScript and TypeScript
+
+Verso.JavaScript provides full JavaScript and TypeScript execution in notebook cells. When Node.js is available, cells run in a persistent subprocess with access to `require()`, dynamic `import()`, top-level `await`, and npm packages installed via the `#!npm` magic command. In environments without Node.js, the JavaScript kernel falls back to Jint, a pure .NET ES2024 interpreter with no external dependencies. TypeScript cells are automatically transpiled using the TypeScript compiler API (auto-installed on first use) and share the same execution environment and variable scope as JavaScript cells.
+
+### Rich Content Cells
+
+Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support `@variable` substitution from the shared variable store, enabling dynamic documents that update when data changes. See the [Mermaid diagrams guide](docs/guides/mermaid-diagrams.md) for diagram types, variable-driven charts, and theming.
+
+### Themes
+
+Three built-in themes (Light, Dark, High Contrast) are hot-swappable at runtime. The High Contrast theme meets WCAG 2.1 AA contrast requirements. In VS Code, the notebook theme automatically follows your editor theme.
+
+### Import from Jupyter and Polyglot Notebooks
+
+Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot Notebook patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import. By default, saving writes to a sibling `.verso` file and leaves the original untouched. To save `.ipynb` notebooks back to `.ipynb` (cell outputs preserved), enable the `verso.preserveOriginalFormat` setting in VS Code, or pass `--preserve-format` to `verso repl` / `verso serve`.
 
 ## Languages
 
@@ -35,11 +90,45 @@ The architecture is built on one principle: every feature is an extension, and e
 | Python     | Yes | Yes |
 | SQL        | Yes | Yes |
 | HTTP       | Yes | Yes |
-| Markdown   | N/A | N/A |
-| HTML       | N/A | Yes |
-| Mermaid    | N/A | Yes |
 
 \* IntelliSense for JavaScript and TypeScript is provided by Monaco's built-in language services rather than the kernel.
+
+Markdown, HTML, and Mermaid ship as rich content cell types rather than language kernels; see [Rich Content Cells](#rich-content-cells).
+
+## Command Line
+
+Verso ships as a .NET global tool. Beyond launching the editor, the CLI runs notebooks headlessly, hosts a terminal REPL, and converts between formats, so the same notebook works interactively and in CI.
+
+```bash
+# Launch the Verso editor in your browser
+verso serve
+
+# Open a specific notebook
+verso serve my-notebook.verso
+
+# Run a notebook headlessly
+verso run pipeline.verso --param region=us-east --output json
+
+# Convert a Jupyter notebook to Verso format
+verso convert notebook.ipynb --to verso
+
+# Start an interactive REPL (C# by default; switch with .kernel fsharp, .kernel python, ...)
+verso repl
+
+# Export a notebook through a registered ExportMenu action
+verso export notebook.verso --format html --output out.html
+```
+
+| Command | Purpose |
+|---------|---------|
+| `verso serve` | Launch the Verso editor as a local web server |
+| `verso run` | Execute a notebook headlessly and stream outputs |
+| `verso repl` | Interactive REPL hosted in the terminal, backed by the same kernels and extensions as the editor |
+| `verso convert` | Convert between `.verso`, `.ipynb`, and `.dib` formats |
+| `verso export` | Export a notebook via an `ExportMenu` toolbar action (HTML, Markdown, …) |
+| `verso info` | Display CLI version, runtime, and extension details |
+
+`verso run` supports typed parameters (`--param name=value`), JSON output for CI integration, selective cell execution, and fail-fast mode. `verso repl` supports completion, persistent history, multi-line cell submission (blank-line to submit), and meta-commands like `.kernel`, `.vars`, `.save`, `.load`, and `.export`. See the [CLI README](src/Verso.Cli/README.md) for the full option reference, meta-command list, exit codes, and CI/CD examples.
 
 ## Architecture
 
@@ -86,47 +175,9 @@ Verso is split into three layers. The engine knows nothing about the UI. The UI 
 
 For a deeper look at each layer, see the [architecture documentation](docs/architecture/overview.md).
 
-## Features
-
-### Code Execution with IntelliSense
-
-![C# code execution with IntelliSense](https://datafication.co/assets/verso/VersoIntelliSense.gif)
-
-All language kernels provide completions, diagnostics, and hover information. NuGet packages are referenced inline with `#r "nuget: PackageName/Version"`, and custom package sources are supported with `#i "nuget: <url>"`. Python uses `#!pip` for package management, and JavaScript uses `#!npm` for npm packages. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
-
-### Layouts
-
-The same notebook can be viewed as a linear document or rearranged into a 12-column grid dashboard. Drag cells to reposition them, resize with handles, and the layout metadata is saved in the `.verso` file. Switch between layouts at runtime.
-
-![Side-by-side comparison of Notebook Layout and Dashboard Layout](https://datafication.co/assets/verso/VersoLayouts.gif)
-
-### Database Connectivity
-
-Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect to any supported database, execute queries with paginated result tables, inspect schema, and scaffold EF Core DbContext classes at runtime. SQL results are shared to the variable store for use in C#, F#, and other cells. See the [database connectivity guide](docs/guides/database-connectivity.md) for connection setup, provider support, EF Core scaffolding, and CI/CD pipeline examples.
-
-### HTTP Requests
-
-Verso.Http uses `.http` file syntax (the same format supported by VS Code REST Client and JetBrains HTTP Client). Features include variable interpolation, dynamic variables, named request chaining, and cross-kernel integration where response data is shared to C#, F#, and other cells.
-
-### JavaScript and TypeScript
-
-Verso.JavaScript provides full JavaScript and TypeScript execution in notebook cells. When Node.js is available, cells run in a persistent subprocess with access to `require()`, dynamic `import()`, top-level `await`, and npm packages installed via the `#!npm` magic command. In environments without Node.js, the JavaScript kernel falls back to Jint, a pure .NET ES2024 interpreter with no external dependencies. TypeScript cells are automatically transpiled using the TypeScript compiler API (auto-installed on first use) and share the same execution environment and variable scope as JavaScript cells.
-
-### Rich Content Cells
-
-Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support `@variable` substitution from the shared variable store, enabling dynamic documents that update when data changes. See the [Mermaid diagrams guide](docs/guides/mermaid-diagrams.md) for diagram types, variable-driven charts, and theming.
-
-### Themes
-
-Three built-in themes (Light, Dark, High Contrast) are hot-swappable at runtime. The High Contrast theme meets WCAG 2.1 AA contrast requirements. In VS Code, the notebook theme automatically follows your editor theme.
-
-### Import from Jupyter and Polyglot Notebooks
-
-Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot Notebook patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import. By default, saving writes to a sibling `.verso` file and leaves the original untouched. To save `.ipynb` notebooks back to `.ipynb` (cell outputs preserved), enable the `verso.preserveOriginalFormat` setting in VS Code, or pass `--preserve-format` to `verso repl` / `verso serve`.
-
 ## Extension Model
 
-Eleven interfaces in `Verso.Abstractions` define every point of extensibility, covering language kernels, cell renderers, cell types, toolbar actions, data formatters, magic commands, themes, layouts, serializers, post-processors, and cell interaction handlers. Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
+A focused set of interfaces in `Verso.Abstractions` defines every point of extensibility: language kernels, cell renderers, cell types, cell property providers, toolbar actions, data formatters, magic commands, themes, layouts, serializers, post-processors, and cell interaction handlers. Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
 
 Third-party extensions load in their own `AssemblyLoadContext`, collectible and unloadable. Your extension references only `Verso.Abstractions` and works across every front-end without modification.
 
@@ -180,14 +231,14 @@ JSON-based, human-readable, and diff-friendly:
 }
 ```
 
-## Getting Started
+## Documentation
 
-### Prerequisites
+- [Architecture](docs/architecture/overview.md): the engine, front-ends, and extension host in depth
+- [Guides](docs/guides/): database connectivity, Mermaid diagrams, and more
+- [Extension authoring](docs/extensions/): the full interface reference and walkthroughs
+- [CLI reference](src/Verso.Cli/README.md): every command, option, meta-command, and exit code
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [VS Code](https://code.visualstudio.com/) (for the extension, desktop only) or any modern browser (for Blazor)
-- [Node.js 18+](https://nodejs.org/) (optional, for the JavaScript/TypeScript kernel; falls back to Jint when absent)
-- [Python 3.8-3.12](https://www.python.org/downloads/) (optional, for the Python kernel)
+## Building from Source
 
 ### Run in the Browser
 
@@ -198,47 +249,7 @@ dotnet build Verso.sln
 dotnet run --project src/Verso.Blazor
 ```
 
-### Run from the Command Line
-
-Verso ships as a .NET global tool. Install it once, then launch the editor, run notebooks headlessly, or convert between formats from any terminal.
-
-```bash
-# Install the CLI
-dotnet tool install -g Verso.Cli
-
-# Launch the Verso editor in your browser
-verso serve
-
-# Open a specific notebook
-verso serve my-notebook.verso
-
-# Run a notebook headlessly
-verso run pipeline.verso --param region=us-east --output json
-
-# Convert a Jupyter notebook to Verso format
-verso convert notebook.ipynb --to verso
-
-# Start an interactive REPL (C# by default; switch with .kernel fsharp, .kernel python, ...)
-verso repl
-
-# Export a notebook through a registered ExportMenu action
-verso export notebook.verso --format html --output out.html
-```
-
-The CLI includes six commands:
-
-| Command | Purpose |
-|---------|---------|
-| `verso serve` | Launch the Verso editor as a local web server |
-| `verso run` | Execute a notebook headlessly and stream outputs |
-| `verso repl` | Interactive REPL hosted in the terminal, backed by the same kernels and extensions as the editor |
-| `verso convert` | Convert between `.verso`, `.ipynb`, and `.dib` formats |
-| `verso export` | Export a notebook via an `ExportMenu` toolbar action (HTML, Markdown, …) |
-| `verso info` | Display CLI version, runtime, and extension details |
-
-`verso run` supports typed parameters (`--param name=value`), JSON output for CI integration, selective cell execution, and fail-fast mode. `verso repl` supports completion, persistent history, multi-line cell submission (blank-line to submit), and meta-commands like `.kernel`, `.vars`, `.save`, `.load`, and `.export`. See the [CLI README](src/Verso.Cli/README.md) for the full option reference, meta-command list, exit codes, and CI/CD examples.
-
-### Run in VS Code
+### Build the VS Code Extension
 
 ```bash
 dotnet build src/Verso.Host
