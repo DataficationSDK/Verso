@@ -1049,8 +1049,8 @@ html, body {
 }
 
 .verso-output--error {
-    background: var(--vscode-inputValidation-errorBackground, var(--verso-cell-error-background, #FDE7E9));
-    color: var(--vscode-inputValidation-errorForeground, var(--verso-cell-error-foreground, #A1260D));
+    background: var(--verso-cell-error-background, #FDE7E9);
+    color: var(--verso-cell-error-foreground, #A1260D);
     padding: var(--verso-output-padding, 8px);
 }
 
