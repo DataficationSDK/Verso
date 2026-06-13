@@ -1,0 +1,45 @@
+name: DCO
+
+on:
+  pull_request:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+jobs:
+  dco-check:
+    name: Check DCO sign-off
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Verify Signed-off-by on each commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          failed=0
+          for sha in $(git rev-list "${BASE_SHA}..${HEAD_SHA}"); do
+            # Skip merge commits (more than one parent).
+            parents=$(git rev-list --parents -n 1 "$sha" | wc -w)
+            if [ "$parents" -gt 2 ]; then
+              continue
+            fi
+            subject=$(git show -s --format='%s' "$sha")
+            if ! git show -s --format='%B' "$sha" \
+              | grep -qiE '^Signed-off-by: .+ <.+@.+>'; then
+              echo "::error::Commit ${sha} (\"${subject}\") is missing a 'Signed-off-by:' line. Run: git commit --amend --signoff (or rebase with --signoff) and force-push."
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more commits are missing a DCO sign-off."
+            exit 1
+          fi
+          echo "All commits include a Signed-off-by line."
