@@ -814,7 +814,7 @@ export class BlazorEditorProvider
             --verso-cell-output-background: var(--vscode-textBlockQuote-background, #F5F5F5);
             --verso-cell-output-foreground: var(--vscode-editor-foreground);
             --verso-cell-error-background: var(--vscode-inputValidation-errorBackground, #5A1D1D);
-            --verso-cell-error-foreground: var(--vscode-errorForeground, #F48771);
+            --verso-cell-error-foreground: var(--vscode-inputValidation-errorForeground, var(--vscode-errorForeground, #F48771));
             --verso-cell-running-indicator: var(--vscode-progressBar-background, #0078D4);
             /* Toolbar and the right panel-strip rail share this token. Use the workbench side
                panel background (Explorer / Source Control) so Verso's chrome frames the notebook
