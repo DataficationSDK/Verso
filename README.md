@@ -269,7 +269,7 @@ dotnet test Verso.sln
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss what you'd like to work on.
+Contributions are welcome. Open an issue to discuss what you'd like to work on. Verso accepts contributions under the [Developer Certificate of Origin](https://developercertificate.org/); see [CONTRIBUTING.md](CONTRIBUTING.md) for the sign-off workflow.
 
 ## Sponsors
 
