@@ -1,0 +1,51 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Form Studio",
+    "defaultKernel": "csharp",
+    "activeLayout": {
+      "extensionId": "verso.layout.notebook",
+      "layoutId": "notebook"
+    }
+  },
+  "cells": [
+    {
+      "id": "f0a00000-0001-4000-8000-000000000001",
+      "type": "markdown",
+      "source": "# Form Studio\n\nTurn this notebook into a live, parameterized app. Form Studio is an **isolated layout**: the canvas runs inside the host\u0027s sandboxed frame, input widgets write **kernel variables**, and the charts plot a **DataBlock** the kernel rebuilds in response.\n\nThis notebook ships with a **prepopulated dashboard** (two inputs and two charts), so you can play with it right away.\n\n**To run the demo:**\n1. Run all cells. The extension loads, a \u0060sales\u0060 table is built, and the recompute step is registered.\n2. Switch the layout to **Form Studio** from the layout picker.\n3. Click **Preview**, then move the **Minimum units** slider or change the **Region**. The charts update as the kernel recomputes.\n4. Switch to **Edit** to drag new widgets from the palette, rebind variables, or change chart types."
+    },
+    {
+      "id": "f0a00000-0002-4000-8000-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "#!extension ./src/Verso.Layout.FormStudio/bin/Debug/net8.0/Verso.Layout.FormStudio.dll"
+    },
+    {
+      "id": "f0a00000-0003-4000-8000-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "#r \u0022nuget: Datafication.Core, 1.0.11\u0022\nusing Datafication.Core.Data;\n\n// Build a sales table to drive the dashboard. The seed is fixed so the data is reproducible.\nvar rng = new Random(7);\nstring[] regions = { \u0022North\u0022, \u0022South\u0022, \u0022East\u0022, \u0022West\u0022 };\nstring[] months  = { \u0022Jan\u0022, \u0022Feb\u0022, \u0022Mar\u0022, \u0022Apr\u0022, \u0022May\u0022, \u0022Jun\u0022 };\n\nvar sales = new DataBlock();\nsales.AddColumn(new DataColumn(\u0022Region\u0022, typeof(string)));\nsales.AddColumn(new DataColumn(\u0022Month\u0022, typeof(string)));\nsales.AddColumn(new DataColumn(\u0022Units\u0022, typeof(double)));\nsales.AddColumn(new DataColumn(\u0022Revenue\u0022, typeof(double)));\n\nforeach (var region in regions)\n    foreach (var month in months)\n    {\n        double units = rng.Next(20, 200);\n        sales.AddRow(new object[] { region, month, units, Math.Round(units * (rng.NextDouble() * 8 \u002B 6), 2) });\n    }\n"
+    },
+    {
+      "id": "f0a00000-0004-4000-8000-000000000004",
+      "type": "markdown",
+      "source": "## The recompute step\n\nThis cell defines \u0060Recompute()\u0060, which reads the dashboard\u0027s inputs (\u0060minUnits\u0060, \u0060region\u0060) and rebuilds \u0060chartData\u0060, the DataBlock the charts plot. It registers the method with Form Studio by setting \u0060__verso_recompute\u0060. Form Studio runs exactly that snippet whenever an input changes, so the read of the inputs is always current and re-running it never disturbs the rest of the notebook. Inputs are read through \u0060Variables\u0060 (the shared store exposed to C# cells), and \u0060Get\u003CT\u003E\u0060 returns sensible defaults before any widget is touched."
+    },
+    {
+      "id": "f0a00000-0005-4000-8000-000000000005",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Rebuild chartData from the current inputs. Form Studio calls this when a slider or dropdown\n// changes (see the __verso_recompute registration below).\nvoid Recompute()\n{\n    var data = Variables.Get\u003CDataBlock\u003E(\u0022sales\u0022);\n    if (data is null) return;\n\n    double minUnits = Variables.Get\u003Cdouble\u003E(\u0022minUnits\u0022);\n    string region   = Variables.Get\u003Cstring\u003E(\u0022region\u0022) ?? \u0022All\u0022;\n    string[] order  = { \u0022Jan\u0022, \u0022Feb\u0022, \u0022Mar\u0022, \u0022Apr\u0022, \u0022May\u0022, \u0022Jun\u0022 };\n\n    var cd = new DataBlock();\n    cd.AddColumn(new DataColumn(\u0022Month\u0022, typeof(string)));\n    cd.AddColumn(new DataColumn(\u0022Units\u0022, typeof(double)));\n    cd.AddColumn(new DataColumn(\u0022Revenue\u0022, typeof(double)));\n\n    foreach (var month in order)\n    {\n        double units = 0, revenue = 0;\n        for (int r = 0; r \u003C data.RowCount; r\u002B\u002B)\n        {\n            if ((string)data[r, \u0022Month\u0022] != month) continue;\n            if (region != \u0022All\u0022 \u0026\u0026 (string)data[r, \u0022Region\u0022] != region) continue;\n            double u = Convert.ToDouble(data[r, \u0022Units\u0022] ?? 0);\n            if (u \u003C minUnits) continue;\n            units \u002B= u;\n            revenue \u002B= Convert.ToDouble(data[r, \u0022Revenue\u0022] ?? 0);\n        }\n        cd.AddRow(new object[] { month, units, Math.Round(revenue, 2) });\n    }\n\n    Variables.Set(\u0022chartData\u0022, cd);\n}\n\n// Register the recompute step. The __verso_ prefix marks it as a framework value, so the kernel\n// does not surface it as an ordinary variable.\nVariables.Set(\u0022__verso_recompute\u0022, \u0022Recompute();\u0022);\n\nRecompute();"
+    },
+    {
+      "id": "f0a00000-0006-4000-8000-000000000006",
+      "type": "markdown",
+      "source": "## What is happening\n\n- **Inputs write variables.** Each input widget writes its value to the kernel variable named in its **Binds to variable** field. With **Auto-run** on (the default), Form Studio runs \u0060Recompute()\u0060 a moment after each change.\n- **Charts read a DataBlock.** A chart widget plots the DataBlock you pick; when \u0060chartData\u0060 changes, the chart refreshes.\n- **Visual controls are instant.** Switching the chart type (bar / line / pie / scatter), choosing X and Y columns, or changing the color all happen in the frame with no kernel round-trip.\n\nThe dashboard layout is saved with the notebook, so the prepopulated widgets (and any you add) are restored when you reopen it. Use **Export** to download the layout as JSON, and **Edit** to rearrange or add widgets."
+    }
+  ],
+  "layouts": {
+    "com.verso.sample.form-studio:form-studio": {
+      "doc": "{\u0022autoRun\u0022:true,\u0022widgets\u0022:[\n  {\u0022id\u0022:\u0022w_slider\u0022,\u0022kind\u0022:\u0022slider\u0022,\u0022x\u0022:24,\u0022y\u0022:20,\u0022w\u0022:300,\u0022h\u0022:96,\u0022label\u0022:\u0022Minimum units\u0022,\u0022bindVar\u0022:\u0022minUnits\u0022,\u0022value\u0022:40,\u0022config\u0022:{\u0022min\u0022:0,\u0022max\u0022:200,\u0022step\u0022:5}},\n  {\u0022id\u0022:\u0022w_region\u0022,\u0022kind\u0022:\u0022dropdown\u0022,\u0022x\u0022:340,\u0022y\u0022:20,\u0022w\u0022:260,\u0022h\u0022:92,\u0022label\u0022:\u0022Region\u0022,\u0022bindVar\u0022:\u0022region\u0022,\u0022value\u0022:\u0022All\u0022,\u0022config\u0022:{\u0022options\u0022:[\u0022All\u0022,\u0022North\u0022,\u0022South\u0022,\u0022East\u0022,\u0022West\u0022]}},\n  {\u0022id\u0022:\u0022w_bar\u0022,\u0022kind\u0022:\u0022chart\u0022,\u0022x\u0022:24,\u0022y\u0022:140,\u0022w\u0022:560,\u0022h\u0022:300,\u0022label\u0022:\u0022Units by month\u0022,\u0022bindVar\u0022:\u0022\u0022,\u0022config\u0022:{\u0022sourceVar\u0022:\u0022chartData\u0022,\u0022chartType\u0022:\u0022bar\u0022,\u0022xColumn\u0022:\u0022Month\u0022,\u0022yColumns\u0022:[\u0022Units\u0022],\u0022color\u0022:\u0022#5b8def\u0022}},\n  {\u0022id\u0022:\u0022w_line\u0022,\u0022kind\u0022:\u0022chart\u0022,\u0022x\u0022:600,\u0022y\u0022:140,\u0022w\u0022:480,\u0022h\u0022:300,\u0022label\u0022:\u0022Revenue by month\u0022,\u0022bindVar\u0022:\u0022\u0022,\u0022config\u0022:{\u0022sourceVar\u0022:\u0022chartData\u0022,\u0022chartType\u0022:\u0022line\u0022,\u0022xColumn\u0022:\u0022Month\u0022,\u0022yColumns\u0022:[\u0022Revenue\u0022],\u0022color\u0022:\u0022#3fb27f\u0022}}\n]}"
+    }
+  }
+}

@@ -31,13 +31,13 @@ Data flow:
 ## Build
 
 ```bash
-dotnet build samples/SampleLayout/Verso.Sample.Sparkline/Verso.Sample.Sparkline.csproj
+dotnet build samples/layouts/Verso.Sample.Sparkline/Verso.Sample.Sparkline.csproj
 ```
 
 Run the tests:
 
 ```bash
-dotnet test samples/SampleLayout/Verso.Sample.Sparkline.Tests/Verso.Sample.Sparkline.Tests.csproj
+dotnet test samples/layouts/Verso.Sample.Sparkline.Tests/Verso.Sample.Sparkline.Tests.csproj
 ```
 
 The build produces `Verso.Sample.Sparkline.dll`. Load it like any other Verso extension: drop it on `verso.extensionsPath`, or load it from a notebook with `#!extension`.

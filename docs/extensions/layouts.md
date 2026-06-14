@@ -713,8 +713,8 @@ Grid-based dashboard with drag handles, resize handles, and bin-packing position
 
 Slide-based presentation layout that maps cells to numbered slides with navigation.
 
-- **Source**: `samples/SampleLayout/Verso.Sample.Slides/PresentationLayout.cs`
-- **Tests**: `samples/SampleLayout/Verso.Sample.Slides.Tests/PresentationLayoutTests.cs`
+- **Source**: `samples/layouts/Verso.Sample.Slides/PresentationLayout.cs`
+- **Tests**: `samples/layouts/Verso.Sample.Slides.Tests/PresentationLayoutTests.cs`
 - `RequiresCustomRenderer = true`
 - `IsVisible` based on current slide number
 - `SlideAssignment` record for cell-to-slide mapping
@@ -725,9 +725,9 @@ Slide-based presentation layout that maps cells to numbered slides with navigati
 
 A minimal isolated layout that draws a sparkline on a `<canvas>` from a numeric kernel variable. It is the worked example for the [Isolated (iframe) layouts](#isolated-iframe-layouts) section below.
 
-- **Source**: `samples/SampleLayout/Verso.Sample.Sparkline/SparklineLayout.cs`
-- **Renderer**: `samples/SampleLayout/Verso.Sample.Sparkline/assets/main.js`
-- **Tests**: `samples/SampleLayout/Verso.Sample.Sparkline.Tests/SparklineLayoutTests.cs`
+- **Source**: `samples/layouts/Verso.Sample.Sparkline/SparklineLayout.cs`
+- **Renderer**: `samples/layouts/Verso.Sample.Sparkline/assets/main.js`
+- **Tests**: `samples/layouts/Verso.Sample.Sparkline.Tests/SparklineLayoutTests.cs`
 - `RendererIsolation = Isolated`; single self-contained `main.js` (no external script, so no extra CSP)
 - `ILayoutLifecycleHandler` subscribes to the `series` variable and pushes updates into the live frame
 - `ILayoutInteractionHandler` handles a `select-point` interaction and writes the chosen index to `selectedPoint`
@@ -983,7 +983,7 @@ CSS that uses `var(--verso-accent)` re-colors automatically. A `<canvas>` does n
 
 ### Worked example
 
-`samples/SampleLayout/Verso.Sample.Sparkline` exercises this entire surface in about a hundred lines of C# and a single `main.js`: isolation opt-in, a self-contained canvas renderer, a lifecycle handler that streams a kernel variable, an interaction handler that writes the selection back to the kernel, and theme-token styling. Its README has build and run instructions.
+`samples/layouts/Verso.Sample.Sparkline` exercises this entire surface in about a hundred lines of C# and a single `main.js`: isolation opt-in, a self-contained canvas renderer, a lifecycle handler that streams a kernel variable, an interaction handler that writes the selection back to the kernel, and theme-token styling. Its README has build and run instructions.
 
 ## See Also
 

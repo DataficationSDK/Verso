@@ -30,7 +30,7 @@ The base interface for all extensions. Every extension class must implement this
 
 ### Example Implementation
 
-See the Dice sample: `samples/SampleExtension/Verso.Sample.Dice/DiceExtension.cs`
+See the Dice sample: `samples/extensions/Verso.Sample.Dice/DiceExtension.cs`
 
 ---
 
@@ -61,7 +61,7 @@ Executes code, provides completions, diagnostics, and hover information for a sp
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceExtension.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceExtension.cs`
 - **Built-in**: `CSharpKernel` in the `Verso` project
 
 ```csharp
@@ -108,7 +108,7 @@ Renderers are stateless. `RenderInputAsync` and `RenderOutputAsync` are called w
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceRenderer.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceRenderer.cs`
 - **Built-in**: `MarkdownRenderer`
 
 ```csharp
@@ -155,7 +155,7 @@ Formatters are stateless and invoked on-demand. When a kernel produces an object
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceFormatter.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceFormatter.cs`
 - **Built-in**: `PrimitiveFormatter`, `CollectionFormatter`, `ExceptionFormatter`, `HtmlFormatter`, `SvgFormatter`, `ImageFormatter`
 
 ```csharp
@@ -208,7 +208,7 @@ Defines an action that appears on the notebook toolbar, cell toolbar, or context
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceRollAction.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceRollAction.cs`
 - **Built-in**: `RunAllAction`, `RunCellAction`, `ClearOutputsAction`, `RestartKernelAction`, `ExportHtmlAction`, `ExportMarkdownAction`, `SwitchThemeAction`
 
 ```csharp
