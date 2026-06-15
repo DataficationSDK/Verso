@@ -321,4 +321,41 @@ public sealed class SchemaCacheTests
         Assert.AreEqual("CUSTOMERS", fks[0].ToTable);
         Assert.AreEqual("ID", fks[0].ToColumn);
     }
+
+    // --- TABLE_TYPE normalization ---
+    // PostgreSQL, SQL Server, and MySQL report a regular table as "BASE TABLE" via
+    // INFORMATION_SCHEMA. It must normalize to "TABLE" so the scaffold table filter
+    // (which matches TableType == "TABLE") finds user tables on those providers.
+
+    [TestMethod]
+    public void NormalizeTableType_BaseTable_NormalizesToTable()
+    {
+        Assert.AreEqual("TABLE", SchemaCache.NormalizeTableType("BASE TABLE"));
+    }
+
+    [TestMethod]
+    public void NormalizeTableType_BaseTableMixedCase_NormalizesToTable()
+    {
+        Assert.AreEqual("TABLE", SchemaCache.NormalizeTableType("base table"));
+    }
+
+    [TestMethod]
+    public void NormalizeTableType_View_IsPreserved()
+    {
+        Assert.AreEqual("VIEW", SchemaCache.NormalizeTableType("VIEW"));
+    }
+
+    [TestMethod]
+    public void NormalizeTableType_PlainTable_IsPreserved()
+    {
+        Assert.AreEqual("TABLE", SchemaCache.NormalizeTableType("TABLE"));
+    }
+
+    [TestMethod]
+    public void NormalizeTableType_NullOrEmpty_DefaultsToTable()
+    {
+        Assert.AreEqual("TABLE", SchemaCache.NormalizeTableType(null));
+        Assert.AreEqual("TABLE", SchemaCache.NormalizeTableType(""));
+        Assert.AreEqual("TABLE", SchemaCache.NormalizeTableType("   "));
+    }
 }
