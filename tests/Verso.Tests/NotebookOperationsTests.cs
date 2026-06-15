@@ -95,6 +95,31 @@ public sealed class NotebookOperationsTests
     }
 
     [TestMethod]
+    public async Task ClearAllOutputsAsync_PreservesRenderedMarkdown_ClearsCodeOutput()
+    {
+        // Matches Jupyter/Polyglot: clearing outputs leaves a rendered Markdown cell rendered,
+        // while a code cell's execution output is cleared.
+        await using var host = new Verso.Extensions.ExtensionHost();
+        await host.LoadBuiltInExtensionsAsync();
+        await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
+        scaffold.InitializeSubsystems();
+        scaffold.DefaultKernelId = "fake";
+        scaffold.RegisterKernel(new FakeLanguageKernel("fake"));
+
+        var markdown = scaffold.AddCell(type: "markdown", source: "# Heading");
+        var code = scaffold.AddCell(type: "code", language: "fake", source: "x");
+
+        await scaffold.NotebookOps.ExecuteAllAsync();
+        Assert.IsTrue(markdown.Outputs.Count > 0, "Markdown cell should render to an output.");
+        Assert.IsTrue(code.Outputs.Count > 0, "Code cell should produce output.");
+
+        await scaffold.NotebookOps.ClearAllOutputsAsync();
+
+        Assert.IsTrue(markdown.Outputs.Count > 0, "Rendered Markdown should survive Clear Outputs.");
+        Assert.AreEqual(0, code.Outputs.Count, "Code output should be cleared.");
+    }
+
+    [TestMethod]
     public async Task RestartKernelAsync_DisposesAndReinitializesKernel()
     {
         var kernel = (FakeLanguageKernel)_scaffold.GetKernel("fake")!;

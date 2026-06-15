@@ -134,6 +134,40 @@ public sealed class SqlConnectMagicCommandTests
     }
 
     [TestMethod]
+    public async Task ExecuteAsync_CommandTimeout_StoredOnConnection()
+    {
+        var cmd = new SqlConnectMagicCommand();
+        var ctx = new StubMagicCommandContext();
+
+        await cmd.ExecuteAsync(
+            "--name testdb --connection-string \"Data Source=:memory:\" --provider Microsoft.Data.Sqlite --command-timeout 0",
+            ctx);
+
+        var connections = ctx.Variables.Get<Dictionary<string, SqlConnectionInfo>>(
+            SqlConnectMagicCommand.ConnectionsStoreKey)!;
+        Assert.AreEqual(0, connections["testdb"].CommandTimeout);
+        Assert.IsTrue(ctx.WrittenOutputs.Any(o => o.Content.Contains("no limit")));
+
+        await connections["testdb"].Connection!.DisposeAsync();
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_NegativeCommandTimeout_OutputsError()
+    {
+        var cmd = new SqlConnectMagicCommand();
+        var ctx = new StubMagicCommandContext();
+
+        await cmd.ExecuteAsync(
+            "--name testdb --connection-string \"Data Source=:memory:\" --provider Microsoft.Data.Sqlite --command-timeout -1",
+            ctx);
+
+        Assert.IsTrue(ctx.WrittenOutputs.Any(o => o.IsError && o.Content.Contains("--command-timeout")));
+        var connections = ctx.Variables.Get<Dictionary<string, SqlConnectionInfo>>(
+            SqlConnectMagicCommand.ConnectionsStoreKey);
+        Assert.IsTrue(connections is null || !connections.ContainsKey("testdb"));
+    }
+
+    [TestMethod]
     public async Task ExecuteAsync_UndefinedEnvVar_OutputsError()
     {
         var cmd = new SqlConnectMagicCommand();

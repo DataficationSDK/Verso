@@ -178,11 +178,30 @@ internal sealed class SchemaCache
         {
             var name = reader.GetString(0);
             var schema = reader.IsDBNull(1) ? null : reader.GetString(1);
-            var tableType = reader.IsDBNull(2) ? "TABLE" : reader.GetString(2);
-            tables.Add(new TableInfo(name, schema, tableType));
+            var rawType = reader.IsDBNull(2) ? null : reader.GetString(2);
+            tables.Add(new TableInfo(name, schema, NormalizeTableType(rawType)));
         }
 
         return tables;
+    }
+
+    /// <summary>
+    /// Normalizes an <c>INFORMATION_SCHEMA.TABLES.TABLE_TYPE</c> value to the vocabulary
+    /// the rest of the tooling expects. PostgreSQL, SQL Server, and MySQL report a regular
+    /// table as <c>"BASE TABLE"</c>, while the SQLite and Firebird paths already emit
+    /// <c>"TABLE"</c>; collapsing both to <c>"TABLE"</c> lets consumers (notably the
+    /// scaffold table filter) work across every provider. Views keep their <c>"VIEW"</c>
+    /// type so they stay distinguishable, and an unknown or null type defaults to
+    /// <c>"TABLE"</c>.
+    /// </summary>
+    internal static string NormalizeTableType(string? rawType)
+    {
+        if (string.IsNullOrWhiteSpace(rawType))
+            return "TABLE";
+
+        return rawType.Equals("BASE TABLE", StringComparison.OrdinalIgnoreCase)
+            ? "TABLE"
+            : rawType;
     }
 
     private static async Task<List<ForeignKeyInfo>> LoadSqliteForeignKeysAsync(

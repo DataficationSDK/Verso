@@ -6,7 +6,7 @@ using Verso.Ado.Models;
 namespace Verso.Ado.MagicCommands;
 
 /// <summary>
-/// <c>#!sql-connect --name db --connection-string "..." [--provider ...] [--default]</c>
+/// <c>#!sql-connect --name db --connection-string "..." [--provider ...] [--default] [--command-timeout N]</c>
 /// — establishes a database connection and stores it in the variable store.
 /// </summary>
 [VersoExtension]
@@ -31,6 +31,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         new ParameterDefinition("connection-string", "The ADO.NET connection string.", typeof(string), IsRequired: true),
         new ParameterDefinition("provider", "The DbProviderFactory invariant name.", typeof(string)),
         new ParameterDefinition("default", "Set this connection as the default.", typeof(bool)),
+        new ParameterDefinition("command-timeout", "Default command timeout in seconds for SQL cells on this connection (0 = no limit).", typeof(int)),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -57,6 +58,21 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
                 "text/plain", "Error: --connection-string is required. Usage: #!sql-connect --name <name> --connection-string <cs>",
                 IsError: true)).ConfigureAwait(false);
             return;
+        }
+
+        // Parse optional command timeout (seconds). 0 means no limit; negative is invalid.
+        int? commandTimeout = null;
+        if (args.TryGetValue("command-timeout", out var rawTimeout) && !string.IsNullOrWhiteSpace(rawTimeout))
+        {
+            if (!int.TryParse(rawTimeout, out var timeoutValue) || timeoutValue < 0)
+            {
+                await context.WriteOutputAsync(new CellOutput(
+                    "text/plain", "Error: --command-timeout must be a non-negative integer (seconds; 0 = no limit).",
+                    IsError: true)).ConfigureAwait(false);
+                return;
+            }
+
+            commandTimeout = timeoutValue;
         }
 
         // Resolve credentials ($env:, $var:, $secret: tokens)
@@ -158,7 +174,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         }
 
         // Store connection info
-        var connInfo = new SqlConnectionInfo(name, resolvedCs!, providerName, connection);
+        var connInfo = new SqlConnectionInfo(name, resolvedCs!, providerName, connection, commandTimeout);
 
         var connections = context.Variables.Get<Dictionary<string, SqlConnectionInfo>>(ConnectionsStoreKey)
             ?? new Dictionary<string, SqlConnectionInfo>(StringComparer.OrdinalIgnoreCase);
@@ -176,12 +192,19 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         var redacted = PlaceholderResolver.RedactConnectionString(resolvedCs!);
         var dbName = connection.Database;
         var defaultLabel = isDefault ? " (default)" : "";
+        var timeoutLabel = commandTimeout switch
+        {
+            null => "",
+            0 => "\n  Command timeout: no limit",
+            _ => $"\n  Command timeout: {commandTimeout}s",
+        };
 
         await context.WriteOutputAsync(new CellOutput(
             "text/plain",
             $"Connected '{name}'{defaultLabel} using {providerName ?? "unknown"}" +
             (!string.IsNullOrEmpty(dbName) ? $" — database: {dbName}" : "") +
-            $"\n  Connection string: {redacted}"))
+            $"\n  Connection string: {redacted}" +
+            timeoutLabel))
             .ConfigureAwait(false);
     }
 

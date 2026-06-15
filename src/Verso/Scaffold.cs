@@ -239,7 +239,11 @@ public sealed class Scaffold : IAsyncDisposable
     }
 
     /// <summary>
-    /// Clears all outputs from all cells in the notebook.
+    /// Clears all outputs from all cells in the notebook. Render-only cells (Markdown and
+    /// other cell types whose "output" is the rendered form of their source rather than the
+    /// result of kernel execution) are left untouched, so clearing outputs does not collapse
+    /// them back to raw source. This matches Jupyter and Polyglot, where a rendered Markdown
+    /// cell stays rendered when outputs are cleared.
     /// </summary>
     public void ClearAllOutputs()
     {
@@ -247,12 +251,41 @@ public sealed class Scaffold : IAsyncDisposable
         {
             foreach (var cell in _notebook.Cells)
             {
+                if (IsRenderOnlyCell(cell))
+                    continue;
+
                 cell.Outputs.Clear();
                 cell.ExecutionCount = null;
                 cell.LastElapsed = null;
                 cell.LastStatus = null;
             }
         }
+    }
+
+    /// <summary>
+    /// Determines whether a cell is rendered (rather than executed by a kernel), so that its
+    /// output is the rendered presentation of its source. Mirrors the kernel-vs-renderer
+    /// decision in <see cref="ExecutionPipeline"/>: a registered cell type with no kernel, or
+    /// (absent a cell-type match) a type that resolves to no kernel but has a matching
+    /// renderer. Falls back to a Markdown check when no extension host is present.
+    /// </summary>
+    private bool IsRenderOnlyCell(CellModel cell)
+    {
+        if (_extensionHost is null)
+            return string.Equals(cell.Type, "markdown", StringComparison.OrdinalIgnoreCase);
+
+        var cellType = _extensionHost.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+        if (cellType is not null)
+            return cellType.Kernel is null;
+
+        // No cell-type match: a cell with an explicit, resolvable language is executed.
+        if (!string.IsNullOrEmpty(cell.Language) && ResolveKernel(cell.Language) is not null)
+            return false;
+
+        // Otherwise it is render-only when a renderer claims its type.
+        return _extensionHost.GetRenderers()
+            .Any(r => string.Equals(r.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
     }
 
     // --- Kernel Registry ---
