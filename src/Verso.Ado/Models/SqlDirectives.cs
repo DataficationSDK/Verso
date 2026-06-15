@@ -4,11 +4,12 @@ internal sealed record SqlDirectives(
     string? ConnectionName,
     string? VariableName,
     bool NoDisplay,
-    int? PageSize)
+    int? PageSize,
+    int? CommandTimeout = null)
 {
     /// <summary>
     /// Parses directive arguments from the first line of SQL code if it matches the
-    /// <c>--connection name --name varName --no-display --page-size N</c> pattern.
+    /// <c>--connection name --name varName --no-display --page-size N --timeout N</c> pattern.
     /// Returns the parsed directives and the remaining SQL code.
     /// </summary>
     internal static (SqlDirectives Directives, string RemainingCode) Parse(string code)
@@ -29,6 +30,7 @@ internal sealed record SqlDirectives(
         string? variableName = null;
         bool noDisplay = false;
         int? pageSize = null;
+        int? commandTimeout = null;
 
         if (args.TryGetValue("connection", out var conn))
             connectionName = conn;
@@ -42,15 +44,20 @@ internal sealed record SqlDirectives(
         if (args.TryGetValue("page-size", out var ps) && int.TryParse(ps, out var psVal))
             pageSize = psVal;
 
+        // Command timeout in seconds; 0 means no limit. A negative value is ignored so
+        // the cell falls back to the connection default or the provider default.
+        if (args.TryGetValue("timeout", out var to) && int.TryParse(to, out var toVal) && toVal >= 0)
+            commandTimeout = toVal;
+
         var remaining = lines.Length > 1
             ? string.Join('\n', lines.Skip(1))
             : string.Empty;
 
-        return (new SqlDirectives(connectionName, variableName, noDisplay, pageSize), remaining);
+        return (new SqlDirectives(connectionName, variableName, noDisplay, pageSize, commandTimeout), remaining);
     }
 
     private static readonly string[] DirectiveKeys =
-        { "connection", "name", "no-display", "page-size" };
+        { "connection", "name", "no-display", "page-size", "timeout" };
 
     private static bool ContainsDirectiveKey(string line)
     {

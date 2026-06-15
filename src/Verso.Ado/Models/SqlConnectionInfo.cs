@@ -6,4 +6,5 @@ internal sealed record SqlConnectionInfo(
     string Name,
     string ConnectionString,
     string? ProviderName,
-    DbConnection? Connection);
+    DbConnection? Connection,
+    int? CommandTimeout = null);

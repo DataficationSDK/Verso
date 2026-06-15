@@ -94,6 +94,11 @@ public sealed class SqlKernel : ILanguageKernel
         int maxRows = directives.PageSize ?? DefaultMaxFetchRows;
         int displayPageSize = DefaultDisplayPageSize;
 
+        // Resolve the command timeout: a per-cell `--timeout` directive wins, then the
+        // connection default set on `#!sql-connect --command-timeout`, otherwise the
+        // provider default (commonly 30s) is left untouched. A value of 0 means no limit.
+        int? commandTimeout = directives.CommandTimeout ?? connInfo.CommandTimeout;
+
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         try
         {
@@ -110,6 +115,8 @@ public sealed class SqlKernel : ILanguageKernel
 
                 using var cmd = connInfo.Connection.CreateCommand();
                 cmd.CommandText = statement;
+                if (commandTimeout is int timeoutSeconds)
+                    cmd.CommandTimeout = timeoutSeconds;
 
                 // Bind parameters
                 BindParameters(cmd, statement, dialect, context.Variables, outputs);

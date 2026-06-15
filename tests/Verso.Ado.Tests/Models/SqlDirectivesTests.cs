@@ -30,7 +30,56 @@ public sealed class SqlDirectivesTests
         Assert.IsNull(directives.VariableName);
         Assert.IsFalse(directives.NoDisplay);
         Assert.IsNull(directives.PageSize);
+        Assert.IsNull(directives.CommandTimeout);
         Assert.AreEqual(code, remaining);
+    }
+
+    [TestMethod]
+    public void Parse_WithTimeout_ParsesSeconds()
+    {
+        var code = "--connection Primary --timeout 120\nBACKUP DATABASE master TO DISK = 'x.bak'";
+
+        var (directives, remaining) = SqlDirectives.Parse(code);
+
+        Assert.AreEqual("Primary", directives.ConnectionName);
+        Assert.AreEqual(120, directives.CommandTimeout);
+        Assert.AreEqual("BACKUP DATABASE master TO DISK = 'x.bak'", remaining);
+    }
+
+    [TestMethod]
+    public void Parse_TimeoutZero_MeansNoLimit()
+    {
+        var code = "--timeout 0\nWAITFOR DELAY '00:01:00'";
+
+        var (directives, _) = SqlDirectives.Parse(code);
+
+        Assert.AreEqual(0, directives.CommandTimeout);
+    }
+
+    [TestMethod]
+    public void Parse_NegativeTimeout_IsIgnored()
+    {
+        var code = "--timeout -5\nSELECT 1";
+
+        var (directives, _) = SqlDirectives.Parse(code);
+
+        Assert.IsNull(directives.CommandTimeout);
+    }
+
+    [TestMethod]
+    public void Parse_NonIntegerTimeout_IsIgnored()
+    {
+        var code = "--timeout abc\nSELECT 1";
+
+        var (directives, _) = SqlDirectives.Parse(code);
+
+        Assert.IsNull(directives.CommandTimeout);
+    }
+
+    [TestMethod]
+    public void DetectMisusedDirective_TimeoutWithSpace_ReturnsHint()
+    {
+        Assert.IsNotNull(SqlDirectives.DetectMisusedDirective("-- timeout 120\nSELECT 1"));
     }
 
     [TestMethod]

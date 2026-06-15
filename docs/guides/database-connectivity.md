@@ -18,6 +18,7 @@ Use the `#!sql-connect` magic command in a code cell to establish a connection:
 | `--connection-string` | Yes | An ADO.NET connection string |
 | `--provider` | No | The DbProviderFactory invariant name (auto-detected when omitted) |
 | `--default` | No | Flag that sets this connection as the default |
+| `--command-timeout` | No | Default command timeout in seconds for SQL cells on this connection (`0` = no limit). Provider default applies when omitted, commonly 30 seconds for SQL Server |
 
 The first connection you open is automatically set as the default, even without `--default`. Subsequent connections require the flag if you want them to become the new default.
 
@@ -151,8 +152,28 @@ SELECT * FROM FactSales WHERE Year = 2025
 | `--name` | `lastSqlResult` | Variable name for the result in the variable store |
 | `--page-size` | 10,000 | Maximum rows to fetch from the database |
 | `--no-display` | Off | Suppress output (the result is still stored in the variable store) |
+| `--timeout` | Connection or provider default | Command timeout in seconds for this cell (`0` = no limit) |
 
 The first line is only treated as directives if it starts with `--` and contains at least one recognized directive key.
+
+#### Command timeouts for long-running statements
+
+By default each statement inherits the provider's command timeout, which is 30 seconds for SQL Server. Long-running work such as a backup, a large index rebuild, or `WAITFOR DELAY` will be cancelled once that limit is reached. Raise or remove the limit in either of two places:
+
+Set a default for every cell on a connection when you open it:
+
+```sql
+#!sql-connect --name Primary --connection-string "..." --command-timeout 0
+```
+
+Or override a single cell with the `--timeout` directive:
+
+```sql
+-- --timeout 600
+BACKUP DATABASE master TO DISK = 'C:\backups\master.bak'
+```
+
+A per-cell `--timeout` takes precedence over the connection default. Use `0` for no limit.
 
 ### Variable Binding
 
