@@ -200,7 +200,10 @@
             </div>
         }
 
-        @if (CellData.Outputs.Count > 0 && IsEditable)
+        @* For render-only cells (Markdown, etc.) the output is the rendered source, so it is
+           shown only in preview mode. While such a cell is being edited the editor stands in
+           for the output, matching Jupyter/Polyglot. Code cell outputs always show. *@
+        @if (CellData.Outputs.Count > 0 && IsEditable && (!CollapsesInput || IsInPreviewMode))
         {
             @if (IsOutputHidden)
             {

@@ -259,6 +259,14 @@ window.versoMonaco = (function () {
                         function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'escape'); },
                         '!suggestWidgetVisible && !parameterHintsVisible'
                     );
+
+                    // When the editor loses focus (e.g. the user clicks another cell), notify
+                    // .NET so render-only cells (Markdown, etc.) render. onDidBlurEditorWidget
+                    // (not ...EditorText) does not fire when focus moves to the suggestion or
+                    // parameter-hint widget, so in-editor completions do not trigger a render.
+                    editor.onDidBlurEditorWidget(function () {
+                        dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'blur');
+                    });
                 }
 
                 editors[elementId] = editor;
