@@ -242,22 +242,50 @@ window.versoMonaco = (function () {
                 updateHeight();
                 // Register keyboard shortcuts that call back to .NET
                 if (dotnetRef) {
+                    // Every cell's editor shares Monaco's single global keybinding service, so
+                    // registering the same chord (e.g. Shift+Enter) on each editor with no
+                    // condition makes the resolver keep only the last registration: the shortcut
+                    // then always fires against the last-created cell instead of the focused one.
+                    // Gate each command on a context key that is true only while this editor holds
+                    // text focus, so the chords resolve to the focused cell. The key name is unique
+                    // per editor and sanitised, since '-' is an operator in a when expression.
+                    const focusKeyName = 'versoEditorFocused_' + elementId.replace(/[^a-zA-Z0-9]/g, '_');
+                    const focusKey = editor.createContextKey(focusKeyName, false);
+                    // Track edit mode in .NET: while the editor holds focus the notebook is in
+                    // edit mode and its command-mode keys (a/b/x, arrows) must stand down so those
+                    // letters edit code instead of mutating the notebook.
+                    editor.onDidFocusEditorText(function () {
+                        focusKey.set(true);
+                        dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'focus');
+                    });
+                    editor.onDidBlurEditorText(function () { focusKey.set(false); });
+
                     editor.addCommand(
                         monaco.KeyMod.Shift | monaco.KeyCode.Enter,
-                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-select-below'); }
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-select-below'); },
+                        focusKeyName
                     );
                     editor.addCommand(
                         monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-stay'); }
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-stay'); },
+                        focusKeyName
                     );
                     editor.addCommand(
                         monaco.KeyMod.Alt | monaco.KeyCode.Enter,
-                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-insert-below'); }
+                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'run-and-insert-below'); },
+                        focusKeyName
                     );
                     editor.addCommand(
                         monaco.KeyCode.Escape,
-                        function () { dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'escape'); },
-                        '!suggestWidgetVisible && !parameterHintsVisible'
+                        function () {
+                            // Leave edit mode: move focus to the notebook so command-mode keys work
+                            // immediately (Jupyter-style). Blurring the editor fires the widget-blur
+                            // handler below, which notifies .NET to leave edit mode.
+                            const notebook = container.closest('.verso-notebook');
+                            if (notebook) notebook.focus();
+                            dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'escape');
+                        },
+                        focusKeyName + ' && !suggestWidgetVisible && !parameterHintsVisible'
                     );
 
                     // When the editor loses focus (e.g. the user clicks another cell), notify
@@ -335,9 +363,13 @@ window.versoMonaco = (function () {
             const editorEl = container.querySelector('.verso-monaco-editor');
             if (!editorEl) return;
             const editor = editors[editorEl.id];
-            if (editor) {
-                editor.focus();
-            }
+            if (!editor) return;
+            // Defer focus until the current key event has fully finished. This path runs when
+            // the user presses Enter in command mode to start editing; focusing synchronously
+            // would let that same Enter land in the editor as a newline. By the next tick the
+            // Enter has already been handled on the notebook container (a div, where it does
+            // nothing), so the editor receives only the keystrokes typed afterwards.
+            setTimeout(function () { editor.focus(); }, 0);
         },
 
         scrollToSelected: function () {
