@@ -200,6 +200,46 @@ public sealed class CellTests : BunitTestContext
         Assert.IsTrue(cut.Markup.Contains("C#"));
     }
 
+    [TestMethod]
+    public void RenderOnlyCell_Deselected_ShowsRenderedOutput()
+    {
+        // A deselected Markdown cell shows its rendered output (preview mode).
+        var cell = CreateMarkdownCell("# Heading");
+        cell.Outputs.Add(new CellOutput("text/html", "<em>rendered-md</em>"));
+
+        var cut = RenderCell(cell, isSelected: false, collapsesInput: true);
+
+        Assert.IsTrue(cut.Markup.Contains("<em>rendered-md</em>"),
+            "A deselected render-only cell should show its rendered output.");
+    }
+
+    [TestMethod]
+    public void RenderOnlyCell_Selected_HidesOutput_ShowsEditorOnly()
+    {
+        // Selecting a Markdown cell enters edit mode: only the editor shows, not the
+        // rendered output, matching Jupyter/Polyglot.
+        var cell = CreateMarkdownCell("# Heading");
+        cell.Outputs.Add(new CellOutput("text/html", "<em>rendered-md</em>"));
+
+        var cut = RenderCell(cell, isSelected: true, collapsesInput: true);
+
+        Assert.IsFalse(cut.Markup.Contains("<em>rendered-md</em>"),
+            "A render-only cell being edited should not show its rendered output alongside the editor.");
+    }
+
+    [TestMethod]
+    public void CodeCell_Selected_StillShowsOutput()
+    {
+        // Code cell output is independent of selection and always shows.
+        var cell = CreateCodeCell("print('x')");
+        cell.Outputs.Add(new CellOutput("text/plain", "code-output"));
+
+        var cut = RenderCell(cell, isSelected: true, collapsesInput: false);
+
+        Assert.IsTrue(cut.Markup.Contains("code-output"),
+            "A code cell's output should remain visible while it is selected.");
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private static CellModel CreateCodeCell(string source)
@@ -213,12 +253,23 @@ public sealed class CellTests : BunitTestContext
         };
     }
 
+    private static CellModel CreateMarkdownCell(string source)
+    {
+        return new CellModel
+        {
+            Id = Guid.NewGuid(),
+            Type = "markdown",
+            Source = source
+        };
+    }
+
     private IRenderedComponent<Cell> RenderCell(
         CellModel cell,
         bool isSelected = false,
         bool isExecuting = false,
         int index = 0,
-        bool isLast = false)
+        bool isLast = false,
+        bool collapsesInput = false)
     {
         // Set up JS interop stub for MonacoEditor
         TestContext!.JSInterop.SetupVoid("versoMonaco.create", _ => true);
@@ -231,6 +282,7 @@ public sealed class CellTests : BunitTestContext
             .Add(c => c.IsSelected, isSelected)
             .Add(c => c.IsExecuting, isExecuting)
             .Add(c => c.Index, index)
-            .Add(c => c.IsLast, isLast));
+            .Add(c => c.IsLast, isLast)
+            .Add(c => c.CollapsesInput, collapsesInput));
     }
 }

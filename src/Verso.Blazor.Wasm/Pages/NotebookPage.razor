@@ -630,8 +630,26 @@
                 break;
             case "escape":
                 _selectedCellId = cellId;
+                await RenderIfRenderOnlyCellAsync(cellId);
+                break;
+            case "blur":
+                // Clicking away from a render-only cell's editor renders it. The same click
+                // selects another cell, so this cell deselects and its rendered preview
+                // replaces the editor.
+                await RenderIfRenderOnlyCellAsync(cellId);
                 break;
         }
+    }
+
+    // Render-only cells (Markdown and other collapse-on-execute types) render when the user
+    // leaves edit mode, matching Jupyter. Code cells are never executed by leaving the editor.
+    private async Task RenderIfRenderOnlyCellAsync(Guid cellId)
+    {
+        var cell = Service.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is not null
+            && Service.ShouldCollapseInput(cell.Type)
+            && !string.IsNullOrWhiteSpace(cell.Source))
+            await HandleRunCell(cellId);
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -659,10 +677,14 @@
                 await HandleMoveDown(selectedId);
                 break;
             case "ArrowUp":
+                // Navigating away from a render-only cell renders it, just like clicking
+                // into another cell does.
+                await RenderIfRenderOnlyCellAsync(selectedId);
                 SelectPreviousCell(selectedId);
                 await ScrollToSelectedCell();
                 break;
             case "ArrowDown":
+                await RenderIfRenderOnlyCellAsync(selectedId);
                 await SelectNextCell(selectedId);
                 await ScrollToSelectedCell();
                 break;
