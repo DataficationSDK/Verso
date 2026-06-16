@@ -197,6 +197,10 @@
 
 @code {
     private Guid? _selectedCellId;
+    // Set to the cell whose editor currently has focus (edit mode); null in command mode.
+    private Guid? _editingCellId;
+    // True after a single command-mode "d"; a second "d" deletes the cell (Jupyter "dd").
+    private bool _awaitingSecondDelete;
     private Guid? _executingCellId;
     private HashSet<Guid> _collapsedSections = new();
     private string? _error;
@@ -986,7 +990,13 @@
                 await InsertAndSelectBelow(cellId);
                 await ScrollToSelectedCell();
                 break;
+            case "focus":
+                // The cell's editor gained focus: enter edit mode so command-mode keys stand down.
+                _editingCellId = cellId;
+                _selectedCellId = cellId;
+                break;
             case "escape":
+                _editingCellId = null;
                 _selectedCellId = cellId;
                 await RenderIfRenderOnlyCellAsync(cellId);
                 break;
@@ -994,6 +1004,7 @@
                 // Clicking away from a render-only cell's editor renders it. The same click
                 // selects another cell, so this cell deselects and its rendered preview
                 // replaces the editor.
+                _editingCellId = null;
                 await RenderIfRenderOnlyCellAsync(cellId);
                 break;
         }
@@ -1012,11 +1023,22 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
+        // Run All works regardless of edit or command mode.
         if (e.Key == "Enter" && e.CtrlKey && e.AltKey)
         {
             await HandleRunAll();
             return;
         }
+
+        // While a cell editor has focus the notebook is in edit mode: Monaco owns the
+        // keyboard (its own run and escape commands act), so notebook command-mode keys
+        // must not fire, or typing "a"/"b"/"x"/"d" in code would mutate the notebook.
+        if (_editingCellId is not null)
+            return;
+
+        // Any key other than a bare "d" cancels a pending "dd" delete sequence.
+        if (!(e.Key == "d" && NoModifiers(e)))
+            _awaitingSecondDelete = false;
 
         if (e.Key == "Escape")
         {
@@ -1062,6 +1084,27 @@
             case "Enter":
                 await FocusSelectedEditor();
                 break;
+            // Jupyter-style command-mode editing (only reached when no editor has focus).
+            case "a" when NoModifiers(e):
+                await InsertCodeCellRelativeToSelected(selectedId, above: true);
+                break;
+            case "b" when NoModifiers(e):
+                await InsertCodeCellRelativeToSelected(selectedId, above: false);
+                break;
+            case "x" when NoModifiers(e):
+                await HandleDeleteCell(selectedId);
+                break;
+            case "d" when NoModifiers(e):
+                if (_awaitingSecondDelete)
+                {
+                    _awaitingSecondDelete = false;
+                    await HandleDeleteCell(selectedId);
+                }
+                else
+                {
+                    _awaitingSecondDelete = true;
+                }
+                break;
         }
     }
 
@@ -1104,6 +1147,20 @@
 
         var newCell = await Service.InsertCellAsync(index + 1, "code");
         _selectedCellId = newCell.Id;
+    }
+
+    private static bool NoModifiers(KeyboardEventArgs e)
+        => !e.CtrlKey && !e.AltKey && !e.ShiftKey && !e.MetaKey;
+
+    private async Task InsertCodeCellRelativeToSelected(Guid selectedId, bool above)
+    {
+        var cellList = Service.Cells.ToList();
+        var index = cellList.FindIndex(c => c.Id == selectedId);
+        if (index < 0) return;
+
+        var newCell = await Service.InsertCellAsync(above ? index : index + 1, "code");
+        _selectedCellId = newCell.Id;
+        await ScrollToSelectedCell();
     }
 
     private async Task ScrollToSelectedCell()
