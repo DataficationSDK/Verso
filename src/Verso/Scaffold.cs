@@ -704,14 +704,31 @@ public sealed class Scaffold : IAsyncDisposable
     }
 
     /// <summary>
-    /// Returns the notebook's default kernel language for executable cell types, or <c>null</c> for
-    /// types that don't need a language (e.g. markdown).
+    /// Resolves the language a newly created cell of the given type should use when no explicit
+    /// language is supplied. A registered cell type contributes its kernel language (e.g. an "sql"
+    /// cell type yields "sql"); render-only types (no kernel, or a matching renderer) get no language;
+    /// anything else falls back to the notebook's default kernel.
     /// </summary>
     private string? ResolveDefaultLanguage(string type)
     {
-        if (string.Equals(type, "markdown", StringComparison.OrdinalIgnoreCase))
-            return null;
-        return _notebook.DefaultKernelId;
+        if (_extensionHost is null)
+            return string.Equals(type, "markdown", StringComparison.OrdinalIgnoreCase)
+                ? null
+                : _notebook.DefaultKernelId;
+
+        var cellType = _extensionHost.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, type, StringComparison.OrdinalIgnoreCase));
+
+        var language = cellType?.Kernel?.LanguageId;
+        if (language is null)
+        {
+            var hasRenderer = _extensionHost.GetRenderers()
+                .Any(r => string.Equals(r.CellTypeId, type, StringComparison.OrdinalIgnoreCase));
+            if (!hasRenderer)
+                language = _notebook.DefaultKernelId;
+        }
+
+        return language;
     }
 
     private IMagicCommand? ResolveMagicCommand(string name)

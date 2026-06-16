@@ -120,6 +120,44 @@ public sealed class NotebookOperationsTests
     }
 
     [TestMethod]
+    public async Task AddCell_RegisteredCellTypeWithKernel_UsesKernelLanguage()
+    {
+        // A newly added SQL cell must take its language from the registered cell type's kernel
+        // ("sql"), not the notebook's default kernel ("csharp"). Otherwise the editor highlights
+        // the cell as the default language even though its type is "sql".
+        await using var host = new Verso.Extensions.ExtensionHost();
+        await host.LoadExtensionAsync(new FakeCellType(
+            cellTypeId: "sql",
+            displayName: "SQL",
+            kernel: new FakeLanguageKernel("sql", "SQL")));
+
+        await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
+        scaffold.InitializeSubsystems();
+        scaffold.DefaultKernelId = "csharp";
+
+        var added = scaffold.AddCell(type: "sql");
+        var inserted = scaffold.InsertCell(0, type: "sql");
+
+        Assert.AreEqual("sql", added.Language, "Added SQL cell should use the cell type's kernel language.");
+        Assert.AreEqual("sql", inserted.Language, "Inserted SQL cell should use the cell type's kernel language.");
+    }
+
+    [TestMethod]
+    public async Task AddCell_UnknownType_FallsBackToDefaultKernel()
+    {
+        // A type with no registered cell type or renderer still falls back to the default kernel,
+        // so ordinary code cells keep their language.
+        await using var host = new Verso.Extensions.ExtensionHost();
+        await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
+        scaffold.InitializeSubsystems();
+        scaffold.DefaultKernelId = "csharp";
+
+        var cell = scaffold.AddCell(type: "code");
+
+        Assert.AreEqual("csharp", cell.Language, "An unrecognized type should fall back to the default kernel.");
+    }
+
+    [TestMethod]
     public async Task RestartKernelAsync_DisposesAndReinitializesKernel()
     {
         var kernel = (FakeLanguageKernel)_scaffold.GetKernel("fake")!;
