@@ -446,7 +446,7 @@ public sealed class LayoutRendererMountedResult
     /// Null when no lifecycle handler is registered for the layout, or when the
     /// handler returned null.
     /// </summary>
-    public IDictionary<string, object>? Extension { get; set; }
+    public IReadOnlyDictionary<string, object>? Extension { get; set; }
 }
 
 public sealed class LayoutRendererUnmountedParams

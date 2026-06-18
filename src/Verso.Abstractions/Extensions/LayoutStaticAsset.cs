@@ -17,14 +17,15 @@ namespace Verso.Abstractions;
 /// host only loads assets whose content type was advertised in the capabilities exchange.
 /// </param>
 /// <param name="Content">
-/// The asset bytes. The host is free to serve them via a host-appropriate transport
-/// (custom endpoint, blob URL, inline) and may cache the bytes for the lifetime of the
-/// owning extension.
+/// The asset bytes, exposed as read-only memory. The host is free to serve them via a
+/// host-appropriate transport (custom endpoint, blob URL, inline) and may cache the bytes
+/// for the lifetime of the owning extension. A <c>byte[]</c> passed at construction is
+/// wrapped without a copy.
 /// </param>
 public sealed record LayoutStaticAsset(
     string AssetId,
     string ContentType,
-    byte[] Content)
+    ReadOnlyMemory<byte> Content)
 {
     /// <summary>
     /// Optional load-order and timing hints for script assets. Ignored for stylesheets and

@@ -47,7 +47,7 @@ internal sealed class LayoutSessionFrameTracker : IAsyncDisposable
     /// registered for the pair, the frame is still tracked but no callback fires
     /// and <c>null</c> is returned for the init payload.
     /// </summary>
-    public async Task<IDictionary<string, object>?> InvokeMountedAsync(
+    public async Task<IReadOnlyDictionary<string, object>?> InvokeMountedAsync(
         string extensionId,
         string layoutId,
         string frameInstanceId,

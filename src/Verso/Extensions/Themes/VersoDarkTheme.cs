@@ -90,8 +90,7 @@ public sealed class VersoDarkTheme : ITheme
         BgDefault = "#1E1E1E",
         BgElevated = "#252526",
         FgDefault = "#D4D4D4",
-        FgMuted = "#858585",
-        Accent = "#007ACC"
+        FgMuted = "#858585"
     };
 
     public ThemeTypography Typography { get; } = new();

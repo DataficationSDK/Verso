@@ -190,7 +190,7 @@ public sealed partial class ServerNotebookService
         }
     }
 
-    private static IDictionary<string, JsonElement>? ConvertMountSeed(IDictionary<string, object>? seed)
+    private static IDictionary<string, JsonElement>? ConvertMountSeed(IReadOnlyDictionary<string, object>? seed)
     {
         if (seed is null || seed.Count == 0) return null;
 

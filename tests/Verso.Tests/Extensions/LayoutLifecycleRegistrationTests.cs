@@ -124,8 +124,8 @@ public class LayoutLifecycleRegistrationTests
         public string? Description => null;
         public string LayoutId { get; }
 
-        public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
-            => Task.FromResult<IDictionary<string, object>?>(null);
+        public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+            => Task.FromResult<IReadOnlyDictionary<string, object>?>(null);
         public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context) => Task.CompletedTask;
         public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
         public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -160,8 +160,8 @@ public class LayoutLifecycleRegistrationTests
         public Dictionary<string, object> GetLayoutMetadata() => new();
         public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context) => Task.CompletedTask;
 
-        public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
-            => Task.FromResult<IDictionary<string, object>?>(null);
+        public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+            => Task.FromResult<IReadOnlyDictionary<string, object>?>(null);
         public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context) => Task.CompletedTask;
         public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
         public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -196,8 +196,8 @@ public class LayoutLifecycleRegistrationTests
         public Dictionary<string, object> GetLayoutMetadata() => new();
         public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context) => Task.CompletedTask;
 
-        public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
-            => Task.FromResult<IDictionary<string, object>?>(null);
+        public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+            => Task.FromResult<IReadOnlyDictionary<string, object>?>(null);
         public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context) => Task.CompletedTask;
         public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
         public Task OnUnloadedAsync() => Task.CompletedTask;

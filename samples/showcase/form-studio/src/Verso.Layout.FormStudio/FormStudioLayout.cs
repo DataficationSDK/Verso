@@ -113,7 +113,7 @@ public sealed class FormStudioLayout
 
     // --- ILayoutLifecycleHandler ---
 
-    public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+    public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
     {
         var frame = context.Frame;
         var variables = context.Verso.Variables;
@@ -139,7 +139,7 @@ public sealed class FormStudioLayout
             ["doc"] = _doc.Json,
             ["vars"] = BuildVars(variables),
         };
-        return Task.FromResult<IDictionary<string, object>?>(seed);
+        return Task.FromResult<IReadOnlyDictionary<string, object>?>(seed);
     }
 
     public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context)

@@ -63,7 +63,7 @@ public sealed class LayoutAssetProvider
         {
             if (string.Equals(asset.AssetId, assetId, StringComparison.Ordinal)
                 && HtmlHostCapabilities.SupportedAssetContentTypes.Contains(asset.ContentType))
-                return (asset.ContentType, asset.Content);
+                return (asset.ContentType, asset.Content.ToArray());
         }
 
         return null;

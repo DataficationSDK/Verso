@@ -110,7 +110,7 @@ public sealed class ImageEditorLayout
 
     // --- ILayoutLifecycleHandler ---
 
-    public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+    public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
     {
         var frame = context.Frame;
         var variables = context.Verso.Variables;
@@ -138,7 +138,7 @@ public sealed class ImageEditorLayout
         if (initialVars.Count > 0)
             seed["vars"] = initialVars;
 
-        return Task.FromResult<IDictionary<string, object>?>(seed);
+        return Task.FromResult<IReadOnlyDictionary<string, object>?>(seed);
     }
 
     public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context)

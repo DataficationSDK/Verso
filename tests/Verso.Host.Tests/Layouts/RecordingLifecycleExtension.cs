@@ -8,12 +8,12 @@ namespace Verso.Host.Tests.Layouts;
 /// </summary>
 internal sealed class RecordingLifecycleExtension : IExtension, ILayoutEngine, ILayoutLifecycleHandler
 {
-    private readonly IDictionary<string, object>? _initPayload;
+    private readonly IReadOnlyDictionary<string, object>? _initPayload;
 
     public RecordingLifecycleExtension(
         string extensionId,
         string layoutId,
-        IDictionary<string, object>? initPayload = null)
+        IReadOnlyDictionary<string, object>? initPayload = null)
     {
         ExtensionId = extensionId;
         LayoutId = layoutId;
@@ -49,7 +49,7 @@ internal sealed class RecordingLifecycleExtension : IExtension, ILayoutEngine, I
     public Dictionary<string, object> GetLayoutMetadata() => new();
     public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context) => Task.CompletedTask;
 
-    public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+    public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
     {
         MountContexts.Add(context);
         if (ThrowOnMount)

@@ -1653,6 +1653,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             DropdownHover = G(nameof(d.DropdownHover), d.DropdownHover),
             TooltipBackground = G(nameof(d.TooltipBackground), d.TooltipBackground),
             TooltipForeground = G(nameof(d.TooltipForeground), d.TooltipForeground),
+            BgDefault = G(nameof(d.BgDefault), d.BgDefault),
+            BgElevated = G(nameof(d.BgElevated), d.BgElevated),
+            FgDefault = G(nameof(d.FgDefault), d.FgDefault),
+            FgMuted = G(nameof(d.FgMuted), d.FgMuted),
+            // Accent derives from AccentPrimary (read-only alias), so it is not mapped here.
         };
     }
 

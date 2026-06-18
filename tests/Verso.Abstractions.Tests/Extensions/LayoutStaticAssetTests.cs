@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Verso.Abstractions.Tests.Extensions;
 
 [TestClass]
@@ -11,16 +13,22 @@ public class LayoutStaticAssetTests
 
         Assert.AreEqual("dashboard.css", asset.AssetId);
         Assert.AreEqual("text/css", asset.ContentType);
-        Assert.AreSame(bytes, asset.Content);
+        CollectionAssert.AreEqual(bytes, asset.Content.ToArray());
+
+        // A byte[] passed at construction is wrapped without a copy: the memory
+        // points at the same backing array.
+        Assert.IsTrue(MemoryMarshal.TryGetArray(asset.Content, out var segment));
+        Assert.AreSame(bytes, segment.Array);
     }
 
     [TestMethod]
-    public void Equals_SameValues_AreEqualReferenceSemanticsForBytes()
+    public void Equals_SameBackingMemory_AreEqual()
     {
-        // Record equality on byte[] uses reference equality, not value equality.
-        // The contract does not promise content-hash equality; consumers cache by
-        // AssetId, not by the asset record as a key. This test pins that semantic
-        // so a future change to value-equality is a deliberate decision.
+        // Record equality on ReadOnlyMemory<byte> compares the memory by its
+        // backing buffer, offset, and length, not by content. The contract does
+        // not promise content-hash equality; consumers cache by AssetId, not by
+        // the asset record as a key. This test pins that semantic so a future
+        // change to content-equality is a deliberate decision.
         var bytes = new byte[] { 1, 2, 3 };
         var a = new LayoutStaticAsset("a.css", "text/css", bytes);
         var b = new LayoutStaticAsset("a.css", "text/css", bytes);

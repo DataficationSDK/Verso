@@ -27,12 +27,14 @@ public interface ILayoutLifecycleHandler : IExtension
 
     /// <summary>
     /// Invoked after a renderer instance has signaled readiness and before the
-    /// host completes its initialization handshake. The returned dictionary is
-    /// merged into the host's init payload, giving the renderer authoritative
-    /// initial state. Use the supplied <see cref="LayoutRendererMountContext.Frame"/>
-    /// to push later messages while the renderer is alive.
+    /// host completes its initialization handshake. The returned read-only
+    /// dictionary is merged into the host's init payload, giving the renderer
+    /// authoritative initial state. The host only reads the entries, so a plain
+    /// <see cref="Dictionary{TKey, TValue}"/> is an acceptable return value. Use
+    /// the supplied <see cref="LayoutRendererMountContext.Frame"/> to push later
+    /// messages while the renderer is alive.
     /// </summary>
-    Task<IDictionary<string, object>?> OnRendererMountedAsync(
+    Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(
         LayoutRendererMountContext context);
 
     /// <summary>

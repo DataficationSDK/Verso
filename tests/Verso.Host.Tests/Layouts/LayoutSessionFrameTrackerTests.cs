@@ -189,12 +189,12 @@ public class LayoutSessionFrameTrackerTests
 
     private sealed class RecordingLifecycleExtension : IExtension, ILayoutEngine, ILayoutLifecycleHandler
     {
-        private readonly IDictionary<string, object>? _initPayload;
+        private readonly IReadOnlyDictionary<string, object>? _initPayload;
 
         public RecordingLifecycleExtension(
             string extensionId,
             string layoutId,
-            IDictionary<string, object>? initPayload = null)
+            IReadOnlyDictionary<string, object>? initPayload = null)
         {
             ExtensionId = extensionId;
             LayoutId = layoutId;
@@ -228,7 +228,7 @@ public class LayoutSessionFrameTrackerTests
         public Dictionary<string, object> GetLayoutMetadata() => new();
         public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context) => Task.CompletedTask;
 
-        public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+        public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
         {
             MountContexts.Add(context);
             return Task.FromResult(_initPayload);

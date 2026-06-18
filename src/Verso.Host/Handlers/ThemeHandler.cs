@@ -41,6 +41,10 @@ public static class ThemeHandler
         AddColorToken(colors, "statusWarning", colorTokens.StatusWarning);
         AddColorToken(colors, "statusError", colorTokens.StatusError);
         AddColorToken(colors, "statusInfo", colorTokens.StatusInfo);
+        AddColorToken(colors, "bgDefault", colorTokens.BgDefault);
+        AddColorToken(colors, "bgElevated", colorTokens.BgElevated);
+        AddColorToken(colors, "fgDefault", colorTokens.FgDefault);
+        AddColorToken(colors, "fgMuted", colorTokens.FgMuted);
 
         var syntaxColors = theme.GetSyntaxColors().GetAll()
             .ToDictionary(kv => kv.Key, kv => kv.Value);

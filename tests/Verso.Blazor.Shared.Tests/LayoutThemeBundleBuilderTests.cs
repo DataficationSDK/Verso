@@ -34,7 +34,7 @@ public class LayoutThemeBundleBuilderTests
             FgDefault = fgDefault,
             FgMuted = fgMuted,
             BorderDefault = borderDefault,
-            Accent = accent,
+            AccentPrimary = accent,
         };
         var typography = new ThemeTypography
         {

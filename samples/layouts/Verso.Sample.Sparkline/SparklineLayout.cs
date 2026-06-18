@@ -107,7 +107,7 @@ public sealed class SparklineLayout
 
     // --- ILayoutLifecycleHandler ---
 
-    public Task<IDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
+    public Task<IReadOnlyDictionary<string, object>?> OnRendererMountedAsync(LayoutRendererMountContext context)
     {
         var frame = context.Frame;
         var variables = context.Verso.Variables;
@@ -134,7 +134,7 @@ public sealed class SparklineLayout
             ["values"] = ReadSeries(variables),
         };
 
-        return Task.FromResult<IDictionary<string, object>?>(init);
+        return Task.FromResult<IReadOnlyDictionary<string, object>?>(init);
     }
 
     public Task OnRendererUnmountedAsync(LayoutRendererUnmountContext context)

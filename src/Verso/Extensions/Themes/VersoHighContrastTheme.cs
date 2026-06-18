@@ -91,8 +91,7 @@ public sealed class VersoHighContrastTheme : ITheme
         BgDefault = "#000000",
         BgElevated = "#1A1A1A",
         FgDefault = "#FFFFFF",
-        FgMuted = "#CCCCCC",
-        Accent = "#FFD700"
+        FgMuted = "#CCCCCC"
     };
 
     public ThemeTypography Typography { get; } = new ThemeTypography

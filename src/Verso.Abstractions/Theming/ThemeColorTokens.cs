@@ -100,6 +100,10 @@ public sealed record ThemeColorTokens
     // Accent / Highlight
 
     /// <summary>Primary accent color used for interactive elements and links.</summary>
+    /// <remarks>
+    /// Layout extensions read the same value as <c>--verso-accent</c> through
+    /// <see cref="Accent"/>, so this is the single field to set for the accent color.
+    /// </remarks>
     public string AccentPrimary { get; init; } = "#0078D4";
 
     /// <summary>Secondary accent color for hover states and emphasis.</summary>
@@ -171,6 +175,9 @@ public sealed record ThemeColorTokens
     /// <summary>Muted/secondary foreground color exposed as <c>--verso-fg-muted</c>.</summary>
     public string FgMuted { get; init; } = "#858585";
 
-    /// <summary>Primary accent color exposed as <c>--verso-accent</c>.</summary>
-    public string Accent { get; init; } = "#0078D4";
+    /// <summary>
+    /// Primary accent color exposed to layout extensions as <c>--verso-accent</c>. This
+    /// mirrors <see cref="AccentPrimary"/>; assign <see cref="AccentPrimary"/> to change both.
+    /// </summary>
+    public string Accent => AccentPrimary;
 }

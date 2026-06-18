@@ -800,7 +800,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
                 continue;
 
             _layoutAssetCache.Register(extensionId, layoutId, asset.AssetId,
-                asset.ContentType, asset.Content);
+                asset.ContentType, asset.Content.ToArray());
             descriptors.Add(new LayoutStaticAssetDescriptor(
                 asset.AssetId,
                 asset.ContentType,

@@ -266,7 +266,7 @@ public static class LayoutHandler
             {
                 AssetId = asset.AssetId,
                 ContentType = asset.ContentType,
-                Content = Convert.ToBase64String(asset.Content),
+                Content = Convert.ToBase64String(asset.Content.Span),
                 LoadHints = SerializeLoadHints(asset.LoadHints),
                 ContentSecurityPolicy = asset.ContentSecurityPolicy,
             });
@@ -429,7 +429,7 @@ public static class LayoutHandler
 
         var channel = new IframeFrameChannel(p.FrameInstanceId, ns);
 
-        IDictionary<string, object>? extra;
+        IReadOnlyDictionary<string, object>? extra;
         try
         {
             extra = await ns.FrameTracker.InvokeMountedAsync(
