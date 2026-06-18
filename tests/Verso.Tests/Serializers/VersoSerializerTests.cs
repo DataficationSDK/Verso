@@ -48,8 +48,64 @@ public sealed class VersoSerializerTests
         var json = await _serializer.SerializeAsync(notebook);
         var result = await _serializer.DeserializeAsync(json);
 
-        Assert.AreEqual("1.0", result.FormatVersion);
+        Assert.AreEqual(NotebookFormatVersion.Current, result.FormatVersion);
         Assert.AreEqual(0, result.Cells.Count);
+    }
+
+    [TestMethod]
+    public async Task Serialize_AlwaysStampsCurrentFormatVersion()
+    {
+        // Even a model still carrying an older version is written as the current format.
+        var notebook = new NotebookModel { FormatVersion = NotebookFormatVersion.Initial };
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.AreEqual(NotebookFormatVersion.Current, doc.RootElement.GetProperty("verso").GetString());
+    }
+
+    [TestMethod]
+    public async Task Deserialize_LegacyCellMetadataKey_MigratedAndStampedCurrent()
+    {
+        const string json = """
+        {
+          "verso": "1.0",
+          "cells": [
+            {
+              "id": "11111111-1111-1111-1111-111111111111",
+              "type": "code",
+              "language": "csharp",
+              "source": "x",
+              "metadata": { "verso:visibility": "hidden" }
+            }
+          ]
+        }
+        """;
+
+        var notebook = await _serializer.DeserializeAsync(json);
+
+        Assert.AreEqual(NotebookFormatVersion.Current, notebook.FormatVersion);
+        var cell = notebook.Cells.Single();
+        Assert.IsFalse(cell.Metadata.ContainsKey(CellLayoutVisibilityMetadata.LegacyMetadataKey));
+        Assert.IsTrue(cell.Metadata.ContainsKey(CellLayoutVisibilityMetadata.MetadataKey));
+        Assert.AreEqual("hidden", cell.Metadata[CellLayoutVisibilityMetadata.MetadataKey]?.ToString());
+    }
+
+    [TestMethod]
+    public async Task Deserialize_NewerFormatVersion_LoadsBestEffortWithoutChangingVersion()
+    {
+        const string json = """
+        {
+          "verso": "99.0",
+          "metadata": { "title": "From the future" },
+          "cells": []
+        }
+        """;
+
+        var notebook = await _serializer.DeserializeAsync(json);
+
+        Assert.AreEqual("99.0", notebook.FormatVersion);
+        Assert.AreEqual("From the future", notebook.Title);
     }
 
     [TestMethod]
@@ -186,7 +242,9 @@ public sealed class VersoSerializerTests
         var json = await _serializer.SerializeAsync(notebook);
         var result = await _serializer.DeserializeAsync(json);
 
-        Assert.AreEqual("1.0", result.FormatVersion);
+        // The serializer always stamps the current format version on save, so a stale in-model
+        // version is normalized rather than preserved.
+        Assert.AreEqual(NotebookFormatVersion.Current, result.FormatVersion);
         Assert.AreEqual("Test Notebook", result.Title);
         Assert.AreEqual(created, result.Created);
         Assert.AreEqual(modified, result.Modified);

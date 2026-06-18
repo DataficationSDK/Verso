@@ -69,7 +69,7 @@ public sealed class DibSerializer : INotebookSerializer
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        var notebook = new NotebookModel { FormatVersion = "1.0" };
+        var notebook = new NotebookModel { FormatVersion = NotebookFormatVersion.Current };
         string? defaultKernel = null;
 
         var lines = content.Split('\n');

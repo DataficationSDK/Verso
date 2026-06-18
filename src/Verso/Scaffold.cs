@@ -136,6 +136,10 @@ public sealed class Scaffold : IAsyncDisposable
         // qualified form so the next save writes the qualified shape. When resolution failed
         // (no match or ambiguous), leave the reference unqualified so the bare string is
         // round-tripped to disk for the missing extension to resolve on a later load.
+        //
+        // This is host-dependent resolution: it needs the loaded extension set to discover the
+        // owning extension id, so it lives here at wire-up rather than in the pure-data format
+        // migration pipeline that runs inside the serializer.
         if (_notebook.RequiresLegacyLayoutResolution &&
             _notebook.ActiveLayout is { IsUnqualified: true } &&
             _layoutManager.ActiveLayout is { } resolved &&

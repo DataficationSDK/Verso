@@ -154,7 +154,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     public DateTimeOffset? Created => _scaffold?.Notebook.Created;
     public DateTimeOffset? Modified => _scaffold?.Notebook.Modified;
-    public string FormatVersion => _scaffold?.Notebook.FormatVersion ?? "1.0";
+    public string FormatVersion => _scaffold?.Notebook.FormatVersion ?? NotebookFormatVersion.Current;
 
     // ── Cells ──────────────────────────────────────────────────────────
 

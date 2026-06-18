@@ -27,7 +27,7 @@ public sealed class FakeNotebookService : INotebookService
     };
     public DateTimeOffset? Created { get; set; } = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
     public DateTimeOffset? Modified { get; set; } = new DateTimeOffset(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
-    public string FormatVersion { get; set; } = "1.0";
+    public string FormatVersion { get; set; } = NotebookFormatVersion.Current;
 
     // ── Cells ──────────────────────────────────────────────────────────
 

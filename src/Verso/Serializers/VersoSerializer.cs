@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Verso.Abstractions;
+using Verso.Serializers.Migrations;
 
 namespace Verso.Serializers;
 
@@ -22,6 +23,19 @@ public sealed class VersoSerializer : INotebookSerializer
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
     };
+
+    private readonly NotebookMigrationPipeline _migrationPipeline;
+
+    /// <summary>Creates a serializer using the built-in migration pipeline.</summary>
+    public VersoSerializer() : this(NotebookMigrationPipeline.Default)
+    {
+    }
+
+    /// <summary>Creates a serializer with an explicit migration pipeline (used by tests).</summary>
+    public VersoSerializer(NotebookMigrationPipeline migrationPipeline)
+    {
+        _migrationPipeline = migrationPipeline ?? NotebookMigrationPipeline.Default;
+    }
 
     // --- IExtension ---
 
@@ -51,7 +65,8 @@ public sealed class VersoSerializer : INotebookSerializer
 
         var doc = new VersoDocument
         {
-            Verso = notebook.FormatVersion,
+            // The serializer only emits the current schema, so the on-disk stamp is always current.
+            Verso = NotebookFormatVersion.Current,
             Metadata = new VersoMetadata
             {
                 Title = notebook.Title,
@@ -110,7 +125,7 @@ public sealed class VersoSerializer : INotebookSerializer
 
         var notebook = new NotebookModel
         {
-            FormatVersion = doc.Verso ?? "1.0",
+            FormatVersion = doc.Verso ?? NotebookFormatVersion.Initial,
             Title = doc.Metadata?.Title,
             Created = doc.Metadata?.Created,
             Modified = doc.Metadata?.Modified,
@@ -166,6 +181,12 @@ public sealed class VersoSerializer : INotebookSerializer
         {
             notebook.ExtensionSettings = DeserializeExtensionSettings(doc.ExtensionSettings);
         }
+
+        // Carry older documents forward to the current format. Pure-data only; layout references
+        // are resolved against the loaded extensions later, during notebook wire-up.
+        var migration = _migrationPipeline.Run(notebook);
+        foreach (var warning in migration.Warnings)
+            Console.Error.WriteLine($"[verso:format] {warning}");
 
         return Task.FromResult(notebook);
     }
