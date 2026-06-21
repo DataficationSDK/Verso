@@ -353,6 +353,12 @@ public sealed class LayoutGetRendererPackageResult
 
     /// <summary>Optional Content Security Policy hint.</summary>
     public string? ContentSecurityPolicy { get; set; }
+
+    /// <summary>
+    /// Optional host-renderer protocol version the bundle was built against. <c>null</c>
+    /// when the renderer does not declare one.
+    /// </summary>
+    public string? RendererProtocolVersion { get; set; }
 }
 
 public sealed class LayoutGetStaticAssetsParams

@@ -44,6 +44,7 @@ else if (_srcdoc is not null)
     private string _extensionId = "";
     private string _layoutId = "";
     private string _frameInstanceId = "";
+    private string? _rendererProtocolVersion;
     private bool _initSent;
     private bool _attached;
     private bool _disposed;
@@ -98,6 +99,8 @@ else if (_srcdoc is not null)
             _errorMessage = "Layout failed to load: renderer package is empty.";
             return;
         }
+
+        _rendererProtocolVersion = package.RendererProtocolVersion;
 
         if (!TryComposeContentSecurityPolicy(package.ContentSecurityPolicy, out var composedCsp, out var cspError))
         {
@@ -282,6 +285,14 @@ else if (_srcdoc is not null)
         _readyReceived = true;
         _readyTimeoutCts?.Cancel();
 
+        if (_rendererProtocolVersion is { Length: > 0 } declared
+            && !string.Equals(declared, LayoutBridgeProtocol.Version, StringComparison.Ordinal))
+        {
+            await TryForwardLogAsync("warn",
+                $"Renderer declares layout-bridge protocol '{declared}' but the host speaks " +
+                $"'{LayoutBridgeProtocol.Version}'. Messages may be misinterpreted if the versions are incompatible.");
+        }
+
         IDictionary<string, JsonElement>? extra;
         try
         {
@@ -307,6 +318,7 @@ else if (_srcdoc is not null)
             }).ToArray(),
             ["capabilities"] = (int)Service.LayoutCapabilities,
             ["layoutMetadata"] = new { },
+            ["hostProtocolVersion"] = LayoutBridgeProtocol.Version,
             ["extension"] = extra
         };
 

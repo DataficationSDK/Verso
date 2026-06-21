@@ -219,7 +219,8 @@ public static class LayoutHandler
         {
             EntryPoint = package.EntryPoint,
             Files = encodedFiles,
-            ContentSecurityPolicy = package.ContentSecurityPolicy
+            ContentSecurityPolicy = package.ContentSecurityPolicy,
+            RendererProtocolVersion = package.RendererProtocolVersion
         };
     }
 

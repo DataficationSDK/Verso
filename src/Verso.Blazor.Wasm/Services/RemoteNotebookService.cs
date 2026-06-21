@@ -839,7 +839,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         return new LayoutRendererPackageDto(
             response.EntryPoint,
             decoded,
-            response.ContentSecurityPolicy);
+            response.ContentSecurityPolicy,
+            response.RendererProtocolVersion);
     }
 
     public async Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
@@ -1857,6 +1858,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string EntryPoint { get; set; } = "";
         public Dictionary<string, string>? Files { get; set; }
         public string? ContentSecurityPolicy { get; set; }
+        public string? RendererProtocolVersion { get; set; }
     }
 
     private sealed class LayoutStaticAssetsResponse

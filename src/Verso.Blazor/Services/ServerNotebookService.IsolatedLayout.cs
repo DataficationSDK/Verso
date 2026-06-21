@@ -77,7 +77,8 @@ public sealed partial class ServerNotebookService
         return new LayoutRendererPackageDto(
             package.EntryPoint,
             package.Files,
-            package.ContentSecurityPolicy);
+            package.ContentSecurityPolicy,
+            package.RendererProtocolVersion);
     }
 
     /// <inheritdoc />

@@ -69,7 +69,8 @@ public sealed record LayoutInfo(
 public sealed record LayoutRendererPackageDto(
     string EntryPoint,
     IReadOnlyDictionary<string, byte[]> Files,
-    string? ContentSecurityPolicy);
+    string? ContentSecurityPolicy,
+    string? RendererProtocolVersion = null);
 
 /// <summary>
 /// One CSS (or other media-type) asset declared by a layout, resolved to a URL the host
