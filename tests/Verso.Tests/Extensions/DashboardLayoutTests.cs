@@ -304,12 +304,15 @@ public sealed class DashboardLayoutTests
     }
 
     [TestMethod]
-    public async Task OnLayoutInteractionAsync_UnknownType_Throws()
+    public async Task OnLayoutInteractionAsync_UnknownType_IsNoOp()
     {
-        var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
-            () => _layout.OnLayoutInteractionAsync(BuildContext("nope", "{}")));
+        _layout.IsEditMode = true;
 
-        StringAssert.Contains(ex.Message, "DASHBOARD_INTERACTION_UNSUPPORTED");
-        StringAssert.Contains(ex.Message, "nope");
+        // An unrecognized interaction type must be ignored rather than thrown, so a newer
+        // client emitting an interaction this build doesn't know cannot fault a healthy
+        // dashboard. Mirrors the built-in notebook layout's silent handling.
+        await _layout.OnLayoutInteractionAsync(BuildContext("nope", "{}"));
+
+        Assert.IsTrue(_layout.IsEditMode, "Unknown interaction must not mutate layout state.");
     }
 }

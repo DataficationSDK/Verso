@@ -479,61 +479,73 @@
         catch (JSException) { }
     }
 
-    private async void HandleLayoutChanged()
+    private void HandleLayoutChanged()
     {
         if (_activePanel == "properties" && !Service.ActiveLayoutSupportsPropertiesPanel)
             _activePanel = null;
 
-        await InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(StateHasChanged);
     }
 
+    // Theme/extension handlers do real async work before re-rendering. They stay async void
+    // (event-handler shape) but guard the whole body: a post-await ObjectDisposedException or
+    // JSDisconnectedException during rapid open/close would otherwise escape to the sync
+    // context and silently drop the Blazor circuit. Mirrors AutoSaveCallback.
     private async void HandleThemeChanged()
     {
-        await SyncMonacoThemeAsync();
-        if (!_restoringPrefs)
+        try
         {
-            try
+            await SyncMonacoThemeAsync();
+            if (!_restoringPrefs)
             {
-                if (Service.ActiveThemeId is not null)
-                    await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+                try
+                {
+                    if (Service.ActiveThemeId is not null)
+                        await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+                }
+                catch (JSDisconnectedException) { }
+                catch (JSException) { }
             }
+            await InvokeAsync(StateHasChanged);
+            // Snapshot the rendered CSS variables so the next page load can apply them early
+            try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
             catch (JSDisconnectedException) { }
             catch (JSException) { }
         }
-        await InvokeAsync(StateHasChanged);
-        // Snapshot the rendered CSS variables so the next page load can apply them early
-        try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
         catch (JSDisconnectedException) { }
+        catch (TaskCanceledException) { }
+        catch (ObjectDisposedException) { }
         catch (JSException) { }
     }
 
     private async void HandleExtensionStatusChanged()
     {
-        if (!_restoringPrefs)
+        try
         {
-            try
+            if (!_restoringPrefs)
             {
-                var disabledIds = Service.Extensions
-                    .Where(e => e.Status == ExtensionStatus.Disabled)
-                    .Select(e => e.ExtensionId)
-                    .ToArray();
-                await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)disabledIds);
+                try
+                {
+                    var disabledIds = Service.Extensions
+                        .Where(e => e.Status == ExtensionStatus.Disabled)
+                        .Select(e => e.ExtensionId)
+                        .ToArray();
+                    await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)disabledIds);
+                }
+                catch (JSDisconnectedException) { }
+                catch (JSException) { }
             }
-            catch (JSDisconnectedException) { }
-            catch (JSException) { }
+            await InvokeAsync(StateHasChanged);
         }
-        await InvokeAsync(StateHasChanged);
+        catch (JSDisconnectedException) { }
+        catch (TaskCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (JSException) { }
     }
 
-    private async void HandleVariablesChanged()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private void HandleVariablesChanged() => _ = InvokeAsync(StateHasChanged);
 
-    private async void HandleSettingsChanged()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private void HandleSettingsChanged() => _ = InvokeAsync(StateHasChanged);
 
     private async void HandleExtensionConsentRequested()
     {
@@ -585,10 +597,7 @@
             serverService.ResolveInputResult(null, cancelled: true);
     }
 
-    private async void HandleOutputUpdated()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private void HandleOutputUpdated() => _ = InvokeAsync(StateHasChanged);
 
     [JSInvokable]
     public async Task<string?> OnCellInteract(string cellId, string extensionId, string interactionType, string payloadJson, string? outputBlockId)

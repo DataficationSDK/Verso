@@ -3,6 +3,7 @@
 @using System.Text
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
+@inject INotebookService NotebookService
 
 @if (_css is not null)
 {
@@ -44,9 +45,13 @@
 
     private string? BuildThemeKind()
     {
-        // ThemeData does not currently carry an explicit kind discriminator. Hand the
-        // value through as null when unavailable; layout scripts inspect tokens.
-        return null;
+        // Surface the active theme's kind so inline-layout scripts that branch on it match the
+        // isolated-iframe path (which already sends kind via LayoutThemeBundle) and the VS Code
+        // host (which posts kind on its own channel). Tokens remain the recommended path; this
+        // only fills the previously-always-null kind. Null kind stays null (KindToWire would
+        // otherwise coerce it to "light").
+        var kind = NotebookService.ActiveThemeKind;
+        return kind is null ? null : LayoutThemeBundleBuilder.KindToWire(kind);
     }
 
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ThemeColorTokens))]

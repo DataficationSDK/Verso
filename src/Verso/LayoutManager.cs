@@ -8,7 +8,10 @@ namespace Verso;
 /// </summary>
 public sealed class LayoutManager
 {
-    private IReadOnlyList<ILayoutEngine> _availableLayouts;
+    // volatile: Refresh() can run off the circuit thread (extension load) while readers run on
+    // the circuit thread. The list is replaced atomically (never mutated in place), so volatile
+    // reference semantics are enough to publish the new snapshot. Mirrors _activeLayout.
+    private volatile IReadOnlyList<ILayoutEngine> _availableLayouts;
     private volatile ILayoutEngine? _activeLayout;
 
     public LayoutManager(IReadOnlyList<ILayoutEngine> availableLayouts, string? defaultLayoutId = null)

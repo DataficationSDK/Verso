@@ -10,6 +10,10 @@ public sealed class ThemeProviderTests : BunitTestContext
         // bridge-subscribed scripts get notified when the theme actually changes. Tests
         // here only assert on the rendered <style> contents, so accept any JS call.
         TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        // ThemeProvider injects INotebookService to read the active theme kind for the
+        // dispatched change event; register a fake so the component can be constructed.
+        TestContext!.Services.AddSingleton<INotebookService>(new FakeNotebookService());
     }
 
     [TestMethod]

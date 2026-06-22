@@ -115,6 +115,10 @@
     private bool _setHtmlNeeded;
     private bool _portalPendingNeeded;
     private bool _disposed;
+    // Monotonic token that sequences full re-renders. Each full render captures the value
+    // before its first await and bails if a later render bumped it across the await, so two
+    // rapid layout switches can't leave the earlier layout's HTML under the newer identity.
+    private int _layoutGeneration;
     private IReadOnlyList<LayoutStaticAssetDescriptor> _stylesheetAssets
         = Array.Empty<LayoutStaticAssetDescriptor>();
     private IReadOnlyList<LayoutStaticAssetDescriptor> _scriptsBefore
@@ -293,9 +297,14 @@
         _ = InvokeAsync(async () =>
         {
             if (_disposed) return;
+            var gen = ++_layoutGeneration;
             CaptureIdentity();
-            _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+            var html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+            // A newer switch ran while we awaited; its render supersedes ours.
+            if (_disposed || gen != _layoutGeneration) return;
+            _html = html;
             await RefreshLayoutAssetsAsync();
+            if (_disposed || gen != _layoutGeneration) return;
             // OnAfterRender pushes the new chrome and re-portals via _setHtmlNeeded, so the JS
             // interop awaits don't interleave with the dispatcher work that the re-render
             // triggered by StateHasChanged depends on.
@@ -324,7 +333,11 @@
             switch (args.Scope)
             {
                 case "full":
-                    _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+                    var gen = ++_layoutGeneration;
+                    var html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+                    // A newer full render ran while we awaited; let it win.
+                    if (_disposed || gen != _layoutGeneration) return;
+                    _html = html;
                     // OnAfterRender swaps the chrome and re-portals the cells via _setHtmlNeeded.
                     _setHtmlNeeded = true;
                     StateHasChanged();

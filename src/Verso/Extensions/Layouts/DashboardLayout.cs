@@ -310,10 +310,13 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
                 return;
 
             default:
-                throw new InvalidOperationException(
-                    $"DASHBOARD_INTERACTION_UNSUPPORTED: Dashboard layout does not handle " +
-                    $"interactionType '{context.InteractionType}'. Supported types: " +
-                    $"'updateCellPosition', 'setEditMode', 'run', 'toggleCellEdit'.");
+                // Unknown interaction types are ignored rather than faulting the host. Throwing
+                // here surfaces as a transport-level error and is forward-incompatible: a newer
+                // client emitting an interaction this build doesn't know would break an otherwise
+                // healthy dashboard. Matches the built-in notebook layout's no-op handling.
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DashboardLayout] Ignoring unsupported interactionType '{context.InteractionType}'.");
+                return;
         }
     }
 
