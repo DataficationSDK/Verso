@@ -51,15 +51,42 @@
         return document.scrollingElement || document.documentElement;
     }
 
-    // Atomically replace the layout chrome and re-portal the live cells in ONE synchronous frame:
-    // harvest the portaled cells back to the pool (so the innerHTML swap can't destroy the live
-    // <Cell> DOM that Blazor still owns), swap in the new HTML, then move the cells back into their
-    // slots — all before the browser paints. Because no paint happens between the swap and the
-    // re-portal, the layout never flashes empty. (Binding the HTML through a Blazor MarkupString
-    // instead paints the new empty slots first and only re-portals on the next OnAfterRender, which
-    // is what made fold/insert/reorder flash.) Scroll position is preserved across the swap.
-    function setLayoutHtml(rootEl, poolEl, html) {
-        if (!rootEl) return 0;
+    // This layout's own stylesheet links, matched by the data attributes CustomLayoutHtml stamps
+    // on both the root and each injected <link>. Used to gate the first HTML injection on the CSS
+    // being applied (see setLayoutHtml).
+    function layoutStylesheets(rootEl) {
+        var extId = rootEl.getAttribute('data-extension-id');
+        var layoutId = rootEl.getAttribute('data-layout-id');
+        if (!extId && !layoutId) return [];
+        var sel = 'link[rel="stylesheet"]';
+        if (extId) sel += '[data-verso-extension-id="' + CSS.escape(extId) + '"]';
+        if (layoutId) sel += '[data-verso-layout-id="' + CSS.escape(layoutId) + '"]';
+        return Array.prototype.slice.call(document.querySelectorAll(sel));
+    }
+
+    // Resolve once every pending stylesheet link has loaded (or errored, so a missing asset can't
+    // wedge the layout). A link whose .sheet is already set is parsed and applied; only the rest
+    // need waiting on. A short timeout is a final backstop for a stalled request.
+    function whenStylesheetsApplied(links) {
+        var pending = links.filter(function (l) { return !l.sheet; });
+        if (pending.length === 0) return null; // all applied — caller takes the synchronous path
+        return Promise.all(pending.map(function (link) {
+            return new Promise(function (resolve) {
+                if (link.sheet) { resolve(); return; }
+                var settled = false;
+                function done() { if (!settled) { settled = true; resolve(); } }
+                link.addEventListener('load', done, { once: true });
+                link.addEventListener('error', done, { once: true });
+                setTimeout(done, 2000);
+            });
+        }));
+    }
+
+    // The synchronous swap: harvest the portaled cells back to the pool (so the innerHTML swap can't
+    // destroy the live <Cell> DOM that Blazor still owns), swap in the new HTML, then move the cells
+    // back into their slots — all before the browser paints. Because no paint happens between the
+    // swap and the re-portal, the layout never flashes empty. Scroll position is preserved.
+    function applyLayoutHtml(rootEl, poolEl, html) {
         var scroller = findScrollParent(rootEl);
         var prevTop = scroller ? scroller.scrollTop : 0;
         harvestToPool(rootEl, poolEl);
@@ -67,6 +94,23 @@
         var count = mount(rootEl, poolEl);
         if (scroller) scroller.scrollTop = prevTop;
         return count;
+    }
+
+    // Atomically replace the layout chrome and re-portal the live cells. Binding the HTML through a
+    // Blazor MarkupString instead paints the new empty slots first and only re-portals on the next
+    // OnAfterRender, which is what made fold/insert/reorder flash.
+    //
+    // First injection is gated on this layout's stylesheet having loaded: the root starts empty and
+    // the <link> loads asynchronously, so injecting the chrome before the CSS applies would paint
+    // the insert/add buttons with the browser's default (white) button styling for a frame before
+    // the layout rules — including the opacity:0 that hides the insert rail — take effect. Once the
+    // stylesheet is applied (the common re-render case) this runs synchronously in one frame, so
+    // fold/insert/reorder stay flicker-free.
+    function setLayoutHtml(rootEl, poolEl, html) {
+        if (!rootEl) return 0;
+        var wait = whenStylesheetsApplied(layoutStylesheets(rootEl));
+        if (!wait) return applyLayoutHtml(rootEl, poolEl, html);
+        return wait.then(function () { return applyLayoutHtml(rootEl, poolEl, html); });
     }
 
     // After portaling cells into visible slots: re-run mermaid (it renders at zero width inside

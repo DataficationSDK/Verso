@@ -115,6 +115,13 @@ internal static class NotebookLayoutStyles
         R(".vmd-cell.is-running::before, .vmd-cell:has(.verso-cell--executing)::before", "animation:vmd-run-pulse 1200ms ease-in-out infinite;");
         // Give the portaled cell room to breathe inside the card.
         R(".vmd-cell > *", "padding:4px 6px;");
+        // An unfilled slot (one the portal has not mounted its live cell into yet) still carries the
+        // card's border and shadow but has no content, so it collapses to a thin horizontal bar that
+        // reads as a stray line. That happens for the moment a slot exists without its cell: just
+        // after an insert (the new slot renders a beat before the cell is portaled in) and just after
+        // a delete (the cell node is pulled immediately, but the slot lingers until the next layout
+        // re-render). Hide the empty slot so neither transition flashes a line.
+        R(".vmd-cell[data-cell-slot]:not(:has(> [data-cell-id]))", "display:none;");
 
         // --- Editor: flatten into the card -------------------------------------------------
         // The live cell's Monaco editor normally draws its own 1px border, which reads as a
@@ -175,9 +182,9 @@ internal static class NotebookLayoutStyles
 
         // --- Insert rail (between cells) ----------------------------------------------------
         // Compact at rest so cells sit close together; a brief hover over the gap expands the
-        // rail and fades in the divider line and the per-type insert buttons. The reveal is
-        // delayed so a quick mouse pass across the gap doesn't pop the affordance, while leaving
-        // collapses it immediately (the delay lives only on the :hover rules).
+        // rail and fades in the per-type insert buttons. The reveal is delayed so a quick mouse
+        // pass across the gap doesn't pop the affordance, while leaving collapses it immediately
+        // (the delay lives only on the :hover rules).
         R(".vmd-insert",
             "display:flex; align-items:center; justify-content:center; height:8px;" +
             "position:relative; transition:height 140ms ease;");
@@ -185,17 +192,12 @@ internal static class NotebookLayoutStyles
         // hover without enlarging the visible spacing between cells.
         R(".vmd-insert::after",
             "content:''; position:absolute; left:0; right:0; top:-4px; bottom:-4px;");
-        // Divider line, hidden until this gap is hovered.
-        R(".vmd-insert::before",
-            "content:''; position:absolute; left:8px; right:8px; height:1px;" +
-            "background:var(--md-outline-variant); opacity:0; transition:opacity 140ms ease;");
         R(".vmd-insert-buttons",
             "position:relative; z-index:1; display:inline-flex; gap:6px; opacity:0;" +
             "pointer-events:none; transition:opacity 140ms ease;");
         // Reveal on a brief hover. The transition-delay sits only on the hover state, so the
         // affordance appears after a short pause but collapses instantly when the pointer leaves.
         R(".vmd-insert:hover", "height:32px; transition-delay:400ms;");
-        R(".vmd-insert:hover::before", "opacity:1; transition-delay:400ms;");
         R(".vmd-insert:hover .vmd-insert-buttons",
             "opacity:1; pointer-events:auto; transition-delay:400ms;");
         R(".vmd-insert-btn",
