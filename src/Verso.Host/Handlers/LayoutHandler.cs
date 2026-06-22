@@ -334,6 +334,13 @@ public static class LayoutHandler
         var layoutId = p.LayoutId;
         var frameInstanceId = p.FrameInstanceId ?? string.Empty;
 
+        // Render requests the handler makes are deferred, not sent inline, so they can be flushed
+        // AFTER a cell-collection change is announced (below). The client refreshes its cell cache
+        // on notebook/cellsChanged and re-renders the layout HTML on layout/updated; if the render
+        // arrives first the new slot paints before the cell cache catches up, so the cell only
+        // portals in a beat later (a visible two-step on insert/delete). Announcing the cells first
+        // lets the re-render mount the new cell in the same frame its slot appears.
+        var deferredRenders = new List<Action>();
         var context = new LayoutInteractionContext
         {
             ExtensionId = extensionId,
@@ -344,8 +351,10 @@ public static class LayoutHandler
             TargetId = p.TargetId,
             Verso = new HostVersoContext(ns.Scaffold, ns: ns),
             CancellationToken = CancellationToken.None,
-            RequestRender = () => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "full"),
-            RequestCellRefresh = cellId => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "cell", cellId)
+            RequestRender = () => deferredRenders.Add(
+                () => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "full")),
+            RequestCellRefresh = cellId => deferredRenders.Add(
+                () => ns.SendLayoutUpdated(extensionId, layoutId, frameInstanceId, "cell", cellId))
         };
 
         // Snapshot the cell identity sequence so we can tell whether the interaction mutated the
@@ -379,6 +388,25 @@ public static class LayoutHandler
         var cellsAfter = string.Join(",", ns.Scaffold.Cells.Select(c => c.Id));
         if (!string.Equals(cellsBefore, cellsAfter, StringComparison.Ordinal))
             ns.SendNotification(MethodNames.NotebookCellsChanged);
+
+        // Flush the handler's render requests now, after any cell-collection change has been
+        // announced, so the client re-renders the layout with a cell cache that already reflects
+        // the change and the new cell portals into its slot in one frame.
+        //
+        // ORDERING CONTRACT (read before reordering these sends): cellsChanged MUST precede the
+        // render flush. The out-of-process client services them as two independent round-trips
+        // (notebook/list to refresh the cell cache, vs renderActiveLayout for the HTML). Sending
+        // the render first lets it read a stale cache and paint the new slot before the cell
+        // exists client-side, which shows as the new cell briefly merged into its neighbour. A
+        // residual race remains even in this order: nothing guarantees the cache-refresh reply
+        // lands before the render reply (a large notebook or a busy connection can let the cheaper
+        // render reply overtake it). That race is BENIGN by construction, not luck: an unfilled
+        // slot is hidden by CSS, and CustomLayoutHtml's portalPending pass (driven by the same
+        // cellsChanged) always fills the slot once the cache catches up, so the final state is
+        // always correct. The only deterministic close, if a transient ever becomes objectionable,
+        // is to make the client's "full" render await any in-flight cell refresh before portaling.
+        foreach (var render in deferredRenders)
+            render();
 
         return null;
     }

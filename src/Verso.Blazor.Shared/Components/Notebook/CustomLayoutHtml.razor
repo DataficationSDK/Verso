@@ -393,6 +393,10 @@
         // A structural change re-renders the cell pool. Schedule a portal pass so any cell whose
         // slot already exists but is still empty (e.g. one added via a layout affordance, where
         // the pool update and the layout re-render arrive separately) gets moved into its slot.
+        // This pass is also the backstop that makes the host's cellsChanged-before-render ordering
+        // race-proof: if a layout re-render paints a new slot before this refresh lands its cell
+        // in the pool, the slot stays empty (and CSS-hidden) only until this portalPending fills
+        // it. See the ORDERING CONTRACT note in Verso.Host LayoutHandler.InteractAsync.
         if (_disposed) return;
         _ = InvokeAsync(() =>
         {

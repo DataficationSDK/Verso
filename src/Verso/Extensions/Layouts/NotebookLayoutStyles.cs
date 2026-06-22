@@ -282,18 +282,24 @@ internal static class NotebookLayoutStyles
   } catch (e) { bridge = null; }
 
   // --- Live sync: react to host notebook state-change events. A running cell gets a marker
-  // (cheap, no re-render); structural changes debounce a requestRender() so the slot set
-  // re-syncs after a burst settles. Cells added or removed from the cell's own controls, the
-  // insert affordances, or the host toolbar all arrive here, so the layout never shows a stale
-  // slot. Subscribed once for the layout's lifetime; self-removes if the root is detached. ---
+  // (cheap, no re-render); structural changes coalesce a requestRender() so the slot set
+  // re-syncs. Cells added or removed from the cell's own controls, the insert affordances, or
+  // the host toolbar all arrive here, so the layout never shows a stale slot. Subscribed once
+  // for the layout's lifetime; self-removes if the root is detached. ---
   var runningCells = {};
+  // Leading-edge debounce: render immediately on the first change so a single add/remove is
+  // instant, then open a short cooldown that coalesces a burst into one follow-up. requestRender
+  // regenerates from the current model, so the trailing render after the cooldown settles the
+  // slot set to the final state and a missed last-change can't leave it stale.
   var renderTimer = null;
+  var renderPending = false;
   function scheduleRender() {
-    if (renderTimer) clearTimeout(renderTimer);
+    if (renderTimer) { renderPending = true; return; } // in cooldown: settle once it ends
+    if (bridge) bridge.requestRender();                 // leading edge: render now
     renderTimer = setTimeout(function () {
       renderTimer = null;
-      if (bridge) bridge.requestRender();
-    }, 200);
+      if (renderPending) { renderPending = false; if (bridge) bridge.requestRender(); }
+    }, 75);
   }
   function markRunning(id, on) {
     if (!id) return;
