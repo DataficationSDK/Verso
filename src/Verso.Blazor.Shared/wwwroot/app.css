@@ -1919,6 +1919,96 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
 }
 
+/* Version picker (install-time): a compact dropdown mirroring the cell-type badge.
+   The badge shows the version that will be installed (latest by default); the popup
+   lists the available versions, newest first. */
+
+.verso-marketplace-version-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.verso-marketplace-version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px;
+    border: none;
+    border-radius: 3px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.verso-marketplace-version-badge:hover:not(:disabled) {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-marketplace-version-badge:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.verso-marketplace-version-chevron {
+    font-size: 9px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-left: 2px;
+}
+
+.verso-marketplace-version-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    min-width: 90px;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--verso-toolbar-background, #F3F3F3);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 10000;
+    padding: 2px;
+}
+
+.verso-marketplace-version-option {
+    display: block;
+    width: 100%;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 2px;
+    background: transparent;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.verso-marketplace-version-option:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-marketplace-version-option--active {
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+}
+
+.verso-marketplace-version-option--active:hover {
+    background: var(--verso-accent-secondary, #005A9E);
+}
+
+.verso-marketplace-version-status {
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
 .verso-marketplace-result-authors {
     font-size: 11px;
     color: var(--verso-editor-line-number, #858585);

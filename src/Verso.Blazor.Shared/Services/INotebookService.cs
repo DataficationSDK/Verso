@@ -298,6 +298,15 @@ public interface INotebookService
         string packageId, string? version, CancellationToken ct);
 
     /// <summary>
+    /// Lists the versions available to install for <paramref name="packageId"/>, newest first.
+    /// The marketplace panel uses this to offer a version other than the latest; the latest
+    /// remains the default selection. Hosts without marketplace support return an empty list.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetExtensionVersionsAsync(
+        string packageId, bool includePrerelease, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+    /// <summary>
     /// Removes a package from the notebook's required extensions and revokes its trust. The
     /// extension's capabilities remain active until the next open; the on-disk files are kept
     /// so it can be reinstalled.

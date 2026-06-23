@@ -47,6 +47,17 @@ public static class ExtensionHandler
         };
     }
 
+    public static async Task<ExtensionVersionsResult> HandleVersionsAsync(NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<ExtensionVersionsParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for extension/versions");
+
+        var versions = await Marketplace.GetAvailableVersionsAsync(
+            p.PackageId, p.IncludePrerelease, CancellationToken.None);
+
+        return new ExtensionVersionsResult { Versions = versions.ToList() };
+    }
+
     public static async Task<ExtensionInstallResult> HandleInstallAsync(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<ExtensionInstallParams>(JsonRpcMessage.SerializerOptions)

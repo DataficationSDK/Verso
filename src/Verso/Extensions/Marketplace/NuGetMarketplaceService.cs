@@ -130,6 +130,63 @@ public sealed class NuGetMarketplaceService
     }
 
     /// <summary>
+    /// Lists the versions available to install for <paramref name="packageId"/>, newest first.
+    /// Drives the marketplace's version picker so a user can install a version other than the
+    /// latest. The first source that can enumerate the id wins; sources without an all-versions
+    /// endpoint, or that don't carry the package, are skipped. Returns an empty list when no
+    /// source can resolve the id. Pre-release versions are excluded unless
+    /// <paramref name="includePrerelease"/> is set.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> GetAvailableVersionsAsync(
+        string packageId, bool includePrerelease, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(packageId))
+            return Array.Empty<string>();
+
+        using var cache = new SourceCacheContext();
+
+        foreach (var source in _sources)
+        {
+            FindPackageByIdResource? resource;
+            try
+            {
+                resource = await source.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch
+            {
+                continue; // Source can't enumerate versions; try the next.
+            }
+
+            if (resource is null)
+                continue;
+
+            try
+            {
+                var versions = await resource
+                    .GetAllVersionsAsync(packageId, cache, NullLogger.Instance, ct)
+                    .ConfigureAwait(false);
+
+                var filtered = versions
+                    .Where(v => includePrerelease || !v.IsPrerelease)
+                    .OrderByDescending(v => v)
+                    .Select(v => v.ToNormalizedString())
+                    .ToList();
+
+                if (filtered.Count > 0)
+                    return filtered;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch
+            {
+                // Enumeration failed on this source; fall through to the next.
+            }
+        }
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
     /// Ensures a package is present in the managed extensions directory and returns the
     /// assembly paths to load. When the requested version is already installed on disk this
     /// is offline and fast; otherwise the package and its transitive dependencies are

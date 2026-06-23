@@ -90,6 +90,11 @@ public sealed partial class ServerNotebookService
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<string>> GetExtensionVersionsAsync(
+        string packageId, bool includePrerelease, CancellationToken ct)
+        => _marketplace.GetAvailableVersionsAsync(packageId, includePrerelease, ct);
+
+    /// <inheritdoc />
     public LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.Upload;
 
     /// <inheritdoc />

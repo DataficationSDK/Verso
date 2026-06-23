@@ -61,6 +61,18 @@ public sealed class PackageSearchItemDto
     public bool IsInstalled { get; set; }
 }
 
+public sealed class ExtensionVersionsParams
+{
+    public string NotebookId { get; set; } = "";
+    public string PackageId { get; set; } = "";
+    public bool IncludePrerelease { get; set; }
+}
+
+public sealed class ExtensionVersionsResult
+{
+    public List<string> Versions { get; set; } = new();
+}
+
 public sealed class ExtensionInstallParams
 {
     public string NotebookId { get; set; } = "";

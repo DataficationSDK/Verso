@@ -692,6 +692,16 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             ?? (IReadOnlyList<PackageSearchResultDto>)Array.Empty<PackageSearchResultDto>();
     }
 
+    public async Task<IReadOnlyList<string>> GetExtensionVersionsAsync(
+        string packageId, bool includePrerelease, CancellationToken ct)
+    {
+        var response = await _bridge.RequestAsync<ExtensionVersionsResponse>(
+            "extension/versions",
+            new { packageId, includePrerelease });
+
+        return response.Versions ?? (IReadOnlyList<string>)Array.Empty<string>();
+    }
+
     public async Task<PackageInstallResultDto> InstallExtensionAsync(
         string packageId, string? version, CancellationToken ct)
     {
@@ -2017,6 +2027,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? IconUrl { get; set; }
         public string? ProjectUrl { get; set; }
         public bool IsInstalled { get; set; }
+    }
+
+    private sealed class ExtensionVersionsResponse
+    {
+        public List<string>? Versions { get; set; }
     }
 
     private sealed class ExtensionInstallResponse

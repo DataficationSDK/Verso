@@ -1094,7 +1094,14 @@ function renderAll() {
 
 function setDocument(next) {
   if (!next || typeof next !== "object") return;
+  const prevIds = new Set((doc.layers || []).map((l) => l.id));
   doc = { width: num(next.width, 1024), height: num(next.height, 768), layers: Array.isArray(next.layers) ? next.layers : [] };
+  // A layer id that wasn't present before means one was just added (the host appends new
+  // layers with fresh ids; rename/opacity/reorder/etc. all keep existing ids). Make that new
+  // layer the active selection so it can be edited immediately, rather than leaving the prior
+  // selection in place and forcing a manual click on the new layer.
+  const added = doc.layers.filter((l) => !prevIds.has(l.id));
+  if (added.length) selectedId = added[added.length - 1].id;
   if (selectedId && !doc.layers.some((l) => l.id === selectedId)) selectedId = null;
   if (!selectedId && doc.layers.length) selectedId = doc.layers[doc.layers.length - 1].id;
   renderAll();

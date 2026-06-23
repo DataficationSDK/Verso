@@ -86,7 +86,42 @@
                                     <span class="verso-marketplace-result-id" title="@p.Id">@p.Id</span>
                                     @if (p.Version is not null)
                                     {
-                                        <span class="verso-marketplace-result-version">@p.Version</span>
+                                        @if (p.IsInstalled)
+                                        {
+                                            <span class="verso-marketplace-result-version">@p.Version</span>
+                                        }
+                                        else
+                                        {
+                                            var selected = SelectedVersion(p);
+                                            <div class="verso-marketplace-version-dropdown" @onfocusout="OnVersionDropdownFocusOut" tabindex="-1">
+                                                <button class="verso-marketplace-version-badge"
+                                                        disabled="@_isBusy"
+                                                        title="Choose a version to install"
+                                                        @onclick="() => ToggleVersionDropdown(p.Id, p.Version)">
+                                                    @selected
+                                                    <span class="verso-marketplace-version-chevron">&#9662;</span>
+                                                </button>
+                                                @if (_openVersionDropdownId == p.Id)
+                                                {
+                                                    <div class="verso-marketplace-version-popup">
+                                                        @if (_loadingVersionsId == p.Id)
+                                                        {
+                                                            <div class="verso-marketplace-version-status">Loading...</div>
+                                                        }
+                                                        else if (_versionCache.TryGetValue(p.Id, out var versions))
+                                                        {
+                                                            @foreach (var ver in versions)
+                                                            {
+                                                                var v = ver;
+                                                                var isActive = string.Equals(v, selected, StringComparison.OrdinalIgnoreCase);
+                                                                <button class="verso-marketplace-version-option @(isActive ? "verso-marketplace-version-option--active" : "")"
+                                                                        @onclick="() => SelectVersion(p.Id, v)">@v</button>
+                                                            }
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     }
                                 </div>
                                 @if (p.Authors is not null)
@@ -108,7 +143,7 @@
                                     {
                                         <button class="verso-marketplace-btn verso-marketplace-btn--install"
                                                 disabled="@_isBusy"
-                                                @onclick="() => InstallAsync(p.Id, p.Version)">Install</button>
+                                                @onclick="() => InstallAsync(p.Id, SelectedVersion(p))">Install</button>
                                     }
                                 </div>
                             </div>
@@ -189,6 +224,14 @@
     private bool _isBusy;
     private string? _installError;
     private CancellationTokenSource? _searchCts;
+
+    // Per-package version selection, keyed by package id. A package absent from _selectedVersions
+    // installs at the latest (the version the search returned). _versionCache holds the lazily
+    // fetched version list for each package whose dropdown has been opened.
+    private readonly Dictionary<string, string> _selectedVersions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IReadOnlyList<string>> _versionCache = new(StringComparer.OrdinalIgnoreCase);
+    private string? _openVersionDropdownId;
+    private string? _loadingVersionsId;
 
     private static readonly Dictionary<string, string> CategoryDisplayNames = new()
     {
@@ -315,6 +358,69 @@
             _installError = ex.Message;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    // The version that will be installed for a package: the user's pick if they chose one,
+    // otherwise the latest version the search returned.
+    private string? SelectedVersion(PackageSearchResultDto p)
+        => _selectedVersions.TryGetValue(p.Id, out var v) ? v : p.Version;
+
+    private async Task ToggleVersionDropdown(string packageId, string? latest)
+    {
+        if (_openVersionDropdownId == packageId)
+        {
+            _openVersionDropdownId = null;
+            return;
+        }
+
+        _openVersionDropdownId = packageId;
+
+        // Fetch the version list the first time this package's dropdown is opened.
+        if (!_versionCache.ContainsKey(packageId))
+            await LoadVersionsAsync(packageId, latest);
+    }
+
+    private async Task LoadVersionsAsync(string packageId, string? latest)
+    {
+        _loadingVersionsId = packageId;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var versions = await Service.GetExtensionVersionsAsync(packageId, includePrerelease: false, CancellationToken.None);
+
+            // Fall back to the search's latest version when the feed can't enumerate versions
+            // (e.g. a source without an all-versions endpoint), so the dropdown still offers the
+            // default rather than showing an empty list.
+            if (versions.Count == 0 && latest is not null)
+                versions = new[] { latest };
+
+            _versionCache[packageId] = versions;
+        }
+        catch
+        {
+            _versionCache[packageId] = latest is not null ? new[] { latest } : Array.Empty<string>();
+        }
+        finally
+        {
+            _loadingVersionsId = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void SelectVersion(string packageId, string version)
+    {
+        _selectedVersions[packageId] = version;
+        _openVersionDropdownId = null;
+    }
+
+    private async Task OnVersionDropdownFocusOut()
+    {
+        // Delay so a click on a version option registers before the popup closes (the option's
+        // onclick and this focusout race; the delay lets the selection win).
+        await Task.Delay(150);
+        _openVersionDropdownId = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task InstallAsync(string packageId, string? version)
