@@ -1416,14 +1416,16 @@ html, body {
 .verso-presentation-cell .verso-cell-gutter,
 .verso-presentation-cell .verso-cell-toolbar,
 .verso-presentation-cell .verso-cell-editor,
-.verso-presentation-cell .verso-cell-source-preview {
+.verso-presentation-cell .verso-cell-source-preview,
+.verso-presentation-cell .verso-cell-status {
     display: none;
 }
 
 .verso-dashboard-cell .verso-cell-gutter,
 .verso-dashboard-cell .verso-cell-toolbar,
 .verso-dashboard-cell .verso-cell-editor,
-.verso-dashboard-cell .verso-cell-source-preview {
+.verso-dashboard-cell .verso-cell-source-preview,
+.verso-dashboard-cell .verso-cell-status {
     display: none;
 }
 
@@ -1434,10 +1436,12 @@ html, body {
 .verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-toolbar,
 .verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-editor,
 .verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-source-preview,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-status,
 .verso-dashboard-cell[data-cell-edit="true"] .verso-cell-gutter,
 .verso-dashboard-cell[data-cell-edit="true"] .verso-cell-toolbar,
 .verso-dashboard-cell[data-cell-edit="true"] .verso-cell-editor,
-.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-source-preview {
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-source-preview,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-status {
     display: revert;
 }
 
