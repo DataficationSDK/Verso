@@ -9,6 +9,7 @@ import {
   ExecutionResultDto,
   ExecutionRunAllResult,
   LanguagesResult,
+  LayoutsResult,
   ParameterDefDto,
   ParameterListResult,
   PropertiesGetSectionsResult,
@@ -852,6 +853,281 @@ export class UpdateCellPropertyTool
   }
 }
 
+// ── Layout tools ────────────────────────────────────────────────────
+
+export class ListLayoutsTool
+  implements vscode.LanguageModelTool<Record<string, never>>
+{
+  async invoke(
+    _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const result = await ctx.host.sendRequest<LayoutsResult>(
+      "layout/getLayouts",
+      { notebookId: ctx.notebookId }
+    );
+
+    if (result.layouts.length === 0) {
+      return textResult("No layouts are registered.");
+    }
+
+    const lines = result.layouts.map((l) => {
+      const active = l.isActive ? " (active)" : "";
+      return `${l.displayName}${active} - extensionId: "${l.extensionId}", layoutId: "${l.id}"`;
+    });
+    return textResult(
+      `Available layouts (pass both extensionId and layoutId to verso_switchLayout):\n${lines.join("\n")}`
+    );
+  }
+}
+
+export class SwitchLayoutTool
+  implements
+    vscode.LanguageModelTool<{ extensionId: string; layoutId: string }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      extensionId: string;
+      layoutId: string;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Switching layout to "${options.input.layoutId}"`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      extensionId: string;
+      layoutId: string;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const { extensionId, layoutId } = options.input;
+
+    // Resolve against the registered layouts so the call always carries the
+    // qualified (extensionId, layoutId) pair, even if the model supplied only
+    // a bare layoutId (the host's bare-string path is deprecated).
+    const layouts = await ctx.host.sendRequest<LayoutsResult>(
+      "layout/getLayouts",
+      { notebookId: ctx.notebookId }
+    );
+    const target = layouts.layouts.find(
+      (l) =>
+        l.id.toLowerCase() === layoutId.toLowerCase() &&
+        (!extensionId ||
+          l.extensionId.toLowerCase() === extensionId.toLowerCase())
+    );
+    if (!target) {
+      const available = layouts.layouts
+        .map((l) => `"${l.id}" (${l.extensionId})`)
+        .join(", ");
+      return textResult(
+        `Layout "${layoutId}" not found. Call verso_listLayouts first. Available: ${available || "none"}.`
+      );
+    }
+
+    await ctx.host.sendRequest("layout/switch", {
+      notebookId: ctx.notebookId,
+      extensionId: target.extensionId,
+      layoutId: target.id,
+    });
+    // The host switched server-side, but the webview drives its own active-layout
+    // state, so tell it to re-sync and swap the rendered view to the new layout.
+    ctx.bridge.notify("layout/activeChanged", {
+      notebookId: ctx.notebookId,
+      extensionId: target.extensionId,
+      layoutId: target.id,
+    });
+    ctx.bridge.markDirty();
+
+    return textResult(
+      `Switched the notebook layout to "${target.displayName}". It is now the active layout and the choice is saved with the notebook.`
+    );
+  }
+}
+
+// ── Structural cell tools ───────────────────────────────────────────
+
+export class MoveCellTool
+  implements
+    vscode.LanguageModelTool<{ cellNumber: number; toPosition: number }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      cellNumber: number;
+      toPosition: number;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Moving cell ${options.input.cellNumber} to position ${options.input.toPosition}`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      cellNumber: number;
+      toPosition: number;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const cells = await listCellsRaw(ctx);
+    const { cellNumber, toPosition } = options.input;
+    if (!resolveCell(cells, cellNumber)) {
+      return textResult(
+        `Cell ${cellNumber} not found. The notebook has ${cells.length} cell(s).`
+      );
+    }
+    if (toPosition < 1 || toPosition > cells.length) {
+      return textResult(
+        `Target position ${toPosition} is out of range (1..${cells.length}).`
+      );
+    }
+
+    await ctx.host.sendRequest("cell/move", {
+      notebookId: ctx.notebookId,
+      fromIndex: cellNumber - 1,
+      toIndex: toPosition - 1,
+    });
+
+    notifyWebviewChanged(ctx);
+
+    return textResult(`Moved cell ${cellNumber} to position ${toPosition}.`);
+  }
+}
+
+export class ChangeCellTypeTool
+  implements vscode.LanguageModelTool<{ cellNumber: number; type: string }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      cellNumber: number;
+      type: string;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Changing cell ${options.input.cellNumber} to type "${options.input.type}"`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      cellNumber: number;
+      type: string;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const cells = await listCellsRaw(ctx);
+    const cell = resolveCell(cells, options.input.cellNumber);
+    if (!cell) {
+      return textResult(
+        `Cell ${options.input.cellNumber} not found. The notebook has ${cells.length} cell(s).`
+      );
+    }
+
+    const result = await ctx.host.sendRequest<{ success: boolean }>(
+      "cell/changeType",
+      {
+        notebookId: ctx.notebookId,
+        cellId: cell.id,
+        type: options.input.type,
+      }
+    );
+    if (!result.success) {
+      return textResult(
+        `Could not change cell ${options.input.cellNumber} to type "${options.input.type}".`
+      );
+    }
+
+    notifyWebviewChanged(ctx);
+
+    return textResult(
+      `Changed cell ${options.input.cellNumber} to type "${options.input.type}". Changing the type clears its previous outputs.`
+    );
+  }
+}
+
+export class ChangeCellLanguageTool
+  implements
+    vscode.LanguageModelTool<{ cellNumber: number; language: string }>
+{
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{
+      cellNumber: number;
+      language: string;
+    }>,
+    _token: vscode.CancellationToken
+  ) {
+    return {
+      invocationMessage: `Changing cell ${options.input.cellNumber} language to "${options.input.language}"`,
+    };
+  }
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{
+      cellNumber: number;
+      language: string;
+    }>,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelToolResult> {
+    const ctx = await resolveNotebook();
+    if (!ctx) {
+      return textResult("No Verso notebook is currently open.");
+    }
+
+    const cells = await listCellsRaw(ctx);
+    const cell = resolveCell(cells, options.input.cellNumber);
+    if (!cell) {
+      return textResult(
+        `Cell ${options.input.cellNumber} not found. The notebook has ${cells.length} cell(s).`
+      );
+    }
+
+    const result = await ctx.host.sendRequest<{ success: boolean }>(
+      "cell/changeLanguage",
+      {
+        notebookId: ctx.notebookId,
+        cellId: cell.id,
+        language: options.input.language,
+      }
+    );
+    if (!result.success) {
+      return textResult(
+        `Could not change cell ${options.input.cellNumber} language to "${options.input.language}". It may not be a registered language. Call verso_getLanguages to list valid languages.`
+      );
+    }
+
+    notifyWebviewChanged(ctx);
+
+    return textResult(
+      `Changed cell ${options.input.cellNumber} language to "${options.input.language}". Changing the language clears its previous outputs.`
+    );
+  }
+}
+
 // ── Registration ────────────────────────────────────────────────────
 
 export function registerTools(
@@ -890,6 +1166,14 @@ export function registerTools(
     vscode.lm.registerTool(
       "verso_updateCellProperty",
       new UpdateCellPropertyTool()
+    ),
+    vscode.lm.registerTool("verso_listLayouts", new ListLayoutsTool()),
+    vscode.lm.registerTool("verso_switchLayout", new SwitchLayoutTool()),
+    vscode.lm.registerTool("verso_moveCell", new MoveCellTool()),
+    vscode.lm.registerTool("verso_changeCellType", new ChangeCellTypeTool()),
+    vscode.lm.registerTool(
+      "verso_changeCellLanguage",
+      new ChangeCellLanguageTool()
     )
   );
 }

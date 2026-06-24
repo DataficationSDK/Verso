@@ -397,6 +397,101 @@
           },
           "required": ["cellNumber", "providerExtensionId", "propertyName", "value"]
         }
+      },
+      {
+        "name": "verso_listLayouts",
+        "tags": ["verso", "notebook", "layout"],
+        "displayName": "List Layouts",
+        "modelDescription": "List the layouts registered for this notebook (for example Notebook or Dashboard). Each entry includes its displayName, the extensionId and layoutId needed by verso_switchLayout, and whether it is currently active. Call this before verso_switchLayout to discover the qualified identity of the target layout.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "verso_switchLayout",
+        "tags": ["verso", "notebook", "layout"],
+        "displayName": "Switch Layout",
+        "modelDescription": "Switch the notebook's active layout. Call verso_listLayouts first to get the extensionId and layoutId of the target layout. The choice is saved with the notebook. Some layouts (such as Dashboard) present cells differently, for example output-only with grid positions.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "extensionId": {
+              "type": "string",
+              "description": "The owning extension id of the target layout, from verso_listLayouts"
+            },
+            "layoutId": {
+              "type": "string",
+              "description": "The layoutId of the target layout, from verso_listLayouts"
+            }
+          },
+          "required": ["extensionId", "layoutId"]
+        }
+      },
+      {
+        "name": "verso_moveCell",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "Move Cell",
+        "modelDescription": "Move a cell to a different position in the notebook. Both numbers are 1-based. Call verso_listCells first to confirm the current order.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based number of the cell to move"
+            },
+            "toPosition": {
+              "type": "number",
+              "description": "1-based position to move the cell to"
+            }
+          },
+          "required": ["cellNumber", "toPosition"]
+        }
+      },
+      {
+        "name": "verso_changeCellType",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "Change Cell Type",
+        "modelDescription": "Change a cell's type (for example code, markdown, html, mermaid). Call verso_getLanguages or verso_listCells to see available types. Changing the type clears the cell's outputs. For code cells the language is set automatically; use verso_changeCellLanguage to choose a different one.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based number of the cell to change"
+            },
+            "type": {
+              "type": "string",
+              "description": "The new cell type id (for example 'code', 'markdown', 'html')"
+            }
+          },
+          "required": ["cellNumber", "type"]
+        }
+      },
+      {
+        "name": "verso_changeCellLanguage",
+        "tags": ["verso", "notebook", "cells"],
+        "displayName": "Change Cell Language",
+        "modelDescription": "Change the kernel language of a code cell (for example csharp, sql, python). Call verso_getLanguages to list valid languages. Changing the language clears the cell's outputs.",
+        "canBeReferencedInPrompt": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cellNumber": {
+              "type": "number",
+              "description": "1-based number of the cell to change"
+            },
+            "language": {
+              "type": "string",
+              "description": "The new language id (for example 'csharp', 'sql', 'python')"
+            }
+          },
+          "required": ["cellNumber", "language"]
+        }
       }
     ]
   },

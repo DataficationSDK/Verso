@@ -598,6 +598,19 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         await _bridge.RequestVoidAsync("layout/switch", payload);
 
+        ApplyActiveLayout(reference);
+    }
+
+    /// <summary>
+    /// Update the cached active-layout state from a switch that has already taken
+    /// effect on the host, then raise <see cref="OnLayoutChanged"/> so the page
+    /// swaps to the new layout. Shared by the client-initiated path
+    /// (<see cref="SwitchLayoutAsync(LayoutReference)"/>) and the host-initiated
+    /// path (a <c>layout/activeChanged</c> notification, e.g. an external switch
+    /// driven by the VS Code chat participant).
+    /// </summary>
+    private void ApplyActiveLayout(LayoutReference reference)
+    {
         var match = _layouts.FirstOrDefault(l =>
             string.Equals(l.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase) &&
             (string.IsNullOrEmpty(reference.ExtensionId) ||
@@ -1141,6 +1154,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "layout/updated":
                 HandleLayoutUpdated(paramsJson);
                 break;
+            case "layout/activeChanged":
+                HandleActiveLayoutChanged(paramsJson);
+                break;
             case "notebook/cellsChanged":
                 _ = HandleCellsChangedAsync();
                 break;
@@ -1260,6 +1276,44 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             notif.FrameInstanceId ?? string.Empty,
             notif.Scope ?? "full",
             cellId));
+    }
+
+    /// <summary>
+    /// The host's active layout changed outside this client's own
+    /// <see cref="SwitchLayoutAsync(LayoutReference)"/> call (for example the VS Code
+    /// chat participant invoked <c>layout/switch</c> directly). Re-sync the cached
+    /// active layout and swap the rendered view. Unlike <c>layout/updated</c>, which
+    /// re-renders the already-active layout, this changes which layout is active.
+    /// </summary>
+    private void HandleActiveLayoutChanged(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        LayoutActiveChangedNotification? notif;
+        try
+        {
+            notif = JsonSerializer.Deserialize<LayoutActiveChangedNotification>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (notif is null || string.IsNullOrEmpty(notif.LayoutId)) return;
+
+        var reference = new LayoutReference(notif.ExtensionId ?? string.Empty, notif.LayoutId);
+
+        // Idempotent: a switch this client initiated already updated local state, so an
+        // echo for the layout that is already active is a no-op (avoids a redundant
+        // re-render).
+        if (_activeLayout is { } current &&
+            string.Equals(current.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(current.ExtensionId, reference.ExtensionId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        ApplyActiveLayout(reference);
     }
 
     private static string? TryReadStringProperty(string? json, string property)
@@ -1758,6 +1812,12 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? FrameInstanceId { get; set; }
         public string? Scope { get; set; }
         public string? CellId { get; set; }
+    }
+
+    private sealed class LayoutActiveChangedNotification
+    {
+        public string? ExtensionId { get; set; }
+        public string LayoutId { get; set; } = "";
     }
 
     private sealed class SaveResponse
