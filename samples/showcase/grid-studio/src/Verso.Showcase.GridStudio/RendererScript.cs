@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
-namespace Verso.Layout.GridStudio;
+namespace Verso.Showcase.GridStudio;
 
 /// <summary>
 /// Assembles the layout's single self-contained renderer module from the embedded assets:
@@ -20,11 +20,11 @@ namespace Verso.Layout.GridStudio;
 /// </remarks>
 internal static class RendererScript
 {
-    private const string GridResource = "Verso.Layout.GridStudio.grid.js";
-    private const string JspreadsheetJsResource = "Verso.Layout.GridStudio.vendor.jspreadsheet.js";
-    private const string JspreadsheetCssResource = "Verso.Layout.GridStudio.vendor.jspreadsheet.css";
-    private const string JsuitesJsResource = "Verso.Layout.GridStudio.vendor.jsuites.js";
-    private const string JsuitesCssResource = "Verso.Layout.GridStudio.vendor.jsuites.css";
+    private const string GridResource = "Verso.Showcase.GridStudio.grid.js";
+    private const string JspreadsheetJsResource = "Verso.Showcase.GridStudio.vendor.jspreadsheet.js";
+    private const string JspreadsheetCssResource = "Verso.Showcase.GridStudio.vendor.jspreadsheet.css";
+    private const string JsuitesJsResource = "Verso.Showcase.GridStudio.vendor.jsuites.js";
+    private const string JsuitesCssResource = "Verso.Showcase.GridStudio.vendor.jsuites.css";
 
     /// <summary>The assembled renderer entry module, built once on first access.</summary>
     public static string MainJs { get; } = Assemble();

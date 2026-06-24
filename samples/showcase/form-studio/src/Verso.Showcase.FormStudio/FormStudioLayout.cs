@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
 
-namespace Verso.Layout.FormStudio;
+namespace Verso.Showcase.FormStudio;
 
 /// <summary>
 /// "Form Studio" — an isolated (iframe) layout that turns a notebook into a live, parameterized
@@ -45,7 +45,7 @@ public sealed class FormStudioLayout
 
     // --- IExtension ---
 
-    public string ExtensionId => "com.verso.sample.form-studio";
+    public string ExtensionId => "com.verso.showcase.form-studio";
     public string Name => "Form Studio Layout";
     public string Version => "1.0.0";
     public string? Author => "Datafication";

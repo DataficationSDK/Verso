@@ -30,20 +30,23 @@ text, and procedural. Each layer has its own opacity and a full set of canvas bl
 
 ## Build
 
-The sample references the local `Verso.Abstractions` project (the v1.1 packages are not
-published yet) and is built standalone — it is not part of `Verso.sln`.
+The sample references the local `Verso.Abstractions` project and is built standalone — it is not
+part of `Verso.sln`.
 
 ```bash
-dotnet build src/Verso.Layout.ImageEditor -c Debug
+dotnet build src/Verso.Showcase.ImageStudio -c Debug
 ```
 
 ## Run
 
-Open `image-studio.verso` in any Verso host, then:
+The published package is **Verso.Showcase.ImageStudio**. Open `image-studio.verso` in any Verso host:
+it declares the package as a required extension, so the host installs it from NuGet and opens straight
+into the layout. You can also install it yourself from the **Extensions** pane (search
+`Verso.Showcase`) and switch to **Image Studio** from the layout picker.
 
-1. Run the first code cell — `#!extension ./src/Verso.Layout.ImageEditor/bin/Debug/net8.0/Verso.Layout.ImageEditor.dll`.
-   The path resolves relative to this notebook's folder.
-2. Switch the layout to **Image Studio** in the layout picker.
+To run against a local build instead, load the freshly built assembly with
+`#!extension ./src/Verso.Showcase.ImageStudio/bin/Debug/net8.0/Verso.Showcase.ImageStudio.dll`
+(the path resolves relative to the notebook's folder), then switch to **Image Studio**.
 
 You will land on a seeded composition (a sunset gradient, a soft sun, a dot grid, and a
 title). From there:
@@ -57,19 +60,18 @@ title). From there:
 - **Save** the notebook — the layer stack is written into the `.verso` file and restored the
   next time you open the notebook in this layout.
 
-### Starting directly in the layout (optional)
+### Starting directly in the layout
 
-Once the extension is installed for the notebook via the marketplace (a local install records
-`local:Verso.Layout.ImageEditor@1.0.0` in the notebook's required extensions), you can set the
-notebook to open straight into the editor by adding to `metadata`:
+`image-studio.verso` already opens straight into the editor. It declares the package as a required
+extension and pins the active layout in `metadata`:
 
 ```json
-"activeLayout": { "extensionId": "com.verso.sample.image-editor", "layoutId": "image-editor" },
-"extensions": { "required": ["local:Verso.Layout.ImageEditor@1.0.0"] }
+"activeLayout": { "extensionId": "com.verso.showcase.image-studio", "layoutId": "image-studio" },
+"extensions": { "required": ["Verso.Showcase.ImageStudio"] }
 ```
 
-The required extension then loads before the first render, so the notebook paints in Image
-Studio on open with no layout switch.
+The required extension loads before the first render, so the notebook paints in Image Studio on open
+with no layout switch.
 
 ## Notes
 

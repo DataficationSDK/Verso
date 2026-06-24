@@ -1,19 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>$(VersoLibTargetFrameworks)</TargetFrameworks>
     <LangVersion>12</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <PackageId>Verso.Layout.FormStudio</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Datafication</Authors>
-    <Description>Verso layout extension: an isolated dashboard builder. Drag input widgets and charts onto a canvas, bind them to kernel variables, and the notebook becomes a live, parameterized app.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Verso.Showcase.FormStudio</PackageId>
+    <Title>Verso Showcase: Form Studio</Title>
+    <Description>Sample Verso layout extension: an isolated dashboard builder. Drag input widgets and charts onto a canvas, bind them to kernel variables, and the notebook becomes a live, parameterized app. A showcase of the Verso layout system.</Description>
+    <PackageTags>verso;notebook;layout;sample;showcase;dashboard;charts</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\src\Verso.Abstractions\Verso.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="assets\vendor\chart.LICENSE.txt" Pack="true" PackagePath="third-party-licenses\" />
   </ItemGroup>
 
   <!--
@@ -26,10 +31,10 @@
   -->
   <ItemGroup>
     <EmbeddedResource Include="assets\form.js">
-      <LogicalName>Verso.Layout.FormStudio.form.js</LogicalName>
+      <LogicalName>Verso.Showcase.FormStudio.form.js</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="assets\vendor\chart.umd.js">
-      <LogicalName>Verso.Layout.FormStudio.vendor.chart.umd.js</LogicalName>
+      <LogicalName>Verso.Showcase.FormStudio.vendor.chart.umd.js</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

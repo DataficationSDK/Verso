@@ -6,19 +6,18 @@
     "activeLayout": {
       "extensionId": "verso.layout.notebook",
       "layoutId": "notebook"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.FormStudio"
+      ]
     }
   },
   "cells": [
     {
       "id": "f0a00000-0001-4000-8000-000000000001",
       "type": "markdown",
-      "source": "# Form Studio\n\nTurn this notebook into a live, parameterized app. Form Studio is an **isolated layout**: the canvas runs inside the host\u0027s sandboxed frame, input widgets write **kernel variables**, and the charts plot a **DataBlock** the kernel rebuilds in response.\n\nThis notebook ships with a **prepopulated dashboard** (two inputs and two charts), so you can play with it right away.\n\n**To run the demo:**\n1. Run all cells. The extension loads, a \u0060sales\u0060 table is built, and the recompute step is registered.\n2. Switch the layout to **Form Studio** from the layout picker.\n3. Click **Preview**, then move the **Minimum units** slider or change the **Region**. The charts update as the kernel recomputes.\n4. Switch to **Edit** to drag new widgets from the palette, rebind variables, or change chart types."
-    },
-    {
-      "id": "f0a00000-0002-4000-8000-000000000002",
-      "type": "code",
-      "language": "csharp",
-      "source": "#!extension ./src/Verso.Layout.FormStudio/bin/Debug/net8.0/Verso.Layout.FormStudio.dll"
+      "source": "# Form Studio\n\nTurn this notebook into a live, parameterized app. Form Studio is an **isolated layout**: the canvas runs inside the host\u0027s sandboxed frame, input widgets write **kernel variables**, and the charts plot a **DataBlock** the kernel rebuilds in response.\n\nThis notebook ships with a **prepopulated dashboard** (two inputs and two charts), so you can play with it right away.\n\nThe layout extension (`Verso.Showcase.FormStudio`) installs automatically from NuGet the first time you open this notebook.\n\n**To run the demo:**\n1. Run all cells. A\u0060sales\u0060 table is built, and the recompute step is registered.\n2. Switch the layout to **Form Studio** from the layout picker.\n3. Click **Preview**, then move the **Minimum units** slider or change the **Region**. The charts update as the kernel recomputes.\n4. Switch to **Edit** to drag new widgets from the palette, rebind variables, or change chart types."
     },
     {
       "id": "f0a00000-0003-4000-8000-000000000003",
@@ -44,7 +43,7 @@
     }
   ],
   "layouts": {
-    "com.verso.sample.form-studio:form-studio": {
+    "com.verso.showcase.form-studio:form-studio": {
       "doc": "{\u0022autoRun\u0022:true,\u0022widgets\u0022:[\n  {\u0022id\u0022:\u0022w_slider\u0022,\u0022kind\u0022:\u0022slider\u0022,\u0022x\u0022:24,\u0022y\u0022:20,\u0022w\u0022:300,\u0022h\u0022:96,\u0022label\u0022:\u0022Minimum units\u0022,\u0022bindVar\u0022:\u0022minUnits\u0022,\u0022value\u0022:40,\u0022config\u0022:{\u0022min\u0022:0,\u0022max\u0022:200,\u0022step\u0022:5}},\n  {\u0022id\u0022:\u0022w_region\u0022,\u0022kind\u0022:\u0022dropdown\u0022,\u0022x\u0022:340,\u0022y\u0022:20,\u0022w\u0022:260,\u0022h\u0022:92,\u0022label\u0022:\u0022Region\u0022,\u0022bindVar\u0022:\u0022region\u0022,\u0022value\u0022:\u0022All\u0022,\u0022config\u0022:{\u0022options\u0022:[\u0022All\u0022,\u0022North\u0022,\u0022South\u0022,\u0022East\u0022,\u0022West\u0022]}},\n  {\u0022id\u0022:\u0022w_bar\u0022,\u0022kind\u0022:\u0022chart\u0022,\u0022x\u0022:24,\u0022y\u0022:140,\u0022w\u0022:560,\u0022h\u0022:300,\u0022label\u0022:\u0022Units by month\u0022,\u0022bindVar\u0022:\u0022\u0022,\u0022config\u0022:{\u0022sourceVar\u0022:\u0022chartData\u0022,\u0022chartType\u0022:\u0022bar\u0022,\u0022xColumn\u0022:\u0022Month\u0022,\u0022yColumns\u0022:[\u0022Units\u0022],\u0022color\u0022:\u0022#5b8def\u0022}},\n  {\u0022id\u0022:\u0022w_line\u0022,\u0022kind\u0022:\u0022chart\u0022,\u0022x\u0022:600,\u0022y\u0022:140,\u0022w\u0022:480,\u0022h\u0022:300,\u0022label\u0022:\u0022Revenue by month\u0022,\u0022bindVar\u0022:\u0022\u0022,\u0022config\u0022:{\u0022sourceVar\u0022:\u0022chartData\u0022,\u0022chartType\u0022:\u0022line\u0022,\u0022xColumn\u0022:\u0022Month\u0022,\u0022yColumns\u0022:[\u0022Revenue\u0022],\u0022color\u0022:\u0022#3fb27f\u0022}}\n]}"
     }
   }

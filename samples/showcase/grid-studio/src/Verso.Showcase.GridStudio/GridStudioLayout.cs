@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
 
-namespace Verso.Layout.GridStudio;
+namespace Verso.Showcase.GridStudio;
 
 /// <summary>
 /// "Grid Studio" — an isolated (iframe) layout that presents a kernel <c>DataBlock</c> as an
@@ -46,7 +46,7 @@ public sealed class GridStudioLayout
 
     // --- IExtension ---
 
-    public string ExtensionId => "com.verso.sample.grid-studio";
+    public string ExtensionId => "com.verso.showcase.grid-studio";
     public string Name => "Grid Studio Layout";
     public string Version => "1.0.0";
     public string? Author => "Datafication";

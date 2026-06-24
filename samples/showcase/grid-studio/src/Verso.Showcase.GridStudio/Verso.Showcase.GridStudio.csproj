@@ -1,19 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>$(VersoLibTargetFrameworks)</TargetFrameworks>
     <LangVersion>12</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <PackageId>Verso.Layout.GridStudio</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Datafication</Authors>
-    <Description>Verso layout extension: an isolated spreadsheet editor that binds a DataBlock kernel variable to an editable, Excel-like grid and writes edits back as a DataBlock.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Verso.Showcase.GridStudio</PackageId>
+    <Title>Verso Showcase: Grid Studio</Title>
+    <Description>Sample Verso layout extension: an isolated spreadsheet editor that binds a DataBlock kernel variable to an editable, Excel-like grid and writes edits back as a DataBlock. A showcase of the Verso layout system.</Description>
+    <PackageTags>verso;notebook;layout;sample;showcase;spreadsheet;grid;datablock</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\src\Verso.Abstractions\Verso.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="assets\vendor\jspreadsheet-ce.LICENSE.txt" Pack="true" PackagePath="third-party-licenses\" />
+    <None Include="assets\vendor\jsuites.LICENSE.txt" Pack="true" PackagePath="third-party-licenses\" />
   </ItemGroup>
 
   <!--
@@ -27,19 +33,19 @@
   -->
   <ItemGroup>
     <EmbeddedResource Include="assets\grid.js">
-      <LogicalName>Verso.Layout.GridStudio.grid.js</LogicalName>
+      <LogicalName>Verso.Showcase.GridStudio.grid.js</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="assets\vendor\jspreadsheet.js">
-      <LogicalName>Verso.Layout.GridStudio.vendor.jspreadsheet.js</LogicalName>
+      <LogicalName>Verso.Showcase.GridStudio.vendor.jspreadsheet.js</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="assets\vendor\jspreadsheet.css">
-      <LogicalName>Verso.Layout.GridStudio.vendor.jspreadsheet.css</LogicalName>
+      <LogicalName>Verso.Showcase.GridStudio.vendor.jspreadsheet.css</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="assets\vendor\jsuites.js">
-      <LogicalName>Verso.Layout.GridStudio.vendor.jsuites.js</LogicalName>
+      <LogicalName>Verso.Showcase.GridStudio.vendor.jsuites.js</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="assets\vendor\jsuites.css">
-      <LogicalName>Verso.Layout.GridStudio.vendor.jsuites.css</LogicalName>
+      <LogicalName>Verso.Showcase.GridStudio.vendor.jsuites.css</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

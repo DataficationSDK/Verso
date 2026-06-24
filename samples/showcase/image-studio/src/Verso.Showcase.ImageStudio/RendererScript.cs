@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Verso.Layout.ImageEditor;
+namespace Verso.Showcase.ImageStudio;
 
 /// <summary>
 /// Loads the embedded <c>main.js</c> renderer module shipped in the layout's
@@ -9,7 +9,7 @@ namespace Verso.Layout.ImageEditor;
 /// </summary>
 internal static class RendererScript
 {
-    private const string ResourceName = "Verso.Layout.ImageEditor.main.js";
+    private const string ResourceName = "Verso.Showcase.ImageStudio.main.js";
 
     /// <summary>The renderer entry module source, loaded once on first access.</summary>
     public static string MainJs { get; } = Load();

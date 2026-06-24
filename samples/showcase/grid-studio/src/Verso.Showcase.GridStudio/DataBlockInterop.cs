@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 
-namespace Verso.Layout.GridStudio;
+namespace Verso.Showcase.GridStudio;
 
 /// <summary>
 /// A column-and-row projection of a <c>DataBlock</c> in a shape that serializes cleanly to the

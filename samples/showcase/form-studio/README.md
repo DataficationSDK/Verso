@@ -71,23 +71,24 @@ data here (that is Grid Studio's story).
 ## Build
 
 ```bash
-dotnet build samples/showcase/form-studio/src/Verso.Layout.FormStudio/Verso.Layout.FormStudio.csproj
+dotnet build samples/showcase/form-studio/src/Verso.Showcase.FormStudio/Verso.Showcase.FormStudio.csproj
 ```
 
-The build produces `Verso.Layout.FormStudio.dll`. Load it like any other Verso extension: drop it on
-`verso.extensionsPath`, or load it from a notebook with `#!extension`.
+The build produces `Verso.Showcase.FormStudio.dll`. Load it like any other Verso extension: drop it on
+`verso.extensionsPath`, or load it from a notebook with `#!extension`. The published package is
+**Verso.Showcase.FormStudio**, installable from the Extensions pane.
 
 ## Try it in a notebook
 
-Open `form-studio.verso` and follow the steps in its first cell:
+Open `form-studio.verso`. It declares **Verso.Showcase.FormStudio** as a required extension, so the
+host installs it from NuGet on open. Then:
 
-1. Run the cell that loads the extension.
-2. Run the cells that build the `sales` and `chartData` DataBlocks.
-3. Switch the layout to **Form Studio** from the layout picker.
-4. Drag a Slider, a Dropdown, and a Bar chart onto the canvas. Bind the slider to `minUnits`, the
+1. Run the cells that build the `sales` and `chartData` DataBlocks.
+2. Switch the layout to **Form Studio** from the layout picker.
+3. Drag a Slider, a Dropdown, and a Bar chart onto the canvas. Bind the slider to `minUnits`, the
    dropdown to `region` (options `All, North, South, East, West`), and point the chart at
    `chartData` with X axis `Month` and Y axis `Units`.
-5. Click **Preview**, then move the slider or change the region and watch the chart update.
+4. Click **Preview**, then move the slider or change the region and watch the chart update.
 
 ## Licensing
 

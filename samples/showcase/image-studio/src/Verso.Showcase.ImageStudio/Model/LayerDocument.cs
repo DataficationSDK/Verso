@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Verso.Layout.ImageEditor.Model;
+namespace Verso.Showcase.ImageStudio.Model;
 
 /// <summary>
 /// A single layer in the image document. A layer is a declarative recipe the frame draws

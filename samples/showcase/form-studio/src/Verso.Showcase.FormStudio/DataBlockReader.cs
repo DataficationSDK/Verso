@@ -2,7 +2,7 @@ using System.Collections;
 using System.Globalization;
 using System.Reflection;
 
-namespace Verso.Layout.FormStudio;
+namespace Verso.Showcase.FormStudio;
 
 /// <summary>
 /// A column-and-row projection of a <c>DataBlock</c> in a shape that serializes cleanly to the

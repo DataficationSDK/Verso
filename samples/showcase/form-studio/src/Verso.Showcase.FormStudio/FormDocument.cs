@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Verso.Layout.FormStudio;
+namespace Verso.Showcase.FormStudio;
 
 /// <summary>One chart widget's binding: its frame-side id and the kernel variable it reads.</summary>
 internal readonly record struct ChartBinding(string Id, string SourceVar);
@@ -9,7 +9,7 @@ internal readonly record struct ChartBinding(string Id, string SourceVar);
 /// The layout's persisted document: the whole canvas the user built — every widget, its position,
 /// size, binding, and configuration — plus the auto-run flag. Unlike Grid Studio (whose document is
 /// just a single bound variable name), Form Studio is an app builder, so the built app *is* the
-/// document, mirroring the image-editor layer document.
+/// document, mirroring the Image Studio layer document.
 /// </summary>
 /// <remarks>
 /// The canvas is authored entirely in the frame, so the source of truth for geometry and widget

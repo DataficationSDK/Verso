@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Verso.Layout.GridStudio;
+namespace Verso.Showcase.GridStudio;
 
 /// <summary>
 /// The layout's persisted document: which kernel variable the grid is bound to. The grid's

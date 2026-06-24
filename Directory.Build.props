@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Datafication</Authors>
     <Copyright>2026 Datafication LLC</Copyright>
-    <PackageProjectUrl>https://github.com/DataficationSDK/Verso</PackageProjectUrl>
+    <PackageProjectUrl>https://versonotebooks.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DataficationSDK/Verso</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>

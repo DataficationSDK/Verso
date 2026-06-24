@@ -80,6 +80,9 @@ jobs:
           dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.Cli/Verso.Cli.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
+          dotnet pack samples/showcase/image-studio/src/Verso.Showcase.ImageStudio/Verso.Showcase.ImageStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
+          dotnet pack samples/showcase/form-studio/src/Verso.Showcase.FormStudio/Verso.Showcase.FormStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
+          dotnet pack samples/showcase/grid-studio/src/Verso.Showcase.GridStudio/Verso.Showcase.GridStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4

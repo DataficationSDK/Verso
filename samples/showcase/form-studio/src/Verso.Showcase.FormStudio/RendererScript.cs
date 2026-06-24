@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
-namespace Verso.Layout.FormStudio;
+namespace Verso.Showcase.FormStudio;
 
 /// <summary>
 /// Assembles the layout's single self-contained renderer module from the embedded assets: the
@@ -19,8 +19,8 @@ namespace Verso.Layout.FormStudio;
 /// </remarks>
 internal static class RendererScript
 {
-    private const string FormResource = "Verso.Layout.FormStudio.form.js";
-    private const string ChartJsResource = "Verso.Layout.FormStudio.vendor.chart.umd.js";
+    private const string FormResource = "Verso.Showcase.FormStudio.form.js";
+    private const string ChartJsResource = "Verso.Showcase.FormStudio.vendor.chart.umd.js";
 
     /// <summary>The assembled renderer entry module, built once on first access.</summary>
     public static string MainJs { get; } = Assemble();

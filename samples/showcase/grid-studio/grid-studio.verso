@@ -6,19 +6,18 @@
     "activeLayout": {
       "extensionId": "verso.layout.notebook",
       "layoutId": "notebook"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.GridStudio"
+      ]
     }
   },
   "cells": [
     {
       "id": "c2a00000-0001-4000-8000-000000000001",
       "type": "markdown",
-      "source": "# Grid Studio\n\nAn editable, Excel-like spreadsheet that is bound to a **DataBlock** in the kernel. The grid reads the DataBlock you build in a code cell, and your edits are rebuilt into a DataBlock the rest of the notebook can query.\n\n**To run the demo:**\n1. Execute the cell below to load the layout extension.\n2. Execute the next cell to build a DataBlock named `data`.\n3. Switch the layout to **Grid Studio** from the layout picker.\n4. Edit cells, add rows and columns, then watch the changes flow back into `data`."
-    },
-    {
-      "id": "c2a00000-0002-4000-8000-000000000002",
-      "type": "code",
-      "language": "csharp",
-      "source": "#!extension ./src/Verso.Layout.GridStudio/bin/Debug/net8.0/Verso.Layout.GridStudio.dll"
+      "source": "# Grid Studio\n\nAn editable, Excel-like spreadsheet that is bound to a **DataBlock** in the kernel. The grid reads the DataBlock you build in a code cell, and your edits are rebuilt into a DataBlock the rest of the notebook can query.\n\nThe layout extension (`Verso.Showcase.GridStudio`) installs automatically from NuGet the first time you open this notebook.\n\n**To run the demo:**\n1. Execute the cell below to build a DataBlock named`data`.\n2. Switch the layout to **Grid Studio** from the layout picker.\n3. Edit cells, add rows and columns, then watch the changes flow back into`data`."
     },
     {
       "id": "c2a00000-0003-4000-8000-000000000003",

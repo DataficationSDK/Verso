@@ -4,21 +4,20 @@
     "title": "Image Studio",
     "defaultKernel": "csharp",
     "activeLayout": {
-      "extensionId": "verso.layout.notebook",
-      "layoutId": "notebook"
+      "extensionId": "com.verso.showcase.image-studio",
+      "layoutId": "image-studio"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.ImageStudio"
+      ]
     }
   },
   "cells": [
     {
       "id": "b1a00000-0001-4000-8000-000000000001",
       "type": "markdown",
-      "source": "# Image Studio\n\nA layered image editor that is *also* a notebook. The document is the same \u0060.verso\u0060 file you are looking at; the **Image Studio** layout simply presents it as a canvas, a layer stack, and a tool palette instead of a list of cells.\n\n**To run the demo:** execute the cell below to load the layout extension, then switch the layout to **Image Studio** from the layout picker."
-    },
-    {
-      "id": "b1a00000-0002-4000-8000-000000000002",
-      "type": "code",
-      "language": "csharp",
-      "source": "#!extension ./src/Verso.Layout.ImageEditor/bin/Debug/net8.0/Verso.Layout.ImageEditor.dll"
+      "source": "# Image Studio\n\nA layered image editor that is *also* a notebook. The document is the same \u0060.verso\u0060 file you are looking at; the **Image Studio** layout simply presents it as a canvas, a layer stack, and a tool palette instead of a list of cells.\n\nThis notebook opens directly in **Image Studio**. The layout extension (`Verso.Showcase.ImageStudio`) installs automatically from NuGet the first time you open it. To read these notes and run the procedural-layer cells below, switch to the **Notebook** layout from the layout picker."
     },
     {
       "id": "b1a00000-0003-4000-8000-000000000003",

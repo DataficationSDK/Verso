@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
-using Verso.Layout.ImageEditor.Model;
+using Verso.Showcase.ImageStudio.Model;
 
-namespace Verso.Layout.ImageEditor;
+namespace Verso.Showcase.ImageStudio;
 
 /// <summary>
 /// "Image Studio" — an isolated (iframe) layout that presents the notebook as a layered image
@@ -26,7 +26,7 @@ namespace Verso.Layout.ImageEditor;
 /// </para>
 /// </remarks>
 [VersoExtension]
-public sealed class ImageEditorLayout
+public sealed class ImageStudioLayout
     : ILayoutEngine, ILayoutLifecycleHandler, ILayoutInteractionHandler
 {
     // Frame-channel message types. The host prefixes these with "ext/" on delivery, so the
@@ -43,7 +43,7 @@ public sealed class ImageEditorLayout
 
     // --- IExtension ---
 
-    public string ExtensionId => "com.verso.sample.image-editor";
+    public string ExtensionId => "com.verso.showcase.image-studio";
     public string Name => "Image Studio Layout";
     public string Version => "1.0.0";
     public string? Author => "Datafication";
@@ -54,7 +54,7 @@ public sealed class ImageEditorLayout
 
     // --- ILayoutEngine ---
 
-    public string LayoutId => "image-editor";
+    public string LayoutId => "image-studio";
     public string DisplayName => "Image Studio";
 
     public string? Icon =>
@@ -341,7 +341,7 @@ public sealed class ImageEditorLayout
         }
         catch (NotSupportedException)
         {
-            Console.Error.WriteLine("[image-editor] Host does not support file download; export skipped.");
+            Console.Error.WriteLine("[image-studio] Host does not support file download; export skipped.");
         }
     }
 

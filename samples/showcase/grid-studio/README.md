@@ -59,20 +59,21 @@ keeps the two-way round-trip working regardless of how and where each assembly w
 ## Build
 
 ```bash
-dotnet build samples/showcase/grid-studio/src/Verso.Layout.GridStudio/Verso.Layout.GridStudio.csproj
+dotnet build samples/showcase/grid-studio/src/Verso.Showcase.GridStudio/Verso.Showcase.GridStudio.csproj
 ```
 
-The build produces `Verso.Layout.GridStudio.dll`. Load it like any other Verso extension: drop it
-on `verso.extensionsPath`, or load it from a notebook with `#!extension`.
+The build produces `Verso.Showcase.GridStudio.dll`. Load it like any other Verso extension: drop it
+on `verso.extensionsPath`, or load it from a notebook with `#!extension`. The published package is
+**Verso.Showcase.GridStudio**, installable from the Extensions pane.
 
 ## Try it in a notebook
 
-Open `grid-studio.verso` and follow the steps in its first cell:
+Open `grid-studio.verso`. It declares **Verso.Showcase.GridStudio** as a required extension, so the
+host installs it from NuGet on open. Then:
 
-1. Run the cell that loads the extension.
-2. Run the cell that builds a `DataBlock` named `data`.
-3. Switch the layout to **Grid Studio** from the layout picker.
-4. Edit cells, add rows or columns, then re-run a code cell to read the committed DataBlock.
+1. Run the cell that builds a `DataBlock` named `data`.
+2. Switch the layout to **Grid Studio** from the layout picker.
+3. Edit cells, add rows or columns, then re-run a code cell to read the committed DataBlock.
 
 Point the grid at a different DataBlock by choosing it from the **DataBlock** dropdown in the
 toolbar. The dropdown lists every variable that currently holds a DataBlock and refreshes when
