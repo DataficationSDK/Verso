@@ -69,15 +69,12 @@
           "description": "Path to the Verso.Host.dll. If empty, uses bundled host."
         },
         "verso.extensionsPath": {
-          "type": [
-            "string",
-            "array"
-          ],
+          "type": "array",
           "items": {
             "type": "string"
           },
-          "default": "",
-          "description": "Directory (or list of directories) of third-party Verso extension assemblies to load on notebook open. Accepts a single path or an array of paths. Changes apply on next notebook open or kernel restart."
+          "default": [],
+          "description": "Directories of third-party Verso extension assemblies to load on notebook open. Each entry is one directory path. Changes apply on next notebook open or kernel restart."
         },
         "verso.preserveOriginalFormat": {
           "type": "boolean",

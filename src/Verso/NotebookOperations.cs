@@ -92,6 +92,12 @@ internal sealed class NotebookOperations : INotebookOperations
         await _scaffold.ExecuteCodeAsync(code, language, ct).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
+        string code, string? language = null, CancellationToken ct = default)
+    {
+        return await _scaffold.ExecuteCodeCaptureOutputsAsync(code, language, ct).ConfigureAwait(false);
+    }
+
     public Task MoveCellAsync(Guid cellId, int newIndex)
     {
         var capabilities = _scaffold.LayoutCapabilities;

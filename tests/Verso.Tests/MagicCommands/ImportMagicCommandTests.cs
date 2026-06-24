@@ -21,11 +21,13 @@ public sealed class ImportMagicCommandTests
         Assert.AreEqual("import", command.Name);
         Assert.AreEqual("verso.magic.import", command.ExtensionId);
         Assert.AreEqual("1.0.0", command.Version);
-        Assert.AreEqual(2, command.Parameters.Count);
+        Assert.AreEqual(3, command.Parameters.Count);
         Assert.AreEqual("path", command.Parameters[0].Name);
         Assert.IsTrue(command.Parameters[0].IsRequired);
         Assert.AreEqual("--param", command.Parameters[1].Name);
         Assert.IsFalse(command.Parameters[1].IsRequired);
+        Assert.AreEqual("--show-output", command.Parameters[2].Name);
+        Assert.IsFalse(command.Parameters[2].IsRequired);
     }
 
     // --- Argument validation ---
@@ -256,32 +258,56 @@ public sealed class ImportMagicCommandTests
     [TestMethod]
     public void ParseArguments_PathOnly()
     {
-        var (path, overrides) = ImportMagicCommand.ParseArguments("pipeline.verso");
+        var (path, overrides, showOutput) = ImportMagicCommand.ParseArguments("pipeline.verso");
 
         Assert.AreEqual("pipeline.verso", path);
         Assert.AreEqual(0, overrides.Count);
+        Assert.IsFalse(showOutput);
     }
 
     [TestMethod]
     public void ParseArguments_WithParams()
     {
-        var (path, overrides) = ImportMagicCommand.ParseArguments(
+        var (path, overrides, showOutput) = ImportMagicCommand.ParseArguments(
             "pipeline.verso --param region=us-east --param limit=50");
 
         Assert.AreEqual("pipeline.verso", path);
         Assert.AreEqual(2, overrides.Count);
         Assert.AreEqual("us-east", overrides["region"]);
         Assert.AreEqual("50", overrides["limit"]);
+        Assert.IsFalse(showOutput);
     }
 
     [TestMethod]
     public void ParseArguments_ShortFlag()
     {
-        var (path, overrides) = ImportMagicCommand.ParseArguments(
+        var (path, overrides, _) = ImportMagicCommand.ParseArguments(
             "pipeline.verso -p region=US");
 
         Assert.AreEqual("pipeline.verso", path);
         Assert.AreEqual("US", overrides["region"]);
+    }
+
+    [TestMethod]
+    public void ParseArguments_ShowOutputFlag()
+    {
+        var (path, overrides, showOutput) = ImportMagicCommand.ParseArguments(
+            "pipeline.verso --show-output");
+
+        Assert.AreEqual("pipeline.verso", path);
+        Assert.AreEqual(0, overrides.Count);
+        Assert.IsTrue(showOutput);
+    }
+
+    [TestMethod]
+    public void ParseArguments_ShowOutputFlagBeforePath()
+    {
+        var (path, overrides, showOutput) = ImportMagicCommand.ParseArguments(
+            "--show-output pipeline.verso --param region=US");
+
+        Assert.AreEqual("pipeline.verso", path);
+        Assert.AreEqual("US", overrides["region"]);
+        Assert.IsTrue(showOutput);
     }
 
     // --- Parameter resolution ---

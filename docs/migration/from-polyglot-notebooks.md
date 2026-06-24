@@ -145,7 +145,11 @@ Polyglot's `#!import` for loading additional scripts has a Verso equivalent:
 #!import path/to/notebook.verso --param name=value
 ```
 
-This executes all code cells from the imported notebook in the current session, with optional parameter overrides.
+This executes all code cells from the imported notebook in the current session, with optional parameter overrides. The imported cells run silently by default. Add `--show-output` to display the output each imported cell produces, in execution order, which is useful when the imported notebook reports state rather than only configuring it:
+
+```
+#!import path/to/monitoring.verso --show-output
+```
 
 ### Unsupported Polyglot Features
 

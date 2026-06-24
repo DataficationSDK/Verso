@@ -638,6 +638,24 @@ public sealed class Scaffold : IAsyncDisposable
 
     public async Task<ExecutionResult> ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
     {
+        var (result, _) = await ExecuteCodeCoreAsync(code, language, ct).ConfigureAwait(false);
+        return result;
+    }
+
+    /// <summary>
+    /// Executes arbitrary code and returns both the execution result and the outputs it produced.
+    /// The outputs accumulate on a transient cell that is never added to the notebook.
+    /// </summary>
+    public async Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
+        string code, string? language = null, CancellationToken ct = default)
+    {
+        var (_, outputs) = await ExecuteCodeCoreAsync(code, language, ct).ConfigureAwait(false);
+        return outputs;
+    }
+
+    private async Task<(ExecutionResult Result, IReadOnlyList<CellOutput> Outputs)> ExecuteCodeCoreAsync(
+        string code, string? language, CancellationToken ct)
+    {
         var transientCell = new CellModel
         {
             Type = "code",
@@ -645,7 +663,13 @@ public sealed class Scaffold : IAsyncDisposable
             Source = code
         };
         var pipeline = BuildPipeline();
-        return await pipeline.ExecuteAsync(transientCell, ct).ConfigureAwait(false);
+        var result = await pipeline.ExecuteAsync(transientCell, ct).ConfigureAwait(false);
+        List<CellOutput> outputs;
+        lock (transientCell.Outputs)
+        {
+            outputs = transientCell.Outputs.ToList();
+        }
+        return (result, outputs);
     }
 
     // --- Lifecycle ---

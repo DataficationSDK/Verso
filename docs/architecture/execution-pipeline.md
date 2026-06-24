@@ -163,7 +163,7 @@ Internally, the context also has `ReportElapsedTime`, which the `#!time` command
 | `#!time` | Enables elapsed time reporting after kernel execution. Does not suppress. |
 | `#!nuget PackageId [Version]` | Resolves a NuGet package and stores assembly paths in the variable store for the kernel to pick up. |
 | `#!extension PackageId\|path [Version]` | Loads an extension from NuGet or a local DLL. Requests consent for NuGet packages. Idempotent. |
-| `#!import path [--param name=value ...]` | Deserializes and executes another notebook's code cells with optional parameter overrides. Suppresses execution. |
+| `#!import path [--param name=value ...] [--show-output]` | Deserializes and executes another notebook's code cells with optional parameter overrides. Suppresses execution. Pass `--show-output` to surface the imported cells' output in the importing cell. |
 | `#!restart` | Restarts the current kernel. |
 
 Language-specific magic commands are provided by their respective extensions:
