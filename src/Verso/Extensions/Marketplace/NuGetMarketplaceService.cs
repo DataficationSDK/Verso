@@ -187,6 +187,37 @@ public sealed class NuGetMarketplaceService
     }
 
     /// <summary>
+    /// Resolves the concrete version a reference would install as, without downloading. A
+    /// pinned reference returns its own version; an unpinned ("latest") reference is resolved
+    /// against the configured sources. Returns <c>null</c> when a latest reference cannot be
+    /// resolved (offline or package not found), so the caller can fall back or report it.
+    /// </summary>
+    public async Task<string?> ResolveVersionAsync(string packageId, string? version, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(version))
+            return version;
+        return await new NuGetPackageResolver().ResolveLatestStableVersionAsync(packageId, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Rejects a package id or version that contains anything other than the characters legal
+    /// in NuGet identifiers and versions, before it is used to compose a managed-directory
+    /// path. This blocks path traversal (e.g. a version of <c>../../foo</c>) from a crafted
+    /// notebook or assembly name reaching the file system.
+    /// </summary>
+    private static bool IsSafePathSegment(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+        foreach (var c in value)
+        {
+            if (!(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or '+'))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Ensures a package is present in the managed extensions directory and returns the
     /// assembly paths to load. When the requested version is already installed on disk this
     /// is offline and fast; otherwise the package and its transitive dependencies are
@@ -199,6 +230,10 @@ public sealed class NuGetMarketplaceService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
         ArgumentException.ThrowIfNullOrWhiteSpace(managedDir);
+        if (!IsSafePathSegment(packageId))
+            throw new ArgumentException($"Invalid package id '{packageId}'.", nameof(packageId));
+        if (version is not null && !IsSafePathSegment(version))
+            throw new ArgumentException($"Invalid package version '{version}'.", nameof(version));
 
         // Fast path: a pinned version already laid down on disk.
         if (!string.IsNullOrWhiteSpace(version))
@@ -236,6 +271,8 @@ public sealed class NuGetMarketplaceService
     {
         if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(version) || string.IsNullOrWhiteSpace(managedDir))
             return null;
+        if (!IsSafePathSegment(packageId) || !IsSafePathSegment(version))
+            return null;
 
         var dir = Path.Combine(managedDir, packageId, version);
         if (!Directory.Exists(dir))
@@ -247,6 +284,32 @@ public sealed class NuGetMarketplaceService
 
         NuGetRuntimeResolver.AddManagedSearchDirectory(dir);
         return new MarketplaceInstallResult(version, dir, dlls);
+    }
+
+    /// <summary>
+    /// Returns the highest version of a package already laid down in the managed directory,
+    /// without contacting any feed. Used as an offline fallback for an unpinned ("latest")
+    /// required extension when the feed cannot be reached: a previously downloaded copy still
+    /// loads. Returns <c>null</c> when nothing is installed for the package.
+    /// </summary>
+    public MarketplaceInstallResult? TryResolveInstalledLatest(string packageId, string managedDir)
+    {
+        if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(managedDir))
+            return null;
+        if (!IsSafePathSegment(packageId))
+            return null;
+
+        var packageRoot = Path.Combine(managedDir, packageId);
+        if (!Directory.Exists(packageRoot))
+            return null;
+
+        var best = Directory.GetDirectories(packageRoot)
+            .Select(d => (Dir: d, Name: Path.GetFileName(d)))
+            .Where(t => NuGet.Versioning.NuGetVersion.TryParse(t.Name, out _))
+            .OrderByDescending(t => NuGet.Versioning.NuGetVersion.Parse(t.Name))
+            .FirstOrDefault();
+
+        return best.Dir is null ? null : TryResolveInstalled(packageId, best.Name, managedDir);
     }
 
     /// <summary>
@@ -343,6 +406,11 @@ public sealed class NuGetMarketplaceService
         var name = AssemblyName.GetAssemblyName(dllPath);
         var id = name.Name ?? Path.GetFileNameWithoutExtension(dllPath);
         var version = FormatAssemblyVersion(name.Version);
+
+        // The id comes from the assembly's own metadata, which a crafted file controls. Reject
+        // anything that isn't a plain identifier so it can't traverse out of the managed dir.
+        if (!IsSafePathSegment(id))
+            throw new InvalidOperationException($"Assembly name '{id}' is not a valid extension id.");
 
         var targetDir = Path.Combine(managedDir, id, version);
         Directory.CreateDirectory(targetDir);

@@ -254,6 +254,7 @@
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
         Service.OnOutputUpdated += HandleOutputUpdated;
+        Service.OnRequiredExtensionsUnavailable += HandleExtensionsUnavailable;
 
         if (Service is ServerNotebookService serverService)
         {
@@ -1305,11 +1306,26 @@
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
         Service.OnOutputUpdated -= HandleOutputUpdated;
+        Service.OnRequiredExtensionsUnavailable -= HandleExtensionsUnavailable;
 
         if (Service is ServerNotebookService serverService)
         {
             serverService.OnExtensionConsentRequested -= HandleExtensionConsentRequested;
             serverService.OnInputRequested -= HandleInputRequested;
         }
+    }
+
+    private void HandleExtensionsUnavailable(IReadOnlyList<UnavailableExtensionInfo> unavailable)
+    {
+        _ = InvokeAsync(async () => await ShowStatusAsync(FormatUnavailableExtensions(unavailable)));
+    }
+
+    private static string FormatUnavailableExtensions(IReadOnlyList<UnavailableExtensionInfo> unavailable)
+    {
+        var names = string.Join(", ", unavailable.Select(u => u.PackageId));
+        var lead = unavailable.Count == 1
+            ? $"Required extension {names} could not be loaded"
+            : $"{unavailable.Count} required extensions could not be loaded: {names}";
+        return $"{lead}. Some layouts or cells may not work until it is available.";
     }
 }

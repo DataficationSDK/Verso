@@ -148,6 +148,11 @@ public interface INotebookService
     /// on hosts that do not surface a per-kernel identity.</summary>
     event Action<string?>? OnKernelRestarted;
 
+    /// <summary>Raised when one or more required extensions a notebook declares could not be
+    /// loaded on open (offline, package missing, or consent declined). The notebook still opens;
+    /// this lets the UI show a non-fatal notice that some layouts or cells may not work.</summary>
+    event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
+
     // ── File operations ────────────────────────────────────────────────
 
     /// <summary>Create a new empty notebook.</summary>

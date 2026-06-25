@@ -92,6 +92,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     /// <summary>Raised when the notebook references a layout that isn't registered yet. The argument is the missing layout id.</summary>
     public event Action<string>? OnLayoutMissing;
 
+    /// <summary>Raised when required extensions a notebook declares could not be loaded on open.
+    /// The notebook still opens; the UI should show a non-fatal notice.</summary>
+    public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
+
     // ── Extension consent state ────────────────────────────────────────
     private string? _pendingConsentRequestId;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
@@ -1151,6 +1155,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "layout/missing":
                 HandleLayoutMissing(paramsJson);
                 break;
+            case "extension/unavailable":
+                HandleExtensionUnavailable(paramsJson);
+                break;
             case "layout/updated":
                 HandleLayoutUpdated(paramsJson);
                 break;
@@ -1245,6 +1252,43 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var layoutId = TryReadStringProperty(paramsJson, "layoutId");
         if (layoutId is not null)
             OnLayoutMissing?.Invoke(layoutId);
+    }
+
+    private void HandleExtensionUnavailable(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson))
+            return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            if (!doc.RootElement.TryGetProperty("extensions", out var arr)
+                || arr.ValueKind != JsonValueKind.Array)
+                return;
+
+            var list = new List<UnavailableExtensionInfo>();
+            foreach (var item in arr.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object)
+                    continue;
+                var packageId = item.TryGetProperty("packageId", out var p) && p.ValueKind == JsonValueKind.String
+                    ? p.GetString()
+                    : null;
+                if (string.IsNullOrWhiteSpace(packageId))
+                    continue;
+                var version = item.TryGetProperty("version", out var v) && v.ValueKind == JsonValueKind.String
+                    ? v.GetString()
+                    : null;
+                var reason = item.TryGetProperty("reason", out var r) && r.ValueKind == JsonValueKind.String
+                    ? r.GetString() ?? string.Empty
+                    : string.Empty;
+                list.Add(new UnavailableExtensionInfo(packageId!, version, reason));
+            }
+
+            if (list.Count > 0)
+                OnRequiredExtensionsUnavailable?.Invoke(list);
+        }
+        catch (JsonException) { }
     }
 
     private void HandleLayoutUpdated(string? paramsJson)

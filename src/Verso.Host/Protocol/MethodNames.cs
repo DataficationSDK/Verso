@@ -87,6 +87,7 @@ public static class MethodNames
     public const string ExtensionConsentRequest = "extension/consentRequest";
     public const string ExtensionConsentResponse = "extension/consentResponse";
     public const string ExtensionChanged = "extension/changed";
+    public const string ExtensionUnavailable = "extension/unavailable";
     public const string ExtensionSearch = "extension/search";
     public const string ExtensionVersions = "extension/versions";
     public const string ExtensionInstall = "extension/install";

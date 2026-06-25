@@ -124,6 +124,22 @@ public static class NotebookHandler
         var ns = session.GetSession(notebookId);
         extensionHost.ConsentHandler = (extensions, ct) => ns.RequestConsentAsync(extensions, ct);
 
+        // Surface required extensions that could not be loaded so the client can show a
+        // non-fatal notice rather than the notebook silently misbehaving.
+        extensionHost.UnavailableExtensionsHandler = unavailable =>
+        {
+            ns.SendNotification(MethodNames.ExtensionUnavailable, new
+            {
+                extensions = unavailable.Select(u => new
+                {
+                    packageId = u.PackageId,
+                    version = u.Version,
+                    reason = u.Reason
+                }).ToArray()
+            });
+            return Task.CompletedTask;
+        };
+
         // Now that the consent channel exists, prompt for and load any required extensions
         // that are not yet trusted. Fire-and-forget so the open response is not blocked; each
         // loaded extension raises extension/changed so the client refreshes its caches.

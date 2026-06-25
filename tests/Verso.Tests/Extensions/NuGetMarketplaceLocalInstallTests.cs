@@ -182,4 +182,35 @@ public class NuGetMarketplaceLocalInstallTests
             File.Delete(txt);
         }
     }
+
+    [TestMethod]
+    public async Task EnsureInstalled_TraversalVersion_ThrowsBeforeTouchingDisk()
+    {
+        var service = new NuGetMarketplaceService();
+
+        await Assert.ThrowsExceptionAsync<ArgumentException>(() =>
+            service.EnsureInstalledAsync("Pkg", "../../escape", _managedDir, CancellationToken.None));
+
+        // The guard must reject the segment before any directory work, so nothing escapes.
+        var escaped = Path.GetFullPath(Path.Combine(_managedDir, "Pkg", "../../escape"));
+        Assert.IsFalse(Directory.Exists(escaped));
+    }
+
+    [TestMethod]
+    public async Task EnsureInstalled_TraversalPackageId_Throws()
+    {
+        var service = new NuGetMarketplaceService();
+
+        await Assert.ThrowsExceptionAsync<ArgumentException>(() =>
+            service.EnsureInstalledAsync("../../evil", "1.0.0", _managedDir, CancellationToken.None));
+    }
+
+    [TestMethod]
+    public void TryResolveInstalled_TraversalSegment_ReturnsNull()
+    {
+        var service = new NuGetMarketplaceService();
+
+        Assert.IsNull(service.TryResolveInstalled("Pkg", "../../escape", _managedDir));
+        Assert.IsNull(service.TryResolveInstalled("../../evil", "1.0.0", _managedDir));
+    }
 }

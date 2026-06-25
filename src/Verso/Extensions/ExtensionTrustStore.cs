@@ -80,9 +80,11 @@ public sealed class ExtensionTrustStore
     }
 
     /// <summary>
-    /// Whether the given package is approved for the requested version. An entry approved
-    /// with no version (latest) matches any request; an entry approved for a specific
-    /// version matches only the same version, so a version change re-prompts.
+    /// Whether the given package is approved for the requested version. Approval is pinned to
+    /// the exact version the user consented to, so a request for a different version re-prompts.
+    /// A null on either side means "unspecified version" and matches only the other side also
+    /// being null; it does not blanket-approve every version. This keeps a one-time "latest"
+    /// approval from silently trusting a later, possibly malicious, version.
     /// </summary>
     public bool IsApproved(string packageId, string? version)
     {
@@ -90,10 +92,8 @@ public sealed class ExtensionTrustStore
             return false;
         if (!_entries.TryGetValue(packageId, out var entry))
             return false;
-        if (entry.ApprovedVersion is null)
-            return true;
-        if (version is null)
-            return true;
+        if (entry.ApprovedVersion is null || version is null)
+            return entry.ApprovedVersion is null && version is null;
         return string.Equals(entry.ApprovedVersion, version, StringComparison.OrdinalIgnoreCase);
     }
 

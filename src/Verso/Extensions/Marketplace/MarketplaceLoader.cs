@@ -41,10 +41,20 @@ public static class MarketplaceLoader
     /// <summary>
     /// Resolves, downloads if needed, and loads the extensions a notebook declares in its
     /// required-extensions list. When <paramref name="promptForConsent"/> is true a single
-    /// batched consent request covers everything not already trusted; when false only
-    /// already-trusted packages load (used where no consent channel is available yet, such
-    /// as before the host session exists). A package whose consent is missing is skipped.
+    /// batched consent request covers everything not already trusted, and anything that still
+    /// cannot be loaded is reported through <see cref="ExtensionHost.ReportUnavailableExtensionsAsync"/>
+    /// so the host can show a non-fatal notice. When false only already-pinned, already-trusted
+    /// packages load and nothing is prompted or reported (used before the host session exists,
+    /// where no consent channel is available yet); unpinned references are deferred to the
+    /// later consent pass.
     /// </summary>
+    /// <remarks>
+    /// An unpinned ("latest") reference is resolved to a concrete version against the feed first,
+    /// so consent and trust are pinned to that exact version. A one-time approval therefore does
+    /// not silently trust a later version: if latest has moved since the last approval, consent
+    /// is requested again before the new version loads. Cancellation propagates; other failures
+    /// are collected rather than thrown, so a missing extension never blocks the open.
+    /// </remarks>
     public static async Task LoadRequiredAsync(
         ExtensionHost extensionHost,
         NotebookModel notebook,
@@ -62,16 +72,50 @@ public static class MarketplaceLoader
             .Where(p => !string.IsNullOrWhiteSpace(p.Id))
             .ToList();
 
+        // Resolve the concrete version each reference would load. A pinned reference passes
+        // through unchanged; an unpinned NuGet reference is resolved to the latest stable so
+        // it can be pinned on approval. In the pre-session pass (no consent channel) unpinned
+        // references are skipped entirely so that pass stays fast and offline.
+        var plans = new List<ResolvedRef>(refs.Count);
+        foreach (var (id, version, source) in refs)
+        {
+            if (extensionHost.IsExtensionPackageLoaded(id))
+                continue;
+
+            var effectiveVersion = version;
+            if (effectiveVersion is null && source != ExtensionSource.Local)
+            {
+                if (!promptForConsent)
+                    continue; // defer unpinned references to the consent pass
+                try
+                {
+                    effectiveVersion = await marketplace.ResolveVersionAsync(id, null, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch
+                {
+                    effectiveVersion = null; // offline / not found — handled by the load fallback
+                }
+            }
+
+            plans.Add(new ResolvedRef(id, version, effectiveVersion, source));
+        }
+
+        if (plans.Count == 0)
+            return;
+
+        // Prompt once for everything not already approved at the version it would load, and
+        // pin the approval to that concrete version.
         if (promptForConsent)
         {
-            var needConsent = refs
-                .Where(p => !trustStore.IsApproved(p.Id, p.Version))
-                .Select(p => new ExtensionConsentInfo(p.Id, p.Version, "notebook required extensions"))
+            var needConsent = plans
+                .Where(p => p.EffectiveVersion is not null && !trustStore.IsApproved(p.Id, p.EffectiveVersion))
+                .Select(p => new ExtensionConsentInfo(p.Id, p.EffectiveVersion, "notebook required extensions"))
                 .ToList();
 
             if (needConsent.Count > 0)
             {
-                var approved = await extensionHost.RequestExtensionConsentAsync(needConsent, ct);
+                var approved = await extensionHost.RequestExtensionConsentAsync(needConsent, ct).ConfigureAwait(false);
                 if (approved)
                 {
                     foreach (var c in needConsent)
@@ -81,39 +125,89 @@ public static class MarketplaceLoader
             }
         }
 
-        foreach (var (id, version, source) in refs)
+        var unavailable = new List<UnavailableExtensionInfo>();
+        foreach (var plan in plans)
         {
-            if (extensionHost.IsExtensionPackageLoaded(id))
+            if (extensionHost.IsExtensionPackageLoaded(plan.Id))
                 continue;
-            if (!trustStore.IsApproved(id, version))
-                continue; // not trusted (consent denied or unavailable) — skip
 
             try
             {
                 IReadOnlyList<string>? assemblyPaths;
-                if (source == ExtensionSource.Local)
+
+                if (plan.Source != ExtensionSource.Local && plan.EffectiveVersion is null)
                 {
-                    // A sideloaded file can't be re-fetched; load it from the managed directory
-                    // only. If it isn't present (e.g. the notebook was opened on another machine),
-                    // skip it — there's nothing to download.
-                    assemblyPaths = marketplace.TryResolveInstalled(id, version, managedDir)?.AssemblyPaths;
-                    if (assemblyPaths is null)
+                    // Latest could not be resolved (offline or not found). Fall back to the
+                    // highest copy already on disk so a previously loaded notebook still opens.
+                    var fallback = marketplace.TryResolveInstalledLatest(plan.Id, managedDir);
+                    if (fallback is null || !trustStore.IsApproved(plan.Id, fallback.ResolvedVersion))
+                    {
+                        Report(unavailable, promptForConsent, plan.Id, plan.OriginalVersion,
+                            "could not reach the package source and no approved copy is installed");
                         continue;
+                    }
+                    assemblyPaths = fallback.AssemblyPaths;
                 }
                 else
                 {
-                    assemblyPaths = (await marketplace.EnsureInstalledAsync(id, version, managedDir, ct)).AssemblyPaths;
+                    var loadVersion = plan.Source == ExtensionSource.Local
+                        ? plan.OriginalVersion
+                        : plan.EffectiveVersion;
+                    if (loadVersion is null)
+                        continue; // malformed reference — nothing to load
+
+                    if (!trustStore.IsApproved(plan.Id, loadVersion))
+                    {
+                        Report(unavailable, promptForConsent, plan.Id, loadVersion,
+                            "permission to load it was not granted");
+                        continue;
+                    }
+
+                    // A sideloaded file can't be re-fetched, so it loads from the managed
+                    // directory only; a NuGet reference is downloaded if not already present.
+                    assemblyPaths = plan.Source == ExtensionSource.Local
+                        ? marketplace.TryResolveInstalled(plan.Id, loadVersion, managedDir)?.AssemblyPaths
+                        : (await marketplace.EnsureInstalledAsync(plan.Id, loadVersion, managedDir, ct)
+                            .ConfigureAwait(false)).AssemblyPaths;
+
+                    if (assemblyPaths is null)
+                    {
+                        Report(unavailable, promptForConsent, plan.Id, loadVersion,
+                            "the extension is not installed on this machine");
+                        continue;
+                    }
                 }
 
                 await LoadAssembliesAsync(extensionHost, assemblyPaths);
-                extensionHost.MarkExtensionPackageLoaded(id);
-                extensionHost.ApprovePackage(id);
+                extensionHost.MarkExtensionPackageLoaded(plan.Id);
+                extensionHost.ApprovePackage(plan.Id);
             }
-            catch
+            catch (OperationCanceledException)
             {
-                // A required extension that fails to resolve or load must not block the open.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Report(unavailable, promptForConsent, plan.Id,
+                    plan.EffectiveVersion ?? plan.OriginalVersion, ex.Message);
             }
         }
+
+        if (promptForConsent && unavailable.Count > 0)
+            await extensionHost.ReportUnavailableExtensionsAsync(unavailable).ConfigureAwait(false);
+    }
+
+    /// <summary>A required-extension reference paired with the concrete version it would load.</summary>
+    private readonly record struct ResolvedRef(
+        string Id, string? OriginalVersion, string? EffectiveVersion, ExtensionSource Source);
+
+    /// <summary>Records an unavailable extension, but only when failures are being surfaced
+    /// (the consent pass); the pre-session pass defers reporting to that later pass.</summary>
+    private static void Report(
+        List<UnavailableExtensionInfo> sink, bool active, string id, string? version, string reason)
+    {
+        if (active)
+            sink.Add(new UnavailableExtensionInfo(id, version, reason));
     }
 
     /// <summary>

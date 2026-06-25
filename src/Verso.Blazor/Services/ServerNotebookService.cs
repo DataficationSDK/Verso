@@ -311,6 +311,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public event Action? OnOutputUpdated;
     public event Action<string?>? OnKernelRestarting;
     public event Action<string?>? OnKernelRestarted;
+    public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -1381,7 +1382,14 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     private void WireConsentHandler()
     {
         if (_extensionHost is not null)
+        {
             _extensionHost.ConsentHandler = RequestConsentFromUIAsync;
+            _extensionHost.UnavailableExtensionsHandler = unavailable =>
+            {
+                OnRequiredExtensionsUnavailable?.Invoke(unavailable);
+                return Task.CompletedTask;
+            };
+        }
     }
 
     private async Task ScanAndRequestConsentAsync(NotebookModel notebook)

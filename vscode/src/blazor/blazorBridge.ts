@@ -27,6 +27,7 @@ export class BlazorBridge implements vscode.Disposable {
     "output/update",
     "extension/consentRequest",
     "extension/changed",
+    "extension/unavailable",
     "kernel/restarting",
     "kernel/restarted",
     "layout/missing",

@@ -43,13 +43,15 @@ public class ExtensionTrustStoreTests
     }
 
     [TestMethod]
-    public void Approve_NullVersion_MatchesAnyRequest()
+    public void Approve_NullVersion_DoesNotCoverConcreteVersions()
     {
         var store = ExtensionTrustStore.Load(_path);
         store.Approve("Pkg", null);
 
-        Assert.IsTrue(store.IsApproved("Pkg", null));
-        Assert.IsTrue(store.IsApproved("Pkg", "3.1.4"), "latest approval covers any concrete version");
+        Assert.IsTrue(store.IsApproved("Pkg", null), "an unspecified-version approval matches an unspecified request");
+        Assert.IsFalse(
+            store.IsApproved("Pkg", "3.1.4"),
+            "a one-time latest approval must not blanket-trust a later concrete version");
     }
 
     [TestMethod]

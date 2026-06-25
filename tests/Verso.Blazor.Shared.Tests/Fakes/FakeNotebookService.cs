@@ -86,6 +86,7 @@ public sealed class FakeNotebookService : INotebookService
     public event Action? OnOutputUpdated;
     public event Action<string?>? OnKernelRestarting;
     public event Action<string?>? OnKernelRestarted;
+    public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
     // ── Call tracking ──────────────────────────────────────────────────
 

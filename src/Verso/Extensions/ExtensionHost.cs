@@ -69,6 +69,22 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         return ConsentHandler?.Invoke(extensions, cancellationToken) ?? Task.FromResult(true);
     }
 
+    /// <summary>
+    /// Optional handler set by the hosting layer to surface required extensions that could not
+    /// be loaded on open (offline, package missing, consent declined). Lets the host show a
+    /// non-fatal notice instead of failing the open or silently swallowing the failure.
+    /// </summary>
+    public Func<IReadOnlyList<UnavailableExtensionInfo>, Task>? UnavailableExtensionsHandler { get; set; }
+
+    /// <summary>Reports required extensions that could not be loaded, delegating to
+    /// <see cref="UnavailableExtensionsHandler"/> if set.</summary>
+    public Task ReportUnavailableExtensionsAsync(IReadOnlyList<UnavailableExtensionInfo> unavailable)
+    {
+        if (unavailable.Count == 0)
+            return Task.CompletedTask;
+        return UnavailableExtensionsHandler?.Invoke(unavailable) ?? Task.CompletedTask;
+    }
+
     // --- Approved / loaded extension package tracking (session-scoped) ---
 
     public bool IsPackageApproved(string packageId) => _approvedExtensionPackages.Contains(packageId);
