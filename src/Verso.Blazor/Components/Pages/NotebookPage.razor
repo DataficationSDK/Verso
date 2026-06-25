@@ -97,108 +97,11 @@
     {
         <div class="verso-notebook-body">
             <div class="verso-notebook-main">
-                @if (Service.ActiveLayoutId == "dashboard")
-                {
-                    <DashboardGrid Service="Service"
-                                   Cells="GetLayoutFilteredCells()"
-                                   ExecutingCellId="_executingCellId"
-                                   IsRunDisabled="_executionInProgress"
-                                   OnRunCell="HandleRunCell"
-                                   OnCancelCell="HandleCancelCell"
-                                   OnSourceChanged="HandleSourceChanged" />
-                }
-                else if (Service.ActiveLayoutId == "presentation")
-                {
-                    <PresentationView Service="Service"
-                                      Cells="GetLayoutFilteredCells()" />
-                }
-                else
-                {
-                    <div class="verso-cell-list" @onclick="HandleCellListClick">
-                        @{
-                            var cells = Service.Cells;
-                            var cellTypes = Service.AvailableCellTypes;
-                        }
-                        @{
-                            int? skipUntilLevel = null;
-                        }
-                        @for (int i = 0; i < cells.Count; i++)
-                        {
-                            var cell = cells[i];
-                            var index = i;
-                            var headingLevel = HeadingDetector.GetHeadingLevel(cell);
-
-                            if (skipUntilLevel is not null)
-                            {
-                                if (headingLevel is not null && headingLevel.Value <= skipUntilLevel.Value)
-                                {
-                                    skipUntilLevel = null;
-                                }
-                                else
-                                {
-                                    continue;
-                                }
-                            }
-
-                            var isSectionCollapsed = _collapsedSections.Contains(cell.Id);
-
-                            <div @onclick:stopPropagation="true" data-cell-index="@index">
-                                <Cell CellData="cell"
-                                      IsSelected="cell.Id == _selectedCellId"
-                                      IsExecuting="cell.Id == _executingCellId"
-                                      IsRunDisabled="_executionInProgress"
-                                      Index="index"
-                                      IsLast="index == cells.Count - 1"
-                                      CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
-                                      IsEditable="Service.IsCellTypeEditable(cell.Type)"
-                                      IsHeadingCell="headingLevel is not null"
-                                      IsSectionCollapsed="isSectionCollapsed"
-                                      OnToggleSection="HandleToggleSection"
-                                      OnRunCell="HandleRunCell"
-                                      OnCancelCell="HandleCancelCell"
-                                      OnDeleteCell="HandleDeleteCell"
-                                      OnSelect="HandleSelectCell"
-                                      OnMoveUp="HandleMoveUp"
-                                      OnMoveDown="HandleMoveDown"
-                                      OnSourceChanged="HandleSourceChanged"
-                                      OnCellAction="HandleCellAction"
-                                      OnCellTypeChanged="HandleCellTypeChanged"
-                                      OnCellLanguageChanged="HandleCellLanguageChanged" />
-                            </div>
-
-                            @if (headingLevel is not null && isSectionCollapsed)
-                            {
-                                skipUntilLevel = headingLevel;
-                            }
-
-                            @if (index < cells.Count - 1)
-                            {
-                                var insertIndex = index + 1;
-                                <div class="verso-insert-cell-row @(cell.Id == _selectedCellId ? "verso-insert-cell-row--visible" : "")">
-                                    <div class="verso-insert-cell-line"></div>
-                                    @foreach (var ct in cellTypes)
-                                    {
-                                        var idx = insertIndex;
-                                        var typeId = ct.Id;
-                                        <button class="verso-insert-cell-btn" @onclick="() => HandleInsertCell(idx, typeId)">+ @ct.DisplayName</button>
-                                    }
-                                    <div class="verso-insert-cell-line"></div>
-                                </div>
-                            }
-                        }
-
-                        @if (Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))
-                        {
-                            <div class="verso-add-cell-row">
-                                @foreach (var ct in cellTypes)
-                                {
-                                    var typeId = ct.Id;
-                                    <button class="verso-add-cell-btn" @onclick="() => HandleAddCell(typeId)">+ @ct.DisplayName Cell</button>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
+                <CascadingValue Value="@CellContext" IsFixed="false">
+                    <LayoutRenderer @key="Service.ActiveLayoutKey"
+                                    Service="Service"
+                                    IsolatedRenderer="@RenderIsolatedLayout" />
+                </CascadingValue>
             </div>
 
             <div class="verso-panel-container">
@@ -308,6 +211,7 @@
     private DotNetObjectReference<NotebookPage>? _panelResizeRef;
     private DotNetObjectReference<NotebookPage>? _cellInteractRef;
     private DotNetObjectReference<NotebookPage>? _cellDragRef;
+    private DotNetObjectReference<NotebookPage>? _layoutInteractRef;
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
@@ -350,11 +254,16 @@
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
         Service.OnOutputUpdated += HandleOutputUpdated;
+        Service.OnRequiredExtensionsUnavailable += HandleExtensionsUnavailable;
 
         if (Service is ServerNotebookService serverService)
         {
             serverService.OnExtensionConsentRequested += HandleExtensionConsentRequested;
             serverService.OnInputRequested += HandleInputRequested;
+            // Hand the service the live collapsed-section set so a custom layout can fold sections
+            // (including when switching to one with a section already collapsed). The set is shared
+            // by reference; toggles re-assign it to trigger a layout re-render.
+            serverService.CollapsedSections = _collapsedSections;
         }
     }
 
@@ -413,6 +322,9 @@
 
             _cellDragRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("versoCellDrag.init", _cellDragRef);
+
+            _layoutInteractRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("versoLayoutInteract.register", _layoutInteractRef);
 
             await SyncMonacoThemeAsync();
 
@@ -568,61 +480,73 @@
         catch (JSException) { }
     }
 
-    private async void HandleLayoutChanged()
+    private void HandleLayoutChanged()
     {
         if (_activePanel == "properties" && !Service.ActiveLayoutSupportsPropertiesPanel)
             _activePanel = null;
 
-        await InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(StateHasChanged);
     }
 
+    // Theme/extension handlers do real async work before re-rendering. They stay async void
+    // (event-handler shape) but guard the whole body: a post-await ObjectDisposedException or
+    // JSDisconnectedException during rapid open/close would otherwise escape to the sync
+    // context and silently drop the Blazor circuit. Mirrors AutoSaveCallback.
     private async void HandleThemeChanged()
     {
-        await SyncMonacoThemeAsync();
-        if (!_restoringPrefs)
+        try
         {
-            try
+            await SyncMonacoThemeAsync();
+            if (!_restoringPrefs)
             {
-                if (Service.ActiveThemeId is not null)
-                    await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+                try
+                {
+                    if (Service.ActiveThemeId is not null)
+                        await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+                }
+                catch (JSDisconnectedException) { }
+                catch (JSException) { }
             }
+            await InvokeAsync(StateHasChanged);
+            // Snapshot the rendered CSS variables so the next page load can apply them early
+            try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
             catch (JSDisconnectedException) { }
             catch (JSException) { }
         }
-        await InvokeAsync(StateHasChanged);
-        // Snapshot the rendered CSS variables so the next page load can apply them early
-        try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
         catch (JSDisconnectedException) { }
+        catch (TaskCanceledException) { }
+        catch (ObjectDisposedException) { }
         catch (JSException) { }
     }
 
     private async void HandleExtensionStatusChanged()
     {
-        if (!_restoringPrefs)
+        try
         {
-            try
+            if (!_restoringPrefs)
             {
-                var disabledIds = Service.Extensions
-                    .Where(e => e.Status == ExtensionStatus.Disabled)
-                    .Select(e => e.ExtensionId)
-                    .ToArray();
-                await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)disabledIds);
+                try
+                {
+                    var disabledIds = Service.Extensions
+                        .Where(e => e.Status == ExtensionStatus.Disabled)
+                        .Select(e => e.ExtensionId)
+                        .ToArray();
+                    await JS.InvokeVoidAsync("versoUserPrefs.setDisabledExtensions", (object)disabledIds);
+                }
+                catch (JSDisconnectedException) { }
+                catch (JSException) { }
             }
-            catch (JSDisconnectedException) { }
-            catch (JSException) { }
+            await InvokeAsync(StateHasChanged);
         }
-        await InvokeAsync(StateHasChanged);
+        catch (JSDisconnectedException) { }
+        catch (TaskCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (JSException) { }
     }
 
-    private async void HandleVariablesChanged()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private void HandleVariablesChanged() => _ = InvokeAsync(StateHasChanged);
 
-    private async void HandleSettingsChanged()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private void HandleSettingsChanged() => _ = InvokeAsync(StateHasChanged);
 
     private async void HandleExtensionConsentRequested()
     {
@@ -674,10 +598,7 @@
             serverService.ResolveInputResult(null, cancelled: true);
     }
 
-    private async void HandleOutputUpdated()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private void HandleOutputUpdated() => _ = InvokeAsync(StateHasChanged);
 
     [JSInvokable]
     public async Task<string?> OnCellInteract(string cellId, string extensionId, string interactionType, string payloadJson, string? outputBlockId)
@@ -687,6 +608,17 @@
 
         return await Service.HandleCellInteractionAsync(
             cellGuid, extensionId, interactionType, payloadJson, outputBlockId, CellRegion.Output);
+    }
+
+    [JSInvokable]
+    public async Task<string?> OnLayoutInteract(
+        string extensionId, string layoutId, string? frameInstanceId,
+        string interactionType, string payloadJson, string? targetId)
+    {
+        await Service.LayoutInteractAsync(
+            extensionId, layoutId, interactionType, payloadJson ?? string.Empty,
+            frameInstanceId, targetId);
+        return null;
     }
 
     private async Task SyncMonacoThemeAsync()
@@ -712,12 +644,38 @@
         _activePanel = null;
     }
 
-    private IReadOnlyList<CellModel> GetLayoutFilteredCells()
+    private NotebookCellContext CellContext => new()
     {
-        return Service.Cells
-            .Where(c => Service.ResolveCellVisibility(c.Id) != CellVisibilityState.Hidden)
-            .ToList();
-    }
+        SelectedCellId = _selectedCellId,
+        ExecutingCellId = _executingCellId,
+        IsRunDisabled = _executionInProgress,
+        CollapsedSections = _collapsedSections,
+        OnRunCell = EventCallback.Factory.Create<Guid>(this, HandleRunCell),
+        OnCancelCell = EventCallback.Factory.Create<Guid>(this, HandleCancelCell),
+        OnDeleteCell = EventCallback.Factory.Create<Guid>(this, HandleDeleteCell),
+        OnSelectCell = EventCallback.Factory.Create<Guid>(this, HandleSelectCell),
+        OnMoveUp = EventCallback.Factory.Create<Guid>(this, HandleMoveUp),
+        OnMoveDown = EventCallback.Factory.Create<Guid>(this, HandleMoveDown),
+        OnToggleSection = EventCallback.Factory.Create<Guid>(this, HandleToggleSection),
+        OnSourceChanged = EventCallback.Factory.Create<(Guid, string)>(this, HandleSourceChanged),
+        OnCellAction = EventCallback.Factory.Create<(Guid, string)>(this, HandleCellAction),
+        OnCellTypeChanged = EventCallback.Factory.Create<(Guid, string)>(this, HandleCellTypeChanged),
+        OnCellLanguageChanged = EventCallback.Factory.Create<(Guid, string)>(this, HandleCellLanguageChanged),
+        OnInsertCell = EventCallback.Factory.Create<(int, string)>(this, args => HandleInsertCell(args.Item1, args.Item2)),
+        OnAddCell = EventCallback.Factory.Create<string>(this, HandleAddCell),
+        OnCellListClick = EventCallback.Factory.Create(this, HandleCellListClick),
+    };
+
+    private RenderFragment RenderIsolatedLayout => builder =>
+    {
+        if (Service is IIsolatedLayoutHost host)
+        {
+            builder.OpenComponent<CustomLayoutFrame>(0);
+            builder.AddAttribute(1, nameof(CustomLayoutFrame.Service), Service);
+            builder.AddAttribute(2, nameof(CustomLayoutFrame.Host), host);
+            builder.CloseComponent();
+        }
+    };
 
     [JSInvokable]
     public void OnPanelResized(int width)
@@ -1017,6 +975,11 @@
     {
         if (!_collapsedSections.Remove(cellId))
             _collapsedSections.Add(cellId);
+
+        // The built-in cell list folds via its own render path (Blazor re-render). A custom layout
+        // needs the host to re-render it with the updated set, which assigning here triggers.
+        if (Service is ServerNotebookService serverService)
+            serverService.CollapsedSections = _collapsedSections;
     }
 
     private async Task HandleCellAction((Guid CellId, string Action) args)
@@ -1332,6 +1295,7 @@
         _panelResizeRef?.Dispose();
         _cellInteractRef?.Dispose();
         _cellDragRef?.Dispose();
+        _layoutInteractRef?.Dispose();
         Service.OnCellExecuted -= HandleCellExecutedRefresh;
         Service.OnCellExecuting -= HandleCellExecutingEvent;
         Service.OnCellExecutionCompleted -= HandleCellExecutedEvent;
@@ -1342,11 +1306,26 @@
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
         Service.OnOutputUpdated -= HandleOutputUpdated;
+        Service.OnRequiredExtensionsUnavailable -= HandleExtensionsUnavailable;
 
         if (Service is ServerNotebookService serverService)
         {
             serverService.OnExtensionConsentRequested -= HandleExtensionConsentRequested;
             serverService.OnInputRequested -= HandleInputRequested;
         }
+    }
+
+    private void HandleExtensionsUnavailable(IReadOnlyList<UnavailableExtensionInfo> unavailable)
+    {
+        _ = InvokeAsync(async () => await ShowStatusAsync(FormatUnavailableExtensions(unavailable)));
+    }
+
+    private static string FormatUnavailableExtensions(IReadOnlyList<UnavailableExtensionInfo> unavailable)
+    {
+        var names = string.Join(", ", unavailable.Select(u => u.PackageId));
+        var lead = unavailable.Count == 1
+            ? $"Required extension {names} could not be loaded"
+            : $"{unavailable.Count} required extensions could not be loaded: {names}";
+        return $"{lead}. Some layouts or cells may not work until it is available.";
     }
 }

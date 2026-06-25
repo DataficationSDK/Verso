@@ -183,9 +183,9 @@ public sealed class LayoutManagerTests
         // No active layout
         Assert.IsFalse(manager.RequiresCustomRenderer);
 
-        // Notebook layout
+        // Notebook layout (custom renderer: portals live cells into its own HTML)
         manager.SetActiveLayout("notebook");
-        Assert.IsFalse(manager.RequiresCustomRenderer);
+        Assert.IsTrue(manager.RequiresCustomRenderer);
 
         // Dashboard layout
         manager.SetActiveLayout("dashboard");

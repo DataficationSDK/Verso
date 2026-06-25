@@ -16,7 +16,7 @@ namespace Verso.Blazor.Services;
 /// In-process implementation of <see cref="INotebookService"/> for Blazor Server.
 /// Wraps Scaffold + ExtensionHost, projecting engine types through the interface surface.
 /// </summary>
-public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
+public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncDisposable
 {
     private Scaffold? _scaffold;
     private ExtensionHost? _extensionHost;
@@ -24,6 +24,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     private CancellationTokenSource? _executionCts;
     private readonly IJSRuntime _jsRuntime;
     private readonly NotebookServiceOptions _options;
+    private readonly LayoutAssetCache _layoutAssetCache;
     private readonly object _inputLock = new();
     private TaskCompletionSource<string?>? _inputTcs;
     private ServerInputRequest? _pendingInputRequest;
@@ -76,9 +77,13 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         tcs?.TrySetResult(cancelled ? null : value ?? string.Empty);
     }
 
-    public ServerNotebookService(IJSRuntime jsRuntime, NotebookServiceOptions? options = null)
+    public ServerNotebookService(
+        IJSRuntime jsRuntime,
+        LayoutAssetCache layoutAssetCache,
+        NotebookServiceOptions? options = null)
     {
         _jsRuntime = jsRuntime;
+        _layoutAssetCache = layoutAssetCache;
         _options = options ?? new NotebookServiceOptions();
     }
 
@@ -86,9 +91,22 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         await _extensionHost!.LoadBuiltInExtensionsAsync();
 
-        var dir = _options.ExtensionsDirectory;
-        if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
-            await _extensionHost.LoadFromDirectoryAsync(dir);
+        // Scan all configured directories plus the managed extensions directory. Marketplace
+        // installs live in versioned subfolders (managed/{id}/{version}/) which the
+        // non-recursive directory scan ignores; those load via required-extension resolution.
+        var dirs = ExtensionDirectoryResolver.Resolve(_options.GetAllExtensionsDirectories(), out _);
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+            try
+            {
+                await _extensionHost.LoadFromDirectoryAsync(dir);
+            }
+            catch (ExtensionLoadException)
+            {
+                // A bad or duplicate assembly in one directory must not stop the others.
+            }
+        }
     }
 
     // ── State ──────────────────────────────────────────────────────────
@@ -136,7 +154,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public DateTimeOffset? Created => _scaffold?.Notebook.Created;
     public DateTimeOffset? Modified => _scaffold?.Notebook.Modified;
-    public string FormatVersion => _scaffold?.Notebook.FormatVersion ?? "1.0";
+    public string FormatVersion => _scaffold?.Notebook.FormatVersion ?? NotebookFormatVersion.Current;
 
     // ── Cells ──────────────────────────────────────────────────────────
 
@@ -166,6 +184,55 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public string? ActiveLayoutId =>
         _scaffold?.LayoutManager?.ActiveLayout?.LayoutId;
+
+    public LayoutReference? ActiveLayout
+    {
+        get
+        {
+            var layout = _scaffold?.LayoutManager?.ActiveLayout;
+            if (layout is null) return null;
+            var ext = (layout as IExtension)?.ExtensionId ?? string.Empty;
+            return new LayoutReference(ext, layout.LayoutId);
+        }
+    }
+
+    public string ActiveLayoutKey => ActiveLayout is { } layout
+        ? $"{layout.ExtensionId}:{layout.LayoutId}"
+        : "verso.layout:none";
+
+    private IReadOnlySet<Guid> _collapsedSections = new HashSet<Guid>();
+
+    /// <summary>
+    /// The heading cells whose sections are currently collapsed. The page holds the source of
+    /// truth and hands its live set here; assigning re-renders the active custom layout so it can
+    /// fold the cells under a collapsed heading. The built-in cell list folds via its own render
+    /// path and does not depend on this.
+    /// </summary>
+    public IReadOnlySet<Guid> CollapsedSections
+    {
+        get => _collapsedSections;
+        set
+        {
+            _collapsedSections = value ?? new HashSet<Guid>();
+            if (_scaffold?.LayoutManager?.ActiveLayout?.RequiresCustomRenderer == true
+                && ActiveLayout is { } reference)
+            {
+                OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+                    reference.ExtensionId, reference.LayoutId, string.Empty, "full", null));
+            }
+        }
+    }
+
+    public string? ActiveLayoutRendererIsolation
+    {
+        get
+        {
+            var layout = _scaffold?.LayoutManager?.ActiveLayout;
+            return layout?.RequiresCustomRenderer == true
+                ? layout.RendererIsolation.ToWireString()
+                : null;
+        }
+    }
 
     public bool ActiveLayoutSupportsPropertiesPanel =>
         _scaffold?.LayoutManager?.ActiveLayout?.SupportsPropertiesPanel == true;
@@ -208,7 +275,14 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     public IReadOnlyList<LayoutInfo> AvailableLayouts =>
         _extensionHost?.GetLayouts()
-            .Select(l => new LayoutInfo(l.LayoutId, l.DisplayName, l.RequiresCustomRenderer, l.Capabilities, l.SupportsPropertiesPanel))
+            .Select(l => new LayoutInfo(
+                l.LayoutId,
+                l.DisplayName,
+                l.RequiresCustomRenderer,
+                l.Capabilities,
+                l.SupportsPropertiesPanel,
+                (l as IExtension)?.ExtensionId ?? string.Empty,
+                l.RendererIsolation.ToWireString()))
             .ToList()
         ?? (IReadOnlyList<LayoutInfo>)Array.Empty<LayoutInfo>();
 
@@ -229,11 +303,15 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
+    public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
     public event Action? OnOutputUpdated;
+    public event Action<string?>? OnKernelRestarting;
+    public event Action<string?>? OnKernelRestarted;
+    public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -280,6 +358,11 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
         var notebook = await serializer.DeserializeAsync(content);
 
+        // Load the notebook's declared extensions before building subsystems so a required
+        // layout engine is registered before the active layout is chosen and the first
+        // render happens (otherwise the notebook would paint with the fallback layout).
+        await LoadRequiredExtensionsAsync(notebook);
+
         _scaffold = new Scaffold(notebook, _extensionHost, filePath);
         _scaffold.InitializeSubsystems();
         EnsureDefaults();
@@ -314,6 +397,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
             ?? (INotebookSerializer)new VersoSerializer();
 
         var notebook = await serializer.DeserializeAsync(content);
+
+        // See OpenAsync: required extensions must load before subsystems and first render.
+        await LoadRequiredExtensionsAsync(notebook);
 
         _scaffold = new Scaffold(notebook, _extensionHost);
         _scaffold.InitializeSubsystems();
@@ -514,7 +600,9 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     public async Task RestartKernelAsync()
     {
         if (_scaffold is null) return;
+        OnKernelRestarting?.Invoke(null);
         await _scaffold.RestartKernelAsync();
+        OnKernelRestarted?.Invoke(null);
     }
 
     private CancellationToken ResetExecutionToken()
@@ -666,11 +754,76 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
 
     // ── Layout & theme switching ───────────────────────────────────────
 
+    public async Task<string?> RenderActiveLayoutAsync()
+    {
+        var layout = _scaffold?.LayoutManager?.ActiveLayout;
+        if (layout is null || _scaffold is null) return null;
+        if (!layout.RequiresCustomRenderer) return null;
+        if (layout.RendererIsolation != LayoutRendererIsolation.Inline) return null;
+
+        var ctx = new BlazorLayoutRenderContext(_scaffold, _collapsedSections);
+        var result = await layout.RenderLayoutAsync(_scaffold.Notebook.Cells, ctx);
+        return string.Equals(result.MimeType, "text/html", StringComparison.OrdinalIgnoreCase)
+            ? result.Content
+            : null;
+    }
+
+    private static readonly LayoutHostCapabilities HtmlHostCapabilities = new(
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "text/css",
+            "text/javascript",
+            "application/javascript",
+        },
+        new HashSet<string>(StringComparer.Ordinal) { "text/html" });
+
+    public async Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId,
+        string layoutId)
+    {
+        if (_scaffold is null || _extensionHost is null)
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        if (!_extensionHost.TryGetLayoutEngine(extensionId, layoutId, out var engine))
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        var ctx = new BlazorLayoutRenderContext(_scaffold);
+        var assets = await engine.GetStaticAssetsAsync(ctx, HtmlHostCapabilities);
+        if (assets is null || assets.Count == 0)
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        var descriptors = new List<LayoutStaticAssetDescriptor>(assets.Count);
+        foreach (var asset in assets)
+        {
+            // Drop anything outside the advertised content-type set. Mirrors the
+            // defensive filter in LayoutHandler.HandleGetStaticAssetsAsync.
+            if (!HtmlHostCapabilities.SupportedAssetContentTypes.Contains(asset.ContentType))
+                continue;
+
+            _layoutAssetCache.Register(extensionId, layoutId, asset.AssetId,
+                asset.ContentType, asset.Content.ToArray());
+            descriptors.Add(new LayoutStaticAssetDescriptor(
+                asset.AssetId,
+                asset.ContentType,
+                LayoutAssetCache.BuildUrl(extensionId, layoutId, asset.AssetId))
+            {
+                LoadHints = asset.LoadHints,
+                ContentSecurityPolicy = asset.ContentSecurityPolicy,
+            });
+        }
+
+        return descriptors;
+    }
+
     public Task SwitchLayoutAsync(string layoutId)
     {
         if (_scaffold?.LayoutManager is null) return Task.CompletedTask;
         _scaffold.LayoutManager.SetActiveLayout(layoutId);
-        _scaffold.Notebook.ActiveLayoutId = layoutId;
+        if (_scaffold.LayoutManager.ActiveLayout is { } active && active is IExtension ext)
+        {
+            _scaffold.Notebook.ActiveLayout = new LayoutReference(ext.ExtensionId, active.LayoutId);
+            _scaffold.Notebook.RequiresLegacyLayoutResolution = false;
+        }
         OnLayoutChanged?.Invoke();
         return Task.CompletedTask;
     }
@@ -806,12 +959,94 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         return layout.GetCellContainerAsync(cellId, context);
     }
 
+    /// <summary>
+    /// Reserved interaction-type namespace. Types prefixed with <c>verso/</c> are
+    /// intercepted by the host and routed to built-in actions rather than dispatched to
+    /// a registered <see cref="ILayoutInteractionHandler"/>. Layout-author handlers MUST
+    /// NOT use this prefix; any such interactions are short-circuited before the handler
+    /// lookup runs.
+    /// </summary>
+    public const string ReservedInteractionPrefix = "verso/";
+
+    /// <summary>Reserved type that asks the host to re-render the layout.</summary>
+    public const string ReservedInteractionRequestRender = "verso/requestRender";
+
+    public async Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null)
+    {
+        if (_extensionHost is null) return;
+
+        // Reserved interaction shortcuts run before any handler lookup so a layout
+        // without an ILayoutInteractionHandler can still trigger host actions (e.g. a
+        // script that wants to request a re-render after mutating its own DOM state).
+        if (!string.IsNullOrEmpty(interactionType)
+            && interactionType.StartsWith(ReservedInteractionPrefix, StringComparison.Ordinal))
+        {
+            DispatchReservedInteraction(extensionId, layoutId, frameInstanceId, interactionType);
+            return;
+        }
+
+        if (!_extensionHost.TryGetLayoutInteractionHandler(extensionId, layoutId, out var handler))
+            return;
+
+        var context = new LayoutInteractionContext
+        {
+            ExtensionId = extensionId,
+            LayoutId = layoutId,
+            FrameInstanceId = frameInstanceId ?? string.Empty,
+            InteractionType = interactionType,
+            Payload = payload,
+            TargetId = targetId,
+            // Pass the JS runtime so a layout interaction can deliver a file download
+            // (e.g. export PNG) through the same versoFileDownload path the toolbar
+            // export actions use. Without it RequestFileDownloadAsync throws.
+            Verso = new BlazorToolbarActionContext(_scaffold!, new List<Guid>(), _jsRuntime),
+            CancellationToken = CancellationToken.None,
+            RequestRender = () => OnLayoutUpdated?.Invoke(
+                new LayoutUpdatedEventArgs(extensionId, layoutId, frameInstanceId ?? string.Empty, "full", null)),
+            RequestCellRefresh = cellId => OnLayoutUpdated?.Invoke(
+                new LayoutUpdatedEventArgs(extensionId, layoutId, frameInstanceId ?? string.Empty, "cell", cellId))
+        };
+
+        await handler.OnLayoutInteractionAsync(context).ConfigureAwait(false);
+    }
+
+    private void DispatchReservedInteraction(
+        string extensionId, string layoutId, string? frameInstanceId, string interactionType)
+    {
+        var frame = frameInstanceId ?? string.Empty;
+        switch (interactionType)
+        {
+            case ReservedInteractionRequestRender:
+                OnLayoutUpdated?.Invoke(
+                    new LayoutUpdatedEventArgs(extensionId, layoutId, frame, "full", null));
+                return;
+
+            default:
+                // Unknown reserved type: drop silently so future additions on the client
+                // side do not throw against older Server hosts.
+                return;
+        }
+    }
+
+    [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
     {
-        var layout = _scaffold?.LayoutManager?.ActiveLayout;
-        if (layout is DashboardLayout dashboard)
-            dashboard.UpdateCellPosition(cellId, row, col, colSpan, rowSpan);
-        return Task.CompletedTask;
+        var payload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row,
+            col,
+            width = colSpan,
+            height = rowSpan
+        });
+
+        return LayoutInteractAsync("verso.layout.dashboard", "dashboard", "updateCellPosition", payload);
     }
 
     // ── Cell type helpers ──────────────────────────────────────────────
@@ -884,6 +1119,20 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         var context = new BlazorCellRenderContext(_scaffold, cell);
         await provider.OnPropertyChangedAsync(cell, propertyName, value, context);
         OnNotebookChanged?.Invoke();
+
+        // Property changes (e.g. per-layout visibility) can affect what an
+        // extension-rendered layout chooses to emit. CustomLayoutHtml re-fetches
+        // HTML only on OnLayoutUpdated, so signal a cell-scoped refresh.
+        var activeLayout = _scaffold.LayoutManager?.ActiveLayout;
+        if (activeLayout?.RequiresCustomRenderer == true)
+        {
+            OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+                activeLayout.ExtensionId,
+                activeLayout.LayoutId,
+                string.Empty,
+                "cell",
+                cellId));
+        }
     }
 
     public CellVisibilityState ResolveCellVisibility(Guid cellId)
@@ -931,7 +1180,8 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
         {
             var enabledLayouts = _extensionHost.GetLayouts();
             var defaultLayout = enabledLayouts
-                .FirstOrDefault(l => !l.RequiresCustomRenderer)
+                .FirstOrDefault(l => string.Equals(l.LayoutId, LayoutDefaults.LayoutId, StringComparison.OrdinalIgnoreCase))
+                ?? enabledLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
                 ?? enabledLayouts.FirstOrDefault();
             if (defaultLayout is not null)
                 lm.SetActiveLayout(defaultLayout.LayoutId);
@@ -1061,7 +1311,10 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     }
 
     private void HandleScaffoldCellOutputUpdated(Guid cellId)
-        => OnOutputUpdated?.Invoke();
+    {
+        OnOutputUpdated?.Invoke();
+        RaiseCellOutputUpdated(cellId);
+    }
 
     private async Task<string?> RequestInputFromUIAsync(
         Guid cellId,
@@ -1129,7 +1382,14 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     private void WireConsentHandler()
     {
         if (_extensionHost is not null)
+        {
             _extensionHost.ConsentHandler = RequestConsentFromUIAsync;
+            _extensionHost.UnavailableExtensionsHandler = unavailable =>
+            {
+                OnRequiredExtensionsUnavailable?.Invoke(unavailable);
+                return Task.CompletedTask;
+            };
+        }
     }
 
     private async Task ScanAndRequestConsentAsync(NotebookModel notebook)
@@ -1171,6 +1431,7 @@ public sealed class ServerNotebookService : INotebookService, IAsyncDisposable
     {
         _executionCts?.Cancel();
         ResolveInputResult(null, cancelled: true);
+        await UnmountAllFramesAsync();
         UnsubscribeFromEngineEvents();
         if (_scaffold is not null)
         {

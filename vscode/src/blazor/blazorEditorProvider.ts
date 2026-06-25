@@ -280,13 +280,25 @@ export class BlazorEditorProvider
     workingDir: string,
     options: { addDefaultCellIfEmpty: boolean }
   ): Promise<NotebookOpenResult> {
-    const extensionsDirectory = vscode.workspace
+    // verso.extensionsPath accepts either a single string (legacy) or an array of paths.
+    const rawExtensionsPath = vscode.workspace
       .getConfiguration("verso")
-      .get<string>("extensionsPath") || undefined;
+      .get<string | string[]>("extensionsPath");
+
+    let extensionsDirectory: string | undefined;
+    let extensionsDirectories: string[] | undefined;
+    if (Array.isArray(rawExtensionsPath)) {
+      const dirs = rawExtensionsPath.filter(
+        (d) => typeof d === "string" && d.trim().length > 0
+      );
+      extensionsDirectories = dirs.length > 0 ? dirs : undefined;
+    } else if (typeof rawExtensionsPath === "string" && rawExtensionsPath.trim().length > 0) {
+      extensionsDirectory = rawExtensionsPath;
+    }
 
     const result = await host.sendRequest<NotebookOpenResult>(
       "notebook/open",
-      { content, filePath, workingDir, extensionsDirectory }
+      { content, filePath, workingDir, extensionsDirectory, extensionsDirectories }
     );
 
     const notebookId = result.notebookId;
@@ -706,6 +718,21 @@ export class BlazorEditorProvider
     const dashboardInterop = toUri(
       "_content/Verso.Blazor.Shared/js/dashboard-interop.js"
     );
+    const customLayoutInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/custom-layout-interop.js"
+    );
+    const versoLayoutAssets = toUri(
+      "_content/Verso.Blazor.Shared/js/verso-layout-assets.js"
+    );
+    const versoLayoutFrame = toUri(
+      "_content/Verso.Blazor.Shared/js/verso-layout-frame.js"
+    );
+    const layoutInteractInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/layout-interact-interop.js"
+    );
+    const versoInlineLayoutBridge = toUri(
+      "_content/Verso.Blazor.Shared/js/verso-inline-layout-bridge.js"
+    );
     const panelResizeInterop = toUri(
       "_content/Verso.Blazor.Shared/js/panel-resize-interop.js"
     );
@@ -745,7 +772,7 @@ export class BlazorEditorProvider
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
     <base id="blazor-base" href="/" />
     <script>
     // Set base href to match the webview origin so Blazor's NavigationManager
@@ -789,7 +816,10 @@ export class BlazorEditorProvider
             --verso-cell-error-background: var(--vscode-inputValidation-errorBackground, #5A1D1D);
             --verso-cell-error-foreground: var(--vscode-inputValidation-errorForeground, var(--vscode-errorForeground, #F48771));
             --verso-cell-running-indicator: var(--vscode-progressBar-background, #0078D4);
-            --verso-toolbar-background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+            /* Toolbar and the right panel-strip rail share this token. Use the workbench side
+               panel background (Explorer / Source Control) so Verso's chrome frames the notebook
+               canvas like a native VS Code panel, falling back to the tab header then editor bg. */
+            --verso-toolbar-background: var(--vscode-sideBar-background, var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background)));
             --verso-toolbar-foreground: var(--vscode-foreground);
             --verso-toolbar-button-hover: var(--vscode-toolbar-hoverBackground);
             --verso-toolbar-separator: var(--vscode-panel-border, #E0E0E0);
@@ -827,6 +857,14 @@ export class BlazorEditorProvider
             --verso-success: var(--vscode-testing-iconPassed, #73C991);
             --verso-foreground-muted: var(--vscode-disabledForeground, #999);
             --verso-hover-background: var(--vscode-list-hoverBackground, #F5F5F5);
+            /* Coarse semantic palette consumed by custom layouts. Mapped from the editor
+               surfaces so layouts that derive their look from these tokens blend into the
+               active VS Code theme. */
+            --verso-bg-default: var(--vscode-editor-background);
+            --verso-bg-elevated: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+            --verso-fg-default: var(--vscode-editor-foreground);
+            --verso-fg-muted: var(--vscode-disabledForeground, var(--vscode-editorLineNumber-foreground, #858585));
+            --verso-font-family-mono: var(--vscode-editor-font-family, 'Cascadia Mono', Consolas, monospace);
         }
     </style>
 </head>
@@ -860,10 +898,15 @@ export class BlazorEditorProvider
     <script src="${monacoCdn}/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
     <script src="${monacoInterop}"></script>
     <script src="${dashboardInterop}"></script>
+    <script src="${customLayoutInterop}"></script>
+    <script src="${versoLayoutAssets}"></script>
+    <script src="${versoLayoutFrame}"></script>
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
     <script src="${cellInteractInterop}"></script>
+    <script src="${layoutInteractInterop}"></script>
+    <script src="${versoInlineLayoutBridge}"></script>
     <script src="${parametersInterop}"></script>
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>

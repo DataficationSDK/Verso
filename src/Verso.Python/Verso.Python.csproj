@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="pythonnet" Version="3.1.0-rc.0" />
+    <PackageReference Include="pythonnet" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>

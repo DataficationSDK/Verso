@@ -32,7 +32,11 @@ public sealed class NotebookLayoutTests
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_ProducesHtmlWithCellIds()
+    public void RequiresCustomRenderer_IsTrue()
+        => Assert.IsTrue(_layout.RequiresCustomRenderer);
+
+    [TestMethod]
+    public async Task RenderLayoutAsync_EmitsOneSlotPerCell()
     {
         var cellId1 = Guid.NewGuid();
         var cellId2 = Guid.NewGuid();
@@ -44,17 +48,20 @@ public sealed class NotebookLayoutTests
 
         var result = await _layout.RenderLayoutAsync(cells, _context);
         Assert.AreEqual("text/html", result.MimeType);
-        Assert.IsTrue(result.Content.Contains("verso-notebook-layout"));
-        Assert.IsTrue(result.Content.Contains("verso-cell-container"));
-        Assert.IsTrue(result.Content.Contains(cellId1.ToString()));
-        Assert.IsTrue(result.Content.Contains(cellId2.ToString()));
-        Assert.IsTrue(result.Content.Contains("cell one"));
-        Assert.IsTrue(result.Content.Contains("cell two"));
+        // The layout portals live cells into slots; it emits one data-cell-slot per cell, keyed
+        // by cell id, plus the bottom add row.
+        Assert.IsTrue(result.Content.Contains("vmd-cells"));
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cellId1}\""));
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cellId2}\""));
+        Assert.IsTrue(result.Content.Contains("data-action=\"insert-cell\""));
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_HtmlEncodesContent()
+    public async Task RenderLayoutAsync_DoesNotInlineCellSource()
     {
+        // The live cell component is portaled into the slot by the host, so the layout never
+        // inlines the cell's source text. That also means there is no source-injection surface in
+        // the layout HTML.
         var cells = new List<CellModel>
         {
             new() { Source = "<script>alert('xss')</script>" }
@@ -62,7 +69,7 @@ public sealed class NotebookLayoutTests
 
         var result = await _layout.RenderLayoutAsync(cells, _context);
         Assert.IsFalse(result.Content.Contains("<script>alert"));
-        Assert.IsTrue(result.Content.Contains("&lt;script&gt;"));
+        Assert.IsFalse(result.Content.Contains("alert('xss')"));
     }
 
     [TestMethod]

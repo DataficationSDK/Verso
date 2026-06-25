@@ -85,6 +85,17 @@ public class ThemeRecordTests
     }
 
     [TestMethod]
+    public void ThemeColorTokens_Accent_MirrorsAccentPrimary()
+    {
+        // Accent is a read-only alias of AccentPrimary so the two can never diverge.
+        var defaults = new ThemeColorTokens();
+        Assert.AreEqual(defaults.AccentPrimary, defaults.Accent);
+
+        var tokens = new ThemeColorTokens { AccentPrimary = "#123456" };
+        Assert.AreEqual("#123456", tokens.Accent);
+    }
+
+    [TestMethod]
     public void ThemeSpacing_WithExpression_Overrides()
     {
         var spacing = new ThemeSpacing { CellPadding = 20 };

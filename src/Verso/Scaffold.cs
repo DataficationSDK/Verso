@@ -129,7 +129,26 @@ public sealed class Scaffold : IAsyncDisposable
         var layouts = _extensionHost.GetLayouts();
 
         _themeEngine = new ThemeEngine(themes, _notebook.PreferredThemeId);
-        _layoutManager = new LayoutManager(layouts, _notebook.ActiveLayoutId);
+        _layoutManager = new LayoutManager(layouts, _notebook.ActiveLayout);
+
+        // If the notebook was loaded with an unqualified (legacy) layout reference and the
+        // LayoutManager resolved it unambiguously, promote the in-memory reference to the
+        // qualified form so the next save writes the qualified shape. When resolution failed
+        // (no match or ambiguous), leave the reference unqualified so the bare string is
+        // round-tripped to disk for the missing extension to resolve on a later load.
+        //
+        // This is host-dependent resolution: it needs the loaded extension set to discover the
+        // owning extension id, so it lives here at wire-up rather than in the pure-data format
+        // migration pipeline that runs inside the serializer.
+        if (_notebook.RequiresLegacyLayoutResolution &&
+            _notebook.ActiveLayout is { IsUnqualified: true } &&
+            _layoutManager.ActiveLayout is { } resolved &&
+            resolved is IExtension resolvedExt &&
+            string.Equals(resolved.LayoutId, _notebook.ActiveLayout.Value.LayoutId, StringComparison.OrdinalIgnoreCase))
+        {
+            _notebook.ActiveLayout = new LayoutReference(resolvedExt.ExtensionId, resolved.LayoutId);
+            _notebook.RequiresLegacyLayoutResolution = false;
+        }
 
         var settable = _extensionHost.GetSettableExtensions();
         _settingsManager = new SettingsManager(settable);
@@ -619,6 +638,24 @@ public sealed class Scaffold : IAsyncDisposable
 
     public async Task<ExecutionResult> ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
     {
+        var (result, _) = await ExecuteCodeCoreAsync(code, language, ct).ConfigureAwait(false);
+        return result;
+    }
+
+    /// <summary>
+    /// Executes arbitrary code and returns both the execution result and the outputs it produced.
+    /// The outputs accumulate on a transient cell that is never added to the notebook.
+    /// </summary>
+    public async Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
+        string code, string? language = null, CancellationToken ct = default)
+    {
+        var (_, outputs) = await ExecuteCodeCoreAsync(code, language, ct).ConfigureAwait(false);
+        return outputs;
+    }
+
+    private async Task<(ExecutionResult Result, IReadOnlyList<CellOutput> Outputs)> ExecuteCodeCoreAsync(
+        string code, string? language, CancellationToken ct)
+    {
         var transientCell = new CellModel
         {
             Type = "code",
@@ -626,7 +663,13 @@ public sealed class Scaffold : IAsyncDisposable
             Source = code
         };
         var pipeline = BuildPipeline();
-        return await pipeline.ExecuteAsync(transientCell, ct).ConfigureAwait(false);
+        var result = await pipeline.ExecuteAsync(transientCell, ct).ConfigureAwait(false);
+        List<CellOutput> outputs;
+        lock (transientCell.Outputs)
+        {
+            outputs = transientCell.Outputs.ToList();
+        }
+        return (result, outputs);
     }
 
     // --- Lifecycle ---

@@ -14,7 +14,43 @@ internal static class HttpResponseFormatter
 {
     private const int MaxBodyDisplayLength = 100 * 1024; // 100 KB
 
-    internal static string FormatResponseHtml(HttpResponseData response)
+    /// <summary>
+    /// Returns true when the response body is JSON that parses cleanly, so the kernel can
+    /// route it to a dedicated application/json output (a tree view) instead of embedding it
+    /// as preformatted text. Malformed bodies return false and fall back to the &lt;pre&gt; path.
+    /// </summary>
+    internal static bool IsJsonBody(HttpResponseData response)
+    {
+        if (string.IsNullOrEmpty(response.Body))
+            return false;
+
+        var ct = response.ContentType;
+        bool looksJson = ct is not null && ct.Contains("json", StringComparison.OrdinalIgnoreCase);
+        if (!looksJson)
+        {
+            var trimmed = response.Body.TrimStart();
+            looksJson = trimmed.StartsWith('{') || trimmed.StartsWith('[');
+        }
+
+        if (!looksJson)
+            return false;
+
+        try
+        {
+            using var _ = JsonDocument.Parse(response.Body);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <param name="includeBody">
+    /// When false, the status line and headers are emitted but the body section is omitted, so
+    /// the caller can render the body through a separate, richer MIME output.
+    /// </param>
+    internal static string FormatResponseHtml(HttpResponseData response, bool includeBody = true)
     {
         var sb = new StringBuilder();
 
@@ -55,7 +91,7 @@ internal static class HttpResponseFormatter
         }
 
         // Response body
-        if (!string.IsNullOrEmpty(response.Body))
+        if (includeBody && !string.IsNullOrEmpty(response.Body))
         {
             sb.Append("<div class=\"verso-http-body\">");
             var body = response.Body;

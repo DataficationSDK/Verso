@@ -8,20 +8,28 @@ namespace Verso;
 /// </summary>
 public sealed class LayoutManager
 {
-    private IReadOnlyList<ILayoutEngine> _availableLayouts;
+    // volatile: Refresh() can run off the circuit thread (extension load) while readers run on
+    // the circuit thread. The list is replaced atomically (never mutated in place), so volatile
+    // reference semantics are enough to publish the new snapshot. Mirrors _activeLayout.
+    private volatile IReadOnlyList<ILayoutEngine> _availableLayouts;
     private volatile ILayoutEngine? _activeLayout;
 
     public LayoutManager(IReadOnlyList<ILayoutEngine> availableLayouts, string? defaultLayoutId = null)
+        : this(availableLayouts, defaultLayoutId is null ? null : new LayoutReference(string.Empty, defaultLayoutId))
+    {
+    }
+
+    public LayoutManager(IReadOnlyList<ILayoutEngine> availableLayouts, LayoutReference? defaultLayout)
     {
         _availableLayouts = availableLayouts ?? throw new ArgumentNullException(nameof(availableLayouts));
 
-        if (defaultLayoutId is not null && !TryActivate(defaultLayoutId))
+        if (defaultLayout is { } defaultRef && !TryActivate(defaultRef))
         {
             // Layout referenced by the notebook isn't registered yet — typically because
             // it ships in an extension that the notebook will load via a #!extension or
             // #!nuget cell. Record the missing id so the host can surface it to the UI;
             // leave _activeLayout null so the default capability set takes over.
-            MissingLayoutId = defaultLayoutId;
+            MissingLayoutId = defaultRef.LayoutId;
         }
     }
 
@@ -53,20 +61,25 @@ public sealed class LayoutManager
     /// </summary>
     public void Refresh(IReadOnlyList<ILayoutEngine> updatedLayouts)
     {
+        var activeExtension = (_activeLayout as IExtension)?.ExtensionId;
         var activeId = _activeLayout?.LayoutId;
         _availableLayouts = updatedLayouts ?? throw new ArgumentNullException(nameof(updatedLayouts));
 
         if (activeId is not null)
         {
-            _activeLayout = _availableLayouts.FirstOrDefault(
-                l => string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase));
+            _activeLayout = _availableLayouts.FirstOrDefault(l =>
+                string.Equals(l.LayoutId, activeId, StringComparison.OrdinalIgnoreCase) &&
+                (activeExtension is null ||
+                 (l is IExtension ext && string.Equals(ext.ExtensionId, activeExtension, StringComparison.OrdinalIgnoreCase))));
         }
 
-        // If the previously active layout was disabled, fall back to the first
-        // non-custom-renderer layout (e.g. "notebook"), or the first available.
+        // If the previously active layout was disabled, fall back to the well-known default
+        // layout by id, then any non-custom-renderer layout, then the first available.
         if (_activeLayout is null && _availableLayouts.Count > 0)
         {
-            var fallback = _availableLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
+            var fallback = _availableLayouts.FirstOrDefault(l =>
+                    string.Equals(l.LayoutId, LayoutDefaults.LayoutId, StringComparison.OrdinalIgnoreCase))
+                ?? _availableLayouts.FirstOrDefault(l => !l.RequiresCustomRenderer)
                 ?? _availableLayouts[0];
             _activeLayout = fallback;
             OnLayoutChanged?.Invoke(fallback);
@@ -90,30 +103,59 @@ public sealed class LayoutManager
 
     /// <summary>
     /// Switches the active layout by layout ID. Throws when the id is unknown.
-    /// Use <see cref="TryActivate"/> when a missing id should not throw.
+    /// Use <see cref="TryActivate(string)"/> when a missing id should not throw.
     /// </summary>
     public void SetActiveLayout(string layoutId)
+        => SetActiveLayout(new LayoutReference(string.Empty, layoutId));
+
+    /// <summary>
+    /// Switches the active layout by qualified <see cref="LayoutReference"/>. Throws when
+    /// no matching layout is registered.
+    /// </summary>
+    public void SetActiveLayout(LayoutReference reference)
     {
-        ArgumentNullException.ThrowIfNull(layoutId);
-        var layout = _availableLayouts.FirstOrDefault(
-            l => string.Equals(l.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"Layout '{layoutId}' not found.");
-        _activeLayout = layout;
-        MissingLayoutId = null;
-        OnLayoutChanged?.Invoke(layout);
+        if (!TryActivate(reference))
+            throw new InvalidOperationException($"Layout '{reference}' not found.");
     }
 
     /// <summary>
-    /// Attempts to activate the named layout. Returns <c>true</c> on success, or
-    /// <c>false</c> if no layout with that id is registered. Used by the constructor
-    /// (where a missing layout from the notebook metadata must not abort initialization)
-    /// and by the runtime handler when an unknown layout is requested.
+    /// Attempts to activate the named layout by bare id (legacy compat path). Resolves
+    /// across all available layouts; if more than one matches, the request is treated
+    /// as ambiguous and activation fails.
     /// </summary>
     public bool TryActivate(string layoutId)
+        => TryActivate(new LayoutReference(string.Empty, layoutId));
+
+    /// <summary>
+    /// Attempts to activate the layout by qualified reference. Returns <c>true</c> on
+    /// success, or <c>false</c> when no matching layout is registered. An unqualified
+    /// reference (empty <see cref="LayoutReference.ExtensionId"/>) falls back to the
+    /// legacy resolution path — matching on LayoutId alone — and fails when more than
+    /// one loaded extension provides that LayoutId.
+    /// </summary>
+    public bool TryActivate(LayoutReference reference)
     {
-        ArgumentNullException.ThrowIfNull(layoutId);
-        var layout = _availableLayouts.FirstOrDefault(
-            l => string.Equals(l.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase));
+        ArgumentNullException.ThrowIfNull(reference.LayoutId);
+
+        ILayoutEngine? layout;
+        if (string.IsNullOrEmpty(reference.ExtensionId))
+        {
+            // Unqualified — match by LayoutId across loaded extensions.
+            var candidates = _availableLayouts
+                .Where(l => string.Equals(l.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (candidates.Count != 1) return false;
+            layout = candidates[0];
+        }
+        else
+        {
+            layout = _availableLayouts.FirstOrDefault(l =>
+                l is IExtension ext &&
+                string.Equals(ext.ExtensionId, reference.ExtensionId, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(l.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase));
+        }
+
         if (layout is null) return false;
 
         _activeLayout = layout;
@@ -132,8 +174,22 @@ public sealed class LayoutManager
         foreach (var layout in _availableLayouts)
         {
             var metadata = layout.GetLayoutMetadata();
-            if (metadata.Count > 0)
-                notebook.Layouts[layout.LayoutId] = metadata;
+            if (metadata.Count == 0) continue;
+
+            var extensionId = (layout as IExtension)?.ExtensionId ?? string.Empty;
+            var key = string.IsNullOrEmpty(extensionId)
+                ? layout.LayoutId
+                : new LayoutReference(extensionId, layout.LayoutId).Qualified;
+
+            // Drop any stale legacy bare-id entry so the saved notebook only carries
+            // the qualified key once we've promoted it.
+            if (!string.IsNullOrEmpty(extensionId) &&
+                !string.Equals(key, layout.LayoutId, StringComparison.OrdinalIgnoreCase))
+            {
+                notebook.Layouts.Remove(layout.LayoutId);
+            }
+
+            notebook.Layouts[key] = metadata;
         }
 
         return Task.CompletedTask;
@@ -141,23 +197,27 @@ public sealed class LayoutManager
 
     /// <summary>
     /// Restores layout metadata from the notebook model into matching layout engines.
+    /// Accepts both qualified (<c>"&lt;extensionId&gt;:&lt;layoutId&gt;"</c>) and legacy
+    /// bare-id keys; the qualified form takes precedence when both are present.
     /// </summary>
     public async Task RestoreMetadataAsync(NotebookModel notebook, IVersoContext context)
     {
         ArgumentNullException.ThrowIfNull(notebook);
         ArgumentNullException.ThrowIfNull(context);
 
-        foreach (var (layoutId, metadataObj) in notebook.Layouts)
+        foreach (var layout in _availableLayouts)
         {
-            var layout = _availableLayouts.FirstOrDefault(
-                l => string.Equals(l.LayoutId, layoutId, StringComparison.OrdinalIgnoreCase));
+            var extensionId = (layout as IExtension)?.ExtensionId ?? string.Empty;
+            var qualifiedKey = string.IsNullOrEmpty(extensionId)
+                ? layout.LayoutId
+                : new LayoutReference(extensionId, layout.LayoutId).Qualified;
 
-            if (layout is null) continue;
+            // Prefer the qualified key; fall back to the bare layout id for legacy notebooks.
+            if (!notebook.Layouts.TryGetValue(qualifiedKey, out var metadataObj))
+                notebook.Layouts.TryGetValue(layout.LayoutId, out metadataObj);
 
             if (metadataObj is Dictionary<string, object> metadata)
-            {
                 await layout.ApplyLayoutMetadata(metadata, context).ConfigureAwait(false);
-            }
         }
     }
 }

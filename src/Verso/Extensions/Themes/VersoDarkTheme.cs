@@ -84,7 +84,13 @@ public sealed class VersoDarkTheme : ITheme
         DropdownBackground = "#252526",
         DropdownHover = "#094771",
         TooltipBackground = "#252526",
-        TooltipForeground = "#CCCCCC"
+        TooltipForeground = "#CCCCCC",
+
+        // Layout-extension palette
+        BgDefault = "#1E1E1E",
+        BgElevated = "#252526",
+        FgDefault = "#D4D4D4",
+        FgMuted = "#858585"
     };
 
     public ThemeTypography Typography { get; } = new();

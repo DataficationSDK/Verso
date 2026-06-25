@@ -59,6 +59,16 @@ public interface INotebookOperations
     Task ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default);
 
     /// <summary>
+    /// Executes arbitrary code like <see cref="ExecuteCodeAsync"/> and returns the outputs it
+    /// produced, instead of discarding them. Used by callers (such as <c>#!import</c>) that need to
+    /// surface an executed cell's outputs. The default implementation runs the code and returns no
+    /// outputs, so hosts that do not capture outputs keep the existing fire-and-forget behavior.
+    /// </summary>
+    Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
+        string code, string? language = null, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<CellOutput>>(Array.Empty<CellOutput>());
+
+    /// <summary>
     /// Gets the identifier of the currently active layout.
     /// </summary>
     string? ActiveLayoutId { get; }

@@ -1,0 +1,51 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Grid Studio",
+    "defaultKernel": "csharp",
+    "activeLayout": {
+      "extensionId": "verso.layout.notebook",
+      "layoutId": "notebook"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.GridStudio"
+      ]
+    }
+  },
+  "cells": [
+    {
+      "id": "c2a00000-0001-4000-8000-000000000001",
+      "type": "markdown",
+      "source": "# Grid Studio\n\nAn editable, Excel-like spreadsheet that is bound to a **DataBlock** in the kernel. The grid reads the DataBlock you build in a code cell, and your edits are rebuilt into a DataBlock the rest of the notebook can query.\n\nThe layout extension (`Verso.Showcase.GridStudio`) installs automatically from NuGet the first time you open this notebook.\n\n**To run the demo:**\n1. Execute the cell below to build a DataBlock named`data`.\n2. Switch the layout to **Grid Studio** from the layout picker.\n3. Edit cells, add rows and columns, then watch the changes flow back into`data`."
+    },
+    {
+      "id": "c2a00000-0003-4000-8000-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "#r \"nuget: Datafication.Core, 1.0.11\"\nusing Datafication.Core.Data;\n\n// Grid Studio binds to the kernel variable named `data` by default. This cell generates a\n// product catalog so there is plenty to scroll, sort, and edit. The schema mixes text, numeric,\n// boolean, and date columns, and the grid renders each with the matching editor.\nvar rng = new Random(42);\nstring[] products   = { \"Widget\", \"Gadget\", \"Gizmo\", \"Sprocket\", \"Cog\", \"Lever\", \"Piston\", \"Valve\", \"Flange\", \"Bracket\" };\nstring[] categories = { \"Hardware\", \"Tools\", \"Electronics\", \"Fasteners\" };\nstring[] regions    = { \"North\", \"South\", \"East\", \"West\" };\n\nvar data = new DataBlock();\ndata.AddColumn(new DataColumn(\"SKU\", typeof(string)));\ndata.AddColumn(new DataColumn(\"Product\", typeof(string)));\ndata.AddColumn(new DataColumn(\"Category\", typeof(string)));\ndata.AddColumn(new DataColumn(\"Region\", typeof(string)));\ndata.AddColumn(new DataColumn(\"Units\", typeof(double)));\ndata.AddColumn(new DataColumn(\"Price\", typeof(double)));\ndata.AddColumn(new DataColumn(\"InStock\", typeof(bool)));\ndata.AddColumn(new DataColumn(\"Rating\", typeof(double)));\ndata.AddColumn(new DataColumn(\"LastRestock\", typeof(DateTime)));\n\nfor (int i = 0; i < 60; i++)\n{\n    int units = rng.Next(0, 500);\n    data.AddRow(new object[]\n    {\n        $\"SKU-{1000 + i}\",\n        products[rng.Next(products.Length)],\n        categories[rng.Next(categories.Length)],\n        regions[rng.Next(regions.Length)],\n        (double)units,\n        Math.Round(rng.NextDouble() * 90 + 1, 2),\n        units > 0,\n        Math.Round(rng.NextDouble() * 4 + 1, 1),\n        DateTime.Today.AddDays(-rng.Next(0, 365))\n    });\n}\n\ndata"
+    },
+    {
+      "id": "c2a00000-0004-4000-8000-000000000004",
+      "type": "markdown",
+      "source": "## Edits flow back into the DataBlock\n\nGrid Studio commits your changes back to the `data` variable (automatically a moment after each edit, or immediately with the **Commit** button). Column types are preserved: numeric columns rebuild as numbers, the checkbox column as booleans, the date column as dates.\n\nEdit a few values in the grid, then **re-run the cell below** to see the updated DataBlock. The total is computed from whatever is currently in `data`."
+    },
+    {
+      "id": "c2a00000-0005-4000-8000-000000000005",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Re-run after editing in Grid Studio to read the committed DataBlock.\ndouble totalUnits = 0;\nfor (int r = 0; r < data.RowCount; r++)\n    totalUnits += Convert.ToDouble(data[r, \"Units\"] ?? 0);\n\n$\"{data.RowCount} rows | columns: {string.Join(\", \", data.Schema.GetColumnNames())} | total units: {totalUnits}\""
+    },
+    {
+      "id": "c2a00000-0006-4000-8000-000000000006",
+      "type": "markdown",
+      "source": "## Any DataBlock will do\n\nGrid Studio is not tied to one variable. Run the cell below to build a second DataBlock named `quarterly`, then choose it from the **DataBlock** dropdown in the grid's toolbar. The dropdown lists every variable that currently holds a DataBlock, and refreshes when you run cells (including Run All) while the layout is open."
+    },
+    {
+      "id": "c2a00000-0007-4000-8000-000000000007",
+      "type": "code",
+      "language": "csharp",
+      "source": "// A second DataBlock under a different name. Type \"quarterly\" into the grid's Variable box to\n// rebind the editor to it (4 regions x 4 quarters).\nvar rng2 = new Random(7);\nstring[] regionNames = { \"North\", \"South\", \"East\", \"West\" };\nstring[] reps        = { \"Lee\", \"Patel\", \"Garcia\", \"Nguyen\", \"Okafor\" };\nstring[] quarters    = { \"Q1\", \"Q2\", \"Q3\", \"Q4\" };\n\nvar quarterly = new DataBlock();\nquarterly.AddColumn(new DataColumn(\"Region\", typeof(string)));\nquarterly.AddColumn(new DataColumn(\"Quarter\", typeof(string)));\nquarterly.AddColumn(new DataColumn(\"Rep\", typeof(string)));\nquarterly.AddColumn(new DataColumn(\"Quota\", typeof(double)));\nquarterly.AddColumn(new DataColumn(\"Actual\", typeof(double)));\nquarterly.AddColumn(new DataColumn(\"OnTarget\", typeof(bool)));\n\nforeach (var region in regionNames)\n    foreach (var quarter in quarters)\n    {\n        int quota = rng2.Next(800, 1400);\n        int actual = quota + rng2.Next(-300, 400);\n        quarterly.AddRow(new object[]\n        {\n            region, quarter, reps[rng2.Next(reps.Length)],\n            (double)quota, (double)actual, actual >= quota\n        });\n    }\n\nquarterly"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Verso.Extensions;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
+using Verso.Host.Layouts;
 using Verso.Host.Protocol;
 
 namespace Verso.Host;
@@ -12,6 +13,8 @@ public sealed class NotebookSession : IAsyncDisposable
     public Scaffold Scaffold { get; }
     public ExtensionHost ExtensionHost { get; }
     public string NotebookId { get; }
+
+    internal LayoutSessionFrameTracker FrameTracker { get; }
 
     private CancellationTokenSource? _executionCts;
     private readonly Action<string, object?> _sendNotification;
@@ -30,6 +33,10 @@ public sealed class NotebookSession : IAsyncDisposable
         Scaffold = scaffold;
         ExtensionHost = extensionHost;
         _sendNotification = sendNotification;
+        FrameTracker = new LayoutSessionFrameTracker(
+            notebookId,
+            extensionHost,
+            () => new LayoutHandler.HostVersoContext(scaffold));
 
         // Notify the client when extensions are dynamically loaded (e.g. via #!extension)
         // or enabled/disabled at runtime, so the WASM UI can refresh its cached
@@ -76,6 +83,21 @@ public sealed class NotebookSession : IAsyncDisposable
     public void SendNotification(string method, object? @params = null)
     {
         _sendNotification(method, @params);
+    }
+
+    /// <summary>
+    /// Dispatches a <c>layout/updated</c> notification on behalf of an active layout's
+    /// interaction handler. The host wraps the payload with <c>notebookId</c> automatically
+    /// (see <see cref="HostSession.AddSession"/>), so callers supply only the identity
+    /// pair, the originating frame, and the requested scope.
+    /// </summary>
+    public void SendLayoutUpdated(string extensionId, string layoutId, string frameInstanceId, string scope, Guid? cellId = null)
+    {
+        object payload = cellId is null
+            ? new { extensionId, layoutId, frameInstanceId, scope }
+            : new { extensionId, layoutId, frameInstanceId, scope, cellId = cellId.Value.ToString() };
+
+        SendNotification(Protocol.MethodNames.LayoutUpdated, payload);
     }
 
     /// <summary>
@@ -176,6 +198,7 @@ public sealed class NotebookSession : IAsyncDisposable
         _pendingInputs.Clear();
 
         _executionCts?.Dispose();
+        await FrameTracker.DisposeAsync();
         await Scaffold.DisposeAsync();
         await ExtensionHost.DisposeAsync();
     }
@@ -303,15 +326,27 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.NotebookGetCellTypes => NotebookHandler.HandleGetCellTypes(ns),
             MethodNames.LayoutGetLayouts => LayoutHandler.HandleGetLayouts(ns),
             MethodNames.LayoutSwitch => LayoutHandler.HandleSwitch(ns, @params),
-            MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(ns),
+            MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(ns, @params),
             MethodNames.LayoutGetCellContainer => await LayoutHandler.HandleGetCellContainerAsync(ns, @params),
-            MethodNames.LayoutUpdateCell => LayoutHandler.HandleUpdateCell(ns, @params),
-            MethodNames.LayoutSetEditMode => LayoutHandler.HandleSetEditMode(ns, @params),
+            MethodNames.LayoutUpdateCell => await LayoutHandler.HandleUpdateCell(ns, @params),
+            MethodNames.LayoutSetEditMode => await LayoutHandler.HandleSetEditMode(ns, @params),
+            MethodNames.LayoutInteract => await LayoutHandler.HandleInteractAsync(ns, @params),
+            MethodNames.LayoutGetRendererPackage => await LayoutHandler.HandleGetRendererPackageAsync(ns, @params),
+            MethodNames.LayoutGetStaticAssets => await LayoutHandler.HandleGetStaticAssetsAsync(ns, @params),
+            MethodNames.LayoutAllocateFrameInstance => LayoutHandler.HandleAllocateFrameInstance(ns, @params),
+            MethodNames.LayoutRendererMounted => await LayoutHandler.HandleRendererMountedAsync(ns, @params),
+            MethodNames.LayoutRendererUnmounted => await LayoutHandler.HandleRendererUnmountedAsync(ns, @params),
+            MethodNames.LogExtension => LogHandler.HandleExtensionLog(ns, @params),
             MethodNames.ThemeGetThemes => ThemeHandler.HandleGetThemes(ns),
             MethodNames.ThemeSwitch => ThemeHandler.HandleSwitchTheme(ns, @params),
             MethodNames.ExtensionList => ExtensionHandler.HandleList(ns),
             MethodNames.ExtensionEnable => await ExtensionHandler.HandleEnableAsync(ns, @params),
             MethodNames.ExtensionDisable => await ExtensionHandler.HandleDisableAsync(ns, @params),
+            MethodNames.ExtensionSearch => await ExtensionHandler.HandleSearchAsync(ns, @params),
+            MethodNames.ExtensionVersions => await ExtensionHandler.HandleVersionsAsync(ns, @params),
+            MethodNames.ExtensionInstall => await ExtensionHandler.HandleInstallAsync(ns, @params),
+            MethodNames.ExtensionInstallLocal => await ExtensionHandler.HandleInstallLocalAsync(ns, @params),
+            MethodNames.ExtensionUninstall => ExtensionHandler.HandleUninstall(ns, @params),
             MethodNames.InputResponse => HandleInputResponse(ns, @params),
             MethodNames.SettingsGetDefinitions => SettingsHandler.HandleGetDefinitions(ns),
             MethodNames.SettingsGet => SettingsHandler.HandleGet(ns, @params),

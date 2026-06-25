@@ -27,7 +27,13 @@ export class BlazorBridge implements vscode.Disposable {
     "output/update",
     "extension/consentRequest",
     "extension/changed",
+    "extension/unavailable",
+    "kernel/restarting",
+    "kernel/restarted",
     "layout/missing",
+    "layout/updated",
+    "layout/frameMessage",
+    "notebook/cellsChanged",
   ];
 
   private static readonly mutationMethods = new Set([
@@ -43,6 +49,11 @@ export class BlazorBridge implements vscode.Disposable {
     "execution/runAll",
     "output/clearAll",
     "properties/updateProperty",
+    // Installing or removing an extension rewrites the notebook's required-extensions
+    // list, so the document must be marked dirty just like a cell edit.
+    "extension/install",
+    "extension/installLocal",
+    "extension/uninstall",
   ]);
 
   private documentUri: vscode.Uri | undefined;
@@ -270,6 +281,16 @@ export class BlazorBridge implements vscode.Disposable {
           p?.ids ?? []
         );
         result = { success: true };
+      } else if (method === "extension/browseLocalFile") {
+        // Show VS Code's native open dialog for a sideloaded extension file. The chosen
+        // path is returned to the webview, which then calls extension/installLocal so the
+        // host reads the file directly from disk. A cancelled dialog returns a null path.
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: "Install Extension",
+          filters: { "Extensions": ["dll", "nupkg"] },
+        });
+        result = { path: picked?.[0]?.fsPath ?? null };
       } else if (method === "kernel/restart") {
         // The toolbar action and #!restart magic command both reach the host as
         // kernel/restart, but the in-process restart cannot release pinned DLL

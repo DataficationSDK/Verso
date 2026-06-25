@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -37,21 +37,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Testing", "src\Verso.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{8C1A6A40-19CE-4D8C-AE0E-B4BB17164FB3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Dice", "samples\SampleExtension\Verso.Sample.Dice\Verso.Sample.Dice.csproj", "{8853C1B6-F854-48B6-B485-4316663C6341}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Dice", "samples\extensions\Verso.Sample.Dice\Verso.Sample.Dice.csproj", "{8853C1B6-F854-48B6-B485-4316663C6341}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Dice.Tests", "samples\SampleExtension\Verso.Sample.Dice.Tests\Verso.Sample.Dice.Tests.csproj", "{F8375AF7-6191-4E6B-8045-4B785924B694}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Dice.Tests", "samples\extensions\Verso.Sample.Dice.Tests\Verso.Sample.Dice.Tests.csproj", "{F8375AF7-6191-4E6B-8045-4B785924B694}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{32C5CF40-B4B3-4DCF-9D1E-D7AE343EDBF4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Templates", "templates\Verso.Templates\Verso.Templates.csproj", "{95DD6C67-A6EE-41D9-AAA0-37D15F5D0DD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Slides", "samples\SampleLayout\Verso.Sample.Slides\Verso.Sample.Slides.csproj", "{E3669EF4-37A7-4482-8ED2-A32ABF834332}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Slides", "samples\layouts\Verso.Sample.Slides\Verso.Sample.Slides.csproj", "{E3669EF4-37A7-4482-8ED2-A32ABF834332}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Slides.Tests", "samples\SampleLayout\Verso.Sample.Slides.Tests\Verso.Sample.Slides.Tests.csproj", "{5CB6F97C-600F-4FF9-8AFD-11FDC95C6D56}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Slides.Tests", "samples\layouts\Verso.Sample.Slides.Tests\Verso.Sample.Slides.Tests.csproj", "{5CB6F97C-600F-4FF9-8AFD-11FDC95C6D56}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Diagram", "samples\SampleCellType\Verso.Sample.Diagram\Verso.Sample.Diagram.csproj", "{D8809E12-B631-4741-9C5F-E798AE48BE4F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Diagram", "samples\cell-types\Verso.Sample.Diagram\Verso.Sample.Diagram.csproj", "{D8809E12-B631-4741-9C5F-E798AE48BE4F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Diagram.Tests", "samples\SampleCellType\Verso.Sample.Diagram.Tests\Verso.Sample.Diagram.Tests.csproj", "{F72E2586-D9C4-411C-A2AA-82A67E089AD5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Diagram.Tests", "samples\cell-types\Verso.Sample.Diagram.Tests\Verso.Sample.Diagram.Tests.csproj", "{F72E2586-D9C4-411C-A2AA-82A67E089AD5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Blazor.Shared.Tests", "tests\Verso.Blazor.Shared.Tests\Verso.Blazor.Shared.Tests.csproj", "{DE491AB7-A766-4D5E-A97E-D9E84E9DA7A1}"
 EndProject
@@ -67,9 +67,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Http", "src\Verso.Htt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Http.Tests", "tests\Verso.Http.Tests\Verso.Http.Tests.csproj", "{23B5D202-4DF9-4DB6-BF15-BBC09DA93E8C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleKernel", "SampleKernel", "{7BD3E198-6D23-AD67-DCEF-7B69C8FA0960}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kernels", "kernels", "{7BD3E198-6D23-AD67-DCEF-7B69C8FA0960}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Perl", "samples\SampleKernel\Verso.Sample.Perl\Verso.Sample.Perl.csproj", "{82567AAE-80B6-4493-898E-92666DAF0114}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Perl", "samples\kernels\Verso.Sample.Perl\Verso.Sample.Perl.csproj", "{82567AAE-80B6-4493-898E-92666DAF0114}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.JavaScript", "src\Verso.JavaScript\Verso.JavaScript.csproj", "{EB3F05A2-239E-4ED3-8D9C-20D9C9AE5993}"
 EndProject
@@ -78,6 +78,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Cli", "src\Verso.Cli\Verso.Cli.csproj", "{E3515FF0-35F4-49B5-9AB5-7D76595784CC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Cli.Tests", "tests\Verso.Cli.Tests\Verso.Cli.Tests.csproj", "{8761A580-6DB5-490F-802A-5F1E06BBDACF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "layouts", "layouts", "{669E22A9-2C59-3CAE-E3E8-B1FECEBC8011}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Sparkline", "samples\layouts\Verso.Sample.Sparkline\Verso.Sample.Sparkline.csproj", "{E63412B6-4676-49EA-88F4-6BF9F38C396B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verso.Sample.Sparkline.Tests", "samples\layouts\Verso.Sample.Sparkline.Tests\Verso.Sample.Sparkline.Tests.csproj", "{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -485,6 +491,30 @@ Global
 		{8761A580-6DB5-490F-802A-5F1E06BBDACF}.Release|x64.Build.0 = Release|Any CPU
 		{8761A580-6DB5-490F-802A-5F1E06BBDACF}.Release|x86.ActiveCfg = Release|Any CPU
 		{8761A580-6DB5-490F-802A-5F1E06BBDACF}.Release|x86.Build.0 = Release|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Debug|x64.Build.0 = Debug|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Debug|x86.Build.0 = Debug|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Release|x64.ActiveCfg = Release|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Release|x64.Build.0 = Release|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Release|x86.ActiveCfg = Release|Any CPU
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B}.Release|x86.Build.0 = Release|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Debug|x64.Build.0 = Debug|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Debug|x86.Build.0 = Debug|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Release|x64.ActiveCfg = Release|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Release|x64.Build.0 = Release|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Release|x86.ActiveCfg = Release|Any CPU
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -524,5 +554,8 @@ Global
 		{A1F4D87B-151C-46B0-B2E0-FA713585DF08} = {01B2C5E3-00CF-47C2-81D4-586351003AC8}
 		{E3515FF0-35F4-49B5-9AB5-7D76595784CC} = {FDC205CF-C62D-4489-A8D8-A9693F6F1977}
 		{8761A580-6DB5-490F-802A-5F1E06BBDACF} = {01B2C5E3-00CF-47C2-81D4-586351003AC8}
+		{669E22A9-2C59-3CAE-E3E8-B1FECEBC8011} = {8C1A6A40-19CE-4D8C-AE0E-B4BB17164FB3}
+		{E63412B6-4676-49EA-88F4-6BF9F38C396B} = {669E22A9-2C59-3CAE-E3E8-B1FECEBC8011}
+		{FAB36287-6A78-4BA4-8D16-2C6F93AF9B1D} = {669E22A9-2C59-3CAE-E3E8-B1FECEBC8011}
 	EndGlobalSection
 EndGlobal

@@ -16,6 +16,10 @@ public static class MethodNames
     public const string NotebookClose = "notebook/close";
     public const string NotebookSetFilePath = "notebook/setFilePath";
     public const string NotebookSetDefaultKernel = "notebook/setDefaultKernel";
+    // Notification (host → client): the cell collection changed as a side effect of a host-side
+    // operation the client did not initiate directly (e.g. an insert/move/delete affordance in a
+    // custom layout). Tells the client to refresh its cell cache so its pool isn't stale.
+    public const string NotebookCellsChanged = "notebook/cellsChanged";
 
     // Cell operations
     public const string CellAdd = "cell/add";
@@ -59,7 +63,18 @@ public static class MethodNames
     public const string LayoutGetCellContainer = "layout/getCellContainer";
     public const string LayoutUpdateCell = "layout/updateCell";
     public const string LayoutSetEditMode = "layout/setEditMode";
+    public const string LayoutInteract = "layout/interact";
+    public const string LayoutGetRendererPackage = "layout/getRendererPackage";
+    public const string LayoutGetStaticAssets = "layout/getStaticAssets";
+    public const string LayoutAllocateFrameInstance = "layout/allocateFrameInstance";
+    public const string LayoutRendererMounted = "layout/rendererMounted";
+    public const string LayoutRendererUnmounted = "layout/rendererUnmounted";
+    public const string LayoutFrameMessage = "layout/frameMessage";
+    public const string LayoutUpdated = "layout/updated";
     public const string LayoutMissing = "layout/missing";
+
+    // Diagnostic log channel (extensions/iframes → host)
+    public const string LogExtension = "log/extension";
 
     // Theme
     public const string ThemeGetThemes = "theme/getThemes";
@@ -72,6 +87,12 @@ public static class MethodNames
     public const string ExtensionConsentRequest = "extension/consentRequest";
     public const string ExtensionConsentResponse = "extension/consentResponse";
     public const string ExtensionChanged = "extension/changed";
+    public const string ExtensionUnavailable = "extension/unavailable";
+    public const string ExtensionSearch = "extension/search";
+    public const string ExtensionVersions = "extension/versions";
+    public const string ExtensionInstall = "extension/install";
+    public const string ExtensionInstallLocal = "extension/installLocal";
+    public const string ExtensionUninstall = "extension/uninstall";
 
     // Settings
     public const string SettingsGetDefinitions = "settings/getDefinitions";

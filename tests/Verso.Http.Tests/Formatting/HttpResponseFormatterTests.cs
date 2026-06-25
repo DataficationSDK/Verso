@@ -129,4 +129,58 @@ public sealed class HttpResponseFormatterTests
         Assert.IsTrue(html.Contains("<style>"));
         Assert.IsTrue(html.Contains("verso-http-result"));
     }
+
+    [TestMethod]
+    public void FormatResponseHtml_IncludeBodyFalse_OmitsBodyButKeepsChrome()
+    {
+        var response = CreateResponse(200, "{\"id\":1}", "application/json");
+        response.Headers["X-Request-Id"] = "abc-123";
+
+        var html = HttpResponseFormatter.FormatResponseHtml(response, includeBody: false);
+
+        Assert.IsFalse(html.Contains("<pre>"), "body should be omitted when includeBody is false");
+        Assert.IsTrue(html.Contains("verso-http-status-2xx"), "status badge should remain");
+        Assert.IsTrue(html.Contains("X-Request-Id"), "headers should remain");
+    }
+
+    [TestMethod]
+    public void IsJsonBody_ValidJson_ByContentType_ReturnsTrue()
+    {
+        var response = CreateResponse(200, "{\"id\":1,\"name\":\"test\"}", "application/json; charset=utf-8");
+
+        Assert.IsTrue(HttpResponseFormatter.IsJsonBody(response));
+    }
+
+    [TestMethod]
+    public void IsJsonBody_ValidJson_ByShape_ReturnsTrue()
+    {
+        // No JSON content-type, but the body is a well-formed JSON array.
+        var response = CreateResponse(200, "[1, 2, 3]", "text/plain");
+
+        Assert.IsTrue(HttpResponseFormatter.IsJsonBody(response));
+    }
+
+    [TestMethod]
+    public void IsJsonBody_MalformedJson_ReturnsFalse()
+    {
+        var response = CreateResponse(200, "{not valid json", "application/json");
+
+        Assert.IsFalse(HttpResponseFormatter.IsJsonBody(response));
+    }
+
+    [TestMethod]
+    public void IsJsonBody_PlainText_ReturnsFalse()
+    {
+        var response = CreateResponse(200, "hello world", "text/plain");
+
+        Assert.IsFalse(HttpResponseFormatter.IsJsonBody(response));
+    }
+
+    [TestMethod]
+    public void IsJsonBody_EmptyBody_ReturnsFalse()
+    {
+        var response = CreateResponse(204, body: null, contentType: "application/json");
+
+        Assert.IsFalse(HttpResponseFormatter.IsJsonBody(response));
+    }
 }

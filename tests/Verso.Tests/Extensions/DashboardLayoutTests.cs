@@ -67,13 +67,16 @@ public sealed class DashboardLayoutTests
         Assert.AreEqual("text/html", result.MimeType);
         Assert.IsTrue(result.Content.Contains("verso-dashboard-grid"));
         Assert.IsTrue(result.Content.Contains("verso-dashboard-cell"));
-        Assert.IsTrue(result.Content.Contains("grid-template-columns"));
+        // The grid container's track template lives in app.css; per-cell placement is
+        // emitted inline so each slot's row/column is data-bound to GridPosition.
+        Assert.IsTrue(result.Content.Contains("style=\"grid-column:"),
+            "Each cell wrapper carries inline grid-column/grid-row positioning.");
         Assert.IsTrue(result.Content.Contains(cellId1.ToString()));
         Assert.IsTrue(result.Content.Contains(cellId2.ToString()));
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_HidesCodeShowsOutput()
+    public async Task RenderLayoutAsync_EmitsSlotPlaceholdersWithoutInlineContent()
     {
         var cellId = Guid.NewGuid();
         var cells = new List<CellModel>
@@ -88,10 +91,24 @@ public sealed class DashboardLayoutTests
 
         var result = await _layout.RenderLayoutAsync(cells, _context);
 
-        // Output should be present
-        Assert.IsTrue(result.Content.Contains("hello"));
-        // Source code should not appear (output takes precedence)
-        Assert.IsFalse(result.Content.Contains("Console.WriteLine"));
+        // The Tier 1 migration moves all per-cell rendering to the <Cell> Blazor component
+        // portaled into [data-cell-slot]; the layout HTML is chrome only.
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cellId}\""));
+        Assert.IsFalse(result.Content.Contains("Console.WriteLine"),
+            "Layout HTML must not inline cell source.");
+        Assert.IsFalse(result.Content.Contains(">hello<"),
+            "Layout HTML must not inline cell output content.");
+    }
+
+    [TestMethod]
+    public async Task RenderLayoutAsync_EmitsEditModeToggleButton()
+    {
+        var cells = new List<CellModel> { new() { Id = Guid.NewGuid() } };
+
+        var result = await _layout.RenderLayoutAsync(cells, _context);
+
+        Assert.IsTrue(result.Content.Contains("data-action=\"setEditMode\""),
+            "Edit-mode toggle is a layout-scoped button routed via layout/interact.");
     }
 
     [TestMethod]
@@ -223,5 +240,79 @@ public sealed class DashboardLayoutTests
     {
         var metadata = _layout.GetLayoutMetadata();
         Assert.AreEqual(0, metadata.Count);
+    }
+
+    // ─── ILayoutInteractionHandler ────────────────────────────────────────
+
+    private LayoutInteractionContext BuildContext(string interactionType, string payload, string? targetId = null) =>
+        new()
+        {
+            ExtensionId = "verso.layout.dashboard",
+            LayoutId = "dashboard",
+            FrameInstanceId = "nb/dashboard/0",
+            InteractionType = interactionType,
+            Payload = payload,
+            TargetId = targetId,
+            Verso = _context,
+            CancellationToken = CancellationToken.None
+        };
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_UpdateCellPosition_UpdatesGridPosition()
+    {
+        var cellId = Guid.NewGuid();
+        var payload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row = 2,
+            col = 5,
+            width = 7,
+            height = 3
+        });
+
+        await _layout.OnLayoutInteractionAsync(BuildContext("updateCellPosition", payload));
+
+        var container = await _layout.GetCellContainerAsync(cellId, _context);
+        Assert.AreEqual(5.0, container.X);
+        Assert.AreEqual(2.0, container.Y);
+        Assert.AreEqual(7.0, container.Width);
+        Assert.AreEqual(3.0, container.Height);
+    }
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_SetEditModeTrue_EnablesEditMode()
+    {
+        Assert.IsFalse(_layout.IsEditMode);
+
+        await _layout.OnLayoutInteractionAsync(BuildContext("setEditMode", "true"));
+
+        Assert.IsTrue(_layout.IsEditMode);
+        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
+        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
+    }
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_SetEditModeFalse_DisablesEditMode()
+    {
+        _layout.IsEditMode = true;
+
+        await _layout.OnLayoutInteractionAsync(BuildContext("setEditMode", "false"));
+
+        Assert.IsFalse(_layout.IsEditMode);
+        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+    }
+
+    [TestMethod]
+    public async Task OnLayoutInteractionAsync_UnknownType_IsNoOp()
+    {
+        _layout.IsEditMode = true;
+
+        // An unrecognized interaction type must be ignored rather than thrown, so a newer
+        // client emitting an interaction this build doesn't know cannot fault a healthy
+        // dashboard. Mirrors the built-in notebook layout's silent handling.
+        await _layout.OnLayoutInteractionAsync(BuildContext("nope", "{}"));
+
+        Assert.IsTrue(_layout.IsEditMode, "Unknown interaction must not mutate layout state.");
     }
 }

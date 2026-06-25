@@ -55,6 +55,28 @@ public sealed class VersoHighContrastThemeTests
         Assert.AreNotEqual(_dark.Colors.CellBorder, _hc.Colors.CellBorder);
     }
 
+    [TestMethod]
+    public void LayoutExtensionPalette_TunedForHighContrast()
+    {
+        // Coarse semantic palette consumed by layout extensions through
+        // var(--verso-bg-default) etc. must reflect this theme's WCAG-AA-tuned values.
+        Assert.AreEqual("#000000", _hc.Colors.BgDefault);
+        Assert.AreEqual("#1A1A1A", _hc.Colors.BgElevated);
+        Assert.AreEqual("#FFFFFF", _hc.Colors.FgDefault);
+        Assert.AreEqual("#FFD700", _hc.Colors.Accent);
+
+        Assert.AreNotEqual(_dark.Colors.BgDefault, _hc.Colors.BgDefault);
+        Assert.AreNotEqual(_dark.Colors.Accent, _hc.Colors.Accent);
+    }
+
+    [TestMethod]
+    public void FontSizeBase_MatchesLargerUI()
+    {
+        // High contrast scales UI fonts up to 14px; FontSizeBase exposed via
+        // --verso-font-size-base must match so layout extensions inherit the bump.
+        Assert.AreEqual(14.0, _hc.Typography.FontSizeBase);
+    }
+
     // --- Syntax Colors ---
 
     [TestMethod]

@@ -40,7 +40,6 @@ public sealed class RunResult
 
 /// <summary>
 /// Bootstraps the Verso engine and executes a notebook headlessly.
-/// Follows the bootstrap sequence from Spec Section 6.1.
 /// </summary>
 public sealed class HeadlessRunner
 {

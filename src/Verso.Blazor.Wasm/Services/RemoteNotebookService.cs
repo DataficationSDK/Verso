@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.JSInterop;
 using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
 using Verso.Blazor.Shared.Services;
@@ -10,9 +11,16 @@ namespace Verso.Blazor.Wasm.Services;
 /// operations to the Verso.Host process through the VS Code postMessage ↔ JSON-RPC bridge.
 /// Maintains a local state cache that is populated on open and updated from responses/notifications.
 /// </summary>
-public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
+public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposable
 {
     private readonly VsCodeBridge _bridge;
+    private readonly IJSRuntime _js;
+
+    // Cache of blob URLs already minted for (extensionId, layoutId, assetId). Survives across
+    // re-renders so switching to a layout we've seen this session does not refetch bytes or
+    // re-create blob URLs. Cleared on extension reload via HandleExtensionChangedAsync.
+    private readonly Dictionary<(string ExtensionId, string LayoutId, string AssetId), string>
+        _layoutAssetUrlCache = new();
 
     // ── Local cache ─────────────────────────────────────────────────────
     private bool _isLoaded;
@@ -30,10 +38,12 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private List<LayoutInfo> _layouts = new();
     private List<ThemeInfo> _themes = new();
     private List<ExtensionInfo> _extensions = new();
-    private string? _activeLayoutId;
+    private List<InstalledExtensionDto> _installedExtensions = new();
+    private LayoutReference? _activeLayout;
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
     private bool _isDashboardLayout;
+    private string? _activeLayoutRendererIsolation;
     private bool _activeLayoutSupportsPropertiesPanel;
     private LayoutCapabilities _layoutCapabilities = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
@@ -49,11 +59,26 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
+    public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
     public event Action? OnOutputUpdated;
+
+    /// <summary>
+    /// Raised for each <c>output/update</c> notification with the cell id and raw
+    /// outputs payload so isolated-layout iframes can re-broadcast as
+    /// <c>verso/cellOutputs</c> without re-fetching the cell list.
+    /// </summary>
+    public event Action<CellOutputUpdatedEventArgs>? OnCellOutputUpdated;
+
+    /// <summary>
+    /// Raised for each <c>layout/frameMessage</c> notification. Subscribers should
+    /// filter by <see cref="LayoutFrameMessageEventArgs.FrameInstanceId"/> and
+    /// forward the message to the matching iframe.
+    /// </summary>
+    public event Action<LayoutFrameMessageEventArgs>? OnLayoutFrameMessage;
 
     /// <summary>Raised when the host requests extension consent. The UI should show the consent dialog.</summary>
     public event Action? OnExtensionConsentRequested;
@@ -66,6 +91,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     /// <summary>Raised when the notebook references a layout that isn't registered yet. The argument is the missing layout id.</summary>
     public event Action<string>? OnLayoutMissing;
+
+    /// <summary>Raised when required extensions a notebook declares could not be loaded on open.
+    /// The notebook still opens; the UI should show a non-fatal notice.</summary>
+    public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
     // ── Extension consent state ────────────────────────────────────────
     private string? _pendingConsentRequestId;
@@ -86,9 +115,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             new { requestId, approved });
     }
 
-    public RemoteNotebookService(VsCodeBridge bridge)
+    public RemoteNotebookService(VsCodeBridge bridge, IJSRuntime js)
     {
         _bridge = bridge;
+        _js = js;
         _bridge.OnNotification += HandleNotification;
     }
 
@@ -132,9 +162,33 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public bool IsDashboardLayout => _isDashboardLayout;
     public ThemeKind? ActiveThemeKind => _activeThemeKind;
     public ThemeData? ActiveThemeData { get; private set; }
-    public string? ActiveLayoutId => _activeLayoutId;
+
+    /// <summary>
+    /// Resolved theme bundle for iframe-isolated layout renderers. Returns <c>null</c> until
+    /// <see cref="ActiveThemeData"/> has been populated. The bundle's token keys match the
+    /// host's documented CSS custom-property palette so iframe stylesheets can reference
+    /// the same variable names as the host page.
+    /// </summary>
+    public LayoutThemeBundle? CurrentTheme => LayoutThemeBundleBuilder.Build(_activeThemeKind, ActiveThemeData);
+
+    /// <summary>
+    /// Qualified identity of the currently active layout, or <c>null</c> when no notebook
+    /// is loaded. The pair-shape is the canonical client-side identifier from v1.0 onward.
+    /// </summary>
+    public LayoutReference? ActiveLayout => _activeLayout;
+
+    /// <summary>
+    /// Bare <c>LayoutId</c> of the active layout. Retained as a compatibility forwarder for
+    /// callers that have not yet migrated to <see cref="ActiveLayout"/>; scheduled for
+    /// removal in v2.0.
+    /// </summary>
+    public string? ActiveLayoutId => _activeLayout?.LayoutId;
+    public string ActiveLayoutKey => _activeLayout is { } layout
+        ? $"{layout.ExtensionId}:{layout.LayoutId}"
+        : "verso.layout:none";
     public LayoutCapabilities LayoutCapabilities => _layoutCapabilities;
     public bool ActiveLayoutSupportsPropertiesPanel => _activeLayoutSupportsPropertiesPanel;
+    public string? ActiveLayoutRendererIsolation => _activeLayoutRendererIsolation;
     public string? ActiveThemeId => _activeThemeId;
 
     // ── Extension data ──────────────────────────────────────────────────
@@ -143,6 +197,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     public IReadOnlyList<LayoutInfo> AvailableLayouts => _layouts;
     public IReadOnlyList<ThemeInfo> AvailableThemes => _themes;
     public IReadOnlyList<ExtensionInfo> Extensions => _extensions;
+    public IReadOnlyList<InstalledExtensionDto> InstalledExtensions => _installedExtensions;
 
     // ── File operations ─────────────────────────────────────────────────
 
@@ -536,15 +591,73 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     // ── Layout & theme switching ────────────────────────────────────────
 
-    public async Task SwitchLayoutAsync(string layoutId)
+    public Task SwitchLayoutAsync(string layoutId)
+        => SwitchLayoutAsync(new LayoutReference(string.Empty, layoutId));
+
+    public async Task SwitchLayoutAsync(LayoutReference reference)
     {
-        await _bridge.RequestVoidAsync("layout/switch", new { layoutId });
-        _activeLayoutId = layoutId;
-        var layout = _layouts.FirstOrDefault(l => l.LayoutId == layoutId);
-        _isDashboardLayout = layout?.RequiresCustomRenderer ?? false;
-        _layoutCapabilities = layout?.Capabilities ?? _layoutCapabilities;
-        _activeLayoutSupportsPropertiesPanel = layout?.SupportsPropertiesPanel ?? false;
+        var payload = string.IsNullOrEmpty(reference.ExtensionId)
+            ? (object)new { layoutId = reference.LayoutId }
+            : new { layoutId = reference.LayoutId, extensionId = reference.ExtensionId };
+
+        await _bridge.RequestVoidAsync("layout/switch", payload);
+
+        ApplyActiveLayout(reference);
+    }
+
+    /// <summary>
+    /// Update the cached active-layout state from a switch that has already taken
+    /// effect on the host, then raise <see cref="OnLayoutChanged"/> so the page
+    /// swaps to the new layout. Shared by the client-initiated path
+    /// (<see cref="SwitchLayoutAsync(LayoutReference)"/>) and the host-initiated
+    /// path (a <c>layout/activeChanged</c> notification, e.g. an external switch
+    /// driven by the VS Code chat participant).
+    /// </summary>
+    private void ApplyActiveLayout(LayoutReference reference)
+    {
+        var match = _layouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(reference.ExtensionId) ||
+             string.Equals(l.ExtensionId, reference.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+
+        _activeLayout = match is not null && !string.IsNullOrEmpty(match.ExtensionId)
+            ? new LayoutReference(match.ExtensionId, match.LayoutId)
+            : reference;
+        _isDashboardLayout = match?.RequiresCustomRenderer ?? false;
+        _layoutCapabilities = match?.Capabilities ?? _layoutCapabilities;
+        _activeLayoutSupportsPropertiesPanel = match?.SupportsPropertiesPanel ?? false;
+        _activeLayoutRendererIsolation = match?.RendererIsolation;
         OnLayoutChanged?.Invoke();
+    }
+
+    private IReadOnlySet<Guid> _collapsedSections = new HashSet<Guid>();
+
+    /// <summary>
+    /// The heading cells whose sections are collapsed. The page holds the source of truth and hands
+    /// its live set here; assigning re-renders the active custom layout (the render request carries
+    /// the set to the host so the layout folds the cells under a collapsed heading). The built-in
+    /// cell list folds client-side and does not depend on this.
+    /// </summary>
+    public IReadOnlySet<Guid> CollapsedSections
+    {
+        get => _collapsedSections;
+        set
+        {
+            _collapsedSections = value ?? new HashSet<Guid>();
+            if (_isDashboardLayout && _activeLayout is { } layout)
+            {
+                OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+                    layout.ExtensionId, layout.LayoutId, string.Empty, "full", null));
+            }
+        }
+    }
+
+    public async Task<string?> RenderActiveLayoutAsync()
+    {
+        var collapsed = _collapsedSections.Select(id => id.ToString()).ToList();
+        var result = await _bridge.RequestAsync<LayoutRenderResponse>(
+            "layout/render", new { collapsedSections = collapsed });
+        return result?.Html;
     }
 
     public async Task SwitchThemeAsync(string themeId)
@@ -571,6 +684,89 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         await _bridge.RequestVoidAsync("extension/disable", new { extensionId });
         await RefreshExtensionDataAsync();
         OnExtensionStatusChanged?.Invoke();
+    }
+
+    // ── Extension marketplace ───────────────────────────────────────────
+
+    public bool IsMarketplaceSupported => true;
+
+    public async Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
+        string query, int skip, int take, bool includePrerelease, CancellationToken ct)
+    {
+        var response = await _bridge.RequestAsync<ExtensionSearchResponse>(
+            "extension/search",
+            new { query, skip, take, includePrerelease });
+
+        return response.Packages?.Select(p => new PackageSearchResultDto(
+            p.Id ?? "",
+            p.Version,
+            p.Description,
+            p.Authors,
+            p.DownloadCount,
+            p.IconUrl,
+            p.ProjectUrl,
+            p.IsInstalled)).ToList()
+            ?? (IReadOnlyList<PackageSearchResultDto>)Array.Empty<PackageSearchResultDto>();
+    }
+
+    public async Task<IReadOnlyList<string>> GetExtensionVersionsAsync(
+        string packageId, bool includePrerelease, CancellationToken ct)
+    {
+        var response = await _bridge.RequestAsync<ExtensionVersionsResponse>(
+            "extension/versions",
+            new { packageId, includePrerelease });
+
+        return response.Versions ?? (IReadOnlyList<string>)Array.Empty<string>();
+    }
+
+    public async Task<PackageInstallResultDto> InstallExtensionAsync(
+        string packageId, string? version, CancellationToken ct)
+    {
+        var response = await _bridge.RequestAsync<ExtensionInstallResponse>(
+            "extension/install",
+            new { packageId, version });
+
+        if (response.Success)
+        {
+            await RefreshExtensionDataAsync();
+            OnExtensionStatusChanged?.Invoke();
+        }
+
+        return new PackageInstallResultDto(
+            response.Success, response.ResolvedVersion, response.ErrorMessage, response.ExtensionsRegistered);
+    }
+
+    public async Task UninstallExtensionAsync(string packageId)
+    {
+        await _bridge.RequestVoidAsync("extension/uninstall", new { packageId });
+        await RefreshExtensionDataAsync();
+        OnExtensionStatusChanged?.Invoke();
+    }
+
+    public LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.NativeBrowse;
+
+    public Task<PackageInstallResultDto> InstallLocalExtensionAsync(string fileName, Stream content, CancellationToken ct)
+        => throw new NotSupportedException("The embedded host browses for files natively; use BrowseAndInstallLocalExtensionAsync.");
+
+    public async Task<PackageInstallResultDto> BrowseAndInstallLocalExtensionAsync(CancellationToken ct)
+    {
+        // The bridge intercepts this locally and shows VS Code's native open dialog rather than
+        // forwarding to the host, so the chosen path is a real path on the host machine.
+        var picked = await _bridge.RequestAsync<BrowseFileResponse>("extension/browseLocalFile", null);
+        if (string.IsNullOrEmpty(picked?.Path))
+            return new PackageInstallResultDto(false, null, null, 0); // user cancelled
+
+        var response = await _bridge.RequestAsync<ExtensionInstallResponse>(
+            "extension/installLocal", new { path = picked.Path });
+
+        if (response.Success)
+        {
+            await RefreshExtensionDataAsync();
+            OnExtensionStatusChanged?.Invoke();
+        }
+
+        return new PackageInstallResultDto(
+            response.Success, response.ResolvedVersion, response.ErrorMessage, response.ExtensionsRegistered);
     }
 
     // ── Settings ────────────────────────────────────────────────────────
@@ -629,10 +825,187 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         return new CellContainerInfo(cellId, result.Col, result.Row, result.Width, result.Height);
     }
 
-    public async Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
+    public Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null)
     {
-        await _bridge.RequestVoidAsync("layout/updateCell",
-            new { cellId = cellId.ToString(), row, col, width = colSpan, height = rowSpan });
+        return _bridge.RequestVoidAsync("layout/interact", new
+        {
+            extensionId,
+            layoutId,
+            frameInstanceId = frameInstanceId ?? string.Empty,
+            interactionType,
+            payload,
+            targetId
+        });
+    }
+
+    public async Task<LayoutRendererPackageDto?> GetLayoutRendererPackageAsync(
+        string extensionId,
+        string layoutId)
+    {
+        var response = await _bridge.RequestAsync<LayoutRendererPackageResponse?>(
+            "layout/getRendererPackage",
+            new { extensionId, layoutId });
+
+        if (response is null) return null;
+
+        var decoded = new Dictionary<string, byte[]>(
+            response.Files?.Count ?? 0,
+            StringComparer.Ordinal);
+        if (response.Files is not null)
+        {
+            foreach (var (path, base64) in response.Files)
+                decoded[path] = Convert.FromBase64String(base64);
+        }
+
+        return new LayoutRendererPackageDto(
+            response.EntryPoint,
+            decoded,
+            response.ContentSecurityPolicy,
+            response.RendererProtocolVersion);
+    }
+
+    public async Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId,
+        string layoutId)
+    {
+        // Capabilities are fixed for the HTML hosts in v1.x. When other content types
+        // or render formats arrive (Skia, native), surface this through a per-host
+        // capabilities object instead of hardcoding here.
+        var response = await _bridge.RequestAsync<LayoutStaticAssetsResponse?>(
+            "layout/getStaticAssets",
+            new
+            {
+                extensionId,
+                layoutId,
+                supportedAssetContentTypes = new[] { "text/css", "text/javascript", "application/javascript" },
+                supportedRenderFormats = new[] { "text/html" }
+            });
+
+        if (response?.Assets is null || response.Assets.Count == 0)
+            return Array.Empty<LayoutStaticAssetDescriptor>();
+
+        var descriptors = new List<LayoutStaticAssetDescriptor>(response.Assets.Count);
+        foreach (var asset in response.Assets)
+        {
+            var key = (extensionId, layoutId, asset.AssetId);
+            if (!_layoutAssetUrlCache.TryGetValue(key, out var url))
+            {
+                // The interop helper materializes the base64 into a Blob and returns a
+                // stable blob: URL kept alive by the layout's release-on-switch hook.
+                url = await _js.InvokeAsync<string>(
+                    "versoLayoutAssets.registerAsset",
+                    extensionId, layoutId, asset.AssetId, asset.ContentType, asset.Content);
+                _layoutAssetUrlCache[key] = url;
+            }
+            descriptors.Add(new LayoutStaticAssetDescriptor(asset.AssetId, asset.ContentType, url)
+            {
+                LoadHints = DecodeLoadHints(asset.LoadHints),
+                ContentSecurityPolicy = asset.ContentSecurityPolicy,
+            });
+        }
+
+        return descriptors;
+    }
+
+    private static LayoutStaticAssetLoadHints? DecodeLoadHints(LayoutStaticAssetLoadHintsItem? wire)
+    {
+        if (wire is null) return null;
+        var moduleKind = string.Equals(wire.ModuleKind, "module", StringComparison.Ordinal)
+            ? LayoutScriptModuleKind.Module
+            : LayoutScriptModuleKind.Classic;
+        var loadMode = wire.LoadMode switch
+        {
+            "async" => LayoutScriptLoadMode.Async,
+            "blocking" => LayoutScriptLoadMode.Blocking,
+            _ => LayoutScriptLoadMode.Defer,
+        };
+        var placement = string.Equals(wire.Placement, "beforeLayoutHtml", StringComparison.Ordinal)
+            ? LayoutScriptPlacement.BeforeLayoutHtml
+            : LayoutScriptPlacement.AfterLayoutHtml;
+        return new LayoutStaticAssetLoadHints(moduleKind, loadMode, placement);
+    }
+
+    /// <summary>
+    /// Releases every cached blob URL scoped to a given layout. Called by the host
+    /// component when the layout is switched away so blobs are not retained beyond
+    /// their useful lifetime.
+    /// </summary>
+    public async Task ReleaseLayoutStaticAssetsAsync(string extensionId, string layoutId)
+    {
+        var keysToRemove = _layoutAssetUrlCache.Keys
+            .Where(k => k.ExtensionId == extensionId && k.LayoutId == layoutId)
+            .ToList();
+        foreach (var key in keysToRemove)
+            _layoutAssetUrlCache.Remove(key);
+
+        try
+        {
+            await _js.InvokeVoidAsync("versoLayoutAssets.releaseLayout", extensionId, layoutId);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+
+    public async Task<string> AllocateLayoutFrameInstanceAsync(string extensionId, string layoutId)
+    {
+        var response = await _bridge.RequestAsync<AllocateFrameInstanceResponse>(
+            "layout/allocateFrameInstance",
+            new { extensionId, layoutId });
+
+        return response?.FrameInstanceId
+            ?? throw new InvalidOperationException(
+                "layout/allocateFrameInstance returned no frame instance id.");
+    }
+
+    public async Task<IDictionary<string, JsonElement>?> LayoutRendererMountedAsync(
+        string extensionId,
+        string layoutId,
+        string frameInstanceId)
+    {
+        var response = await _bridge.RequestAsync<LayoutRendererMountedResponse>(
+            "layout/rendererMounted",
+            new { extensionId, layoutId, frameInstanceId });
+
+        return response?.Extension;
+    }
+
+    public Task LayoutRendererUnmountedAsync(
+        string extensionId,
+        string layoutId,
+        string frameInstanceId)
+        => _bridge.RequestVoidAsync(
+            "layout/rendererUnmounted",
+            new { extensionId, layoutId, frameInstanceId });
+
+    public Task LogExtensionAsync(
+        string extensionId,
+        string layoutId,
+        string frameInstanceId,
+        string level,
+        string message)
+        => _bridge.RequestVoidAsync(
+            "log/extension",
+            new { extensionId, layoutId, frameInstanceId, level, message });
+
+    [Obsolete("Forwards to LayoutInteractAsync. Scheduled for removal in v2.0.")]
+    public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
+    {
+        var payload = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            cellId = cellId.ToString(),
+            row,
+            col,
+            width = colSpan,
+            height = rowSpan
+        });
+
+        return LayoutInteractAsync("verso.layout.dashboard", "dashboard", "updateCellPosition", payload);
     }
 
     // ── Cell type helpers ───────────────────────────────────────────────
@@ -715,7 +1088,8 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         // Partial implementation: reads user overrides from metadata only (Layer 1).
         // Renderer hint resolution (Layer 2) would require a bridge method.
         var cell = _cells.FirstOrDefault(c => c.Id == cellId);
-        if (cell is null || _activeLayoutId is null) return CellVisibilityState.Visible;
+        var activeLayoutId = _activeLayout?.LayoutId;
+        if (cell is null || activeLayoutId is null) return CellVisibilityState.Visible;
         if (!cell.Metadata.TryGetValue(CellLayoutVisibilityMetadata.MetadataKey, out var obj))
             return CellVisibilityState.Visible;
 
@@ -724,19 +1098,19 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         // After JSON round-trip, the value is a JsonElement rather than a typed dictionary
         if (obj is System.Text.Json.JsonElement jsonEl
             && jsonEl.ValueKind == System.Text.Json.JsonValueKind.Object
-            && jsonEl.TryGetProperty(_activeLayoutId, out var prop)
+            && jsonEl.TryGetProperty(activeLayoutId, out var prop)
             && prop.ValueKind == System.Text.Json.JsonValueKind.String)
         {
             valueStr = prop.GetString();
         }
         else if (obj is Dictionary<string, object> dict
-            && dict.TryGetValue(_activeLayoutId, out var val))
+            && dict.TryGetValue(activeLayoutId, out var val))
         {
             valueStr = val?.ToString();
         }
         else if (obj is Dictionary<string, string> dictStr)
         {
-            dictStr.TryGetValue(_activeLayoutId, out valueStr);
+            dictStr.TryGetValue(activeLayoutId, out valueStr);
         }
 
         if (valueStr is not null && Enum.TryParse<CellVisibilityState>(valueStr, true, out var state))
@@ -781,7 +1155,70 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             case "layout/missing":
                 HandleLayoutMissing(paramsJson);
                 break;
+            case "extension/unavailable":
+                HandleExtensionUnavailable(paramsJson);
+                break;
+            case "layout/updated":
+                HandleLayoutUpdated(paramsJson);
+                break;
+            case "layout/activeChanged":
+                HandleActiveLayoutChanged(paramsJson);
+                break;
+            case "notebook/cellsChanged":
+                _ = HandleCellsChangedAsync();
+                break;
+            case "layout/frameMessage":
+                HandleLayoutFrameMessage(paramsJson);
+                break;
+            case "theme/vscodeKindChanged":
+                HandleVsCodeThemeKindChanged(paramsJson);
+                break;
         }
+    }
+
+    /// <summary>
+    /// The VS Code color theme changed. The actual colors live in the webview page's
+    /// --vscode-* variables (which the isolated-frame interop reads when posting), so
+    /// here we just track the kind and raise <see cref="OnThemeChanged"/> so the active
+    /// isolated layout frame is re-sent the current theme.
+    /// </summary>
+    private void HandleVsCodeThemeKindChanged(string? paramsJson)
+    {
+        var kind = TryReadStringProperty(paramsJson, "kind");
+        if (string.Equals(kind, "dark", StringComparison.OrdinalIgnoreCase))
+            _activeThemeKind = ThemeKind.Dark;
+        else if (string.Equals(kind, "light", StringComparison.OrdinalIgnoreCase))
+            _activeThemeKind = ThemeKind.Light;
+
+        OnThemeChanged?.Invoke();
+    }
+
+    private void HandleLayoutFrameMessage(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("frameInstanceId", out var idEl)
+                || idEl.ValueKind != JsonValueKind.String)
+                return;
+            if (!root.TryGetProperty("type", out var typeEl)
+                || typeEl.ValueKind != JsonValueKind.String)
+                return;
+
+            JsonElement? payload = root.TryGetProperty("payload", out var p)
+                ? p.Clone()
+                : null;
+
+            OnLayoutFrameMessage?.Invoke(new LayoutFrameMessageEventArgs(
+                idEl.GetString() ?? string.Empty,
+                typeEl.GetString() ?? string.Empty,
+                payload));
+        }
+        catch (JsonException) { }
     }
 
     private void HandleKernelRestarting(string? paramsJson)
@@ -817,6 +1254,112 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             OnLayoutMissing?.Invoke(layoutId);
     }
 
+    private void HandleExtensionUnavailable(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson))
+            return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            if (!doc.RootElement.TryGetProperty("extensions", out var arr)
+                || arr.ValueKind != JsonValueKind.Array)
+                return;
+
+            var list = new List<UnavailableExtensionInfo>();
+            foreach (var item in arr.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object)
+                    continue;
+                var packageId = item.TryGetProperty("packageId", out var p) && p.ValueKind == JsonValueKind.String
+                    ? p.GetString()
+                    : null;
+                if (string.IsNullOrWhiteSpace(packageId))
+                    continue;
+                var version = item.TryGetProperty("version", out var v) && v.ValueKind == JsonValueKind.String
+                    ? v.GetString()
+                    : null;
+                var reason = item.TryGetProperty("reason", out var r) && r.ValueKind == JsonValueKind.String
+                    ? r.GetString() ?? string.Empty
+                    : string.Empty;
+                list.Add(new UnavailableExtensionInfo(packageId!, version, reason));
+            }
+
+            if (list.Count > 0)
+                OnRequiredExtensionsUnavailable?.Invoke(list);
+        }
+        catch (JsonException) { }
+    }
+
+    private void HandleLayoutUpdated(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        LayoutUpdatedNotification? notif;
+        try
+        {
+            notif = JsonSerializer.Deserialize<LayoutUpdatedNotification>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (notif is null || string.IsNullOrEmpty(notif.ExtensionId) || string.IsNullOrEmpty(notif.LayoutId))
+            return;
+
+        Guid? cellId = null;
+        if (!string.IsNullOrEmpty(notif.CellId) && Guid.TryParse(notif.CellId, out var parsed))
+            cellId = parsed;
+
+        OnLayoutUpdated?.Invoke(new LayoutUpdatedEventArgs(
+            notif.ExtensionId,
+            notif.LayoutId,
+            notif.FrameInstanceId ?? string.Empty,
+            notif.Scope ?? "full",
+            cellId));
+    }
+
+    /// <summary>
+    /// The host's active layout changed outside this client's own
+    /// <see cref="SwitchLayoutAsync(LayoutReference)"/> call (for example the VS Code
+    /// chat participant invoked <c>layout/switch</c> directly). Re-sync the cached
+    /// active layout and swap the rendered view. Unlike <c>layout/updated</c>, which
+    /// re-renders the already-active layout, this changes which layout is active.
+    /// </summary>
+    private void HandleActiveLayoutChanged(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        LayoutActiveChangedNotification? notif;
+        try
+        {
+            notif = JsonSerializer.Deserialize<LayoutActiveChangedNotification>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (notif is null || string.IsNullOrEmpty(notif.LayoutId)) return;
+
+        var reference = new LayoutReference(notif.ExtensionId ?? string.Empty, notif.LayoutId);
+
+        // Idempotent: a switch this client initiated already updated local state, so an
+        // echo for the layout that is already active is a no-op (avoids a redundant
+        // re-render).
+        if (_activeLayout is { } current &&
+            string.Equals(current.LayoutId, reference.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(current.ExtensionId, reference.ExtensionId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        ApplyActiveLayout(reference);
+    }
+
     private static string? TryReadStringProperty(string? json, string property)
     {
         if (string.IsNullOrEmpty(json)) return null;
@@ -832,6 +1375,13 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
 
     private async Task HandleExtensionChangedAsync()
     {
+        // Drop cached blob URLs so a reloaded extension re-fetches its assets at the
+        // next layout mount. The JS-side blob map is cleared as a side effect of the
+        // host component's release-on-switch hook firing during the resulting layout
+        // refresh; we drop our key map here so cache hits are not served from stale
+        // entries the JS side already revoked.
+        _layoutAssetUrlCache.Clear();
+
         await RefreshExtensionDataAsync();
         OnExtensionStatusChanged?.Invoke();
         OnLayoutChanged?.Invoke();
@@ -858,6 +1408,7 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
                             cell.Outputs.Add(MapOutputFromDto(output));
 
                         OnOutputUpdated?.Invoke();
+                        RaiseCellOutputUpdated(paramsJson!, cellId);
                         return;
                     }
                 }
@@ -869,6 +1420,20 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         }
 
         _ = RefreshCellListAsync().ContinueWith(_ => OnOutputUpdated?.Invoke());
+    }
+
+    private void RaiseCellOutputUpdated(string paramsJson, Guid cellId)
+    {
+        if (OnCellOutputUpdated is null) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            if (doc.RootElement.TryGetProperty("outputs", out var outputsEl))
+            {
+                OnCellOutputUpdated.Invoke(new CellOutputUpdatedEventArgs(cellId, outputsEl.Clone()));
+            }
+        }
+        catch (JsonException) { }
     }
 
     private void HandleCellExecutionState(string? paramsJson)
@@ -948,6 +1513,16 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         _cells = result.Cells?.Select(MapCellFromDto).ToList() ?? new();
     }
 
+    // The host signalled that its cell collection changed from an operation we did not initiate
+    // directly (e.g. a custom layout's own insert/move/delete affordance). Re-pull the cell list
+    // and announce it so the cell pool re-renders and the layout re-portals the affected cells.
+    private async Task HandleCellsChangedAsync()
+    {
+        try { await RefreshCellListAsync(); }
+        catch { return; /* leave the cache as-is; the UI stays usable */ }
+        OnNotebookChanged?.Invoke();
+    }
+
     private async Task RefreshExtensionDataAsync()
     {
         // Toolbar actions
@@ -969,8 +1544,19 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);
         _layouts = layoutsResult.Layouts?.Select(l =>
         {
-            if (l.IsActive) { _activeLayoutId = l.Id; _isDashboardLayout = l.RequiresCustomRenderer; _layoutCapabilities = (LayoutCapabilities)l.Capabilities; _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel; }
-            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer, (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel);
+            if (l.IsActive)
+            {
+                _activeLayout = string.IsNullOrEmpty(l.ExtensionId)
+                    ? new LayoutReference(string.Empty, l.Id)
+                    : new LayoutReference(l.ExtensionId, l.Id);
+                _isDashboardLayout = l.RequiresCustomRenderer;
+                _layoutCapabilities = (LayoutCapabilities)l.Capabilities;
+                _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel;
+                _activeLayoutRendererIsolation = string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation;
+            }
+            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer,
+                (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel, l.ExtensionId ?? string.Empty,
+                string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation);
         }).ToList() ?? new();
 
         // Themes
@@ -985,6 +1571,10 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         // Extensions
         var extsResult = await _bridge.RequestAsync<ExtensionsResponse>("extension/list", null);
         _extensions = extsResult.Extensions?.ToList() ?? new();
+        _installedExtensions = extsResult.Installed?
+            .Select(i => new InstalledExtensionDto(i.Id ?? "", i.Version, i.IsLocal))
+            .Where(i => !string.IsNullOrEmpty(i.Id))
+            .ToList() ?? new();
 
         // Settings
         await RefreshSettingsAsync();
@@ -1172,6 +1762,11 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
             DropdownHover = G(nameof(d.DropdownHover), d.DropdownHover),
             TooltipBackground = G(nameof(d.TooltipBackground), d.TooltipBackground),
             TooltipForeground = G(nameof(d.TooltipForeground), d.TooltipForeground),
+            BgDefault = G(nameof(d.BgDefault), d.BgDefault),
+            BgElevated = G(nameof(d.BgElevated), d.BgElevated),
+            FgDefault = G(nameof(d.FgDefault), d.FgDefault),
+            FgMuted = G(nameof(d.FgMuted), d.FgMuted),
+            // Accent derives from AccentPrimary (read-only alias), so it is not mapped here.
         };
     }
 
@@ -1252,6 +1847,21 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     {
         public string CellId { get; set; } = "";
         public List<CellOutputDto>? Outputs { get; set; }
+    }
+
+    private sealed class LayoutUpdatedNotification
+    {
+        public string ExtensionId { get; set; } = "";
+        public string LayoutId { get; set; } = "";
+        public string? FrameInstanceId { get; set; }
+        public string? Scope { get; set; }
+        public string? CellId { get; set; }
+    }
+
+    private sealed class LayoutActiveChangedNotification
+    {
+        public string? ExtensionId { get; set; }
+        public string LayoutId { get; set; } = "";
     }
 
     private sealed class SaveResponse
@@ -1352,11 +1962,58 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
         public List<LayoutItem>? Layouts { get; set; }
     }
 
+    private sealed class LayoutRenderResponse
+    {
+        public string Html { get; set; } = "";
+    }
+
+    private sealed class LayoutRendererPackageResponse
+    {
+        public string EntryPoint { get; set; } = "";
+        public Dictionary<string, string>? Files { get; set; }
+        public string? ContentSecurityPolicy { get; set; }
+        public string? RendererProtocolVersion { get; set; }
+    }
+
+    private sealed class LayoutStaticAssetsResponse
+    {
+        public List<LayoutStaticAssetItem>? Assets { get; set; }
+    }
+
+    private sealed class LayoutStaticAssetItem
+    {
+        public string AssetId { get; set; } = "";
+        public string ContentType { get; set; } = "";
+        // Base64-encoded asset bytes.
+        public string Content { get; set; } = "";
+        public LayoutStaticAssetLoadHintsItem? LoadHints { get; set; }
+        public string? ContentSecurityPolicy { get; set; }
+    }
+
+    private sealed class LayoutStaticAssetLoadHintsItem
+    {
+        public string? ModuleKind { get; set; }
+        public string? LoadMode { get; set; }
+        public string? Placement { get; set; }
+    }
+
+    private sealed class AllocateFrameInstanceResponse
+    {
+        public string FrameInstanceId { get; set; } = "";
+    }
+
+    private sealed class LayoutRendererMountedResponse
+    {
+        public Dictionary<string, JsonElement>? Extension { get; set; }
+    }
+
     private sealed class LayoutItem
     {
         public string Id { get; set; } = "";
+        public string? ExtensionId { get; set; }
         public string DisplayName { get; set; } = "";
         public bool RequiresCustomRenderer { get; set; }
+        public string? RendererIsolation { get; set; }
         public bool IsActive { get; set; }
         public int Capabilities { get; set; }
         public bool SupportsPropertiesPanel { get; set; }
@@ -1378,6 +2035,14 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private sealed class ExtensionsResponse
     {
         public List<ExtensionInfo>? Extensions { get; set; }
+        public List<InstalledExtensionItemResponse>? Installed { get; set; }
+    }
+
+    private sealed class InstalledExtensionItemResponse
+    {
+        public string? Id { get; set; }
+        public string? Version { get; set; }
+        public bool IsLocal { get; set; }
     }
 
     private sealed class ThemeDataResponse
@@ -1449,6 +2114,41 @@ public sealed class RemoteNotebookService : INotebookService, IAsyncDisposable
     private sealed class SettingsDefinitionsResponse
     {
         public List<SettingsExtensionDto>? Extensions { get; set; }
+    }
+
+    private sealed class ExtensionSearchResponse
+    {
+        public List<PackageSearchItemResponse>? Packages { get; set; }
+    }
+
+    private sealed class PackageSearchItemResponse
+    {
+        public string? Id { get; set; }
+        public string? Version { get; set; }
+        public string? Description { get; set; }
+        public string? Authors { get; set; }
+        public long? DownloadCount { get; set; }
+        public string? IconUrl { get; set; }
+        public string? ProjectUrl { get; set; }
+        public bool IsInstalled { get; set; }
+    }
+
+    private sealed class ExtensionVersionsResponse
+    {
+        public List<string>? Versions { get; set; }
+    }
+
+    private sealed class ExtensionInstallResponse
+    {
+        public bool Success { get; set; }
+        public string? ResolvedVersion { get; set; }
+        public string? ErrorMessage { get; set; }
+        public int ExtensionsRegistered { get; set; }
+    }
+
+    private sealed class BrowseFileResponse
+    {
+        public string? Path { get; set; }
     }
 
     private sealed class SettingsExtensionDto

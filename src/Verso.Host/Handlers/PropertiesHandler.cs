@@ -68,6 +68,20 @@ public static class PropertiesHandler
         var context = new HostCellRenderContext(ns.Scaffold, cell);
         await provider.OnPropertyChangedAsync(cell, p.PropertyName, p.Value, context);
 
+        // Property changes (e.g. per-layout visibility) can affect what an
+        // extension-rendered layout chooses to emit. Custom layouts re-fetch HTML
+        // only on layout/updated, so signal a cell-scoped refresh.
+        var activeLayout = ns.Scaffold.LayoutManager?.ActiveLayout;
+        if (activeLayout?.RequiresCustomRenderer == true)
+        {
+            ns.SendLayoutUpdated(
+                activeLayout.ExtensionId,
+                activeLayout.LayoutId,
+                frameInstanceId: string.Empty,
+                scope: "cell",
+                cellId: cellId);
+        }
+
         return null;
     }
 

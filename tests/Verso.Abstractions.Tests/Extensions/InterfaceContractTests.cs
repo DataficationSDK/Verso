@@ -13,7 +13,9 @@ public class InterfaceContractTests
     [DataRow(typeof(INotebookSerializer))]
     [DataRow(typeof(ITheme))]
     [DataRow(typeof(ILayoutEngine))]
+    [DataRow(typeof(ILayoutInteractionHandler))]
     [DataRow(typeof(ICellPropertyProvider))]
+    [DataRow(typeof(INotebookPostProcessor))]
     public void ExtensionInterface_InheritsIExtension(Type extensionType)
     {
         Assert.IsTrue(typeof(IExtension).IsAssignableFrom(extensionType),
@@ -45,16 +47,16 @@ public class InterfaceContractTests
     }
 
     [TestMethod]
-    public void AllTenExtensionInterfaces_ArePresent()
+    public void AllExtensionInterfaces_ArePresent()
     {
         var extensionInterfaces = typeof(IExtension).Assembly
             .GetTypes()
             .Where(t => t.IsInterface && typeof(IExtension).IsAssignableFrom(t))
             .ToList();
 
-        // IExtension + 11 derived = 12
-        Assert.AreEqual(12, extensionInterfaces.Count,
-            $"Expected 11 extension interfaces, found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
+        // IExtension + 13 derived = 14
+        Assert.AreEqual(14, extensionInterfaces.Count,
+            $"Expected 13 derived extension interfaces (plus IExtension itself), found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
     }
 
     [TestMethod]

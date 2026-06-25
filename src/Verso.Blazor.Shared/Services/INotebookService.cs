@@ -60,6 +60,22 @@ public interface INotebookService
     /// <summary>Active layout ID.</summary>
     string? ActiveLayoutId { get; }
 
+    /// <summary>Qualified (ExtensionId, LayoutId) identity of the active layout, or null.</summary>
+    LayoutReference? ActiveLayout { get; }
+
+    /// <summary>
+    /// Stable composite key for the active layout in the form <c>{ExtensionId}:{LayoutId}</c>,
+    /// or a sentinel value when no layout is loaded. Used by <c>NotebookPage</c> to <c>@key</c>
+    /// the layout-renderer subtree so Blazor tears the prior layout's DOM down on switch.
+    /// </summary>
+    string ActiveLayoutKey { get; }
+
+    /// <summary>
+    /// Rendering isolation mode of the active layout when it requires a custom renderer.
+    /// Returns null when there is no active layout or the layout does not require a custom renderer.
+    /// </summary>
+    string? ActiveLayoutRendererIsolation { get; }
+
     /// <summary>Capabilities granted by the active layout (cell insert, delete, execute, etc.).</summary>
     LayoutCapabilities LayoutCapabilities { get; }
 
@@ -100,6 +116,14 @@ public interface INotebookService
     /// <summary>Raised when the active layout changes.</summary>
     event Action? OnLayoutChanged;
 
+    /// <summary>
+    /// Raised when the host emits a <c>layout/updated</c> notification in response to
+    /// a layout interaction handler calling <c>RequestRender</c> or <c>RequestCellRefresh</c>.
+    /// Subscribers should filter by <see cref="LayoutUpdatedEventArgs.ExtensionId"/> and
+    /// <see cref="LayoutUpdatedEventArgs.LayoutId"/> matching the currently active layout.
+    /// </summary>
+    event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
+
     /// <summary>Raised when the active theme changes.</summary>
     event Action? OnThemeChanged;
 
@@ -114,6 +138,20 @@ public interface INotebookService
 
     /// <summary>Raised when a cell output is updated in place by an interaction handler.</summary>
     event Action? OnOutputUpdated;
+
+    /// <summary>Raised when the kernel begins restarting. The kernel ID is provided where the
+    /// host tracks it (WASM); it may be null on hosts that do not surface a per-kernel identity.</summary>
+    event Action<string?>? OnKernelRestarting;
+
+    /// <summary>Raised after the kernel has finished restarting and notebook state has been
+    /// re-synchronized. The kernel ID is provided where the host tracks it (WASM); it may be null
+    /// on hosts that do not surface a per-kernel identity.</summary>
+    event Action<string?>? OnKernelRestarted;
+
+    /// <summary>Raised when one or more required extensions a notebook declares could not be
+    /// loaded on open (offline, package missing, or consent declined). The notebook still opens;
+    /// this lets the UI show a non-fatal notice that some layouts or cells may not work.</summary>
+    event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
     // ── File operations ────────────────────────────────────────────────
 
@@ -201,8 +239,33 @@ public interface INotebookService
 
     // ── Layout & theme switching ───────────────────────────────────────
 
+    /// <summary>
+    /// Renders the currently active layout, returning the layout-emitted HTML payload.
+    /// Returns null when the active layout does not produce custom-renderer HTML in the
+    /// current hosting mode.
+    /// </summary>
+    Task<string?> RenderActiveLayoutAsync();
+
     /// <summary>Switch the active layout.</summary>
     Task SwitchLayoutAsync(string layoutId);
+
+    /// <summary>
+    /// Returns the layout-scoped static assets for the given layout, each resolved to a URL
+    /// the host can drop into a <c>&lt;link rel="stylesheet"&gt;</c> tag. Server hosts
+    /// resolve to a static-files endpoint URL; WASM hosts resolve to a <c>blob:</c> URL
+    /// produced via JS interop. Returns an empty list when the layout has no assets.
+    /// </summary>
+    Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId,
+        string layoutId);
+
+    /// <summary>
+    /// Releases any per-session resources the host allocated for a given layout's assets
+    /// (e.g. <c>blob:</c> URLs minted by the WASM host). Default is a no-op for hosts that
+    /// resolve assets via plain server URLs.
+    /// </summary>
+    Task ReleaseLayoutStaticAssetsAsync(string extensionId, string layoutId)
+        => Task.CompletedTask;
 
     /// <summary>Switch the active theme.</summary>
     Task SwitchThemeAsync(string themeId);
@@ -214,6 +277,81 @@ public interface INotebookService
 
     /// <summary>Disable an extension by ID.</summary>
     Task DisableExtensionAsync(string extensionId);
+
+    // ── Extension marketplace ──────────────────────────────────────────
+
+    /// <summary>
+    /// Whether this host supports searching for and installing extensions from NuGet.
+    /// The extension panel hides its search box when this is false.
+    /// </summary>
+    bool IsMarketplaceSupported { get; }
+
+    /// <summary>
+    /// Searches NuGet for extension packages matching <paramref name="query"/>. Results
+    /// carry an installed flag relative to the current notebook's required extensions.
+    /// </summary>
+    Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
+        string query, int skip, int take, bool includePrerelease, CancellationToken ct);
+
+    /// <summary>
+    /// Downloads and installs a NuGet package into the managed extensions directory, loads
+    /// its extensions, records it in the notebook's required extensions, and persists trust
+    /// so future opens load it without prompting. Surfaces the existing consent dialog when
+    /// the package is not yet trusted.
+    /// </summary>
+    Task<PackageInstallResultDto> InstallExtensionAsync(
+        string packageId, string? version, CancellationToken ct);
+
+    /// <summary>
+    /// Lists the versions available to install for <paramref name="packageId"/>, newest first.
+    /// The marketplace panel uses this to offer a version other than the latest; the latest
+    /// remains the default selection. Hosts without marketplace support return an empty list.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetExtensionVersionsAsync(
+        string packageId, bool includePrerelease, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+    /// <summary>
+    /// Removes a package from the notebook's required extensions and revokes its trust. The
+    /// extension's capabilities remain active until the next open; the on-disk files are kept
+    /// so it can be reinstalled.
+    /// </summary>
+    Task UninstallExtensionAsync(string packageId);
+
+    /// <summary>
+    /// The packages this notebook currently requires, in declaration order. This is the
+    /// canonical "what is installed for this notebook" list the extension panel renders so a
+    /// user can uninstall any package, including sideloaded local files that never appear in
+    /// NuGet search results. Hosts that do not track required extensions return an empty list.
+    /// </summary>
+    IReadOnlyList<InstalledExtensionDto> InstalledExtensions => Array.Empty<InstalledExtensionDto>();
+
+    /// <summary>
+    /// How this host lets the user pick a local extension file to sideload, or
+    /// <see cref="LocalExtensionPickMode.None"/> when sideloading is unavailable. The extension
+    /// panel uses this to decide which acquisition path the "load from file" button drives.
+    /// </summary>
+    LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.None;
+
+    /// <summary>
+    /// Installs a local extension file supplied as a byte stream (a browser upload). A
+    /// <c>.dll</c> is copied into the managed extensions directory; a <c>.nupkg</c> is resolved
+    /// like a NuGet package. The result is recorded in the notebook's required extensions with a
+    /// local marker so it reloads on the next open, and trust is persisted via the existing
+    /// consent prompt. Used by hosts whose <see cref="LocalExtensionPickMode"/> is
+    /// <see cref="LocalExtensionPickMode.Upload"/>.
+    /// </summary>
+    Task<PackageInstallResultDto> InstallLocalExtensionAsync(string fileName, Stream content, CancellationToken ct)
+        => throw new NotSupportedException("This host does not support uploading a local extension file.");
+
+    /// <summary>
+    /// Shows the host's native file picker for a local extension file and installs the chosen
+    /// <c>.dll</c> or <c>.nupkg</c>. Returns a result with <c>Success=false</c> and a null error
+    /// message when the user cancels. Used by hosts whose <see cref="LocalExtensionPickMode"/> is
+    /// <see cref="LocalExtensionPickMode.NativeBrowse"/>.
+    /// </summary>
+    Task<PackageInstallResultDto> BrowseAndInstallLocalExtensionAsync(CancellationToken ct)
+        => throw new NotSupportedException("This host does not support browsing for a local extension file.");
 
     // ── Settings ───────────────────────────────────────────────────────
 
@@ -249,12 +387,29 @@ public interface INotebookService
     /// <summary>Resolve the visibility state of a cell for the current active layout.</summary>
     CellVisibilityState ResolveCellVisibility(Guid cellId);
 
+    // ── Layout interaction ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Routes a layout-scoped interaction to the layout's
+    /// <c>ILayoutInteractionHandler</c> via the <c>layout/interact</c> JSON-RPC
+    /// method. First-party razor components call this directly; DOM events
+    /// flow through the JS bridge instead.
+    /// </summary>
+    Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null);
+
     // ── Dashboard layout ───────────────────────────────────────────────
 
     /// <summary>Get the grid position for a cell in the dashboard layout.</summary>
     Task<CellContainerInfo> GetCellContainerAsync(Guid cellId);
 
     /// <summary>Update cell position in dashboard layout.</summary>
+    [Obsolete("Forwards to LayoutInteractAsync. Call LayoutInteractAsync(\"verso.layout.dashboard\", \"dashboard\", \"updateCellPosition\", ...) directly. Scheduled for removal in v2.0.")]
     Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan);
 
     // ── Cell type helpers ──────────────────────────────────────────────

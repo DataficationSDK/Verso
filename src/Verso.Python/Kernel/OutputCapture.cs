@@ -23,6 +23,26 @@ try:
     except Exception:
         pass
 
+    # Prime matplotlib's native Agg renderer once, in this same GIL hold, right after
+    # pyplot is first imported. The _path C extension lazily initializes the numpy
+    # C-API the first time a figure is rendered; on CPython 3.13 that one-time init can
+    # fault if it is first triggered later on a pooled worker thread that has already
+    # released and re-acquired the GIL (the second Python cell lands on the same pooled
+    # thread). Forcing a throwaway render here performs that init while interpreter
+    # state is clean, so later plots render safely. The sentinel keeps it to one render.
+    try:
+        _verso_mpl_primed
+    except NameError:
+        try:
+            import io as _verso_prime_io
+            _verso_prime_fig = _verso_plt.figure()
+            _verso_plt.plot([0, 1], [0, 1])
+            _verso_prime_fig.savefig(_verso_prime_io.BytesIO(), format='png')
+            _verso_plt.close(_verso_prime_fig)
+        except Exception:
+            pass
+        _verso_mpl_primed = True
+
     # Always re-patch plt.show so the function's __globals__ binds to the
     # current scope's _verso_display_outputs. Without this, a kernel restart
     # creates a new scope (and new display list) but the old patched show

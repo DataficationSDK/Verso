@@ -85,7 +85,13 @@ public sealed class VersoHighContrastTheme : ITheme
         DropdownBackground = "#1A1A1A",
         DropdownHover = "#333333",
         TooltipBackground = "#FFD700",
-        TooltipForeground = "#000000"
+        TooltipForeground = "#000000",
+
+        // Layout-extension palette
+        BgDefault = "#000000",
+        BgElevated = "#1A1A1A",
+        FgDefault = "#FFFFFF",
+        FgMuted = "#CCCCCC"
     };
 
     public ThemeTypography Typography { get; } = new ThemeTypography
@@ -93,7 +99,8 @@ public sealed class VersoHighContrastTheme : ITheme
         EditorFont = new FontDescriptor("Cascadia Code", 15),
         UIFont = new FontDescriptor("Segoe UI", 14),
         ProseFont = new FontDescriptor("Georgia", 17, LineHeight: 1.6),
-        CodeOutputFont = new FontDescriptor("Cascadia Mono", 14)
+        CodeOutputFont = new FontDescriptor("Cascadia Mono", 14),
+        FontSizeBase = 14.0
     };
 
     public ThemeSpacing Spacing { get; } = new ThemeSpacing

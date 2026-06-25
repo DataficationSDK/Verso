@@ -1,0 +1,96 @@
+@using Microsoft.AspNetCore.Components
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Models
+@using Verso.Blazor.Shared.Services
+
+<div class="verso-cell-list" @onclick="HandleCellListClick">
+    @{
+        var cells = Service.Cells;
+        var cellTypes = Service.AvailableCellTypes;
+        int? skipUntilLevel = null;
+    }
+    @for (int i = 0; i < cells.Count; i++)
+    {
+        var cell = cells[i];
+        var index = i;
+        var headingLevel = HeadingDetector.GetHeadingLevel(cell);
+
+        if (skipUntilLevel is not null)
+        {
+            if (headingLevel is not null && headingLevel.Value <= skipUntilLevel.Value)
+            {
+                skipUntilLevel = null;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        var isSectionCollapsed = Context.CollapsedSections.Contains(cell.Id);
+
+        <div @key="cell.Id" @onclick:stopPropagation="true" data-cell-index="@index">
+            <Cell CellData="cell"
+                  IsSelected="cell.Id == Context.SelectedCellId"
+                  IsExecuting="cell.Id == Context.ExecutingCellId"
+                  IsRunDisabled="Context.IsRunDisabled"
+                  Index="index"
+                  IsLast="index == cells.Count - 1"
+                  CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
+                  IsEditable="Service.IsCellTypeEditable(cell.Type)"
+                  IsHeadingCell="headingLevel is not null"
+                  IsSectionCollapsed="isSectionCollapsed"
+                  OnToggleSection="Context.OnToggleSection"
+                  OnRunCell="Context.OnRunCell"
+                  OnCancelCell="Context.OnCancelCell"
+                  OnDeleteCell="Context.OnDeleteCell"
+                  OnSelect="Context.OnSelectCell"
+                  OnMoveUp="Context.OnMoveUp"
+                  OnMoveDown="Context.OnMoveDown"
+                  OnSourceChanged="Context.OnSourceChanged"
+                  OnCellAction="Context.OnCellAction"
+                  OnCellTypeChanged="Context.OnCellTypeChanged"
+                  OnCellLanguageChanged="Context.OnCellLanguageChanged" />
+        </div>
+
+        @if (headingLevel is not null && isSectionCollapsed)
+        {
+            skipUntilLevel = headingLevel;
+        }
+
+        @if (index < cells.Count - 1)
+        {
+            var insertIndex = index + 1;
+            <div class="verso-insert-cell-row @(cell.Id == Context.SelectedCellId ? "verso-insert-cell-row--visible" : "")">
+                <div class="verso-insert-cell-line"></div>
+                @foreach (var ct in cellTypes)
+                {
+                    var idx = insertIndex;
+                    var typeId = ct.Id;
+                    <button class="verso-insert-cell-btn"
+                            @onclick="() => Context.OnInsertCell.InvokeAsync((idx, typeId))">+ @ct.DisplayName</button>
+                }
+                <div class="verso-insert-cell-line"></div>
+            </div>
+        }
+    }
+
+    @if (Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))
+    {
+        <div class="verso-add-cell-row">
+            @foreach (var ct in cellTypes)
+            {
+                var typeId = ct.Id;
+                <button class="verso-add-cell-btn"
+                        @onclick="() => Context.OnAddCell.InvokeAsync(typeId)">+ @ct.DisplayName Cell</button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+    [CascadingParameter] public NotebookCellContext Context { get; set; } = default!;
+
+    private Task HandleCellListClick() => Context.OnCellListClick.InvokeAsync();
+}

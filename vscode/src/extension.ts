@@ -17,6 +17,8 @@ export async function activate(
   initializeLog(context);
   log.info(`Verso extension activated (v${context.extension.packageJSON.version})`);
 
+  await migrateExtensionsPathSetting();
+
   const hostDllPath = resolveHostPath(context);
   if (hostDllPath) {
     log.info(`Resolved Verso.Host.dll: ${hostDllPath}`);
@@ -58,6 +60,42 @@ export function deactivate(): void {
   // Host processes are disposed per-notebook when their webview panels close.
 }
 
+// verso.extensionsPath used to accept a single string. The setting is now a
+// string array so the Settings UI can render an editable list. Rewrite any
+// existing string value to a single-element array at the scope where it lives
+// so legacy users keep their path and the Settings editor shows no type warning.
+async function migrateExtensionsPathSetting(): Promise<void> {
+  const config = vscode.workspace.getConfiguration("verso");
+  const inspected = config.inspect<string | string[]>("extensionsPath");
+  if (!inspected) {
+    return;
+  }
+
+  const scopes: Array<[unknown, vscode.ConfigurationTarget]> = [
+    [inspected.globalValue, vscode.ConfigurationTarget.Global],
+    [inspected.workspaceValue, vscode.ConfigurationTarget.Workspace],
+  ];
+
+  for (const [value, target] of scopes) {
+    // Only act on a legacy string; arrays and unset values are left alone.
+    if (typeof value !== "string") {
+      continue;
+    }
+    const trimmed = value.trim();
+    // A non-empty path becomes a one-element array; an explicit empty string is
+    // cleared so the [] default applies.
+    const migrated = trimmed.length > 0 ? [trimmed] : undefined;
+    try {
+      await config.update("extensionsPath", migrated, target);
+      log.info(
+        `Migrated verso.extensionsPath (${vscode.ConfigurationTarget[target]}) from string to array.`
+      );
+    } catch (err) {
+      log.error(`Failed to migrate verso.extensionsPath: ${err}`);
+    }
+  }
+}
+
 export function resolveHostPath(
   context: vscode.ExtensionContext,
   options: HostPathResolutionOptions = {}
@@ -94,7 +132,7 @@ export function resolveHostPath(
       const candidates = [
         // Direct workspace is the Verso project
         path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
-        // Workspace is a parent (e.g., Datafication.DataIntegration)
+        // Workspace is a parent
         path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
       ];
       for (const candidate of candidates) {

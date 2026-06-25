@@ -371,7 +371,6 @@ html, body {
 
 .verso-cell--selected {
     border-color: var(--verso-cell-border, #E0E0E0);
-    border-left-color: var(--verso-cell-active-border, #0078D4);
 }
 
 .verso-cell--selected:hover {
@@ -752,6 +751,16 @@ html, body {
     min-height: 60px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: 2px;
+}
+
+/* Mark the active line in the gutter: tint that line's number cell with the
+   neutral border color. Scoped to the selected cell so only the active cell's
+   editor flags its line in the margin, not every editor on the page. Uses
+   --verso-border-default rather than --verso-cell-border because the notebook
+   layout overrides the cell-border token to transparent (its cards use shadows,
+   not borders), which would make the highlight invisible. */
+.verso-cell--selected .verso-monaco-editor .monaco-editor .margin-view-overlays .active-line-number {
+    background-color: var(--verso-border-default, #E0E0E0);
 }
 
 /* === Cell Execution Status === */
@@ -1219,6 +1228,23 @@ html, body {
 
 /* === Dashboard Grid Layout === */
 
+.verso-dashboard-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.verso-dashboard-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--verso-cell-border, #E0E0E0);
+    background: var(--verso-toolbar-background, transparent);
+    flex-shrink: 0;
+}
+
 .verso-dashboard-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -1228,6 +1254,7 @@ html, body {
     align-content: start;
     overflow-y: auto;
     flex: 1;
+    min-height: 0;
 }
 
 .verso-dashboard-cell {
@@ -1262,18 +1289,6 @@ html, body {
 
 .verso-dashboard-cell:hover .verso-dashboard-cell-toolbar {
     opacity: 1;
-}
-
-.verso-dashboard-cell-output {
-    flex: 1;
-    overflow: auto;
-    padding: 10px 12px;
-}
-
-.verso-dashboard-cell-output pre {
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
 .verso-dashboard-resize-handle {
@@ -1348,12 +1363,6 @@ html, body {
     color: var(--verso-editor-foreground, #1E1E1E);
 }
 
-.verso-dashboard-edit-modal {
-    margin: 0 12px 8px;
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 2px;
-}
-
 /* === Presentation Layout === */
 
 .verso-presentation-view {
@@ -1367,6 +1376,26 @@ html, body {
     margin-bottom: 16px;
 }
 
+.verso-presentation-cell--output-only {
+    margin-top: 0;
+}
+
+.verso-presentation-input {
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--verso-cell-border, #E0E0E0);
+    border-radius: var(--verso-cell-border-radius, 4px);
+    background: var(--verso-editor-background, #FAFAFA);
+}
+
+.verso-presentation-input pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: var(--verso-font-mono, 'Cascadia Code', 'Consolas', 'Courier New', monospace);
+    font-size: var(--verso-font-size, 13px);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
 .verso-presentation-cell .verso-output {
     padding: 8px 12px;
 }
@@ -1376,6 +1405,66 @@ html, body {
     white-space: pre-wrap;
     font-family: var(--verso-font-mono, 'Cascadia Code', 'Consolas', 'Courier New', monospace);
     font-size: var(--verso-font-size, 13px);
+}
+
+/* Presentation/dashboard portal: when a cell is rendered into a layout slot we
+   want to hide the editor and chrome by default so only outputs remain visible.
+   The portal moves the page-level pool wrapper (a bare <div data-cell-id>)
+   into the slot, with the <div class="verso-cell"> Cell root nested inside —
+   so the chrome selectors descend through both. */
+
+.verso-presentation-cell .verso-cell-gutter,
+.verso-presentation-cell .verso-cell-toolbar,
+.verso-presentation-cell .verso-cell-editor,
+.verso-presentation-cell .verso-cell-source-preview,
+.verso-presentation-cell .verso-cell-status {
+    display: none;
+}
+
+.verso-dashboard-cell .verso-cell-gutter,
+.verso-dashboard-cell .verso-cell-toolbar,
+.verso-dashboard-cell .verso-cell-editor,
+.verso-dashboard-cell .verso-cell-source-preview,
+.verso-dashboard-cell .verso-cell-status {
+    display: none;
+}
+
+/* Show the inner cell's editor + gutter when the grid is in edit mode OR the
+   individual cell's Edit toggle is on. `display: revert` falls back to each
+   element's own CSS rule so we don't have to hardcode their display value here. */
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-gutter,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-toolbar,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-editor,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-source-preview,
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-status,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-gutter,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-toolbar,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-editor,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-source-preview,
+.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-status {
+    display: revert;
+}
+
+/* The drag/resize handles are layout chrome, not Blazor's chrome; the Cell
+   component is still painted normally, so we drop its outer border to avoid a
+   double border inside the dashboard cell wrapper. */
+
+.verso-dashboard-cell .verso-cell {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* When a cell is in edit mode, its native gutter (with its own Run button)
+   appears, making the host toolbar's Run redundant. Hide it so we don't ship
+   two Run buttons stacked on top of each other. */
+.verso-dashboard-cell[data-cell-edit="true"] .verso-dashboard-cell-toolbar .verso-cell-btn--run {
+    display: none;
+}
+
+/* Same when the grid is globally in edit mode. */
+.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell-toolbar .verso-cell-btn--run {
+    display: none;
 }
 
 /* Layout switcher active button */
@@ -1697,6 +1786,330 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
     font-size: 10px;
     letter-spacing: 0.3px;
+}
+
+/* === Extension Marketplace === */
+
+.verso-marketplace {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+}
+
+.verso-marketplace-search {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+}
+
+.verso-marketplace-search-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.verso-marketplace-more {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.verso-marketplace-more:hover {
+    border-color: var(--verso-accent, #0078D4);
+}
+
+.verso-marketplace-more--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* The native file input is driven by the surrounding label; keep it out of the layout. */
+.verso-marketplace-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.verso-marketplace-input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-size: 12px;
+}
+
+.verso-marketplace-input:focus {
+    outline: none;
+    border-color: var(--verso-accent, #0078D4);
+}
+
+.verso-marketplace-status {
+    font-size: 10px;
+    color: var(--verso-editor-line-number, #858585);
+    white-space: nowrap;
+}
+
+.verso-marketplace-error {
+    margin: 4px;
+    padding: 6px 8px;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-status-error, #D13438);
+    font-size: 11px;
+}
+
+.verso-marketplace-empty {
+    margin: 4px;
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.verso-marketplace-result {
+    padding: 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+}
+
+.verso-marketplace-result-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.verso-marketplace-result-id {
+    font-weight: 600;
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.verso-marketplace-result-version {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+/* Version picker (install-time): a compact dropdown mirroring the cell-type badge.
+   The badge shows the version that will be installed (latest by default); the popup
+   lists the available versions, newest first. */
+
+.verso-marketplace-version-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.verso-marketplace-version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px;
+    border: none;
+    border-radius: 3px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.verso-marketplace-version-badge:hover:not(:disabled) {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-marketplace-version-badge:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.verso-marketplace-version-chevron {
+    font-size: 9px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-left: 2px;
+}
+
+.verso-marketplace-version-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    min-width: 90px;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--verso-toolbar-background, #F3F3F3);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 10000;
+    padding: 2px;
+}
+
+.verso-marketplace-version-option {
+    display: block;
+    width: 100%;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 2px;
+    background: transparent;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.verso-marketplace-version-option:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-marketplace-version-option--active {
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+}
+
+.verso-marketplace-version-option--active:hover {
+    background: var(--verso-accent-secondary, #005A9E);
+}
+
+.verso-marketplace-version-status {
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-result-authors {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+    margin-top: 2px;
+}
+
+.verso-marketplace-result-desc {
+    font-size: 11px;
+    color: var(--verso-editor-foreground, #1E1E1E);
+    margin-top: 4px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.verso-marketplace-result-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.verso-marketplace-btn {
+    padding: 3px 12px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.verso-marketplace-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.verso-marketplace-btn--install {
+    background: var(--verso-accent, #0078D4);
+    color: #FFFFFF;
+    border-color: var(--verso-accent, #0078D4);
+}
+
+.verso-marketplace-btn--uninstall {
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-foreground, #1E1E1E);
+}
+
+.verso-marketplace-installed {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 0 8px;
+}
+
+.verso-marketplace-installed-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-installed-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: var(--verso-cell-background, #FFFFFF);
+}
+
+.verso-marketplace-installed-info {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.verso-marketplace-installed-id {
+    font-weight: 600;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.verso-marketplace-installed-version {
+    font-size: 11px;
+    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-installed-badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: var(--verso-cell-output-background, #F5F5F5);
+    color: var(--verso-editor-line-number, #858585);
 }
 
 /* === Variable Explorer === */

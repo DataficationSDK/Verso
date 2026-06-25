@@ -1,0 +1,691 @@
+@using System.Text
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Models
+@using Verso.Blazor.Shared.Services
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (_errorMessage is not null)
+{
+    <div class="verso-layout-error">
+        <span class="verso-layout-error-message">@_errorMessage</span>
+        <button type="button" class="verso-layout-error-retry" @onclick="RetryAsync">Retry</button>
+    </div>
+}
+else if (_srcdoc is not null)
+{
+    <iframe @ref="_iframeRef"
+            class="verso-isolated-layout-frame"
+            sandbox="allow-scripts"
+            srcdoc="@_srcdoc"
+            style="width:100%;height:100%;border:0;"></iframe>
+}
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+    [Parameter, EditorRequired] public IIsolatedLayoutHost Host { get; set; } = default!;
+
+    /// <summary>
+    /// Maximum time the iframe has to send <c>verso/ready</c> before the mount is
+    /// considered failed and the retry banner is shown. Defaults to 10 seconds.
+    /// </summary>
+    [Parameter] public int ReadyTimeoutMs { get; set; } = 10_000;
+
+    private static string? s_cachedBridgeScript;
+
+    private ElementReference _iframeRef;
+    private DotNetObjectReference<CustomLayoutFrame>? _selfRef;
+    private int? _listenerHandle;
+    private string? _srcdoc;
+    private string? _errorMessage;
+    private string _extensionId = "";
+    private string _layoutId = "";
+    private string _frameInstanceId = "";
+    private string? _rendererProtocolVersion;
+    private bool _initSent;
+    private bool _attached;
+    private bool _disposed;
+    private bool _readyReceived;
+    private CancellationTokenSource? _readyTimeoutCts;
+
+    private Action? _onNotebookChangedHandler;
+    private Action<CellOutputUpdatedEventArgs>? _onCellOutputUpdatedHandler;
+    private Action? _onThemeChangedHandler;
+    private Action<LayoutUpdatedEventArgs>? _onLayoutUpdatedHandler;
+    private Action<LayoutFrameMessageEventArgs>? _onLayoutFrameMessageHandler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeMountAsync();
+    }
+
+    private async Task InitializeMountAsync()
+    {
+        if (Service.ActiveLayout is not { } active || string.IsNullOrEmpty(active.LayoutId))
+        {
+            _errorMessage = "Layout failed to load: no active isolated layout.";
+            return;
+        }
+
+        _extensionId = active.ExtensionId ?? string.Empty;
+        _layoutId = active.LayoutId;
+
+        try
+        {
+            _frameInstanceId = await Host.AllocateLayoutFrameInstanceAsync(_extensionId, _layoutId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Layout failed to load: could not allocate frame instance ({ex.Message}).";
+            return;
+        }
+
+        LayoutRendererPackageDto? package;
+        try
+        {
+            package = await Host.GetLayoutRendererPackageAsync(_extensionId, _layoutId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Layout failed to load: renderer package fetch failed ({ex.Message}).";
+            return;
+        }
+
+        if (package is null)
+        {
+            _errorMessage = "Layout failed to load: renderer package is empty.";
+            return;
+        }
+
+        _rendererProtocolVersion = package.RendererProtocolVersion;
+
+        if (!TryComposeContentSecurityPolicy(package.ContentSecurityPolicy, out var composedCsp, out var cspError))
+        {
+            _errorMessage = $"Layout failed to load: {cspError}";
+            return;
+        }
+
+        string bridgeScript;
+        try
+        {
+            bridgeScript = await GetBridgeScriptAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Layout failed to load: bridge script unavailable ({ex.Message}).";
+            return;
+        }
+
+        _srcdoc = BuildSrcDoc(package, composedCsp, bridgeScript, _extensionId, _layoutId, _frameInstanceId);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The iframe is rendered only after the async mount sets _srcdoc, which
+        // normally lands on a later render than the first one. Gating attach on
+        // firstRender would therefore miss the iframe entirely: the host listener
+        // would never be wired up, so the frame's verso/ready is never heard and
+        // verso/init is never sent back. Attach the first time the iframe is
+        // actually present instead, exactly once.
+        if (_disposed || _srcdoc is null || _attached) return;
+
+        _attached = true;
+        _selfRef = DotNetObjectReference.Create(this);
+        try
+        {
+            _listenerHandle = await JS.InvokeAsync<int?>(
+                "versoLayoutFrame.attach", _iframeRef, _selfRef, _frameInstanceId);
+        }
+        catch (JSDisconnectedException) { return; }
+        catch (Microsoft.JSInterop.JSException) { return; }
+
+        SubscribeToHostEvents();
+        StartReadyTimeout();
+    }
+
+    private void SubscribeToHostEvents()
+    {
+        _onNotebookChangedHandler = HandleNotebookChanged;
+        _onCellOutputUpdatedHandler = HandleCellOutputUpdated;
+        _onThemeChangedHandler = HandleThemeChanged;
+        _onLayoutUpdatedHandler = HandleLayoutUpdated;
+        _onLayoutFrameMessageHandler = HandleLayoutFrameMessage;
+
+        Host.OnNotebookChanged += _onNotebookChangedHandler;
+        Host.OnCellOutputUpdated += _onCellOutputUpdatedHandler;
+        Host.OnThemeChanged += _onThemeChangedHandler;
+        Host.OnLayoutUpdated += _onLayoutUpdatedHandler;
+        Host.OnLayoutFrameMessage += _onLayoutFrameMessageHandler;
+    }
+
+    private void UnsubscribeFromHostEvents()
+    {
+        if (_onNotebookChangedHandler is not null)
+            Host.OnNotebookChanged -= _onNotebookChangedHandler;
+        if (_onCellOutputUpdatedHandler is not null)
+            Host.OnCellOutputUpdated -= _onCellOutputUpdatedHandler;
+        if (_onThemeChangedHandler is not null)
+            Host.OnThemeChanged -= _onThemeChangedHandler;
+        if (_onLayoutUpdatedHandler is not null)
+            Host.OnLayoutUpdated -= _onLayoutUpdatedHandler;
+        if (_onLayoutFrameMessageHandler is not null)
+            Host.OnLayoutFrameMessage -= _onLayoutFrameMessageHandler;
+
+        _onNotebookChangedHandler = null;
+        _onCellOutputUpdatedHandler = null;
+        _onThemeChangedHandler = null;
+        _onLayoutUpdatedHandler = null;
+        _onLayoutFrameMessageHandler = null;
+    }
+
+    private void StartReadyTimeout()
+    {
+        if (ReadyTimeoutMs <= 0) return;
+
+        _readyTimeoutCts = new CancellationTokenSource();
+        var token = _readyTimeoutCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(ReadyTimeoutMs, token);
+            }
+            catch (OperationCanceledException) { return; }
+
+            if (_disposed || _readyReceived) return;
+
+            await InvokeAsync(() =>
+            {
+                if (_disposed || _readyReceived) return;
+                _errorMessage = $"Layout failed to load: ready signal not received within {ReadyTimeoutMs / 1000}s.";
+                _srcdoc = null;
+                StateHasChanged();
+            });
+        });
+    }
+
+    private async Task RetryAsync()
+    {
+        if (_disposed) return;
+
+        UnsubscribeFromHostEvents();
+        _readyTimeoutCts?.Cancel();
+        _readyTimeoutCts?.Dispose();
+        _readyTimeoutCts = null;
+
+        if (_listenerHandle is { } handle)
+        {
+            try { await JS.InvokeVoidAsync("versoLayoutFrame.detach", handle); }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+        _listenerHandle = null;
+
+        _errorMessage = null;
+        _srcdoc = null;
+        _initSent = false;
+        _attached = false;
+        _readyReceived = false;
+        _frameInstanceId = "";
+        StateHasChanged();
+
+        await InitializeMountAsync();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnFrameMessage(string type, string? payloadJson)
+    {
+        if (_disposed) return;
+
+        try
+        {
+            switch (type)
+            {
+                case "verso/ready":
+                    await HandleReadyAsync(payloadJson);
+                    break;
+                case "verso/interact":
+                    await HandleInteractAsync(payloadJson);
+                    break;
+                case "verso/cellInteract":
+                    await HandleCellInteractAsync(payloadJson);
+                    break;
+                case "verso/executeCell":
+                    HandleExecuteCell(payloadJson);
+                    break;
+                case "verso/log":
+                    await HandleLogAsync(payloadJson);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Never let a malformed frame message take down the component.
+            // Forward to host so the failure is diagnosable.
+            await TryForwardLogAsync("error", $"OnFrameMessage('{type}') failed: {ex.Message}");
+        }
+    }
+
+    private async Task HandleReadyAsync(string? payloadJson)
+    {
+        if (_initSent) return;
+
+        if (!TryReadFrameInstanceId(payloadJson, out var echoedFrameInstanceId)
+            || !string.Equals(echoedFrameInstanceId, _frameInstanceId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _readyReceived = true;
+        _readyTimeoutCts?.Cancel();
+
+        if (_rendererProtocolVersion is { Length: > 0 } declared
+            && !string.Equals(declared, LayoutBridgeProtocol.Version, StringComparison.Ordinal))
+        {
+            await TryForwardLogAsync("warn",
+                $"Renderer declares layout-bridge protocol '{declared}' but the host speaks " +
+                $"'{LayoutBridgeProtocol.Version}'. Messages may be misinterpreted if the versions are incompatible.");
+        }
+
+        IDictionary<string, JsonElement>? extra;
+        try
+        {
+            extra = await Host.LayoutRendererMountedAsync(_extensionId, _layoutId, _frameInstanceId);
+        }
+        catch (Exception ex)
+        {
+            await TryForwardLogAsync("error", $"OnRendererMountedAsync failed: {ex.Message}");
+            extra = null;
+        }
+
+        var initPayload = new Dictionary<string, object?>
+        {
+            ["extensionId"] = _extensionId,
+            ["layoutId"] = _layoutId,
+            ["frameInstanceId"] = _frameInstanceId,
+            ["cells"] = Service.Cells.Select(c => new
+            {
+                cellId = c.Id.ToString(),
+                cellType = c.Type,
+                language = c.Language,
+                source = c.Source
+            }).ToArray(),
+            ["capabilities"] = (int)Service.LayoutCapabilities,
+            ["layoutMetadata"] = new { },
+            ["hostProtocolVersion"] = LayoutBridgeProtocol.Version,
+            ["extension"] = extra
+        };
+
+        if (Host.CurrentTheme is { } themeBundle)
+        {
+            initPayload["theme"] = themeBundle;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("versoLayoutFrame.postToIframe", _iframeRef, "verso/init", initPayload);
+            _initSent = true;
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private async Task HandleInteractAsync(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var root = doc.RootElement;
+
+        var interactionType = TryGetString(root, "interactionType") ?? "";
+        if (string.IsNullOrEmpty(interactionType)) return;
+
+        var payloadText = root.TryGetProperty("payload", out var pEl)
+            ? pEl.GetRawText()
+            : "null";
+        var targetId = TryGetString(root, "targetId");
+
+        // Overwrite identity with bound values regardless of what the iframe sent.
+        await Host.LayoutInteractAsync(
+            _extensionId, _layoutId, interactionType, payloadText, _frameInstanceId, targetId);
+    }
+
+    private async Task HandleCellInteractAsync(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var root = doc.RootElement;
+
+        var cellIdStr = TryGetString(root, "cellId");
+        var interactionType = TryGetString(root, "interactionType");
+        if (string.IsNullOrEmpty(cellIdStr) || string.IsNullOrEmpty(interactionType)) return;
+        if (!Guid.TryParse(cellIdStr, out var cellId)) return;
+
+        var payloadText = root.TryGetProperty("payload", out var pEl)
+            ? pEl.GetRawText()
+            : "null";
+        var outputBlockId = TryGetString(root, "outputBlockId");
+
+        var regionText = TryGetString(root, "region");
+        if (!Enum.TryParse<CellRegion>(regionText, ignoreCase: true, out var region))
+            region = CellRegion.Output;
+
+        await Host.HandleCellInteractionAsync(
+            cellId, _extensionId, interactionType, payloadText, outputBlockId, region);
+    }
+
+    private void HandleExecuteCell(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var cellIdStr = TryGetString(doc.RootElement, "cellId");
+        if (string.IsNullOrEmpty(cellIdStr)) return;
+        if (!Guid.TryParse(cellIdStr, out var cellId)) return;
+
+        // Fire-and-forget: cell execution can take arbitrarily long; do not block
+        // the inbound message pump.
+        _ = Host.ExecuteCellAsync(cellId);
+    }
+
+    private async Task HandleLogAsync(string? payloadJson)
+    {
+        if (string.IsNullOrEmpty(payloadJson)) return;
+        using var doc = JsonDocument.Parse(payloadJson);
+        var root = doc.RootElement;
+
+        var level = TryGetString(root, "level") ?? "info";
+        var message = TryGetString(root, "message") ?? "";
+
+        await Host.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
+    }
+
+    private async Task TryForwardLogAsync(string level, string message)
+    {
+        try
+        {
+            await Host.LogExtensionAsync(_extensionId, _layoutId, _frameInstanceId, level, message);
+        }
+        catch { /* host log forwarding is best-effort */ }
+    }
+
+    private void HandleNotebookChanged()
+    {
+        if (_disposed || !_initSent) return;
+        var payload = new
+        {
+            cells = Service.Cells.Select(c => new
+            {
+                cellId = c.Id.ToString(),
+                cellType = c.Type,
+                language = c.Language,
+                source = c.Source
+            }).ToArray()
+        };
+        _ = PostToIframeAsync("verso/cellsChanged", payload);
+    }
+
+    private void HandleCellOutputUpdated(CellOutputUpdatedEventArgs args)
+    {
+        if (_disposed || !_initSent) return;
+        _ = PostToIframeAsync("verso/cellOutputs", new
+        {
+            cellId = args.CellId.ToString(),
+            outputs = args.Outputs
+        });
+    }
+
+    private void HandleThemeChanged()
+    {
+        if (_disposed || !_initSent) return;
+        // Post even when the host has no server-resolved bundle: in the VS Code webview
+        // the frame interop injects the live theme from the page's CSS variables. The
+        // iframe bridge ignores a null/empty theme, so this is a no-op elsewhere.
+        _ = PostToIframeAsync("verso/themeChanged", new { theme = Host.CurrentTheme });
+    }
+
+    private void HandleLayoutUpdated(LayoutUpdatedEventArgs args)
+    {
+        if (_disposed || !_initSent) return;
+        if (!string.Equals(args.ExtensionId, _extensionId, StringComparison.Ordinal)) return;
+        if (!string.Equals(args.LayoutId, _layoutId, StringComparison.Ordinal)) return;
+        // Absent FrameInstanceId means broadcast to every frame for this layout.
+        if (!string.IsNullOrEmpty(args.FrameInstanceId)
+            && !string.Equals(args.FrameInstanceId, _frameInstanceId, StringComparison.Ordinal))
+            return;
+
+        _ = PostToIframeAsync("verso/layoutUpdated", new
+        {
+            scope = args.Scope,
+            cellId = args.CellId?.ToString()
+        });
+    }
+
+    private void HandleLayoutFrameMessage(LayoutFrameMessageEventArgs args)
+    {
+        if (_disposed || !_initSent) return;
+        if (!string.Equals(args.FrameInstanceId, _frameInstanceId, StringComparison.Ordinal)) return;
+        _ = PostToIframeAsync(args.Type, args.Payload);
+    }
+
+    private async Task PostToIframeAsync(string type, object? payload)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoLayoutFrame.postToIframe", _iframeRef, type, payload);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private static string? TryGetString(JsonElement el, string property)
+    {
+        if (el.TryGetProperty(property, out var p) && p.ValueKind == JsonValueKind.String)
+            return p.GetString();
+        return null;
+    }
+
+    private static bool TryReadFrameInstanceId(string? payloadJson, out string frameInstanceId)
+    {
+        frameInstanceId = string.Empty;
+        if (string.IsNullOrEmpty(payloadJson)) return false;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (doc.RootElement.TryGetProperty("frameInstanceId", out var idElem)
+                && idElem.ValueKind == JsonValueKind.String)
+            {
+                frameInstanceId = idElem.GetString() ?? string.Empty;
+                return frameInstanceId.Length > 0;
+            }
+        }
+        catch (JsonException) { }
+        return false;
+    }
+
+    private async Task<string> GetBridgeScriptAsync()
+    {
+        if (s_cachedBridgeScript is not null) return s_cachedBridgeScript;
+        var script = await JS.InvokeAsync<string>("versoLayoutFrame.getBridgeScript");
+        s_cachedBridgeScript = script;
+        return script;
+    }
+
+    private static bool TryComposeContentSecurityPolicy(
+        string? packageCsp, out string composed, out string error)
+    {
+        error = string.Empty;
+        // The renderer package's files are exposed to the frame as blob: URLs and the
+        // entry module is loaded with a dynamic import(blobUrl), so script-src must allow
+        // blob: in addition to the inline bootstrap. 'unsafe-inline' alone blocks the
+        // blob module import. connect-src stays 'none' so the frame still cannot reach the
+        // network; the blob URLs are same-origin artifacts the host itself created.
+        var baseCsp = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; "
+            + "img-src data: blob:; connect-src 'none';";
+
+        if (string.IsNullOrWhiteSpace(packageCsp))
+        {
+            composed = baseCsp;
+            return true;
+        }
+
+        // Block any package CSP that opens connect-src to non-blob origins so the
+        // isolated frame cannot make outbound network calls. Extensions that need
+        // HTTP must route through the kernel and pipe results back via cell outputs.
+        var lower = packageCsp.ToLowerInvariant();
+        var idx = lower.IndexOf("connect-src", StringComparison.Ordinal);
+        while (idx >= 0)
+        {
+            var endIdx = lower.IndexOf(';', idx);
+            var directive = endIdx >= 0 ? lower.Substring(idx, endIdx - idx) : lower.Substring(idx);
+            var rest = directive.Substring("connect-src".Length).Trim();
+            var tokens = rest.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var token in tokens)
+            {
+                if (token != "'none'" && token != "blob:" && token != "'self'")
+                {
+                    composed = string.Empty;
+                    error = $"CSP rejected: package declares a disallowed connect-src source ('{token}').";
+                    return false;
+                }
+            }
+            idx = lower.IndexOf("connect-src", idx + 1, StringComparison.Ordinal);
+        }
+
+        composed = baseCsp + " " + packageCsp.Trim();
+        return true;
+    }
+
+    private static string BuildSrcDoc(
+        LayoutRendererPackageDto package,
+        string csp,
+        string bridgeScript,
+        string extensionId,
+        string layoutId,
+        string frameInstanceId)
+    {
+        var sb = new StringBuilder(8192);
+        sb.Append("<!doctype html><html><head>");
+        sb.Append("<meta charset=\"utf-8\">");
+        sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"")
+          .Append(HtmlAttributeEscape(csp))
+          .Append("\">");
+        sb.Append("</head><body>");
+
+        sb.Append("<script>");
+        sb.Append(bridgeScript);
+        sb.Append("</script>");
+
+        sb.Append("<script>");
+        sb.Append("(function(){");
+        sb.Append("var files={};");
+
+        foreach (var (path, bytes) in package.Files)
+        {
+            var ext = path.LastIndexOf('.') is var dotIx and >= 0 ? path.Substring(dotIx + 1).ToLowerInvariant() : string.Empty;
+            var mime = MimeFor(ext);
+            sb.Append("files[")
+              .Append(JsonEncode(path))
+              .Append("]={data:\"")
+              .Append(Convert.ToBase64String(bytes))
+              .Append("\",mime:\"")
+              .Append(mime)
+              .Append("\"};");
+        }
+
+        sb.Append("var urls={};");
+        sb.Append("for(var k in files){");
+        sb.Append("var f=files[k];");
+        sb.Append("var bin=atob(f.data);");
+        sb.Append("var arr=new Uint8Array(bin.length);");
+        sb.Append("for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);");
+        sb.Append("urls[k]=URL.createObjectURL(new Blob([arr],{type:f.mime}));");
+        sb.Append("}");
+
+        sb.Append("window.versoBridgeInit({extensionId:")
+          .Append(JsonEncode(extensionId))
+          .Append(",layoutId:")
+          .Append(JsonEncode(layoutId))
+          .Append(",frameInstanceId:")
+          .Append(JsonEncode(frameInstanceId))
+          .Append("});");
+
+        sb.Append("var entryUrl=urls[")
+          .Append(JsonEncode(package.EntryPoint))
+          .Append("];");
+        sb.Append("if(!entryUrl){console.error('verso: entry point not found in bundle:',")
+          .Append(JsonEncode(package.EntryPoint))
+          .Append(");return;}");
+        sb.Append("import(entryUrl).catch(function(e){console.error('verso entry import failed:',e);});");
+        sb.Append("})();");
+        sb.Append("</script>");
+
+        sb.Append("</body></html>");
+        return sb.ToString();
+    }
+
+    private static string MimeFor(string ext) => ext switch
+    {
+        "js" or "mjs" => "text/javascript",
+        "css" => "text/css",
+        "html" or "htm" => "text/html",
+        "json" => "application/json",
+        "svg" => "image/svg+xml",
+        "png" => "image/png",
+        "jpg" or "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "wasm" => "application/wasm",
+        _ => "application/octet-stream"
+    };
+
+    private static string JsonEncode(string value)
+        => JsonSerializer.Serialize(value);
+
+    private static string HtmlAttributeEscape(string value)
+        => value.Replace("&", "&amp;").Replace("\"", "&quot;");
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        UnsubscribeFromHostEvents();
+
+        _readyTimeoutCts?.Cancel();
+        _readyTimeoutCts?.Dispose();
+        _readyTimeoutCts = null;
+
+        if (_initSent && !string.IsNullOrEmpty(_frameInstanceId))
+        {
+            try
+            {
+                await Host.LayoutRendererUnmountedAsync(_extensionId, _layoutId, _frameInstanceId);
+            }
+            catch { /* host-side teardown is best-effort during dispose */ }
+
+            try
+            {
+                await JS.InvokeVoidAsync("versoLayoutFrame.postToIframe", _iframeRef, "verso/dispose", new { });
+            }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        }
+
+        if (_listenerHandle is { } handle)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("versoLayoutFrame.detach", handle);
+            }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        }
+
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}

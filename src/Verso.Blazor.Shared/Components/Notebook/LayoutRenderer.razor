@@ -1,0 +1,54 @@
+@using Microsoft.AspNetCore.Components
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Services
+
+@if (RequiresIsolatedRenderer() && IsolatedRenderer is not null)
+{
+    @IsolatedRenderer
+}
+else if (RequiresInlineCustomRenderer())
+{
+    @* CustomLayoutHtml owns both the hidden cell pool and the layout root so the
+       @ref captures used by the portal-mount JS are valid in the same component. *@
+    <CustomLayoutHtml Service="Service" />
+}
+else
+{
+    <DefaultCellList Service="Service" />
+}
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+
+    /// <summary>
+    /// Injection point for the iframe-isolated renderer. Both hosts supply the shared
+    /// <c>CustomLayoutFrame</c> here: the server host drives it in-process, the WASM host
+    /// over the JSON-RPC bridge. Left null only by hosts that do not support isolated
+    /// layouts, in which case an isolated layout falls back to the default cell list.
+    /// </summary>
+    [Parameter] public RenderFragment? IsolatedRenderer { get; set; }
+
+    [CascadingParameter] public NotebookCellContext Context { get; set; } = default!;
+
+    private bool RequiresIsolatedRenderer()
+        => string.Equals(Service.ActiveLayoutRendererIsolation, "isolated", StringComparison.OrdinalIgnoreCase);
+
+    private bool RequiresInlineCustomRenderer()
+    {
+        var active = Service.ActiveLayout;
+        if (active is null) return false;
+
+        var info = Service.AvailableLayouts.FirstOrDefault(l =>
+            string.Equals(l.LayoutId, active.Value.LayoutId, StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrEmpty(active.Value.ExtensionId)
+             || string.Equals(l.ExtensionId, active.Value.ExtensionId, StringComparison.OrdinalIgnoreCase)));
+
+        if (info?.RequiresCustomRenderer != true) return false;
+
+        // Default to inline when the host did not specify an isolation mode. Matches the
+        // ILayoutEngine default of RendererIsolation.Inline.
+        var iso = Service.ActiveLayoutRendererIsolation;
+        return string.IsNullOrEmpty(iso)
+            || string.Equals(iso, "inline", StringComparison.OrdinalIgnoreCase);
+    }
+}

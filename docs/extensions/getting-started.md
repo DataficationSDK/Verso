@@ -178,4 +178,4 @@ The host calls `OnLoadedAsync` on each discovered `IExtension` instance, then ca
 - [Packaging and Publishing](packaging-and-publishing.md) -- NuGet packaging workflow
 - [Best Practices](best-practices.md) -- naming, thread safety, and performance guidance
 
-For a complete working example, see the Dice sample extension at `samples/SampleExtension/Verso.Sample.Dice/`.
+For a complete working example, see the Dice sample extension at `samples/extensions/Verso.Sample.Dice/`.

@@ -1,4 +1,159 @@
 <div class="verso-sidebar-panel">
+    @if (Service.IsLoaded && Service.IsMarketplaceSupported)
+    {
+        <div class="verso-marketplace">
+            <div class="verso-marketplace-search">
+                <div class="verso-marketplace-search-row">
+                    <input class="verso-marketplace-input"
+                           type="text"
+                           placeholder="Search NuGet for extensions..."
+                           value="@_searchQuery"
+                           @oninput="HandleSearchInput" />
+                    @if (Service.LocalExtensionPickMode == LocalExtensionPickMode.Upload)
+                    {
+                        <label class="verso-marketplace-more @(_isBusy ? "verso-marketplace-more--disabled" : "")"
+                               title="Install from a local .dll or .nupkg file">
+                            &#8943;
+                            <InputFile class="verso-marketplace-file"
+                                       OnChange="HandleLocalFileSelectedAsync"
+                                       accept=".dll,.nupkg" />
+                        </label>
+                    }
+                    else if (Service.LocalExtensionPickMode == LocalExtensionPickMode.NativeBrowse)
+                    {
+                        <button class="verso-marketplace-more"
+                                type="button"
+                                disabled="@_isBusy"
+                                title="Install from a local .dll or .nupkg file"
+                                @onclick="BrowseLocalAsync">&#8943;</button>
+                    }
+                </div>
+                @if (_isSearching)
+                {
+                    <span class="verso-marketplace-status">Searching...</span>
+                }
+            </div>
+
+            @if (_installError is not null)
+            {
+                <div class="verso-marketplace-error">@_installError</div>
+            }
+
+            @{
+                var installed = Service.InstalledExtensions;
+            }
+            @if (installed.Count > 0)
+            {
+                <div class="verso-marketplace-installed">
+                    <div class="verso-marketplace-installed-label">Installed</div>
+                    @foreach (var ext in installed)
+                    {
+                        var e = ext;
+                        <div class="verso-marketplace-installed-item">
+                            <div class="verso-marketplace-installed-info">
+                                <span class="verso-marketplace-installed-id" title="@e.Id">@e.Id</span>
+                                @if (e.Version is not null)
+                                {
+                                    <span class="verso-marketplace-installed-version">@e.Version</span>
+                                }
+                                @if (e.IsLocal)
+                                {
+                                    <span class="verso-marketplace-installed-badge" title="Sideloaded from a local file">Local</span>
+                                }
+                            </div>
+                            <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
+                                    disabled="@_isBusy"
+                                    @onclick="() => UninstallAsync(e.Id)">Uninstall</button>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_searchResults is not null)
+            {
+                @if (_searchResults.Count == 0 && !_isSearching && !string.IsNullOrWhiteSpace(_searchQuery))
+                {
+                    <div class="verso-marketplace-empty">No packages found.</div>
+                }
+                else
+                {
+                    <div class="verso-marketplace-results">
+                        @foreach (var pkg in _searchResults)
+                        {
+                            var p = pkg;
+                            <div class="verso-marketplace-result">
+                                <div class="verso-marketplace-result-header">
+                                    <span class="verso-marketplace-result-id" title="@p.Id">@p.Id</span>
+                                    @if (p.Version is not null)
+                                    {
+                                        @if (p.IsInstalled)
+                                        {
+                                            <span class="verso-marketplace-result-version">@p.Version</span>
+                                        }
+                                        else
+                                        {
+                                            var selected = SelectedVersion(p);
+                                            <div class="verso-marketplace-version-dropdown" @onfocusout="OnVersionDropdownFocusOut" tabindex="-1">
+                                                <button class="verso-marketplace-version-badge"
+                                                        disabled="@_isBusy"
+                                                        title="Choose a version to install"
+                                                        @onclick="() => ToggleVersionDropdown(p.Id, p.Version)">
+                                                    @selected
+                                                    <span class="verso-marketplace-version-chevron">&#9662;</span>
+                                                </button>
+                                                @if (_openVersionDropdownId == p.Id)
+                                                {
+                                                    <div class="verso-marketplace-version-popup">
+                                                        @if (_loadingVersionsId == p.Id)
+                                                        {
+                                                            <div class="verso-marketplace-version-status">Loading...</div>
+                                                        }
+                                                        else if (_versionCache.TryGetValue(p.Id, out var versions))
+                                                        {
+                                                            @foreach (var ver in versions)
+                                                            {
+                                                                var v = ver;
+                                                                var isActive = string.Equals(v, selected, StringComparison.OrdinalIgnoreCase);
+                                                                <button class="verso-marketplace-version-option @(isActive ? "verso-marketplace-version-option--active" : "")"
+                                                                        @onclick="() => SelectVersion(p.Id, v)">@v</button>
+                                                            }
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                                @if (p.Authors is not null)
+                                {
+                                    <div class="verso-marketplace-result-authors">@p.Authors</div>
+                                }
+                                @if (p.Description is not null)
+                                {
+                                    <div class="verso-marketplace-result-desc">@p.Description</div>
+                                }
+                                <div class="verso-marketplace-result-actions">
+                                    @if (p.IsInstalled)
+                                    {
+                                        <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
+                                                disabled="@_isBusy"
+                                                @onclick="() => UninstallAsync(p.Id)">Uninstall</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="verso-marketplace-btn verso-marketplace-btn--install"
+                                                disabled="@_isBusy"
+                                                @onclick="() => InstallAsync(p.Id, SelectedVersion(p))">Install</button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+
     @if (Service.IsLoaded)
     {
         var infos = Service.Extensions;
@@ -53,6 +208,7 @@
     }
 </div>
 
+@using Microsoft.AspNetCore.Components.Forms
 @implements IDisposable
 
 @code {
@@ -60,6 +216,22 @@
 
     private readonly HashSet<string> _expandedCategories = new();
     private INotebookService? _subscribedService;
+
+    // Marketplace search state
+    private string _searchQuery = string.Empty;
+    private IReadOnlyList<PackageSearchResultDto>? _searchResults;
+    private bool _isSearching;
+    private bool _isBusy;
+    private string? _installError;
+    private CancellationTokenSource? _searchCts;
+
+    // Per-package version selection, keyed by package id. A package absent from _selectedVersions
+    // installs at the latest (the version the search returned). _versionCache holds the lazily
+    // fetched version list for each package whose dropdown has been opened.
+    private readonly Dictionary<string, string> _selectedVersions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IReadOnlyList<string>> _versionCache = new(StringComparer.OrdinalIgnoreCase);
+    private string? _openVersionDropdownId;
+    private string? _loadingVersionsId;
 
     private static readonly Dictionary<string, string> CategoryDisplayNames = new()
     {
@@ -139,8 +311,249 @@
             await Service.EnableExtensionAsync(extensionId);
     }
 
+    // ── Marketplace ────────────────────────────────────────────────────
+
+    private async Task HandleSearchInput(ChangeEventArgs e)
+    {
+        _searchQuery = e.Value?.ToString() ?? string.Empty;
+        _installError = null;
+
+        // Cancel any in-flight search; this input supersedes it.
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            _searchCts = null;
+            _searchResults = null;
+            _isSearching = false;
+            return;
+        }
+
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
+        var query = _searchQuery;
+
+        _isSearching = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Debounce so each keystroke doesn't fire a NuGet round-trip.
+            await Task.Delay(300, ct);
+            var results = await Service.SearchExtensionsAsync(query, 0, 20, includePrerelease: false, ct);
+            if (ct.IsCancellationRequested) return;
+
+            _searchResults = results;
+            _isSearching = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer keystroke; the newer search owns the UI state.
+        }
+        catch (Exception ex)
+        {
+            _isSearching = false;
+            _installError = ex.Message;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // The version that will be installed for a package: the user's pick if they chose one,
+    // otherwise the latest version the search returned.
+    private string? SelectedVersion(PackageSearchResultDto p)
+        => _selectedVersions.TryGetValue(p.Id, out var v) ? v : p.Version;
+
+    private async Task ToggleVersionDropdown(string packageId, string? latest)
+    {
+        if (_openVersionDropdownId == packageId)
+        {
+            _openVersionDropdownId = null;
+            return;
+        }
+
+        _openVersionDropdownId = packageId;
+
+        // Fetch the version list the first time this package's dropdown is opened.
+        if (!_versionCache.ContainsKey(packageId))
+            await LoadVersionsAsync(packageId, latest);
+    }
+
+    private async Task LoadVersionsAsync(string packageId, string? latest)
+    {
+        _loadingVersionsId = packageId;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var versions = await Service.GetExtensionVersionsAsync(packageId, includePrerelease: false, CancellationToken.None);
+
+            // Fall back to the search's latest version when the feed can't enumerate versions
+            // (e.g. a source without an all-versions endpoint), so the dropdown still offers the
+            // default rather than showing an empty list.
+            if (versions.Count == 0 && latest is not null)
+                versions = new[] { latest };
+
+            _versionCache[packageId] = versions;
+        }
+        catch
+        {
+            _versionCache[packageId] = latest is not null ? new[] { latest } : Array.Empty<string>();
+        }
+        finally
+        {
+            _loadingVersionsId = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void SelectVersion(string packageId, string version)
+    {
+        _selectedVersions[packageId] = version;
+        _openVersionDropdownId = null;
+    }
+
+    private async Task OnVersionDropdownFocusOut()
+    {
+        // Delay so a click on a version option registers before the popup closes (the option's
+        // onclick and this focusout race; the delay lets the selection win).
+        await Task.Delay(150);
+        _openVersionDropdownId = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task InstallAsync(string packageId, string? version)
+    {
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Service.InstallExtensionAsync(packageId, version, CancellationToken.None);
+            if (!result.Success)
+                _installError = result.ErrorMessage ?? "Installation failed.";
+            else
+                await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task UninstallAsync(string packageId)
+    {
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Service.UninstallExtensionAsync(packageId);
+            await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // Ceiling for a sideloaded package; comfortably above a typical extension .dll/.nupkg.
+    private const long MaxLocalExtensionBytes = 64L * 1024 * 1024;
+
+    private async Task HandleLocalFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null)
+            return;
+
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxLocalExtensionBytes);
+            var result = await Service.InstallLocalExtensionAsync(file.Name, stream, CancellationToken.None);
+            if (!result.Success)
+                _installError = result.ErrorMessage ?? "Installation failed.";
+            else
+                await RefreshSearchResultsAsync();
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task BrowseLocalAsync()
+    {
+        _isBusy = true;
+        _installError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Service.BrowseAndInstallLocalExtensionAsync(CancellationToken.None);
+            // A cancelled native dialog returns Success=false with no error; leave the UI quiet.
+            if (!result.Success)
+            {
+                if (result.ErrorMessage is not null)
+                    _installError = result.ErrorMessage;
+            }
+            else
+            {
+                await RefreshSearchResultsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _installError = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RefreshSearchResultsAsync()
+    {
+        // Re-run the current query so each result's installed state reflects the change.
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return;
+        try
+        {
+            _searchResults = await Service.SearchExtensionsAsync(
+                _searchQuery, 0, 20, includePrerelease: false, CancellationToken.None);
+        }
+        catch
+        {
+            // Keep the previous results if the refresh fails.
+        }
+    }
+
     public void Dispose()
     {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
         if (_subscribedService is not null)
             _subscribedService.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
     }

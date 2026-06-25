@@ -179,6 +179,41 @@ internal sealed class NuGetPackageResolver
     }
 
     /// <summary>
+    /// Resolves the latest stable version of a package from the configured sources without
+    /// downloading anything. Used to detect whether a notebook's "latest" required extension
+    /// has drifted from the version the user previously approved, so consent can be requested
+    /// before the new version loads. Returns <c>null</c> when no source can be reached or the
+    /// package has no stable release.
+    /// </summary>
+    public async Task<string?> ResolveLatestStableVersionAsync(string packageId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(packageId))
+            return null;
+
+        var cache = new SourceCacheContext();
+        foreach (var source in _sources)
+        {
+            try
+            {
+                var res = await source.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
+                var versions = await res.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, ct).ConfigureAwait(false);
+                var latest = versions
+                    .Where(v => !v.IsPrerelease)
+                    .OrderByDescending(v => v)
+                    .FirstOrDefault();
+                if (latest is not null)
+                    return latest.ToString();
+            }
+            catch (OperationCanceledException) { throw; }
+            catch
+            {
+                // Source unavailable, try the next one.
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Recursively resolves a package and its dependencies, collecting all assembly paths
     /// and a flat list of (id, version) pairs for every package that was actually resolved
     /// (i.e. not skipped by <see cref="IsFrameworkPackage"/> or already visited).

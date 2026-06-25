@@ -6,10 +6,14 @@ using Verso.Parameters;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!import path [--param name=value ...]</c> -- reads a notebook file or source file, deserializes
-/// or parses it, resolves parameters against the imported notebook's definitions, and executes every
-/// cell whose type carries source (any type other than <c>markdown</c> or <c>raw</c>), dispatching to
+/// <c>#!import path [--param name=value ...] [--show-output]</c> -- reads a notebook file or source file,
+/// deserializes or parses it, resolves parameters against the imported notebook's definitions, and executes
+/// every cell whose type carries source (any type other than <c>markdown</c> or <c>raw</c>), dispatching to
 /// the kernel that handles each cell's language. Variables and state persist for subsequent cells.
+/// <para>
+/// By default the imported cells run silently. Pass <c>--show-output</c> to surface the output each imported
+/// cell produces in the importing cell, in execution order.
+/// </para>
 /// <para>
 /// Supported formats:
 /// <list type="bullet">
@@ -34,12 +38,13 @@ public sealed class ImportMagicCommand : IMagicCommand
     // --- IMagicCommand ---
 
     public string Name => "import";
-    public string Description => "Imports another notebook file and executes its cells (any cell type other than markdown or raw), with optional parameter overrides.";
+    public string Description => "Imports another notebook file and executes its cells (any cell type other than markdown or raw), with optional parameter overrides. Pass --show-output to display the imported cells' output.";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
         new ParameterDefinition("path", "Path to the notebook file to import.", typeof(string), IsRequired: true),
-        new ParameterDefinition("--param", "Parameter override in name=value format. May be repeated.", typeof(string), IsRequired: false)
+        new ParameterDefinition("--param", "Parameter override in name=value format. May be repeated.", typeof(string), IsRequired: false),
+        new ParameterDefinition("--show-output", "Display the output produced by the imported cells. Off by default.", typeof(bool), IsRequired: false)
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -57,7 +62,7 @@ public sealed class ImportMagicCommand : IMagicCommand
             return;
         }
 
-        var (path, paramOverrides) = ParseArguments(arguments);
+        var (path, paramOverrides, showOutput) = ParseArguments(arguments);
 
         try
         {
@@ -76,7 +81,7 @@ public sealed class ImportMagicCommand : IMagicCommand
 
             if (serializer is not null)
             {
-                await ImportNotebookAsync(resolvedPath, serializer, paramOverrides, context)
+                await ImportNotebookAsync(resolvedPath, serializer, paramOverrides, showOutput, context)
                     .ConfigureAwait(false);
                 return;
             }
@@ -87,7 +92,7 @@ public sealed class ImportMagicCommand : IMagicCommand
 
             if (kernel is not null)
             {
-                await ImportSourceFileAsync(resolvedPath, kernel, context).ConfigureAwait(false);
+                await ImportSourceFileAsync(resolvedPath, kernel, showOutput, context).ConfigureAwait(false);
                 return;
             }
 
@@ -115,6 +120,7 @@ public sealed class ImportMagicCommand : IMagicCommand
         string resolvedPath,
         INotebookSerializer serializer,
         Dictionary<string, string> paramOverrides,
+        bool showOutput,
         IMagicCommandContext context)
     {
         var content = await File.ReadAllTextAsync(resolvedPath, context.CancellationToken)
@@ -156,8 +162,18 @@ public sealed class ImportMagicCommand : IMagicCommand
             if (string.IsNullOrWhiteSpace(cell.Source))
                 continue;
 
-            await context.Notebook.ExecuteCodeAsync(cell.Source, cell.Language, context.CancellationToken)
-                .ConfigureAwait(false);
+            if (showOutput)
+            {
+                var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
+                    cell.Source, cell.Language, context.CancellationToken).ConfigureAwait(false);
+                foreach (var output in outputs)
+                    await context.WriteOutputAsync(output).ConfigureAwait(false);
+            }
+            else
+            {
+                await context.Notebook.ExecuteCodeAsync(cell.Source, cell.Language, context.CancellationToken)
+                    .ConfigureAwait(false);
+            }
             executedCount++;
         }
 
@@ -191,6 +207,7 @@ public sealed class ImportMagicCommand : IMagicCommand
     private async Task ImportSourceFileAsync(
         string resolvedPath,
         ILanguageKernel kernel,
+        bool showOutput,
         IMagicCommandContext context)
     {
         var content = await File.ReadAllTextAsync(resolvedPath, context.CancellationToken)
@@ -227,8 +244,18 @@ public sealed class ImportMagicCommand : IMagicCommand
 
         if (!string.IsNullOrWhiteSpace(code))
         {
-            await context.Notebook.ExecuteCodeAsync(code, kernel.LanguageId, context.CancellationToken)
-                .ConfigureAwait(false);
+            if (showOutput)
+            {
+                var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
+                    code, kernel.LanguageId, context.CancellationToken).ConfigureAwait(false);
+                foreach (var output in outputs)
+                    await context.WriteOutputAsync(output).ConfigureAwait(false);
+            }
+            else
+            {
+                await context.Notebook.ExecuteCodeAsync(code, kernel.LanguageId, context.CancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
 
         var fileName = Path.GetFileName(resolvedPath);
@@ -324,26 +351,37 @@ public sealed class ImportMagicCommand : IMagicCommand
     }
 
     /// <summary>
-    /// Parses the arguments string into a file path and optional --param overrides.
+    /// Parses the arguments string into a file path, optional --param overrides, and the
+    /// --show-output flag. The path is the first token that is not a recognized flag, so the
+    /// flag may appear before or after the path.
     /// </summary>
-    internal static (string Path, Dictionary<string, string> Params) ParseArguments(string arguments)
+    internal static (string Path, Dictionary<string, string> Params, bool ShowOutput) ParseArguments(string arguments)
     {
         var parts = arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var path = parts[0];
+        string? path = null;
         var paramOverrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var showOutput = false;
 
-        for (var i = 1; i < parts.Length; i++)
+        for (var i = 0; i < parts.Length; i++)
         {
-            if (parts[i] is "--param" or "-p" && i + 1 < parts.Length)
+            if (string.Equals(parts[i], "--show-output", StringComparison.OrdinalIgnoreCase))
+            {
+                showOutput = true;
+            }
+            else if (parts[i] is "--param" or "-p" && i + 1 < parts.Length)
             {
                 var pair = parts[++i];
                 var eq = pair.IndexOf('=');
                 if (eq > 0)
                     paramOverrides[pair[..eq]] = pair[(eq + 1)..];
             }
+            else
+            {
+                path ??= parts[i];
+            }
         }
 
-        return (path, paramOverrides);
+        return (path ?? "", paramOverrides, showOutput);
     }
 
     /// <summary>

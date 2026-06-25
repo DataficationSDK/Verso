@@ -1,0 +1,464 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Models
+@using Verso.Blazor.Shared.Services
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* The pool owns every cell as a live Blazor component. The portal-interop JS
+   moves cell DOM nodes out of the pool into the [data-cell-slot] elements that
+   live inside the layout root; pool wrappers stay hidden via inline display:none
+   so cells without a matching slot do not appear in flow. The pool and root live
+   in the same component so the @ref captures are stable in the same OnAfterRender. *@
+<div class="verso-cell-pool" style="display: none" @ref="_poolRef">
+    @if (Context is not null)
+    {
+        var poolCells = Service.Cells;
+        @for (int i = 0; i < poolCells.Count; i++)
+        {
+            var cell = poolCells[i];
+            var index = i;
+            var headingLevel = HeadingDetector.GetHeadingLevel(cell);
+            <div @key="cell.Id" data-cell-id="@cell.Id">
+                @* Index, IsLast, and heading state are computed per cell exactly as the default
+                   cell list does, so a cell portaled into a custom layout shows the same toolbar
+                   affordances (move up/down with correct edge hiding, the index badge, and the
+                   section-collapse control on heading cells). *@
+                <Cell CellData="cell"
+                      IsSelected="cell.Id == Context.SelectedCellId"
+                      IsExecuting="cell.Id == Context.ExecutingCellId"
+                      IsRunDisabled="Context.IsRunDisabled"
+                      Index="index"
+                      IsLast="index == poolCells.Count - 1"
+                      CollapsesInput="Service.ShouldCollapseInput(cell.Type)"
+                      IsEditable="Service.IsCellTypeEditable(cell.Type)"
+                      IsHeadingCell="headingLevel is not null"
+                      IsSectionCollapsed="Context.CollapsedSections.Contains(cell.Id)"
+                      OnToggleSection="Context.OnToggleSection"
+                      OnRunCell="Context.OnRunCell"
+                      OnCancelCell="Context.OnCancelCell"
+                      OnDeleteCell="Context.OnDeleteCell"
+                      OnSelect="Context.OnSelectCell"
+                      OnMoveUp="Context.OnMoveUp"
+                      OnMoveDown="Context.OnMoveDown"
+                      OnSourceChanged="Context.OnSourceChanged"
+                      OnCellAction="Context.OnCellAction"
+                      OnCellTypeChanged="Context.OnCellTypeChanged"
+                      OnCellLanguageChanged="Context.OnCellLanguageChanged" />
+            </div>
+        }
+    }
+</div>
+
+@foreach (var asset in _stylesheetAssets)
+{
+    <link @key="@($"css|{_extensionId}|{_layoutId}|{asset.AssetId}")"
+          rel="stylesheet"
+          href="@asset.Url"
+          data-verso-extension-id="@_extensionId"
+          data-verso-layout-id="@_layoutId"
+          data-verso-asset-id="@asset.AssetId" />
+}
+
+@foreach (var asset in _scriptsBefore)
+{
+    <script @key="@($"js|{_extensionId}|{_layoutId}|{asset.AssetId}")"
+            src="@asset.Url"
+            type="@ScriptTypeAttr(asset)"
+            defer="@DeferAttr(asset)"
+            async="@AsyncAttr(asset)"
+            data-verso-extension-id="@_extensionId"
+            data-verso-layout-id="@_layoutId"
+            data-verso-frame-instance-id="@_frameInstanceId"
+            data-verso-asset-id="@asset.AssetId"></script>
+}
+
+@* The root content is driven entirely by JS (versoCustomLayout.setLayoutHtml), not by a Blazor
+   MarkupString. Binding the HTML through Blazor would replace this subtree on every re-render,
+   destroying the portaled live cells and forcing a full unmount+remount on the next
+   OnAfterRender — which paints empty slots for a frame (a visible flash) and drops scroll. The
+   JS path swaps the chrome and re-portals the cells in one synchronous frame, so fold/insert/
+   reorder re-renders stay flicker-free. Blazor still owns this element; only its children are
+   managed out-of-band. *@
+<div class="verso-layout-root"
+     data-extension-id="@_extensionId"
+     data-layout-id="@_layoutId"
+     data-frame-instance-id="@_frameInstanceId"
+     @ref="_rootRef"></div>
+
+@foreach (var asset in _scriptsAfter)
+{
+    <script @key="@($"js|{_extensionId}|{_layoutId}|{asset.AssetId}")"
+            src="@asset.Url"
+            type="@ScriptTypeAttr(asset)"
+            defer="@DeferAttr(asset)"
+            async="@AsyncAttr(asset)"
+            data-verso-extension-id="@_extensionId"
+            data-verso-layout-id="@_layoutId"
+            data-verso-frame-instance-id="@_frameInstanceId"
+            data-verso-asset-id="@asset.AssetId"></script>
+}
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+
+    [CascadingParameter] public NotebookCellContext? Context { get; set; }
+
+    private ElementReference _rootRef;
+    private ElementReference _poolRef;
+    private string? _html;
+    private string _extensionId = "";
+    private string _layoutId = "";
+    private string _frameInstanceId = "";
+    private bool _subscribed;
+    private bool _setHtmlNeeded;
+    private bool _portalPendingNeeded;
+    private bool _disposed;
+    // Monotonic token that sequences full re-renders. Each full render captures the value
+    // before its first await and bails if a later render bumped it across the await, so two
+    // rapid layout switches can't leave the earlier layout's HTML under the newer identity.
+    private int _layoutGeneration;
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _stylesheetAssets
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _scriptsBefore
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+    private IReadOnlyList<LayoutStaticAssetDescriptor> _scriptsAfter
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+    // Previous identity captured before re-fetching assets on layout switch, so we can
+    // release the prior layout's blob URLs (WASM host) or simply drop our DOM links
+    // (Server host) without leaking the previous layout's stylesheet into the new one.
+    private string _previousExtensionId = "";
+    private string _previousLayoutId = "";
+
+    private static int s_globalSeq;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Service.OnLayoutChanged += HandleLayoutChanged;
+        Service.OnLayoutUpdated += HandleLayoutUpdated;
+
+        // Notebook state-change events are pushed to inline layouts that declare the
+        // NotebookEvents capability. We subscribe unconditionally and gate the dispatch
+        // per-event on the active layout's capabilities, so the check stays correct even
+        // though this component is torn down and recreated on layout switch.
+        Service.OnCellExecuting += HandleCellExecuting;
+        Service.OnCellExecutionCompleted += HandleCellExecutionCompleted;
+        Service.OnOutputUpdated += HandleOutputUpdated;
+        Service.OnNotebookChanged += HandleNotebookStateChanged;
+        Service.OnVariablesChanged += HandleVariablesChanged;
+        Service.OnExtensionStatusChanged += HandleExtensionStatusChanged;
+        Service.OnThemeChanged += HandleThemeChangedEvent;
+        Service.OnKernelRestarting += HandleKernelRestarting;
+        Service.OnKernelRestarted += HandleKernelRestarted;
+        _subscribed = true;
+        CaptureIdentity();
+        _html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+        await RefreshLayoutAssetsAsync();
+        // Push the initial HTML to the root and portal the cells in once the element exists.
+        _setHtmlNeeded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed) return;
+
+        // Push the current layout HTML into the (Blazor-owned but JS-managed) root and re-portal
+        // the live cells in one synchronous frame. Runs on first render once _html is populated
+        // and again whenever the chrome changes (layout switch, fold, insert, reorder). Because the
+        // swap + re-portal happen together in JS, there is no empty-slot frame and no flash.
+        if (_setHtmlNeeded)
+        {
+            _setHtmlNeeded = false;
+            if (!string.IsNullOrEmpty(_html))
+                await SetLayoutHtmlAsync();
+        }
+
+        // A structural change re-rendered the pool (e.g. a cell added via a layout affordance,
+        // whose pool update and layout re-render arrive as separate messages). Portal any cell
+        // whose slot is now present but still empty, without disturbing already-portaled cells.
+        else if (_portalPendingNeeded)
+        {
+            _portalPendingNeeded = false;
+            if (!string.IsNullOrEmpty(_html))
+                await PortalPendingAsync();
+        }
+    }
+
+    private async Task SetLayoutHtmlAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoCustomLayout.setLayoutHtml", _rootRef, _poolRef, _html);
+            // Fire the generic post-mount hook so layout-specific JS (e.g. dashboard drag/resize
+            // handlers) can attach to the freshly-swapped root. No-op when no handler is registered.
+            await JS.InvokeVoidAsync("versoCustomLayout.notifyMounted", _rootRef, _extensionId, _layoutId);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private async Task PortalPendingAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoCustomLayout.portalPending", _rootRef, _poolRef);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private async Task UnmountSlotsAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("versoCustomLayout.unmountSlots", _rootRef, _poolRef);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    private void CaptureIdentity()
+    {
+        var active = Service.ActiveLayout;
+        _previousExtensionId = _extensionId;
+        _previousLayoutId = _layoutId;
+        _extensionId = active?.ExtensionId ?? string.Empty;
+        _layoutId = active?.LayoutId ?? string.Empty;
+
+        var notebookSegment = Service.FilePath ?? "unsaved";
+        var seq = System.Threading.Interlocked.Increment(ref s_globalSeq);
+        _frameInstanceId = $"{notebookSegment}/{_layoutId}/{seq}";
+    }
+
+    private async Task RefreshLayoutAssetsAsync()
+    {
+        // Release any links held for a previous layout before fetching the new set, so
+        // a stale stylesheet doesn't linger if the new layout has no assets at all.
+        if (!string.IsNullOrEmpty(_previousExtensionId)
+            && !string.IsNullOrEmpty(_previousLayoutId)
+            && (!string.Equals(_previousExtensionId, _extensionId, StringComparison.Ordinal)
+                || !string.Equals(_previousLayoutId, _layoutId, StringComparison.Ordinal)))
+        {
+            await Service.ReleaseLayoutStaticAssetsAsync(_previousExtensionId, _previousLayoutId);
+        }
+
+        if (string.IsNullOrEmpty(_extensionId) || string.IsNullOrEmpty(_layoutId))
+        {
+            _stylesheetAssets = Array.Empty<LayoutStaticAssetDescriptor>();
+            _scriptsBefore = Array.Empty<LayoutStaticAssetDescriptor>();
+            _scriptsAfter = Array.Empty<LayoutStaticAssetDescriptor>();
+            return;
+        }
+
+        var assets = await Service.GetLayoutStaticAssetsAsync(_extensionId, _layoutId);
+        var styles = new List<LayoutStaticAssetDescriptor>();
+        var before = new List<LayoutStaticAssetDescriptor>();
+        var after = new List<LayoutStaticAssetDescriptor>();
+        foreach (var asset in assets)
+        {
+            if (IsScriptContentType(asset.ContentType))
+            {
+                if (asset.LoadHints?.Placement == LayoutScriptPlacement.BeforeLayoutHtml)
+                    before.Add(asset);
+                else
+                    after.Add(asset);
+            }
+            else
+            {
+                styles.Add(asset);
+            }
+        }
+        _stylesheetAssets = styles;
+        _scriptsBefore = before;
+        _scriptsAfter = after;
+    }
+
+    private static bool IsScriptContentType(string contentType) =>
+        string.Equals(contentType, "text/javascript", StringComparison.Ordinal)
+        || string.Equals(contentType, "application/javascript", StringComparison.Ordinal);
+
+    private static string? ScriptTypeAttr(LayoutStaticAssetDescriptor asset) =>
+        asset.LoadHints?.ModuleKind == LayoutScriptModuleKind.Module ? "module" : null;
+
+    private static bool? DeferAttr(LayoutStaticAssetDescriptor asset)
+    {
+        // Default load mode is Defer. async/blocking explicitly omit the defer attribute.
+        var mode = asset.LoadHints?.LoadMode ?? LayoutScriptLoadMode.Defer;
+        return mode == LayoutScriptLoadMode.Defer ? true : null;
+    }
+
+    private static bool? AsyncAttr(LayoutStaticAssetDescriptor asset) =>
+        asset.LoadHints?.LoadMode == LayoutScriptLoadMode.Async ? true : (bool?)null;
+
+    private void HandleLayoutChanged()
+    {
+        if (_disposed) return;
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+            var gen = ++_layoutGeneration;
+            CaptureIdentity();
+            var html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+            // A newer switch ran while we awaited; its render supersedes ours.
+            if (_disposed || gen != _layoutGeneration) return;
+            _html = html;
+            await RefreshLayoutAssetsAsync();
+            if (_disposed || gen != _layoutGeneration) return;
+            // OnAfterRender pushes the new chrome and re-portals via _setHtmlNeeded, so the JS
+            // interop awaits don't interleave with the dispatcher work that the re-render
+            // triggered by StateHasChanged depends on.
+            _setHtmlNeeded = true;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleLayoutUpdated(LayoutUpdatedEventArgs args)
+    {
+        if (_disposed) return;
+        if (!string.Equals(args.ExtensionId, _extensionId, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(args.LayoutId, _layoutId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // When the host scopes the update to a specific renderer instance, ignore notifications
+        // for other instances. An empty FrameInstanceId is treated as a broadcast.
+        if (!string.IsNullOrEmpty(args.FrameInstanceId) &&
+            !string.Equals(args.FrameInstanceId, _frameInstanceId, StringComparison.Ordinal))
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+
+            switch (args.Scope)
+            {
+                case "full":
+                    var gen = ++_layoutGeneration;
+                    var html = await Service.RenderActiveLayoutAsync() ?? string.Empty;
+                    // A newer full render ran while we awaited; let it win.
+                    if (_disposed || gen != _layoutGeneration) return;
+                    _html = html;
+                    // OnAfterRender swaps the chrome and re-portals the cells via _setHtmlNeeded.
+                    _setHtmlNeeded = true;
+                    StateHasChanged();
+                    break;
+
+                case "cell":
+                    if (args.CellId is { } cellId)
+                        await RefreshCellSlotAsync(cellId);
+                    break;
+
+                case "metadata":
+                    // No client-visible action in v1.0. The LayoutInteractionContext API
+                    // does not currently emit this scope; layouts that depend on metadata
+                    // changes should call RequestRender for a full re-render.
+                    break;
+            }
+        });
+    }
+
+    private async Task RefreshCellSlotAsync(Guid cellId)
+    {
+        try
+        {
+            var info = await Service.GetCellContainerAsync(cellId);
+            await JS.InvokeVoidAsync(
+                "versoCustomLayout.updateSlotPosition",
+                _rootRef,
+                cellId.ToString(),
+                info.Y, info.X, info.Width, info.Height);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Microsoft.JSInterop.JSException) { }
+    }
+
+    // ── Notebook state-change push ─────────────────────────────────────
+    // Each host event is forwarded to the inline layout's script as a
+    // verso:notebookevent CustomEvent (bridge.onNotebookEvent). This is a pure
+    // push: it never re-renders the layout. The layout decides whether to update
+    // incrementally or call bridge.requestRender() for a full server re-render.
+
+    private void HandleCellExecuting(Guid cellId)
+        => DispatchNotebookEvent("cell-executing", new { cellId = cellId.ToString() });
+
+    private void HandleCellExecutionCompleted(Guid cellId)
+        => DispatchNotebookEvent("cell-execution-completed", new { cellId = cellId.ToString() });
+
+    private void HandleOutputUpdated() => DispatchNotebookEvent("outputs-changed");
+
+    private void HandleNotebookStateChanged()
+    {
+        DispatchNotebookEvent("notebook-changed");
+
+        // A structural change re-renders the cell pool. Schedule a portal pass so any cell whose
+        // slot already exists but is still empty (e.g. one added via a layout affordance, where
+        // the pool update and the layout re-render arrive separately) gets moved into its slot.
+        // This pass is also the backstop that makes the host's cellsChanged-before-render ordering
+        // race-proof: if a layout re-render paints a new slot before this refresh lands its cell
+        // in the pool, the slot stays empty (and CSS-hidden) only until this portalPending fills
+        // it. See the ORDERING CONTRACT note in Verso.Host LayoutHandler.InteractAsync.
+        if (_disposed) return;
+        _ = InvokeAsync(() =>
+        {
+            if (_disposed) return;
+            _portalPendingNeeded = true;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleVariablesChanged() => DispatchNotebookEvent("variables-changed");
+
+    private void HandleExtensionStatusChanged() => DispatchNotebookEvent("extension-status-changed");
+
+    private void HandleThemeChangedEvent() => DispatchNotebookEvent("theme-changed");
+
+    private void HandleKernelRestarting(string? kernelId)
+        => DispatchNotebookEvent("kernel-restarting", kernelId is null ? null : new { kernelId });
+
+    private void HandleKernelRestarted(string? kernelId)
+        => DispatchNotebookEvent("kernel-restarted", kernelId is null ? null : new { kernelId });
+
+    private void DispatchNotebookEvent(string type, object? detail = null)
+    {
+        if (_disposed) return;
+        if (!Service.LayoutCapabilities.HasFlag(LayoutCapabilities.NotebookEvents)) return;
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+            try
+            {
+                await JS.InvokeVoidAsync("verso.notebook.dispatchEvent", type, detail);
+            }
+            catch (JSDisconnectedException) { }
+            catch (Microsoft.JSInterop.JSException) { }
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        if (_subscribed)
+        {
+            Service.OnLayoutChanged -= HandleLayoutChanged;
+            Service.OnLayoutUpdated -= HandleLayoutUpdated;
+            Service.OnCellExecuting -= HandleCellExecuting;
+            Service.OnCellExecutionCompleted -= HandleCellExecutionCompleted;
+            Service.OnOutputUpdated -= HandleOutputUpdated;
+            Service.OnNotebookChanged -= HandleNotebookStateChanged;
+            Service.OnVariablesChanged -= HandleVariablesChanged;
+            Service.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
+            Service.OnThemeChanged -= HandleThemeChangedEvent;
+            Service.OnKernelRestarting -= HandleKernelRestarting;
+            Service.OnKernelRestarted -= HandleKernelRestarted;
+            _subscribed = false;
+        }
+
+        // Move any cells that were portaled into layout slots back to the page-level pool
+        // before Blazor strips this component's subtree. Without this, the cell DOM nodes
+        // ride along into the removed subtree and are orphaned from their owning <Cell>
+        // components.
+        await UnmountSlotsAsync();
+    }
+}

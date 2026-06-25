@@ -142,7 +142,7 @@ public sealed class ServerNotebookServiceTests
 
     private static async Task<ServerNotebookService> CreateServiceAsync()
     {
-        var service = new ServerNotebookService(new ThrowingJSRuntime());
+        var service = new ServerNotebookService(new ThrowingJSRuntime(), new LayoutAssetCache());
         await service.NewNotebookAsync();
         Assert.IsTrue(
             service.RegisteredLanguages.Any(l => string.Equals(l.Id, "powershell", StringComparison.OrdinalIgnoreCase)),

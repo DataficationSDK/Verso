@@ -1,6 +1,8 @@
 // Monaco Editor JS interop for Verso.Blazor
 window.versoMonaco = (function () {
     const editors = {};
+    const layoutFns = {};           // elementId → height/layout updater
+    const visibilityObservers = {}; // elementId → ResizeObserver watching for first visibility
     const dotnetRefs = {};          // model URI → DotNetObjectReference
     const registeredLanguages = new Set();
     let monacoReady = false;
@@ -218,18 +220,37 @@ window.versoMonaco = (function () {
                     }
                 });
 
-                // Auto-resize to content
-                function updateHeight() {
+                // Size the editor to its content. Returns false when Monaco cannot measure yet —
+                // an editor created inside a display:none container (the custom-layout cell pool,
+                // before a cell is portaled into a visible slot) reports a 0 lineHeight, and
+                // sizing then would lock it at the padding height even after it becomes visible.
+                function applyHeight() {
+                    const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
+                    if (!lineHeight) return false;
                     const lineCount = editor.getModel().getLineCount();
                     const minLines = 3;
                     const maxLines = 30;
                     const lines = Math.max(minLines, Math.min(maxLines, lineCount));
-                    const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
                     const padding = 10;
-                    const newHeight = lines * lineHeight + padding;
-                    container.style.height = newHeight + 'px';
+                    container.style.height = (lines * lineHeight + padding) + 'px';
                     editor.layout();
+                    return true;
                 }
+
+                // When created hidden, retry for a short, bounded window until the editor is on
+                // screen and measurable. The bound matters: a layout that never portals a pooled
+                // cell would otherwise spin forever. relayout() re-runs this when the portal moves
+                // the cell into a slot, so a cell that becomes visible later still sizes correctly.
+                function updateHeight() {
+                    if (applyHeight()) return;
+                    let tries = 0;
+                    (function retry() {
+                        if (!layoutFns[elementId]) return; // editor disposed mid-window
+                        if (applyHeight() || tries++ > 60) return;
+                        requestAnimationFrame(retry);
+                    })();
+                }
+                layoutFns[elementId] = updateHeight;
 
                 editor.onDidChangeModelContent(function () {
                     updateHeight();
@@ -240,6 +261,27 @@ window.versoMonaco = (function () {
                 });
 
                 updateHeight();
+
+                // Editors created inside the custom-layout cell pool start hidden (display:none),
+                // so the initial layout measures a zero-size box; Monaco's own automaticLayout
+                // ResizeObserver does not reliably re-fire when the cell is later portaled into a
+                // visible slot (timing varies by host, and the portal-mount relayout can race the
+                // editor's async creation). Watch the container directly and re-apply the height
+                // the first time it actually has a size, then stop. This is the timing-independent
+                // backstop that makes a freshly added cell come up at full height everywhere.
+                if (window.ResizeObserver) {
+                    const ro = new ResizeObserver(function () {
+                        if (container.clientHeight > 0 || container.offsetParent !== null) {
+                            if (applyHeight()) {
+                                ro.disconnect();
+                                delete visibilityObservers[elementId];
+                            }
+                        }
+                    });
+                    ro.observe(container);
+                    visibilityObservers[elementId] = ro;
+                }
+
                 // Register keyboard shortcuts that call back to .NET
                 if (dotnetRef) {
                     // Every cell's editor shares Monaco's single global keybinding service, so
@@ -317,7 +359,29 @@ window.versoMonaco = (function () {
                 }
                 editor.dispose();
                 delete editors[elementId];
+                delete layoutFns[elementId];
             }
+            const observer = visibilityObservers[elementId];
+            if (observer) {
+                observer.disconnect();
+                delete visibilityObservers[elementId];
+            }
+        },
+
+        // Re-measure and re-lay-out an editor. Used after a custom layout portals a cell from the
+        // hidden pool into a visible slot: the editor may have been created while unmeasurable, so
+        // re-running its height updater now that it is on-screen restores the correct size.
+        relayout: function (elementId) {
+            const update = layoutFns[elementId];
+            if (update) { update(); return; }
+            const editor = editors[elementId];
+            if (editor) editor.layout();
+        },
+
+        relayoutAll: function () {
+            Object.keys(layoutFns).forEach(function (id) {
+                try { layoutFns[id](); } catch (e) { /* editor torn down mid-flight */ }
+            });
         },
 
         getValue: function (elementId) {

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>Verso.Sample.Sparkline</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Datafication</Authors>
+    <Description>Sample Verso layout extension demonstrating an isolated (iframe) renderer that draws a sparkline from a kernel variable.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Verso.Abstractions\Verso.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="assets\main.js">
+      <LogicalName>Verso.Sample.Sparkline.main.js</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

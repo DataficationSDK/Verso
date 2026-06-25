@@ -7,7 +7,12 @@ public sealed class NotebookOpenParams
     public string Content { get; set; } = "";
     public string? FilePath { get; set; }
     public string? WorkingDir { get; set; }
+
+    /// <summary>Single extensions directory (retained for back-compat with older clients).</summary>
     public string? ExtensionsDirectory { get; set; }
+
+    /// <summary>Multiple extensions directories to scan, in order.</summary>
+    public List<string>? ExtensionsDirectories { get; set; }
 }
 
 public sealed class NotebookOpenResult
@@ -249,10 +254,27 @@ public sealed class LayoutsResult
 
 public sealed class LayoutDto
 {
+    /// <summary>The layout's <see cref="Verso.Abstractions.ILayoutEngine.LayoutId"/>.</summary>
     public string Id { get; set; } = "";
+
+    /// <summary>
+    /// The <see cref="Verso.Abstractions.IExtension.ExtensionId"/> of the extension that owns
+    /// this layout. Together with <see cref="Id"/> forms the qualified identity pair every
+    /// JSON-RPC consumer should use from v1.0 onward.
+    /// </summary>
+    public string ExtensionId { get; set; } = "";
+
     public string DisplayName { get; set; } = "";
     public string? Icon { get; set; }
     public bool RequiresCustomRenderer { get; set; }
+
+    /// <summary>
+    /// Rendering isolation model declared by the layout: <c>"inline"</c> (default) or
+    /// <c>"isolated"</c>. Isolated layouts are served via <c>layout/getRendererPackage</c>;
+    /// inline layouts produce their content through <c>layout/render</c>.
+    /// </summary>
+    public string RendererIsolation { get; set; } = "inline";
+
     public bool IsActive { get; set; }
     public int Capabilities { get; set; }
     public bool SupportsPropertiesPanel { get; set; }
@@ -261,6 +283,22 @@ public sealed class LayoutDto
 public sealed class LayoutSwitchParams
 {
     public string LayoutId { get; set; } = "";
+
+    /// <summary>
+    /// The extension id that owns the target layout. Required from v1.0 onward; absent
+    /// callers fall through the legacy resolution path with a deprecation warning logged
+    /// to the diagnostic channel. Removed entirely in v2.0.
+    /// </summary>
+    public string? ExtensionId { get; set; }
+}
+
+public sealed class LayoutRenderParams
+{
+    /// <summary>
+    /// Cell ids (as strings) of heading cells whose sections are collapsed, so a custom layout can
+    /// fold the cells beneath them. Null or empty when nothing is collapsed.
+    /// </summary>
+    public List<string>? CollapsedSections { get; set; }
 }
 
 public sealed class LayoutRenderResult
@@ -293,6 +331,146 @@ public sealed class LayoutUpdateCellParams
 public sealed class LayoutSetEditModeParams
 {
     public bool EditMode { get; set; }
+}
+
+public sealed class LayoutGetRendererPackageParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+}
+
+public sealed class LayoutGetRendererPackageResult
+{
+    /// <summary>Relative path of the entry module within <see cref="Files"/>.</summary>
+    public string EntryPoint { get; set; } = "";
+
+    /// <summary>
+    /// Bundle files keyed by relative path. Values are base64-encoded byte arrays so the
+    /// JSON-RPC transport can carry binary payloads without modification.
+    /// </summary>
+    public Dictionary<string, string> Files { get; set; } = new();
+
+    /// <summary>Optional Content Security Policy hint.</summary>
+    public string? ContentSecurityPolicy { get; set; }
+
+    /// <summary>
+    /// Optional host-renderer protocol version the bundle was built against. <c>null</c>
+    /// when the renderer does not declare one.
+    /// </summary>
+    public string? RendererProtocolVersion { get; set; }
+}
+
+public sealed class LayoutGetStaticAssetsParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+
+    /// <summary>
+    /// IANA media types the host can load as layout-scoped static assets
+    /// (e.g. <c>"text/css"</c>). The engine is expected to return only assets whose
+    /// content type appears here; the host filters defensively on receipt.
+    /// </summary>
+    public List<string> SupportedAssetContentTypes { get; set; } = new();
+
+    /// <summary>
+    /// IANA media types the host can render from the engine (e.g. <c>"text/html"</c>).
+    /// Reserved for a future render-format negotiation.
+    /// </summary>
+    public List<string> SupportedRenderFormats { get; set; } = new();
+}
+
+public sealed class LayoutStaticAssetDto
+{
+    /// <summary>Stable, layout-relative asset key (e.g. <c>"dashboard.css"</c>).</summary>
+    public string AssetId { get; set; } = "";
+
+    /// <summary>IANA media type of the asset.</summary>
+    public string ContentType { get; set; } = "";
+
+    /// <summary>
+    /// Asset bytes, base64-encoded so the JSON-RPC transport can carry them without
+    /// modification.
+    /// </summary>
+    public string Content { get; set; } = "";
+
+    /// <summary>
+    /// Optional load-order and timing hints. Consulted only for script content types.
+    /// </summary>
+    public LayoutStaticAssetLoadHintsDto? LoadHints { get; set; }
+
+    /// <summary>
+    /// Optional Content Security Policy hint. Carried verbatim through the contract;
+    /// current Blazor hosts do not enforce a strict CSP and ignore this field at runtime.
+    /// </summary>
+    public string? ContentSecurityPolicy { get; set; }
+}
+
+public sealed class LayoutStaticAssetLoadHintsDto
+{
+    /// <summary>"classic" or "module". Defaults to "classic" when omitted.</summary>
+    public string? ModuleKind { get; set; }
+
+    /// <summary>"defer", "async", or "blocking". Defaults to "defer" when omitted.</summary>
+    public string? LoadMode { get; set; }
+
+    /// <summary>"beforeLayoutHtml" or "afterLayoutHtml". Defaults to "afterLayoutHtml".</summary>
+    public string? Placement { get; set; }
+}
+
+public sealed class LayoutGetStaticAssetsResult
+{
+    public List<LayoutStaticAssetDto> Assets { get; set; } = new();
+}
+
+public sealed class LayoutAllocateFrameInstanceParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+}
+
+public sealed class LayoutAllocateFrameInstanceResult
+{
+    public string FrameInstanceId { get; set; } = "";
+}
+
+public sealed class LayoutRendererMountedParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+    public string FrameInstanceId { get; set; } = "";
+}
+
+public sealed class LayoutRendererMountedResult
+{
+    /// <summary>
+    /// Dictionary returned by <c>ILayoutLifecycleHandler.OnRendererMountedAsync</c>,
+    /// to be merged into the <c>verso/init</c> payload as the <c>extension</c> field.
+    /// Null when no lifecycle handler is registered for the layout, or when the
+    /// handler returned null.
+    /// </summary>
+    public IReadOnlyDictionary<string, object>? Extension { get; set; }
+}
+
+public sealed class LayoutRendererUnmountedParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+    public string FrameInstanceId { get; set; } = "";
+}
+
+public sealed class LogExtensionParams
+{
+    public string NotebookId { get; set; } = "";
+    public string ExtensionId { get; set; } = "";
+    public string LayoutId { get; set; } = "";
+    public string FrameInstanceId { get; set; } = "";
+    public string Level { get; set; } = "";
+    public string Message { get; set; } = "";
 }
 
 // --- Theme ---

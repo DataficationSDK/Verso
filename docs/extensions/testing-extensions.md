@@ -451,7 +451,7 @@ Assert.AreEqual(0, fakeKernel.InitializeCallCount); // Not yet initialized
 
 ## Complete Example
 
-The `Verso.Sample.Dice.Tests` project at `samples/SampleExtension/Verso.Sample.Dice.Tests/` provides a complete working example with tests for:
+The `Verso.Sample.Dice.Tests` project at `samples/extensions/Verso.Sample.Dice.Tests/` provides a complete working example with tests for:
 
 - Kernel execution, diagnostics, completions, and hover info (`DiceKernelTests.cs`)
 - Formatter type checking and HTML output (`DiceFormatterTests.cs`)
@@ -460,7 +460,7 @@ The `Verso.Sample.Dice.Tests` project at `samples/SampleExtension/Verso.Sample.D
 Run the full test suite:
 
 ```bash
-dotnet test samples/SampleExtension/Verso.Sample.Dice.Tests/
+dotnet test samples/extensions/Verso.Sample.Dice.Tests/
 ```
 
 ---

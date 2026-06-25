@@ -30,7 +30,7 @@ The base interface for all extensions. Every extension class must implement this
 
 ### Example Implementation
 
-See the Dice sample: `samples/SampleExtension/Verso.Sample.Dice/DiceExtension.cs`
+See the Dice sample: `samples/extensions/Verso.Sample.Dice/DiceExtension.cs`
 
 ---
 
@@ -61,7 +61,7 @@ Executes code, provides completions, diagnostics, and hover information for a sp
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceExtension.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceExtension.cs`
 - **Built-in**: `CSharpKernel` in the `Verso` project
 
 ```csharp
@@ -97,7 +97,7 @@ Renders the input (editor) and output (result) areas of a cell. Each renderer is
 | `CellTypeId` | `string` | Identifier of the cell type this renderer handles. |
 | `DisplayName` | `string` | Human-readable name for this renderer. |
 | `CollapsesInputOnExecute` | `bool` | Whether the input editor collapses after execution, showing only output. Defaults to `false`. |
-| `DefaultVisibility` | `CellVisibilityHint` | Hint to layouts about the cell type's presentability. Default interface member, defaults to `CellVisibilityHint.Content`. See [Layout Authoring](layout-authoring.md) for how layouts use this. |
+| `DefaultVisibility` | `CellVisibilityHint` | Hint to layouts about the cell type's presentability. Default interface member, defaults to `CellVisibilityHint.Content`. See [Layout Authoring](layouts.md) for how layouts use this. |
 | `RenderInputAsync(string, ICellRenderContext)` | `Task<RenderResult>` | Renders the cell's source code as visual content. |
 | `RenderOutputAsync(CellOutput, ICellRenderContext)` | `Task<RenderResult>` | Renders a single execution output. |
 | `GetEditorLanguage()` | `string?` | Returns the editor language ID for syntax highlighting, or `null`. |
@@ -108,7 +108,7 @@ Renderers are stateless. `RenderInputAsync` and `RenderOutputAsync` are called w
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceRenderer.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceRenderer.cs`
 - **Built-in**: `MarkdownRenderer`
 
 ```csharp
@@ -155,7 +155,7 @@ Formatters are stateless and invoked on-demand. When a kernel produces an object
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceFormatter.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceFormatter.cs`
 - **Built-in**: `PrimitiveFormatter`, `CollectionFormatter`, `ExceptionFormatter`, `HtmlFormatter`, `SvgFormatter`, `ImageFormatter`
 
 ```csharp
@@ -208,7 +208,7 @@ Defines an action that appears on the notebook toolbar, cell toolbar, or context
 
 ### Example Implementation
 
-- **Dice sample**: `samples/SampleExtension/Verso.Sample.Dice/DiceRollAction.cs`
+- **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceRollAction.cs`
 - **Built-in**: `RunAllAction`, `RunCellAction`, `ClearOutputsAction`, `RestartKernelAction`, `ExportHtmlAction`, `ExportMarkdownAction`, `SwitchThemeAction`
 
 ```csharp

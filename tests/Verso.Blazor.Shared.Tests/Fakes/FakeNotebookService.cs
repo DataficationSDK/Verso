@@ -27,7 +27,7 @@ public sealed class FakeNotebookService : INotebookService
     };
     public DateTimeOffset? Created { get; set; } = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
     public DateTimeOffset? Modified { get; set; } = new DateTimeOffset(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
-    public string FormatVersion { get; set; } = "1.0";
+    public string FormatVersion { get; set; } = NotebookFormatVersion.Current;
 
     // ── Cells ──────────────────────────────────────────────────────────
 
@@ -39,6 +39,12 @@ public sealed class FakeNotebookService : INotebookService
     public ThemeKind? ActiveThemeKind { get; set; } = ThemeKind.Light;
     public ThemeData? ActiveThemeData { get; set; }
     public string? ActiveLayoutId { get; set; } = "notebook";
+    public LayoutReference? ActiveLayout { get; set; }
+    public string ActiveLayoutKey =>
+        ActiveLayout is { } layout
+            ? $"{layout.ExtensionId}:{layout.LayoutId}"
+            : $"verso.layout:{ActiveLayoutId ?? "none"}";
+    public string? ActiveLayoutRendererIsolation { get; set; }
     public LayoutCapabilities LayoutCapabilities { get; set; } = LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete
         | LayoutCapabilities.CellReorder | LayoutCapabilities.CellEdit | LayoutCapabilities.CellResize
         | LayoutCapabilities.CellExecute | LayoutCapabilities.MultiSelect;
@@ -72,11 +78,15 @@ public sealed class FakeNotebookService : INotebookService
     public event Action<Guid>? OnCellExecutionCompleted;
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
+    public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
     public event Action? OnSettingsChanged;
     public event Action? OnOutputUpdated;
+    public event Action<string?>? OnKernelRestarting;
+    public event Action<string?>? OnKernelRestarted;
+    public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
     // ── Call tracking ──────────────────────────────────────────────────
 
@@ -224,12 +234,31 @@ public sealed class FakeNotebookService : INotebookService
 
     // ── Layout & theme switching ───────────────────────────────────────
 
+    public int RenderActiveLayoutCallCount { get; private set; }
+    public string? RenderActiveLayoutResult { get; set; }
+    public Func<Task<string?>>? RenderActiveLayoutHandler { get; set; }
+
+    public Task<string?> RenderActiveLayoutAsync()
+    {
+        RenderActiveLayoutCallCount++;
+        if (RenderActiveLayoutHandler is not null)
+            return RenderActiveLayoutHandler();
+        return Task.FromResult(RenderActiveLayoutResult);
+    }
+
     public Task SwitchLayoutAsync(string layoutId)
     {
         SwitchLayoutCalls.Add(layoutId);
         ActiveLayoutId = layoutId;
         return Task.CompletedTask;
     }
+
+    public IReadOnlyList<LayoutStaticAssetDescriptor> LayoutStaticAssets { get; set; }
+        = Array.Empty<LayoutStaticAssetDescriptor>();
+
+    public Task<IReadOnlyList<LayoutStaticAssetDescriptor>> GetLayoutStaticAssetsAsync(
+        string extensionId, string layoutId)
+        => Task.FromResult(LayoutStaticAssets);
 
     public Task SwitchThemeAsync(string themeId)
     {
@@ -249,6 +278,35 @@ public sealed class FakeNotebookService : INotebookService
     public Task DisableExtensionAsync(string extensionId)
     {
         DisableExtensionCalls.Add(extensionId);
+        return Task.CompletedTask;
+    }
+
+    // ── Extension marketplace ──────────────────────────────────────────
+
+    public bool IsMarketplaceSupported { get; set; } = true;
+    public IReadOnlyList<PackageSearchResultDto> SearchResults { get; set; } = new List<PackageSearchResultDto>();
+    public PackageInstallResultDto InstallResult { get; set; } = new(true, "1.0.0", null, 1);
+    public List<(string Query, int Skip, int Take, bool IncludePrerelease)> SearchExtensionCalls { get; } = new();
+    public List<(string PackageId, string? Version)> InstallExtensionCalls { get; } = new();
+    public List<string> UninstallExtensionCalls { get; } = new();
+
+    public Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
+        string query, int skip, int take, bool includePrerelease, CancellationToken ct)
+    {
+        SearchExtensionCalls.Add((query, skip, take, includePrerelease));
+        return Task.FromResult(SearchResults);
+    }
+
+    public Task<PackageInstallResultDto> InstallExtensionAsync(
+        string packageId, string? version, CancellationToken ct)
+    {
+        InstallExtensionCalls.Add((packageId, version));
+        return Task.FromResult(InstallResult);
+    }
+
+    public Task UninstallExtensionAsync(string packageId)
+    {
+        UninstallExtensionCalls.Add(packageId);
         return Task.CompletedTask;
     }
 
@@ -296,14 +354,32 @@ public sealed class FakeNotebookService : INotebookService
     public CellVisibilityState ResolveCellVisibility(Guid cellId)
         => CellVisibilityMap.GetValueOrDefault(cellId, CellVisibilityState.Visible);
 
+    // ── Layout interaction ─────────────────────────────────────────────
+
+    public List<(string ExtensionId, string LayoutId, string InteractionType, string Payload, string? FrameInstanceId, string? TargetId)> LayoutInteractCalls { get; } = new();
+
+    public Task LayoutInteractAsync(
+        string extensionId,
+        string layoutId,
+        string interactionType,
+        string payload,
+        string? frameInstanceId = null,
+        string? targetId = null)
+    {
+        LayoutInteractCalls.Add((extensionId, layoutId, interactionType, payload, frameInstanceId, targetId));
+        return Task.CompletedTask;
+    }
+
     // ── Dashboard layout ───────────────────────────────────────────────
 
     public Task<CellContainerInfo> GetCellContainerAsync(Guid cellId)
         => Task.FromResult(CellContainers.GetValueOrDefault(cellId,
             new CellContainerInfo(cellId, 0, 0, 6, 4)));
 
+#pragma warning disable CS0618 // UpdateCellPositionAsync is obsolete; the fake retains it for callers that haven't migrated.
     public Task UpdateCellPositionAsync(Guid cellId, int row, int col, int colSpan, int rowSpan)
         => Task.CompletedTask;
+#pragma warning restore CS0618
 
     // ── Cell type helpers ──────────────────────────────────────────────
 
@@ -318,9 +394,12 @@ public sealed class FakeNotebookService : INotebookService
     public void RaiseCellExecuted() => OnCellExecuted?.Invoke();
     public void RaiseNotebookChanged() => OnNotebookChanged?.Invoke();
     public void RaiseLayoutChanged() => OnLayoutChanged?.Invoke();
+    public void RaiseLayoutUpdated(LayoutUpdatedEventArgs args) => OnLayoutUpdated?.Invoke(args);
     public void RaiseThemeChanged() => OnThemeChanged?.Invoke();
     public void RaiseExtensionStatusChanged() => OnExtensionStatusChanged?.Invoke();
     public void RaiseVariablesChanged() => OnVariablesChanged?.Invoke();
     public void RaiseSettingsChanged() => OnSettingsChanged?.Invoke();
     public void RaiseOutputUpdated() => OnOutputUpdated?.Invoke();
+    public void RaiseKernelRestarting(string? kernelId = null) => OnKernelRestarting?.Invoke(kernelId);
+    public void RaiseKernelRestarted(string? kernelId = null) => OnKernelRestarted?.Invoke(kernelId);
 }

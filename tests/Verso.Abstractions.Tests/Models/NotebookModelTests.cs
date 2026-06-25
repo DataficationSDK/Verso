@@ -7,7 +7,7 @@ public class NotebookModelTests
     public void Defaults_AreCorrect()
     {
         var nb = new NotebookModel();
-        Assert.AreEqual("1.0", nb.FormatVersion);
+        Assert.AreEqual(NotebookFormatVersion.Current, nb.FormatVersion);
         Assert.IsNull(nb.Title);
         Assert.IsNull(nb.Created);
         Assert.IsNull(nb.Modified);
@@ -51,4 +51,70 @@ public class NotebookModelTests
         nb.RequiredExtensions.Add("verso.markdown");
         Assert.AreEqual(2, nb.RequiredExtensions.Count);
     }
+
+    [TestMethod]
+    public void ActiveLayoutId_Getter_ForwardsLayoutIdHalf()
+    {
+        var nb = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook")
+        };
+        Assert.AreEqual("notebook", nb.ActiveLayoutId);
+    }
+
+#pragma warning disable CS0618 // exercising the obsolete compatibility setter on purpose
+    [TestMethod]
+    public void ActiveLayoutId_Setter_ProducesUnqualifiedReference()
+    {
+        var nb = new NotebookModel { ActiveLayoutId = "dashboard" };
+
+        Assert.IsNotNull(nb.ActiveLayout);
+        Assert.AreEqual("dashboard", nb.ActiveLayout.Value.LayoutId);
+        Assert.AreEqual(string.Empty, nb.ActiveLayout.Value.ExtensionId);
+        Assert.IsTrue(nb.ActiveLayout.Value.IsUnqualified);
+    }
+
+    [TestMethod]
+    public void ActiveLayoutId_Setter_PreservesExtensionId_WhenLayoutIdUnchanged()
+    {
+        var nb = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook")
+        };
+
+        // Re-asserting the same id through the legacy setter must not strip the qualifier.
+        nb.ActiveLayoutId = "notebook";
+
+        Assert.AreEqual("verso.layout.notebook", nb.ActiveLayout!.Value.ExtensionId);
+        Assert.AreEqual("notebook", nb.ActiveLayout.Value.LayoutId);
+        Assert.IsFalse(nb.ActiveLayout.Value.IsUnqualified);
+    }
+
+    [TestMethod]
+    public void ActiveLayoutId_Setter_DowngradesToUnqualified_WhenLayoutIdChanges()
+    {
+        var nb = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook")
+        };
+
+        nb.ActiveLayoutId = "dashboard";
+
+        Assert.AreEqual(string.Empty, nb.ActiveLayout!.Value.ExtensionId);
+        Assert.AreEqual("dashboard", nb.ActiveLayout.Value.LayoutId);
+    }
+
+    [TestMethod]
+    public void ActiveLayoutId_Setter_Null_ClearsActiveLayout()
+    {
+        var nb = new NotebookModel
+        {
+            ActiveLayout = new LayoutReference("verso.layout.notebook", "notebook"),
+            ActiveLayoutId = null
+        };
+
+        Assert.IsNull(nb.ActiveLayout);
+        Assert.IsNull(nb.ActiveLayoutId);
+    }
+#pragma warning restore CS0618
 }

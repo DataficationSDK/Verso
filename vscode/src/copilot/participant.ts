@@ -29,10 +29,19 @@ Parameters:
 - Use verso_listParameters to see current parameters, and verso_addParameter / verso_updateParameter / verso_removeParameter to manage them.
 - A parameters cell is automatically created when the first parameter is added.
 
+Editing cell structure:
+- Use verso_moveCell to reorder a cell, verso_changeCellType to convert a cell to another type, and verso_changeCellLanguage to switch a code cell's kernel.
+- Changing a cell's type or language clears its existing outputs.
+
+Layouts:
+- A notebook is presented through a layout. Use verso_listLayouts to see the registered layouts (such as a linear Notebook view or a Dashboard grid) and which one is active.
+- Use verso_switchLayout to change the active layout, passing the extensionId and layoutId from verso_listLayouts. The choice is saved with the notebook.
+
 Cell properties:
-- Cells can have configurable properties provided by extensions (e.g. visibility, formatting, tags).
+- Cells can have configurable properties provided by extensions (e.g. formatting, tags).
 - Use verso_getCellProperties to discover available properties for a cell, then verso_updateCellProperty to change them.
 - Always call verso_getCellProperties first to get the providerExtensionId and property names before updating.
+- Per-layout cell visibility (for example showing a cell as output-only in a Dashboard) is exposed as a cell property. To change it, call verso_getCellProperties, find the Visibility field for the relevant layout, then verso_updateCellProperty with the option value (for example "outputonly").
 
 Guidelines:
 - Before modifying cells, call verso_listCells to understand the current notebook state.

@@ -71,7 +71,8 @@ public sealed class JupyterSerializer : INotebookSerializer
 
         var notebook = new NotebookModel
         {
-            FormatVersion = "1.0",
+            // Imported content is parsed into the current in-memory shape, so it is current-format.
+            FormatVersion = NotebookFormatVersion.Current,
             DefaultKernelId = ExtractKernelLanguage(jupyterDoc.Metadata)
         };
 

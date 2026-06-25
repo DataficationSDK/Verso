@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Verso.Host.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Verso\Verso.csproj" />
     <ProjectReference Include="..\Verso.Ado\Verso.Ado.csproj" />
     <ProjectReference Include="..\Verso.FSharp\Verso.FSharp.csproj" />

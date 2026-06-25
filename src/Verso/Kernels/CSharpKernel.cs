@@ -38,10 +38,15 @@ public sealed class CSharpKernel : ILanguageKernel
     private bool _disposed;
 
     /// <summary>
-    /// Tracks variable names that have been declared in the Roslyn script state via
-    /// preamble injection. Used during disposal to clean up tracking state.
+    /// Tracks variables declared in the Roslyn script state via preamble injection, mapped to the
+    /// value they were injected with (their snapshot). The republish step uses the snapshot to tell
+    /// whether a cell actually modified an injected variable: if it did not, the variable is not
+    /// written back, so a store change made between cells (for example a layout writing an input
+    /// variable that a later cell reads) is preserved instead of being clobbered by the stale
+    /// injected copy. A <c>null</c> snapshot is a placeholder meaning "injected this cell, not yet
+    /// snapshotted"; injected store variables are never themselves null.
     /// </summary>
-    private readonly HashSet<string> _injectedStoreVariables = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, object?> _injectedStoreVariables = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Tracks assembly paths already added as Roslyn references so a path arriving
@@ -206,6 +211,15 @@ public sealed class CSharpKernel : ILanguageKernel
                 // Roslyn completion workspace has no record of variables that other kernels
                 // pushed into the store, so they never appear in the REPL popup.
                 _workspaceManager!.AppendExecutedCode(storePreamble);
+
+                // Snapshot the just-injected values. The republish step compares against these so
+                // it can leave an injected variable alone unless the cell actually modified it.
+                var injectedState = _stateManager.GetVariables();
+                foreach (var name in _injectedStoreVariables.Keys.ToList())
+                {
+                    if (_injectedStoreVariables[name] is null && injectedState.TryGetValue(name, out var snapshot))
+                        _injectedStoreVariables[name] = snapshot;
+                }
             }
 
             var scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)
@@ -261,14 +275,26 @@ public sealed class CSharpKernel : ILanguageKernel
             if (usings.Count > 0)
                 _stateManager!.AddImports(usings);
 
-            // Publish variables to the shared variable store
+            // Publish variables to the shared variable store. Skip an injected store variable the
+            // cell did not modify (its value is still the injected snapshot): writing it back would
+            // clobber any change made to the store between cells, e.g. a layout writing an input
+            // variable that this cell's logic reads.
             var variables = _stateManager.GetVariables();
             foreach (var kvp in variables)
             {
-                if (kvp.Value is not null)
-                {
-                    context.Variables.Set(kvp.Key, kvp.Value);
-                }
+                if (kvp.Value is null)
+                    continue;
+
+                if (_injectedStoreVariables.TryGetValue(kvp.Key, out var snapshot)
+                    && ReferenceEquals(snapshot, kvp.Value))
+                    continue;
+
+                context.Variables.Set(kvp.Key, kvp.Value);
+
+                // The cell changed an injected variable; track the new value so later cells compare
+                // against it rather than the original snapshot.
+                if (_injectedStoreVariables.ContainsKey(kvp.Key))
+                    _injectedStoreVariables[kvp.Key] = kvp.Value;
             }
 
             // Append to workspace for future intellisense
@@ -490,7 +516,7 @@ public sealed class CSharpKernel : ILanguageKernel
                 continue;
 
             sb.AppendLine($"var {desc.Name} = Variables.Get<object>(\"{desc.Name}\");");
-            _injectedStoreVariables.Add(desc.Name);
+            _injectedStoreVariables[desc.Name] = null; // snapshot filled once the preamble has run
         }
 
         return sb.Length > 0 ? sb.ToString() : null;

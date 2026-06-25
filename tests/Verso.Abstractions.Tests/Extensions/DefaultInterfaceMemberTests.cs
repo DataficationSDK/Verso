@@ -28,6 +28,19 @@ public class DefaultInterfaceMemberTests
     }
 
     [TestMethod]
+    public async Task ILayoutEngine_GetStaticAssetsAsync_ReturnsNullByDefault()
+    {
+        ILayoutEngine layout = new StubLayoutEngine();
+        var capabilities = new LayoutHostCapabilities(
+            new HashSet<string> { "text/css" },
+            new HashSet<string> { "text/html" });
+
+        var assets = await layout.GetStaticAssetsAsync(new StubVersoContext(), capabilities);
+
+        Assert.IsNull(assets);
+    }
+
+    [TestMethod]
     public void IExtensionHostContext_GetPropertyProviders_ReturnsEmptyList()
     {
         IExtensionHostContext context = new StubExtensionHostContext();
@@ -76,6 +89,18 @@ public class DefaultInterfaceMemberTests
         public Task OnCellMovedAsync(Guid cellId, int newIndex, IVersoContext context) => Task.CompletedTask;
         public Dictionary<string, object> GetLayoutMetadata() => new();
         public Task ApplyLayoutMetadata(Dictionary<string, object> metadata, IVersoContext context) => Task.CompletedTask;
+    }
+
+    private class StubVersoContext : IVersoContext
+    {
+        public IVariableStore Variables => throw new NotImplementedException();
+        public CancellationToken CancellationToken => CancellationToken.None;
+        public IThemeContext Theme => throw new NotImplementedException();
+        public LayoutCapabilities LayoutCapabilities => LayoutCapabilities.None;
+        public IExtensionHostContext ExtensionHost => throw new NotImplementedException();
+        public INotebookMetadata NotebookMetadata => throw new NotImplementedException();
+        public INotebookOperations Notebook => throw new NotImplementedException();
+        public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
     }
 
     private class StubExtensionHostContext : IExtensionHostContext

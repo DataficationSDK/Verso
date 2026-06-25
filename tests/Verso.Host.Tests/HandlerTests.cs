@@ -31,6 +31,27 @@ public class HandlerTests
     }
 
     [TestMethod]
+    public async Task GetTheme_IncludesLayoutPaletteTokens()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        var engine = ns.Scaffold.ThemeEngine;
+        Assert.IsNotNull(engine);
+        var theme = engine!.AvailableThemes.FirstOrDefault();
+        Assert.IsNotNull(theme, "expected at least one registered theme");
+        engine.SetActiveTheme(theme!.ThemeId);
+
+        var result = ThemeHandler.HandleGetTheme(ns);
+
+        Assert.IsNotNull(result);
+        // The layout-extension palette must round-trip through the host bridge so
+        // out-of-process hosts do not fall back to default colors for these tokens.
+        foreach (var key in new[] { "bgDefault", "bgElevated", "fgDefault", "fgMuted" })
+            Assert.IsTrue(result!.Colors.ContainsKey(key), $"theme colors missing '{key}'");
+    }
+
+    [TestMethod]
     public async Task NotebookOpen_EmptyContent_CreatesEmptyNotebook()
     {
         var session = CreateSession();

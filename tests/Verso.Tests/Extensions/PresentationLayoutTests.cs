@@ -32,13 +32,42 @@ public sealed class PresentationLayoutTests
     public void Capabilities_IsNone()
     {
         Assert.AreEqual(LayoutCapabilities.None, _layout.Capabilities);
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellEdit));
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellResize));
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellExecute));
-        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.MultiSelect));
+    }
+
+    [TestMethod]
+    public async Task RenderLayoutAsync_EmitsSlotPlaceholderPerVisibleCell()
+    {
+        var cell = new CellModel
+        {
+            Id = Guid.NewGuid(),
+            Outputs = { new CellOutput("text/plain", "hello") }
+        };
+
+        var result = await _layout.RenderLayoutAsync(new List<CellModel> { cell }, _context);
+
+        Assert.AreEqual("text/html", result.MimeType);
+        Assert.IsTrue(result.Content.Contains($"data-cell-slot=\"{cell.Id}\""),
+            "Slot wrapper must carry data-cell-slot so the portal can move <Cell> in.");
+        Assert.IsTrue(result.Content.Contains("verso-presentation-cell"),
+            "Slot wrapper carries the .verso-presentation-cell class for CSS chrome-hiding.");
+    }
+
+    [TestMethod]
+    public async Task RenderLayoutAsync_DoesNotInlineOutputContent()
+    {
+        var cell = new CellModel
+        {
+            Id = Guid.NewGuid(),
+            Outputs = { new CellOutput("text/plain", "<script>alert('xss')</script>") }
+        };
+
+        var result = await _layout.RenderLayoutAsync(new List<CellModel> { cell }, _context);
+
+        // Output content is now rendered by the <Cell> Blazor component via portal; the
+        // layout HTML must not contain the raw text (avoids double-rendering and the
+        // pre-existing XSS-encoding surface migrates with the Cell component).
+        Assert.IsFalse(result.Content.Contains("alert"),
+            "Layout HTML must not inline cell output content.");
     }
 
     [TestMethod]
@@ -47,25 +76,20 @@ public sealed class PresentationLayoutTests
         var cellWithOutput = new CellModel
         {
             Id = Guid.NewGuid(),
-            Source = "Console.WriteLine(\"hello\")",
             Outputs = { new CellOutput("text/plain", "hello") }
         };
-        var cellWithoutOutput = new CellModel
-        {
-            Id = Guid.NewGuid(),
-            Source = "var x = 42;"
-        };
+        var cellWithoutOutput = new CellModel { Id = Guid.NewGuid() };
 
         var result = await _layout.RenderLayoutAsync(
             new List<CellModel> { cellWithOutput, cellWithoutOutput }, _context);
 
-        Assert.AreEqual("text/html", result.MimeType);
         Assert.IsTrue(result.Content.Contains(cellWithOutput.Id.ToString()));
-        Assert.IsFalse(result.Content.Contains(cellWithoutOutput.Id.ToString()));
+        Assert.IsFalse(result.Content.Contains(cellWithoutOutput.Id.ToString()),
+            "Cells with no outputs have nothing to show in presentation mode.");
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_ShowsOutputContent()
+    public async Task RenderLayoutAsync_TagsOutputOnlyCells()
     {
         var renderer = new FakeCellRenderer(cellTypeId: "code", defaultVisibility: CellVisibilityHint.OutputOnly);
         var context = new StubVersoContext
@@ -75,74 +99,17 @@ public sealed class PresentationLayoutTests
                 () => new ICellRenderer[] { renderer })
         };
 
-        var cells = new List<CellModel>
+        var cell = new CellModel
         {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Type = "code",
-                Source = "ignored source",
-                Outputs = { new CellOutput("text/plain", "the output text") }
-            }
+            Id = Guid.NewGuid(),
+            Type = "code",
+            Outputs = { new CellOutput("text/plain", "hello") }
         };
 
-        var result = await _layout.RenderLayoutAsync(cells, context);
+        var result = await _layout.RenderLayoutAsync(new List<CellModel> { cell }, context);
 
-        Assert.IsTrue(result.Content.Contains("the output text"));
-        Assert.IsFalse(result.Content.Contains("ignored source"));
-    }
-
-    [TestMethod]
-    public async Task RenderLayoutAsync_RendersHtmlOutputAsRaw()
-    {
-        var cells = new List<CellModel>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Outputs = { new CellOutput("text/html", "<table><tr><td>data</td></tr></table>") }
-            }
-        };
-
-        var result = await _layout.RenderLayoutAsync(cells, _context);
-
-        Assert.IsTrue(result.Content.Contains("<table><tr><td>data</td></tr></table>"));
-    }
-
-    [TestMethod]
-    public async Task RenderLayoutAsync_HtmlEncodesPlainTextOutput()
-    {
-        var cells = new List<CellModel>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Outputs = { new CellOutput("text/plain", "<script>alert('xss')</script>") }
-            }
-        };
-
-        var result = await _layout.RenderLayoutAsync(cells, _context);
-
-        Assert.IsFalse(result.Content.Contains("<script>alert"));
-        Assert.IsTrue(result.Content.Contains("&lt;script&gt;"));
-    }
-
-    [TestMethod]
-    public async Task RenderLayoutAsync_RendersErrorOutput()
-    {
-        var cells = new List<CellModel>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Outputs = { new CellOutput("text/plain", "something went wrong") { IsError = true } }
-            }
-        };
-
-        var result = await _layout.RenderLayoutAsync(cells, _context);
-
-        Assert.IsTrue(result.Content.Contains("verso-output--error"));
-        Assert.IsTrue(result.Content.Contains("something went wrong"));
+        Assert.IsTrue(result.Content.Contains("verso-presentation-cell--output-only"),
+            "Output-only cells get a modifier class so CSS can vary chrome.");
     }
 
     [TestMethod]

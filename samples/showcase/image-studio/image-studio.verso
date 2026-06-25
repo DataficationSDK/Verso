@@ -1,0 +1,40 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Image Studio",
+    "defaultKernel": "csharp",
+    "activeLayout": {
+      "extensionId": "com.verso.showcase.image-studio",
+      "layoutId": "image-studio"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.ImageStudio"
+      ]
+    }
+  },
+  "cells": [
+    {
+      "id": "b1a00000-0001-4000-8000-000000000001",
+      "type": "markdown",
+      "source": "# Image Studio\n\nA layered image editor that is *also* a notebook. The document is the same \u0060.verso\u0060 file you are looking at; the **Image Studio** layout simply presents it as a canvas, a layer stack, and a tool palette instead of a list of cells.\n\nThis notebook opens directly in **Image Studio**. The layout extension (`Verso.Showcase.ImageStudio`) installs automatically from NuGet the first time you open it. To read these notes and run the procedural-layer cells below, switch to the **Notebook** layout from the layout picker."
+    },
+    {
+      "id": "b1a00000-0003-4000-8000-000000000003",
+      "type": "markdown",
+      "source": "## Any layer can be code\n\nAdd a **Procedural** layer from the tool palette (the \u0060\u003C/\u003E\u0060 icon). It draws itself from a kernel variable \u2014 \u0060ops\u0060 by default. Run the cell below, and the layer repaints from the drawing instructions. Edit the instructions, re-run, and watch it update live on the canvas.\n\nEach procedural layer can bind to its **own** variable: select the layer, change the **Variable** field in Properties (for example to \u0060ops2\u0060), and run the matching cell below.\n\nThe \u0060ops2\u0060 cell is written in **JavaScript**, not C#. That makes no difference to the layer: the variable store is shared across every kernel, so a procedural layer can be driven from whichever language fits the job."
+    },
+    {
+      "id": "b1a00000-0004-4000-8000-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "// A procedural layer reads this variable. Each entry is one draw op; coordinates are 0..1.\nvar ops = new object[]\n{\n    new { op = \u0022circle\u0022, x = 0.30, y = 0.34, r = 0.13, fill = \u0022#36d1dc\u0022 },\n    new { op = \u0022circle\u0022, x = 0.44, y = 0.56, r = 0.09, fill = \u0022#5b86e5\u0022 },\n    new { op = \u0022line\u0022, x1 = 0.10, y1 = 0.80, x2 = 0.90, y2 = 0.80, stroke = \u0022#ffffff\u0022, width = 3.0 },\n    new { op = \u0022text\u0022, text = \u0022scripted\u0022, x = 0.5, y = 0.92, size = 0.06, fill = \u0022#ffffff\u0022 },\n};"
+    },
+    {
+      "id": "b1a00000-0005-4000-8000-000000000005",
+      "type": "code",
+      "language": "javascript",
+      "source": "// The same kind of procedural layer, now driven by JavaScript. Every kernel shares\n// one variable store, so the layout reads this array exactly like the C# \u0060ops\u0060 above.\nvar ops2 = [\n    { op: \u0022rect\u0022, x: 0.06, y: 0.06, width: 0.40, height: 0.10, fill: \u0022#ffffff22\u0022 },\n    { op: \u0022text\u0022, text: \u0022layer 2\u0022, x: 0.26, y: 0.11, size: 0.05, fill: \u0022#ffffff\u0022 },\n    { op: \u0022circle\u0022, x: 0.82, y: 0.82, r: 0.06, fill: \u0022#ff6b6b\u0022 },\n];"
+    }
+  ]
+}

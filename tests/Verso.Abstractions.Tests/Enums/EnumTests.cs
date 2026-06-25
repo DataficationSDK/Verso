@@ -37,10 +37,10 @@ public class EnumTests
     }
 
     [TestMethod]
-    public void LayoutCapabilities_HasEightValues()
+    public void LayoutCapabilities_HasNineValues()
     {
-        // None + 7 flags
-        Assert.AreEqual(8, Enum.GetValues<LayoutCapabilities>().Length);
+        // None + 8 flags
+        Assert.AreEqual(9, Enum.GetValues<LayoutCapabilities>().Length);
     }
 
     [TestMethod]
