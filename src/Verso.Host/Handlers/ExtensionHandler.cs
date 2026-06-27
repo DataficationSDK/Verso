@@ -97,6 +97,7 @@ public static class ExtensionHandler
             return new ExtensionInstallResult
             {
                 Success = true,
+                PackageId = p.PackageId,
                 ResolvedVersion = install.ResolvedVersion,
                 ExtensionsRegistered = registered
             };
@@ -132,6 +133,7 @@ public static class ExtensionHandler
             return new ExtensionInstallResult
             {
                 Success = true,
+                PackageId = outcome.PackageId,
                 ResolvedVersion = outcome.ResolvedVersion,
                 ExtensionsRegistered = outcome.ExtensionsRegistered
             };

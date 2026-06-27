@@ -2112,6 +2112,14 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
 }
 
+.verso-marketplace-installed-warning {
+    flex: 0 0 auto;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--verso-status-warning, #B58900);
+    cursor: help;
+}
+
 /* === Variable Explorer === */
 
 .verso-variable-toolbar {

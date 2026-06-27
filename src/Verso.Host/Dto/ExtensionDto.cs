@@ -83,6 +83,13 @@ public sealed class ExtensionInstallParams
 public sealed class ExtensionInstallResult
 {
     public bool Success { get; set; }
+
+    /// <summary>
+    /// Resolved package id of the installed extension. For local sideloads the client cannot know
+    /// this up front, so it is reported back to let the client clear any stale unavailable mark.
+    /// </summary>
+    public string? PackageId { get; set; }
+
     public string? ResolvedVersion { get; set; }
     public string? ErrorMessage { get; set; }
     public int ExtensionsRegistered { get; set; }

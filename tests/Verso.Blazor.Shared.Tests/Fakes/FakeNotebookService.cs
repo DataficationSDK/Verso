@@ -284,6 +284,7 @@ public sealed class FakeNotebookService : INotebookService
     // ── Extension marketplace ──────────────────────────────────────────
 
     public bool IsMarketplaceSupported { get; set; } = true;
+    public IReadOnlyList<InstalledExtensionDto> InstalledExtensions { get; set; } = Array.Empty<InstalledExtensionDto>();
     public IReadOnlyList<PackageSearchResultDto> SearchResults { get; set; } = new List<PackageSearchResultDto>();
     public PackageInstallResultDto InstallResult { get; set; } = new(true, "1.0.0", null, 1);
     public List<(string Query, int Skip, int Take, bool IncludePrerelease)> SearchExtensionCalls { get; } = new();

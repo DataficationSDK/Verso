@@ -126,6 +126,36 @@ public sealed class ExtensionPanelTests : BunitTestContext
     }
 
     [TestMethod]
+    public void UnavailableInstalledExtension_ShowsWarningWithReason()
+    {
+        _service.InstalledExtensions = new List<InstalledExtensionDto>
+        {
+            new("Verso.Showcase.FormStudio", "1.0.0", false, "the extension is not installed on this machine")
+        };
+
+        var cut = RenderComponent<ExtensionPanel>(p => p
+            .Add(e => e.Service, _service));
+
+        var warning = cut.Find(".verso-marketplace-installed-warning");
+        // The failure reason rides on the title so a hover explains why the row is flagged.
+        Assert.IsTrue(warning.GetAttribute("title")!.Contains("not installed on this machine"));
+    }
+
+    [TestMethod]
+    public void AvailableInstalledExtension_HasNoWarning()
+    {
+        _service.InstalledExtensions = new List<InstalledExtensionDto>
+        {
+            new("Verso.Showcase.FormStudio", "1.0.0", false)
+        };
+
+        var cut = RenderComponent<ExtensionPanel>(p => p
+            .Add(e => e.Service, _service));
+
+        Assert.IsFalse(cut.Markup.Contains("verso-marketplace-installed-warning"));
+    }
+
+    [TestMethod]
     public void ExpandedExtension_ShowsAuthorAndDescription()
     {
         _service.Extensions = new List<ExtensionInfo>

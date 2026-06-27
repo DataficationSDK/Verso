@@ -156,7 +156,8 @@ public sealed partial class ServerNotebookService
                 .Select(r =>
                 {
                     var (id, version, source) = ExtensionPackageRef.Parse(r);
-                    return new InstalledExtensionDto(id, version, source == ExtensionSource.Local);
+                    var reason = _unavailableExtensionReasons.GetValueOrDefault(id);
+                    return new InstalledExtensionDto(id, version, source == ExtensionSource.Local, reason);
                 })
                 .Where(e => !string.IsNullOrEmpty(e.Id))
                 .ToList();
@@ -171,6 +172,10 @@ public sealed partial class ServerNotebookService
 
         _scaffold.Notebook.RequiredExtensions.RemoveAll(r =>
             string.Equals(ExtensionPackageRef.ParseId(r), packageId, StringComparison.OrdinalIgnoreCase));
+
+        // Forget any unavailable mark for the removed package so it does not linger if the same
+        // package is later added back.
+        _unavailableExtensionReasons.Remove(packageId);
 
         // Revoke trust so reinstalling prompts again, and so a stale approval doesn't auto-load
         // it on the next open now that it is no longer required.
@@ -209,6 +214,11 @@ public sealed partial class ServerNotebookService
     {
         if (_scaffold is null)
             return;
+
+        // The extension just loaded successfully, so drop any unavailable mark left over from a
+        // failed open. Otherwise the warning icon would persist after a successful reinstall or
+        // local sideload of a package that was previously missing.
+        _unavailableExtensionReasons.Remove(packageId);
 
         var refString = ExtensionPackageRef.Format(packageId, resolvedVersion, source);
         var list = _scaffold.Notebook.RequiredExtensions;

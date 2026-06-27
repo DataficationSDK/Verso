@@ -313,6 +313,10 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public event Action<string?>? OnKernelRestarted;
     public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
+    // Required extensions that failed to load on the current notebook, keyed by package id, so the
+    // extension panel can flag the matching installed row. Reset per open in WireConsentHandler.
+    private Dictionary<string, string> _unavailableExtensionReasons = new(StringComparer.OrdinalIgnoreCase);
+
     // ── File operations ────────────────────────────────────────────────
 
     public async Task NewNotebookAsync()
@@ -1381,12 +1385,20 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     private void WireConsentHandler()
     {
+        // A fresh notebook starts with no known failures; the handler below repopulates as the
+        // required-extension load reports any.
+        _unavailableExtensionReasons = new(StringComparer.OrdinalIgnoreCase);
+
         if (_extensionHost is not null)
         {
             _extensionHost.ConsentHandler = RequestConsentFromUIAsync;
             _extensionHost.UnavailableExtensionsHandler = unavailable =>
             {
+                _unavailableExtensionReasons = unavailable.ToDictionary(
+                    u => u.PackageId, u => u.Reason, StringComparer.OrdinalIgnoreCase);
                 OnRequiredExtensionsUnavailable?.Invoke(unavailable);
+                // Re-render the extension panel so the installed rows pick up the warning flag.
+                OnExtensionStatusChanged?.Invoke();
                 return Task.CompletedTask;
             };
         }

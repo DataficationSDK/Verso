@@ -39,6 +39,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private List<ThemeInfo> _themes = new();
     private List<ExtensionInfo> _extensions = new();
     private List<InstalledExtensionDto> _installedExtensions = new();
+    // Required extensions the host reported as failed-to-load, keyed by package id, so installed
+    // rows can be flagged. The unavailable notification and the installed list can arrive in either
+    // order, so this is applied both when building the list and when the notification lands.
+    private Dictionary<string, string> _unavailableExtensionReasons = new(StringComparer.OrdinalIgnoreCase);
     private LayoutReference? _activeLayout;
     private string? _activeThemeId;
     private ThemeKind? _activeThemeKind;
@@ -728,6 +732,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         if (response.Success)
         {
+            ClearUnavailableReason(response.PackageId ?? packageId);
             await RefreshExtensionDataAsync();
             OnExtensionStatusChanged?.Invoke();
         }
@@ -739,8 +744,18 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public async Task UninstallExtensionAsync(string packageId)
     {
         await _bridge.RequestVoidAsync("extension/uninstall", new { packageId });
+        ClearUnavailableReason(packageId);
         await RefreshExtensionDataAsync();
         OnExtensionStatusChanged?.Invoke();
+    }
+
+    // Drops the stale unavailable mark for a package once it is installed, sideloaded, or removed,
+    // so the warning icon does not linger after the package becomes available (or stops being
+    // required). The reasons dictionary is otherwise only repopulated on notebook open.
+    private void ClearUnavailableReason(string? packageId)
+    {
+        if (!string.IsNullOrEmpty(packageId))
+            _unavailableExtensionReasons.Remove(packageId);
     }
 
     public LocalExtensionPickMode LocalExtensionPickMode => LocalExtensionPickMode.NativeBrowse;
@@ -761,6 +776,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         if (response.Success)
         {
+            ClearUnavailableReason(response.PackageId);
             await RefreshExtensionDataAsync();
             OnExtensionStatusChanged?.Invoke();
         }
@@ -1286,7 +1302,23 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             }
 
             if (list.Count > 0)
+            {
+                foreach (var u in list)
+                    _unavailableExtensionReasons[u.PackageId] = u.Reason;
+
+                // The installed list may already be cached from extension/list; stamp the reason onto
+                // matching rows so the panel flags them without waiting for a refresh.
+                for (var i = 0; i < _installedExtensions.Count; i++)
+                {
+                    var ext = _installedExtensions[i];
+                    if (_unavailableExtensionReasons.TryGetValue(ext.Id, out var reason)
+                        && ext.UnavailableReason != reason)
+                        _installedExtensions[i] = ext with { UnavailableReason = reason };
+                }
+
                 OnRequiredExtensionsUnavailable?.Invoke(list);
+                OnExtensionStatusChanged?.Invoke();
+            }
         }
         catch (JsonException) { }
     }
@@ -1495,6 +1527,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _cells = result.Cells?.Select(MapCellFromDto).ToList() ?? new();
         _isLoaded = true;
 
+        // Drop any prior notebook's load failures so they don't flag rows in this one; the new
+        // notebook's required-extension load reports its own via extension/unavailable.
+        _unavailableExtensionReasons.Clear();
+
         // Notify immediately so the UI can render cells while supplementary data loads
         OnNotebookChanged?.Invoke();
 
@@ -1572,7 +1608,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var extsResult = await _bridge.RequestAsync<ExtensionsResponse>("extension/list", null);
         _extensions = extsResult.Extensions?.ToList() ?? new();
         _installedExtensions = extsResult.Installed?
-            .Select(i => new InstalledExtensionDto(i.Id ?? "", i.Version, i.IsLocal))
+            .Select(i => new InstalledExtensionDto(
+                i.Id ?? "", i.Version, i.IsLocal,
+                _unavailableExtensionReasons.GetValueOrDefault(i.Id ?? "")))
             .Where(i => !string.IsNullOrEmpty(i.Id))
             .ToList() ?? new();
 
@@ -2141,6 +2179,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private sealed class ExtensionInstallResponse
     {
         public bool Success { get; set; }
+        public string? PackageId { get; set; }
         public string? ResolvedVersion { get; set; }
         public string? ErrorMessage { get; set; }
         public int ExtensionsRegistered { get; set; }

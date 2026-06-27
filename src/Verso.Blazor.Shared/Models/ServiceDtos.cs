@@ -223,11 +223,21 @@ public sealed record PackageInstallResultDto(
 /// A package this notebook requires (recorded in its required-extensions list), surfaced so the
 /// extension panel can list and uninstall it independently of NuGet search. <paramref name="IsLocal"/>
 /// is true for files sideloaded from disk, which never appear in NuGet search results.
+/// <paramref name="UnavailableReason"/> is non-null when the package was required but failed to load
+/// (not on disk, source unreachable, consent denied), carrying a short explanation for the UI.
 /// </summary>
 public sealed record InstalledExtensionDto(
     string Id,
     string? Version,
-    bool IsLocal);
+    bool IsLocal,
+    string? UnavailableReason = null)
+{
+    /// <summary>
+    /// True when this required extension did not load and the panel should flag it. See
+    /// <see cref="UnavailableReason"/> for why.
+    /// </summary>
+    public bool IsUnavailable => UnavailableReason is not null;
+}
 
 /// <summary>
 /// How a host lets the user pick a local extension file (a <c>.dll</c> or <c>.nupkg</c>) to

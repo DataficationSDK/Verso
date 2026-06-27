@@ -51,6 +51,13 @@
                         var e = ext;
                         <div class="verso-marketplace-installed-item">
                             <div class="verso-marketplace-installed-info">
+                                @if (e.IsUnavailable)
+                                {
+                                    <span class="verso-marketplace-installed-warning"
+                                          role="img"
+                                          aria-label="@($"Not loaded: {e.UnavailableReason}")"
+                                          title="@($"Not loaded: {e.UnavailableReason}")">&#9888;</span>
+                                }
                                 <span class="verso-marketplace-installed-id" title="@e.Id">@e.Id</span>
                                 @if (e.Version is not null)
                                 {
