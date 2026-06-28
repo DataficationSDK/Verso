@@ -437,10 +437,27 @@ window.versoMonaco = (function () {
         },
 
         scrollToSelected: function () {
-            const el = document.querySelector('.verso-cell--selected');
-            if (el) {
-                el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
+            // Poll across animation frames until the selected cell is actually
+            // scrollable, then scroll to it. In the custom portaling layouts every cell
+            // is first rendered inside a hidden pool (display:none, so offsetHeight is 0)
+            // and only moved into a visible slot once the layout HTML regenerates. For a
+            // newly added cell that regeneration is a full round trip on the server host
+            // (over the circuit), so a fixed delay or a bare offsetHeight check can fire
+            // while the cell is still pooled, where scrollIntoView does nothing. We wait
+            // for the cell to leave the pool and become measurable. Non-portaling layouts
+            // have no pool, so the closest() check is null and the cell is ready as soon
+            // as it has height. The cap keeps this bounded if the cell never slots in.
+            let tries = 0;
+            (function retry() {
+                const el = document.querySelector('.verso-cell--selected');
+                const ready = el && !el.closest('.verso-cell-pool') && el.offsetHeight > 0;
+                if (ready) {
+                    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    return;
+                }
+                if (tries++ > 180) return; // ~3s at 60fps; give up rather than scroll a hidden node
+                requestAnimationFrame(retry);
+            })();
         },
 
         updateEditorSettings: function (settings) {

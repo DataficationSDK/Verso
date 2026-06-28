@@ -1,4 +1,23 @@
+@implements IDisposable
 <div class="verso-toolbar" @onclick="CloseAllDropdowns">
+    @if (Service.IsLoaded)
+    {
+        <div class="verso-doc-info" title="@KernelTooltip">
+            <svg class="verso-doc-info-icon" viewBox="0 0 16 16" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5h5L13 5.5v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z"/><path d="M9 1.5V5.5h4"/></svg>
+            <div class="verso-doc-info-text">
+                <span class="verso-doc-info-name">@DocName</span>
+                <span class="verso-doc-info-meta">@KernelLabel &middot; @CellCount @(CellCount == 1 ? "cell" : "cells")</span>
+            </div>
+        </div>
+
+        <div class="verso-kernel-status @KernelStatusClass" title="@KernelStatusText">
+            <span class="verso-kernel-status-dot"></span>
+            <span class="verso-kernel-status-text">@KernelStatusText</span>
+        </div>
+
+        <div class="verso-toolbar-separator"></div>
+    }
+
     @if (!Service.IsEmbedded)
     {
         <div class="verso-toolbar-group">
@@ -44,85 +63,71 @@
         {
             var a = action;
             var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
-            <button class="verso-toolbar-btn"
+            var iconOnly = a.IconOnly && a.Icon is not null;
+            <button class="verso-toolbar-btn @(iconOnly ? "verso-toolbar-btn--icon" : "") @(a.IsPrimary ? "verso-toolbar-btn--primary" : "")"
                     disabled="@(!isEnabled)"
                     title="@a.DisplayName"
+                    aria-label="@a.DisplayName"
                     @onclick="() => ExecuteActionAsync(a)">
                 @if (a.Icon is not null)
                 {
                     @((MarkupString)a.Icon)
                 }
-                @a.DisplayName
+                @if (!iconOnly)
+                {
+                    @a.DisplayName
+                }
             </button>
         }
 
         <div class="verso-toolbar-separator"></div>
 
-        <div class="verso-toolbar-group">
-            <button class="verso-toolbar-btn" disabled="@(!Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))" @onclick="OnAddCodeCell" title="Add Code Cell">+ Code</button>
-            <button class="verso-toolbar-btn" disabled="@(!Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellInsert))" @onclick="OnAddMarkdownCell" title="Add Markdown Cell">+ Markdown</button>
-        </div>
-
-        @if (Service.AvailableLayouts.Count > 1)
+        @if (Service.AvailableLayouts.Count > 1 || ShowThemeSection)
         {
-            <div class="verso-toolbar-separator"></div>
-
             <div class="verso-toolbar-dropdown">
                 <button class="verso-toolbar-btn"
-                        title="Switch Layout"
-                        @onclick="CycleLayout">
+                        title="View Options"
+                        @onclick="ToggleViewDropdown"
+                        @onclick:stopPropagation="true">
                     <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="1"/><line x1="6" y1="1.5" x2="6" y2="14.5"/><line x1="6" y1="8" x2="14.5" y2="8"/></svg>
-                    @ActiveLayoutName
+                    View &#9662;
                 </button>
-                <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
-                        @onclick="ToggleLayoutDropdown"
-                        @onclick:stopPropagation="true">
-                    &#9662;
-                </button>
-                @if (_showLayoutDropdown)
+                @if (_showViewDropdown)
                 {
                     <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
-                        @foreach (var layout in Service.AvailableLayouts)
+                        @if (Service.AvailableLayouts.Count > 1)
                         {
-                            var l = layout;
-                            var isActive = string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase);
-                            <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
-                                    @onclick="() => SelectLayout(l.LayoutId)">
-                                @l.DisplayName
-                            </button>
+                            <div class="verso-toolbar-menu-header">Layout</div>
+                            @foreach (var layout in Service.AvailableLayouts)
+                            {
+                                var l = layout;
+                                var isActive = string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase);
+                                <button class="verso-toolbar-btn verso-toolbar-menu-item @(isActive ? "verso-toolbar-menu-item--active" : "")"
+                                        @onclick="() => SelectLayout(l.LayoutId)">
+                                    <span>@l.DisplayName</span>
+                                    @if (isActive)
+                                    {
+                                        <span class="verso-toolbar-menu-check">&#10003;</span>
+                                    }
+                                </button>
+                            }
                         }
-                    </div>
-                }
-            </div>
-        }
-
-        @if (Service.AvailableThemes.Count > 1 && !Service.IsEmbedded)
-        {
-            <div class="verso-toolbar-separator"></div>
-
-            <div class="verso-toolbar-dropdown">
-                <button class="verso-toolbar-btn"
-                        title="Switch Theme"
-                        @onclick="CycleTheme">
-                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><circle cx="5.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
-                    @ActiveThemeName
-                </button>
-                <button class="verso-toolbar-btn verso-toolbar-dropdown-chevron"
-                        @onclick="ToggleThemeDropdown"
-                        @onclick:stopPropagation="true">
-                    &#9662;
-                </button>
-                @if (_showThemeDropdown)
-                {
-                    <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
-                        @foreach (var theme in Service.AvailableThemes)
+                        @if (ShowThemeSection)
                         {
-                            var t = theme;
-                            var isActive = string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase);
-                            <button class="verso-toolbar-btn @(isActive ? "verso-toolbar-btn--active" : "")"
-                                    @onclick="() => SelectTheme(t.ThemeId)">
-                                @t.DisplayName
-                            </button>
+                            <div class="verso-toolbar-menu-header">Theme</div>
+                            @foreach (var theme in Service.AvailableThemes)
+                            {
+                                var t = theme;
+                                var isActive = string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase);
+                                <button class="verso-toolbar-btn verso-toolbar-menu-item @(isActive ? "verso-toolbar-menu-item--active" : "")"
+                                        @onclick="() => SelectTheme(t.ThemeId)">
+                                    <span>@t.DisplayName</span>
+                                    @if (isActive)
+                                    {
+                                        <span class="verso-toolbar-menu-check">&#10003;</span>
+                                    }
+                                </button>
+                            }
                         }
                     </div>
                 }
@@ -131,8 +136,6 @@
 
         @if (_exportActions.Count > 0)
         {
-            <div class="verso-toolbar-separator"></div>
-
             <div class="verso-toolbar-dropdown">
                 <button class="verso-toolbar-btn"
                         title="Export Notebook"
@@ -158,7 +161,6 @@
                 }
             </div>
         }
-
     }
 </div>
 
@@ -186,8 +188,7 @@
     private Dictionary<string, bool> _exportEnabledStates = new();
     private bool _showOpenInput;
     private string _openFilePath = "";
-    private bool _showLayoutDropdown;
-    private bool _showThemeDropdown;
+    private bool _showViewDropdown;
     private bool _showExportDropdown;
 
     private static readonly HashSet<string> _excludedActionIds = new(StringComparer.OrdinalIgnoreCase)
@@ -196,11 +197,145 @@
         "verso.switchTheme"
     };
 
-    private string ActiveLayoutName =>
-        Service.AvailableLayouts.FirstOrDefault(l => string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Layout";
+    // Themes come from the host in the embedded (VS Code) shell, so the theme
+    // section is hidden there and only the layout section is offered.
+    private bool ShowThemeSection => Service.AvailableThemes.Count > 1 && !Service.IsEmbedded;
 
-    private string ActiveThemeName =>
-        Service.AvailableThemes.FirstOrDefault(t => string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "Theme";
+    // --- Document info cluster ---
+
+    private string DocName
+    {
+        get
+        {
+            var name = !string.IsNullOrEmpty(Service.FilePath)
+                ? System.IO.Path.GetFileName(Service.FilePath)
+                : Service.Title;
+            return string.IsNullOrWhiteSpace(name) ? "Untitled" : name!;
+        }
+    }
+
+    private int CellCount => Service.Cells.Count;
+
+    private string PrimaryKernelName =>
+        ResolveLanguageName(Service.DefaultKernelId) ?? "No kernel";
+
+    // Distinct languages actually in use across code cells (a cell with no
+    // explicit language inherits the notebook default).
+    private List<string> DistinctLanguageIds => Service.Cells
+        .Where(c => string.Equals(c.Type, "code", StringComparison.OrdinalIgnoreCase))
+        .Select(c => c.Language ?? Service.DefaultKernelId)
+        .Where(id => !string.IsNullOrEmpty(id))
+        .Select(id => id!)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    // The kernel label in the meta line. When more than one language is in use
+    // the primary kernel name is suffixed with the count of the others.
+    private string KernelLabel
+    {
+        get
+        {
+            var others = DistinctLanguageIds.Count - 1;
+            return others > 0 ? $"{PrimaryKernelName} +{others}" : PrimaryKernelName;
+        }
+    }
+
+    // Tooltip enumerating every kernel in use when the notebook is polyglot.
+    private string KernelTooltip
+    {
+        get
+        {
+            var names = DistinctLanguageIds
+                .Select(id => ResolveLanguageName(id) ?? id)
+                .ToList();
+            return names.Count > 1 ? "Kernels: " + string.Join(", ", names) : PrimaryKernelName;
+        }
+    }
+
+    private string? ResolveLanguageName(string? languageId)
+    {
+        if (string.IsNullOrEmpty(languageId)) return null;
+        return Service.RegisteredLanguages
+            .FirstOrDefault(l => string.Equals(l.Id, languageId, StringComparison.OrdinalIgnoreCase))?.DisplayName
+            ?? languageId;
+    }
+
+    // --- Kernel status ---
+    // Derived from the existing execution/restart events; no new plumbing. The
+    // set of in-flight cells tracks concurrent runs so the pill only returns to
+    // idle once every cell has finished.
+
+    private enum KernelActivity { Idle, Running, Restarting }
+
+    private KernelActivity _kernelActivity = KernelActivity.Idle;
+    private readonly HashSet<Guid> _runningCells = new();
+    private bool _kernelEventsWired;
+
+    private string KernelStatusText => _kernelActivity switch
+    {
+        KernelActivity.Running => "Running…",
+        KernelActivity.Restarting => "Restarting…",
+        _ => "Kernel idle"
+    };
+
+    private string KernelStatusClass => _kernelActivity switch
+    {
+        KernelActivity.Running => "verso-kernel-status--running",
+        KernelActivity.Restarting => "verso-kernel-status--restarting",
+        _ => "verso-kernel-status--idle"
+    };
+
+    private void WireKernelEvents()
+    {
+        if (_kernelEventsWired || Service is null) return;
+        Service.OnCellExecuting += HandleCellExecuting;
+        Service.OnCellExecutionCompleted += HandleCellExecutionCompleted;
+        Service.OnKernelRestarting += HandleKernelRestarting;
+        Service.OnKernelRestarted += HandleKernelRestarted;
+        _kernelEventsWired = true;
+    }
+
+    private void HandleCellExecuting(Guid cellId)
+    {
+        _runningCells.Add(cellId);
+        _kernelActivity = KernelActivity.Running;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCellExecutionCompleted(Guid cellId)
+    {
+        _runningCells.Remove(cellId);
+        if (_runningCells.Count == 0 && _kernelActivity != KernelActivity.Restarting)
+            _kernelActivity = KernelActivity.Idle;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleKernelRestarting(string? kernelId)
+    {
+        _kernelActivity = KernelActivity.Restarting;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleKernelRestarted(string? kernelId)
+    {
+        _runningCells.Clear();
+        _kernelActivity = KernelActivity.Idle;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (!_kernelEventsWired || Service is null) return;
+        Service.OnCellExecuting -= HandleCellExecuting;
+        Service.OnCellExecutionCompleted -= HandleCellExecutionCompleted;
+        Service.OnKernelRestarting -= HandleKernelRestarting;
+        Service.OnKernelRestarted -= HandleKernelRestarted;
+    }
+
+    protected override void OnInitialized()
+    {
+        WireKernelEvents();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -288,43 +423,16 @@
         await OnActionExecuted.InvokeAsync("verso.switchTheme");
     }
 
-    private async Task CycleLayout()
+    private void ToggleViewDropdown()
     {
-        var layouts = Service.AvailableLayouts;
-        if (layouts.Count < 2) return;
-        var currentIndex = layouts.ToList().FindIndex(l => string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase));
-        var nextIndex = (currentIndex + 1) % layouts.Count;
-        await SwitchLayout(layouts[nextIndex].LayoutId);
-    }
-
-    private async Task CycleTheme()
-    {
-        var themes = Service.AvailableThemes;
-        if (themes.Count < 2) return;
-        var currentIndex = themes.ToList().FindIndex(t => string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase));
-        var nextIndex = (currentIndex + 1) % themes.Count;
-        await SwitchTheme(themes[nextIndex].ThemeId);
-    }
-
-    private void ToggleLayoutDropdown()
-    {
-        _showLayoutDropdown = !_showLayoutDropdown;
-        _showThemeDropdown = false;
-        _showExportDropdown = false;
-    }
-
-    private void ToggleThemeDropdown()
-    {
-        _showThemeDropdown = !_showThemeDropdown;
-        _showLayoutDropdown = false;
+        _showViewDropdown = !_showViewDropdown;
         _showExportDropdown = false;
     }
 
     private void ToggleExportDropdown()
     {
         _showExportDropdown = !_showExportDropdown;
-        _showLayoutDropdown = false;
-        _showThemeDropdown = false;
+        _showViewDropdown = false;
     }
 
     private async Task ExecuteExportAsync(ToolbarActionInfo action)
@@ -335,20 +443,19 @@
 
     private async Task SelectLayout(string layoutId)
     {
-        _showLayoutDropdown = false;
+        _showViewDropdown = false;
         await SwitchLayout(layoutId);
     }
 
     private async Task SelectTheme(string themeId)
     {
-        _showThemeDropdown = false;
+        _showViewDropdown = false;
         await SwitchTheme(themeId);
     }
 
     private void CloseAllDropdowns()
     {
-        _showLayoutDropdown = false;
-        _showThemeDropdown = false;
+        _showViewDropdown = false;
         _showExportDropdown = false;
     }
 
@@ -374,5 +481,4 @@
 
     private async Task OnSave() => await OnSaveNotebook.InvokeAsync();
     private async Task OnAddCodeCell() => await OnAddCell.InvokeAsync("code");
-    private async Task OnAddMarkdownCell() => await OnAddCell.InvokeAsync("markdown");
 }

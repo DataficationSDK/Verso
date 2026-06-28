@@ -78,6 +78,8 @@ public sealed class ToolbarActionDto
     public string? Icon { get; set; }
     public string Placement { get; set; } = "";
     public int Order { get; set; }
+    public bool IconOnly { get; set; }
+    public bool IsPrimary { get; set; }
 }
 
 // --- Cell ---

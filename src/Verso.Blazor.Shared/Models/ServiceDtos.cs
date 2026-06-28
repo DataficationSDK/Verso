@@ -15,7 +15,9 @@ public sealed record ToolbarActionInfo(
     string DisplayName,
     string? Icon,
     ToolbarPlacement Placement,
-    int Order);
+    int Order,
+    bool IconOnly = false,
+    bool IsPrimary = false);
 
 /// <summary>
 /// Payload of a <c>layout/updated</c> host-to-client notification. Carries the

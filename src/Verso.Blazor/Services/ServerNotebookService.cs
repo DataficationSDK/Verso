@@ -625,7 +625,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         return _extensionHost.GetToolbarActions()
             .Where(a => a.Placement == placement)
             .OrderBy(a => a.Order)
-            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order))
+            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order, a.IconOnly, a.IsPrimary))
             .ToList();
     }
 

@@ -88,6 +88,30 @@ html, body {
     cursor: default;
 }
 
+/* Icon-only toolbar action: hide the label, keep a square hit target; the
+   button's title attribute supplies the hover tooltip. */
+.verso-toolbar-btn--icon {
+    padding: 0 7px;
+}
+
+/* Primary toolbar action: filled accent button marking the prominent call to
+   action (e.g. Run All). */
+.verso-toolbar-btn--primary {
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.verso-toolbar-btn--primary:hover:not(:disabled) {
+    background: var(--verso-accent-secondary, #005A9E);
+}
+
+.verso-toolbar-btn--primary:disabled {
+    background: var(--verso-accent-primary, #0078D4);
+    color: #FFFFFF;
+    opacity: 0.45;
+}
+
 .verso-toolbar-input {
     height: 26px;
     padding: 0 8px;
@@ -1467,15 +1491,98 @@ html, body {
     display: none;
 }
 
-/* Layout switcher active button */
+/* Document info cluster: icon + filename over a kernel/cell-count meta line */
 
-.verso-toolbar-btn--active {
-    background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+.verso-doc-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    min-width: 0;
+    max-width: 320px;
 }
 
-.verso-toolbar-btn--active:hover:not(:disabled) {
-    background: var(--verso-accent-secondary, #005A9E);
+.verso-doc-info-icon {
+    flex: none;
+    color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-doc-info-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.25;
+    min-width: 0;
+}
+
+.verso-doc-info-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--verso-toolbar-foreground, #1E1E1E);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.verso-doc-info-meta {
+    font-size: 11px;
+    color: var(--verso-text-muted, #888);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Kernel status pill: idle / running / restarting. Right-aligned in the bar. */
+
+.verso-kernel-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    white-space: nowrap;
+    flex: none;
+}
+
+.verso-kernel-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
+}
+
+.verso-kernel-status-text {
+    color: inherit;
+}
+
+.verso-kernel-status--idle {
+    color: var(--verso-success, #3FB950);
+    border-color: rgba(63, 185, 80, 0.4);
+    background: rgba(63, 185, 80, 0.08);
+}
+
+.verso-kernel-status--running {
+    color: var(--verso-accent-primary, #0078D4);
+    border-color: rgba(0, 120, 212, 0.4);
+    background: rgba(0, 120, 212, 0.08);
+}
+
+.verso-kernel-status--restarting {
+    color: var(--verso-warning, #D29922);
+    border-color: rgba(210, 153, 34, 0.4);
+    background: rgba(210, 153, 34, 0.08);
+}
+
+.verso-kernel-status--running .verso-kernel-status-dot {
+    animation: verso-kernel-pulse 1s ease-in-out infinite;
+}
+
+@keyframes verso-kernel-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 /* Toolbar dropdown toggle */
@@ -1512,6 +1619,38 @@ html, body {
     justify-content: flex-start;
     width: 100%;
     border-radius: 2px;
+}
+
+/* Sectioned "View" menu: header label above each group */
+
+.verso-toolbar-menu-header {
+    padding: 6px 8px 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--verso-text-muted, #888);
+    pointer-events: none;
+}
+
+.verso-toolbar-menu-header:not(:first-child) {
+    margin-top: 4px;
+}
+
+/* Menu rows push the active checkmark to the trailing edge */
+
+.verso-toolbar-dropdown-popup .verso-toolbar-menu-item {
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.verso-toolbar-menu-item--active {
+    color: var(--verso-accent-primary, #0078D4);
+    font-weight: 600;
+}
+
+.verso-toolbar-menu-check {
+    color: var(--verso-accent-primary, #0078D4);
 }
 
 /* === Notebook Body Layout === */

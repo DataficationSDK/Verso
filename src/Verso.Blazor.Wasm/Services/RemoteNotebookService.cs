@@ -1566,7 +1566,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _toolbarActions = actionsResult.Actions?.Select(a => new ToolbarActionInfo(
             a.ActionId, a.DisplayName, a.Icon,
             Enum.TryParse<ToolbarPlacement>(a.Placement, true, out var p) ? p : ToolbarPlacement.MainToolbar,
-            a.Order)).ToList() ?? new();
+            a.Order, a.IconOnly, a.IsPrimary)).ToList() ?? new();
 
         // Cell types
         var cellTypesResult = await _bridge.RequestAsync<CellTypesResponse>("notebook/getCellTypes", null);
@@ -1976,6 +1976,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? Icon { get; set; }
         public string Placement { get; set; } = "";
         public int Order { get; set; }
+        public bool IconOnly { get; set; }
+        public bool IsPrimary { get; set; }
     }
 
     private sealed class EnabledStatesResponse

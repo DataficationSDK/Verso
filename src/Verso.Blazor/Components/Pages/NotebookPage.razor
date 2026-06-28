@@ -901,6 +901,7 @@
     {
         var cell = await Service.AddCellAsync(type);
         _selectedCellId = cell.Id;
+        await ScrollToSelectedCell();
     }
 
     private Task HandleRunCell(Guid cellId)
