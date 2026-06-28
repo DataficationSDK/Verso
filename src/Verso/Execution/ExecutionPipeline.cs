@@ -319,6 +319,11 @@ internal sealed class ExecutionPipeline
 
         var result = await renderer.RenderInputAsync(cell.Source, renderContext).ConfigureAwait(false);
         cell.Outputs.Add(new CellOutput(result.MimeType, result.Content));
+        // Surface the rendered output the same way kernel execution does, so out-of-process
+        // hosts receive it incrementally as the cell finishes rather than only at the end of a
+        // Run All. Without this, render-only cells (e.g. Markdown) emit no output notification
+        // and their content appears only after the whole batch completes.
+        _notifyOutputUpdated?.Invoke(cell.Id);
 
         stopwatch.Stop();
 
