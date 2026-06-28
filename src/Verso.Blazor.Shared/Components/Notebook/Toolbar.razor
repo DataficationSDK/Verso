@@ -134,7 +134,12 @@
             </div>
         }
 
-        @if (_exportActions.Count > 0)
+        @* Only surface export actions that are currently enabled. Actions gate themselves through
+           IsEnabledAsync (a layout-specific export enables only while its layout is active), so a
+           disabled action is hidden outright rather than shown greyed-out, and the Export button
+           disappears when nothing is exportable. The enabled set is recomputed in
+           RefreshEnabledStatesAsync. *@
+        @if (_enabledExportActions.Count > 0)
         {
             <div class="verso-toolbar-dropdown">
                 <button class="verso-toolbar-btn"
@@ -147,12 +152,10 @@
                 @if (_showExportDropdown)
                 {
                     <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
-                        @foreach (var action in _exportActions)
+                        @foreach (var action in _enabledExportActions)
                         {
                             var a = action;
-                            var isEnabled = _exportEnabledStates.GetValueOrDefault(a.ActionId, false);
                             <button class="verso-toolbar-btn"
-                                    disabled="@(!isEnabled)"
                                     @onclick="() => ExecuteExportAsync(a)">
                                 @a.DisplayName
                             </button>
@@ -186,6 +189,7 @@
     private IReadOnlyList<ToolbarActionInfo> _exportActions = Array.Empty<ToolbarActionInfo>();
     private Dictionary<string, bool> _enabledStates = new();
     private Dictionary<string, bool> _exportEnabledStates = new();
+    private IReadOnlyList<ToolbarActionInfo> _enabledExportActions = Array.Empty<ToolbarActionInfo>();
     private bool _showOpenInput;
     private string _openFilePath = "";
     private bool _showViewDropdown;
@@ -365,6 +369,10 @@
             _exportEnabledStates = await Service.GetActionEnabledStatesAsync(
                 ToolbarPlacement.ExportMenu, selectedIds);
         }
+
+        _enabledExportActions = _exportActions
+            .Where(a => _exportEnabledStates.GetValueOrDefault(a.ActionId, false))
+            .ToList();
     }
 
     private async Task ExecuteActionAsync(ToolbarActionInfo action)

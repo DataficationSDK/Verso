@@ -36,29 +36,10 @@ const STYLE = `
   }
   .app {
     display: grid;
-    grid-template-rows: auto 1fr;
     grid-template-columns: 56px 1fr 288px;
-    grid-template-areas: "top top top" "tools stage panel";
+    grid-template-areas: "tools stage panel";
     height: 100%;
   }
-  /* Top bar */
-  .top {
-    grid-area: top;
-    display: flex; align-items: center; gap: 12px;
-    padding: 0 14px; height: 46px;
-    background: var(--verso-bg-elevated, #1b1e26);
-    border-bottom: 1px solid var(--verso-border-default, #2a2e38);
-  }
-  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: .2px; }
-  .brand .mark {
-    width: 22px; height: 22px; border-radius: 6px;
-    background: var(--verso-accent, #5b8def);
-    display: grid; place-items: center; color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  }
-  .brand .mark svg { width: 14px; height: 14px; }
-  .brand .sub { color: var(--verso-fg-muted, #9aa0ac); font-weight: 500; font-size: .85em; }
-  .top .spacer { flex: 1; }
   .btn {
     appearance: none; cursor: pointer; user-select: none;
     border: 1px solid var(--verso-border-default, #2a2e38);
@@ -232,7 +213,6 @@ const STYLE = `
 // --- Icons (inline SVG; CSP-safe) -------------------------------------------
 
 const ICON = {
-  logo: '<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="6.4" r="1.2" fill="currentColor"/><path d="M3 11l3-3 2 2 3-3 2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   solid: '<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"/></svg>',
   gradient: '<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".25"/><stop offset="1" stop-color="currentColor"/></linearGradient></defs><rect x="4" y="4" width="16" height="16" rx="2" fill="url(#g)"/></svg>',
   radial: '<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" fill="currentColor"/></svg>',
@@ -241,7 +221,6 @@ const ICON = {
   code: '<svg viewBox="0 0 24 24" fill="none"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   sliders: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 8h9M18 8h1M5 16h1M10 16h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="8" r="2.2" fill="currentColor"/><circle cx="8" cy="16" r="2.2" fill="currentColor"/></svg>',
   add: '<svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
-  download: '<svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0l-3-3m3 3l3-3M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   eye: '<svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>',
   eyeOff: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M9.5 9.6A2.6 2.6 0 0012 14.5M6.3 6.4C3.7 8 2 12 2 12s3.5 7 10 7c1.7 0 3.2-.4 4.5-1M11 5.1c.3 0 .7-.1 1-.1 6.5 0 10 7 10 7s-.8 1.6-2.3 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   trash: '<svg viewBox="0 0 16 16" fill="none"><path d="M3 5h10M6.5 5V3.5h3V5M5 5l.5 8h5L11 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -267,12 +246,6 @@ document.head.appendChild(styleEl);
 
 document.body.innerHTML = `
   <div class="app">
-    <div class="top">
-      <div class="brand"><span class="mark">${ICON.logo}</span> Image Studio <span class="sub">layered compositor</span></div>
-      <div class="spacer"></div>
-      <button class="btn" id="exportSvgBtn">${ICON.download} Export SVG</button>
-      <button class="btn" id="exportBtn">${ICON.download} Export PNG</button>
-    </div>
     <div class="tools" id="tools"></div>
     <div class="stage">
       <div class="viewport" id="viewport">
@@ -318,8 +291,6 @@ propsToggle.onclick = () => { showProps = !showProps; propsToggle.classList.togg
 toolsEl.appendChild(propsToggle);
 
 document.getElementById("addBtn").onclick = () => verso.interact("add-layer", { kind: "solid" });
-document.getElementById("exportBtn").onclick = exportPng;
-document.getElementById("exportSvgBtn").onclick = exportSvg;
 
 // Zoom controls: buttons, click-% to reset, Fit, Ctrl/Cmd+wheel, and +/-/0 keys.
 document.getElementById("zoomIn").onclick = () => zoomBy(1.25);
@@ -1128,6 +1099,13 @@ verso.onMessage((type, payload) => {
         renderCanvas();
         renderLayers();
       }
+      break;
+    case "ext/export-request":
+      // The host Export menu owns the export buttons now; it asks the frame to produce the
+      // bytes (only the frame can rasterize the canvas), and exportPng/exportSvg send the
+      // result back as an "export" interaction the host turns into a file download.
+      if (payload && payload.format === "svg") exportSvg();
+      else exportPng();
       break;
     case "verso/themeChanged":
       // Chrome restyles via CSS automatically; repaint the canvas (theme-derived text/stroke).

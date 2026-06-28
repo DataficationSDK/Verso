@@ -21,9 +21,13 @@ also declare it as a required extension so it installs automatically on open.
 ## Using it
 
 With the layout active you can add layers (solid, gradients, checkerboard, stripes, dots, rings,
-text, and procedural), set each layer's opacity and blend mode, reorder the stack, and export the
-composite as PNG or SVG. Add a procedural layer and bind it to a kernel variable to draw a layer from
-code in any language the notebook runs.
+text, and procedural), set each layer's opacity and blend mode, and reorder the stack. Add a
+procedural layer and bind it to a kernel variable to draw a layer from code in any language the
+notebook runs.
+
+To save your work, use the host **Export** menu: while Image Studio is the active layout it adds
+**PNG Image** (the rasterized canvas) and **SVG Image** (a resolution-independent re-emit of the
+vector layers) alongside the notebook's other export formats.
 
 ## License
 

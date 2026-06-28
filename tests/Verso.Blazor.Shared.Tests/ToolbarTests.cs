@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components.Forms;
-
 namespace Verso.Blazor.Shared.Tests;
 
 [TestClass]
@@ -57,60 +55,26 @@ public sealed class ToolbarTests : BunitTestContext
         Assert.IsFalse(cut.Markup.Contains("Save"));
     }
 
-    // ── Add Cell buttons ───────────────────────────────────────────────
+    // ── View dropdown (Layout + Theme) ─────────────────────────────────
+    //
+    // Layout and theme switching share a single "View" dropdown. The button appears only when
+    // there is something to switch (more than one layout, or more than one theme on a host that
+    // owns its own theming), and each section renders only when its own choices warrant it. The
+    // choices live inside the popup, so the dropdown is opened before asserting on them.
 
     [TestMethod]
-    public void AddCodeAndMarkdown_ShownWhenLoaded()
+    public void ViewDropdown_HiddenWhenSingleLayoutAndSingleTheme()
     {
-        _service.IsLoaded = true;
+        _service.AvailableLayouts = new List<LayoutInfo> { new("notebook", "Notebook", false) };
+        _service.AvailableThemes = new List<ThemeInfo> { new("light", "Light", ThemeKind.Light) };
 
         var cut = RenderToolbar();
 
-        Assert.IsTrue(cut.Markup.Contains("+ Code"));
-        Assert.IsTrue(cut.Markup.Contains("+ Markdown"));
+        Assert.IsFalse(HasViewButton(cut));
     }
 
     [TestMethod]
-    public void AddCodeButton_FiresOnAddCell_WithCode()
-    {
-        string? addedType = null;
-        var cut = RenderToolbar(onAddCell: type => addedType = type);
-
-        var btn = cut.FindAll("button").First(b => b.TextContent.Contains("+ Code"));
-        btn.Click();
-
-        Assert.AreEqual("code", addedType);
-    }
-
-    [TestMethod]
-    public void AddMarkdownButton_FiresOnAddCell_WithMarkdown()
-    {
-        string? addedType = null;
-        var cut = RenderToolbar(onAddCell: type => addedType = type);
-
-        var btn = cut.FindAll("button").First(b => b.TextContent.Contains("+ Markdown"));
-        btn.Click();
-
-        Assert.AreEqual("markdown", addedType);
-    }
-
-    // ── Layout dropdown ────────────────────────────────────────────────
-
-    [TestMethod]
-    public void LayoutDropdown_HiddenWhenSingleLayout()
-    {
-        _service.AvailableLayouts = new List<LayoutInfo>
-        {
-            new("notebook", "Notebook", false)
-        };
-
-        var cut = RenderToolbar();
-
-        Assert.IsFalse(cut.Markup.Contains("Switch Layout"));
-    }
-
-    [TestMethod]
-    public void LayoutDropdown_ShownWhenMultipleLayouts()
+    public void ViewDropdown_ShowsLayouts_WhenMultipleLayouts()
     {
         _service.AvailableLayouts = new List<LayoutInfo>
         {
@@ -120,27 +84,33 @@ public sealed class ToolbarTests : BunitTestContext
         _service.ActiveLayoutId = "notebook";
 
         var cut = RenderToolbar();
+        OpenViewDropdown(cut);
 
-        Assert.IsTrue(cut.Markup.Contains("Notebook"));
+        Assert.IsTrue(cut.Markup.Contains("Layout"));      // section header
+        Assert.IsTrue(cut.Markup.Contains("Dashboard"));   // the switchable layout
     }
 
-    // ── Theme dropdown ─────────────────────────────────────────────────
-
     [TestMethod]
-    public void ThemeDropdown_HiddenWhenSingleTheme()
+    public void ViewDropdown_OmitsLayoutSection_WhenSingleLayout()
     {
+        // One layout, but multiple themes force the dropdown open: it offers themes and no
+        // Layout section, since there is nothing to switch to.
+        _service.AvailableLayouts = new List<LayoutInfo> { new("notebook", "Notebook", false) };
         _service.AvailableThemes = new List<ThemeInfo>
         {
-            new("light", "Light", ThemeKind.Light)
+            new("light", "Light", ThemeKind.Light),
+            new("dark", "Dark", ThemeKind.Dark)
         };
 
         var cut = RenderToolbar();
+        OpenViewDropdown(cut);
 
-        Assert.IsFalse(cut.Markup.Contains("Switch Theme"));
+        Assert.IsFalse(cut.Markup.Contains("Layout"));
+        Assert.IsTrue(cut.Markup.Contains("Theme"));
     }
 
     [TestMethod]
-    public void ThemeDropdown_ShownWhenMultipleThemes_NotEmbedded()
+    public void ViewDropdown_ShowsThemes_WhenMultipleThemes_NotEmbedded()
     {
         _service.AvailableThemes = new List<ThemeInfo>
         {
@@ -151,13 +121,39 @@ public sealed class ToolbarTests : BunitTestContext
         _service.IsEmbedded = false;
 
         var cut = RenderToolbar();
+        OpenViewDropdown(cut);
 
-        Assert.IsTrue(cut.Markup.Contains("Light"));
+        Assert.IsTrue(cut.Markup.Contains("Theme"));   // section header
+        Assert.IsTrue(cut.Markup.Contains("Dark"));    // the switchable theme
     }
 
     [TestMethod]
-    public void ThemeDropdown_HiddenWhenEmbedded()
+    public void ViewDropdown_OmitsThemeSection_WhenSingleTheme()
     {
+        // Multiple layouts force the dropdown open; one theme means no Theme section.
+        _service.AvailableLayouts = new List<LayoutInfo>
+        {
+            new("notebook", "Notebook", false),
+            new("dashboard", "Dashboard", true)
+        };
+        _service.AvailableThemes = new List<ThemeInfo> { new("light", "Light", ThemeKind.Light) };
+
+        var cut = RenderToolbar();
+        OpenViewDropdown(cut);
+
+        Assert.IsFalse(cut.Markup.Contains("Theme"));
+        Assert.IsTrue(cut.Markup.Contains("Layout"));
+    }
+
+    [TestMethod]
+    public void ViewDropdown_OmitsThemeSection_WhenEmbedded()
+    {
+        // Embedded hosts own theming, so the Theme section never appears even with many themes.
+        _service.AvailableLayouts = new List<LayoutInfo>
+        {
+            new("notebook", "Notebook", false),
+            new("dashboard", "Dashboard", true)
+        };
         _service.AvailableThemes = new List<ThemeInfo>
         {
             new("light", "Light", ThemeKind.Light),
@@ -166,34 +162,33 @@ public sealed class ToolbarTests : BunitTestContext
         _service.IsEmbedded = true;
 
         var cut = RenderToolbar();
+        OpenViewDropdown(cut);
 
-        // Theme dropdown hidden in embedded mode
-        Assert.IsFalse(cut.Markup.Contains("Switch Theme"));
+        Assert.IsFalse(cut.Markup.Contains("Theme"));
     }
 
     // ── Not loaded state ───────────────────────────────────────────────
 
     [TestMethod]
-    public void WhenNotLoaded_CellAndSaveButtonsHidden()
+    public void WhenNotLoaded_SaveButtonHidden()
     {
         _service.IsLoaded = false;
 
         var cut = RenderToolbar();
 
         Assert.IsFalse(cut.Markup.Contains("Save"));
-        Assert.IsFalse(cut.Markup.Contains("+ Code"));
-        Assert.IsFalse(cut.Markup.Contains("+ Markdown"));
     }
 
-    // ── Helper ─────────────────────────────────────────────────────────
+    // ── Helpers ────────────────────────────────────────────────────────
 
-    private IRenderedComponent<Toolbar> RenderToolbar(
-        Action<string>? onAddCell = null)
-    {
-        return RenderComponent<Toolbar>(p => p
-            .Add(t => t.Service, _service)
-            .Add(t => t.OnAddCell, onAddCell ?? (_ => { })));
-    }
+    private IRenderedComponent<Toolbar> RenderToolbar()
+        => RenderComponent<Toolbar>(p => p.Add(t => t.Service, _service));
+
+    private static bool HasViewButton(IRenderedComponent<Toolbar> cut)
+        => cut.FindAll("button").Any(b => b.TextContent.Contains("View"));
+
+    private static void OpenViewDropdown(IRenderedComponent<Toolbar> cut)
+        => cut.FindAll("button").First(b => b.TextContent.Contains("View")).Click();
 }
 
 /// <summary>

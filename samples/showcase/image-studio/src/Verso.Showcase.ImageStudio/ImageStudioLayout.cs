@@ -30,9 +30,10 @@ public sealed class ImageStudioLayout
     : ILayoutEngine, ILayoutLifecycleHandler, ILayoutInteractionHandler
 {
     // Frame-channel message types. The host prefixes these with "ext/" on delivery, so the
-    // frame receives them as "ext/document" and "ext/vars".
+    // frame receives them as "ext/document", "ext/vars", and "ext/export-request".
     private const string DocumentMessage = "document";
     private const string VarsMessage = "vars";
+    private const string ExportRequestMessage = "export-request";
 
     // The live document for this notebook session. Never null; replaced on metadata load.
     private LayerDocument _doc = LayerDocument.Seed();
@@ -342,6 +343,23 @@ public sealed class ImageStudioLayout
         catch (NotSupportedException)
         {
             Console.Error.WriteLine("[image-studio] Host does not support file download; export skipped.");
+        }
+    }
+
+    // --- Host-driven export ---
+
+    /// <summary>
+    /// Asks every live frame to produce an export of the given format ("png" or "svg"). The
+    /// frame builds the bytes and sends them back as an "export" interaction, which
+    /// <see cref="HandleExport"/> turns into a host file download. Triggered by the Export
+    /// menu actions so the export lives in the host chrome rather than the frame.
+    /// </summary>
+    internal void RequestFrameExport(string format, CancellationToken ct)
+    {
+        foreach (var frame in _frames.Values)
+        {
+            if (frame.IsAlive)
+                _ = frame.PostMessageAsync(ExportRequestMessage, new { format }, ct);
         }
     }
 
