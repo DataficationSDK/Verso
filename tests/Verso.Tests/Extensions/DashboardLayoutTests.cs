@@ -24,32 +24,21 @@ public sealed class DashboardLayoutTests
         => Assert.IsTrue(_layout.RequiresCustomRenderer);
 
     [TestMethod]
-    public void Capabilities_ViewMode_HasResizeAndExecute()
+    public void Capabilities_HasResizeAndExecute()
     {
         Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellResize));
         Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellExecute));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellEdit));
     }
 
     [TestMethod]
-    public void Capabilities_ViewMode_NoCellInsert()
+    public void Capabilities_DoesNotAllowCodeEditingOrStructuralChanges()
     {
+        // The dashboard is view-and-arrange only: move, resize, and run, but never edit code or
+        // add/remove/reorder cells.
+        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellEdit));
         Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
         Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
         Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
-    }
-
-    [TestMethod]
-    public void Capabilities_EditMode_HasInsertDeleteReorder()
-    {
-        _layout.IsEditMode = true;
-
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellResize));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellExecute));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellEdit));
     }
 
     [TestMethod]
@@ -101,14 +90,17 @@ public sealed class DashboardLayoutTests
     }
 
     [TestMethod]
-    public async Task RenderLayoutAsync_EmitsEditModeToggleButton()
+    public async Task RenderLayoutAsync_EmitsNoCodeEditingAffordances()
     {
         var cells = new List<CellModel> { new() { Id = Guid.NewGuid() } };
 
         var result = await _layout.RenderLayoutAsync(cells, _context);
 
-        Assert.IsTrue(result.Content.Contains("data-action=\"setEditMode\""),
-            "Edit-mode toggle is a layout-scoped button routed via layout/interact.");
+        // The dashboard never edits code, so it emits neither the global edit toggle nor the
+        // per-cell code toggle; only Run, drag, and resize chrome remain.
+        Assert.IsFalse(result.Content.Contains("data-action=\"setEditMode\""));
+        Assert.IsFalse(result.Content.Contains("data-action=\"toggleCellEdit\""));
+        Assert.IsTrue(result.Content.Contains("data-action=\"run\""));
     }
 
     [TestMethod]
@@ -280,39 +272,32 @@ public sealed class DashboardLayoutTests
     }
 
     [TestMethod]
-    public async Task OnLayoutInteractionAsync_SetEditModeTrue_EnablesEditMode()
+    public async Task OnLayoutInteractionAsync_SetEditMode_IsIgnored()
     {
-        Assert.IsFalse(_layout.IsEditMode);
-
+        // setEditMode is retired (the dashboard no longer edits code). A stray "setEditMode"
+        // interaction from an older client must be absorbed as a graceful no-op that neither
+        // throws nor re-enables structural editing capabilities.
         await _layout.OnLayoutInteractionAsync(BuildContext("setEditMode", "true"));
 
-        Assert.IsTrue(_layout.IsEditMode);
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
-        Assert.IsTrue(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
-    }
-
-    [TestMethod]
-    public async Task OnLayoutInteractionAsync_SetEditModeFalse_DisablesEditMode()
-    {
-        _layout.IsEditMode = true;
-
-        await _layout.OnLayoutInteractionAsync(BuildContext("setEditMode", "false"));
-
-        Assert.IsFalse(_layout.IsEditMode);
         Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellInsert));
+        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellDelete));
+        Assert.IsFalse(_layout.Capabilities.HasFlag(LayoutCapabilities.CellReorder));
     }
 
     [TestMethod]
     public async Task OnLayoutInteractionAsync_UnknownType_IsNoOp()
     {
-        _layout.IsEditMode = true;
+        var cellId = Guid.NewGuid();
+        _layout.UpdateCellPosition(cellId, 1, 2, 4, 3);
 
         // An unrecognized interaction type must be ignored rather than thrown, so a newer
         // client emitting an interaction this build doesn't know cannot fault a healthy
         // dashboard. Mirrors the built-in notebook layout's silent handling.
         await _layout.OnLayoutInteractionAsync(BuildContext("nope", "{}"));
 
-        Assert.IsTrue(_layout.IsEditMode, "Unknown interaction must not mutate layout state.");
+        // State is untouched: the position set above is still intact.
+        var container = await _layout.GetCellContainerAsync(cellId, _context);
+        Assert.AreEqual(2.0, container.X);
+        Assert.AreEqual(1.0, container.Y);
     }
 }

@@ -329,7 +329,6 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(ns, @params),
             MethodNames.LayoutGetCellContainer => await LayoutHandler.HandleGetCellContainerAsync(ns, @params),
             MethodNames.LayoutUpdateCell => await LayoutHandler.HandleUpdateCell(ns, @params),
-            MethodNames.LayoutSetEditMode => await LayoutHandler.HandleSetEditMode(ns, @params),
             MethodNames.LayoutInteract => await LayoutHandler.HandleInteractAsync(ns, @params),
             MethodNames.LayoutGetRendererPackage => await LayoutHandler.HandleGetRendererPackageAsync(ns, @params),
             MethodNames.LayoutGetStaticAssets => await LayoutHandler.HandleGetStaticAssetsAsync(ns, @params),

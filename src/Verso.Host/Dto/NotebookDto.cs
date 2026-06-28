@@ -330,11 +330,6 @@ public sealed class LayoutUpdateCellParams
     public int Height { get; set; }
 }
 
-public sealed class LayoutSetEditModeParams
-{
-    public bool EditMode { get; set; }
-}
-
 public sealed class LayoutGetRendererPackageParams
 {
     public string NotebookId { get; set; } = "";

@@ -267,10 +267,6 @@ export interface LayoutUpdateCellParams {
   height: number;
 }
 
-export interface LayoutSetEditModeParams {
-  editMode: boolean;
-}
-
 // --- Theme DTOs ---
 
 export interface ThemeResult {

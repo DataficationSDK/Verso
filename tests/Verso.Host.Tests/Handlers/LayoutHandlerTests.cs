@@ -48,9 +48,9 @@ public class LayoutHandlerTests
             ExtensionId = handler.ExtensionId,
             LayoutId = handler.LayoutId,
             FrameInstanceId = "nb-1/dashboard/0",
-            InteractionType = "setEditMode",
-            Payload = "true",
-            TargetId = "edit-toggle"
+            InteractionType = "customAction",
+            Payload = "payload-data",
+            TargetId = "target-1"
         }));
 
         Assert.IsNull(result, "layout/interact returns null on success.");
@@ -60,9 +60,9 @@ public class LayoutHandlerTests
         Assert.AreEqual(handler.ExtensionId, ctx.ExtensionId);
         Assert.AreEqual(handler.LayoutId, ctx.LayoutId);
         Assert.AreEqual("nb-1/dashboard/0", ctx.FrameInstanceId);
-        Assert.AreEqual("setEditMode", ctx.InteractionType);
-        Assert.AreEqual("true", ctx.Payload);
-        Assert.AreEqual("edit-toggle", ctx.TargetId);
+        Assert.AreEqual("customAction", ctx.InteractionType);
+        Assert.AreEqual("payload-data", ctx.Payload);
+        Assert.AreEqual("target-1", ctx.TargetId);
         Assert.IsNotNull(ctx.Verso);
     }
 
@@ -339,25 +339,6 @@ public class LayoutHandlerTests
         Assert.AreEqual(4.0, legacyContainer.Y);
         Assert.AreEqual(8.0, legacyContainer.Width);
         Assert.AreEqual(5.0, legacyContainer.Height);
-    }
-
-    [TestMethod]
-    public async Task HandleSetEditMode_ForwardsToHandleInteract_TogglesIsEditMode()
-    {
-        var (session, notebookId, _) = await CreateOpenSession();
-        var ns = session.GetSession(notebookId);
-        var dashboard = GetLoadedDashboard(ns);
-        dashboard.IsEditMode = false;
-
-        Assert.IsFalse(dashboard.IsEditMode);
-
-        await LayoutHandler.HandleSetEditMode(ns, JsonSerializer.SerializeToElement(
-            new LayoutSetEditModeParams { EditMode = true }, JsonRpcMessage.SerializerOptions));
-        Assert.IsTrue(dashboard.IsEditMode);
-
-        await LayoutHandler.HandleSetEditMode(ns, JsonSerializer.SerializeToElement(
-            new LayoutSetEditModeParams { EditMode = false }, JsonRpcMessage.SerializerOptions));
-        Assert.IsFalse(dashboard.IsEditMode);
     }
 
     // ─── layout/getRendererPackage ────────────────────────────────────────────

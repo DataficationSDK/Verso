@@ -62,7 +62,6 @@ public static class MethodNames
     public const string LayoutRender = "layout/render";
     public const string LayoutGetCellContainer = "layout/getCellContainer";
     public const string LayoutUpdateCell = "layout/updateCell";
-    public const string LayoutSetEditMode = "layout/setEditMode";
     public const string LayoutInteract = "layout/interact";
     public const string LayoutGetRendererPackage = "layout/getRendererPackage";
     public const string LayoutGetStaticAssets = "layout/getStaticAssets";

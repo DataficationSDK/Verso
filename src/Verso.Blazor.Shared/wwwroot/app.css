@@ -1259,16 +1259,6 @@ html, body {
     min-height: 0;
 }
 
-.verso-dashboard-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 6px 16px;
-    border-bottom: 1px solid var(--verso-cell-border, #E0E0E0);
-    background: var(--verso-toolbar-background, transparent);
-    flex-shrink: 0;
-}
-
 .verso-dashboard-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -1368,25 +1358,6 @@ html, body {
     user-select: none;
 }
 
-.verso-dashboard-edit-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 24px;
-    padding: 0 8px;
-    border: none;
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: transparent;
-    color: var(--verso-editor-line-number, #858585);
-    cursor: pointer;
-    font-size: 11px;
-}
-
-.verso-dashboard-edit-toggle:hover {
-    background: var(--verso-toolbar-button-hover, #E0E0E0);
-    color: var(--verso-editor-foreground, #1E1E1E);
-}
-
 /* === Presentation Layout === */
 
 .verso-presentation-view {
@@ -1445,28 +1416,14 @@ html, body {
     display: none;
 }
 
+/* The dashboard is view-and-arrange only: the inner cell's editor and editing chrome stay
+   hidden at all times, so only rendered output shows inside each tile. */
 .verso-dashboard-cell .verso-cell-gutter,
 .verso-dashboard-cell .verso-cell-toolbar,
 .verso-dashboard-cell .verso-cell-editor,
 .verso-dashboard-cell .verso-cell-source-preview,
 .verso-dashboard-cell .verso-cell-status {
     display: none;
-}
-
-/* Show the inner cell's editor + gutter when the grid is in edit mode OR the
-   individual cell's Edit toggle is on. `display: revert` falls back to each
-   element's own CSS rule so we don't have to hardcode their display value here. */
-.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-gutter,
-.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-toolbar,
-.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-editor,
-.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-source-preview,
-.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell .verso-cell-status,
-.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-gutter,
-.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-toolbar,
-.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-editor,
-.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-source-preview,
-.verso-dashboard-cell[data-cell-edit="true"] .verso-cell-status {
-    display: revert;
 }
 
 /* The drag/resize handles are layout chrome, not Blazor's chrome; the Cell
@@ -1477,18 +1434,6 @@ html, body {
     border: none;
     background: transparent;
     box-shadow: none;
-}
-
-/* When a cell is in edit mode, its native gutter (with its own Run button)
-   appears, making the host toolbar's Run redundant. Hide it so we don't ship
-   two Run buttons stacked on top of each other. */
-.verso-dashboard-cell[data-cell-edit="true"] .verso-dashboard-cell-toolbar .verso-cell-btn--run {
-    display: none;
-}
-
-/* Same when the grid is globally in edit mode. */
-.verso-dashboard-grid[data-edit-mode="true"] .verso-dashboard-cell-toolbar .verso-cell-btn--run {
-    display: none;
 }
 
 /* Document info cluster: icon + filename over a kernel/cell-count meta line */
