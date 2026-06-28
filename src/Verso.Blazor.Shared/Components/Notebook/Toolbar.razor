@@ -5,7 +5,7 @@
         <div class="verso-doc-info" title="@KernelTooltip">
             <svg class="verso-doc-info-icon" viewBox="0 0 16 16" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5h5L13 5.5v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z"/><path d="M9 1.5V5.5h4"/></svg>
             <div class="verso-doc-info-text">
-                <span class="verso-doc-info-name">@DocName</span>
+                <span class="verso-doc-info-name" title="@DocNameFull">@DocName</span>
                 <span class="verso-doc-info-meta">@KernelLabel &middot; @CellCount @(CellCount == 1 ? "cell" : "cells")</span>
             </div>
         </div>
@@ -207,7 +207,12 @@
 
     // --- Document info cluster ---
 
-    private string DocName
+    // Hard cap on the displayed document name; longer names are cut with an ellipsis (the full
+    // name stays available via the name span's tooltip). Keeps the cluster a predictable width
+    // rather than letting it grow with the file name.
+    private const int DocNameMaxLength = 20;
+
+    private string DocNameFull
     {
         get
         {
@@ -215,6 +220,15 @@
                 ? System.IO.Path.GetFileName(Service.FilePath)
                 : Service.Title;
             return string.IsNullOrWhiteSpace(name) ? "Untitled" : name!;
+        }
+    }
+
+    private string DocName
+    {
+        get
+        {
+            var name = DocNameFull;
+            return name.Length > DocNameMaxLength ? name[..DocNameMaxLength] + "…" : name;
         }
     }
 

@@ -905,7 +905,26 @@
     }
 
     private Task HandleRunCell(Guid cellId)
-        => StartExecutionAsync(async () => await Service.ExecuteCellAsync(cellId));
+    {
+        LeaveEditModeForRenderOnlyCell(cellId);
+        return StartExecutionAsync(async () => await Service.ExecuteCellAsync(cellId));
+    }
+
+    // A render-only cell (markdown, html, ...) shows its editor only while selected and its
+    // rendered output only while not. Running one means "render it", so if it is the cell being
+    // edited, drop it out of edit and selection here; otherwise the new output would stay hidden
+    // behind the editor and the run would look like it did nothing. The preview appears once
+    // execution produces output.
+    private void LeaveEditModeForRenderOnlyCell(Guid cellId)
+    {
+        var cell = Service.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null || !Service.ShouldCollapseInput(cell.Type))
+            return;
+        if (_editingCellId == cellId)
+            _editingCellId = null;
+        if (_selectedCellId == cellId)
+            _selectedCellId = null;
+    }
 
     private async Task HandleCancelCell(Guid cellId)
     {

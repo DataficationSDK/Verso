@@ -55,6 +55,32 @@ public sealed class ToolbarTests : BunitTestContext
         Assert.IsFalse(cut.Markup.Contains("Save"));
     }
 
+    // ── Document name ──────────────────────────────────────────────────
+
+    [TestMethod]
+    public void DocName_ShownInFull_WhenWithinLimit()
+    {
+        _service.FilePath = "/notebooks/report.verso";   // "report.verso" — 12 chars
+
+        var cut = RenderToolbar();
+
+        Assert.IsTrue(cut.Markup.Contains("report.verso"));
+        Assert.IsFalse(cut.Markup.Contains("…"));
+    }
+
+    [TestMethod]
+    public void DocName_TruncatedWithEllipsis_WhenTooLong()
+    {
+        _service.FilePath = "/notebooks/this-file-has-a-very-long-name.verso";
+
+        var cut = RenderToolbar();
+
+        // Displayed name is cut to 20 characters with a trailing ellipsis...
+        Assert.IsTrue(cut.Markup.Contains("this-file-has-a-very…"));
+        // ...while the untruncated name stays available as the element's tooltip.
+        Assert.IsTrue(cut.Markup.Contains("this-file-has-a-very-long-name.verso"));
+    }
+
     // ── View dropdown (Layout + Theme) ─────────────────────────────────
     //
     // Layout and theme switching share a single "View" dropdown. The button appears only when
