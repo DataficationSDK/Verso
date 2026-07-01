@@ -22,11 +22,12 @@ internal sealed class BlockData
 }
 
 /// <summary>
-/// Reads a Datafication.Core <c>DataBlock</c> into a serializable shape entirely by reflection, so
-/// the extension takes no compile-time dependency on Datafication.Core and never fights assembly
-/// identity. Form Studio only ever reads DataBlocks (charts consume them); it writes scalar kernel
-/// variables, not DataBlocks, so there is no rebuild counterpart here. The only knowledge encoded
-/// is the small, stable public shape of <c>DataBlock</c> / <c>DataColumn</c> / <c>DataSchema</c>.
+/// Reads a chart source (a Datafication.Core <c>DataBlock</c> or a <see cref="System.Data.DataTable"/>)
+/// into a serializable shape for charting. DataBlock access is entirely reflection-based, so the
+/// extension takes no compile-time dependency on Datafication.Core and never fights assembly
+/// identity; DataTable is a BCL type read through its strongly-typed API. Form Studio only ever
+/// reads these sources (charts consume them); it writes scalar kernel variables, never structured
+/// data, so there is no rebuild counterpart here.
 /// </summary>
 internal static class DataBlockReader
 {
@@ -35,6 +36,23 @@ internal static class DataBlockReader
     /// <summary>True when the value looks like a DataBlock.</summary>
     public static bool IsDataBlock(object? value)
         => value is not null && value.GetType().FullName == DataBlockTypeName;
+
+    /// <summary>True when the value is a <see cref="System.Data.DataTable"/>.</summary>
+    public static bool IsDataTable(object? value) => value is System.Data.DataTable;
+
+    /// <summary>True when the value is a chart source we can project (DataBlock or DataTable).</summary>
+    public static bool IsSource(object? value) => IsDataBlock(value) || IsDataTable(value);
+
+    /// <summary>
+    /// Projects any supported chart source into a <see cref="BlockData"/>. Returns <c>null</c> when
+    /// the value is neither a DataBlock nor a DataTable (or its shape is not what we expect).
+    /// </summary>
+    public static BlockData? ReadSource(object? value) => value switch
+    {
+        System.Data.DataTable table => ReadDataTable(table),
+        not null when IsDataBlock(value) => Read(value),
+        _ => null,
+    };
 
     /// <summary>
     /// Projects a DataBlock instance into a <see cref="BlockData"/>. Returns <c>null</c> if the
@@ -86,6 +104,33 @@ internal static class DataBlockReader
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Projects a <see cref="System.Data.DataTable"/> into a <see cref="BlockData"/>. DataTable is
+    /// a BCL type, so this reads it through the strongly-typed API with no reflection.
+    /// </summary>
+    public static BlockData ReadDataTable(System.Data.DataTable table)
+    {
+        var data = new BlockData();
+        foreach (System.Data.DataColumn column in table.Columns)
+        {
+            data.Columns.Add(column.ColumnName);
+            data.Types.Add(HintFor(column.DataType));
+        }
+
+        foreach (System.Data.DataRow dataRow in table.Rows)
+        {
+            var row = new object?[table.Columns.Count];
+            for (var c = 0; c < table.Columns.Count; c++)
+            {
+                var cell = dataRow[c];
+                row[c] = cell is null or DBNull ? null : MapOut(cell);
+            }
+            data.Rows.Add(row);
+        }
+
+        return data;
     }
 
     // --- Type mapping -------------------------------------------------------
