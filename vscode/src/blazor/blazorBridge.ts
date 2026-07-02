@@ -209,6 +209,20 @@ export class BlazorBridge implements vscode.Disposable {
   }
 
   /**
+   * Posts a notification to the webview signaling that a kernel restart failed
+   * and the kernel is now unavailable. The WASM app resolves its status pill to
+   * an error state carrying {@link message} so it never hangs on "Restarting…".
+   * The property name is `message` to match the webview's kernel/faulted handler.
+   */
+  notifyFaulted(message: string): void {
+    this.webview.postMessage({
+      type: "jsonrpc-notification",
+      method: "kernel/faulted",
+      params: { message },
+    });
+  }
+
+  /**
    * Swaps the underlying host process after a restart and re-binds notification
    * handlers against the new process. The provider calls this once the new
    * {@link HostProcess} is started and the notebook has been reopened.

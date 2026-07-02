@@ -391,6 +391,11 @@ export class BlazorEditorProvider
         }`
       );
       bridge.endRestart();
+      bridge.notifyFaulted(
+        `Restart aborted: the notebook snapshot could not be captured (${
+          err instanceof Error ? err.message : String(err)
+        }).`
+      );
       vscode.window.showErrorMessage(
         "Verso: kernel restart aborted because the notebook snapshot could not be captured. Save and reopen the file."
       );
@@ -410,6 +415,11 @@ export class BlazorEditorProvider
         `New host failed to start: ${err instanceof Error ? err.message : String(err)}`
       );
       bridge.endRestart();
+      bridge.notifyFaulted(
+        `Kernel restart failed: the host process did not start (${
+          err instanceof Error ? err.message : String(err)
+        }).`
+      );
       vscode.window.showErrorMessage(
         `Verso: kernel restart failed (host did not start): ${
           err instanceof Error ? err.message : String(err)
@@ -433,6 +443,11 @@ export class BlazorEditorProvider
         }`
       );
       bridge.endRestart();
+      bridge.notifyFaulted(
+        `Kernel restart failed: the notebook did not reopen (${
+          err instanceof Error ? err.message : String(err)
+        }).`
+      );
       vscode.window.showErrorMessage(
         `Verso: kernel restart failed (notebook did not reopen): ${
           err instanceof Error ? err.message : String(err)

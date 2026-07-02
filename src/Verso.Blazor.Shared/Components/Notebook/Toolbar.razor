@@ -398,58 +398,77 @@
 
     private void HandleCellExecuting(Guid cellId)
     {
-        _runningCells.Add(cellId);
-        _kernelActivity = KernelActivity.Running;
-        _kernelStatusDetail = null;
-        _ = InvokeAsync(StateHasChanged);
+        // These events fire on the kernel's execution/restart thread. Marshal the state
+        // mutation and the render onto Blazor's dispatcher together so the shared
+        // _runningCells set and status fields are never written off the dispatcher (a
+        // concurrent read from CancelExecutionAsync would otherwise race the HashSet).
+        _ = InvokeAsync(() =>
+        {
+            _runningCells.Add(cellId);
+            _kernelActivity = KernelActivity.Running;
+            _kernelStatusDetail = null;
+            StateHasChanged();
+        });
     }
 
     private void HandleCellExecutionCompleted(Guid cellId)
     {
-        _runningCells.Remove(cellId);
-        // Only fall back to idle from Running; a restart, error, or disconnect
-        // reported mid-run must not be cleared by a straggling completion event.
-        if (_runningCells.Count == 0 && _kernelActivity == KernelActivity.Running)
-            _kernelActivity = KernelActivity.Idle;
-        _ = InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(() =>
+        {
+            _runningCells.Remove(cellId);
+            // Only fall back to idle from Running; a restart, error, or disconnect
+            // reported mid-run must not be cleared by a straggling completion event.
+            if (_runningCells.Count == 0 && _kernelActivity == KernelActivity.Running)
+                _kernelActivity = KernelActivity.Idle;
+            StateHasChanged();
+        });
     }
 
     private void HandleKernelRestarting(string? kernelId)
     {
-        _kernelActivity = KernelActivity.Restarting;
-        _kernelStatusDetail = null;
-        _ = InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(() =>
+        {
+            _kernelActivity = KernelActivity.Restarting;
+            _kernelStatusDetail = null;
+            StateHasChanged();
+        });
     }
 
     private void HandleKernelRestarted(string? kernelId)
     {
-        _runningCells.Clear();
-        _kernelActivity = KernelActivity.Idle;
-        _kernelStatusDetail = null;
-        _ = InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(() =>
+        {
+            _runningCells.Clear();
+            _kernelActivity = KernelActivity.Idle;
+            _kernelStatusDetail = null;
+            StateHasChanged();
+        });
     }
 
     private void HandleKernelHealthChanged(KernelHealthChangedEventArgs args)
     {
-        switch (args.Health)
+        _ = InvokeAsync(() =>
         {
-            case KernelHealth.Disconnected:
-                _runningCells.Clear();
-                _kernelActivity = KernelActivity.Disconnected;
-                _kernelStatusDetail = args.Detail;
-                break;
-            case KernelHealth.Faulted:
-                _runningCells.Clear();
-                _kernelActivity = KernelActivity.Error;
-                _kernelStatusDetail = args.Detail;
-                break;
-            default:
-                if (_kernelActivity is KernelActivity.Error or KernelActivity.Disconnected)
-                    _kernelActivity = _runningCells.Count > 0 ? KernelActivity.Running : KernelActivity.Idle;
-                _kernelStatusDetail = null;
-                break;
-        }
-        _ = InvokeAsync(StateHasChanged);
+            switch (args.Health)
+            {
+                case KernelHealth.Disconnected:
+                    _runningCells.Clear();
+                    _kernelActivity = KernelActivity.Disconnected;
+                    _kernelStatusDetail = args.Detail;
+                    break;
+                case KernelHealth.Faulted:
+                    _runningCells.Clear();
+                    _kernelActivity = KernelActivity.Error;
+                    _kernelStatusDetail = args.Detail;
+                    break;
+                default:
+                    if (_kernelActivity is KernelActivity.Error or KernelActivity.Disconnected)
+                        _kernelActivity = _runningCells.Count > 0 ? KernelActivity.Running : KernelActivity.Idle;
+                    _kernelStatusDetail = null;
+                    break;
+            }
+            StateHasChanged();
+        });
     }
 
     private void HandleDirtyStateChanged()
