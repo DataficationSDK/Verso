@@ -30,6 +30,7 @@ export class BlazorBridge implements vscode.Disposable {
     "extension/unavailable",
     "kernel/restarting",
     "kernel/restarted",
+    "kernel/faulted",
     "layout/missing",
     "layout/updated",
     "layout/frameMessage",

@@ -37,6 +37,15 @@ public interface IToolbarAction : IExtension
     bool IsPrimary => false;
 
     /// <summary>
+    /// Optional prompt asking the user to confirm before the action runs. When non-null,
+    /// hosts show a confirmation dialog with this text and execute the action only if the
+    /// user accepts. Intended for destructive actions whose effect cannot be undone (e.g.
+    /// restarting a kernel, which discards session state). Defaults to <c>null</c> so the
+    /// action executes immediately on click.
+    /// </summary>
+    string? ConfirmationPrompt => null;
+
+    /// <summary>
     /// Specifies where the action should appear (e.g. main toolbar, cell toolbar, context menu).
     /// </summary>
     ToolbarPlacement Placement { get; }

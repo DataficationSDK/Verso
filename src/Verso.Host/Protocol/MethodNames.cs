@@ -41,6 +41,7 @@ public static class MethodNames
     // Kernel
     public const string KernelRestart = "kernel/restart";
     public const string KernelRestartRequested = "kernel/restartRequested";
+    public const string KernelFaulted = "kernel/faulted";
     public const string KernelGetCompletions = "kernel/getCompletions";
     public const string KernelGetDiagnostics = "kernel/getDiagnostics";
     public const string KernelGetHoverInfo = "kernel/getHoverInfo";

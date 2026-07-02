@@ -13,6 +13,7 @@
      tabindex="0" @onkeydown="HandleKeyDown">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
+             IsExecuting="_executionInProgress"
              OnNewNotebook="HandleNew"
              OnOpenNotebook="HandleOpen"
              OnBrowseNotebook="HandleBrowse"
@@ -776,6 +777,8 @@
             {
                 case "saved":
                     _hasNativeHandle = true;
+                    if (Service is ServerNotebookService svc)
+                        svc.MarkSaved();
                     await ShowStatusAsync($"Saved to {result.FileName}");
                     return;
                 case "cancelled":
@@ -830,9 +833,17 @@
                 "versoSaveDialog.save", content);
 
             if (result.Status == "saved")
+            {
+                // The browser file handle wrote the bytes, so SaveAsync never ran;
+                // clear the unsaved-changes flag here instead.
+                if (Service is ServerNotebookService serverService)
+                    serverService.MarkSaved();
                 await ShowStatusAsync($"Saved to {result.FileName}");
+            }
             else
+            {
                 _error = $"Failed to save: {result.Message ?? "unknown error"}";
+            }
         }
         catch (Exception ex)
         {

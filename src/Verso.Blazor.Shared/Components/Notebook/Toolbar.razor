@@ -10,7 +10,7 @@
             </div>
         </div>
 
-        <div class="verso-kernel-status @KernelStatusClass" title="@KernelStatusText">
+        <div class="verso-kernel-status @KernelStatusClass" title="@KernelStatusTooltip">
             <span class="verso-kernel-status-dot"></span>
             <span class="verso-kernel-status-text">@KernelStatusText</span>
         </div>
@@ -52,9 +52,15 @@
             <div class="verso-toolbar-separator"></div>
         }
 
-        <button class="verso-toolbar-btn" @onclick="OnSave" title="Save">
+        <button class="verso-toolbar-btn"
+                @onclick="OnSave"
+                title="@(Service.IsDirty ? "Save (unsaved changes)" : "Save")">
             <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h8l2 2v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M5 2v3h4V2"/><path d="M5 10h6v4H5z"/></svg>
             Save
+            @if (Service.IsDirty)
+            {
+                <span class="verso-toolbar-dirty-dot" aria-hidden="true"></span>
+            }
         </button>
 
         <div class="verso-toolbar-separator"></div>
@@ -62,22 +68,39 @@
         @foreach (var action in _filteredToolbarActions)
         {
             var a = action;
-            var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
-            var iconOnly = a.IconOnly && a.Icon is not null;
-            <button class="verso-toolbar-btn @(iconOnly ? "verso-toolbar-btn--icon" : "") @(a.IsPrimary ? "verso-toolbar-btn--primary" : "")"
-                    disabled="@(!isEnabled)"
-                    title="@a.DisplayName"
-                    aria-label="@a.DisplayName"
-                    @onclick="() => ExecuteActionAsync(a)">
-                @if (a.Icon is not null)
-                {
-                    @((MarkupString)a.Icon)
-                }
-                @if (!iconOnly)
-                {
-                    @a.DisplayName
-                }
-            </button>
+            @if (a.IsPrimary && IsExecutionInFlight)
+            {
+                @* While the kernel is running, the primary call to action flips from "run"
+                   to "stop": clicking it cancels the in-flight execution instead of starting
+                   another. The swap keys off IsPrimary rather than a specific action id so
+                   any host- or extension-supplied primary action gets the same treatment. *@
+                <button class="verso-toolbar-btn verso-toolbar-btn--stop"
+                        title="Stop Execution"
+                        aria-label="Stop Execution"
+                        @onclick="CancelExecutionAsync">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>
+                    Stop
+                </button>
+            }
+            else
+            {
+                var isEnabled = _enabledStates.GetValueOrDefault(a.ActionId, false);
+                var iconOnly = a.IconOnly && a.Icon is not null;
+                <button class="verso-toolbar-btn @(iconOnly ? "verso-toolbar-btn--icon" : "") @(a.IsPrimary ? "verso-toolbar-btn--primary" : "")"
+                        disabled="@(!isEnabled)"
+                        title="@a.DisplayName"
+                        aria-label="@a.DisplayName"
+                        @onclick="() => OnActionClicked(a)">
+                    @if (a.Icon is not null)
+                    {
+                        @((MarkupString)a.Icon)
+                    }
+                    @if (!iconOnly)
+                    {
+                        @a.DisplayName
+                    }
+                </button>
+            }
         }
 
         <div class="verso-toolbar-separator"></div>
@@ -167,9 +190,42 @@
     }
 </div>
 
+@if (_pendingConfirmAction is { } pending)
+{
+    <div class="verso-modal-overlay" @onclick="CancelPendingAction">
+        <div class="verso-modal" role="dialog" aria-modal="true" aria-label="@pending.DisplayName"
+             @onclick:stopPropagation="true" @onkeydown="HandleConfirmKeyDown">
+            <div class="verso-modal-header">
+                <span class="verso-modal-title">@pending.DisplayName</span>
+                <button class="verso-modal-close" @onclick="CancelPendingAction" title="Cancel">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="verso-modal-body">
+                <p style="margin:0;">@pending.ConfirmationPrompt</p>
+            </div>
+            <div class="verso-modal-footer">
+                <button class="verso-modal-btn verso-modal-btn--secondary"
+                        @onclick="CancelPendingAction">Cancel</button>
+                <button class="verso-modal-btn verso-modal-btn--primary"
+                        @onclick="ConfirmPendingActionAsync">@pending.DisplayName</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public INotebookService Service { get; set; } = default!;
     [Parameter] public Guid? SelectedCellId { get; set; }
+
+    /// <summary>
+    /// Set by the hosting page while it has an execution in flight (Run All or a cell run it
+    /// started). The per-cell execution events momentarily report zero running cells between
+    /// the cells of a batch, so without this flag the Stop button and the status pill would
+    /// toggle back to their idle forms at every cell boundary. While this is <c>true</c> the
+    /// toolbar holds the running presentation until the whole run finishes.
+    /// </summary>
+    [Parameter] public bool IsExecuting { get; set; }
     [Parameter] public EventCallback OnNewNotebook { get; set; }
     [Parameter] public EventCallback<string> OnOpenNotebook { get; set; }
     [Parameter] public EventCallback<(string FileName, string Content)> OnBrowseNotebook { get; set; }
@@ -279,37 +335,64 @@
     }
 
     // --- Kernel status ---
-    // Derived from the existing execution/restart events; no new plumbing. The
-    // set of in-flight cells tracks concurrent runs so the pill only returns to
-    // idle once every cell has finished.
+    // Derived from the execution/restart/health events. The set of in-flight
+    // cells tracks concurrent runs so the pill only returns to idle once every
+    // cell has finished.
 
-    private enum KernelActivity { Idle, Running, Restarting }
+    private enum KernelActivity { Idle, Running, Restarting, Error, Disconnected }
 
     private KernelActivity _kernelActivity = KernelActivity.Idle;
+    private string? _kernelStatusDetail;
     private readonly HashSet<Guid> _runningCells = new();
     private bool _kernelEventsWired;
 
-    private string KernelStatusText => _kernelActivity switch
+    // The page-level IsExecuting flag holds the running presentation across the idle gaps
+    // between cells of a batch; the per-cell events cover runs the page did not start
+    // (e.g. an extension action executing cells). Restart/error states always win.
+    private KernelActivity EffectiveActivity =>
+        _kernelActivity == KernelActivity.Idle && IsExecuting
+            ? KernelActivity.Running
+            : _kernelActivity;
+
+    // The primary action swaps to Stop whenever an execution is in flight, regardless of
+    // whether the run started from the toolbar or a cell's own Run button; cancelling
+    // targets the current execution either way.
+    private bool IsExecutionInFlight => EffectiveActivity == KernelActivity.Running;
+
+    private string KernelStatusText => EffectiveActivity switch
     {
         KernelActivity.Running => "Running…",
         KernelActivity.Restarting => "Restarting…",
+        KernelActivity.Error => "Kernel error",
+        KernelActivity.Disconnected => "Disconnected",
         _ => "Kernel idle"
     };
 
-    private string KernelStatusClass => _kernelActivity switch
+    // Error and disconnected states carry the underlying cause (exception message,
+    // process exit detail) as the hover tooltip.
+    private string KernelStatusTooltip =>
+        string.IsNullOrWhiteSpace(_kernelStatusDetail)
+            ? KernelStatusText
+            : $"{KernelStatusText}: {_kernelStatusDetail}";
+
+    private string KernelStatusClass => EffectiveActivity switch
     {
         KernelActivity.Running => "verso-kernel-status--running",
         KernelActivity.Restarting => "verso-kernel-status--restarting",
+        KernelActivity.Error => "verso-kernel-status--error",
+        KernelActivity.Disconnected => "verso-kernel-status--error",
         _ => "verso-kernel-status--idle"
     };
 
-    private void WireKernelEvents()
+    private void WireServiceEvents()
     {
         if (_kernelEventsWired || Service is null) return;
         Service.OnCellExecuting += HandleCellExecuting;
         Service.OnCellExecutionCompleted += HandleCellExecutionCompleted;
         Service.OnKernelRestarting += HandleKernelRestarting;
         Service.OnKernelRestarted += HandleKernelRestarted;
+        Service.OnKernelHealthChanged += HandleKernelHealthChanged;
+        Service.OnDirtyStateChanged += HandleDirtyStateChanged;
         _kernelEventsWired = true;
     }
 
@@ -317,13 +400,16 @@
     {
         _runningCells.Add(cellId);
         _kernelActivity = KernelActivity.Running;
+        _kernelStatusDetail = null;
         _ = InvokeAsync(StateHasChanged);
     }
 
     private void HandleCellExecutionCompleted(Guid cellId)
     {
         _runningCells.Remove(cellId);
-        if (_runningCells.Count == 0 && _kernelActivity != KernelActivity.Restarting)
+        // Only fall back to idle from Running; a restart, error, or disconnect
+        // reported mid-run must not be cleared by a straggling completion event.
+        if (_runningCells.Count == 0 && _kernelActivity == KernelActivity.Running)
             _kernelActivity = KernelActivity.Idle;
         _ = InvokeAsync(StateHasChanged);
     }
@@ -331,6 +417,7 @@
     private void HandleKernelRestarting(string? kernelId)
     {
         _kernelActivity = KernelActivity.Restarting;
+        _kernelStatusDetail = null;
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -338,7 +425,48 @@
     {
         _runningCells.Clear();
         _kernelActivity = KernelActivity.Idle;
+        _kernelStatusDetail = null;
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleKernelHealthChanged(KernelHealthChangedEventArgs args)
+    {
+        switch (args.Health)
+        {
+            case KernelHealth.Disconnected:
+                _runningCells.Clear();
+                _kernelActivity = KernelActivity.Disconnected;
+                _kernelStatusDetail = args.Detail;
+                break;
+            case KernelHealth.Faulted:
+                _runningCells.Clear();
+                _kernelActivity = KernelActivity.Error;
+                _kernelStatusDetail = args.Detail;
+                break;
+            default:
+                if (_kernelActivity is KernelActivity.Error or KernelActivity.Disconnected)
+                    _kernelActivity = _runningCells.Count > 0 ? KernelActivity.Running : KernelActivity.Idle;
+                _kernelStatusDetail = null;
+                break;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleDirtyStateChanged()
+        => _ = InvokeAsync(StateHasChanged);
+
+    private async Task CancelExecutionAsync()
+    {
+        // Both hosts cancel whatever execution is currently in flight; the cell id is
+        // informational (see INotebookService.CancelCellAsync).
+        try
+        {
+            await Service.CancelCellAsync(_runningCells.FirstOrDefault());
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync($"Stop failed: {ex.Message}");
+        }
     }
 
     public void Dispose()
@@ -348,11 +476,13 @@
         Service.OnCellExecutionCompleted -= HandleCellExecutionCompleted;
         Service.OnKernelRestarting -= HandleKernelRestarting;
         Service.OnKernelRestarted -= HandleKernelRestarted;
+        Service.OnKernelHealthChanged -= HandleKernelHealthChanged;
+        Service.OnDirtyStateChanged -= HandleDirtyStateChanged;
     }
 
     protected override void OnInitialized()
     {
-        WireKernelEvents();
+        WireServiceEvents();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -387,6 +517,38 @@
         _enabledExportActions = _exportActions
             .Where(a => _exportEnabledStates.GetValueOrDefault(a.ActionId, false))
             .ToList();
+    }
+
+    // --- Action confirmation ---
+
+    private ToolbarActionInfo? _pendingConfirmAction;
+
+    // Actions that declare a ConfirmationPrompt (e.g. Restart Kernel, whose effect cannot
+    // be undone) go through a confirm dialog; everything else executes immediately.
+    private Task OnActionClicked(ToolbarActionInfo action)
+    {
+        if (!string.IsNullOrWhiteSpace(action.ConfirmationPrompt))
+        {
+            _pendingConfirmAction = action;
+            return Task.CompletedTask;
+        }
+        return ExecuteActionAsync(action);
+    }
+
+    private async Task ConfirmPendingActionAsync()
+    {
+        var action = _pendingConfirmAction;
+        _pendingConfirmAction = null;
+        if (action is not null)
+            await ExecuteActionAsync(action);
+    }
+
+    private void CancelPendingAction() => _pendingConfirmAction = null;
+
+    private async Task HandleConfirmKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ConfirmPendingActionAsync();
+        else if (e.Key == "Escape") CancelPendingAction();
     }
 
     private async Task ExecuteActionAsync(ToolbarActionInfo action)

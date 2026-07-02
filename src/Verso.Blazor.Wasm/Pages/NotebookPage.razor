@@ -12,6 +12,7 @@
      tabindex="0" @onkeydown="HandleKeyDown">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
+             IsExecuting="_activeExecutions > 0"
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
@@ -561,6 +562,12 @@
         await ScrollToSelectedCell();
     }
 
+    // Count of page-initiated runs currently in flight. Drives the toolbar's IsExecuting
+    // parameter so the Stop button and status pill hold their running presentation across
+    // the per-cell gaps of a batch instead of toggling at every cell boundary. A counter
+    // rather than a bool because cell runs can overlap.
+    private int _activeExecutions;
+
     private async Task HandleRunCell(Guid cellId)
     {
         LeaveEditModeForRenderOnlyCell(cellId);
@@ -568,6 +575,7 @@
         // _executingCellId and cell metadata are managed by HandleCellExecutingEvent /
         // HandleCellExecutedEvent (driven by the host's cell/executionState notifications
         // and Scaffold.OnCellExecuting/OnCellExecuted on the engine side).
+        _activeExecutions++;
         try
         {
             await Service.ExecuteCellAsync(cellId);
@@ -579,6 +587,10 @@
         catch (Exception ex)
         {
             _error = $"Execution error: {ex.Message}";
+        }
+        finally
+        {
+            _activeExecutions--;
         }
     }
 
@@ -776,6 +788,7 @@
         // driven by the host's cell/executionState notifications that the RemoteNotebookService
         // decodes. A trailing RefreshCellListAsync inside ExecuteAllAsync re-hydrates cell
         // metadata (ExecutionCount / LastElapsed / LastStatus) from the host.
+        _activeExecutions++;
         try
         {
             await Service.ExecuteAllAsync();
@@ -787,6 +800,10 @@
         catch (Exception ex)
         {
             _error = $"Execution error: {ex.Message}";
+        }
+        finally
+        {
+            _activeExecutions--;
         }
     }
 

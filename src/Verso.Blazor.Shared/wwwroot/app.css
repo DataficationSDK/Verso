@@ -112,6 +112,31 @@ html, body {
     opacity: 0.45;
 }
 
+/* Stop button shown in place of the primary action while execution is in flight.
+   Hosts can supply a dedicated fill pair (the VS Code webview maps the status bar
+   error item colors); otherwise the theme's status-error color is used. The pair
+   exists because --verso-status-error doubles as a text color elsewhere (error
+   banner, kernel pill) and a good text red is not always a good button fill. */
+.verso-toolbar-btn--stop {
+    background: var(--verso-toolbar-stop-background, var(--verso-status-error, #DC3545));
+    color: var(--verso-toolbar-stop-foreground, #FFFFFF);
+    font-weight: 600;
+}
+
+.verso-toolbar-btn--stop:hover:not(:disabled) {
+    background: var(--verso-toolbar-stop-background, var(--verso-status-error, #DC3545));
+    filter: brightness(0.88);
+}
+
+/* Unsaved-changes indicator on the Save button. */
+.verso-toolbar-dirty-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--verso-accent-primary, #0078D4);
+    flex: none;
+}
+
 .verso-toolbar-input {
     height: 26px;
     padding: 0 8px;
@@ -1477,15 +1502,21 @@ html, body {
     text-overflow: ellipsis;
 }
 
-/* Kernel status pill: idle / running / restarting. Right-aligned in the bar. */
+/* Kernel status pill: idle / running / restarting / error / disconnected.
+
+   The pill is a passive indicator, not a control: it deliberately has no border so it
+   does not read as a clickable chip next to the real buttons. The min-width is sized to
+   the longest status string ("Restarting…" / "Disconnected") so the buttons to its right
+   do not shift horizontally when the status text changes mid-run. */
 
 .verso-kernel-status {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 3px 10px;
+    min-width: 112px;
     border-radius: 11px;
-    border: 1px solid transparent;
     font-size: 12px;
     white-space: nowrap;
     flex: none;
@@ -1505,20 +1536,23 @@ html, body {
 
 .verso-kernel-status--idle {
     color: var(--verso-success, #3FB950);
-    border-color: rgba(63, 185, 80, 0.4);
-    background: rgba(63, 185, 80, 0.08);
+    background: rgba(63, 185, 80, 0.1);
 }
 
 .verso-kernel-status--running {
     color: var(--verso-accent-primary, #0078D4);
-    border-color: rgba(0, 120, 212, 0.4);
-    background: rgba(0, 120, 212, 0.08);
+    background: rgba(0, 120, 212, 0.1);
 }
 
 .verso-kernel-status--restarting {
     color: var(--verso-warning, #D29922);
-    border-color: rgba(210, 153, 34, 0.4);
-    background: rgba(210, 153, 34, 0.08);
+    background: rgba(210, 153, 34, 0.1);
+}
+
+/* Kernel infrastructure failure or lost host process; the tooltip carries the cause. */
+.verso-kernel-status--error {
+    color: var(--verso-status-error, #DC3545);
+    background: rgba(220, 53, 69, 0.1);
 }
 
 .verso-kernel-status--running .verso-kernel-status-dot {

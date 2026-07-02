@@ -44,7 +44,17 @@ public sealed class NotebookSession : IAsyncDisposable
         ExtensionHost.OnExtensionLoaded += HandleExtensionLoaded;
         ExtensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Scaffold.OnCellOutputUpdated += HandleCellOutputUpdated;
+        Scaffold.OnKernelRestartFailed += HandleKernelRestartFailed;
         Scaffold.InputRequester = RequestInputAsync;
+    }
+
+    private void HandleKernelRestartFailed(string? kernelId, Exception ex)
+    {
+        SendNotification(Protocol.MethodNames.KernelFaulted, new
+        {
+            kernelId,
+            message = ex.Message
+        });
     }
 
     private void HandleExtensionLoaded(Abstractions.IExtension extension)
@@ -77,7 +87,13 @@ public sealed class NotebookSession : IAsyncDisposable
 
     public void CancelExecution()
     {
-        _executionCts?.Cancel();
+        // The CTS is disposed and replaced at the start of the next run; a cancel that
+        // races that swap should be a no-op rather than an RPC error.
+        try
+        {
+            _executionCts?.Cancel();
+        }
+        catch (ObjectDisposedException) { }
     }
 
     public void SendNotification(string method, object? @params = null)
@@ -186,6 +202,7 @@ public sealed class NotebookSession : IAsyncDisposable
         ExtensionHost.OnExtensionLoaded -= HandleExtensionLoaded;
         ExtensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Scaffold.OnCellOutputUpdated -= HandleCellOutputUpdated;
+        Scaffold.OnKernelRestartFailed -= HandleKernelRestartFailed;
         Scaffold.InputRequester = null;
 
         // Cancel any pending consent requests

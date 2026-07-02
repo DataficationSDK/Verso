@@ -25,6 +25,13 @@ export class HostProcess implements vscode.Disposable {
   private readyPromise: Promise<void> | undefined;
   private disposed = false;
 
+  /**
+   * Fired when the process exits without dispose() having been called (a crash or
+   * external kill, not a normal shutdown or provider-driven restart). Receives a
+   * short human-readable exit description.
+   */
+  onUnexpectedExit: ((detail: string) => void) | undefined;
+
   constructor(private readonly hostDllPath: string) {}
 
   async start(): Promise<void> {
@@ -63,6 +70,7 @@ export class HostProcess implements vscode.Disposable {
           vscode.window.showWarningMessage(
             `Verso host process exited (${detail.toast})`
           );
+          this.onUnexpectedExit?.(detail.toast);
         } else {
           log.info(`Verso.Host exited (${detail.log})`);
         }

@@ -80,6 +80,7 @@ public sealed class ToolbarActionDto
     public int Order { get; set; }
     public bool IconOnly { get; set; }
     public bool IsPrimary { get; set; }
+    public string? ConfirmationPrompt { get; set; }
 }
 
 // --- Cell ---

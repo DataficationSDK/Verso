@@ -21,6 +21,9 @@ public interface INotebookService
     /// <summary>The on-disk file path, or null if unsaved / embedded.</summary>
     string? FilePath { get; }
 
+    /// <summary>Whether the notebook has changes that have not been saved.</summary>
+    bool IsDirty { get; }
+
     // ── Notebook metadata ──────────────────────────────────────────────
 
     /// <summary>Notebook title.</summary>
@@ -152,6 +155,14 @@ public interface INotebookService
     /// loaded on open (offline, package missing, or consent declined). The notebook still opens;
     /// this lets the UI show a non-fatal notice that some layouts or cells may not work.</summary>
     event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
+
+    /// <summary>Raised when <see cref="IsDirty"/> changes.</summary>
+    event Action? OnDirtyStateChanged;
+
+    /// <summary>Raised when the kernel's health changes: a restart failed (Faulted), the
+    /// process backing the kernel went away (Disconnected), or the kernel recovered (Ok).
+    /// Distinct from the restart events, which track a normal restart's progress.</summary>
+    event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
     // ── File operations ────────────────────────────────────────────────
 
