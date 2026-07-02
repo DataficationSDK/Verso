@@ -7,7 +7,7 @@ namespace Verso.Extensions.Layouts;
 
 /// <summary>
 /// Grid-based dashboard layout that arranges cells in a 12-column CSS Grid.
-/// Shows output-only cells with optional edit toggles and resize handles.
+/// Shows output-only cells that can be moved, resized, and run, but never code-edited.
 /// </summary>
 [VersoExtension]
 public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
@@ -17,8 +17,6 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
     private const int DefaultCellHeight = 4;
 
     private readonly Dictionary<Guid, GridPosition> _gridPositions = new();
-    private readonly HashSet<Guid> _cellsInEdit = new();
-    private bool _isEditMode;
 
     // --- IExtension ---
 
@@ -43,28 +41,13 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
             CellVisibilityState.OutputOnly,
         };
 
-    public bool SupportsPropertiesPanel => _isEditMode;
+    public bool SupportsPropertiesPanel => false;
 
-    public LayoutCapabilities Capabilities
-    {
-        get
-        {
-            var caps = LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute | LayoutCapabilities.CellEdit;
-            if (_isEditMode)
-                caps |= LayoutCapabilities.CellInsert | LayoutCapabilities.CellDelete | LayoutCapabilities.CellReorder;
-            return caps;
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets whether the dashboard is in edit mode.
-    /// Edit mode enables cell insert, delete, and reorder capabilities.
-    /// </summary>
-    public bool IsEditMode
-    {
-        get => _isEditMode;
-        set => _isEditMode = value;
-    }
+    // The dashboard is a view-and-arrange surface: tiles can be moved, resized, and run, but
+    // their code is never edited here. So it advertises resize and execute, and deliberately not
+    // CellEdit, CellInsert, CellDelete, or CellReorder.
+    public LayoutCapabilities Capabilities =>
+        LayoutCapabilities.CellResize | LayoutCapabilities.CellExecute;
 
     private static readonly ICellRenderer _fallbackRenderer = new ContentFallbackRenderer();
 
@@ -76,25 +59,8 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
         var renderers = context.ExtensionHost.GetRenderers();
         var sb = new StringBuilder();
 
-        var editMode = _isEditMode ? "true" : "false";
-
-        // Outer wrapper: toolbar sits above the grid so it isn't subject to grid
-        // auto-placement (which would otherwise drop it below the last cell).
-        sb.Append("<div class=\"verso-dashboard-root\" data-edit-mode=\"")
-          .Append(editMode)
-          .Append("\">");
-
-        sb.Append("<div class=\"verso-dashboard-toolbar\">")
-          .Append("<button class=\"verso-dashboard-edit-toggle\" data-action=\"setEditMode\" data-payload=\"")
-          .Append(_isEditMode ? "false" : "true")
-          .Append("\">")
-          .Append(_isEditMode ? "Done" : "Edit")
-          .Append("</button>")
-          .Append("</div>");
-
-        sb.Append("<div class=\"verso-dashboard-grid\" data-edit-mode=\"")
-          .Append(editMode)
-          .Append("\">");
+        sb.Append("<div class=\"verso-dashboard-root\">");
+        sb.Append("<div class=\"verso-dashboard-grid\">");
 
         foreach (var cell in cells)
         {
@@ -112,9 +78,6 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
 
             if (!pos.Visible) continue;
 
-            var cellEdit = _cellsInEdit.Contains(cell.Id) ? "true" : "false";
-            var editLabel = _cellsInEdit.Contains(cell.Id) ? "Hide Code" : "Edit";
-
             // Slot wrapper: the WASM portal injects the live <Cell> Blazor component here.
             // The toolbar and resize handle are siblings of the slot content so portal nodes
             // stay intact across layout updates.
@@ -126,26 +89,19 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
               .Append(cell.Id)
               .Append("\" data-target-id=\"")
               .Append(cell.Id)
-              .Append("\" data-cell-edit=\"")
-              .Append(cellEdit)
               .Append("\" style=\"grid-column:")
               .Append(pos.Column + 1).Append("/span ").Append(pos.Width)
               .Append(";grid-row:")
               .Append(pos.Row + 1).Append("/span ").Append(pos.Height)
               .Append("\">");
 
-            // Toolbar IS the drag handle: clicking empty space drags, clicking buttons fires
-            // their data-action via layout-interact. dashboard-interop.js skips drag when the
+            // Toolbar IS the drag handle: clicking empty space drags, clicking the Run button
+            // fires its data-action via layout-interact. dashboard-interop.js skips drag when the
             // mousedown target is inside a <button>.
             sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" title=\"Drag to move\">")
               .Append("<button class=\"verso-cell-btn verso-cell-btn--run\" data-action=\"run\" data-target-id=\"")
               .Append(cell.Id)
               .Append("\" title=\"Run\"><span>&#x25B6;</span></button>")
-              .Append("<button class=\"verso-dashboard-edit-toggle\" data-action=\"toggleCellEdit\" data-target-id=\"")
-              .Append(cell.Id)
-              .Append("\" title=\"Toggle Code\">")
-              .Append(editLabel)
-              .Append("</button>")
               .Append("<span class=\"verso-dashboard-drag-icon\" title=\"Drag to move\">&#x2630;</span>")
               .Append("</div>");
 
@@ -185,7 +141,6 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
     public Task OnCellRemovedAsync(Guid cellId, IVersoContext context)
     {
         _gridPositions.Remove(cellId);
-        _cellsInEdit.Remove(cellId);
         return Task.CompletedTask;
     }
 
@@ -290,30 +245,18 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
                 context.RequestRender();
                 return;
 
-            case "setEditMode":
-                _isEditMode = ParseSetEditModePayload(context.Payload);
-                context.RequestRender();
-                return;
-
             case "run":
                 if (TryParseTargetCellId(context, out var runCellId))
                     await context.Verso.Notebook.ExecuteCellAsync(runCellId);
-                return;
-
-            case "toggleCellEdit":
-                if (TryParseTargetCellId(context, out var editCellId))
-                {
-                    if (!_cellsInEdit.Add(editCellId))
-                        _cellsInEdit.Remove(editCellId);
-                    context.RequestRender();
-                }
                 return;
 
             default:
                 // Unknown interaction types are ignored rather than faulting the host. Throwing
                 // here surfaces as a transport-level error and is forward-incompatible: a newer
                 // client emitting an interaction this build doesn't know would break an otherwise
-                // healthy dashboard. Matches the built-in notebook layout's no-op handling.
+                // healthy dashboard. This also absorbs the retired "setEditMode"/"toggleCellEdit"
+                // interactions (the dashboard no longer edits code) as graceful no-ops. Matches
+                // the built-in notebook layout's no-op handling.
                 System.Diagnostics.Debug.WriteLine(
                     $"[DashboardLayout] Ignoring unsupported interactionType '{context.InteractionType}'.");
                 return;
@@ -362,22 +305,6 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
         int height = root.TryGetProperty("height", out var heightProp) ? heightProp.GetInt32() : DefaultCellHeight;
 
         UpdateCellPosition(cellId, row, col, width, height);
-    }
-
-    private static bool ParseSetEditModePayload(string payload)
-    {
-        if (string.IsNullOrWhiteSpace(payload))
-            throw new InvalidOperationException(
-                "DASHBOARD_INTERACTION_INVALID_PAYLOAD: setEditMode requires a 'true' or 'false' payload.");
-
-        // Accept the bare string ("true"/"false") and a JSON-boolean form (wrapped or
-        // unwrapped) for robustness across client serializers.
-        var trimmed = payload.Trim();
-        if (bool.TryParse(trimmed, out var value))
-            return value;
-
-        throw new InvalidOperationException(
-            $"DASHBOARD_INTERACTION_INVALID_PAYLOAD: setEditMode payload '{payload}' is not 'true' or 'false'.");
     }
 
     // --- Private helpers ---

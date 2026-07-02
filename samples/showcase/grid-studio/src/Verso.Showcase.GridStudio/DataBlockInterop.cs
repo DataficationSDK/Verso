@@ -39,6 +39,9 @@ internal static class DataBlockInterop
     public static bool IsDataBlock(object? value)
         => value is not null && value.GetType().FullName == DataBlockTypeName;
 
+    /// <summary>True when the value is a <see cref="System.Data.DataTable"/>.</summary>
+    public static bool IsDataTable(object? value) => value is System.Data.DataTable;
+
     /// <summary>
     /// Projects a DataBlock instance into a <see cref="GridData"/>. Returns <c>null</c> if the
     /// value is not a DataBlock or its shape is not what we expect.
@@ -89,6 +92,36 @@ internal static class DataBlockInterop
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Projects a <see cref="System.Data.DataTable"/> into a <see cref="GridData"/> for read-only
+    /// display. DataTable is a BCL type, so this reads it through the strongly-typed API with no
+    /// reflection and no assembly-identity concerns. The grid never writes a DataTable back, so
+    /// there is no matching builder: a DataTable can be wired to a data adapter, and mutating it
+    /// would prime an out-of-band database update the user did not ask for.
+    /// </summary>
+    public static GridData ReadDataTable(System.Data.DataTable table)
+    {
+        var data = new GridData();
+        foreach (System.Data.DataColumn column in table.Columns)
+        {
+            data.Columns.Add(column.ColumnName);
+            data.Types.Add(HintFor(column.DataType));
+        }
+
+        foreach (System.Data.DataRow dataRow in table.Rows)
+        {
+            var row = new object?[table.Columns.Count];
+            for (var c = 0; c < table.Columns.Count; c++)
+            {
+                var cell = dataRow[c];
+                row[c] = cell is null or DBNull ? null : MapOut(cell);
+            }
+            data.Rows.Add(row);
+        }
+
+        return data;
     }
 
     /// <summary>

@@ -78,6 +78,9 @@ public sealed class ToolbarActionDto
     public string? Icon { get; set; }
     public string Placement { get; set; } = "";
     public int Order { get; set; }
+    public bool IconOnly { get; set; }
+    public bool IsPrimary { get; set; }
+    public string? ConfirmationPrompt { get; set; }
 }
 
 // --- Cell ---
@@ -326,11 +329,6 @@ public sealed class LayoutUpdateCellParams
     public int Col { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
-}
-
-public sealed class LayoutSetEditModeParams
-{
-    public bool EditMode { get; set; }
 }
 
 public sealed class LayoutGetRendererPackageParams

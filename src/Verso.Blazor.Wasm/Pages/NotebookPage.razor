@@ -12,6 +12,7 @@
      tabindex="0" @onkeydown="HandleKeyDown">
     <Toolbar Service="Service"
              SelectedCellId="_selectedCellId"
+             IsExecuting="_activeExecutions > 0"
              OnSaveNotebook="HandleSave"
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
@@ -558,13 +559,23 @@
     {
         var cell = await Service.AddCellAsync(type);
         _selectedCellId = cell.Id;
+        await ScrollToSelectedCell();
     }
+
+    // Count of page-initiated runs currently in flight. Drives the toolbar's IsExecuting
+    // parameter so the Stop button and status pill hold their running presentation across
+    // the per-cell gaps of a batch instead of toggling at every cell boundary. A counter
+    // rather than a bool because cell runs can overlap.
+    private int _activeExecutions;
 
     private async Task HandleRunCell(Guid cellId)
     {
+        LeaveEditModeForRenderOnlyCell(cellId);
+
         // _executingCellId and cell metadata are managed by HandleCellExecutingEvent /
         // HandleCellExecutedEvent (driven by the host's cell/executionState notifications
         // and Scaffold.OnCellExecuting/OnCellExecuted on the engine side).
+        _activeExecutions++;
         try
         {
             await Service.ExecuteCellAsync(cellId);
@@ -576,6 +587,10 @@
         catch (Exception ex)
         {
             _error = $"Execution error: {ex.Message}";
+        }
+        finally
+        {
+            _activeExecutions--;
         }
     }
 
@@ -662,6 +677,22 @@
             && Service.ShouldCollapseInput(cell.Type)
             && !string.IsNullOrWhiteSpace(cell.Source))
             await HandleRunCell(cellId);
+    }
+
+    // A render-only cell (markdown, html, ...) shows its editor only while selected and its
+    // rendered output only while not. Running one means "render it", so if it is the cell being
+    // edited, drop it out of edit and selection here; otherwise the new output would stay hidden
+    // behind the editor and the run would look like it did nothing. The preview appears once
+    // execution produces output.
+    private void LeaveEditModeForRenderOnlyCell(Guid cellId)
+    {
+        var cell = Service.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null || !Service.ShouldCollapseInput(cell.Type))
+            return;
+        if (_editingCellId == cellId)
+            _editingCellId = null;
+        if (_selectedCellId == cellId)
+            _selectedCellId = null;
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -757,6 +788,7 @@
         // driven by the host's cell/executionState notifications that the RemoteNotebookService
         // decodes. A trailing RefreshCellListAsync inside ExecuteAllAsync re-hydrates cell
         // metadata (ExecutionCount / LastElapsed / LastStatus) from the host.
+        _activeExecutions++;
         try
         {
             await Service.ExecuteAllAsync();
@@ -768,6 +800,10 @@
         catch (Exception ex)
         {
             _error = $"Execution error: {ex.Message}";
+        }
+        finally
+        {
+            _activeExecutions--;
         }
     }
 

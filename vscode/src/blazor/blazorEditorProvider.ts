@@ -205,6 +205,13 @@ export class BlazorEditorProvider
     const bridge = new BlazorBridge(webview, host, this.context.globalState);
     bridge.setDocumentUri(document.uri);
 
+    // Tell the webview when the host dies unexpectedly so its kernel status can
+    // show "Disconnected" instead of a stale "Kernel idle". Provider-driven
+    // restarts dispose the old host first, so they do not fire this.
+    host.onUnexpectedExit = (detail) => {
+      bridge.notify("host/exited", { detail });
+    };
+
     // Mark the document dirty whenever the WASM app mutates the notebook.
     bridge.onDidEdit = () => {
       this._onDidChangeCustomDocument.fire({ document });
@@ -384,6 +391,11 @@ export class BlazorEditorProvider
         }`
       );
       bridge.endRestart();
+      bridge.notifyFaulted(
+        `Restart aborted: the notebook snapshot could not be captured (${
+          err instanceof Error ? err.message : String(err)
+        }).`
+      );
       vscode.window.showErrorMessage(
         "Verso: kernel restart aborted because the notebook snapshot could not be captured. Save and reopen the file."
       );
@@ -403,6 +415,11 @@ export class BlazorEditorProvider
         `New host failed to start: ${err instanceof Error ? err.message : String(err)}`
       );
       bridge.endRestart();
+      bridge.notifyFaulted(
+        `Kernel restart failed: the host process did not start (${
+          err instanceof Error ? err.message : String(err)
+        }).`
+      );
       vscode.window.showErrorMessage(
         `Verso: kernel restart failed (host did not start): ${
           err instanceof Error ? err.message : String(err)
@@ -426,6 +443,11 @@ export class BlazorEditorProvider
         }`
       );
       bridge.endRestart();
+      bridge.notifyFaulted(
+        `Kernel restart failed: the notebook did not reopen (${
+          err instanceof Error ? err.message : String(err)
+        }).`
+      );
       vscode.window.showErrorMessage(
         `Verso: kernel restart failed (notebook did not reopen): ${
           err instanceof Error ? err.message : String(err)
@@ -436,6 +458,9 @@ export class BlazorEditorProvider
 
     bridge.setHost(newHost);
     bridge.setNotebookId(result.notebookId);
+    newHost.onUnexpectedExit = (detail) => {
+      bridge.notify("host/exited", { detail });
+    };
     notebookRegistry.register(document.uri, result.notebookId);
     hostRegistry.register(document.uri, { host: newHost, bridge });
 
@@ -508,6 +533,10 @@ export class BlazorEditorProvider
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(document.uri, data);
+
+    // Let the webview clear its unsaved-changes indicator; this fires for both the
+    // webview Save button (which routes through workbench save) and Cmd/Ctrl+S.
+    session.bridge.notify("document/saved");
   }
 
   async saveCustomDocumentAs(
@@ -544,6 +573,8 @@ export class BlazorEditorProvider
     );
     const data = new TextEncoder().encode(result.content);
     await vscode.workspace.fs.writeFile(targetUri, data);
+
+    session.bridge.notify("document/saved");
 
     // Save As on a scratch keeps it at the chosen location: rebind the editor to
     // the real file (once this save completes) so later saves write in place.
@@ -824,6 +855,10 @@ export class BlazorEditorProvider
             --verso-toolbar-button-hover: var(--vscode-toolbar-hoverBackground);
             --verso-toolbar-separator: var(--vscode-panel-border, #E0E0E0);
             --verso-toolbar-disabled-foreground: var(--vscode-disabledForeground);
+            /* Filled Stop button. statusBarItem error colors are a designed bg/fg pair,
+               unlike errorForeground (a text color that can wash out as a button fill). */
+            --verso-toolbar-stop-background: var(--vscode-statusBarItem-errorBackground, #B52E31);
+            --verso-toolbar-stop-foreground: var(--vscode-statusBarItem-errorForeground, #FFFFFF);
             --verso-sidebar-background: var(--vscode-sideBar-background);
             --verso-sidebar-foreground: var(--vscode-sideBar-foreground, var(--vscode-foreground));
             --verso-sidebar-item-hover: var(--vscode-list-hoverBackground);

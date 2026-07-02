@@ -34,7 +34,6 @@ const Chart = window.Chart;
 // --- Icons (inline SVG, themed by currentColor) -----------------------------
 
 const SVG = (body) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
-const ICON_GRID = SVG('<rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="4.5" rx="1"/><path d="M9.5 13.5v-3M11.5 13.5v-2M13.5 13.5V9.5"/>');
 const ICON_PLAY = SVG('<path d="M5 3.5l7 4.5-7 4.5z"/>');
 const ICON_SLIDER = SVG('<path d="M2 8h12"/><circle cx="6" cy="8" r="2.2" fill="var(--verso-bg-default,#14161c)"/>');
 const ICON_HASH = SVG('<path d="M6 2.5L4.5 13.5M11.5 2.5L10 13.5M3 5.5h11M2 10.5h11"/>');
@@ -51,7 +50,7 @@ const ICON_SCATTER = SVG('<path d="M2.5 13.5h11"/><circle cx="5" cy="9" r="1"/><
 
 // doc.widgets: [{ id, kind, x, y, w, h, label, bindVar, config }]
 let doc = { widgets: [], autoRun: true };
-let vars = { dataBlockVars: [] };
+let vars = { sourceVars: [] };
 let mode = "edit"; // "edit" | "preview"
 let selectedId = null;
 let saveTimer = 0;
@@ -78,7 +77,16 @@ const STYLE = `
     font-size: var(--verso-font-size-base, 13px);
     overflow: hidden;
   }
-  .app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+  /* Full-height left palette beside a top toolbar and the body. The palette spans both rows so
+     its top edge aligns with the toolbar; the toolbar and body fill the right column. */
+  .app { display: grid; grid-template-columns: 188px 1fr; grid-template-rows: auto 1fr; height: 100%; }
+  .app > .rail.left { grid-column: 1; grid-row: 1 / 3; }
+  .app > .top { grid-column: 2; grid-row: 1; }
+  .app > .body { grid-column: 2; grid-row: 2; }
+  /* Preview hides the palette and collapses to a single column. */
+  .app.preview { grid-template-columns: 1fr; }
+  .app.preview > .rail.left { display: none; }
+  .app.preview > .top, .app.preview > .body { grid-column: 1; }
 
   .top {
     display: flex; align-items: center; gap: 10px;
@@ -86,14 +94,6 @@ const STYLE = `
     background: var(--verso-bg-elevated, #1b1e26);
     border-bottom: 1px solid var(--verso-border-default, #2a2e38);
   }
-  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: .2px; }
-  .brand .mark {
-    width: 22px; height: 22px; border-radius: 6px;
-    background: var(--verso-accent, #5b8def);
-    display: grid; place-items: center; color: #fff;
-  }
-  .brand .mark svg { width: 14px; height: 14px; }
-  .brand .sub { color: var(--verso-fg-muted, #9aa0ac); font-weight: 500; font-size: .85em; }
   .top .spacer { flex: 1; }
   .btn {
     appearance: none; border: 1px solid var(--verso-border-default, #2a2e38);
@@ -109,7 +109,7 @@ const STYLE = `
   .toggle { display: inline-flex; align-items: center; gap: 7px; color: var(--verso-fg-muted, #9aa0ac); cursor: pointer; user-select: none; }
   .toggle input { accent-color: var(--verso-accent, #5b8def); }
 
-  .body { display: grid; grid-template-columns: 188px 1fr 238px; min-height: 0; }
+  .body { display: grid; grid-template-columns: 1fr 238px; min-height: 0; }
   .body.preview { grid-template-columns: 1fr; }
   .body.preview .rail { display: none; }
 
@@ -184,12 +184,9 @@ const STYLE = `
 injectStyle(STYLE);
 
 document.body.innerHTML = `
-  <div class="app">
+  <div class="app" id="app">
+    <div class="rail left" id="palette"></div>
     <div class="top">
-      <div class="brand">
-        <span class="mark">${ICON_GRID}</span>
-        <span>Form Studio</span><span class="sub">dashboard builder</span>
-      </div>
       <div class="spacer"></div>
       <label class="toggle" title="Re-run the notebook automatically when an input changes">
         <input type="checkbox" id="autorun" checked> Auto-run
@@ -202,7 +199,6 @@ document.body.innerHTML = `
       </div>
     </div>
     <div class="body" id="body">
-      <div class="rail left" id="palette"></div>
       <div class="canvas-wrap" id="canvasWrap"><div class="canvas" id="canvas"></div></div>
       <div class="rail right" id="props"></div>
     </div>
@@ -211,6 +207,7 @@ document.body.innerHTML = `
 
 const canvasEl = document.getElementById("canvas");
 const canvasWrapEl = document.getElementById("canvasWrap");
+const appEl = document.getElementById("app");
 const bodyEl = document.getElementById("body");
 const propsEl = document.getElementById("props");
 const autorunEl = document.getElementById("autorun");
@@ -297,7 +294,7 @@ function applyDefaults(w, chartType) {
     case "dropdown":w.w = 210; w.h = 92;  w.config = { options: ["All", "A", "B", "C"] }; w.value = "All"; w.bindVar = nextVar("choice"); break;
     case "text":    w.w = 230; w.h = 90;  w.value = ""; w.bindVar = nextVar("text"); break;
     case "label":   w.w = 230; w.h = 56;  w.config = { text: "Heading" }; break;
-    case "chart":   w.w = 380; w.h = 270; w.config = { sourceVar: vars.dataBlockVars[0] || "", chartType: chartType || "bar", xColumn: "", yColumns: [], color: "" }; break;
+    case "chart":   w.w = 380; w.h = 270; w.config = { sourceVar: vars.sourceVars[0] || "", chartType: chartType || "bar", xColumn: "", yColumns: [], color: "" }; break;
   }
 }
 
@@ -420,7 +417,7 @@ function updateEmpty() {
   if (doc.widgets.length === 0) {
     if (!e) canvasEl.appendChild(el("div", { class: "empty" },
       el("div", {}, "Drag a widget from the left onto the canvas.", el("br"), el("br"),
-        el("span", { class: "hint" }, "Inputs write kernel variables. Charts plot a DataBlock. Switch to Preview to use the app."))));
+        el("span", { class: "hint" }, "Inputs write kernel variables. Charts plot a data source. Switch to Preview to use the app."))));
   } else if (e) {
     e.remove();
   }
@@ -499,9 +496,9 @@ function renderProps() {
       propsEl.appendChild(field("Text", textInput(w.config.text || "", (v) => cfg(w, "text", v))));
       break;
     case "chart":
-      propsEl.appendChild(field("DataBlock", selectInput(vars.dataBlockVars, w.config.sourceVar, (v) => {
+      propsEl.appendChild(field("Data", selectInput(vars.sourceVars, w.config.sourceVar, (v) => {
         w.config.sourceVar = v; w.config.xColumn = ""; w.config.yColumns = []; saveDoc(); requestChart(w);
-      }), "The kernel DataBlock to plot."));
+      }), "The kernel variable to plot (a DataBlock or DataTable)."));
       propsEl.appendChild(field("Chart type", selectInput(CHART_TYPES, w.config.chartType, (v) => { w.config.chartType = v; renderChart(w); saveDoc(); })));
       const cols = (chartCache.get(w.id) || {}).columns || [];
       propsEl.appendChild(field("X axis", selectInput(cols, w.config.xColumn, (v) => { w.config.xColumn = v; renderChart(w); saveDoc(); })));
@@ -537,7 +534,7 @@ function renderChart(w) {
   const data = chartCache.get(w.id);
   const cols = data ? data.columns : [];
   if (!data || cols.length === 0) {
-    paintPlaceholder(cv, w.config.sourceVar ? "Loading…" : "Pick a DataBlock");
+    paintPlaceholder(cv, w.config.sourceVar ? "Loading…" : "Pick a data source");
     return;
   }
 
@@ -651,6 +648,7 @@ document.getElementById("mode").addEventListener("click", (e) => {
   if (!b) return;
   mode = b.dataset.mode;
   document.querySelectorAll("#mode button").forEach((x) => x.classList.toggle("on", x === b));
+  appEl.classList.toggle("preview", mode === "preview");
   bodyEl.classList.toggle("preview", mode === "preview");
   canvasEl.classList.toggle("preview", mode === "preview");
   if (mode === "preview") select(null);
@@ -762,7 +760,7 @@ function multiSelect(options, selected, onChange) {
     lab.append(cb, document.createTextNode(o));
     wrap.appendChild(lab);
   }
-  if (!options || options.length === 0) wrap.appendChild(el("span", { class: "hint" }, "Pick a DataBlock first."));
+  if (!options || options.length === 0) wrap.appendChild(el("span", { class: "hint" }, "Pick a data source first."));
   return wrap;
 }
 

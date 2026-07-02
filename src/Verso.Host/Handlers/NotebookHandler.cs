@@ -372,7 +372,10 @@ public static class NotebookHandler
                 DisplayName = a.DisplayName,
                 Icon = a.Icon,
                 Placement = a.Placement.ToString(),
-                Order = a.Order
+                Order = a.Order,
+                IconOnly = a.IconOnly,
+                IsPrimary = a.IsPrimary,
+                ConfirmationPrompt = a.ConfirmationPrompt
             }).ToList()
         };
     }

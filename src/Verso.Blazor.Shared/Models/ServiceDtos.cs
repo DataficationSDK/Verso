@@ -15,7 +15,29 @@ public sealed record ToolbarActionInfo(
     string DisplayName,
     string? Icon,
     ToolbarPlacement Placement,
-    int Order);
+    int Order,
+    bool IconOnly = false,
+    bool IsPrimary = false,
+    string? ConfirmationPrompt = null);
+
+/// <summary>
+/// Health of the kernel connection as observed by the host. <see cref="Faulted"/> means the
+/// kernel infrastructure failed (e.g. a restart threw); <see cref="Disconnected"/> means the
+/// host process or transport backing the kernel is gone. Both are recoverable by restarting.
+/// </summary>
+public enum KernelHealth
+{
+    Ok,
+    Faulted,
+    Disconnected,
+}
+
+/// <summary>
+/// Payload of <c>INotebookService.OnKernelHealthChanged</c>. <paramref name="Detail"/> carries
+/// an optional human-readable explanation (exception message, process exit description) that
+/// the UI can surface as a tooltip.
+/// </summary>
+public sealed record KernelHealthChangedEventArgs(KernelHealth Health, string? Detail = null);
 
 /// <summary>
 /// Payload of a <c>layout/updated</c> host-to-client notification. Carries the

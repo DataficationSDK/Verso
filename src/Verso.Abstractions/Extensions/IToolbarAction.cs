@@ -22,6 +22,30 @@ public interface IToolbarAction : IExtension
     string? Icon { get; }
 
     /// <summary>
+    /// When <c>true</c>, the toolbar renders only the icon and surfaces the
+    /// <see cref="DisplayName"/> as a hover tooltip instead of a visible label.
+    /// Hosts ignore this for actions without an <see cref="Icon"/>. Defaults to
+    /// <c>false</c> so the label is shown.
+    /// </summary>
+    bool IconOnly => false;
+
+    /// <summary>
+    /// When <c>true</c>, the toolbar gives this action a filled, accent-colored
+    /// "primary" appearance to mark it as the prominent call to action. Defaults
+    /// to <c>false</c> for the standard flat button style.
+    /// </summary>
+    bool IsPrimary => false;
+
+    /// <summary>
+    /// Optional prompt asking the user to confirm before the action runs. When non-null,
+    /// hosts show a confirmation dialog with this text and execute the action only if the
+    /// user accepts. Intended for destructive actions whose effect cannot be undone (e.g.
+    /// restarting a kernel, which discards session state). Defaults to <c>null</c> so the
+    /// action executes immediately on click.
+    /// </summary>
+    string? ConfirmationPrompt => null;
+
+    /// <summary>
     /// Specifies where the action should appear (e.g. main toolbar, cell toolbar, context menu).
     /// </summary>
     ToolbarPlacement Placement { get; }

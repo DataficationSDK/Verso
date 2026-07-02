@@ -50,7 +50,7 @@ public sealed class GridStudioLayout
     public string Name => "Grid Studio Layout";
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Isolated layout that presents a kernel DataBlock as an editable spreadsheet.";
+    public string? Description => "Isolated layout that presents a kernel DataBlock as an editable spreadsheet, or a DataTable read-only.";
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -133,7 +133,8 @@ public sealed class GridStudioLayout
         var seed = new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["sourceVar"] = _doc.SourceVar,
-            ["variables"] = ListDataBlockVars(variables),
+            ["variables"] = ListSourceVars(variables),
+            ["readOnly"] = IsReadOnlySource(variables),
         };
         if (ReadGrid(variables) is { } grid)
             seed["data"] = grid;
@@ -186,6 +187,11 @@ public sealed class GridStudioLayout
     private void ApplyCommit(string payload, IVariableStore variables)
     {
         if (string.IsNullOrWhiteSpace(payload))
+            return;
+
+        // Never write back to a read-only source (a bound DataTable). The frame also disables its
+        // commit controls, but enforce it here too so a stale or crafted message cannot mutate it.
+        if (IsReadOnlySource(variables))
             return;
 
         var coreAssembly = ResolveCoreAssembly(variables);
@@ -268,26 +274,51 @@ public sealed class GridStudioLayout
     {
         if (variables.TryGet<object>(_doc.SourceVar, out var value) && value is not null)
         {
-            _lastSource = value;
-            return DataBlockInterop.IsDataBlock(value) ? DataBlockInterop.Read(value) : null;
+            if (DataBlockInterop.IsDataBlock(value))
+            {
+                // Only DataBlock bindings are editable, so _lastSource (the write-back assembly
+                // source) tracks DataBlocks only.
+                _lastSource = value;
+                return DataBlockInterop.Read(value);
+            }
+
+            // DataTable is shown read-only — see IsReadOnlySource.
+            if (DataBlockInterop.IsDataTable(value))
+                return DataBlockInterop.ReadDataTable((System.Data.DataTable)value);
         }
         return null;
     }
 
-    private object BuildDataPayload(IVariableStore variables)
-        => new { data = ReadGrid(variables), sourceVar = _doc.SourceVar, variables = ListDataBlockVars(variables) };
+    // A bound DataTable is presented read-only: it is an in-memory BCL type that can be wired to a
+    // data adapter, so writing to it could prime an out-of-band database update. The layout never
+    // commits to a DataTable; only DataBlock bindings are editable.
+    private bool IsReadOnlySource(IVariableStore variables)
+        => variables.TryGet<object>(_doc.SourceVar, out var value)
+            && DataBlockInterop.IsDataTable(value);
 
-    // The names of every variable currently holding a DataBlock, for the frame's source picker.
-    // Recomputed on each push, so it tracks cells being run (including Run All) while the layout
-    // is active, since executing cells raises the variable-store change event.
-    private List<string> ListDataBlockVars(IVariableStore variables)
+    private object BuildDataPayload(IVariableStore variables)
+        => new
+        {
+            data = ReadGrid(variables),
+            sourceVar = _doc.SourceVar,
+            variables = ListSourceVars(variables),
+            readOnly = IsReadOnlySource(variables),
+        };
+
+    // The names of every variable currently holding a DataBlock (editable) or a DataTable
+    // (read-only), for the frame's source picker. Recomputed on each push, so it tracks cells
+    // being run (including Run All) while the layout is active, since executing cells raises the
+    // variable-store change event.
+    private List<string> ListSourceVars(IVariableStore variables)
     {
         var names = new List<string>();
         foreach (var descriptor in variables.GetAll())
         {
-            var isDataBlock = DataBlockInterop.IsDataBlock(descriptor.Value)
-                || string.Equals(descriptor.Type?.FullName, "Datafication.Core.Data.DataBlock", StringComparison.Ordinal);
-            if (isDataBlock && !names.Contains(descriptor.Name))
+            var isSource = DataBlockInterop.IsDataBlock(descriptor.Value)
+                || DataBlockInterop.IsDataTable(descriptor.Value)
+                || string.Equals(descriptor.Type?.FullName, "Datafication.Core.Data.DataBlock", StringComparison.Ordinal)
+                || string.Equals(descriptor.Type?.FullName, "System.Data.DataTable", StringComparison.Ordinal);
+            if (isSource && !names.Contains(descriptor.Name))
                 names.Add(descriptor.Name);
         }
         names.Sort(StringComparer.Ordinal);

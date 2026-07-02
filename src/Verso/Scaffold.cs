@@ -336,6 +336,23 @@ public sealed class Scaffold : IAsyncDisposable
     }
 
     /// <summary>
+    /// Raised when an in-process kernel restart begins, before the old kernel is disposed.
+    /// Not raised when <see cref="HostRestartHandler"/> is set: the external supervisor owns
+    /// the restart lifecycle and its own progress signaling in that case.
+    /// </summary>
+    public event Action<string?>? OnKernelRestarting;
+
+    /// <summary>Raised after an in-process kernel restart completes and the fresh kernel is warm.</summary>
+    public event Action<string?>? OnKernelRestarted;
+
+    /// <summary>
+    /// Raised when an in-process kernel restart fails (dispose or warm-up threw). The old
+    /// kernel is gone at this point, so observers should treat the kernel as unavailable
+    /// until a later restart succeeds.
+    /// </summary>
+    public event Action<string?, Exception>? OnKernelRestartFailed;
+
+    /// <summary>
     /// Restarts a kernel. When <see cref="HostRestartHandler"/> is set the call is
     /// delegated externally (the supervisor will respawn the process); otherwise the
     /// kernel is disposed in-process, the variable store is cleared, and the kernel
@@ -355,11 +372,21 @@ public sealed class Scaffold : IAsyncDisposable
         var kernel = ResolveKernel(id)
             ?? throw new InvalidOperationException($"No kernel registered for language '{id}'.");
 
-        await kernel.DisposeAsync().ConfigureAwait(false);
-        _initializationTasks.TryRemove(id, out _);
-        _variables.Clear();
+        OnKernelRestarting?.Invoke(id);
+        try
+        {
+            await kernel.DisposeAsync().ConfigureAwait(false);
+            _initializationTasks.TryRemove(id, out _);
+            _variables.Clear();
 
-        await WarmUpKernelAsync(id).ConfigureAwait(false);
+            await WarmUpKernelAsync(id).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            OnKernelRestartFailed?.Invoke(id, ex);
+            throw;
+        }
+        OnKernelRestarted?.Invoke(id);
     }
 
     /// <summary>

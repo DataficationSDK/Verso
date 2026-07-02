@@ -115,18 +115,44 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public bool IsEmbedded => false;
     public string? FilePath => _filePath;
 
+    public bool IsDirty { get; private set; }
+
+    /// <summary>
+    /// Marks the notebook as saved (clears the dirty flag). Exposed for save paths that
+    /// write the serialized content themselves instead of going through
+    /// <see cref="SaveAsync"/>, such as the browser native-file-handle save.
+    /// </summary>
+    public void MarkSaved() => SetDirty(false);
+
+    private void SetDirty(bool value)
+    {
+        if (IsDirty == value) return;
+        IsDirty = value;
+        OnDirtyStateChanged?.Invoke();
+    }
+
     // ── Notebook metadata ──────────────────────────────────────────────
 
     public string? Title
     {
         get => _scaffold?.Title;
-        set { if (_scaffold is not null) _scaffold.Title = value; }
+        set
+        {
+            if (_scaffold is null || _scaffold.Title == value) return;
+            _scaffold.Title = value;
+            SetDirty(true);
+        }
     }
 
     public string? DefaultKernelId
     {
         get => _scaffold?.DefaultKernelId;
-        set { if (_scaffold is not null) _scaffold.DefaultKernelId = value; }
+        set
+        {
+            if (_scaffold is null || _scaffold.DefaultKernelId == value) return;
+            _scaffold.DefaultKernelId = value;
+            SetDirty(true);
+        }
     }
 
     public IReadOnlyList<KernelLanguageInfo> RegisteredLanguages
@@ -312,6 +338,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public event Action<string?>? OnKernelRestarting;
     public event Action<string?>? OnKernelRestarted;
     public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
+    public event Action? OnDirtyStateChanged;
+    public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
     // Required extensions that failed to load on the current notebook, keyed by package id, so the
     // extension panel can flag the matching installed row. Reset per open in WireConsentHandler.
@@ -343,6 +371,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         SubscribeToEngineEvents();
         WarmUpKernelsInBackground();
 
+        // A new notebook exists nowhere on disk yet, so it starts with unsaved changes.
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
     }
 
@@ -376,6 +406,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         SubscribeToEngineEvents();
         WarmUpKernelsInBackground();
 
+        SetDirty(false);
         OnNotebookChanged?.Invoke();
 
         await ScanAndRequestConsentAsync(notebook);
@@ -414,6 +445,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         SubscribeToEngineEvents();
         WarmUpKernelsInBackground();
 
+        // Opened from content without a resolvable path: there is no file to write back
+        // to yet, so treat it like a new notebook with unsaved changes.
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
 
         await ScanAndRequestConsentAsync(notebook);
@@ -426,6 +460,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         var json = await PrepareSerializedContentAsync();
         await File.WriteAllTextAsync(filePath, json);
         _filePath = filePath;
+        SetDirty(false);
     }
 
     public async Task<string?> GetSerializedContentAsync()
@@ -467,6 +502,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
         var effectiveLanguage = ResolveLanguage(type, language);
         var cell = _scaffold.AddCell(type, effectiveLanguage);
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return Task.FromResult(cell);
     }
@@ -478,6 +514,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
         var effectiveLanguage = ResolveLanguage(type, language);
         var cell = _scaffold.InsertCell(index, type, effectiveLanguage);
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return Task.FromResult(cell);
     }
@@ -486,7 +523,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         if (_scaffold is null) return Task.FromResult(false);
         var result = _scaffold.RemoveCell(cellId);
-        if (result) OnNotebookChanged?.Invoke();
+        if (result)
+        {
+            SetDirty(true);
+            OnNotebookChanged?.Invoke();
+        }
         return Task.FromResult(result);
     }
 
@@ -494,13 +535,16 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         if (_scaffold is null) return Task.CompletedTask;
         _scaffold.MoveCell(fromIndex, toIndex);
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return Task.CompletedTask;
     }
 
     public Task UpdateCellSourceAsync(Guid cellId, string source)
     {
-        _scaffold?.UpdateCellSource(cellId, source);
+        if (_scaffold is null) return Task.CompletedTask;
+        _scaffold.UpdateCellSource(cellId, source);
+        SetDirty(true);
         return Task.CompletedTask;
     }
 
@@ -519,6 +563,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         cell.Language = effectiveLanguage;
         cell.Outputs.Clear();
 
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return Task.CompletedTask;
     }
@@ -544,13 +589,16 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             catch { /* warm-up failure is non-fatal */ }
         });
 
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return Task.CompletedTask;
     }
 
     public Task ClearAllOutputsAsync()
     {
-        _scaffold?.ClearAllOutputs();
+        if (_scaffold is null) return Task.CompletedTask;
+        _scaffold.ClearAllOutputs();
+        SetDirty(true);
         OnCellExecuted?.Invoke();
         return Task.CompletedTask;
     }
@@ -603,10 +651,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     public async Task RestartKernelAsync()
     {
+        // Restart progress and failure events flow from the Scaffold's own restart events
+        // (forwarded in SubscribeToEngineEvents), so the toolbar-action path that calls the
+        // engine directly reports status the same way this method does.
         if (_scaffold is null) return;
-        OnKernelRestarting?.Invoke(null);
         await _scaffold.RestartKernelAsync();
-        OnKernelRestarted?.Invoke(null);
     }
 
     private CancellationToken ResetExecutionToken()
@@ -625,7 +674,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         return _extensionHost.GetToolbarActions()
             .Where(a => a.Placement == placement)
             .OrderBy(a => a.Order)
-            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order))
+            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt))
             .ToList();
     }
 
@@ -828,6 +877,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.Notebook.ActiveLayout = new LayoutReference(ext.ExtensionId, active.LayoutId);
             _scaffold.Notebook.RequiresLegacyLayoutResolution = false;
         }
+        SetDirty(true);
         OnLayoutChanged?.Invoke();
         return Task.CompletedTask;
     }
@@ -837,6 +887,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         if (_scaffold?.ThemeEngine is null) return Task.CompletedTask;
         _scaffold.ThemeEngine.SetActiveTheme(themeId);
         _scaffold.Notebook.PreferredThemeId = themeId;
+        SetDirty(true);
         OnThemeChanged?.Invoke();
         return Task.CompletedTask;
     }
@@ -1122,6 +1173,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
         var context = new BlazorCellRenderContext(_scaffold, cell);
         await provider.OnPropertyChangedAsync(cell, propertyName, value, context);
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
 
         // Property changes (e.g. per-layout visibility) can affect what an
@@ -1266,6 +1318,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.OnCellExecuting += HandleScaffoldCellExecuting;
             _scaffold.OnCellExecuted += HandleScaffoldCellExecuted;
             _scaffold.OnCellOutputUpdated += HandleScaffoldCellOutputUpdated;
+            _scaffold.OnKernelRestarting += HandleScaffoldKernelRestarting;
+            _scaffold.OnKernelRestarted += HandleScaffoldKernelRestarted;
+            _scaffold.OnKernelRestartFailed += HandleScaffoldKernelRestartFailed;
             _scaffold.InputRequester = RequestInputFromUIAsync;
         }
 
@@ -1286,6 +1341,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.OnCellExecuting -= HandleScaffoldCellExecuting;
             _scaffold.OnCellExecuted -= HandleScaffoldCellExecuted;
             _scaffold.OnCellOutputUpdated -= HandleScaffoldCellOutputUpdated;
+            _scaffold.OnKernelRestarting -= HandleScaffoldKernelRestarting;
+            _scaffold.OnKernelRestarted -= HandleScaffoldKernelRestarted;
+            _scaffold.OnKernelRestartFailed -= HandleScaffoldKernelRestartFailed;
             _scaffold.InputRequester = null;
         }
 
@@ -1310,9 +1368,24 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     private void HandleScaffoldCellExecuted(Guid cellId)
     {
+        // Execution mutates outputs and execution counts, which are part of the saved file.
+        SetDirty(true);
         OnCellExecutionCompleted?.Invoke(cellId);
         OnCellExecuted?.Invoke();
     }
+
+    private void HandleScaffoldKernelRestarting(string? kernelId)
+        => OnKernelRestarting?.Invoke(kernelId);
+
+    private void HandleScaffoldKernelRestarted(string? kernelId)
+    {
+        OnKernelRestarted?.Invoke(kernelId);
+        OnKernelHealthChanged?.Invoke(new KernelHealthChangedEventArgs(KernelHealth.Ok));
+    }
+
+    private void HandleScaffoldKernelRestartFailed(string? kernelId, Exception ex)
+        => OnKernelHealthChanged?.Invoke(
+            new KernelHealthChangedEventArgs(KernelHealth.Faulted, ex.Message));
 
     private void HandleScaffoldCellOutputUpdated(Guid cellId)
     {

@@ -655,7 +655,7 @@ Layouts communicate with clients over a small set of JSON-RPC methods. Most exte
 | `layout/interact` | Client → Host | Dispatch an event to the layout's `ILayoutInteractionHandler`. |
 | `layout/updated` | Host → Client | Push notification triggered by `RequestRender` / `RequestCellRefresh`. Carries `scope` of `full`, `cell`, or `metadata`. |
 
-Two earlier methods, `layout/updateCell` and `layout/setEditMode`, remain in the protocol as deprecated forwarders. New code should use `layout/interact` with the corresponding `InteractionType` instead; the forwarders will be removed in a future major version.
+An earlier method, `layout/updateCell`, remains in the protocol as a deprecated forwarder. New code should use `layout/interact` with the corresponding `InteractionType` instead; the forwarder will be removed in a future major version.
 
 ## Migration from Legacy Notebooks
 

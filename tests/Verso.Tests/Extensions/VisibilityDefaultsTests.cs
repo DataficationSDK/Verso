@@ -89,16 +89,10 @@ public sealed class VisibilityDefaultsTests
     }
 
     [TestMethod]
-    public void DashboardLayout_SupportsPropertiesPanel_EditMode_IsTrue()
+    public void DashboardLayout_SupportsPropertiesPanel_IsFalse()
     {
-        var layout = new DashboardLayout { IsEditMode = true };
-        Assert.IsTrue(layout.SupportsPropertiesPanel);
-    }
-
-    [TestMethod]
-    public void DashboardLayout_SupportsPropertiesPanel_ViewMode_IsFalse()
-    {
-        var layout = new DashboardLayout { IsEditMode = false };
+        // The dashboard is view-and-arrange only, so it never offers a properties panel.
+        ILayoutEngine layout = new DashboardLayout();
         Assert.IsFalse(layout.SupportsPropertiesPanel);
     }
 }

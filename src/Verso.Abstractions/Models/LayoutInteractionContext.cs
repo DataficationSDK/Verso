@@ -27,8 +27,8 @@ public sealed class LayoutInteractionContext
     public string FrameInstanceId { get; init; } = "";
 
     /// <summary>
-    /// Application-defined interaction type (e.g. <c>"setEditMode"</c>,
-    /// <c>"updateCellPosition"</c>).
+    /// Application-defined interaction type (e.g. <c>"updateCellPosition"</c>,
+    /// <c>"run"</c>).
     /// </summary>
     public string InteractionType { get; init; } = "";
 

@@ -81,14 +81,21 @@ with no layout switch.
   Ctrl/Cmd + mouse wheel, or the `+` / `-` / `0` keys. "Fit" auto-scales the canvas to the
   viewport and keeps it fitted as the window or surrounding panels resize; click the percentage
   to reset to 100%. When zoomed past the viewport the stage scrolls (plain wheel pans).
-- **Export:** the "Export PNG" button asks the host to deliver the rasterized composite as a
-  download. "Export SVG" delivers the same composite as vector markup instead: because every
-  layer is a vector primitive, the frame re-emits the stack as SVG in the document's own
-  coordinate space, so it stays crisp at any size. Per-layer opacity maps to a group `opacity`
-  and blend modes to CSS `mix-blend-mode`. Text uses a generic system font fallback (the theme
-  font is not embedded), and `mix-blend-mode` renders in browsers though some standalone SVG
-  tools support it only partially. Hosts that do not support file downloads from a layout
-  simply ignore either request.
+- **Export:** while Image Studio is the active layout it contributes **PNG Image** and **SVG
+  Image** to the host's **Export** menu, alongside the notebook's other export formats. They are
+  layout-scoped, so they appear only in this layout and are absent everywhere else. **PNG Image**
+  asks the host to deliver the rasterized composite as a download. **SVG Image** delivers the same
+  composite as vector markup instead: because every layer is a vector primitive, the frame
+  re-emits the stack as SVG in the document's own coordinate space, so it stays crisp at any size.
+  Per-layer opacity maps to a group `opacity` and blend modes to CSS `mix-blend-mode`. Text uses a
+  generic system font fallback (the theme font is not embedded), and `mix-blend-mode` renders in
+  browsers though some standalone SVG tools support it only partially. Hosts that do not support
+  file downloads from a layout simply ignore either request.
+
+  The export buttons live in the host chrome rather than the frame: the menu action asks the
+  isolated frame to produce the bytes (only the frame can rasterize the canvas), and the frame
+  streams them back for the host to download. It is a small example of an isolated layout
+  contributing actions to the host toolbar through the `IToolbarAction` extension point.
 
 ## Licensing
 

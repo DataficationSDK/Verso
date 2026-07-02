@@ -9,7 +9,8 @@ namespace Verso.Showcase.FormStudio;
 /// <summary>
 /// "Form Studio" — an isolated (iframe) layout that turns a notebook into a live, parameterized
 /// app. The frame is a drag-and-drop canvas: input widgets (sliders, dropdowns, toggles, text)
-/// bind to kernel variables, and chart widgets visualize a kernel <c>DataBlock</c>. Moving an
+/// bind to kernel variables, and chart widgets visualize a kernel <c>DataBlock</c> or
+/// <c>DataTable</c>. Moving an
 /// input writes its bound variable and (when auto-run is on) re-runs the notebook, so downstream
 /// cells recompute and the charts refresh.
 /// </summary>
@@ -330,7 +331,7 @@ public sealed class FormStudioLayout
         }
     }
 
-    // --- Chart data (DataBlock -> frame) ------------------------------------
+    // --- Chart data (source -> frame) ---------------------------------------
 
     private void BindChart(LayoutInteractionContext context, IVariableStore variables)
     {
@@ -358,25 +359,27 @@ public sealed class FormStudioLayout
             return;
 
         BlockData? data = null;
-        if (variables.TryGet<object>(sourceVar, out var value) && value is not null && DataBlockReader.IsDataBlock(value))
-            data = DataBlockReader.Read(value);
+        if (variables.TryGet<object>(sourceVar, out var value))
+            data = DataBlockReader.ReadSource(value);
 
         _ = frame.PostMessageAsync("chart-data", new { id, sourceVar, data }, ct);
     }
 
-    // The names of every variable currently holding a DataBlock, for the chart source pickers.
+    // The names of every variable currently holding a chartable source (a DataBlock or a
+    // DataTable), for the chart source pickers.
     private object BuildVars(IVariableStore variables)
     {
-        var dataBlockVars = new List<string>();
+        var sourceVars = new List<string>();
         foreach (var descriptor in variables.GetAll())
         {
-            var isDataBlock = DataBlockReader.IsDataBlock(descriptor.Value)
-                || string.Equals(descriptor.Type?.FullName, "Datafication.Core.Data.DataBlock", StringComparison.Ordinal);
-            if (isDataBlock && !dataBlockVars.Contains(descriptor.Name))
-                dataBlockVars.Add(descriptor.Name);
+            var isSource = DataBlockReader.IsSource(descriptor.Value)
+                || string.Equals(descriptor.Type?.FullName, "Datafication.Core.Data.DataBlock", StringComparison.Ordinal)
+                || string.Equals(descriptor.Type?.FullName, "System.Data.DataTable", StringComparison.Ordinal);
+            if (isSource && !sourceVars.Contains(descriptor.Name))
+                sourceVars.Add(descriptor.Name);
         }
-        dataBlockVars.Sort(StringComparer.Ordinal);
-        return new { dataBlockVars };
+        sourceVars.Sort(StringComparer.Ordinal);
+        return new { sourceVars };
     }
 
     // --- Export -------------------------------------------------------------

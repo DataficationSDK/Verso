@@ -15,6 +15,7 @@ public sealed class FakeNotebookService : INotebookService
     public bool IsLoaded { get; set; } = true;
     public bool IsEmbedded { get; set; }
     public string? FilePath { get; set; } = "/fake/notebook.verso";
+    public bool IsDirty { get; set; }
 
     // ── Notebook metadata ──────────────────────────────────────────────
 
@@ -87,6 +88,8 @@ public sealed class FakeNotebookService : INotebookService
     public event Action<string?>? OnKernelRestarting;
     public event Action<string?>? OnKernelRestarted;
     public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
+    public event Action? OnDirtyStateChanged;
+    public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
     // ── Call tracking ──────────────────────────────────────────────────
 
@@ -212,7 +215,13 @@ public sealed class FakeNotebookService : INotebookService
         ToolbarPlacement placement, IReadOnlyList<Guid> selectedCellIds)
         => Task.FromResult(ActionEnabledStates);
 
-    public Task ExecuteActionAsync(string actionId, IReadOnlyList<Guid> selectedCellIds) => Task.CompletedTask;
+    public List<string> ExecutedActionIds { get; } = new();
+
+    public Task ExecuteActionAsync(string actionId, IReadOnlyList<Guid> selectedCellIds)
+    {
+        ExecutedActionIds.Add(actionId);
+        return Task.CompletedTask;
+    }
 
     // ── Cell interaction ────────────────────────────────────────────────
 
@@ -403,4 +412,8 @@ public sealed class FakeNotebookService : INotebookService
     public void RaiseOutputUpdated() => OnOutputUpdated?.Invoke();
     public void RaiseKernelRestarting(string? kernelId = null) => OnKernelRestarting?.Invoke(kernelId);
     public void RaiseKernelRestarted(string? kernelId = null) => OnKernelRestarted?.Invoke(kernelId);
+    public void RaiseCellExecuting(Guid cellId) => OnCellExecuting?.Invoke(cellId);
+    public void RaiseCellExecutionCompleted(Guid cellId) => OnCellExecutionCompleted?.Invoke(cellId);
+    public void RaiseDirtyStateChanged() => OnDirtyStateChanged?.Invoke();
+    public void RaiseKernelHealthChanged(KernelHealthChangedEventArgs args) => OnKernelHealthChanged?.Invoke(args);
 }

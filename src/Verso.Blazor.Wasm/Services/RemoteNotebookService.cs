@@ -100,6 +100,14 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     /// The notebook still opens; the UI should show a non-fatal notice.</summary>
     public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
 
+    /// <summary>Raised when <see cref="IsDirty"/> changes.</summary>
+    public event Action? OnDirtyStateChanged;
+
+    /// <summary>Raised when the host process dies (Disconnected, from the extension's
+    /// <c>host/exited</c> message) or an in-process kernel restart fails (Faulted, from the
+    /// host's <c>kernel/faulted</c> notification).</summary>
+    public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
+
     // ── Extension consent state ────────────────────────────────────────
     private string? _pendingConsentRequestId;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
@@ -132,6 +140,19 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public bool IsEmbedded => true;
     public string? FilePath => _filePath;
 
+    // Local view of unsaved changes: set by this service's own mutations (the same set the
+    // bridge uses to mark the VS Code document dirty) and cleared when the extension reports
+    // the document was saved, so a Cmd/Ctrl+S outside the webview clears it too.
+    private bool _isDirty;
+    public bool IsDirty => _isDirty;
+
+    private void SetDirty(bool value)
+    {
+        if (_isDirty == value) return;
+        _isDirty = value;
+        OnDirtyStateChanged?.Invoke();
+    }
+
     // ── Notebook metadata ───────────────────────────────────────────────
 
     public string? Title
@@ -148,7 +169,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             if (string.Equals(_defaultKernelId, value, StringComparison.OrdinalIgnoreCase)) return;
             _defaultKernelId = value;
             if (_isLoaded && value is not null)
+            {
                 _ = _bridge.RequestVoidAsync("notebook/setDefaultKernel", new { kernelId = value });
+                SetDirty(true);
+            }
         }
     }
 
@@ -228,6 +252,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _defaultKernelId = result.DefaultKernel;
         _cells = result.Cells?.Select(MapCellFromDto).ToList() ?? new();
         _isLoaded = true;
+        SetDirty(false);
 
         // Fetch supplementary data
         await RefreshExtensionDataAsync();
@@ -251,6 +276,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         if (result.Content is not null)
         {
             await _bridge.RequestVoidAsync("extension/writeFile", new { content = result.Content, filePath });
+            SetDirty(false);
         }
     }
 
@@ -264,6 +290,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         var cell = MapCellFromDto(dto);
         _cells.Add(cell);
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return cell;
     }
@@ -276,6 +303,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         var cell = MapCellFromDto(dto);
         _cells.Insert(Math.Clamp(index, 0, _cells.Count), cell);
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
         return cell;
     }
@@ -284,7 +312,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         await _bridge.RequestVoidAsync("cell/remove", new { cellId = cellId.ToString() });
         var removed = _cells.RemoveAll(c => c.Id == cellId) > 0;
-        if (removed) OnNotebookChanged?.Invoke();
+        if (removed)
+        {
+            SetDirty(true);
+            OnNotebookChanged?.Invoke();
+        }
         return removed;
     }
 
@@ -299,6 +331,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             _cells.Insert(Math.Clamp(toIndex, 0, _cells.Count), cell);
         }
 
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
     }
 
@@ -308,6 +341,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var cell = _cells.FirstOrDefault(c => c.Id == cellId);
         if (cell is not null)
             cell.Source = source;
+
+        SetDirty(true);
 
         // Debounce the remote call to avoid flooding the bridge on every keystroke
         if (_debounceCts.TryGetValue(cellId, out var existingCts))
@@ -363,6 +398,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         await _bridge.RequestVoidAsync("cell/changeType", new { cellId = cellId.ToString(), type = newType });
         // Re-fetch cell list after type change since the host may rebuild the cell
         await RefreshCellListAsync();
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
     }
 
@@ -370,6 +406,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         await _bridge.RequestVoidAsync("cell/changeLanguage", new { cellId = cellId.ToString(), language = newLanguage });
         await RefreshCellListAsync();
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
     }
 
@@ -380,6 +417,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         foreach (var cell in _cells)
             cell.Outputs.Clear();
 
+        SetDirty(true);
         OnCellExecuted?.Invoke();
     }
 
@@ -411,6 +449,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             cell.LastStatus = result.Status;
         }
 
+        // Execution mutates outputs and execution counts, which are part of the saved file.
+        SetDirty(true);
+
         // Refresh variables directly after execution instead of relying
         // solely on the fire-and-forget notification handler.
         await RefreshVariablesSafeAsync();
@@ -434,6 +475,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var response = await _bridge.RequestAsync<ExecutionRunAllResponse>(
             "execution/runAll", null);
 
+        SetDirty(true);
         await RefreshCellListAsync();
         await RefreshVariablesSafeAsync();
 
@@ -514,6 +556,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             });
 
         // Refresh state since actions can mutate cells, outputs, etc.
+        SetDirty(true);
         await RefreshCellListAsync();
         await RefreshVariablesSafeAsync();
         OnCellExecuted?.Invoke();
@@ -1096,6 +1139,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         // Refresh local cell cache so metadata-dependent rendering (e.g. visibility) reflects the change
         await RefreshCellListAsync();
+        SetDirty(true);
         OnNotebookChanged?.Invoke();
     }
 
@@ -1189,7 +1233,33 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "theme/vscodeKindChanged":
                 HandleVsCodeThemeKindChanged(paramsJson);
                 break;
+            case "document/saved":
+                // The extension saved the document (webview Save button or Cmd/Ctrl+S in
+                // VS Code), so the local unsaved-changes flag is stale either way.
+                SetDirty(false);
+                break;
+            case "host/exited":
+                HandleHostExited(paramsJson);
+                break;
+            case "kernel/faulted":
+                HandleKernelFaulted(paramsJson);
+                break;
         }
+    }
+
+    private void HandleHostExited(string? paramsJson)
+    {
+        var detail = TryReadStringProperty(paramsJson, "detail");
+        OnKernelHealthChanged?.Invoke(new KernelHealthChangedEventArgs(
+            KernelHealth.Disconnected,
+            detail ?? "The kernel host process exited."));
+    }
+
+    private void HandleKernelFaulted(string? paramsJson)
+    {
+        var message = TryReadStringProperty(paramsJson, "message");
+        OnKernelHealthChanged?.Invoke(new KernelHealthChangedEventArgs(
+            KernelHealth.Faulted, message));
     }
 
     /// <summary>
@@ -1566,7 +1636,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _toolbarActions = actionsResult.Actions?.Select(a => new ToolbarActionInfo(
             a.ActionId, a.DisplayName, a.Icon,
             Enum.TryParse<ToolbarPlacement>(a.Placement, true, out var p) ? p : ToolbarPlacement.MainToolbar,
-            a.Order)).ToList() ?? new();
+            a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt)).ToList() ?? new();
 
         // Cell types
         var cellTypesResult = await _bridge.RequestAsync<CellTypesResponse>("notebook/getCellTypes", null);
@@ -1976,6 +2046,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? Icon { get; set; }
         public string Placement { get; set; } = "";
         public int Order { get; set; }
+        public bool IconOnly { get; set; }
+        public bool IsPrimary { get; set; }
+        public string? ConfirmationPrompt { get; set; }
     }
 
     private sealed class EnabledStatesResponse

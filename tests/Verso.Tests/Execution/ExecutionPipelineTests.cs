@@ -116,12 +116,41 @@ public sealed class ExecutionPipelineTests
         Assert.AreEqual(ExecutionResult.ExecutionStatus.Failed, result.Status);
     }
 
+    [TestMethod]
+    public async Task RenderOnlyCell_FiresOutputNotification()
+    {
+        // Regression: render-only cells (e.g. Markdown) must raise the output-updated
+        // notification just like kernel execution does, so out-of-process hosts receive
+        // their content incrementally as the cell finishes instead of only at the end of a
+        // Run All. Previously the render path added the output without notifying, so these
+        // cells appeared blank until the whole batch completed.
+        var renderer = new FakeCellRenderer(cellTypeId: "markdown");
+        var cell = new CellModel { Type = "markdown", Source = "# Title" };
+
+        var notified = new List<Guid>();
+        var pipeline = BuildPipeline(
+            kernel: null, cell,
+            renderers: new ICellRenderer[] { renderer },
+            notifyOutputUpdated: notified.Add);
+
+        var result = await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        Assert.AreEqual(ExecutionResult.ExecutionStatus.Success, result.Status);
+        Assert.AreEqual(1, cell.Outputs.Count);
+        Assert.AreEqual("input:# Title", cell.Outputs[0].Content);
+        CollectionAssert.Contains(notified, cell.Id, "Render-only cell must notify that its output updated.");
+    }
+
     private static ExecutionPipeline BuildPipeline(
-        FakeLanguageKernel? kernel, CellModel cell, string? defaultKernelId = null)
+        FakeLanguageKernel? kernel, CellModel cell, string? defaultKernelId = null,
+        IReadOnlyList<ICellRenderer>? renderers = null,
+        Action<Guid>? notifyOutputUpdated = null)
     {
         var variables = new VariableStore();
         var theme = new StubThemeContext();
-        var extensionHost = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
+        var extensionHost = new StubExtensionHostContext(
+            () => Array.Empty<ILanguageKernel>(),
+            renderers is null ? null : () => renderers);
         var metadata = new NotebookMetadataContext(new NotebookModel { DefaultKernelId = defaultKernelId });
 
         return new ExecutionPipeline(
@@ -130,6 +159,7 @@ public sealed class ExecutionPipelineTests
             resolveKernel: langId => kernel?.LanguageId.Equals(langId, StringComparison.OrdinalIgnoreCase) == true ? kernel : null,
             ensureInitialized: k => k.InitializeAsync(),
             resolveLanguageId: _ => cell.Language ?? defaultKernelId,
-            getExecutionCount: _ => 1);
+            getExecutionCount: _ => 1,
+            notifyOutputUpdated: notifyOutputUpdated);
     }
 }

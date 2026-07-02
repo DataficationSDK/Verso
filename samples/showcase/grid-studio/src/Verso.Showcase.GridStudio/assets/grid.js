@@ -55,6 +55,7 @@ let instance = null;     // the live Jspreadsheet worksheet
 let dirty = false;
 let commitTimer = 0;
 let selRange = null;     // [firstRow, lastRow] of the current selection, or null
+let readOnly = false;    // true when the bound source is a DataTable (view only, never committed)
 
 // --- Chrome (themed entirely via --verso-* tokens) --------------------------
 
@@ -78,15 +79,6 @@ const STYLE = `
     background: var(--verso-bg-elevated, #1b1e26);
     border-bottom: 1px solid var(--verso-border-default, #2a2e38);
   }
-  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: .2px; }
-  .brand .mark {
-    width: 22px; height: 22px; border-radius: 6px;
-    background: var(--verso-accent, #5b8def);
-    display: grid; place-items: center; color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  }
-  .brand .mark svg { width: 14px; height: 14px; }
-  .brand .sub { color: var(--verso-fg-muted, #9aa0ac); font-weight: 500; font-size: .85em; }
   .top .spacer { flex: 1; }
 
   .bind { display: flex; align-items: center; gap: 6px; color: var(--verso-fg-muted, #9aa0ac); }
@@ -112,6 +104,7 @@ const STYLE = `
   }
   .btn:hover { background: color-mix(in srgb, var(--verso-fg-default, #fff) 12%, transparent); }
   .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .45; cursor: default; pointer-events: none; }
   .btn.accent { background: var(--verso-accent, #5b8def); border-color: transparent; color: #fff; }
   .btn.accent:hover { filter: brightness(1.08); }
   .btn svg { width: 14px; height: 14px; }
@@ -205,7 +198,6 @@ injectStyle(STYLE);
 // --- DOM scaffold -----------------------------------------------------------
 
 const ICON = {
-  logo: `<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2.5" width="12" height="11" rx="1.5" stroke="currentColor"/><path d="M2 6h12M2 9.5h12M6 6v7.5M10 6v7.5" stroke="currentColor"/></svg>`,
   addRow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h10"/><path d="M18 15v6M15 18h6"/></svg>`,
   addCol: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3v18M12 3v18M18 3v10"/><path d="M18 16v6M15 19h6"/></svg>`,
   delRow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h12M3 18h12"/><path d="M16 15l5 5M21 15l-5 5"/></svg>`,
@@ -218,20 +210,19 @@ document.documentElement.style.height = "100%";
 document.body.innerHTML = `
   <div class="app">
     <div class="top">
-      <div class="brand"><span class="mark">${ICON.logo}</span> Grid Studio <span class="sub">DataBlock spreadsheet</span></div>
-      <div class="spacer"></div>
       <button class="btn" id="addRow">${ICON.addRow} Row</button>
       <button class="btn" id="addCol">${ICON.addCol} Column</button>
       <button class="btn" id="delRow">${ICON.delRow} Delete</button>
       <button class="btn" id="export">${ICON.export} CSV</button>
       <button class="btn" id="reload">${ICON.reload} Reload</button>
       <button class="btn accent" id="commit">${ICON.commit} Commit</button>
-      <div class="bind"><label>DataBlock</label><select id="sourceVar"></select></div>
+      <div class="spacer"></div>
+      <div class="bind"><label>Data</label><select id="sourceVar"></select></div>
     </div>
     <div class="stage">
       <div class="grid-host" id="gridHost"></div>
       <div class="empty" id="empty">
-        <h2>No DataBlock bound</h2>
+        <h2>No data bound</h2>
         <div id="emptyMsg"></div>
       </div>
     </div>
@@ -293,13 +284,14 @@ function buildGrid() {
   instance = jspreadsheet(gridHostEl, {
     data: model.rows.length ? model.rows : [model.columns.map(() => "")],
     columns,
+    editable: !readOnly, // a bound DataTable is view-only
     columnSorting: true,
     filters: true,
-    allowInsertRow: true,
-    allowDeleteRow: true,
+    allowInsertRow: !readOnly,
+    allowDeleteRow: !readOnly,
     allowInsertColumn: false, // structural column edits go through our own toolbar
     allowDeleteColumn: false,
-    allowRenameColumn: true,
+    allowRenameColumn: !readOnly,
     contextMenu: false,
     about: false,
     onafterchanges: onGridEdited,
@@ -390,12 +382,14 @@ function syncRowsFromGrid() {
 }
 
 function scheduleCommit() {
+  if (readOnly) return;
   if (commitTimer) clearTimeout(commitTimer);
   commitTimer = setTimeout(commit, 500);
 }
 
 function commit() {
   if (commitTimer) { clearTimeout(commitTimer); commitTimer = 0; }
+  if (readOnly) return;
   if (!model || !model.columns || model.columns.length === 0) return;
   syncRowsFromGrid();
 
@@ -431,6 +425,8 @@ function applyData(payload) {
     sourceVar = payload.sourceVar;
   }
 
+  readOnly = !!(payload && payload.readOnly);
+  applyReadOnly();
   renderSourceOptions(payload && payload.variables);
 
   const data = payload && payload.data;
@@ -440,13 +436,22 @@ function applyData(payload) {
       rows: (data.rows || []).map((r) => r.slice()),
     };
     buildGrid();
-    setStatus("Bound to " + sourceVar);
+    setStatus(readOnly ? "Bound to " + sourceVar + " (read-only)" : "Bound to " + sourceVar);
   } else {
     model = null;
     buildGrid();
   }
   dirty = false;
   statusEl.classList.remove("dirty");
+}
+
+// Disable the editing controls when the bound source is read-only (a DataTable). Reload, CSV
+// export, and the source picker stay enabled.
+function applyReadOnly() {
+  ["addRow", "addCol", "delRow", "commit"].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = readOnly;
+  });
 }
 
 // --- UI helpers -------------------------------------------------------------
@@ -459,8 +464,9 @@ function markDirty() {
 
 function setStatus(text) { statusTextEl.textContent = text; }
 
-// Populate the source dropdown with the DataBlock variable names the host reported. The bound
-// variable is always selectable even if it is not (yet) a DataBlock, so the binding is visible.
+// Populate the source dropdown with the variable names the host reported (DataBlock or DataTable).
+// The bound variable is always selectable even if it is not (yet) a recognized source, so the
+// binding stays visible.
 function renderSourceOptions(list) {
   const names = Array.isArray(list) ? list.slice() : [];
   if (sourceVar && names.indexOf(sourceVar) === -1) names.unshift(sourceVar);
@@ -469,7 +475,7 @@ function renderSourceOptions(list) {
   if (names.length === 0) {
     const opt = document.createElement("option");
     opt.value = "";
-    opt.textContent = "(no DataBlocks)";
+    opt.textContent = "(no data)";
     opt.disabled = true;
     opt.selected = true;
     sourceVarEl.appendChild(opt);
@@ -498,8 +504,8 @@ function updateDims() {
 function showEmpty() {
   emptyEl.classList.add("show");
   emptyMsgEl.innerHTML =
-    "Assign a DataBlock to <code>" + escapeHtml(sourceVar) + "</code> in a code cell and run it, " +
-    "then pick it from the <b>DataBlock</b> dropdown above.";
+    "Assign data to <code>" + escapeHtml(sourceVar) + "</code> in a code cell and run it, " +
+    "then pick it from the <b>Data</b> dropdown above.";
   dimsEl.textContent = "";
 }
 

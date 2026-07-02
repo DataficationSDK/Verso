@@ -44,7 +44,17 @@ public sealed class NotebookSession : IAsyncDisposable
         ExtensionHost.OnExtensionLoaded += HandleExtensionLoaded;
         ExtensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Scaffold.OnCellOutputUpdated += HandleCellOutputUpdated;
+        Scaffold.OnKernelRestartFailed += HandleKernelRestartFailed;
         Scaffold.InputRequester = RequestInputAsync;
+    }
+
+    private void HandleKernelRestartFailed(string? kernelId, Exception ex)
+    {
+        SendNotification(Protocol.MethodNames.KernelFaulted, new
+        {
+            kernelId,
+            message = ex.Message
+        });
     }
 
     private void HandleExtensionLoaded(Abstractions.IExtension extension)
@@ -77,7 +87,13 @@ public sealed class NotebookSession : IAsyncDisposable
 
     public void CancelExecution()
     {
-        _executionCts?.Cancel();
+        // The CTS is disposed and replaced at the start of the next run; a cancel that
+        // races that swap should be a no-op rather than an RPC error.
+        try
+        {
+            _executionCts?.Cancel();
+        }
+        catch (ObjectDisposedException) { }
     }
 
     public void SendNotification(string method, object? @params = null)
@@ -186,6 +202,7 @@ public sealed class NotebookSession : IAsyncDisposable
         ExtensionHost.OnExtensionLoaded -= HandleExtensionLoaded;
         ExtensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Scaffold.OnCellOutputUpdated -= HandleCellOutputUpdated;
+        Scaffold.OnKernelRestartFailed -= HandleKernelRestartFailed;
         Scaffold.InputRequester = null;
 
         // Cancel any pending consent requests
@@ -329,7 +346,6 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.LayoutRender => await LayoutHandler.HandleRenderAsync(ns, @params),
             MethodNames.LayoutGetCellContainer => await LayoutHandler.HandleGetCellContainerAsync(ns, @params),
             MethodNames.LayoutUpdateCell => await LayoutHandler.HandleUpdateCell(ns, @params),
-            MethodNames.LayoutSetEditMode => await LayoutHandler.HandleSetEditMode(ns, @params),
             MethodNames.LayoutInteract => await LayoutHandler.HandleInteractAsync(ns, @params),
             MethodNames.LayoutGetRendererPackage => await LayoutHandler.HandleGetRendererPackageAsync(ns, @params),
             MethodNames.LayoutGetStaticAssets => await LayoutHandler.HandleGetStaticAssetsAsync(ns, @params),

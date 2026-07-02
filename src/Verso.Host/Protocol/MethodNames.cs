@@ -41,6 +41,7 @@ public static class MethodNames
     // Kernel
     public const string KernelRestart = "kernel/restart";
     public const string KernelRestartRequested = "kernel/restartRequested";
+    public const string KernelFaulted = "kernel/faulted";
     public const string KernelGetCompletions = "kernel/getCompletions";
     public const string KernelGetDiagnostics = "kernel/getDiagnostics";
     public const string KernelGetHoverInfo = "kernel/getHoverInfo";
@@ -62,7 +63,6 @@ public static class MethodNames
     public const string LayoutRender = "layout/render";
     public const string LayoutGetCellContainer = "layout/getCellContainer";
     public const string LayoutUpdateCell = "layout/updateCell";
-    public const string LayoutSetEditMode = "layout/setEditMode";
     public const string LayoutInteract = "layout/interact";
     public const string LayoutGetRendererPackage = "layout/getRendererPackage";
     public const string LayoutGetStaticAssets = "layout/getStaticAssets";

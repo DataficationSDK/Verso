@@ -155,21 +155,6 @@ public static class LayoutHandler
             .ConfigureAwait(false);
     }
 
-    public static async Task<object?> HandleSetEditMode(NotebookSession ns, JsonElement? @params)
-    {
-        var p = @params?.Deserialize<LayoutSetEditModeParams>(JsonRpcMessage.SerializerOptions)
-            ?? throw new JsonException("Missing params for layout/setEditMode");
-
-        Console.Error.WriteLine(
-            "[deprecation] layout/setEditMode is forwarded to layout/interact and will be removed in v2.0. " +
-            "Migrate clients to layout/interact with interactionType 'setEditMode'.");
-
-        var payload = p.EditMode ? "true" : "false";
-
-        return await HandleInteractAsync(ns, BuildDashboardInteractParams("setEditMode", payload))
-            .ConfigureAwait(false);
-    }
-
     private static JsonElement BuildDashboardInteractParams(string interactionType, string payload)
     {
         var interactParams = new LayoutInteractParams
