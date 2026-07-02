@@ -56,6 +56,96 @@ window.versoCellInteract = (() => {
 })();
 
 /**
+ * Top-layer positioning for the per-cell type and language dropdown menus.
+ *
+ * Every code cell hosts a Monaco editor whose internals are promoted to their own GPU compositing
+ * layers (Monaco sets transform + contain:strict on its content, scrollbars, and margin). A menu
+ * painted on the normal layer, even at a very high z-index, can be composited *beneath* a
+ * neighbouring cell's editor layer, so the next cell's chrome bleeds through the open menu. This
+ * is a compositor-overlap effect: DOM hit-testing still reports the menu on top, but the GPU
+ * paints the neighbour over it, and no stacking-context or z-index change fixes it.
+ *
+ * Rendering the menu in the top layer (via the Popover API) sidesteps compositing entirely, since
+ * top-layer content always paints above every other layer on the page. The menu keeps its own
+ * open/close state in the component; this helper only shows the popover and places it at its
+ * trigger badge, flipping above the badge when it would overflow the viewport and clamping so it
+ * stays on screen. While open it tracks the badge on scroll and resize; the tracking listeners
+ * remove themselves once the popover closes or its element leaves the DOM.
+ */
+window.versoCellMenu = (function () {
+    // Active scroll/resize trackers keyed by a stable per-menu id, so close(key) can tear a menu's
+    // tracker down even after the component removed the popover element from the DOM (which is what
+    // closes the popover). Keying by id, rather than stashing the cleanup on the element, means the
+    // teardown never depends on still holding a live reference to a node that may already be gone.
+    var trackers = {};
+
+    // ':popover-open' is an invalid selector on engines without the Popover API, where matches()
+    // throws; treat those as "not open" instead of letting the throw escape a scroll handler.
+    function isOpen(el) {
+        try { return !!(el && el.matches && el.matches(':popover-open')); }
+        catch (e) { return false; }
+    }
+
+    function position(popupEl, anchorEl) {
+        var a = anchorEl.getBoundingClientRect();
+        popupEl.style.position = 'fixed';
+        popupEl.style.margin = '0';
+        // Provisional placement so offsetWidth/Height reflect the real menu box before we flip.
+        popupEl.style.top = '0px';
+        popupEl.style.left = '0px';
+        var pw = popupEl.offsetWidth;
+        var ph = popupEl.offsetHeight;
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var gap = 2;
+        var top = a.bottom + gap;
+        // Flip above the badge when the menu would run past the viewport bottom and there is room.
+        if (top + ph > vh - 4 && a.top - gap - ph >= 4) top = a.top - gap - ph;
+        // Final clamp so the whole box stays on-screen even when it fits neither fully below nor
+        // fully above the badge (a short editor pane). The menu's own max-height keeps ph bounded,
+        // so this never pins a taller-than-viewport box; its internal overflow-y handles the rest.
+        top = Math.max(4, Math.min(top, vh - 4 - ph));
+        var left = a.left;
+        // Keep the menu within the viewport horizontally (paired with the CSS max-width cap).
+        if (left + pw > vw - 4) left = vw - 4 - pw;
+        if (left < 4) left = 4;
+        popupEl.style.top = Math.round(top) + 'px';
+        popupEl.style.left = Math.round(left) + 'px';
+    }
+
+    function open(popupEl, anchorEl, key) {
+        if (!popupEl || !anchorEl) return;
+        try {
+            if (popupEl.showPopover && !isOpen(popupEl)) popupEl.showPopover();
+        } catch (e) { /* popover unsupported or already open: the element keeps its own CSS */ }
+        position(popupEl, anchorEl);
+        if (trackers[key]) trackers[key]();   // drop a stale tracker for this menu
+        var track = function () {
+            // Self-heal: once the menu has closed or its element is gone, stop tracking.
+            if (!popupEl.isConnected || !isOpen(popupEl)) { cleanup(); return; }
+            position(popupEl, anchorEl);
+        };
+        var cleanup = function () {
+            window.removeEventListener('scroll', track, true);
+            window.removeEventListener('resize', track);
+            if (trackers[key] === cleanup) delete trackers[key];
+        };
+        // Capture-phase scroll so movement in any scroll container (not just the window) tracks.
+        window.addEventListener('scroll', track, true);
+        window.addEventListener('resize', track);
+        trackers[key] = cleanup;
+    }
+
+    // Called on the close transition (the popover element is already gone, which hid the popover);
+    // this only needs to remove the tracker's window listeners for that menu.
+    function close(key) {
+        if (trackers[key]) trackers[key]();
+    }
+
+    return { open: open, close: close };
+})();
+
+/**
  * Click-through guard for rendered cell previews.
  *
  * A rendered (collapsed-input) cell shows its output as a preview, and a single click on that

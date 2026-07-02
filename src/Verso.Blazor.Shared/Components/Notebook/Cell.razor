@@ -51,13 +51,17 @@
     <div class="verso-cell-content">
         <div class="verso-cell-toolbar">
             <div class="verso-cell-type-dropdown" @onfocusout="OnTypeDropdownFocusOut" tabindex="-1">
-                <button class="verso-cell-type-badge" @onclick="ToggleTypeDropdown">
+                <button class="verso-cell-type-badge" @onclick="ToggleTypeDropdown" @ref="_typeBadgeRef"
+                        aria-haspopup="true" aria-expanded="@(_showTypeDropdown ? "true" : "false")" aria-controls="@_typePopupId">
                     @CellData.Type
                     <span class="verso-cell-type-chevron">&#9662;</span>
                 </button>
                 @if (_showTypeDropdown)
                 {
-                    <div class="verso-cell-type-popup">
+                    @* popover="manual" lifts the menu into the browser top layer so it paints above
+                       neighbouring cells' composited Monaco editors; positioned at the badge by
+                       versoCellMenu from OnAfterRenderAsync. *@
+                    <div class="verso-cell-type-popup" id="@_typePopupId" popover="manual" @ref="_typePopupRef">
                         @foreach (var ct in Service.AvailableCellTypes)
                         {
                             var t = ct;
@@ -73,13 +77,15 @@
             @if (CellData.Type == "code" && CellData.Language is not null)
             {
                 <div class="verso-cell-lang-dropdown" @onfocusout="OnLanguageDropdownFocusOut" tabindex="-1">
-                    <button class="verso-cell-lang-badge" @onclick="ToggleLanguageDropdown">
+                    <button class="verso-cell-lang-badge" @onclick="ToggleLanguageDropdown" @ref="_langBadgeRef"
+                            aria-haspopup="true" aria-expanded="@(_showLanguageDropdown ? "true" : "false")" aria-controls="@_langPopupId">
                         @GetLanguageDisplayName(CellData.Language)
                         <span class="verso-cell-lang-chevron">&#9662;</span>
                     </button>
                     @if (_showLanguageDropdown)
                     {
-                        <div class="verso-cell-lang-popup">
+                        @* Top-layer menu: see the cell-type popup above. *@
+                        <div class="verso-cell-lang-popup" id="@_langPopupId" popover="manual" @ref="_langPopupRef">
                             @foreach (var lang in Service.RegisteredLanguages)
                             {
                                 var l = lang;
@@ -300,6 +306,21 @@
     private bool _showTypeDropdown;
     private bool _showLanguageDropdown;
 
+    // The type/language menus render in the browser top layer (popover) so they paint above the
+    // composited Monaco editors of neighbouring cells. These refs let OnAfterRenderAsync show the
+    // popover and position it at its trigger badge; the *Shown flags track what the DOM currently
+    // reflects so the popover is opened/closed only on an actual state transition.
+    private ElementReference _typeBadgeRef;
+    private ElementReference _typePopupRef;
+    private ElementReference _langBadgeRef;
+    private ElementReference _langPopupRef;
+    private bool _typePopupShown;
+    private bool _langPopupShown;
+    // Stable per-cell ids: link each badge to its menu for assistive tech (aria-controls) and key
+    // the JS scroll/resize tracker so it can be torn down after the menu element is removed.
+    private string _typePopupId => $"verso-cell-type-menu-{CellData.Id}";
+    private string _langPopupId => $"verso-cell-lang-menu-{CellData.Id}";
+
     // Actions already represented by hardcoded buttons in the cell toolbar
     private static readonly HashSet<string> _hardcodedActionIds = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -417,6 +438,42 @@
         {
             try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }
             catch (JSException) { }
+        }
+
+        await ReconcileMenuPopoverAsync();
+    }
+
+    // Opens or closes the type/language menu popovers to match component state. On open, the menu
+    // element has just been rendered, so we show it in the top layer and place it at its badge; on
+    // close it has already been removed from the DOM (which closes the popover), so we tear down the
+    // menu's scroll/resize tracker by its stable key. Guarded so a browser without popover support
+    // just leaves the menu on its own CSS layer rather than throwing.
+    private async Task ReconcileMenuPopoverAsync()
+    {
+        if (_showTypeDropdown != _typePopupShown)
+        {
+            try
+            {
+                if (_showTypeDropdown)
+                    await JS.InvokeVoidAsync("versoCellMenu.open", _typePopupRef, _typeBadgeRef, _typePopupId);
+                else
+                    await JS.InvokeVoidAsync("versoCellMenu.close", _typePopupId);
+            }
+            catch (JSException) { }
+            _typePopupShown = _showTypeDropdown;
+        }
+
+        if (_showLanguageDropdown != _langPopupShown)
+        {
+            try
+            {
+                if (_showLanguageDropdown)
+                    await JS.InvokeVoidAsync("versoCellMenu.open", _langPopupRef, _langBadgeRef, _langPopupId);
+                else
+                    await JS.InvokeVoidAsync("versoCellMenu.close", _langPopupId);
+            }
+            catch (JSException) { }
+            _langPopupShown = _showLanguageDropdown;
         }
     }
 
