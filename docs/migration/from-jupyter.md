@@ -38,7 +38,7 @@ By default, saving an imported notebook in Verso writes to a sibling `.verso` fi
 |-------------------|-----------------|
 | `code` | Code cell (language set from kernel metadata) |
 | `markdown` | Markdown cell |
-| `raw` | Raw cell |
+| `raw` | Imported as an inert, non-executable text cell (no dedicated renderer or editor of its own) |
 
 ### Kernel Language
 
@@ -105,7 +105,7 @@ Python is the most common Jupyter kernel. When importing a Python notebook:
   | `%load_ext` | `#!extension` for Verso extensions |
   | `!command` | Shell commands depend on the kernel (not directly supported in Python cells) |
 
-- Jupyter's `display()` and `IPython.display` APIs are not available. Use `print()` for text output. Rich HTML output depends on the Python kernel's formatting capabilities.
+- A `display()` function is built into every Python cell (no import needed) for rich output. When the `IPython` package is installed (via `#!pip IPython`), `IPython.display.display` is wired to the same function, so `from IPython.display import display, HTML, Markdown` works too. Objects that implement `_repr_html_`, `_repr_png_`, or `_repr_svg_` render through it automatically.
 
 ## Multi-Language Notebooks (.NET Interactive)
 
@@ -149,8 +149,7 @@ Jupyter uses a kernel/server extension model. Verso's extension model is based o
 
 ## Limitations
 
-- **Round-trip to `.ipynb` is opt-in and lossy for non-standard cell types.** With `verso.preserveOriginalFormat` (or `--preserve-format`) on, `.ipynb` files save back as `.ipynb` with code, markdown, and cell outputs preserved. Verso-specific cell types (HTML, Mermaid, SQL, HTTP) are written as Jupyter `raw` cells with the original type stashed in `cell.metadata.verso_type`; notebook-level features like layouts, parameter definitions, and theme preferences are not represented in the Jupyter format.
+- **Round-trip to `.ipynb` is opt-in and lossy for non-standard cell types.** With `verso.preserveOriginalFormat` (or `--preserve-format`) on, `.ipynb` files save back as `.ipynb` with code, markdown, and cell outputs preserved. Verso-specific cell types (HTML, Mermaid, SQL, HTTP) are written as Jupyter `raw` cells with the original type stashed in `cell.metadata.verso_type` (not read back on import, so reopening the file restores them as inert `raw` cells); notebook-level features like layouts, parameter definitions, and theme preferences are not represented in the Jupyter format.
 - **Jupyter notebook format versions below 4 are not supported.** Notebooks created with very old versions of Jupyter (nbformat 1-3) need to be upgraded to nbformat 4 first (open and re-save in JupyterLab).
 - **IPython magics are not converted.** Cell and line magics (`%`, `%%`) are Python kernel-specific and pass through as literal text.
 - **Jupyter widgets are not supported.** Interactive widgets (`ipywidgets`) do not have a Verso equivalent. Static output from widgets (HTML snapshots) may be preserved in cell outputs.
-- **Kernel-specific display functions** (`display()`, `HTML()`, `Markdown()`) from `IPython.display` are not available in Verso's Python kernel.

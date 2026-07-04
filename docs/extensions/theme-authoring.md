@@ -63,7 +63,7 @@ public sealed class SolarizedDarkTheme : ITheme
 
 ## Token Reference: ThemeColorTokens
 
-All values are CSS hex color strings (e.g. `#FFFFFF`). The table below groups all 44 tokens by category, showing the light theme defaults.
+All values are CSS hex color strings (e.g. `#FFFFFF`). The tables below group the color tokens by category, showing the light theme defaults.
 
 ### Editor Tokens
 
@@ -153,6 +153,18 @@ All values are CSS hex color strings (e.g. `#FFFFFF`). The table below groups al
 | `DropdownHover` | `#F0F0F0` | Dropdown item hover background |
 | `TooltipBackground` | `#333333` | Tooltip background |
 | `TooltipForeground` | `#FFFFFF` | Tooltip text color |
+
+### Layout Palette Tokens
+
+A coarse semantic palette consumed by layout extensions. Layouts read these through CSS custom properties rather than the fine-grained editor tokens, so a custom layout stays theme-aware without hardcoding colors.
+
+| Token | CSS Property | Description |
+|-------|-------------|-------------|
+| `BgDefault` | `--verso-bg-default` | Default surface background for layout chrome |
+| `BgElevated` | `--verso-bg-elevated` | Raised surface such as cards and panels |
+| `FgDefault` | `--verso-fg-default` | Primary text on layout surfaces |
+| `FgMuted` | `--verso-fg-muted` | Secondary or muted text |
+| `Accent` | `--verso-accent` | Accent color; aliases `AccentPrimary` |
 
 ## Typography Reference
 
@@ -265,7 +277,7 @@ public string? GetCustomToken(string key) => key switch
 };
 
 // In a renderer
-var gridColor = context.Theme.ActiveTheme.GetCustomToken("chart.gridline") ?? "#CCC";
+var gridColor = context.Theme.GetCustomToken("chart.gridline") ?? "#CCC";
 ```
 
 Use a namespaced key format (`"yourextension.tokenname"`) to avoid collisions.
@@ -399,7 +411,7 @@ public sealed class VersoHighContrastTheme : ITheme
         AccentSecondary = "#6FC3DF",         // Cyan, 9.0:1 ratio
         TooltipBackground = "#FFD700",       // Inverted: gold bg
         TooltipForeground = "#000000",       // Black text, 13.9:1
-        // ... all 44 tokens set
+        // ... all tokens set
     };
 
     public ThemeTypography Typography { get; } = new ThemeTypography

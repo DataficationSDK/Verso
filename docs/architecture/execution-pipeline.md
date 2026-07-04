@@ -14,7 +14,7 @@ Execution starts from one of three methods on `Scaffold`:
 
 All three methods call `EnsureParametersInjected()` first, which pushes notebook parameter defaults into the variable store for any parameters not already present. Each call to `ExecuteCellAsync` creates a fresh `ExecutionPipeline` instance via `Scaffold.BuildPipeline()`. The pipeline is not reused across cells.
 
-`ExecuteAllAsync` validates required parameters before executing. If any required parameter (marked `required: true`) has no default and no value in the variable store, the method executes only the parameters cell (to preserve its form output), appends the validation error, and returns a single failed result.
+`ExecuteAllAsync` validates required parameters before executing. If any required parameter (marked `required: true`) has no default and no value in the variable store, the method executes only the parameters cell (to preserve its form output), appends the validation error, and returns a single failed result. Before running, `ExecuteAllAsync` resets every kernel so a "Run All" behaves as if the notebook is being executed from scratch: kernels are disposed and re-warmed lazily, and the variable store is cleared apart from parameter values.
 
 ## Pipeline Construction
 
@@ -163,7 +163,7 @@ Internally, the context also has `ReportElapsedTime`, which the `#!time` command
 | `#!time` | Enables elapsed time reporting after kernel execution. Does not suppress. |
 | `#!nuget PackageId [Version]` | Resolves a NuGet package and stores assembly paths in the variable store for the kernel to pick up. |
 | `#!extension PackageId\|path [Version]` | Loads an extension from NuGet or a local DLL. Requests consent for NuGet packages. Idempotent. |
-| `#!import path [--param name=value ...] [--show-output]` | Deserializes and executes another notebook's code cells with optional parameter overrides. Suppresses execution. Pass `--show-output` to surface the imported cells' output in the importing cell. |
+| `#!import path [--param name=value ...] [--show-output]` | Imports another notebook or a raw source file. A notebook import deserializes and executes its code cells with optional parameter overrides; a raw source file (`.cs`, `.fsx`, `.py`, `.sql`, and similar) is routed to the kernel matched by its extension. Suppresses execution. Pass `--show-output` to surface the imported outputs in the importing cell. |
 | `#!restart` | Restarts the current kernel. |
 
 Language-specific magic commands are provided by their respective extensions:
@@ -172,7 +172,7 @@ Language-specific magic commands are provided by their respective extensions:
 |---------|-----------|--------|
 | `#!pip package` | Verso.Python | Installs a Python package |
 | `#!npm package` | Verso.JavaScript | Installs an npm package |
-| `#!connect` | Verso.Ado | Establishes a database connection |
+| `#!sql-connect` | Verso.Ado | Opens a named database connection |
 
 ## Output Model
 
@@ -201,6 +201,17 @@ Outputs are collected in `cell.Outputs` (a mutable `List<CellOutput>`). The pipe
 | `text/x-verso-mermaid` | Mermaid diagram source (rendered by the UI) |
 
 Error outputs set `IsError = true` and optionally include `ErrorName` (exception type) and `ErrorStackTrace`.
+
+### The Display API
+
+Kernels and user code can emit an output explicitly, without returning it, through the `Display` extension method in `Verso.Abstractions`:
+
+```csharp
+myValue.Display();                 // format and show a value mid-cell
+htmlString.Display("text/html");   // force a MIME type
+```
+
+`Display` routes through the ambient display handler for the running cell, so a single execution can surface several values. It is the host-agnostic alternative to `Console.WriteLine` for rich output.
 
 ### Live Output Notifications
 

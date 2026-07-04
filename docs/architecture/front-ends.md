@@ -13,7 +13,8 @@ The `Verso.Blazor.Shared` project is a Razor Class Library that contains every U
 | `Cell.razor` | Full cell widget: gutter (run button, cell index, collapse chevron), toolbar (cell type, language, actions), Monaco editor, and output area. Handles all MIME types inline including HTML, SVG, Mermaid, images, JSON trees, and CSV tables. |
 | `Toolbar.razor` | Top-level notebook toolbar: file operations (hidden in VS Code), run all, layout switcher, theme switcher, export menu, and extension-defined actions. |
 | `MonacoEditor.razor` | Monaco editor wrapper with parameters for value, language, and callbacks for completions, hover, and diagnostics. |
-| `DashboardGrid.razor` | Grid layout container for dashboard mode. |
+| `LayoutRenderer.razor` | Hosts the active layout, portaling cells into the layout's HTML for custom-renderer layouts. |
+| `CustomLayoutFrame.razor` | Sandboxed iframe host for isolated layout renderers. |
 | `ExtensionPanel.razor` | Sidebar listing loaded extensions with enable/disable controls. |
 | `CellPropertiesPanel.razor` | Cell properties sidebar showing extension-contributed property sections for the selected cell. Conditional on the active layout's `SupportsPropertiesPanel` flag. |
 | `VariableExplorer.razor` | Variable inspector sidebar showing all shared variables. |
@@ -31,6 +32,8 @@ Each hosting environment provides its own implementation:
 |------|----------------|---------------|
 | Blazor Server | `ServerNotebookService` | Direct, in-process |
 | VS Code (WASM) | `RemoteNotebookService` | JSON-RPC via host process |
+
+Isolated (iframe) layouts need more than the base notebook operations, so hosts also implement `IIsolatedLayoutHost` (an extension of `INotebookService` in `Verso.Blazor.Shared.Services`). It covers frame allocation, renderer-package fetch, mount and unmount lifecycle, the message pump between the frame and the kernel, and theme propagation. Blazor Server implements it in-process; Blazor WASM implements it over JSON-RPC.
 
 ### Static Assets
 
@@ -246,7 +249,7 @@ Method names are centralized in `Protocol.MethodNames`. The TypeScript `protocol
 
 ## CLI (Verso.Cli)
 
-The CLI is a .NET global tool with four commands. It references all kernel packages and the Blazor Server project.
+The CLI is a .NET global tool with six commands. It references all kernel packages and the Blazor Server project.
 
 ### verso serve
 

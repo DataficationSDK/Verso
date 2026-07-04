@@ -19,7 +19,7 @@ The architecture separates into three layers. The engine knows nothing about the
 |  +----------------------------------------------------+   |
 |                                                           |
 |  +----------------------------------------------------+   |
-|  |  CLI (verso run / verso convert)                   |   |
+|  |  CLI (serve, run, convert, export, repl, info)     |   |
 |  |  Headless execution, format conversion, CI/CD      |   |
 |  +----------------------------------------------------+   |
 +-----------------------------------------------------------+
@@ -53,7 +53,7 @@ The architecture separates into three layers. The engine knows nothing about the
 
 The foundation of the entire system. This package contains only interfaces, records, enums, and the `[VersoExtension]` attribute. It has zero dependencies beyond the .NET BCL.
 
-Extension authors reference this package and nothing else. All twelve extension interfaces inherit from `IExtension`, which provides identity (`ExtensionId`, `Name`, `Version`), optional metadata (`Author`, `Description`), and lifecycle hooks (`OnLoadedAsync`, `OnUnloadedAsync`).
+Extension authors reference this package and nothing else. Thirteen extension interfaces inherit from `IExtension`, which provides identity (`ExtensionId`, `Name`, `Version`), optional metadata (`Author`, `Description`), and lifecycle hooks (`OnLoadedAsync`, `OnUnloadedAsync`).
 
 The interfaces are:
 
@@ -66,13 +66,14 @@ The interfaces are:
 | `IDataFormatter` | Format runtime objects into displayable outputs |
 | `IMagicCommand` | Define `#!` directives that extend kernel behavior |
 | `ITheme` | Provide colors, typography, spacing, and syntax highlighting |
-| `ILayoutEngine` | Manage spatial arrangement of cells |
+| `ILayoutEngine` | Manage the spatial arrangement of cells |
+| `ILayoutInteractionHandler` | Handle interactions routed from a custom layout, inline or isolated |
+| `ILayoutLifecycleHandler` | Observe mount and unmount of an isolated layout renderer |
 | `INotebookSerializer` | Read and write notebook file formats |
 | `INotebookPostProcessor` | Transform notebooks after load or before save |
-| `ICellInteractionHandler` | Handle interactions from rendered cell content back to extension code |
 | `ICellPropertyProvider` | Contribute configurable property sections to the cell properties panel |
 
-Extensions can also implement `IExtensionSettings` to expose configurable settings in the UI.
+Two further interfaces are supplemental: they are implemented alongside a primary capability rather than on their own. `ICellInteractionHandler` receives interactions from rendered cell content back in extension code, and `IExtensionSettings` exposes configurable settings in the UI.
 
 Context interfaces (`IVersoContext`, `IExecutionContext`, `ICellRenderContext`, `IMagicCommandContext`) provide extensions with access to shared services without coupling them to engine internals. See the [extension-host](extension-host.md) document for details on how extensions are discovered and loaded.
 
@@ -103,7 +104,7 @@ Three front-ends consume the engine:
 
 During long-running execution, VS Code also receives host-pushed notifications for live output and interactive input. `output/update` refreshes cell outputs before the final `execution/run` response returns, and `input/request` asks the extension to collect a value from the user and answer with `input/response`.
 
-**The CLI** (`verso run`, `verso convert`) drives the engine headlessly with no UI. A `HeadlessRunner` creates a `Scaffold`, loads extensions, resolves parameters, and executes cells sequentially. Output is rendered to the terminal or serialized to JSON. This is the entry point for CI/CD pipelines.
+**The CLI** exposes six commands: `serve` (launch the Blazor web app), `run` (execute a notebook headlessly), `convert` (translate between notebook formats), `export` (render a notebook to a shareable file), `repl` (an interactive prompt), and `info` (environment and extension listing). `verso run` drives the engine with no UI: a `HeadlessRunner` creates a `Scaffold`, loads extensions, resolves parameters, and executes cells sequentially, rendering output to the terminal or as JSON. `verso convert` and `verso export` go through the extension host's serializers rather than through cell execution. The CLI is the entry point for CI/CD pipelines.
 
 All three visual front-ends (Blazor Server, VS Code, and `verso serve`) share the same Razor components from the `Verso.Blazor.Shared` class library, so the notebook experience is identical regardless of hosting environment.
 
@@ -127,7 +128,7 @@ Each call to `ExecuteCellAsync` creates a new `ExecutionPipeline` instance. The 
 
 ### UI/Engine Separation
 
-The engine has no knowledge of Blazor, VS Code, or any rendering technology. The `INotebookService` interface in `Verso.Blazor.Shared` is the boundary between UI and engine. Each hosting environment provides its own implementation: `ServerNotebookService` (in-process), `RemoteNotebookService` (JSON-RPC), or `HeadlessRunner` (no UI).
+The engine has no knowledge of Blazor, VS Code, or any rendering technology. The `INotebookService` interface in `Verso.Blazor.Shared` is the boundary between UI and engine. The visual hosts provide their own implementations: `ServerNotebookService` (in-process) and `RemoteNotebookService` (JSON-RPC). The CLI's `HeadlessRunner` does not implement `INotebookService`; it drives the `Scaffold` directly with no UI boundary.
 
 ## Project Dependency Graph
 
@@ -152,7 +153,7 @@ Verso.Blazor.Shared         (Razor Class Library, shared components)
     ^
     |
 Verso.Host                  (JSON-RPC host for VS Code)
-Verso.Cli                   (CLI tool: serve, run, convert, info)
+Verso.Cli                   (CLI tool: serve, run, convert, export, repl, info)
 ```
 
 ## Further Reading

@@ -50,6 +50,9 @@ dotnet new verso-extension -n MyDashboard \
 | `--author` | Author name embedded in the extension metadata | `Extension Author` |
 | `--include-kernel` | Scaffold an `ILanguageKernel` implementation | `false` |
 | `--include-renderer` | Scaffold an `ICellRenderer` implementation | `false` |
+| `--include-magic-command` | Scaffold an `IMagicCommand` implementation | `false` |
+| `--include-cell-type` | Scaffold an `ICellType` implementation | `false` |
+| `--include-theme` | Scaffold an `ITheme` implementation | `false` |
 
 To include a language kernel and cell renderer:
 
@@ -156,13 +159,25 @@ See [Testing Extensions](testing-extensions.md) for details on writing tests wit
 
 ## Loading in Dev Mode
 
-To load your extension into a running Verso instance during development, add your build output as a local NuGet feed and install from it:
+During development you can load your extension straight from its build output, without publishing to NuGet. Two mechanisms are available.
 
-```bash
-dotnet nuget add source ./MyDashboard/bin/Debug/ --name LocalExtensions
+**From a notebook**, use the `#!extension` magic command with the path to your compiled assembly:
+
+```
+#!extension ./MyDashboard/bin/Debug/net8.0/MyDashboard.dll
 ```
 
-Verso will pick up the package when it resolves extensions. See [Packaging and Publishing](packaging-and-publishing.md) for the full NuGet workflow.
+The path is resolved relative to the notebook's directory, and local assemblies load without a consent prompt.
+
+**From the CLI**, point any command at a directory of extension assemblies with `--extensions`:
+
+```bash
+verso serve notebook.verso --extensions ./MyDashboard/bin/Debug/net8.0/
+```
+
+Verso scans that directory for extension DLLs and loads them alongside the built-ins. The `--extensions` flag works on `serve`, `run`, `repl`, `convert`, and `export`. In VS Code, set the `verso.extensionsPath` setting instead.
+
+When you are ready to distribute, see [Packaging and Publishing](packaging-and-publishing.md) for the full NuGet workflow, and [Managing Extensions](../guides/managing-extensions.md) for installing published extensions from the in-app marketplace.
 
 ## Extension Discovery
 

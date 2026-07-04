@@ -48,15 +48,18 @@ This ensures extensions can use any API available at their compile-time version,
 
 Every extension passes through `ValidateExtension()` before loading. The checks are:
 
-| Rule | Error |
+| Rule | Error code |
 |------|-------|
-| `ExtensionId` must be non-empty | `MissingId` |
-| `ExtensionId` must be unique | `DuplicateId` |
-| `Name` must be non-empty | `MissingName` |
-| `Version` must be present and valid semver | `InvalidVersion` |
-| Must implement at least one capability interface | `NoCapability` |
+| `ExtensionId` must be non-empty | `MISSING_ID` |
+| `ExtensionId` must be unique | `DUPLICATE_ID` |
+| `Name` must be non-empty | `MISSING_NAME` |
+| `Version` must be present | `MISSING_VERSION` |
+| `Version` must be valid semver | `INVALID_VERSION` |
+| Must implement at least one capability interface | `NO_CAPABILITY` |
 
 During auto-discovery (built-in scanning), validation errors are silently skipped. When loading explicitly (via magic command or API), validation failures throw `ExtensionLoadException`.
+
+Layout extensions add further checks. An `ILayoutInteractionHandler` or `ILayoutLifecycleHandler` must pair with an `ILayoutEngine` that has the same `ExtensionId` and `LayoutId`, and each layout id must be unique within an extension. Violations surface as `LAYOUT_ID_DUPLICATE_IN_EXTENSION`, `LAYOUT_INTERACTION_DUPLICATE`, `LAYOUT_LIFECYCLE_DUPLICATE`, or `LAYOUT_HANDLER_ORPHANED`. A separate `INCOMPATIBLE_VERSION` error is raised when an extension is compiled against a newer `Verso.Abstractions` than the host provides.
 
 ## Registration
 
@@ -157,7 +160,7 @@ The reverse-order teardown ensures extensions loaded later (which may depend on 
 
 ## VersoExtension Attribute
 
-`[VersoExtension]` (namespace `Verso.Abstractions.Attributes`) is a simple marker attribute:
+`[VersoExtension]` (namespace `Verso.Abstractions`; the source file lives under the `Attributes/` folder) is a simple marker attribute:
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]

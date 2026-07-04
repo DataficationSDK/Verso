@@ -4,7 +4,7 @@ This guide explains how to create custom layout engines for Verso notebooks. Lay
 
 ## Introduction
 
-A Verso layout engine implements the `ILayoutEngine` interface and defines how notebook cells are spatially arranged. The platform ships two built-in layouts (`NotebookLayout` for linear top-to-bottom, `DashboardLayout` for grid-based dashboards) and supports third-party layouts loaded via the extension system.
+A Verso layout engine implements the `ILayoutEngine` interface and defines how notebook cells are spatially arranged. The platform ships three built-in layouts (`NotebookLayout` for a linear top-to-bottom document, `DashboardLayout` for a grid of view-and-arrange tiles, and `PresentationLayout` for a read-only output-focused flow) and supports third-party layouts loaded via the extension system.
 
 A layout renderer runs in one of two isolation modes. **Inline** layouts (the default) supply HTML that the host injects into its own page and style against shared CSS variables; everything up to [Complete Examples](#complete-examples) describes this mode. **Isolated** layouts ship a renderer module that the host runs inside a sandboxed iframe with its own DOM, scripts, and styles, bridged to the host over a message contract. See [Isolated (iframe) layouts](#isolated-iframe-layouts) for that mode.
 
@@ -85,7 +85,7 @@ public LayoutCapabilities Capabilities =>
 
 ### Dynamic Capabilities
 
-Capabilities can change at runtime. For example, `DashboardLayout` adds insert/delete/reorder only in edit mode:
+Capabilities can be computed at runtime rather than fixed. A layout that has an arrange mode, for example, might advertise extra flags only while that mode is active:
 
 ```csharp
 public LayoutCapabilities Capabilities
@@ -107,7 +107,7 @@ public LayoutCapabilities Capabilities
 | `false` | The front-end renders cells individually using the standard cell-by-cell pipeline. Your layout only provides positioning via `GetCellContainerAsync`. |
 | `true` | Your layout provides a complete HTML rendering via `RenderLayoutAsync`. The front-end injects this HTML into a webview panel. |
 
-Use `RequiresCustomRenderer = false` for simple layouts where standard cell rendering suffices (like `NotebookLayout`). Use `true` when you need complete control over the visual output (like `DashboardLayout` or `PresentationLayout`).
+Use `RequiresCustomRenderer = false` for simple layouts where standard cell rendering suffices. Use `true` when you need complete control over the visual output (like `NotebookLayout`, `DashboardLayout`, or `PresentationLayout`).
 
 ## Cell Container Positioning
 
@@ -687,12 +687,12 @@ Promotion is one-way and silent on save; on-disk notebooks gradually move to qua
 
 ## Complete Examples
 
-### NotebookLayout (Simple, No Custom Renderer)
+### NotebookLayout (Custom Renderer, Live Editable Cells)
 
-The simplest built-in layout. Linear top-to-bottom cell arrangement with no custom rendering.
+The default built-in layout. It renders a linear top-to-bottom cell list as custom HTML, emitting one `data-cell-slot` per cell so the host portals the live cell component (editor and output) into each slot.
 
 - **Source**: `src/Verso/Extensions/Layouts/NotebookLayout.cs`
-- `RequiresCustomRenderer = false`
+- `RequiresCustomRenderer = true`
 - All capabilities enabled
 - No position tracking (fixed 800x120 per cell)
 - Minimal metadata
@@ -704,7 +704,7 @@ Grid-based dashboard with drag handles, resize handles, and bin-packing position
 - **Source**: `src/Verso/Extensions/Layouts/DashboardLayout.cs`
 - **Tests**: `tests/Verso.Tests/Extensions/DashboardLayoutTests.cs`
 - `RequiresCustomRenderer = true`
-- Dynamic capabilities (edit mode toggle)
+- Fixed capabilities: resize and execute only (no in-place code editing; insert, delete, and reorder are deliberately excluded)
 - 12-column CSS Grid rendering
 - `GridPosition` record for cell placement
 - Full metadata persistence with JsonElement handling
@@ -948,7 +948,7 @@ The frame maintains its own DOM state across these events; the host never reache
 The host mounts the iframe with `sandbox="allow-scripts"` (no `allow-same-origin`, `allow-forms`, or `allow-top-navigation`) and composes this base Content Security Policy, which your package cannot relax:
 
 ```
-default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none';
+default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none';
 ```
 
 Implications:

@@ -79,6 +79,10 @@ Fakes implement extension interfaces with configurable behavior, useful for test
 | `FakeDataFormatter` | `IDataFormatter` | Formats strings to `text/plain`. Tracks lifecycle calls. |
 | `FakeCellInteractionHandler` | `IDataFormatter + ICellInteractionHandler` | Combined formatter and interaction handler. Tracks `ReceivedInteractions` and exposes a settable `ResponseToReturn`. |
 | `FakeCellPropertyProvider` | `ICellPropertyProvider` | Returns a section titled "Fake Section" with no fields. `AppliesTo` always returns `true`. Tracks lifecycle calls. Constructor accepts optional `extensionId`, `name`, `version`. |
+| `FakeCellType` | `ICellType` | Pairs a fake renderer with an optional kernel to exercise cell-type registration. |
+| `FakeIsolatedLayoutEngine` | `IExtension + ILayoutEngine` | Minimal isolated (iframe) layout for testing renderer-package and isolation paths. |
+| `FakeLayoutInteractionHandler` | `IExtension + ILayoutEngine + ILayoutInteractionHandler` | Layout plus interaction handler for testing event routing. |
+| `FakeFrameChannel` | `ILayoutFrameChannel` | In-memory frame channel for testing isolated-layout message passing. |
 
 ---
 

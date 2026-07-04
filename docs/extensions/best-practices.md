@@ -384,6 +384,15 @@ Extensions may run in different hosts (VS Code, Blazor WebAssembly, standalone).
 - `RequestFileDownloadAsync` is supported (check for `NotSupportedException`).
 - Console output is visible (use `WriteOutputAsync`, `DisplayAsync`, or the `Display()` extension method instead of `Console.WriteLine`).
 
+## Security
+
+Extensions are executable code that users trust when they install them. A few practices keep that trust well-placed:
+
+- **Assume the isolation boundary is for stability, not sandboxing.** Third-party extensions load into a collectible `AssemblyLoadContext` that isolates their dependencies, but a loaded extension still runs with the host's privileges. Do not treat it as a security sandbox, and do not ship code you would not want running with full access to the user's machine.
+- **Respect the consent model.** Users approve your package by version, and a new version prompts them again. Do not work around that by loading additional code at runtime from an unexpected source. If your extension needs a companion package, declare it as a normal NuGet dependency so it is visible.
+- **Keep isolated layout renderers self-contained.** An isolated (iframe) layout runs under a restrictive Content Security Policy inside a sandboxed frame. Bundle the assets your renderer needs into its renderer package and talk to the host only through the documented bridge, rather than reaching for external origins or trying to widen the sandbox. See the [Layout Authoring Guide](layouts.md) for the frame contract.
+- **Do not embed secrets or phone home silently.** Notebooks and the extensions they require are often shared. Read configuration from the environment or the variable store, and make any network access obvious and cancellable.
+
 ## Extension Lifecycle Summary
 
 | Phase | What Happens | Your Responsibility |

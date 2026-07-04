@@ -37,7 +37,7 @@ Scaffold provides CRUD operations on the notebook's cell list:
 | `GetCell(cellId)` | Look up by ID |
 | `UpdateCellSource(cellId, source)` | Update source content |
 | `ClearCells()` | Remove all cells |
-| `ClearAllOutputs()` | Clear outputs, execution counts, and status from all cells |
+| `ClearAllOutputs()` | Clear outputs, execution counts, and status from kernel-backed cells (render-only cells such as Markdown are left rendered) |
 
 Cell list mutations are synchronized with a lock to prevent concurrent modification.
 
@@ -58,7 +58,7 @@ Kernel initialization is lazy and thread-safe. The first call to execute a cell 
 
 `WarmUpKernelAsync(languageId)` provides eager initialization, typically called at startup so IntelliSense is ready before the user runs their first cell.
 
-`RestartKernelAsync(kernelId?)` disposes the kernel, clears the initialization task, clears the variable store, and re-warms the kernel.
+`RestartKernelAsync(kernelId?)` disposes the kernel, clears the initialization task, clears the variable store, and re-warms the kernel. Hosts can set the `HostRestartHandler` delegate to escalate a restart into a full host-process restart, which VS Code uses to release assemblies a kernel has loaded.
 
 ### Execution
 
@@ -69,6 +69,7 @@ Three execution methods are available:
 | `ExecuteCellAsync(cellId, ct)` | Execute a single cell by ID |
 | `ExecuteAllAsync(ct)` | Execute all cells in order |
 | `ExecuteCodeAsync(code, language?, ct)` | Execute arbitrary code without adding a cell |
+| `ExecuteCodeCaptureOutputsAsync(code, language?, ct)` | Execute code and return its outputs without adding a cell (used by `#!import --show-output`) |
 
 All execution methods inject notebook parameters into the variable store before the first cell runs. `ExecuteAllAsync` validates required parameters first. If validation fails, it executes the parameters cell (to preserve its form output), appends the validation error, and returns a single failed result.
 
@@ -91,6 +92,18 @@ Each call to `ExecuteCellAsync` creates a fresh `ExecutionPipeline` instance. Th
 ### Lifecycle
 
 `Scaffold` implements `IAsyncDisposable`. Disposing it disposes all registered kernels, clears internal registries, and disposes the extension host (which in turn unloads all extensions).
+
+### Events
+
+Front-ends subscribe to Scaffold events to keep their UI in sync with execution and kernel state:
+
+| Event | Fires when |
+|-------|------------|
+| `OnCellExecuting` | A cell begins executing |
+| `OnCellExecuted` | A cell finishes executing |
+| `OnCellOutputUpdated` | A running cell appends a live output |
+| `OnKernelRestarting` / `OnKernelRestarted` | A kernel restart starts and completes |
+| `OnKernelRestartFailed` | A kernel restart throws |
 
 ## Variable Store
 
@@ -166,7 +179,7 @@ Properties include `ActiveLayout`, `AvailableLayouts`, `RequiresCustomRenderer` 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `FormatVersion` | `string` | Always `"1.0"` |
+| `FormatVersion` | `string` | Current format version, `"1.1"` (notebooks stored at `"1.0"` are upgraded on load) |
 | `Title` | `string?` | Notebook title |
 | `DefaultKernelId` | `string?` | Default language for new code cells |
 | `Cells` | `List<CellModel>` | Ordered cell list |
@@ -174,8 +187,10 @@ Properties include `ActiveLayout`, `AvailableLayouts`, `RequiresCustomRenderer` 
 | `Layouts` | `Dictionary<string, Dictionary<string, object>>` | Per-layout metadata |
 | `ExtensionSettings` | `Dictionary<string, Dictionary<string, object?>>` | Per-extension settings |
 | `RequiredExtensions` | `List<string>?` | Extension IDs that must be present |
-| `ActiveLayoutId` | `string?` | Current layout |
+| `ActiveLayout` | `LayoutReference?` | Current layout, as a qualified extension-plus-layout reference |
 | `PreferredThemeId` | `string?` | Preferred theme |
+
+The legacy `ActiveLayoutId` (`string?`) property still exists as a convenience accessor that forwards to `ActiveLayout.LayoutId`; its setter is obsolete, so new code should set `ActiveLayout` with a qualified `LayoutReference`.
 
 `CellModel` fields:
 
@@ -206,3 +221,5 @@ The `.verso` format is native JSON. Polyglot Notebook (`.dib`) files are import-
 The `VersoSerializer` intentionally omits parameters cell outputs during serialization because those outputs are always re-rendered from `metadata.parameters` at display time.
 
 Post-processors (`INotebookPostProcessor`) can transform the notebook model after deserialization or before serialization. They are sorted by `Priority` and applied in order.
+
+When a notebook is deserialized, the `NotebookMigrationPipeline` upgrades it from its stored `FormatVersion` to the current version, applying each registered migration step in sequence. This is how a `"1.0"` notebook is brought up to `"1.1"` on load.

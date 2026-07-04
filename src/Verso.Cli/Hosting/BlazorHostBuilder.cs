@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Verso.Blazor.Services;
 using Verso.Blazor.Shared.Services;
+using Verso.Extensions;
 
 namespace Verso.Cli.Hosting;
 
@@ -66,17 +68,28 @@ public static class BlazorHostBuilder
             .AddInteractiveServerComponents(circuitOptions =>
             {
                 circuitOptions.DisconnectedCircuitRetentionPeriod = TimeSpan.FromHours(1);
+            })
+            .AddHubOptions(hubOptions =>
+            {
+                // Allow large client to server interop payloads. An isolated layout can post a
+                // rendered image back to the host for download (e.g. export PNG); the 32 KB default
+                // silently tears down the circuit when that payload is exceeded.
+                hubOptions.MaximumReceiveMessageSize = 32 * 1024 * 1024;
             });
 
         // Notebook service (same registration as Verso.Blazor/Program.cs).
         // Forward the --extensions directory so the in-process ExtensionHost
         // loads third-party assemblies after built-in discovery, matching the
-        // VS Code extension and the CLI repl/run paths.
+        // VS Code extension and the CLI repl/run paths. The managed directory
+        // is always included so marketplace installs have a stable home.
         builder.Services.AddSingleton(new NotebookServiceOptions
         {
             ExtensionsDirectory = options.ExtensionsDirectory,
+            ExtensionsDirectories = new[] { ExtensionDirectoryResolver.GetDefaultManagedDir() },
             PreserveFormat = options.PreserveFormat,
         });
+        builder.Services.AddSingleton<LayoutAssetCache>();
+        builder.Services.AddSingleton<LayoutAssetProvider>();
         builder.Services.AddScoped<INotebookService, ServerNotebookService>();
 
         var app = builder.Build();
@@ -102,6 +115,30 @@ public static class BlazorHostBuilder
 
         app.UseStaticFiles();
         app.UseAntiforgery();
+
+        app.MapGet("/_verso/layout-assets", async (HttpContext ctx, LayoutAssetCache cache, LayoutAssetProvider provider) =>
+        {
+            var ext = ctx.Request.Query["ext"].ToString();
+            var layout = ctx.Request.Query["layout"].ToString();
+            var asset = ctx.Request.Query["asset"].ToString();
+
+            if (string.IsNullOrEmpty(ext) || string.IsNullOrEmpty(layout) || string.IsNullOrEmpty(asset))
+                return Results.BadRequest("ext, layout, and asset query parameters are required.");
+
+            if (cache.TryGet(ext, layout, asset, out var contentType, out var content))
+                return Results.File(content, contentType);
+
+            // Cache miss: the per-circuit registration hasn't run for this process yet (fresh
+            // start, server restart, or a prerender/early fetch racing the circuit). Regenerate
+            // the asset on demand and cache it so the stable URL keeps resolving without a live
+            // notebook circuit, matching the stateless asset delivery of the out-of-process host.
+            var generated = await provider.TryGenerateAsync(ext, layout, asset);
+            if (generated is null)
+                return Results.NotFound();
+
+            cache.Register(ext, layout, asset, generated.Value.ContentType, generated.Value.Content);
+            return Results.File(generated.Value.Content, generated.Value.ContentType);
+        });
 
         app.MapRazorComponents<Verso.Blazor.Components.App>()
             .AddInteractiveServerRenderMode();

@@ -189,7 +189,10 @@ Defines an action that appears on the notebook toolbar, cell toolbar, or context
 | `ActionId` | `string` | Unique identifier for this action (e.g., `"dice.action.roll-all"`). |
 | `DisplayName` | `string` | Label shown on the button or menu item. |
 | `Icon` | `string?` | Optional icon name or path. |
-| `Placement` | `ToolbarPlacement` | Where the action appears: `MainToolbar`, `CellToolbar`, or `ContextMenu`. |
+| `IconOnly` | `bool` | When `true`, render only the icon with no text label. Default interface member, defaults to `false`. |
+| `IsPrimary` | `bool` | Marks the action as primary so the toolbar can emphasize it. Default interface member, defaults to `false`. |
+| `ConfirmationPrompt` | `string?` | When set, the host confirms with this message before running the action. Default interface member, defaults to `null`. |
+| `Placement` | `ToolbarPlacement` | Where the action appears: `MainToolbar`, `CellToolbar`, `ContextMenu`, or `ExportMenu`. |
 | `Order` | `int` | Sort order within its placement group. Lower values appear first. |
 | `IsEnabledAsync(IToolbarActionContext)` | `Task<bool>` | Whether the action is currently enabled. |
 | `ExecuteAsync(IToolbarActionContext)` | `Task` | Performs the action. |
@@ -201,6 +204,7 @@ Defines an action that appears on the notebook toolbar, cell toolbar, or context
 | `MainToolbar` | Primary toolbar at the top of the notebook. |
 | `CellToolbar` | Inline toolbar within an individual cell. |
 | `ContextMenu` | Right-click context menu. |
+| `ExportMenu` | The Export dropdown in the main toolbar. |
 
 ### Lifecycle
 
@@ -329,6 +333,9 @@ Manages the spatial arrangement of cells. Layouts support different paradigms su
 | `Icon` | `string?` | Optional icon. |
 | `Capabilities` | `LayoutCapabilities` | Flags declaring supported operations. |
 | `RequiresCustomRenderer` | `bool` | Whether the layout needs a custom rendering surface. |
+| `RendererIsolation` | `LayoutRendererIsolation` | `Inline` or `Isolated`: whether the layout renders inline in the host DOM or inside a sandboxed iframe. Default interface member, defaults to `Inline`. |
+| `GetRendererPackageAsync(IVersoContext)` | `Task<LayoutRendererPackage?>` | For isolated layouts, returns the HTML/JS/CSS package served into the iframe. Default returns `null`. |
+| `GetStaticAssetsAsync(IVersoContext, LayoutHostCapabilities)` | `Task<IReadOnlyList<LayoutStaticAsset>?>` | Static assets the host should serve for the layout. Default returns `null`. |
 | `RenderLayoutAsync(IReadOnlyList<CellModel>, IVersoContext)` | `Task<RenderResult>` | Renders the full layout for all cells. |
 | `GetCellContainerAsync(Guid, IVersoContext)` | `Task<CellContainerInfo>` | Returns position/bounds for a specific cell. |
 | `OnCellAddedAsync(Guid, int, IVersoContext)` | `Task` | Notification that a cell was added. |
@@ -351,10 +358,42 @@ Manages the spatial arrangement of cells. Layouts support different paradigms su
 | `CellResize` | 16 | Cells can be resized. |
 | `CellExecute` | 32 | Cells can be executed. |
 | `MultiSelect` | 64 | Multiple cells can be selected. |
+| `NotebookEvents` | 128 | The layout receives notebook lifecycle events (cell add, remove, move). |
 
 ### Example Implementation
 
-- **Built-in**: `NotebookLayout`, `DashboardLayout`
+- **Built-in**: `NotebookLayout`, `DashboardLayout`, `PresentationLayout`
+
+---
+
+## ILayoutInteractionHandler
+
+Handles interactions routed from a custom layout's rendered UI back to extension code, whether the layout renders inline or inside an isolated frame. A layout with interactive controls pairs its `ILayoutEngine` with an `ILayoutInteractionHandler` that shares the same `ExtensionId` and `LayoutId`.
+
+### Members (in addition to IExtension)
+
+| Member | Type | Description |
+|---|---|---|
+| `LayoutId` | `string` | The layout this handler serves. Must match a registered `ILayoutEngine`. |
+| `OnLayoutInteractionAsync(LayoutInteractionContext)` | `Task` | Handles an interaction the client dispatches from the layout (via the `layout/interact` method). |
+
+See the [Layout Authoring Guide](layouts.md) for the event-routing model and worked examples.
+
+---
+
+## ILayoutLifecycleHandler
+
+Observes the mount and unmount of an isolated (iframe) layout renderer, so an extension can push initial state into the frame or clean up when it goes away. Like the interaction handler, it pairs with an `ILayoutEngine` by `ExtensionId` and `LayoutId`.
+
+### Members (in addition to IExtension)
+
+| Member | Type | Description |
+|---|---|---|
+| `LayoutId` | `string` | The layout this handler serves. |
+| `OnRendererMountedAsync(LayoutRendererMountContext)` | `Task<IReadOnlyDictionary<string, object>?>` | Called when the renderer frame mounts; may return initial state for the frame. |
+| `OnRendererUnmountedAsync(LayoutRendererUnmountContext)` | `Task` | Called when the renderer frame unmounts. |
+
+See the [Layout Authoring Guide](layouts.md) for isolated-renderer details.
 
 ---
 

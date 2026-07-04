@@ -184,6 +184,17 @@ In a CI pipeline, store the API key as a secret and automate the push:
       --skip-duplicate
 ```
 
+## Installing from the Marketplace
+
+Once your package is on NuGet.org (or any feed in a user's NuGet configuration), it is discoverable from Verso's in-app Extensions panel. Users search for it by name, pick a version, and install it without leaving the notebook. Installed packages are unpacked into a managed store:
+
+- macOS and Linux: `~/.verso/extensions/<package-id>/<version>/`
+- Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\`
+
+Because an extension is executable code, Verso asks the user to approve a package the first time it loads, and remembers that approval per version. A new version prompts again. Keep this in mind when you publish updates: bumping the version is a deliberate re-consent point for your users, not a silent upgrade.
+
+For the full user-facing workflow (installing, trusting, enabling, and requiring extensions per notebook), see the [Managing Extensions](../guides/managing-extensions.md) guide.
+
 ## Extension Discovery Mechanism
 
 Understanding how Verso discovers your extension at runtime helps with troubleshooting.

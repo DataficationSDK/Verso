@@ -25,7 +25,7 @@ verso convert notebook.ipynb --to verso
 
 The original file is not modified. The converted file is written alongside it with a `.verso` extension, or to a path you specify with `--output`. Use `--strip-outputs` to remove all cell outputs during conversion.
 
-Saving an imported notebook in Verso always writes to a new `.verso` file, preserving the original.
+By default, saving an imported notebook writes to a sibling `.verso` file and leaves the original untouched. For `.ipynb` imports you can instead save back in place by enabling the `verso.preserveOriginalFormat` setting in VS Code, or passing `--preserve-format` to `verso serve` / `verso repl`. (`.dib` is import-only, so it always saves as `.verso`.)
 
 ## What Gets Converted
 
@@ -179,7 +179,7 @@ NuGet package references work the same way:
 
 ```csharp
 #r "nuget: Newtonsoft.Json"
-#r "nuget: Newtonsoft.Json/13.0.3"  // with version
+#r "nuget: Newtonsoft.Json, 13.0.3"  // with version
 ```
 
 ### Layouts
