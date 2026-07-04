@@ -490,7 +490,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         {
             return new JupyterSerializer();
         }
-        return new VersoSerializer();
+        return new VersoSerializer(_extensionHost?.GetCellTypes());
     }
 
     // ── Cell operations ────────────────────────────────────────────────
@@ -760,6 +760,13 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
                 OnOutputUpdated?.Invoke();
             }
+        }
+
+        // A parameter-definition edit (add/update/remove/toggle-required) changes persisted state.
+        if (context.StateChanged)
+        {
+            SetDirty(true);
+            OnNotebookChanged?.Invoke();
         }
 
         return response;
@@ -1127,6 +1134,15 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         return ct?.IsEditable ?? true;
     }
 
+    private bool CellTypePersistsOutputs(Guid cellId)
+    {
+        var cell = _scaffold?.Cells.FirstOrDefault(c => c.Id == cellId);
+        if (cell is null) return true;
+        var ct = _extensionHost?.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+        return ct?.PersistsOutputs ?? true;
+    }
+
     // ── Cell properties ──────────────────────────────────────────────
 
     public async Task<IReadOnlyList<PropertySectionResult>> GetCellPropertySectionsAsync(Guid cellId)
@@ -1368,8 +1384,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     private void HandleScaffoldCellExecuted(Guid cellId)
     {
-        // Execution mutates outputs and execution counts, which are part of the saved file.
-        SetDirty(true);
+        // Execution mutates outputs, which are part of the saved file — but only for cell types that
+        // persist their outputs. Cell types whose outputs are transient (re-rendered on open, e.g. the
+        // parameters form) must not mark the notebook edited when they auto-render on open.
+        if (CellTypePersistsOutputs(cellId))
+            SetDirty(true);
         OnCellExecutionCompleted?.Invoke(cellId);
         OnCellExecuted?.Invoke();
     }

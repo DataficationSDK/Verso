@@ -60,7 +60,8 @@ public static class ExecutionHandler
             ExecutionCount = result.ExecutionCount,
             ElapsedMs = result.Elapsed.TotalMilliseconds,
             Outputs = outputs,
-            ErrorMessage = result.Error?.Message
+            ErrorMessage = result.Error?.Message,
+            Dirty = PersistsOutputs(ns, cell?.Type)
         };
     }
 
@@ -134,10 +135,21 @@ public static class ExecutionHandler
                     ExecutionCount = r.ExecutionCount,
                     ElapsedMs = r.Elapsed.TotalMilliseconds,
                     Outputs = cell?.Outputs.Select(NotebookHandler.MapOutput).ToList() ?? new List<CellOutputDto>(),
-                    ErrorMessage = r.Error?.Message
+                    ErrorMessage = r.Error?.Message,
+                    Dirty = PersistsOutputs(ns, cell?.Type)
                 };
             }).ToList()
         };
+    }
+
+    // Whether executing a cell of this type changes the saved document. Cell types whose outputs
+    // are transient (re-rendered on open) do not, so auto-rendering them must not mark the file edited.
+    private static bool PersistsOutputs(NotebookSession ns, string? cellType)
+    {
+        if (cellType is null) return true;
+        var ct = ns.ExtensionHost.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
+        return ct?.PersistsOutputs ?? true;
     }
 
     public static object HandleCancel(NotebookSession ns)

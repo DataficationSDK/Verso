@@ -173,7 +173,7 @@ public sealed class NotebookService : IAsyncDisposable
             await sm.SaveSettingsAsync(_scaffold.Notebook);
 
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
-        var serializer = new VersoSerializer();
+        var serializer = new VersoSerializer(_extensionHost?.GetCellTypes());
         var json = await serializer.SerializeAsync(_scaffold.Notebook);
         await File.WriteAllTextAsync(filePath, json);
         _filePath = filePath;

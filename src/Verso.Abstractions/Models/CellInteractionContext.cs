@@ -55,4 +55,11 @@ public sealed class CellInteractionContext
     /// Optional access to the notebook model for interaction handlers that modify metadata.
     /// </summary>
     public NotebookModel? NotebookModel { get; init; }
+
+    /// <summary>
+    /// Set to <c>true</c> by an interaction handler when it changes persisted notebook state
+    /// (for example editing a parameter definition), so the host can mark the notebook as edited.
+    /// Leave <c>false</c> for interactions that only affect transient view state (such as paging).
+    /// </summary>
+    public bool StateChanged { get; set; }
 }

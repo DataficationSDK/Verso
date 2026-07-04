@@ -302,7 +302,7 @@ public static class NotebookHandler
 
         var serializer = ns.ExtensionHost.GetSerializers()
             .FirstOrDefault(s => string.Equals(s.FormatId, format, StringComparison.OrdinalIgnoreCase))
-            ?? (INotebookSerializer)new VersoSerializer();
+            ?? (INotebookSerializer)new VersoSerializer(ns.ExtensionHost.GetCellTypes());
 
         var content = await serializer.SerializeAsync(notebook);
         return new NotebookSaveResult { Content = content };
@@ -355,7 +355,7 @@ public static class NotebookHandler
         {
             if (!string.Equals(ct.CellTypeId, "code", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
-                types.Add(new() { Id = ct.CellTypeId, DisplayName = ct.DisplayName });
+                types.Add(new() { Id = ct.CellTypeId, DisplayName = ct.DisplayName, IsEditable = ct.IsEditable });
         }
 
         return new CellTypesResult { CellTypes = types };

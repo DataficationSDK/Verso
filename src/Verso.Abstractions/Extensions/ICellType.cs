@@ -39,6 +39,14 @@ public interface ICellType : IExtension
     bool IsEditable { get; }
 
     /// <summary>
+    /// Indicates whether outputs produced by cells of this type are part of the saved document.
+    /// Defaults to <c>true</c>. Return <c>false</c> for cell types whose outputs are derived
+    /// and re-rendered on open (rather than persisted), so that automatically re-rendering them
+    /// neither writes them to disk nor marks the notebook as edited.
+    /// </summary>
+    bool PersistsOutputs => true;
+
+    /// <summary>
     /// Returns the default source content inserted when a new cell of this type is created.
     /// </summary>
     /// <returns>A string containing the default cell content.</returns>

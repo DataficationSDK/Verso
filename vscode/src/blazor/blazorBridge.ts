@@ -46,8 +46,6 @@ export class BlazorBridge implements vscode.Disposable {
     "cell/changeType",
     "cell/changeLanguage",
     "notebook/setDefaultKernel",
-    "execution/run",
-    "execution/runAll",
     "output/clearAll",
     "properties/updateProperty",
     // Installing or removing an extension rewrites the notebook's required-extensions
@@ -56,6 +54,27 @@ export class BlazorBridge implements vscode.Disposable {
     "extension/installLocal",
     "extension/uninstall",
   ]);
+
+  // Methods that change persisted state only sometimes: executing a cell dirties the document
+  // only if that cell type persists its outputs, and a cell interaction dirties it only when it
+  // edits persisted state (e.g. a parameter definition). The host reports the decision as a
+  // `dirty` hint on the response, so these are gated on the response rather than the method name.
+  private static readonly responseDirtyMethods = new Set([
+    "execution/run",
+    "execution/runAll",
+    "cell/interact",
+  ]);
+
+  private static responseIndicatesDirty(result: unknown): boolean {
+    if (result === null || typeof result !== "object") {
+      return false;
+    }
+    const r = result as { dirty?: boolean; results?: Array<{ dirty?: boolean }> };
+    if (Array.isArray(r.results)) {
+      return r.results.some((x) => x?.dirty === true);
+    }
+    return r.dirty === true;
+  }
 
   private documentUri: vscode.Uri | undefined;
   private notebookId: string | undefined;
@@ -338,6 +357,11 @@ export class BlazorBridge implements vscode.Disposable {
 
         // Notify the provider that the document was mutated.
         if (BlazorBridge.mutationMethods.has(method)) {
+          this.onDidEdit?.();
+        } else if (
+          BlazorBridge.responseDirtyMethods.has(method) &&
+          BlazorBridge.responseIndicatesDirty(result)
+        ) {
           this.onDidEdit?.();
         }
       }

@@ -75,6 +75,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         def.Default = typed;
         context.Variables?.Set(payload.Name, typed!);
+        context.StateChanged = true;
 
         return RenderParametersHtml(parameters, context.Variables);
     }
@@ -117,6 +118,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
             await context.Notebook.InsertCellAsync(0, "parameters");
         }
 
+        context.StateChanged = true;
         return RenderParametersHtml(notebook.Parameters, context.Variables);
     }
 
@@ -132,6 +134,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         parameters.Remove(payload.Name);
         context.Variables?.Remove(payload.Name);
+        context.StateChanged = true;
 
         return RenderParametersHtml(parameters, context.Variables);
     }
@@ -190,6 +193,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
             return RenderError($"Parameter '{payload.Name}' not found.");
 
         def.Required = string.Equals(payload.Value, "true", StringComparison.OrdinalIgnoreCase);
+        context.StateChanged = true;
 
         return RenderParametersHtml(parameters, context.Variables);
     }

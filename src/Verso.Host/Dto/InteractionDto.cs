@@ -15,4 +15,8 @@ public sealed class CellInteractParams
 public sealed class CellInteractResult
 {
     public string? Response { get; set; }
+
+    // Whether the interaction changed persisted notebook state (e.g. a parameter definition edit),
+    // so the client and the VS Code host can mark the notebook as edited.
+    public bool Dirty { get; set; }
 }

@@ -30,6 +30,65 @@ public class HandlerTests
         return session.GetSession(notebookId);
     }
 
+    private static JsonElement RunParams(Guid cellId) =>
+        JsonSerializer.SerializeToElement(
+            new ExecutionRunParams { CellId = cellId.ToString() },
+            JsonRpcMessage.SerializerOptions);
+
+    [TestMethod]
+    public async Task Run_ReportsDirtyPerCellTypePersistence()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        // Parameters cell outputs are transient (re-rendered from metadata on open), so executing
+        // it (including the auto-render on open) must not report the notebook as dirty.
+        var paramCell = ns.Scaffold.AddCell("parameters");
+        // Markdown outputs are persisted, so executing it reports dirty.
+        var mdCell = ns.Scaffold.AddCell("markdown", source: "# hi");
+
+        var paramResult = await ExecutionHandler.HandleRunAsync(ns, RunParams(paramCell.Id));
+        var mdResult = await ExecutionHandler.HandleRunAsync(ns, RunParams(mdCell.Id));
+
+        Assert.IsFalse(paramResult.Dirty, "parameters auto-render must not dirty the notebook");
+        Assert.IsTrue(mdResult.Dirty, "a persisted-output cell must dirty the notebook when executed");
+    }
+
+    private static JsonElement InteractParams(
+        Guid cellId, string interactionType, string payload) =>
+        JsonSerializer.SerializeToElement(
+            new CellInteractParams
+            {
+                CellId = cellId.ToString(),
+                ExtensionId = "verso.renderer.parameters",
+                InteractionType = interactionType,
+                Payload = payload,
+                Region = "Output"
+            },
+            JsonRpcMessage.SerializerOptions);
+
+    [TestMethod]
+    public async Task Interact_ReportsDirtyOnlyWhenStateChanges()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var paramCell = ns.Scaffold.AddCell("parameters");
+
+        // Editing a parameter definition changes persisted state, so it must dirty the
+        // notebook even though no cell executed. The out-of-process host learns this only
+        // by reporting context.StateChanged back on the interaction result.
+        var addResult = await InteractionHandler.HandleInteractAsync(
+            ns, InteractParams(paramCell.Id, "parameter-add", "{\"name\":\"start\",\"type\":\"string\"}"));
+
+        // Submitting the form only sets runtime variable values, which are not persisted,
+        // so it must not dirty the notebook.
+        var submitResult = await InteractionHandler.HandleInteractAsync(
+            ns, InteractParams(paramCell.Id, "parameter-submit", "{\"values\":{}}"));
+
+        Assert.IsTrue(addResult.Dirty, "a parameter-definition edit must dirty the notebook");
+        Assert.IsFalse(submitResult.Dirty, "submitting parameter values must not dirty the notebook");
+    }
+
     [TestMethod]
     public async Task GetTheme_IncludesLayoutPaletteTokens()
     {

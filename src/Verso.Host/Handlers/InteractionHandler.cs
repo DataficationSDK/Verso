@@ -38,6 +38,10 @@ public static class InteractionHandler
 
         var response = await handler.OnCellInteractionAsync(context);
 
-        return new CellInteractResult { Response = response };
+        // A handler sets StateChanged when the interaction edits persisted state (e.g. a
+        // parameter-definition change). Report it so the out-of-process host marks the
+        // document edited, matching the in-process host which reads context.StateChanged
+        // directly. Without this the tab would never dirty on such edits in VS Code.
+        return new CellInteractResult { Response = response, Dirty = context.StateChanged };
     }
 }

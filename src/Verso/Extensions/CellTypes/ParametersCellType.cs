@@ -31,5 +31,9 @@ public sealed class ParametersCellType : ICellType
     public ILanguageKernel? Kernel => null;
     public bool IsEditable => false;
 
+    // The form is always re-rendered from metadata.parameters on open, so its output is
+    // transient: it is not written to the saved file and re-rendering it does not dirty the notebook.
+    public bool PersistsOutputs => false;
+
     public string GetDefaultContent() => string.Empty;
 }

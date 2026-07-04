@@ -52,6 +52,7 @@ public sealed class CellTypeDto
 {
     public string Id { get; set; } = "";
     public string DisplayName { get; set; } = "";
+    public bool IsEditable { get; set; } = true;
 }
 
 public sealed class LanguagesResult
@@ -168,6 +169,10 @@ public sealed class ExecutionResultDto
     public double ElapsedMs { get; set; }
     public List<CellOutputDto> Outputs { get; set; } = new();
     public string? ErrorMessage { get; set; }
+
+    // Whether this execution changed the saved document. False for cell types whose outputs are
+    // transient (re-rendered on open), so auto-rendering them on open does not mark the file edited.
+    public bool Dirty { get; set; } = true;
 }
 
 public sealed class ExecutionStateNotification

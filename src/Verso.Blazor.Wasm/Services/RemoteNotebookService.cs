@@ -378,12 +378,18 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     /// </summary>
     private async Task FlushPendingSourceUpdateAsync(Guid cellId)
     {
-        if (_debounceCts.TryGetValue(cellId, out var cts))
-        {
-            cts.Cancel();
-            cts.Dispose();
-            _debounceCts.Remove(cellId);
-        }
+        // A debounce entry exists only when the user edited this cell's source and that
+        // edit has not yet reached the host (see UpdateCellSourceAsync). With no pending
+        // entry the host already holds the current source, so there is nothing to flush,
+        // and re-sending it would surface as a spurious cell/updateSource mutation (for
+        // example on the auto-execute-on-open of a non-editable cell), falsely marking
+        // the document edited.
+        if (!_debounceCts.TryGetValue(cellId, out var cts))
+            return;
+
+        cts.Cancel();
+        cts.Dispose();
+        _debounceCts.Remove(cellId);
 
         var cell = _cells.FirstOrDefault(c => c.Id == cellId);
         if (cell is not null)
@@ -449,8 +455,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             cell.LastStatus = result.Status;
         }
 
-        // Execution mutates outputs and execution counts, which are part of the saved file.
-        SetDirty(true);
+        // Execution mutates outputs, which are part of the saved file — but only for cell types that
+        // persist their outputs. The host reports this per execution so an auto-render on open of a
+        // transient-output cell (e.g. the parameters form) does not mark the notebook edited.
+        if (result.Dirty)
+            SetDirty(true);
 
         // Refresh variables directly after execution instead of relying
         // solely on the fire-and-forget notification handler.
@@ -475,7 +484,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var response = await _bridge.RequestAsync<ExecutionRunAllResponse>(
             "execution/runAll", null);
 
-        SetDirty(true);
+        // Dirty only if at least one executed cell persists its outputs.
+        if (response.Results?.Any(r => r.Dirty) == true)
+            SetDirty(true);
         await RefreshCellListAsync();
         await RefreshVariablesSafeAsync();
 
@@ -602,6 +613,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 OnOutputUpdated?.Invoke();
             }
         }
+
+        // A parameter-definition edit (add/update/remove/toggle-required) changes persisted state;
+        // the host reports it so the notebook is marked edited even though execution never ran.
+        if (result?.Dirty == true)
+            SetDirty(true);
 
         return result?.Response;
     }
@@ -1079,8 +1095,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
     public bool IsCellTypeEditable(string cellType)
     {
-        // In WASM, parameters is the only known non-editable built-in cell type
-        return !string.Equals(cellType, "parameters", StringComparison.OrdinalIgnoreCase);
+        // Consult the cell-type registry (fetched via notebook/getCellTypes and cached before the
+        // notebook renders) so any non-editable cell type — first- or third-party — is honored,
+        // instead of hardcoding a single built-in identifier.
+        var ct = _cellTypes.FirstOrDefault(t => string.Equals(t.Id, cellType, StringComparison.OrdinalIgnoreCase));
+        return ct?.IsEditable ?? true;
     }
 
     // ── Cell properties ──────────────────────────────────────────────
@@ -1640,7 +1659,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         // Cell types
         var cellTypesResult = await _bridge.RequestAsync<CellTypesResponse>("notebook/getCellTypes", null);
-        _cellTypes = cellTypesResult.CellTypes?.Select(ct => new CellTypeInfo(ct.Id, ct.DisplayName)).ToList() ?? new();
+        _cellTypes = cellTypesResult.CellTypes?.Select(ct => new CellTypeInfo(ct.Id, ct.DisplayName, ct.IsEditable)).ToList() ?? new();
 
         // Languages
         var langsResult = await _bridge.RequestAsync<LanguagesResponse>("notebook/getLanguages", null);
@@ -2007,6 +2026,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public int ExecutionCount { get; set; }
         public double ElapsedMs { get; set; }
         public List<CellOutputDto>? Outputs { get; set; }
+        public bool Dirty { get; set; } = true;
     }
 
     private sealed class ExecutionRunAllResponse
@@ -2021,6 +2041,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public int ExecutionCount { get; set; }
         public double ElapsedMs { get; set; }
         public List<CellOutputDto>? Outputs { get; set; }
+        public bool Dirty { get; set; } = true;
     }
 
     private sealed class CellTypesResponse
@@ -2032,6 +2053,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         public string Id { get; set; } = "";
         public string DisplayName { get; set; } = "";
+        public bool IsEditable { get; set; } = true;
     }
 
     private sealed class ToolbarActionsResponse
@@ -2343,6 +2365,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private sealed class CellInteractResponse
     {
         public string? Response { get; set; }
+        public bool Dirty { get; set; }
     }
 
     private sealed class PropertiesGetSectionsResponse

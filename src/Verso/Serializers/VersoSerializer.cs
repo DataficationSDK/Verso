@@ -26,6 +26,13 @@ public sealed class VersoSerializer : INotebookSerializer
 
     private readonly NotebookMigrationPipeline _migrationPipeline;
 
+    // Optional cell-type registry used to decide whether a cell type's outputs are persisted.
+    // Resolved from an explicit list (passed by save call sites that construct a serializer
+    // directly) or, for the host-registered instance, live from the context captured in
+    // OnLoadedAsync. When neither is available the serializer persists all outputs.
+    private IReadOnlyList<ICellType>? _cellTypes;
+    private IExtensionHostContext? _context;
+
     /// <summary>Creates a serializer using the built-in migration pipeline.</summary>
     public VersoSerializer() : this(NotebookMigrationPipeline.Default)
     {
@@ -37,6 +44,16 @@ public sealed class VersoSerializer : INotebookSerializer
         _migrationPipeline = migrationPipeline ?? NotebookMigrationPipeline.Default;
     }
 
+    /// <summary>
+    /// Creates a serializer with an explicit cell-type registry so that cell types whose outputs
+    /// are transient (<see cref="ICellType.PersistsOutputs"/> is <c>false</c>) can be stripped on
+    /// save without hardcoding any cell-type identifier.
+    /// </summary>
+    public VersoSerializer(IReadOnlyList<ICellType>? cellTypes) : this(NotebookMigrationPipeline.Default)
+    {
+        _cellTypes = cellTypes;
+    }
+
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.verso";
@@ -45,7 +62,14 @@ public sealed class VersoSerializer : INotebookSerializer
     public string? Author => "Datafication";
     public string? Description => "Native .verso file format serializer.";
 
-    public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+    public Task OnLoadedAsync(IExtensionHostContext context)
+    {
+        // Held (not snapshotted) so GetCellTypes() is queried live at save time and reflects
+        // extensions registered after this serializer was loaded.
+        _context = context;
+        return Task.CompletedTask;
+    }
+
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     // --- INotebookSerializer ---
@@ -57,6 +81,17 @@ public sealed class VersoSerializer : INotebookSerializer
     {
         ArgumentNullException.ThrowIfNull(filePath);
         return filePath.EndsWith(".verso", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Whether outputs for the given cell type are written to disk. Defaults to true when no cell-type
+    // registry is available or the type is unknown, so outputs are preserved rather than dropped.
+    private bool ShouldPersistOutputs(string cellType)
+    {
+        var cellTypes = _cellTypes ?? _context?.GetCellTypes();
+        if (cellTypes is null)
+            return true;
+        var ct = cellTypes.FirstOrDefault(t => string.Equals(t.CellTypeId, cellType, StringComparison.OrdinalIgnoreCase));
+        return ct?.PersistsOutputs ?? true;
     }
 
     public Task<string> SerializeAsync(NotebookModel notebook)
@@ -90,9 +125,9 @@ public sealed class VersoSerializer : INotebookSerializer
                 Type = c.Type,
                 Language = c.Language,
                 Source = c.Source,
-                // Parameters cell outputs are transient (always re-rendered from metadata.parameters)
-                Outputs = c.Outputs.Count > 0
-                    && !string.Equals(c.Type, "parameters", StringComparison.OrdinalIgnoreCase)
+                // Outputs of cell types that declare PersistsOutputs=false are transient
+                // (re-rendered on open) and are not written to disk.
+                Outputs = c.Outputs.Count > 0 && ShouldPersistOutputs(c.Type)
                     ? c.Outputs.Select(o => new VersoCellOutput
                     {
                         MimeType = o.MimeType,
