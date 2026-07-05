@@ -3,6 +3,11 @@ import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
 import { HostProcess } from "../host/hostProcess";
+import {
+  resolveDotnetCommand,
+  showHostStartError,
+  invalidateDotnetResolution,
+} from "../host/dotnetRuntime";
 import { hostRegistry } from "../host/hostRegistry";
 import { notebookRegistry } from "../host/notebookRegistry";
 import { BlazorBridge } from "./blazorBridge";
@@ -186,18 +191,29 @@ export class BlazorEditorProvider
     // Set the webview HTML loading the WASM app
     webview.html = this.getWebviewHtml(webview);
 
+    // The bundled host DLL could not be resolved at activation (a distinct,
+    // already-diagnosed cause). Report that plainly instead of spawning a doomed
+    // `dotnet ""` and mislabeling it as a runtime problem.
+    if (!this.hostDllPath) {
+      vscode.window.showErrorMessage(
+        'Verso: Could not find Verso.Host.dll. Set "verso.hostPath" in settings to the path of your built Verso.Host.dll.'
+      );
+      return;
+    }
+
     // Spawn a dedicated host process for this notebook
-    const host = new HostProcess(this.hostDllPath);
+    const dotnetCommand = await resolveDotnetCommand(this.context, this.hostDllPath);
+    const host = new HostProcess(this.hostDllPath, dotnetCommand);
     this.hosts.set(webviewPanel, host);
 
     try {
       await host.start();
     } catch (err) {
-      vscode.window.showErrorMessage(
-        `Verso: Failed to start host process: ${
-          err instanceof Error ? err.message : err
-        }`
-      );
+      // Re-resolve on the next open in case the user installs a runtime or edits
+      // verso.dotnetPath. A classified failure (missing/incompatible .NET) shows
+      // tailored guidance; anything else falls back to the generic message.
+      invalidateDotnetResolution(this.hostDllPath);
+      await showHostStartError(err, this.context, this.hostDllPath);
       return;
     }
 
@@ -407,24 +423,24 @@ export class BlazorEditorProvider
     this.hosts.delete(panel);
 
     log.info("Spawning new host");
-    const newHost = new HostProcess(this.hostDllPath);
+    const dotnetCommand = await resolveDotnetCommand(this.context, this.hostDllPath);
+    const newHost = new HostProcess(this.hostDllPath, dotnetCommand);
     try {
       await newHost.start();
     } catch (err) {
       log.error(
         `New host failed to start: ${err instanceof Error ? err.message : String(err)}`
       );
+      invalidateDotnetResolution(this.hostDllPath);
       bridge.endRestart();
       bridge.notifyFaulted(
         `Kernel restart failed: the host process did not start (${
           err instanceof Error ? err.message : String(err)
-        }).`
+        }). Close and reopen the notebook.`
       );
-      vscode.window.showErrorMessage(
-        `Verso: kernel restart failed (host did not start): ${
-          err instanceof Error ? err.message : String(err)
-        }. Close and reopen the notebook.`
-      );
+      // Route through the shared handler so a missing/incompatible .NET runtime
+      // gets the same actionable "Install .NET Runtime" guidance as a fresh open.
+      await showHostStartError(err, this.context, this.hostDllPath);
       return;
     }
     this.hosts.set(panel, newHost);

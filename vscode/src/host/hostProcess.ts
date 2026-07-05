@@ -10,6 +10,34 @@ import { log } from "../log";
 
 type NotificationHandler = (params: unknown) => void;
 
+/**
+ * Why the host process never reached its ready signal. Lets callers show
+ * tailored guidance (notably "install .NET") instead of a raw error string.
+ */
+export type HostStartFailureKind =
+  | "dotnet-not-found"
+  | "runtime-incompatible"
+  | "timeout"
+  | "crash";
+
+/** A classified failure to start the host, thrown from {@link HostProcess.start}. */
+export class HostStartError extends Error {
+  constructor(
+    readonly kind: HostStartFailureKind,
+    message: string
+  ) {
+    super(message);
+    this.name = "HostStartError";
+  }
+}
+
+// Best-effort match against the .NET host's own "framework not found" diagnostic
+// text, which it prints to stderr before exiting when no compatible shared
+// runtime is installed. Wording has drifted across releases, so this stays broad
+// and a miss only costs us a generic message rather than the tailored one.
+const RUNTIME_MISSING_PATTERN =
+  /You must install or update \.NET|It was not possible to find any compatible framework version|no frameworks were found|Microsoft\.NETCore\.App[^\n]*\bnot\b[^\n]*\bfound\b/i;
+
 export class HostProcess implements vscode.Disposable {
   private process: ChildProcess | undefined;
   private readline: ReadlineInterface | undefined;
@@ -24,6 +52,8 @@ export class HostProcess implements vscode.Disposable {
   private readonly notificationHandlers = new Map<string, NotificationHandler>();
   private readyPromise: Promise<void> | undefined;
   private disposed = false;
+  /** Recent stderr lines, kept so a startup failure can be classified. */
+  private readonly stderrTail: string[] = [];
 
   /**
    * Fired when the process exits without dispose() having been called (a crash or
@@ -32,7 +62,10 @@ export class HostProcess implements vscode.Disposable {
    */
   onUnexpectedExit: ((detail: string) => void) | undefined;
 
-  constructor(private readonly hostDllPath: string) {}
+  constructor(
+    private readonly hostDllPath: string,
+    private readonly dotnetCommand: string = "dotnet"
+  ) {}
 
   async start(): Promise<void> {
     if (this.process) {
@@ -40,25 +73,65 @@ export class HostProcess implements vscode.Disposable {
     }
 
     this.readyPromise = new Promise<void>((resolve, reject) => {
+      // Whichever of ready / spawn-error / early-exit / timeout happens first
+      // decides the start() promise; the rest are ignored via this guard.
+      // `ready` additionally records whether the host ever signalled ready, so a
+      // later exit can be told apart from a startup failure that already settled.
+      let settled = false;
+      let ready = false;
+      const settle = (finish: () => void) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        finish();
+      };
+
       const timeout = setTimeout(
-        () => reject(new Error("Host did not send ready signal within 30s")),
+        () =>
+          settle(() =>
+            reject(
+              new HostStartError(
+                "timeout",
+                "Host did not send ready signal within 30s. This often means " +
+                  "the .NET runtime is missing or incompatible."
+              )
+            )
+          ),
         30000
       );
 
-      log.info(`Spawning Verso.Host: dotnet ${this.hostDllPath}`);
-      this.process = spawn("dotnet", [this.hostDllPath], {
+      log.info(`Spawning Verso.Host: ${this.dotnetCommand} ${this.hostDllPath}`);
+      this.process = spawn(this.dotnetCommand, [this.hostDllPath], {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
       this.process.on("error", (err) => {
         log.error(`Verso.Host failed to spawn: ${err.message}`);
-        clearTimeout(timeout);
-        reject(err);
+        settle(() => reject(classifySpawnError(err)));
       });
 
-      this.process.on("exit", (code, signal) => {
+      // Classify on `close`, not `exit`: `close` fires only after the stdio
+      // streams are fully flushed, so the .NET "framework not found" text is
+      // guaranteed present in stderrTail for classification. A spawn `error`
+      // (e.g. ENOENT) does not reach here — it settles above — so its later
+      // `close`, if any, is a no-op via the `settled`/`ready` guards.
+      this.process.on("close", (code, signal) => {
         const detail = describeExit(code, signal);
-        if (!this.disposed) {
+        if (!settled) {
+          // Never became ready: a startup failure, very often a missing or
+          // too-old .NET runtime. Reject with a classified error so the caller
+          // can offer actionable guidance, and skip the generic "exited"
+          // warning that belongs to post-ready crashes.
+          log.warn(`Verso.Host exited before ready (${detail.log})`);
+          settle(() =>
+            reject(classifyExit(detail.toast, this.stderrTail.join("\n")))
+          );
+          this.cleanup();
+          return;
+        }
+        if (ready && !this.disposed) {
           log.warn(`Verso.Host exited unexpectedly (${detail.log})`);
           if (signal) {
             log.warn(
@@ -82,6 +155,12 @@ export class HostProcess implements vscode.Disposable {
           const text = data.toString().trimEnd();
           if (text) {
             for (const line of text.split(/\r?\n/)) {
+              // Keep a bounded tail so a startup failure can be classified
+              // (e.g. the .NET "framework not found" message) after the fact.
+              this.stderrTail.push(line);
+              if (this.stderrTail.length > 50) {
+                this.stderrTail.shift();
+              }
               // The host writes JSON-RPC on stdout, so stderr carries everything
               // else — diagnostics, warnings, and uncaught errors. Lines tagged
               // with the `[Verso] ` prefix are intentional, structured logs from
@@ -102,10 +181,12 @@ export class HostProcess implements vscode.Disposable {
       if (this.process.stdout) {
         this.readline = createInterface({ input: this.process.stdout });
         this.readline.on("line", (line: string) => {
-          this.handleLine(line, () => {
-            clearTimeout(timeout);
-            resolve();
-          });
+          this.handleLine(line, () =>
+            settle(() => {
+              ready = true;
+              resolve();
+            })
+          );
         });
       }
     });
@@ -227,6 +308,38 @@ export class HostProcess implements vscode.Disposable {
     }
     this.cleanup();
   }
+}
+
+// A spawn `error` means the child never launched. ENOENT specifically means the
+// `dotnet` command could not be found, i.e. no .NET on PATH; anything else is an
+// unexpected launch failure.
+function classifySpawnError(err: Error): HostStartError {
+  if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+    return new HostStartError(
+      "dotnet-not-found",
+      "The .NET runtime ('dotnet') was not found."
+    );
+  }
+  return new HostStartError(
+    "crash",
+    `Host process failed to spawn: ${err.message}`
+  );
+}
+
+// The child launched but exited before signalling ready. If its stderr carries
+// the .NET "framework not found" diagnostic, the installed runtime is too old or
+// absent; otherwise treat it as an ordinary early crash.
+function classifyExit(exitDetail: string, stderr: string): HostStartError {
+  if (RUNTIME_MISSING_PATTERN.test(stderr)) {
+    return new HostStartError(
+      "runtime-incompatible",
+      "A compatible .NET runtime was not found for the host."
+    );
+  }
+  return new HostStartError(
+    "crash",
+    `Host process exited before ready (${exitDetail}).`
+  );
 }
 
 // Node fires the `exit` event with `(code, signal)`. When a child is killed by

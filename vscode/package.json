@@ -68,6 +68,11 @@
           "default": "",
           "description": "Path to the Verso.Host.dll. If empty, uses bundled host."
         },
+        "verso.dotnetPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the 'dotnet' executable used to run notebooks. If empty, Verso reuses an installed .NET runtime (locating it via the .NET Install Tool when available) and falls back to 'dotnet' on PATH."
+        },
         "verso.extensionsPath": {
           "type": "array",
           "items": {

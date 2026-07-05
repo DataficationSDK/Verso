@@ -26,7 +26,7 @@ dotnet tool install -g Verso.Cli
 verso serve
 ```
 
-Requirements: the [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). [Node.js 18+](https://nodejs.org/) and [Python 3.8-3.12](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
+Requirements: the VS Code extension needs the [.NET runtime, version 8.0 or later](https://dotnet.microsoft.com/download/dotnet) and offers to install it for you if it is missing; the `verso` CLI needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for `dotnet tool install`. [Node.js 18+](https://nodejs.org/) and [Python 3.8-3.12](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
 
 ## Why Verso
 
