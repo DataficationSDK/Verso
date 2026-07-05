@@ -185,8 +185,11 @@
                 <pre>@CollapsedSourcePreview</pre>
             </div>
         }
-        else if (!IsInPreviewMode)
+        else if (!IsInPreviewMode && Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellEdit))
         {
+            @* The editor is only mounted for layouts that support editing. Read-only display
+               layouts (Presentation, Dashboard) hide the editor with CSS anyway, so skipping it
+               here avoids instantiating a hidden Monaco instance per code cell in those layouts. *@
             <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
                 <MonacoEditor Value="@CellData.Source"
                               Language="@EditorLanguage"
@@ -244,7 +247,12 @@
                         }
                         else if (output.MimeType == "text/html" || output.MimeType == "image/svg+xml")
                         {
-                            <div class="verso-output verso-output--html">
+                            @* @key so Blazor recreates the node when the output object changes
+                               instead of diffing MarkupString children in place, which can throw
+                               removeChild on interactive elements holding browser-managed DOM
+                               state. Matches the render-only branch above; it matters more now
+                               that a display layout keeps this block mounted across selection. *@
+                            <div @key="output" class="verso-output verso-output--html">
                                 @((MarkupString)output.Content)
                             </div>
                         }

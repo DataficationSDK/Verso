@@ -240,6 +240,47 @@ public sealed class CellTests : BunitTestContext
             "A code cell's output should remain visible while it is selected.");
     }
 
+    [TestMethod]
+    public void CodeCell_EditingLayout_MountsEditor()
+    {
+        // The default fake layout advertises CellEdit, so an editable code cell mounts its editor.
+        var cell = CreateCodeCell("var x = 1;");
+
+        var cut = RenderCell(cell);
+
+        Assert.IsTrue(cut.FindAll(".verso-cell-editor").Count > 0,
+            "An editing layout should mount the code editor.");
+    }
+
+    [TestMethod]
+    public void CodeCell_DisplayOnlyLayout_OmitsEditor()
+    {
+        // A read-only display layout (Presentation, Dashboard) advertises no CellEdit capability
+        // and hides the editor with CSS anyway, so the cell should not mount a Monaco editor at all.
+        _service.LayoutCapabilities = LayoutCapabilities.None;
+        var cell = CreateCodeCell("var x = 1;");
+
+        var cut = RenderCell(cell);
+
+        Assert.AreEqual(0, cut.FindAll(".verso-cell-editor").Count,
+            "A read-only display layout should not mount the code editor.");
+    }
+
+    [TestMethod]
+    public void CodeCell_DisplayOnlyLayout_StillShowsOutput()
+    {
+        // Suppressing the editor must not suppress the output the reader came to see.
+        _service.LayoutCapabilities = LayoutCapabilities.None;
+        var cell = CreateCodeCell("print('x')");
+        cell.Outputs.Add(new CellOutput("text/plain", "code-output"));
+
+        var cut = RenderCell(cell);
+
+        Assert.IsTrue(cut.Markup.Contains("code-output"),
+            "A code cell's output should remain visible in a read-only display layout.");
+        Assert.AreEqual(0, cut.FindAll(".verso-cell-editor").Count);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private static CellModel CreateCodeCell(string source)

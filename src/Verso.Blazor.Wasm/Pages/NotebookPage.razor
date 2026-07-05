@@ -168,9 +168,17 @@
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
 
+    // A layout that advertises no CellEdit capability (e.g. Presentation, Dashboard) is a
+    // read-only display surface: cells are shown for consumption but never selected or edited.
+    // Reporting no selection there keeps render-only and collapse-on-execute cells in their
+    // preview (output-visible) state instead of flipping to a hidden editor when their output
+    // is clicked, which would make the output appear to vanish.
+    private bool ActiveLayoutSupportsCellEditing
+        => Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellEdit);
+
     private NotebookCellContext CellContext => new()
     {
-        SelectedCellId = _selectedCellId,
+        SelectedCellId = ActiveLayoutSupportsCellEditing ? _selectedCellId : null,
         ExecutingCellId = _executingCellId,
         IsRunDisabled = _executingCellId.HasValue,
         CollapsedSections = _collapsedSections,
@@ -703,6 +711,14 @@
             await HandleRunAll();
             return;
         }
+
+        // Command-mode keys (cell navigation, insert, delete, edit, run-selected) are editing
+        // affordances. A read-only display layout (Presentation, Dashboard) advertises no
+        // CellEdit capability, so it gets no command-mode keyboard. This also stops a stale
+        // selection carried in from an editing layout from arming a delete/insert the layout
+        // does not support. Run All above stays available in every layout.
+        if (!ActiveLayoutSupportsCellEditing)
+            return;
 
         // While a cell editor has focus the notebook is in edit mode: Monaco owns the
         // keyboard (its own run and escape commands act), so notebook command-mode keys
