@@ -181,13 +181,26 @@ internal sealed class PythonScopeManager : IDisposable
         return !ReferenceEquals(snapshotValue, currentValue) && !snapshotValue.Equals(currentValue);
     }
 
+    // Guards against self-referential or pathologically nested containers. A Python value such
+    // as globals() references itself, so converting it without these limits recurses until the
+    // stack overflows. A stack overflow is a fatal, uncatchable .NET exception, so callers cannot
+    // wrap this in a try/catch: the recursion must be bounded here.
+    private const int MaxConversionDepth = 100;
+
     /// <summary>
     /// Converts a Python object to a .NET-safe type. Returns <c>null</c> for unconvertible types.
     /// Checks bool before int since Python <c>bool</c> is a subclass of <c>int</c>.
     /// </summary>
     internal static object? ConvertToNetSafe(PyObject pyObj)
+        => ConvertToNetSafe(pyObj, new HashSet<long>(), 0);
+
+    private static object? ConvertToNetSafe(PyObject pyObj, HashSet<long> visited, int depth)
     {
         if (pyObj.IsNone()) return null;
+
+        // Backstop for structures that are deep but not cyclic, which visited-tracking alone
+        // cannot catch because every node is a distinct object.
+        if (depth >= MaxConversionDepth) return null;
 
         // bool must come before int (Python bool is subclass of int)
         using (var builtins = Py.Import("builtins"))
@@ -210,12 +223,15 @@ internal sealed class PythonScopeManager : IDisposable
         // List → List<object>
         if (PyList.IsListType(pyObj))
         {
+            // A second encounter of the same object means a cycle (or a shared node); stop here.
+            if (!TryEnterContainer(pyObj, visited)) return null;
+
             using var pyList = new PyList(pyObj);
             var result = new List<object>((int)pyList.Length());
             for (var i = 0; i < pyList.Length(); i++)
             {
                 using var item = pyList[i];
-                var converted = ConvertToNetSafe(item);
+                var converted = ConvertToNetSafe(item, visited, depth + 1);
                 if (converted is not null)
                     result.Add(converted);
             }
@@ -225,6 +241,8 @@ internal sealed class PythonScopeManager : IDisposable
         // Dict → Dictionary<string, object>
         if (PyDict.IsDictType(pyObj))
         {
+            if (!TryEnterContainer(pyObj, visited)) return null;
+
             using var pyDict = new PyDict(pyObj);
             var result = new Dictionary<string, object>();
             foreach (PyObject key in pyDict.Keys())
@@ -233,7 +251,7 @@ internal sealed class PythonScopeManager : IDisposable
                 if (keyStr is null) continue;
 
                 using var val = pyDict[key];
-                var converted = ConvertToNetSafe(val);
+                var converted = ConvertToNetSafe(val, visited, depth + 1);
                 if (converted is not null)
                     result[keyStr] = converted;
             }
@@ -249,6 +267,18 @@ internal sealed class PythonScopeManager : IDisposable
         {
             return pyObj.ToString();
         }
+    }
+
+    /// <summary>
+    /// Records a container's identity (its Python <c>id()</c>) before recursing into it. Returns
+    /// <c>false</c> when the object has already been seen during this conversion, which marks a
+    /// reference cycle or a shared node that must not be expanded again.
+    /// </summary>
+    private static bool TryEnterContainer(PyObject container, HashSet<long> visited)
+    {
+        using var builtins = Py.Import("builtins");
+        using var idObj = builtins.InvokeMethod("id", container);
+        return visited.Add(idObj.As<long>());
     }
 
     public void Dispose()
