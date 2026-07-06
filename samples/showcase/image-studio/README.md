@@ -1,10 +1,10 @@
-# Image Studio — a notebook that looks like an image editor
+# Image Studio: a notebook that looks like an image editor
 
 This sample is a Verso layout extension that turns a notebook into a layered image
 compositor: a canvas in the middle, a Photoshop-style layer panel on the right, and a tool
 palette on the left. The whole editor runs inside the host's sandboxed iframe (an *isolated*
 layout), draws with the HTML5 canvas, and is themed entirely through the host's `--verso-*`
-CSS variables — so it adapts to every Verso theme, including the ones generated from your
+CSS variables, so it adapts to every Verso theme, including the ones generated from your
 active VS Code theme.
 
 The point it quietly makes: **the document and the editor are the same `.verso` file viewed
@@ -15,7 +15,7 @@ is an image editor. Nothing about the file changes.
 
 - **The layer stack is the layout's document.** It is persisted into the notebook's `layouts`
   block through the standard `ILayoutEngine.GetLayoutMetadata()` / `ApplyLayoutMetadata()`
-  round-trip — no host changes, just metadata.
+  round-trip: no host changes, just metadata.
 - **The frame owns the editor.** The C# side holds the document and streams it to the frame;
   the frame (`assets/main.js`) renders the canvas, the layer panel, and the properties, and
   sends edits back as layout interactions (`add-layer`, `reorder`, `set-opacity`,
@@ -30,7 +30,7 @@ text, and procedural. Each layer has its own opacity and a full set of canvas bl
 
 ## Build
 
-The sample references the local `Verso.Abstractions` project and is built standalone — it is not
+The sample references the local `Verso.Abstractions` project and is built standalone; it is not
 part of `Verso.sln`.
 
 ```bash
@@ -52,12 +52,12 @@ You will land on a seeded composition (a sunset gradient, a soft sun, a dot grid
 title). From there:
 
 - Toggle a layer's visibility, drag its opacity, change its blend mode, or drag rows to
-  reorder — the canvas recomposites live.
+  reorder: the canvas recomposites live.
 - Add layers from the tool palette; edit their colors, angles, and positions in the
   properties panel.
 - Add a **Procedural** layer (the `</>` icon), then run the second code cell to drive it from
   the `ops` variable. Edit the instructions and re-run to repaint it live.
-- **Save** the notebook — the layer stack is written into the `.verso` file and restored the
+- **Save** the notebook: the layer stack is written into the `.verso` file and restored the
   next time you open the notebook in this layout.
 
 ### Starting directly in the layout
@@ -77,7 +77,7 @@ with no layout switch.
 
 - **Saving:** edits made through the editor are captured when the notebook is saved (the host
   reads the layout's metadata at save time).
-- **Zoom:** the bar at the bottom-left of the stage zooms the canvas — the `−` / `＋` buttons,
+- **Zoom:** the bar at the bottom-left of the stage zooms the canvas: the `−` / `＋` buttons,
   Ctrl/Cmd + mouse wheel, or the `+` / `-` / `0` keys. "Fit" auto-scales the canvas to the
   viewport and keeps it fitted as the window or surrounding panels resize; click the percentage
   to reset to 100%. When zoomed past the viewport the stage scrolls (plain wheel pans).

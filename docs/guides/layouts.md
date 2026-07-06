@@ -24,10 +24,10 @@ Because a layout can come from an extension, a notebook that depends on one can 
 
 ## Showcase layouts
 
-The Verso samples include several showcase layout extensions that demonstrate what an isolated layout can do. Each pairs with a kernel variable (a `DataBlock` from `Datafication.Core`) and stays in sync with it:
+The Verso samples include several showcase layout extensions that demonstrate what an isolated layout can do. Each binds to kernel variables and stays in sync with them:
 
-- **Form Studio** is a drag-and-drop dashboard builder. Input widgets write values back into kernel variables, and charts bound to a data variable update as it changes.
-- **Grid Studio** presents an editable, spreadsheet-style grid that is two-way bound to a data variable, with type-aware columns.
+- **Form Studio** is a drag-and-drop dashboard builder. Input widgets write values back into kernel variables, and charts bound to a data variable (a `DataBlock` from `Datafication.Core` or a `System.Data.DataTable`, such as shared SQL results) update as it changes.
+- **Grid Studio** presents an editable, spreadsheet-style grid that is two-way bound to a `DataBlock` variable, with type-aware columns. `DataTable` variables display as read-only grids.
 - **Image Studio** is a layered image compositor with a canvas, a layer panel, and a tool palette, persisting its state into the notebook.
 
 These show the range of the layout system: an isolated layout is a full interactive surface that communicates with your notebook's kernels through a defined bridge, not just a static arrangement of cells.

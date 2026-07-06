@@ -8,8 +8,8 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Showcase.GridStudio</PackageId>
     <Title>Verso Showcase: Grid Studio</Title>
-    <Description>Sample Verso layout extension: an isolated spreadsheet editor that binds a DataBlock kernel variable to an editable, Excel-like grid and writes edits back as a DataBlock. A showcase of the Verso layout system.</Description>
-    <PackageTags>verso;notebook;layout;sample;showcase;spreadsheet;grid;datablock</PackageTags>
+    <Description>Sample Verso layout extension: an isolated spreadsheet editor that binds a DataBlock kernel variable to an editable, Excel-like grid and writes edits back as a DataBlock. DataTable variables display as read-only grids. A showcase of the Verso layout system.</Description>
+    <PackageTags>verso;notebook;layout;sample;showcase;spreadsheet;grid;datablock;datatable</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

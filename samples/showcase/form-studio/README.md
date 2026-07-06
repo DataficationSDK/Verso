@@ -5,8 +5,9 @@ A sample Verso **layout extension** that turns a notebook into a live, parameter
 widgets and charts onto it, and the inputs write **kernel variables** that downstream code cells
 react to. The same notebook is both an editable document and a small dashboard you can drive.
 
-It pairs the [Datafication.Core](https://www.nuget.org/packages/Datafication.Core) `DataBlock` with
-[Chart.js](https://www.chartjs.org) (MIT) for the charts.
+It pairs kernel data with [Chart.js](https://www.chartjs.org) (MIT) for the charts. A chart can
+plot a [Datafication.Core](https://www.nuget.org/packages/Datafication.Core) `DataBlock` or a
+`System.Data.DataTable` (such as the results a SQL cell shares to the variable store).
 
 ## What it shows
 
@@ -16,9 +17,10 @@ It pairs the [Datafication.Core](https://www.nuget.org/packages/Datafication.Cor
 - **Inputs that write kernel variables.** Each input binds to a kernel variable by name and writes
   it on change through `ILayoutInteractionHandler`. With Auto-run on, the layout re-runs the
   notebook so downstream cells recompute, then pushes fresh data back to the charts.
-- **Charts bound to a DataBlock.** A chart widget reads a kernel `DataBlock` and plots it. Switch
-  the chart type (bar, line, pie, doughnut, scatter), pick the X and Y columns, and recolor the
-  series. The visual controls update instantly in the frame with no kernel round-trip.
+- **Charts bound to kernel data.** A chart widget reads a kernel `DataBlock` or
+  `System.Data.DataTable` and plots it. Switch the chart type (bar, line, pie, doughnut, scatter),
+  pick the X and Y columns, and recolor the series. The visual controls update instantly in the
+  frame with no kernel round-trip.
 - **Bundling a third-party chart library into an isolated frame.** The renderer is a single
   self-contained module. Chart.js is vendored and injected at runtime, with no network access
   inside the frame.
@@ -32,7 +34,7 @@ It pairs the [Datafication.Core](https://www.nuget.org/packages/Datafication.Cor
 |---|---|
 | `FormStudioLayout.cs` | The layout engine, lifecycle handler, and interaction handler. Seeds the frame, writes input values to kernel variables, re-runs the notebook, and pushes chart data back. |
 | `FormDocument.cs` | The persisted canvas (every widget plus the auto-run flag), kept as the frame's own JSON and parsed for the parts the C# side acts on. |
-| `DataBlockReader.cs` | Reads a `DataBlock` into a serializable `{ columns, types, rows }` shape, entirely by reflection. |
+| `DataBlockReader.cs` | Reads a chart source into a serializable `{ columns, types, rows }` shape: a `DataBlock` entirely by reflection, a `DataTable` through its typed API. |
 | `assets/form.js` | The iframe renderer: palette, drag-and-drop canvas, properties panel, Chart.js wiring, and the bridge. |
 | `assets/vendor/` | The vendored chart library (see Licensing). |
 | `RendererScript.cs` | Assembles the single renderer module from the embedded assets at runtime. |
@@ -42,12 +44,13 @@ It pairs the [Datafication.Core](https://www.nuget.org/packages/Datafication.Cor
 1. The host mounts the iframe and installs the `window.verso` bridge. `form.js` injects Chart.js,
    registers a message handler, and calls `verso.ready()`.
 2. The host runs `OnRendererMountedAsync`, which returns the saved canvas document and the list of
-   DataBlock variables as initial state. The host delivers it to the frame on `verso/init`.
+   chart source variables (DataBlocks and DataTables) as initial state. The host delivers it to
+   the frame on `verso/init`.
 3. Moving an input sends `verso.interact("set-value", { var, kind, value })`. The interaction
    handler writes the value to the bound kernel variable with `IVariableStore.Set`, then (if
    Auto-run is on) re-runs the notebook.
 4. Running cells raises the variable-store change event. The lifecycle handler re-reads each chart's
-   bound DataBlock and pushes it as `ext/chart-data`; the frame updates the matching chart.
+   bound source and pushes it as `ext/chart-data`; the frame updates the matching chart.
 5. Structural changes (adding, moving, or configuring a widget) send `verso.interact("save-doc", ...)`,
    which the host persists through layout metadata so the dashboard is restored on reopen.
 
@@ -63,9 +66,10 @@ than dozens. Turn Auto-run off to drive recomputes only with the **Run** button.
 ### Reflection, not a project reference
 
 The extension references only `Verso.Abstractions`. It never references Datafication.Core. It reads
-the `DataBlock` by reflection against whichever Core assembly the kernel loaded with
-`#r "nuget: ..."`, so the charts work regardless of how that assembly was loaded. Form Studio only
-reads DataBlocks; its inputs write plain scalar variables, so there is no write-back of structured
+a `DataBlock` by reflection against whichever Core assembly the kernel loaded with
+`#r "nuget: ..."`, so the charts work regardless of how that assembly was loaded. A `DataTable` is
+a BCL type and is read through its strongly-typed API, no reflection needed. Form Studio only reads
+its chart sources; its inputs write plain scalar variables, so there is no write-back of structured
 data here (that is Grid Studio's story).
 
 ## Build
@@ -95,5 +99,5 @@ host installs it from NuGet on open. Then:
 This sample is MIT. It bundles one MIT-licensed library verbatim under `assets/vendor/`, with its
 license text beside it:
 
-- [Chart.js](https://github.com/chartjs/Chart.js) 4.4.6 (`chart.LICENSE.txt`) — the auto-registering
+- [Chart.js](https://github.com/chartjs/Chart.js) 4.4.6 (`chart.LICENSE.txt`), the auto-registering
   UMD build.
