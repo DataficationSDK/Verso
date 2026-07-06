@@ -31,7 +31,14 @@ public sealed class SampleTheme : ITheme
         AccentSecondary = "#74c7ec",
         StatusSuccess = "#a6e3a1",
         StatusWarning = "#f9e2af",
-        StatusError = "#f38ba8"
+        StatusError = "#f38ba8",
+
+        // Coarse tokens read by layout extensions through the --verso-* CSS variables.
+        // They default to light values, so a dark theme should always set them.
+        BgDefault = "#1e1e2e",
+        BgElevated = "#181825",
+        FgDefault = "#cdd6f4",
+        FgMuted = "#a6adc8"
     };
 
     public ThemeTypography Typography => new();

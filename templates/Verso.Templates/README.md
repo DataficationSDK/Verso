@@ -33,5 +33,6 @@ The template creates an extension project referencing `Verso.Abstractions` and a
 | `--includeMagicCommand` | bool | Include an `IMagicCommand` scaffold |
 | `--includeCellType` | bool | Include an `ICellType` scaffold |
 | `--includeTheme` | bool | Include an `ITheme` scaffold |
+| `--includeLayout` | bool | Include an `ILayoutEngine` scaffold (inline layout with cell slots, interaction routing, and themed CSS) |
 
-See the [getting started guide](https://github.com/DataficationSDK/Verso/blob/main/docs/getting-started.md) for full documentation.
+See the [getting started guide](https://github.com/DataficationSDK/Verso/blob/main/docs/extensions/getting-started.md) for full documentation.

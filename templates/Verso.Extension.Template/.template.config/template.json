@@ -55,6 +55,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Include an ITheme scaffold"
+    },
+    "includeLayout": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include an ILayoutEngine scaffold"
     }
   },
   "sources": [
@@ -91,6 +97,13 @@
           "exclude": [
             "SampleTheme.cs",
             "MyExtension.Tests/SampleThemeTests.cs"
+          ]
+        },
+        {
+          "condition": "(!includeLayout)",
+          "exclude": [
+            "SampleLayout.cs",
+            "MyExtension.Tests/SampleLayoutTests.cs"
           ]
         }
       ]

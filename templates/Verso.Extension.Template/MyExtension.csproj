@@ -11,6 +11,8 @@
     <Authors>Extension Author</Authors>
     <Description>A Verso extension.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- The test project lives in a subfolder; keep its sources out of this project's globs. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);MyExtension.Tests/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

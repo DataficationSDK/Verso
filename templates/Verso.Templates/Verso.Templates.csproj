@@ -18,7 +18,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\Verso.Extension.Template\**\*" Exclude="..\Verso.Extension.Template\**\bin\**;..\Verso.Extension.Template\**\obj\**" />
+    <!--
+      The template folder sits outside this project directory, so each file needs an
+      explicit PackagePath: without it, NuGet packs out-of-tree content flat (losing
+      .template.config/ and the MyExtension.Tests/ folder, and dropping one of the
+      two GlobalUsings.cs files as a NU5118 collision).
+    -->
+    <Content Include="..\Verso.Extension.Template\**\*"
+             Exclude="..\Verso.Extension.Template\**\bin\**;..\Verso.Extension.Template\**\obj\**"
+             PackagePath="content\Verso.Extension.Template\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Remove="**\*" />
   </ItemGroup>
 

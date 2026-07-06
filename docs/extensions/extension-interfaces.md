@@ -504,7 +504,7 @@ public sealed record PropertyFieldOption(
 
 ### Built-in Provider: CellVisibilityPropertyProvider
 
-Verso ships a built-in `CellVisibilityPropertyProvider` (`ExtensionId: "verso.propertyprovider.visibility"`) that renders a `Select` field for each layout that supports more than just `Visible` in its `SupportedVisibilityStates`. Values are stored under the `"verso:ui.layoutVisibility"` metadata key. The legacy `"verso:visibility"` key is migrated automatically at notebook open time and will be removed in 1.0.22.
+Verso ships a built-in `CellVisibilityPropertyProvider` (`ExtensionId: "verso.propertyprovider.visibility"`) that renders a `Select` field for each layout that supports more than just `Visible` in its `SupportedVisibilityStates`. Values are stored under the `"verso:ui.layoutVisibility"` metadata key. The legacy `"verso:visibility"` key is migrated automatically at notebook open time; support for the legacy key will be removed in a future release.
 
 ### Example Implementation
 
