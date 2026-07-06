@@ -8,7 +8,14 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.0</Version>
+    <!--
+      Fallback version for local builds; release builds override it with -p:Version.
+      Keep this on the current release train: the extension host compares its own
+      Verso.Abstractions assembly version against the version an extension package
+      references, so a stale value here makes source-built hosts reject extensions
+      published by newer releases.
+    -->
+    <Version>1.1.0</Version>
     <VersoLibTargetFrameworks>net8.0;net10.0</VersoLibTargetFrameworks>
   </PropertyGroup>
 

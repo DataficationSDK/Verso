@@ -26,9 +26,12 @@ public static class MarketplaceLoader
                 await extensionHost.LoadFromAssemblyAsync(dll);
                 registered += extensionHost.GetLoadedExtensions().Count - before;
             }
-            catch (ExtensionLoadException)
+            catch (ExtensionLoadException ex) when (
+                ex.Errors.All(e => e.ErrorCode != "INCOMPATIBLE_VERSION"))
             {
-                // Dependency assembly or a duplicate id — not a loadable extension here.
+                // Dependency assembly or a duplicate id: not a loadable extension here.
+                // An INCOMPATIBLE_VERSION rejection is deliberately left to propagate;
+                // swallowing it would report a successful install that loaded nothing.
             }
             catch (BadImageFormatException)
             {

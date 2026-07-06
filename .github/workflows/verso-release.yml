@@ -121,8 +121,15 @@ jobs:
         run: npm ci
         working-directory: vscode
 
+      # The host and wasm publishes must carry the release version: the extension
+      # host rejects extension packages that reference a newer Verso.Abstractions
+      # assembly version than its own, so an unstamped host (1.0.0) cannot load
+      # any extension published by this release.
       - name: Build all
-        run: npm run build:all
+        run: |
+          npm run build:host -- -p:Version=${{ needs.build-and-test.outputs.version }}
+          npm run build:wasm -- -p:Version=${{ needs.build-and-test.outputs.version }}
+          npm run build
         working-directory: vscode
 
       - name: Package VSIX
