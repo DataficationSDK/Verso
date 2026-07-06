@@ -80,9 +80,12 @@ jobs:
           dotnet pack src/Verso.Testing/Verso.Testing.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack templates/Verso.Templates/Verso.Templates.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
           dotnet pack src/Verso.Cli/Verso.Cli.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
-          dotnet pack samples/showcase/image-studio/src/Verso.Showcase.ImageStudio/Verso.Showcase.ImageStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
-          dotnet pack samples/showcase/form-studio/src/Verso.Showcase.FormStudio/Verso.Showcase.FormStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
-          dotnet pack samples/showcase/grid-studio/src/Verso.Showcase.GridStudio/Verso.Showcase.GridStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -o packages
+          # Showcase samples are not part of Verso.sln, so pack must build them here.
+          # GeneratePackageOnBuild is overridden off: when it is on, dotnet pack sets
+          # NoBuild and fails with NU5026 on a fresh runner (NuGet/Home#7801).
+          dotnet pack samples/showcase/image-studio/src/Verso.Showcase.ImageStudio/Verso.Showcase.ImageStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
+          dotnet pack samples/showcase/form-studio/src/Verso.Showcase.FormStudio/Verso.Showcase.FormStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
+          dotnet pack samples/showcase/grid-studio/src/Verso.Showcase.GridStudio/Verso.Showcase.GridStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
