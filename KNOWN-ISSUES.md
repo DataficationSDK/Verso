@@ -9,7 +9,7 @@
 | [VERSO-003](#verso-003-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Open | Verso.FSharp |
 | [VERSO-004](#verso-004-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
 | [VERSO-005](#verso-005-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
-| [VERSO-006](#verso-006-blazor-wasm-webview-fails-to-initialize-in-github-codespaces) | Blazor WASM webview fails to initialize in GitHub Codespaces | Open | Verso.VSCode |
+| [VERSO-006](#verso-006-blazor-wasm-webview-fails-to-initialize-in-github-codespaces) | Blazor WASM webview fails to initialize in GitHub Codespaces | Mitigated | Verso.VSCode |
 | [VERSO-007](#verso-007-object-tree-view-can-produce-oversized-output-for-complex-framework-types) | Object tree view can produce oversized output for complex framework types | Mitigated | Verso |
 
 ---
@@ -161,32 +161,38 @@ let myVar = Variables.Get<obj>("myVar") :?> int
 
 | | |
 |---|---|
-| **Status** | Open |
+| **Status** | Mitigated |
 | **Affected** | Verso.VSCode |
 | **Severity** | High |
+| **Fixed in** | `blazorEditorProvider.ts` (webview CSP and boot-resource remapping), `WebviewNavigationManager.cs` |
 
-### Symptom
+### Symptom (historical)
 
-When opening a notebook in GitHub Codespaces (browser-based VS Code), the editor gets stuck on the loading spinner and never renders. The Blazor WASM runtime fails to initialize inside the webview, and no error is surfaced to the user.
+When opening a notebook in GitHub Codespaces (browser-based VS Code), the editor got stuck on the loading spinner and never rendered. The Blazor WASM runtime failed to initialize inside the webview, and no error was surfaced to the user.
 
-### Root cause
+### Root cause (historical)
 
-The VS Code extension hosts Blazor WASM as static files inside a custom editor webview. On desktop VS Code, `webview.asWebviewUri()` produces `vscode-webview://` URIs, and the `loadBootResource` callback in `Blazor.start()` remaps `_framework/` assembly fetches to these URIs successfully.
+At the time this issue was filed, the webview HTML had two defects that broke the Blazor boot sequence under the origins used by browser-based VS Code:
 
-In GitHub Codespaces, webviews run as nested iframes under a different origin with a more restrictive security policy. This breaks the Blazor WASM boot sequence in at least two ways:
+1. **WebAssembly instantiation was blocked**: the webview's Content Security Policy did not include the `wasm-unsafe-eval` directive required to compile and execute .NET WebAssembly modules.
+2. **Framework fetches assumed the desktop URI scheme**: the `loadBootResource` remapping assumed `vscode-webview://` URIs, which do not exist in browser-based VS Code, so framework fetches failed.
 
-1. **WebAssembly instantiation may be blocked** — the nested iframe's Content Security Policy may not include the `wasm-unsafe-eval` directive required to compile and execute .NET WebAssembly modules.
-2. **Framework assembly fetches fail** — the `loadBootResource` URL remapping assumes the `vscode-webview://` URI scheme. In browser-based VS Code the scheme and origin differ, causing the `.dll` and `.wasm` fetches to silently fail or be blocked by CORS.
+Because the Blazor boot process did not surface these failures, `Blazor.start()` hung and the webview remained in its loading state indefinitely.
 
-Because the Blazor boot process does not surface these failures, `Blazor.start()` hangs and the webview remains in its initial loading state indefinitely.
+### Resolution
 
-### Workaround
+Later reworks of the webview host removed both causes, and the failure no longer reproduces in Chromium-based browsers:
 
-Use the desktop version of VS Code (local or via Remote-SSH) instead of the browser-based Codespaces editor. The Blazor WASM webview initializes correctly in all desktop VS Code environments.
+- The webview CSP now includes `'wasm-unsafe-eval'`.
+- `loadBootResource` remaps every framework fetch to an absolute URI computed from `webview.asWebviewUri()`, which is valid under any webview origin (the desktop scheme and the `https` origins used by browser-based VS Code alike).
+- The default Blazor `NavigationManager` is replaced with a synthetic-base stub so .NET never parses the webview origin.
+- Blazor startup failures now surface as an error message in the loading screen instead of hanging silently.
 
-### Planned improvement
+Verified working in the GitHub Codespaces browser editor with Chrome (July 2026): the notebook UI loads, the kernel host runs inside the codespace container, and cells execute normally. The first open in a fresh codespace is slower than desktop because the WASM runtime and assemblies (~16 MB) stream through the Codespaces connection; subsequent opens benefit from browser caching.
 
-Surface an error message to the user when Blazor WASM initialization fails or times out, rather than showing an indefinite loading spinner.
+### Remaining limitation
+
+Safari cannot load the notebook editor in the Codespaces browser client: the webview content never finishes loading and VS Code's own webview host page repeatedly logs `TypeError: null is not an object (evaluating 'target.contentDocument.body.classList')` from its focus-tracking loop. The stall occurs in VS Code's browser webview host and is not specific to Verso, which is also why this entry remains Mitigated rather than Fixed. Use a Chromium-based browser (Chrome or Edge) or desktop VS Code.
 
 ---
 

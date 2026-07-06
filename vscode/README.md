@@ -84,7 +84,7 @@ Already have notebooks in Jupyter or Polyglot format? Open any `.ipynb` or `.dib
 
 Verso runs notebooks on the **.NET runtime, version 8.0 or later** (.NET 8, 9, and 10 are all supported). If a compatible runtime is not already installed, Verso offers to install one for you when you open a notebook, using the .NET Install Tool. To install it yourself instead, download the [.NET runtime](https://dotnet.microsoft.com/download/dotnet) (the .NET SDK works too, but only the runtime is required). To point Verso at a specific installation, set `verso.dotnetPath` in your settings.
 
-> **Note:** This extension requires the desktop version of VS Code. It is not compatible with browser-based environments such as GitHub Codespaces, where the embedded notebook UI cannot initialize.
+> **Note:** Verso also works in browser-based environments such as GitHub Codespaces when accessed from a Chromium-based browser (Chrome or Edge). The first open in a fresh codespace takes longer than on desktop while the notebook runtime downloads; subsequent opens are faster. Safari cannot load the notebook editor in these environments due to a limitation in VS Code's browser webview host, so use Chrome, Edge, or desktop VS Code instead.
 
 ### Font Ligatures
 
