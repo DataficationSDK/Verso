@@ -228,6 +228,10 @@
     private Timer? _autoSaveTimer;
     private bool _userPrefsApplied;
     private bool _restoringPrefs;
+    // False until the first interactive render. Prerendering runs event handlers too
+    // (e.g. required-extension loads fire status events), and JS interop before the
+    // circuit exists throws InvalidOperationException rather than JSException.
+    private bool _hasRendered;
     [SupplyParameterFromQuery(Name = "recover")]
     public string? RecoverPath { get; set; }
 
@@ -318,6 +322,7 @@
     {
         if (firstRender)
         {
+            _hasRendered = true;
             _cellInteractRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("versoCellInteract.register", _cellInteractRef);
 
@@ -493,26 +498,35 @@
     // (event-handler shape) but guard the whole body: a post-await ObjectDisposedException or
     // JSDisconnectedException during rapid open/close would otherwise escape to the sync
     // context and silently drop the Blazor circuit. Mirrors AutoSaveCallback.
+    // JS interop is additionally gated on _hasRendered: during prerender it throws
+    // InvalidOperationException, which none of these catches cover, and an escape from
+    // an async void takes down the whole process.
     private async void HandleThemeChanged()
     {
         try
         {
-            await SyncMonacoThemeAsync();
-            if (!_restoringPrefs)
+            if (_hasRendered)
             {
-                try
+                await SyncMonacoThemeAsync();
+                if (!_restoringPrefs)
                 {
-                    if (Service.ActiveThemeId is not null)
-                        await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+                    try
+                    {
+                        if (Service.ActiveThemeId is not null)
+                            await JS.InvokeVoidAsync("versoUserPrefs.setTheme", Service.ActiveThemeId);
+                    }
+                    catch (JSDisconnectedException) { }
+                    catch (JSException) { }
                 }
+            }
+            await InvokeAsync(StateHasChanged);
+            if (_hasRendered)
+            {
+                // Snapshot the rendered CSS variables so the next page load can apply them early
+                try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
                 catch (JSDisconnectedException) { }
                 catch (JSException) { }
             }
-            await InvokeAsync(StateHasChanged);
-            // Snapshot the rendered CSS variables so the next page load can apply them early
-            try { await JS.InvokeVoidAsync("versoUserPrefs.saveThemeSnapshot"); }
-            catch (JSDisconnectedException) { }
-            catch (JSException) { }
         }
         catch (JSDisconnectedException) { }
         catch (TaskCanceledException) { }
@@ -524,7 +538,7 @@
     {
         try
         {
-            if (!_restoringPrefs)
+            if (_hasRendered && !_restoringPrefs)
             {
                 try
                 {

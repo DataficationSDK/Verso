@@ -207,7 +207,7 @@ public static class ReplCommand
             }
             else if (string.IsNullOrEmpty(notebook.DefaultKernelId))
             {
-                // Pick the first C#-capable kernel (§4.1 default).
+                // Pick the first C#-capable kernel as the default.
                 var fallback = extensionHost.GetKernels()
                     .FirstOrDefault(k => string.Equals(k.LanguageId, "csharp", StringComparison.OrdinalIgnoreCase))
                     ?? extensionHost.GetKernels().FirstOrDefault();

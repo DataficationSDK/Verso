@@ -6,12 +6,22 @@ namespace Verso.Host.Handlers;
 
 public static class CellHandler
 {
+    // The cell/* mutation RPCs can be driven by clients other than the notebook view itself
+    // (the VS Code chat tools call them directly), so the host must announce structural
+    // changes: the client re-pulls its cell cache and re-renders the active layout's slots.
+    // Without this an externally added cell sits in the client's hidden cell pool with no
+    // slot to portal into and never appears until the notebook is reopened. A view that
+    // initiated the mutation itself just performs one redundant, coalesced refresh.
+    private static void NotifyCellsChanged(NotebookSession ns) =>
+        ns.SendNotification(MethodNames.NotebookCellsChanged);
+
     public static CellDto HandleAdd(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<CellAddParams>(JsonRpcMessage.SerializerOptions)
             ?? new CellAddParams();
 
         var cell = ns.Scaffold.AddCell(p.Type, p.Language, p.Source);
+        NotifyCellsChanged(ns);
         return NotebookHandler.MapCell(cell);
     }
 
@@ -21,6 +31,7 @@ public static class CellHandler
             ?? throw new JsonException("Missing params for cell/insert");
 
         var cell = ns.Scaffold.InsertCell(p.Index, p.Type, p.Language, p.Source);
+        NotifyCellsChanged(ns);
         return NotebookHandler.MapCell(cell);
     }
 
@@ -30,6 +41,8 @@ public static class CellHandler
             ?? throw new JsonException("Missing params for cell/remove");
 
         var removed = ns.Scaffold.RemoveCell(Guid.Parse(p.CellId));
+        if (removed)
+            NotifyCellsChanged(ns);
         return new { success = removed };
     }
 
@@ -39,6 +52,8 @@ public static class CellHandler
             ?? throw new JsonException("Missing params for cell/move");
 
         ns.Scaffold.MoveCell(p.FromIndex, p.ToIndex);
+        if (p.FromIndex != p.ToIndex)
+            NotifyCellsChanged(ns);
         return new { success = true };
     }
 
@@ -79,6 +94,10 @@ public static class CellHandler
             cell.Type = p.Type;
             cell.Language = language;
             cell.Outputs.Clear();
+
+            // Layout chrome is type-sensitive (per-type slot classes, heading folding),
+            // so a type change needs the same re-render as an add/remove.
+            NotifyCellsChanged(ns);
         }
 
         return new { success = true };

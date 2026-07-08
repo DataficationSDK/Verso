@@ -7,7 +7,7 @@ using Verso.MagicCommands;
 namespace Verso.Execution;
 
 /// <summary>
-/// Encapsulates the single-cell execution workflow. Per specification §5.3, execution is routed
+/// Encapsulates the single-cell execution workflow. Execution is routed
 /// based on the cell type: if a matching <see cref="ICellType"/> has a non-null <see cref="ICellType.Kernel"/>,
 /// the cell is executed via that kernel; otherwise it is rendered via an <see cref="ICellRenderer"/>.
 /// Cells with no matching cell type fall back to kernel resolution by language, and then to renderer
@@ -67,7 +67,7 @@ internal sealed class ExecutionPipeline
 
         try
         {
-            // §5.3: Check ICellType registry first — cell types declare whether they have a kernel.
+            // Check the ICellType registry first: cell types declare whether they have a kernel.
             var cellType = _extensionHost.GetCellTypes()
                 .FirstOrDefault(t => string.Equals(t.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
 
