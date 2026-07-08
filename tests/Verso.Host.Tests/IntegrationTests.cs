@@ -16,8 +16,12 @@ public class IntegrationTests
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var searchDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", ".."));
         var candidates = Directory.GetFiles(searchDir, "Verso.Host.dll", SearchOption.AllDirectories);
-        _hostDllPath = candidates.FirstOrDefault(p =>
-            p.Contains(Path.Combine("Verso.Host", "bin")) && !p.Contains("Tests"));
+        // Several copies can coexist (Debug and Release, published extension host).
+        // Take the newest so the tests exercise the current build, not a stale one.
+        _hostDllPath = candidates
+            .Where(p => p.Contains(Path.Combine("Verso.Host", "bin")) && !p.Contains("Tests"))
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
     }
 
     [TestMethod]
@@ -58,16 +62,16 @@ public class IntegrationTests
 
             // Open empty notebook (Roslyn init may take time)
             await SendRequest(process, new { jsonrpc = "2.0", id = 1, method = "notebook/open", @params = new { content = "" } });
-            var openResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
+            var openResponse = await ReadResponseWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
             Assert.IsNotNull(openResponse, $"No response to notebook/open. Stderr: {await ReadStderr(process)}");
             using var openDoc = JsonDocument.Parse(openResponse);
             Assert.IsTrue(openDoc.RootElement.TryGetProperty("result", out var openResult),
                 $"notebook/open returned error: {openResponse}");
             var notebookId = openResult.GetProperty("notebookId").GetString();
 
-            // Add a cell
+            // Add a cell (announces notebook/cellsChanged before the response arrives)
             await SendRequest(process, new { jsonrpc = "2.0", id = 2, method = "cell/add", @params = new { type = "code", language = "csharp", source = "1+1", notebookId } });
-            var addResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
+            var addResponse = await ReadResponseWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
             Assert.IsNotNull(addResponse, "No response to cell/add");
             using var addDoc = JsonDocument.Parse(addResponse);
             var result = addDoc.RootElement.GetProperty("result");
@@ -76,7 +80,7 @@ public class IntegrationTests
 
             // List cells
             await SendRequest(process, new { jsonrpc = "2.0", id = 3, method = "cell/list", @params = new { notebookId } });
-            var listResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
+            var listResponse = await ReadResponseWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
             Assert.IsNotNull(listResponse, "No response to cell/list");
             using var listDoc = JsonDocument.Parse(listResponse);
             var cells = listDoc.RootElement.GetProperty("result").GetProperty("cells");
@@ -102,13 +106,13 @@ public class IntegrationTests
 
             // Open a notebook to get a valid notebookId
             await SendRequest(process, new { jsonrpc = "2.0", id = 1, method = "notebook/open", @params = new { content = "" } });
-            var openResponse = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
+            var openResponse = await ReadResponseWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(30));
             Assert.IsNotNull(openResponse, "No response to notebook/open");
             using var openDoc = JsonDocument.Parse(openResponse);
             var notebookId = openDoc.RootElement.GetProperty("result").GetProperty("notebookId").GetString();
 
             await SendRequest(process, new { jsonrpc = "2.0", id = 2, method = "does/not/exist", @params = new { notebookId } });
-            var response = await ReadLineWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
+            var response = await ReadResponseWithTimeout(process.StandardOutput, TimeSpan.FromSeconds(10));
             Assert.IsNotNull(response, $"No response to unknown method. Stderr: {await ReadStderr(process)}");
             using var doc = JsonDocument.Parse(response);
             Assert.IsTrue(doc.RootElement.TryGetProperty("error", out var error));
@@ -167,6 +171,31 @@ public class IntegrationTests
         if (completed == delayTask)
             return null;
         return await readTask;
+    }
+
+    /// <summary>
+    /// Reads stdout lines until a response (a message carrying an id) arrives, skipping
+    /// interleaved notifications. The host announces state changes such as
+    /// notebook/cellsChanged on the same stream, and a mutation's notification is
+    /// written before the mutation's response, so reading a single line is not enough.
+    /// </summary>
+    private static async Task<string?> ReadResponseWithTimeout(StreamReader reader, TimeSpan timeout)
+    {
+        var deadline = Stopwatch.StartNew();
+        while (true)
+        {
+            var remaining = timeout - deadline.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+                return null;
+
+            var line = await ReadLineWithTimeout(reader, remaining);
+            if (line is null)
+                return null;
+
+            using var doc = JsonDocument.Parse(line);
+            if (doc.RootElement.TryGetProperty("id", out _))
+                return line;
+        }
     }
 
     private static void KillSafe(Process process)
