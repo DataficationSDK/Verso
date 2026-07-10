@@ -344,4 +344,68 @@ public sealed class ScaffoldExecutionTests
     {
         Assert.ThrowsException<ArgumentNullException>(() => new Verso.Scaffold(null!));
     }
+
+    [TestMethod]
+    public async Task ExecuteCode_LanguageOwnedByCellTypeKernel_RoutesToThatKernel()
+    {
+        // Kernels contributed through a cell type (e.g. the SQL cell type) are not standalone
+        // kernel extensions. Code routed by language alone (#!import, ExecuteCodeAsync) must
+        // still reach that kernel instead of falling back to the notebook's default kernel.
+        var sqlExecuted = new List<string>();
+        var sqlKernel = new FakeLanguageKernel("sql", "SQL",
+            executeFunc: (code, _) =>
+            {
+                sqlExecuted.Add(code);
+                return Task.FromResult<IReadOnlyList<CellOutput>>(
+                    new[] { new CellOutput("text/plain", "rows") });
+            });
+
+        var defaultExecuted = new List<string>();
+        var defaultKernel = new FakeLanguageKernel("csharp", "C#",
+            executeFunc: (code, _) =>
+            {
+                defaultExecuted.Add(code);
+                return Task.FromResult<IReadOnlyList<CellOutput>>(Array.Empty<CellOutput>());
+            });
+
+        await using var host = new Verso.Extensions.ExtensionHost();
+        await host.LoadExtensionAsync(new FakeCellType(
+            cellTypeId: "sql", displayName: "SQL", kernel: sqlKernel));
+
+        await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
+        scaffold.InitializeSubsystems();
+        scaffold.DefaultKernelId = "csharp";
+        scaffold.RegisterKernel(defaultKernel);
+
+        var outputs = await scaffold.ExecuteCodeCaptureOutputsAsync("select * from t;", "sql");
+
+        Assert.AreEqual(1, sqlExecuted.Count, "The cell type's kernel should execute the code.");
+        Assert.AreEqual("select * from t;", sqlExecuted[0]);
+        Assert.AreEqual(0, defaultExecuted.Count, "The default kernel must not receive the code.");
+        Assert.AreEqual(1, outputs.Count);
+        Assert.AreEqual("rows", outputs[0].Content);
+    }
+
+    [TestMethod]
+    public async Task ExecuteCode_UnknownLanguage_StillFallsBackToDefaultKernel()
+    {
+        var defaultExecuted = new List<string>();
+        var defaultKernel = new FakeLanguageKernel("csharp", "C#",
+            executeFunc: (code, _) =>
+            {
+                defaultExecuted.Add(code);
+                return Task.FromResult<IReadOnlyList<CellOutput>>(Array.Empty<CellOutput>());
+            });
+
+        await using var host = new Verso.Extensions.ExtensionHost();
+        await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
+        scaffold.InitializeSubsystems();
+        scaffold.DefaultKernelId = "csharp";
+        scaffold.RegisterKernel(defaultKernel);
+
+        await scaffold.ExecuteCodeAsync("whatever", "no-such-language");
+
+        Assert.AreEqual(1, defaultExecuted.Count,
+            "A language with no kernel anywhere should keep the default-kernel fallback.");
+    }
 }

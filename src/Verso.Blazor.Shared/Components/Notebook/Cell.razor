@@ -143,8 +143,9 @@
                      style="@OutputPreviewStyle"
                      data-cell-id="@CellData.Id"
                      @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
-                    @foreach (var output in CellData.Outputs)
+                    @for (var outputIndex = 0; outputIndex < CellData.Outputs.Count; outputIndex++)
                     {
+                        var output = CellData.Outputs[outputIndex];
                         @if (output.IsError)
                         {
                             <div class="verso-output verso-output--error">
@@ -157,8 +158,10 @@
                             @* @key forces Blazor to tear down and recreate the element when the
                                output object changes, rather than diffing MarkupString child nodes
                                in place which can cause removeChild errors when interactive
-                               elements (inputs, checkboxes) hold browser-managed DOM state. *@
-                            <div @key="output" class="verso-output verso-output--html">
+                               elements (inputs, checkboxes) hold browser-managed DOM state.
+                               CellOutput is a record (value equality), so the position is part of
+                               the key: two identical outputs in one cell must not collide. *@
+                            <div @key="(outputIndex, output)" class="verso-output verso-output--html">
                                 @((MarkupString)output.Content)
                             </div>
                         }
@@ -226,8 +229,9 @@
                      style="@OutputPreviewStyle"
                      data-cell-id="@CellData.Id"
                      @onclick="HandleOutputClick">
-                    @foreach (var output in CellData.Outputs)
+                    @for (var outputIndex = 0; outputIndex < CellData.Outputs.Count; outputIndex++)
                     {
+                        var output = CellData.Outputs[outputIndex];
                         @if (output.IsError)
                         {
                             <div class="verso-output verso-output--error">
@@ -251,8 +255,10 @@
                                instead of diffing MarkupString children in place, which can throw
                                removeChild on interactive elements holding browser-managed DOM
                                state. Matches the render-only branch above; it matters more now
-                               that a display layout keeps this block mounted across selection. *@
-                            <div @key="output" class="verso-output verso-output--html">
+                               that a display layout keeps this block mounted across selection.
+                               CellOutput is a record (value equality), so the position is part of
+                               the key: two identical outputs in one cell must not collide. *@
+                            <div @key="(outputIndex, output)" class="verso-output verso-output--html">
                                 @((MarkupString)output.Content)
                             </div>
                         }

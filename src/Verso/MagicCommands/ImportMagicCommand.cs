@@ -11,8 +11,9 @@ namespace Verso.MagicCommands;
 /// every cell whose type carries source (any type other than <c>markdown</c> or <c>raw</c>), dispatching to
 /// the kernel that handles each cell's language. Variables and state persist for subsequent cells.
 /// <para>
-/// By default the imported cells run silently. Pass <c>--show-output</c> to surface the output each imported
-/// cell produces in the importing cell, in execution order.
+/// By default the imported cells run silently, except that error outputs are always surfaced.
+/// Pass <c>--show-output</c> to surface all output each imported cell produces in the importing
+/// cell, in execution order.
 /// </para>
 /// <para>
 /// Supported formats:
@@ -155,6 +156,7 @@ public sealed class ImportMagicCommand : IMagicCommand
         }
 
         var executedCount = 0;
+        var failedCount = 0;
         foreach (var cell in notebook.Cells)
         {
             if (!IsExecutableCellType(cell.Type))
@@ -162,23 +164,29 @@ public sealed class ImportMagicCommand : IMagicCommand
             if (string.IsNullOrWhiteSpace(cell.Source))
                 continue;
 
-            if (showOutput)
+            // Always capture outputs so failures inside the imported notebook are visible.
+            // Without --show-output only error outputs are surfaced; successful cells stay silent.
+            var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
+                cell.Source, cell.Language, context.CancellationToken).ConfigureAwait(false);
+
+            var failed = false;
+            foreach (var output in outputs)
             {
-                var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
-                    cell.Source, cell.Language, context.CancellationToken).ConfigureAwait(false);
-                foreach (var output in outputs)
+                failed |= output.IsError;
+                if (showOutput || output.IsError)
                     await context.WriteOutputAsync(output).ConfigureAwait(false);
             }
-            else
-            {
-                await context.Notebook.ExecuteCodeAsync(cell.Source, cell.Language, context.CancellationToken)
-                    .ConfigureAwait(false);
-            }
+
+            if (failed)
+                failedCount++;
             executedCount++;
         }
 
-        await context.WriteOutputAsync(new CellOutput("text/plain",
-            $"Imported {executedCount} cell{(executedCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}"))
+        var summary = $"Imported {executedCount} cell{(executedCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}";
+        if (failedCount > 0)
+            summary += $" ({failedCount} failed)";
+
+        await context.WriteOutputAsync(new CellOutput("text/plain", summary, IsError: failedCount > 0))
             .ConfigureAwait(false);
     }
 
@@ -241,20 +249,19 @@ public sealed class ImportMagicCommand : IMagicCommand
         reassembled.AddRange(codeLines);
 
         var code = string.Join(Environment.NewLine, reassembled);
+        var failed = false;
 
         if (!string.IsNullOrWhiteSpace(code))
         {
-            if (showOutput)
+            // Always capture outputs so failures are visible. Without --show-output only
+            // error outputs are surfaced; successful execution stays silent.
+            var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
+                code, kernel.LanguageId, context.CancellationToken).ConfigureAwait(false);
+            foreach (var output in outputs)
             {
-                var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
-                    code, kernel.LanguageId, context.CancellationToken).ConfigureAwait(false);
-                foreach (var output in outputs)
+                failed |= output.IsError;
+                if (showOutput || output.IsError)
                     await context.WriteOutputAsync(output).ConfigureAwait(false);
-            }
-            else
-            {
-                await context.Notebook.ExecuteCodeAsync(code, kernel.LanguageId, context.CancellationToken)
-                    .ConfigureAwait(false);
             }
         }
 
@@ -263,8 +270,10 @@ public sealed class ImportMagicCommand : IMagicCommand
         var summary = magicCount > 0
             ? $"Imported {fileName} ({magicCount} directive{(magicCount == 1 ? "" : "s")} extracted)"
             : $"Imported {fileName}";
+        if (failed)
+            summary += " (execution failed)";
 
-        await context.WriteOutputAsync(new CellOutput("text/plain", summary))
+        await context.WriteOutputAsync(new CellOutput("text/plain", summary, IsError: failed))
             .ConfigureAwait(false);
     }
 

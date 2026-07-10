@@ -78,6 +78,20 @@ public sealed class StubNotebookOperations : INotebookOperations
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Optional handler supplying the outputs returned by <see cref="ExecuteCodeCaptureOutputsAsync"/>.
+    /// When null, no outputs are returned.
+    /// </summary>
+    public Func<string, string?, IReadOnlyList<CellOutput>>? CaptureOutputsHandler { get; set; }
+
+    public Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
+        string code, string? language = null, CancellationToken ct = default)
+    {
+        ExecutedCodeCalls.Add((code, language));
+        return Task.FromResult(CaptureOutputsHandler?.Invoke(code, language)
+            ?? (IReadOnlyList<CellOutput>)Array.Empty<CellOutput>());
+    }
+
     public string? ActiveLayoutId { get; set; }
 
     public void SetActiveLayout(string layoutId)

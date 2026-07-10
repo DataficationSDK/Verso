@@ -167,6 +167,24 @@ public sealed class CellTests : BunitTestContext
     }
 
     [TestMethod]
+    public void DuplicateHtmlOutputs_RenderWithoutKeyCollision()
+    {
+        // Two value-equal outputs in one cell (e.g. #!import --show-output where two imported
+        // cells produce the same result table) must not collide on @key: CellOutput is a record
+        // with value equality, and a duplicate key throws in the render tree diff and kills the
+        // circuit, leaving the notebook stuck in the running state.
+        var cell = CreateCodeCell("#!import ImportCall.verso --show-output");
+        cell.Outputs.Add(new CellOutput("text/html", "<table><tr><td>same</td></tr></table>"));
+
+        var cut = RenderCell(cell);
+
+        cell.Outputs.Add(new CellOutput("text/html", "<table><tr><td>same</td></tr></table>"));
+        cut.Render(); // re-render with the duplicate present; must not throw
+
+        Assert.AreEqual(2, cut.FindAll(".verso-output--html").Count);
+    }
+
+    [TestMethod]
     public void ErrorOutput_ShowsStackTrace()
     {
         var cell = CreateCodeCell("fail");

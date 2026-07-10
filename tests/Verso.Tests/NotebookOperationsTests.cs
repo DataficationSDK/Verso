@@ -238,4 +238,51 @@ public sealed class NotebookOperationsTests
         // All capabilities are present by default (no LayoutManager) — should succeed
         Assert.IsNotNull(ops.InsertCellAsync(0, "code"));
     }
+
+    [TestMethod]
+    public async Task ExecuteCodeCaptureOutputsAsync_DefaultImplementation_StillRunsTheCode()
+    {
+        // Implementations that do not override the capture overload must still execute the
+        // code (fire-and-forget), not silently skip it. #!import relies on this.
+        var impl = new MinimalNotebookOperations();
+        INotebookOperations ops = impl;
+
+        var outputs = await ops.ExecuteCodeCaptureOutputsAsync("var x = 1;", "csharp");
+
+        Assert.AreEqual(1, impl.ExecutedCode.Count);
+        Assert.AreEqual(("var x = 1;", "csharp"), impl.ExecutedCode[0]);
+        Assert.AreEqual(0, outputs.Count);
+    }
+
+    /// <summary>
+    /// Bare INotebookOperations implementation that deliberately does not override
+    /// <see cref="INotebookOperations.ExecuteCodeCaptureOutputsAsync"/>, so the interface
+    /// default implementation is exercised.
+    /// </summary>
+    private sealed class MinimalNotebookOperations : INotebookOperations
+    {
+        public List<(string Code, string? Language)> ExecutedCode { get; } = new();
+
+        public Task ExecuteCellAsync(Guid cellId) => Task.CompletedTask;
+        public Task ExecuteAllAsync() => Task.CompletedTask;
+        public Task ExecuteFromAsync(Guid cellId) => Task.CompletedTask;
+        public Task ClearOutputAsync(Guid cellId) => Task.CompletedTask;
+        public Task ClearAllOutputsAsync() => Task.CompletedTask;
+        public Task RestartKernelAsync(string? kernelId = null) => Task.CompletedTask;
+        public Task<string> InsertCellAsync(int index, string type, string? language = null)
+            => Task.FromResult(Guid.NewGuid().ToString());
+        public Task RemoveCellAsync(Guid cellId) => Task.CompletedTask;
+        public Task MoveCellAsync(Guid cellId, int newIndex) => Task.CompletedTask;
+
+        public Task ExecuteCodeAsync(string code, string? language = null, CancellationToken ct = default)
+        {
+            ExecutedCode.Add((code, language));
+            return Task.CompletedTask;
+        }
+
+        public string? ActiveLayoutId => null;
+        public void SetActiveLayout(string layoutId) { }
+        public string? ActiveThemeId => null;
+        public void SetActiveTheme(string themeId) { }
+    }
 }

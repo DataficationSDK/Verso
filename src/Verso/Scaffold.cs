@@ -769,8 +769,23 @@ public sealed class Scaffold : IAsyncDisposable
         if (_kernels.TryGetValue(languageId, out var k))
             return k;
 
-        return _extensionHost?.GetKernels()
+        if (_extensionHost is null)
+            return null;
+
+        var kernel = _extensionHost.GetKernels()
             .FirstOrDefault(ek => string.Equals(ek.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
+        if (kernel is not null)
+            return kernel;
+
+        // Kernels contributed through a cell type (e.g. the SQL cell type) are not registered
+        // as standalone kernel extensions, so they are invisible to the lookups above. Code
+        // routed by language alone (ExecuteCodeAsync, #!import) must still reach the same
+        // kernel instance a typed cell would use, otherwise it falls back to the notebook's
+        // default kernel and executes in the wrong language.
+        return _extensionHost.GetCellTypes()
+            .Select(t => t.Kernel)
+            .FirstOrDefault(tk => tk is not null &&
+                string.Equals(tk.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

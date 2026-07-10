@@ -64,9 +64,12 @@ public interface INotebookOperations
     /// surface an executed cell's outputs. The default implementation runs the code and returns no
     /// outputs, so hosts that do not capture outputs keep the existing fire-and-forget behavior.
     /// </summary>
-    Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
+    async Task<IReadOnlyList<CellOutput>> ExecuteCodeCaptureOutputsAsync(
         string code, string? language = null, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<CellOutput>>(Array.Empty<CellOutput>());
+    {
+        await ExecuteCodeAsync(code, language, ct).ConfigureAwait(false);
+        return Array.Empty<CellOutput>();
+    }
 
     /// <summary>
     /// Gets the identifier of the currently active layout.

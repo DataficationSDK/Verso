@@ -145,6 +145,89 @@ public sealed class ImportMagicCommandTests
     }
 
     [TestMethod]
+    public async Task Import_FailingCell_SurfacesErrorWithoutShowOutput()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations
+        {
+            // The failing cell yields an error output plus a normal output; the healthy cell
+            // yields only a normal output.
+            CaptureOutputsHandler = (code, _) => code.Contains("boom")
+                ? new[]
+                {
+                    new CellOutput("text/plain", "kaboom", IsError: true, ErrorName: "CompilationError"),
+                    new CellOutput("text/plain", "partial result")
+                }
+                : new[] { new CellOutput("text/plain", "healthy result") }
+        };
+        var context = CreateContextWithSerializer(notebookOps);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.verso");
+        try
+        {
+            var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "var ok = 1;" });
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "boom" });
+
+            var serializer = new VersoSerializer();
+            await File.WriteAllTextAsync(tempFile, await serializer.SerializeAsync(notebook));
+
+            await command.ExecuteAsync(tempFile, context); // silent mode: no --show-output
+
+            Assert.AreEqual(2, notebookOps.ExecutedCodeCalls.Count);
+
+            // The error output surfaces even without --show-output; normal outputs stay silent.
+            Assert.IsTrue(context.WrittenOutputs.Any(o => o.IsError && o.Content.Contains("kaboom")));
+            Assert.IsFalse(context.WrittenOutputs.Any(o => o.Content.Contains("healthy result")));
+            Assert.IsFalse(context.WrittenOutputs.Any(o => o.Content.Contains("partial result")));
+
+            // The summary reports the failure and is itself an error output.
+            var summary = context.WrittenOutputs[^1];
+            Assert.IsTrue(summary.IsError);
+            Assert.IsTrue(summary.Content.Contains("Imported 2 cells"));
+            Assert.IsTrue(summary.Content.Contains("(1 failed)"));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
+    public async Task Import_ShowOutput_SurfacesAllOutputs()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations
+        {
+            CaptureOutputsHandler = (_, _) => new[] { new CellOutput("text/plain", "healthy result") }
+        };
+        var context = CreateContextWithSerializer(notebookOps);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.verso");
+        try
+        {
+            var notebook = new NotebookModel { DefaultKernelId = "csharp" };
+            notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "var ok = 1;" });
+
+            var serializer = new VersoSerializer();
+            await File.WriteAllTextAsync(tempFile, await serializer.SerializeAsync(notebook));
+
+            await command.ExecuteAsync($"{tempFile} --show-output", context);
+
+            Assert.IsTrue(context.WrittenOutputs.Any(o => !o.IsError && o.Content.Contains("healthy result")));
+
+            var summary = context.WrittenOutputs[^1];
+            Assert.IsFalse(summary.IsError);
+            Assert.IsTrue(summary.Content.Contains("Imported 1 cell"));
+            Assert.IsFalse(summary.Content.Contains("failed"));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [TestMethod]
     public async Task SuccessfulImport_SingleCell_UsesSingular()
     {
         var command = new ImportMagicCommand();
