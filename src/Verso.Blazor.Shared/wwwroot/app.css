@@ -3141,6 +3141,13 @@ html, body {
     gap: 12px;
 }
 
+/* Cards keep their natural height in short viewports. They clip overflow for the rounded
+   corners, which zeroes the flex automatic minimum size; without this they compress to
+   slivers instead of scrolling when the container is shorter than the content. */
+.verso-diff-body > * {
+    flex-shrink: 0;
+}
+
 .verso-diff-metadata {
     border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
     border-radius: 6px;
