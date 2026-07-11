@@ -2,6 +2,8 @@
 
 Verso includes a cell-level diff view that compares the notebook you have open, including unsaved edits, against an earlier version. Instead of a raw JSON diff, you see which cells were added, removed, edited, or moved, with side-by-side source comparison and rendered output comparison per cell.
 
+![The diff view comparing a notebook against Git HEAD, with summary badges and modified, added, and removed cells](comparing-notebooks.png)
+
 ## Opening a comparison
 
 Click **Compare** in the notebook toolbar and pick a baseline:
