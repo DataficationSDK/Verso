@@ -1,0 +1,41 @@
+@* Compact notice for a failed comparison (baseline unavailable, git error, parse failure).
+   A comparison that cannot run is a dead end for one action, not a notebook-wide fault, so
+   it gets a small dialog rather than the page-level error banner. *@
+
+@if (Message is not null)
+{
+    <div class="verso-modal-overlay" @onclick="() => OnDismiss.InvokeAsync()">
+        <div class="verso-modal" role="dialog" aria-modal="true" aria-label="Compare Notebook"
+             @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
+            <div class="verso-modal-header">
+                <span class="verso-modal-title">Compare Notebook</span>
+                <button type="button" class="verso-modal-close" @onclick="() => OnDismiss.InvokeAsync()" title="Close">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="verso-modal-body">
+                <p style="margin:0;">The comparison could not run: @Message</p>
+            </div>
+            <div class="verso-modal-footer">
+                <button type="button"
+                        class="verso-modal-btn verso-modal-btn--primary"
+                        @onclick="() => OnDismiss.InvokeAsync()">OK</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>The failure description, or <see langword="null"/> to render nothing.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Escape" or "Enter")
+        {
+            await OnDismiss.InvokeAsync();
+        }
+    }
+}

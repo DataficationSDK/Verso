@@ -409,7 +409,7 @@ public static class NotebookHandler
     /// Quick content sniff to detect Jupyter .ipynb format when no file path is available.
     /// Checks for the <c>"nbformat"</c> top-level key which is present in all valid ipynb files.
     /// </summary>
-    private static bool LooksLikeJupyterNotebook(string content)
+    internal static bool LooksLikeJupyterNotebook(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
             return false;

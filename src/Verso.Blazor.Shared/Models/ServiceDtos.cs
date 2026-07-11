@@ -277,3 +277,15 @@ public enum LocalExtensionPickMode
     /// <summary>The host shows a native open dialog and reads the chosen file from disk (VS Code).</summary>
     NativeBrowse,
 }
+
+/// <summary>
+/// A baseline a notebook can be compared against in the diff view. Well-known ids are
+/// "lastSaved", "gitHead", "gitRef", and "file"; <paramref name="Kind"/> groups them as
+/// "lastSaved", "git", or "file" for hosts that render sources by category.
+/// </summary>
+public sealed record DiffSourceInfo(
+    string Id,
+    string Label,
+    string Kind,
+    bool Available,
+    string? Description = null);

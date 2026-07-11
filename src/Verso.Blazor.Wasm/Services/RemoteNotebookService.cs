@@ -108,6 +108,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     /// host's <c>kernel/faulted</c> notification).</summary>
     public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
+    /// <summary>Raised when the extension asks the UI to open the notebook diff view
+    /// (command palette or editor-title button), via the <c>diff/requested</c> notification.</summary>
+    public event Action<string?>? OnDiffRequested;
+
     // ── Extension consent state ────────────────────────────────────────
     private string? _pendingConsentRequestId;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
@@ -265,6 +269,43 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         // WASM mode doesn't support client-side serialization; the host handles saving.
         return Task.FromResult<string?>(null);
+    }
+
+    // ── Notebook diff ───────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<DiffSourceInfo>> GetDiffSourcesAsync()
+    {
+        // Intercepted by the extension bridge; never reaches the host process.
+        var response = await _bridge.RequestAsync<DiffSourcesResponse>("diff/sources", new { });
+        return (response.Sources ?? new List<DiffSourceItem>())
+            .Select(s => new DiffSourceInfo(
+                s.Id ?? "",
+                s.Label ?? s.Id ?? "",
+                s.Kind ?? "",
+                s.Available,
+                s.Description))
+            .ToList();
+    }
+
+    public async Task<NotebookDiffResult?> ComputeDiffAsync(string sourceId, string? explicitInput = null)
+    {
+        // explicitInput is unused here: the extension resolves gitRef/file inputs with
+        // native pickers inside diff/baseline, so this host never prompts locally.
+        var baseline = await _bridge.RequestAsync<DiffBaselineResponse>(
+            "diff/baseline", new { sourceId });
+        if (baseline.Cancelled == true || baseline.Content is null)
+        {
+            return null;
+        }
+
+        // Forwarded to the host process (notebookId is injected by the bridge), which
+        // parses the baseline and diffs it against the live in-memory notebook.
+        return await _bridge.RequestAsync<NotebookDiffResult>("notebook/diff", new
+        {
+            baselineContent = baseline.Content,
+            baselineFilePath = baseline.FilePath,
+            baselineLabel = baseline.Label ?? "Baseline",
+        });
     }
 
     public async Task SaveAsync(string filePath)
@@ -1262,6 +1303,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 break;
             case "kernel/faulted":
                 HandleKernelFaulted(paramsJson);
+                break;
+            case "diff/requested":
+                // Extension-originated (command palette / editor-title). The extension picks
+                // the source natively and passes its id; null falls back to the UI's picker.
+                OnDiffRequested?.Invoke(TryReadStringProperty(paramsJson, "sourceId"));
                 break;
         }
     }
@@ -2401,5 +2447,27 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         public string Value { get; set; } = "";
         public string DisplayName { get; set; } = "";
+    }
+
+    private sealed class DiffSourcesResponse
+    {
+        public List<DiffSourceItem>? Sources { get; set; }
+    }
+
+    private sealed class DiffSourceItem
+    {
+        public string? Id { get; set; }
+        public string? Label { get; set; }
+        public string? Kind { get; set; }
+        public bool Available { get; set; }
+        public string? Description { get; set; }
+    }
+
+    private sealed class DiffBaselineResponse
+    {
+        public bool? Cancelled { get; set; }
+        public string? Content { get; set; }
+        public string? FilePath { get; set; }
+        public string? Label { get; set; }
     }
 }

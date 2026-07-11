@@ -341,6 +341,13 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public event Action? OnDirtyStateChanged;
     public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
+    // Declared for interface parity: the server host has no external command surface that
+    // requests a diff, so this event is never raised here. The pragma silences the unused
+    // warning that parity costs.
+#pragma warning disable CS0067
+    public event Action<string?>? OnDiffRequested;
+#pragma warning restore CS0067
+
     // Required extensions that failed to load on the current notebook, keyed by package id, so the
     // extension panel can flag the matching installed row. Reset per open in WireConsentHandler.
     private Dictionary<string, string> _unavailableExtensionReasons = new(StringComparer.OrdinalIgnoreCase);

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
+import { GitBaselineProvider } from "../git/gitBaselineProvider";
 import { log } from "../log";
 
 /**
@@ -80,6 +81,7 @@ export class BlazorBridge implements vscode.Disposable {
   private notebookId: string | undefined;
   private readonly webview: vscode.Webview;
   private host: HostProcess;
+  private readonly gitProvider = new GitBaselineProvider();
 
   /**
    * Set while a host restart is in progress. Webview-originated requests await
@@ -118,6 +120,10 @@ export class BlazorBridge implements vscode.Disposable {
     );
 
     this.subscribeHostNotifications();
+
+    // Fire-and-forget: the git API is only needed once the user opens the
+    // Compare menu, and every failure downgrades to "git sources unavailable".
+    void this.gitProvider.activate();
   }
 
   /**
@@ -325,6 +331,14 @@ export class BlazorBridge implements vscode.Disposable {
           filters: { "Extensions": ["dll", "nupkg"] },
         });
         result = { path: picked?.[0]?.fsPath ?? null };
+      } else if (method === "diff/sources") {
+        // Read-only: lists the baselines this notebook can be compared against.
+        // Deliberately NOT in mutationMethods; comparing must never dirty the document.
+        result = this.listDiffSources();
+      } else if (method === "diff/baseline") {
+        // Read-only: resolves a baseline's content via native pickers and the git API.
+        const p = params as { sourceId?: string } | undefined;
+        result = await this.resolveDiffBaseline(p?.sourceId);
       } else if (method === "kernel/restart") {
         // The toolbar action and #!restart magic command both reach the host as
         // kernel/restart, but the in-process restart cannot release pinned DLL
@@ -504,6 +518,139 @@ export class BlazorBridge implements vscode.Disposable {
    */
   markDirty(): void {
     this.onDidEdit?.();
+  }
+
+  /** Baseline sources for the Compare menu, with git entries gated on repo membership. */
+  listDiffSources(): {
+    sources: Array<{
+      id: string;
+      label: string;
+      kind: string;
+      available: boolean;
+      description: string | null;
+    }>;
+  } {
+    const uri = this.documentUri;
+    const hasUri = uri !== undefined;
+    const gitAvailable = hasUri && this.gitProvider.isAvailableFor(uri);
+    const notInRepo = "The notebook file is not inside a git repository.";
+    return {
+      sources: [
+        {
+          id: "lastSaved",
+          label: "Last Saved",
+          kind: "lastSaved",
+          available: hasUri,
+          description: hasUri ? null : "The notebook has no file on disk yet.",
+        },
+        {
+          id: "gitHead",
+          label: "Git: HEAD",
+          kind: "git",
+          available: gitAvailable,
+          description: gitAvailable ? null : notInRepo,
+        },
+        {
+          id: "gitRef",
+          label: "Git: Compare with Ref...",
+          kind: "git",
+          available: gitAvailable,
+          description: gitAvailable ? null : notInRepo,
+        },
+        {
+          id: "file",
+          label: "Choose File...",
+          kind: "file",
+          available: true,
+          description: null,
+        },
+      ],
+    };
+  }
+
+  /**
+   * Resolves a comparison baseline's content. Pickers (ref quick pick, file dialog) run
+   * natively here; a dismissed picker reports `cancelled` rather than an error.
+   */
+  private async resolveDiffBaseline(
+    sourceId: string | undefined
+  ): Promise<
+    | { content: string; filePath?: string; label: string }
+    | { cancelled: true }
+  > {
+    const uri = this.documentUri;
+    switch (sourceId) {
+      case "lastSaved": {
+        if (!uri) {
+          throw new Error("The notebook has no file on disk yet.");
+        }
+        const bytes = await vscode.workspace.fs.readFile(uri);
+        return {
+          content: new TextDecoder().decode(bytes),
+          filePath: uri.fsPath,
+          label: "Last Saved",
+        };
+      }
+
+      case "gitHead": {
+        if (!uri) {
+          throw new Error("The notebook has no file on disk yet.");
+        }
+        const content = await this.gitProvider.showAtRef(uri, "HEAD");
+        return { content, filePath: uri.fsPath, label: "Git: HEAD" };
+      }
+
+      case "gitRef": {
+        if (!uri) {
+          throw new Error("The notebook has no file on disk yet.");
+        }
+        const typedItem = {
+          label: "Type a ref or commit...",
+          description: "",
+          ref: "__typed__",
+        };
+        const picked = await vscode.window.showQuickPick(
+          [...this.gitProvider.listRefsForQuickPick(uri), typedItem],
+          { placeHolder: "Compare notebook with..." }
+        );
+        if (!picked) {
+          return { cancelled: true };
+        }
+        const ref =
+          picked.ref === "__typed__"
+            ? await vscode.window.showInputBox({
+                prompt: "Git branch, tag, or commit SHA",
+                placeHolder: "main",
+              })
+            : picked.ref;
+        if (!ref) {
+          return { cancelled: true };
+        }
+        const content = await this.gitProvider.showAtRef(uri, ref);
+        return { content, filePath: uri.fsPath, label: `Git: ${ref}` };
+      }
+
+      case "file": {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: "Compare",
+          filters: { "Notebook Files": ["verso", "ipynb", "dib"] },
+        });
+        const file = picked?.[0];
+        if (!file) {
+          return { cancelled: true };
+        }
+        const bytes = await vscode.workspace.fs.readFile(file);
+        return {
+          content: new TextDecoder().decode(bytes),
+          filePath: file.fsPath,
+          label: file.path.split("/").pop() ?? "File",
+        };
+      }
+
+      default:
+        throw new Error(`Unknown comparison source '${sourceId}'.`);
+    }
   }
 
   /**

@@ -1,0 +1,50 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div id="@_elementId" class="verso-monaco-diff-editor"></div>
+
+@code {
+    /// <summary>The baseline side of the comparison.</summary>
+    [Parameter] public string OriginalValue { get; set; } = "";
+
+    /// <summary>The current side of the comparison.</summary>
+    [Parameter] public string ModifiedValue { get; set; } = "";
+
+    [Parameter] public string Language { get; set; } = "csharp";
+
+    /// <summary>Side-by-side when true (the default), inline when false.</summary>
+    [Parameter] public bool RenderSideBySide { get; set; } = true;
+
+    private readonly string _elementId = $"monaco-diff-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    // The diff view is a point-in-time snapshot: content is fixed at creation and parameter
+    // updates after first render are intentionally ignored. Re-running a comparison replaces
+    // the component instance rather than mutating existing models.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("versoMonaco.createDiffEditor", _elementId, new
+            {
+                originalValue = OriginalValue,
+                modifiedValue = ModifiedValue,
+                language = Language,
+                renderSideBySide = RenderSideBySide
+            });
+            _initialized = true;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_initialized)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("versoMonaco.disposeDiffEditor", _elementId);
+            }
+            catch (JSDisconnectedException) { }
+        }
+    }
+}

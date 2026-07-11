@@ -157,6 +157,39 @@
             </div>
         }
 
+        <div class="verso-toolbar-dropdown">
+            <button class="verso-toolbar-btn"
+                    title="Compare Notebook"
+                    @onclick="ToggleCompareDropdownAsync"
+                    @onclick:stopPropagation="true">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="5.5" height="13" rx="1"/><rect x="9" y="1.5" width="5.5" height="13" rx="1"/></svg>
+                Compare &#9662;
+            </button>
+            @if (_showCompareDropdown)
+            {
+                <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
+                    <div class="verso-toolbar-menu-header">Compare with</div>
+                    @if (_diffSources is null)
+                    {
+                        <div class="verso-toolbar-menu-loading"><span class="verso-spinner"></span></div>
+                    }
+                    else
+                    {
+                        @foreach (var source in _diffSources)
+                        {
+                            var s = source;
+                            <button class="verso-toolbar-btn verso-toolbar-menu-item"
+                                    disabled="@(!s.Available)"
+                                    title="@(s.Available ? s.Label : s.Description ?? "Not available for this notebook")"
+                                    @onclick="() => SelectDiffSourceAsync(s)">
+                                <span>@s.Label</span>
+                            </button>
+                        }
+                    }
+                </div>
+            }
+        </div>
+
         @* Only surface export actions that are currently enabled. Actions gate themselves through
            IsEnabledAsync (a layout-specific export enables only while its layout is active), so a
            disabled action is hidden outright rather than shown greyed-out, and the Export button
@@ -241,6 +274,20 @@
     /// </summary>
     [Parameter] public Func<string, Task<bool>>? OnInterceptAction { get; set; }
 
+    /// <summary>Invoked with the computed diff when a Compare source resolves successfully;
+    /// the hosting page shows the diff view.</summary>
+    [Parameter] public EventCallback<NotebookDiffResult> OnDiffComputed { get; set; }
+
+    /// <summary>Invoked with the source id when a source needs extra input collected by the
+    /// hosting page (a git ref or file path) on hosts without a native picker. Embedded hosts
+    /// prompt natively inside <c>ComputeDiffAsync</c> instead.</summary>
+    [Parameter] public EventCallback<string> OnDiffPickerRequested { get; set; }
+
+    /// <summary>Invoked with a user-facing message when a comparison fails. Wired so failed
+    /// comparisons surface as a compact dialog; when unset, failures fall back to
+    /// <see cref="OnError"/> (the page-level banner).</summary>
+    [Parameter] public EventCallback<string> OnDiffError { get; set; }
+
     private List<ToolbarActionInfo> _filteredToolbarActions = new();
     private IReadOnlyList<ToolbarActionInfo> _exportActions = Array.Empty<ToolbarActionInfo>();
     private Dictionary<string, bool> _enabledStates = new();
@@ -250,6 +297,8 @@
     private string _openFilePath = "";
     private bool _showViewDropdown;
     private bool _showExportDropdown;
+    private bool _showCompareDropdown;
+    private IReadOnlyList<DiffSourceInfo>? _diffSources;
 
     private static readonly HashSet<string> _excludedActionIds = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -630,12 +679,97 @@
     {
         _showViewDropdown = !_showViewDropdown;
         _showExportDropdown = false;
+        _showCompareDropdown = false;
     }
 
     private void ToggleExportDropdown()
     {
         _showExportDropdown = !_showExportDropdown;
         _showViewDropdown = false;
+        _showCompareDropdown = false;
+    }
+
+    /// <summary>
+    /// Opens the Compare dropdown programmatically, for externally-triggered diff requests
+    /// that arrive without a preselected source.
+    /// </summary>
+    public async Task OpenCompareMenuAsync()
+    {
+        if (!_showCompareDropdown)
+        {
+            await ToggleCompareDropdownAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleCompareDropdownAsync()
+    {
+        _showCompareDropdown = !_showCompareDropdown;
+        _showViewDropdown = false;
+        _showExportDropdown = false;
+
+        if (_showCompareDropdown)
+        {
+            _diffSources = null;
+            try
+            {
+                _diffSources = await Service.GetDiffSourcesAsync();
+            }
+            catch (Exception ex)
+            {
+                _showCompareDropdown = false;
+                await ReportDiffErrorAsync($"could not list comparison sources: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SelectDiffSourceAsync(DiffSourceInfo source)
+    {
+        _showCompareDropdown = false;
+
+        // Sources needing extra input (a ref name or file path) defer to the hosting page's
+        // picker on hosts whose notebook UI owns that prompt; embedded hosts prompt natively
+        // inside ComputeDiffAsync.
+        if (!Service.IsEmbedded && source.Id is "gitRef" or "file")
+        {
+            await OnDiffPickerRequested.InvokeAsync(source.Id);
+            return;
+        }
+
+        await ComputeDiffAsync(source.Id, null);
+    }
+
+    /// <summary>
+    /// Runs the comparison and raises <see cref="OnDiffComputed"/>. Also called by the hosting
+    /// page after its picker collects the input for a "gitRef" or "file" source.
+    /// </summary>
+    public async Task ComputeDiffAsync(string sourceId, string? explicitInput)
+    {
+        try
+        {
+            var result = await Service.ComputeDiffAsync(sourceId, explicitInput);
+            if (result is not null)
+            {
+                await OnDiffComputed.InvokeAsync(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ReportDiffErrorAsync(ex.Message);
+        }
+    }
+
+    private async Task ReportDiffErrorAsync(string message)
+    {
+        if (OnDiffError.HasDelegate)
+        {
+            await OnDiffError.InvokeAsync(message);
+        }
+        else
+        {
+            await OnError.InvokeAsync($"Could not compare notebook: {message}");
+        }
     }
 
     private async Task ExecuteExportAsync(ToolbarActionInfo action)
@@ -660,6 +794,7 @@
     {
         _showViewDropdown = false;
         _showExportDropdown = false;
+        _showCompareDropdown = false;
     }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)

@@ -21,7 +21,23 @@
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
              OnInterceptAction="HandleInterceptAction"
-             OnError="HandleError" />
+             OnError="HandleError"
+             OnDiffComputed="HandleDiffComputed"
+             OnDiffPickerRequested="HandleDiffPickerRequested"
+             OnDiffError="HandleDiffError"
+             @ref="_toolbar" />
+
+    @if (_showDiffView && _diffResult is not null)
+    {
+        <NotebookDiffView Diff="_diffResult" OnClose="CloseDiffView" />
+    }
+
+    <DiffSourcePickerDialog IsVisible="_showDiffSourcePicker"
+                            Kind="@_diffSourcePickerKind"
+                            OnSubmit="HandleDiffSourceInputSubmitted"
+                            OnCancel="() => _showDiffSourcePicker = false" />
+
+    <DiffErrorDialog Message="@_diffErrorMessage" OnDismiss="() => _diffErrorMessage = null" />
 
     @if (_showSaveDialog)
     {
@@ -228,6 +244,12 @@
     private Timer? _autoSaveTimer;
     private bool _userPrefsApplied;
     private bool _restoringPrefs;
+    private Toolbar? _toolbar;
+    private bool _showDiffView;
+    private NotebookDiffResult? _diffResult;
+    private bool _showDiffSourcePicker;
+    private string _diffSourcePickerKind = "gitRef";
+    private string? _diffErrorMessage;
     // False until the first interactive render. Prerendering runs event handlers too
     // (e.g. required-extension loads fire status events), and JS interop before the
     // circuit exists throws InvalidOperationException rather than JSException.
@@ -260,6 +282,8 @@
         Service.OnSettingsChanged += HandleSettingsChanged;
         Service.OnOutputUpdated += HandleOutputUpdated;
         Service.OnRequiredExtensionsUnavailable += HandleExtensionsUnavailable;
+        Service.OnKernelRestarting += HandleKernelRestartingForDiff;
+        Service.OnDiffRequested += HandleDiffRequested;
 
         if (Service is ServerNotebookService serverService)
         {
@@ -1086,6 +1110,11 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
+        // The diff overlay owns the keyboard while open (it stops propagation itself; this
+        // guard covers focus landing back on the notebook container while it is still up).
+        if (_showDiffView)
+            return;
+
         // Run All works regardless of edit or command mode.
         if (e.Key == "Enter" && e.CtrlKey && e.AltKey)
         {
@@ -1348,6 +1377,75 @@
         return Task.CompletedTask;
     }
 
+    // ── Notebook diff ──────────────────────────────────────────────────
+
+    private void HandleDiffComputed(NotebookDiffResult result)
+    {
+        _diffResult = result;
+        _showDiffView = true;
+        _showDiffSourcePicker = false;
+    }
+
+    private void CloseDiffView()
+    {
+        _showDiffView = false;
+        _diffResult = null;
+    }
+
+    private void HandleDiffPickerRequested(string sourceId)
+    {
+        _diffSourcePickerKind = sourceId;
+        _showDiffSourcePicker = true;
+    }
+
+    private void HandleDiffError(string message)
+    {
+        _diffErrorMessage = message;
+    }
+
+    private async Task HandleDiffSourceInputSubmitted(string input)
+    {
+        _showDiffSourcePicker = false;
+        if (_toolbar is not null)
+        {
+            await _toolbar.ComputeDiffAsync(_diffSourcePickerKind, input);
+        }
+    }
+
+    // A kernel restart replaces the backing session, so a diff computed against it is stale;
+    // close rather than display results that no longer describe the live notebook.
+    private void HandleKernelRestartingForDiff(string? reason)
+    {
+        if (!_showDiffView)
+            return;
+
+        _ = InvokeAsync(() =>
+        {
+            CloseDiffView();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleDiffRequested(string? sourceId)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_toolbar is null)
+                return;
+
+            if (sourceId is not null)
+            {
+                await _toolbar.ComputeDiffAsync(sourceId, null);
+            }
+            else
+            {
+                await _toolbar.OpenCompareMenuAsync();
+            }
+
+            StateHasChanged();
+        });
+    }
+
     public void Dispose()
     {
         _autoSaveTimer?.Dispose();
@@ -1368,6 +1466,8 @@
         Service.OnSettingsChanged -= HandleSettingsChanged;
         Service.OnOutputUpdated -= HandleOutputUpdated;
         Service.OnRequiredExtensionsUnavailable -= HandleExtensionsUnavailable;
+        Service.OnKernelRestarting -= HandleKernelRestartingForDiff;
+        Service.OnDiffRequested -= HandleDiffRequested;
 
         if (Service is ServerNotebookService serverService)
         {
