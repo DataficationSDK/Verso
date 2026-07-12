@@ -19,10 +19,10 @@ Search for a package, choose a version from the picker if you want something oth
 
 Installed packages are unpacked into a managed store on disk:
 
-- macOS and Linux: `~/.verso/extensions/<package-id>/<version>/`
-- Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\`
+- macOS and Linux: `~/.verso/extensions/<package-id>/<version>/<target-framework>/`
+- Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\<target-framework>\`
 
-Each version lives in its own folder, so multiple versions can coexist. To remove an extension, use its Uninstall button. Uninstalling also revokes the package's trust, so installing it again asks for consent afresh.
+Each version lives in its own folder, so multiple versions can coexist. Inside a version folder, assemblies are grouped by the .NET runtime they were installed for (for example `net8.0`), so notebook hosts running on different .NET versions can share the same store. To remove an extension, use its Uninstall button. Uninstalling also revokes the package's trust, so installing it again asks for consent afresh.
 
 ## Trust and consent
 

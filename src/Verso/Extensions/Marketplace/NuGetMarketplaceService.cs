@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
@@ -45,7 +47,10 @@ public sealed record LocalInstallResult(
 /// directory. Search uses the NuGet v3 <see cref="PackageSearchResource"/>; install
 /// delegates downloading and transitive resolution to <see cref="NuGetPackageResolver"/>
 /// and then copies the resolved assemblies into a stable per-package directory so they
-/// persist across sessions and can be reloaded offline.
+/// persist across sessions and can be reloaded offline. Because the managed directory is
+/// shared by every Verso host on the machine and hosts can run on different .NET runtime
+/// majors (the notebook host rolls forward to the newest installed runtime), each install
+/// is partitioned into a per-runtime subfolder so one host's assets never poison another's.
 /// </summary>
 public sealed class NuGetMarketplaceService
 {
@@ -218,12 +223,133 @@ public sealed class NuGetMarketplaceService
     }
 
     /// <summary>
+    /// The runtime major of the current process. Package assets are selected for the
+    /// running runtime at extraction time, so this is the newest asset generation this
+    /// process can load.
+    /// </summary>
+    private static readonly int HostRuntimeMajor = Environment.Version.Major;
+
+    /// <summary>
+    /// Floor for runtime subfolder labels. Assets that demand nothing newer (netstandard,
+    /// net5 and older) are labeled net6.0, the oldest TFM package resolution considers,
+    /// and load on every supported host.
+    /// </summary>
+    private const int MinRuntimeLabelMajor = 6;
+
+    /// <summary>
+    /// Picks the assemblies to load for one installed package version, or <c>null</c> when
+    /// nothing this runtime can load is present. Installs live in per-runtime subfolders
+    /// (<c>net8.0</c>, <c>net10.0</c>, ...) whose name records the minimum runtime major
+    /// the assemblies inside require; the newest folder at or below the current runtime
+    /// wins. The partition exists because every host on the machine shares the managed
+    /// directory while extracting assets for its own runtime: without it, a host running
+    /// on .NET 10 lays down net10.0 assets that a .NET 8 host later trusts and fails to
+    /// load. A flat set of assemblies directly in the version folder (written before
+    /// installs were partitioned) is used only after probing that this runtime meets what
+    /// they require.
+    /// </summary>
+    private static (string Directory, string[] Assemblies)? TryPickCompatibleAssemblies(string versionDir)
+    {
+        if (!Directory.Exists(versionDir))
+            return null;
+
+        var bestMajor = -1;
+        string? bestDir = null;
+        string[]? bestDlls = null;
+        foreach (var subDir in Directory.GetDirectories(versionDir))
+        {
+            if (!TryParseRuntimeLabel(Path.GetFileName(subDir), out var major) ||
+                major > HostRuntimeMajor || major <= bestMajor)
+                continue;
+
+            var dlls = Directory.GetFiles(subDir, "*.dll");
+            if (dlls.Length == 0)
+                continue;
+
+            bestMajor = major;
+            bestDir = subDir;
+            bestDlls = dlls;
+        }
+
+        if (bestDir is not null)
+            return (bestDir, bestDlls!);
+
+        var flat = Directory.GetFiles(versionDir, "*.dll");
+        if (flat.Length > 0 && GetRequiredRuntimeMajor(flat) <= HostRuntimeMajor)
+            return (versionDir, flat);
+
+        return null;
+    }
+
+    /// <summary>Runtime subfolder a freshly resolved set of assemblies is stored under.</summary>
+    private static string RuntimeLabelFor(IReadOnlyList<string> assemblyPaths)
+        => $"net{Math.Max(GetRequiredRuntimeMajor(assemblyPaths), MinRuntimeLabelMajor)}.0";
+
+    /// <summary>Parses a per-runtime subfolder name of the form <c>net8.0</c> or <c>net10.0</c>.</summary>
+    private static bool TryParseRuntimeLabel(string name, out int major)
+    {
+        major = 0;
+        if (name.Length < 6 ||
+            !name.StartsWith("net", StringComparison.OrdinalIgnoreCase) ||
+            !name.EndsWith(".0", StringComparison.Ordinal))
+            return false;
+        return int.TryParse(name.AsSpan(3, name.Length - 5), out major) && major > 0;
+    }
+
+    /// <summary>Highest runtime major any assembly in the set requires; 0 when none declares one.</summary>
+    private static int GetRequiredRuntimeMajor(IReadOnlyList<string> assemblyPaths)
+    {
+        var required = 0;
+        foreach (var path in assemblyPaths)
+            required = Math.Max(required, GetRequiredRuntimeMajor(path));
+        return required;
+    }
+
+    /// <summary>
+    /// The runtime major an assembly requires, read from its core-library reference without
+    /// loading any code. net5 and newer assemblies reference System.Runtime at their target
+    /// major, which recovers the TFM the assets were extracted for. Native or unreadable
+    /// files report 0 so they never disqualify the set they sit in.
+    /// </summary>
+    internal static int GetRequiredRuntimeMajor(string assemblyPath)
+    {
+        try
+        {
+            using var stream = File.OpenRead(assemblyPath);
+            using var pe = new PEReader(stream);
+            if (!pe.HasMetadata)
+                return 0;
+
+            var metadata = pe.GetMetadataReader();
+            var required = 0;
+            foreach (var handle in metadata.AssemblyReferences)
+            {
+                var reference = metadata.GetAssemblyReference(handle);
+                var name = metadata.GetString(reference.Name);
+                if ((string.Equals(name, "System.Runtime", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(name, "System.Private.CoreLib", StringComparison.OrdinalIgnoreCase)) &&
+                    reference.Version.Major >= 5)
+                {
+                    required = Math.Max(required, reference.Version.Major);
+                }
+            }
+            return required;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// Ensures a package is present in the managed extensions directory and returns the
-    /// assembly paths to load. When the requested version is already installed on disk this
+    /// assembly paths to load. When a copy this runtime can load is already installed this
     /// is offline and fast; otherwise the package and its transitive dependencies are
-    /// downloaded, then copied into <c>{managedDir}/{id}/{version}/</c>. The package
-    /// directory is registered with the runtime resolver so co-located dependency
-    /// assemblies resolve when the extension is loaded.
+    /// downloaded, then copied into <c>{managedDir}/{id}/{version}/{netN.0}/</c>, where the
+    /// last segment records the minimum runtime the assets require (see
+    /// <see cref="TryPickCompatibleAssemblies"/>). The package directory is registered with
+    /// the runtime resolver so co-located dependency assemblies resolve when the extension
+    /// is loaded.
     /// </summary>
     public async Task<MarketplaceInstallResult> EnsureInstalledAsync(
         string packageId, string? version, string managedDir, CancellationToken ct)
@@ -235,25 +361,22 @@ public sealed class NuGetMarketplaceService
         if (version is not null && !IsSafePathSegment(version))
             throw new ArgumentException($"Invalid package version '{version}'.", nameof(version));
 
-        // Fast path: a pinned version already laid down on disk.
+        // Fast path: a pinned version already laid down on disk in a copy this runtime
+        // can load.
         if (!string.IsNullOrWhiteSpace(version))
         {
-            var existingDir = Path.Combine(managedDir, packageId, version);
-            if (Directory.Exists(existingDir))
+            if (TryPickCompatibleAssemblies(Path.Combine(managedDir, packageId, version)) is { } existing)
             {
-                var existingDlls = Directory.GetFiles(existingDir, "*.dll");
-                if (existingDlls.Length > 0)
-                {
-                    NuGetRuntimeResolver.AddManagedSearchDirectory(existingDir);
-                    return new MarketplaceInstallResult(version, existingDir, existingDlls);
-                }
+                NuGetRuntimeResolver.AddManagedSearchDirectory(existing.Directory);
+                return new MarketplaceInstallResult(version, existing.Directory, existing.Assemblies);
             }
         }
 
         var resolver = new NuGetPackageResolver();
         var result = await resolver.ResolvePackageAsync(packageId, version, ct).ConfigureAwait(false);
 
-        var targetDir = Path.Combine(managedDir, packageId, result.ResolvedVersion);
+        var targetDir = Path.Combine(
+            managedDir, packageId, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
 
         NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
@@ -265,7 +388,7 @@ public sealed class NuGetMarketplaceService
     /// without contacting any feed. Used to reload sideloaded local extensions on open: a
     /// local file cannot be re-fetched, so a missing managed directory yields <c>null</c>
     /// rather than a download attempt. Returns <c>null</c> when the version is unknown or no
-    /// assemblies are present.
+    /// assemblies this runtime can load are present.
     /// </summary>
     public MarketplaceInstallResult? TryResolveInstalled(string packageId, string? version, string managedDir)
     {
@@ -274,23 +397,19 @@ public sealed class NuGetMarketplaceService
         if (!IsSafePathSegment(packageId) || !IsSafePathSegment(version))
             return null;
 
-        var dir = Path.Combine(managedDir, packageId, version);
-        if (!Directory.Exists(dir))
+        if (TryPickCompatibleAssemblies(Path.Combine(managedDir, packageId, version)) is not { } picked)
             return null;
 
-        var dlls = Directory.GetFiles(dir, "*.dll");
-        if (dlls.Length == 0)
-            return null;
-
-        NuGetRuntimeResolver.AddManagedSearchDirectory(dir);
-        return new MarketplaceInstallResult(version, dir, dlls);
+        NuGetRuntimeResolver.AddManagedSearchDirectory(picked.Directory);
+        return new MarketplaceInstallResult(version, picked.Directory, picked.Assemblies);
     }
 
     /// <summary>
     /// Returns the highest version of a package already laid down in the managed directory,
     /// without contacting any feed. Used as an offline fallback for an unpinned ("latest")
     /// required extension when the feed cannot be reached: a previously downloaded copy still
-    /// loads. Returns <c>null</c> when nothing is installed for the package.
+    /// loads. Returns <c>null</c> when nothing this runtime can load is installed for the
+    /// package.
     /// </summary>
     public MarketplaceInstallResult? TryResolveInstalledLatest(string packageId, string managedDir)
     {
@@ -349,12 +468,14 @@ public sealed class NuGetMarketplaceService
 
     /// <summary>
     /// Installs a sideloaded local extension file into the managed directory. A loose
-    /// <c>.dll</c> is copied into <c>{managedDir}/{assemblyName}/{assemblyVersion}/</c>; a
-    /// <c>.nupkg</c> is resolved like any other NuGet package (its containing folder is added
+    /// <c>.dll</c> is copied into <c>{managedDir}/{assemblyName}/{assemblyVersion}/{netN.0}/</c>;
+    /// a <c>.nupkg</c> is resolved like any other NuGet package (its containing folder is added
     /// as a source so the package itself is found locally while transitive dependencies still
     /// resolve from configured feeds) and the resulting closure is copied into
-    /// <c>{managedDir}/{id}/{version}/</c>. The package directory is registered with the
-    /// runtime resolver so co-located dependencies resolve when the extension loads.
+    /// <c>{managedDir}/{id}/{version}/{netN.0}/</c>. The trailing segment records the minimum
+    /// runtime the assemblies require (see <see cref="TryPickCompatibleAssemblies"/>). The
+    /// package directory is registered with the runtime resolver so co-located dependencies
+    /// resolve when the extension loads.
     /// </summary>
     public async Task<LocalInstallResult> InstallFromFileAsync(string localFilePath, string managedDir, CancellationToken ct)
     {
@@ -394,7 +515,8 @@ public sealed class NuGetMarketplaceService
 
         var result = await resolver.ResolvePackageAsync(id, version, ct).ConfigureAwait(false);
 
-        var targetDir = Path.Combine(managedDir, id, result.ResolvedVersion);
+        var targetDir = Path.Combine(
+            managedDir, id, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
 
         NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
@@ -412,7 +534,7 @@ public sealed class NuGetMarketplaceService
         if (!IsSafePathSegment(id))
             throw new InvalidOperationException($"Assembly name '{id}' is not a valid extension id.");
 
-        var targetDir = Path.Combine(managedDir, id, version);
+        var targetDir = Path.Combine(managedDir, id, version, RuntimeLabelFor(new[] { dllPath }));
         Directory.CreateDirectory(targetDir);
 
         var dest = Path.Combine(targetDir, Path.GetFileName(dllPath));

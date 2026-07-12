@@ -188,8 +188,10 @@ In a CI pipeline, store the API key as a secret and automate the push:
 
 Once your package is on NuGet.org (or any feed in a user's NuGet configuration), it is discoverable from Verso's in-app Extensions panel. Users search for it by name, pick a version, and install it without leaving the notebook. Installed packages are unpacked into a managed store:
 
-- macOS and Linux: `~/.verso/extensions/<package-id>/<version>/`
-- Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\`
+- macOS and Linux: `~/.verso/extensions/<package-id>/<version>/<target-framework>/`
+- Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\<target-framework>\`
+
+The `<target-framework>` segment records the runtime the assemblies were installed for, so hosts running on different .NET versions each keep a compatible copy side by side. A package that multi-targets (for example `net8.0` and `net10.0`) lets each host pick the newest lib group its runtime can load; a single `net8.0` target also works on newer runtimes.
 
 Because an extension is executable code, Verso asks the user to approve a package the first time it loads, and remembers that approval per version. A new version prompts again. Keep this in mind when you publish updates: bumping the version is a deliberate re-consent point for your users, not a silent upgrade.
 

@@ -1,4 +1,8 @@
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
+using System.Text.RegularExpressions;
 using Verso.Extensions;
 using Verso.Extensions.Marketplace;
 
@@ -60,7 +64,7 @@ public class NuGetMarketplaceLocalInstallTests
     }
 
     [TestMethod]
-    public async Task InstallFromFileAsync_Dll_CopiesIntoManagedVersionDir()
+    public async Task InstallFromFileAsync_Dll_CopiesIntoRuntimePartitionedVersionDir()
     {
         var service = new NuGetMarketplaceService();
 
@@ -68,7 +72,12 @@ public class NuGetMarketplaceLocalInstallTests
 
         var expectedName = AssemblyName.GetAssemblyName(SampleDllPath).Name!;
         Assert.AreEqual(expectedName, result.PackageId);
-        Assert.AreEqual(Path.Combine(_managedDir, result.PackageId, result.ResolvedVersion), result.PackageDirectory);
+        // Installs are partitioned by the runtime the assemblies require so hosts running
+        // on different .NET majors can share the managed directory.
+        Assert.AreEqual(
+            Path.Combine(_managedDir, result.PackageId, result.ResolvedVersion),
+            Path.GetDirectoryName(result.PackageDirectory));
+        StringAssert.Matches(Path.GetFileName(result.PackageDirectory), new Regex(@"^net\d+\.0$"));
         Assert.AreEqual(1, result.AssemblyPaths.Count);
         Assert.IsTrue(File.Exists(result.AssemblyPaths[0]));
     }
@@ -212,5 +221,137 @@ public class NuGetMarketplaceLocalInstallTests
 
         Assert.IsNull(service.TryResolveInstalled("Pkg", "../../escape", _managedDir));
         Assert.IsNull(service.TryResolveInstalled("../../evil", "1.0.0", _managedDir));
+    }
+
+    [TestMethod]
+    public void TryResolveInstalled_PicksNewestRuntimeFolderThisRuntimeCanLoad()
+    {
+        var current = Environment.Version.Major;
+        var versionDir = Path.Combine(_managedDir, "Pkg", "1.0.0");
+        foreach (var label in new[] { "net6.0", $"net{current}.0", $"net{current + 1}.0" })
+        {
+            var dir = Path.Combine(versionDir, label);
+            Directory.CreateDirectory(dir);
+            File.Copy(SampleDllPath, Path.Combine(dir, "Pkg.dll"));
+        }
+
+        var service = new NuGetMarketplaceService();
+        var resolved = service.TryResolveInstalled("Pkg", "1.0.0", _managedDir);
+
+        Assert.IsNotNull(resolved);
+        Assert.AreEqual(Path.Combine(versionDir, $"net{current}.0"), resolved.PackageDirectory);
+    }
+
+    [TestMethod]
+    public void TryResolveInstalled_OnlyNewerRuntimeCopy_ReturnsNull()
+    {
+        // A copy written by a host on a newer runtime must not resolve: loading it would
+        // fail with a type-load error long after the install claimed to succeed.
+        var newer = Path.Combine(_managedDir, "Pkg", "1.0.0", $"net{Environment.Version.Major + 2}.0");
+        Directory.CreateDirectory(newer);
+        File.Copy(SampleDllPath, Path.Combine(newer, "Pkg.dll"));
+
+        var service = new NuGetMarketplaceService();
+
+        Assert.IsNull(service.TryResolveInstalled("Pkg", "1.0.0", _managedDir));
+    }
+
+    [TestMethod]
+    public void TryResolveInstalled_LegacyFlatCompatibleCopy_Resolves()
+    {
+        // Installs made before runtime partitioning put assemblies directly in the
+        // version folder; a copy this runtime can load must keep resolving.
+        var versionDir = Path.Combine(_managedDir, "Pkg", "1.0.0");
+        Directory.CreateDirectory(versionDir);
+        File.Copy(SampleDllPath, Path.Combine(versionDir, "Pkg.dll"));
+
+        var service = new NuGetMarketplaceService();
+        var resolved = service.TryResolveInstalled("Pkg", "1.0.0", _managedDir);
+
+        Assert.IsNotNull(resolved);
+        Assert.AreEqual(versionDir, resolved.PackageDirectory);
+    }
+
+    [TestMethod]
+    public void TryResolveInstalled_LegacyFlatCopyRequiringNewerRuntime_ReturnsNull()
+    {
+        var versionDir = Path.Combine(_managedDir, "Pkg", "1.0.0");
+        Directory.CreateDirectory(versionDir);
+        WriteAssemblyRequiringRuntime(Environment.Version.Major + 2, Path.Combine(versionDir, "Pkg.dll"));
+
+        var service = new NuGetMarketplaceService();
+
+        Assert.IsNull(service.TryResolveInstalled("Pkg", "1.0.0", _managedDir));
+    }
+
+    [TestMethod]
+    public void GetRequiredRuntimeMajor_ReadsSystemRuntimeReference()
+    {
+        Directory.CreateDirectory(_managedDir);
+        var fake = Path.Combine(_managedDir, "fake.dll");
+        WriteAssemblyRequiringRuntime(Environment.Version.Major + 2, fake);
+
+        Assert.AreEqual(Environment.Version.Major + 2, NuGetMarketplaceService.GetRequiredRuntimeMajor(fake));
+        Assert.AreEqual(
+            Environment.Version.Major,
+            NuGetMarketplaceService.GetRequiredRuntimeMajor(SampleDllPath),
+            "the test's own Verso build should require exactly the runtime the tests run on");
+    }
+
+    [TestMethod]
+    public async Task EnsureInstalled_ReusesCompatibleInstalledCopy()
+    {
+        var dir = Path.Combine(_managedDir, "Pkg", "1.0.0", $"net{Environment.Version.Major}.0");
+        Directory.CreateDirectory(dir);
+        File.Copy(SampleDllPath, Path.Combine(dir, "Pkg.dll"));
+
+        var service = new NuGetMarketplaceService();
+        var result = await service.EnsureInstalledAsync("Pkg", "1.0.0", _managedDir, CancellationToken.None);
+
+        Assert.AreEqual("1.0.0", result.ResolvedVersion);
+        Assert.AreEqual(dir, result.PackageDirectory);
+    }
+
+    [TestMethod]
+    public async Task EnsureInstalled_LegacyFlatCompatibleCopy_ReusedWithoutReinstall()
+    {
+        var versionDir = Path.Combine(_managedDir, "Pkg", "1.0.0");
+        Directory.CreateDirectory(versionDir);
+        File.Copy(SampleDllPath, Path.Combine(versionDir, "Pkg.dll"));
+
+        var service = new NuGetMarketplaceService();
+        var result = await service.EnsureInstalledAsync("Pkg", "1.0.0", _managedDir, CancellationToken.None);
+
+        Assert.AreEqual(versionDir, result.PackageDirectory);
+    }
+
+    /// <summary>
+    /// Writes a minimal managed assembly whose System.Runtime reference demands the given
+    /// runtime major, without needing that runtime installed. Lets the compatibility probe
+    /// be exercised against assemblies newer than the running host.
+    /// </summary>
+    private static void WriteAssemblyRequiringRuntime(int runtimeMajor, string path)
+    {
+        var metadata = new MetadataBuilder();
+        metadata.AddModule(
+            0, metadata.GetOrAddString(Path.GetFileName(path)),
+            metadata.GetOrAddGuid(Guid.NewGuid()), default, default);
+        metadata.AddAssembly(
+            metadata.GetOrAddString(Path.GetFileNameWithoutExtension(path)),
+            new Version(1, 0, 0, 0), default, default, 0, AssemblyHashAlgorithm.None);
+        metadata.AddAssemblyReference(
+            metadata.GetOrAddString("System.Runtime"),
+            new Version(runtimeMajor, 0, 0, 0), default, default, 0, default);
+        metadata.AddTypeDefinition(
+            default, default, metadata.GetOrAddString("<Module>"),
+            default, MetadataTokens.FieldDefinitionHandle(1), MetadataTokens.MethodDefinitionHandle(1));
+
+        var pe = new ManagedPEBuilder(
+            PEHeaderBuilder.CreateLibraryHeader(),
+            new MetadataRootBuilder(metadata),
+            ilStream: new BlobBuilder());
+        var image = new BlobBuilder();
+        pe.Serialize(image);
+        File.WriteAllBytes(path, image.ToArray());
     }
 }
