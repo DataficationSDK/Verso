@@ -147,6 +147,7 @@ jobs:
           dotnet pack samples/showcase/image-studio/src/Verso.Showcase.ImageStudio/Verso.Showcase.ImageStudio.csproj -c Release -p:GeneratePackageOnBuild=false -o packages
           dotnet pack samples/showcase/form-studio/src/Verso.Showcase.FormStudio/Verso.Showcase.FormStudio.csproj -c Release -p:GeneratePackageOnBuild=false -o packages
           dotnet pack samples/showcase/grid-studio/src/Verso.Showcase.GridStudio/Verso.Showcase.GridStudio.csproj -c Release -p:GeneratePackageOnBuild=false -o packages
+          dotnet pack samples/showcase/slide-studio/src/Verso.Showcase.SlideStudio/Verso.Showcase.SlideStudio.csproj -c Release -p:GeneratePackageOnBuild=false -o packages
 
       - name: Validate packages
         run: |

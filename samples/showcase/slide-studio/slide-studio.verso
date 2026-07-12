@@ -1,0 +1,102 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Q2 Sales Review",
+    "defaultKernel": "csharp",
+    "activeLayout": {
+      "extensionId": "com.verso.showcase.slide-studio",
+      "layoutId": "slide-studio"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.SlideStudio"
+      ]
+    }
+  },
+  "cells": [
+    {
+      "id": "51de0000-0001-4000-8000-000000000001",
+      "type": "markdown",
+      "source": "# Q2 Sales Review\n\nRegional performance for the second quarter, presented straight from the notebook that produced it. This notebook uses the **Slide Studio** layout (`Verso.Showcase.SlideStudio`, installed automatically the first time you open it): click a tile in the filmstrip to edit that cell, drag the splitter between the editor and its output, and press **Present** to play the included cells as a full-screen deck (arrow keys navigate, Esc exits).\n\nEach tile's corner checkbox includes or hides the cell in the presenter view, and the two pane checkboxes choose whether a slide shows the cell's source, its output, or both. Try the scratch cell at the end: it is unchecked, so the presenter skips it.",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "<h1>Q2 Sales Review</h1>\n<p>Regional performance for the second quarter, presented straight from the notebook that produced it. This notebook uses the <strong>Slide Studio</strong> layout (<code>Verso.Showcase.SlideStudio</code>, installed automatically the first time you open it): click a tile in the filmstrip to edit that cell, drag the splitter between the editor and its output, and press <strong>Present</strong> to play the included cells as a full-screen deck (arrow keys navigate, Esc exits).</p>\n<p>Each tile's corner checkbox includes or hides the cell in the presenter view, and the two pane checkboxes choose whether a slide shows the cell's source, its output, or both. Try the scratch cell at the end: it is unchecked, so the presenter skips it.</p>"
+        }
+      ]
+    },
+    {
+      "id": "51de0000-0002-4000-8000-000000000002",
+      "type": "code",
+      "language": "csharp",
+      "source": "var regions = new[]\n{\n    (Name: \"North\", Q1: 182_400m, Q2: 214_900m),\n    (Name: \"South\", Q1: 146_100m, Q2: 158_300m),\n    (Name: \"East\",  Q1: 201_700m, Q2: 189_500m),\n    (Name: \"West\",  Q1: 167_800m, Q2: 203_200m),\n};\n\nvar num = \"padding:4px 14px;text-align:right\";\nvar rows = string.Join(\"\", regions.Select(r =>\n    \"<tr>\"\n    + $\"<td style='padding:4px 14px'>{r.Name}</td>\"\n    + $\"<td style='{num}'>{r.Q1:N0}</td>\"\n    + $\"<td style='{num}'>{r.Q2:N0}</td>\"\n    + $\"<td style='{num}'>{(r.Q2 - r.Q1) / r.Q1:+0.0%;-0.0%}</td>\"\n    + \"</tr>\"));\n\nCellOutput.Html(\n    \"<table style='border-collapse:collapse'>\"\n    + \"<thead><tr>\"\n    + \"<th style='padding:4px 14px;text-align:left'>Region</th>\"\n    + \"<th style='padding:4px 14px'>Q1</th>\"\n    + \"<th style='padding:4px 14px'>Q2</th>\"\n    + \"<th style='padding:4px 14px'>Change</th>\"\n    + \"</tr></thead>\"\n    + $\"<tbody>{rows}</tbody></table>\")",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "<table style='border-collapse:collapse'><thead><tr><th style='padding:4px 14px;text-align:left'>Region</th><th style='padding:4px 14px'>Q1</th><th style='padding:4px 14px'>Q2</th><th style='padding:4px 14px'>Change</th></tr></thead><tbody><tr><td style='padding:4px 14px'>North</td><td style='padding:4px 14px;text-align:right'>182,400</td><td style='padding:4px 14px;text-align:right'>214,900</td><td style='padding:4px 14px;text-align:right'>+17.8%</td></tr><tr><td style='padding:4px 14px'>South</td><td style='padding:4px 14px;text-align:right'>146,100</td><td style='padding:4px 14px;text-align:right'>158,300</td><td style='padding:4px 14px;text-align:right'>+8.4%</td></tr><tr><td style='padding:4px 14px'>East</td><td style='padding:4px 14px;text-align:right'>201,700</td><td style='padding:4px 14px;text-align:right'>189,500</td><td style='padding:4px 14px;text-align:right'>-6.0%</td></tr><tr><td style='padding:4px 14px'>West</td><td style='padding:4px 14px;text-align:right'>167,800</td><td style='padding:4px 14px;text-align:right'>203,200</td><td style='padding:4px 14px;text-align:right'>+21.1%</td></tr></tbody></table>"
+        }
+      ]
+    },
+    {
+      "id": "51de0000-0003-4000-8000-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "var q2 = new[]\n{\n    (Label: \"North\", Value: 214.9),\n    (Label: \"South\", Value: 158.3),\n    (Label: \"East\",  Value: 189.5),\n    (Label: \"West\",  Value: 203.2),\n};\n\nvar max = q2.Max(v => v.Value);\nvar bars = string.Join(\"\", q2.Select((v, i) =>\n{\n    var h = (int)(v.Value / max * 180);\n    var x = 40 + i * 110;\n    return $\"<rect x='{x}' y='{220 - h}' width='70' height='{h}' rx='4' fill='#6750a4'/>\"\n         + $\"<text x='{x + 35}' y='245' text-anchor='middle' font-size='13' fill='currentColor'>{v.Label}</text>\"\n         + $\"<text x='{x + 35}' y='{212 - h}' text-anchor='middle' font-size='12' fill='currentColor'>{v.Value:0.0}k</text>\";\n}));\n\nCellOutput.Html($\"<svg viewBox='0 0 480 260' width='480' height='260' xmlns='http://www.w3.org/2000/svg'>{bars}</svg>\")",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "<svg viewBox='0 0 480 260' width='480' height='260' xmlns='http://www.w3.org/2000/svg'><rect x='40' y='40' width='70' height='180' rx='4' fill='#6750a4'/><text x='75' y='245' text-anchor='middle' font-size='13' fill='currentColor'>North</text><text x='75' y='32' text-anchor='middle' font-size='12' fill='currentColor'>214.9k</text><rect x='150' y='88' width='70' height='132' rx='4' fill='#6750a4'/><text x='185' y='245' text-anchor='middle' font-size='13' fill='currentColor'>South</text><text x='185' y='80' text-anchor='middle' font-size='12' fill='currentColor'>158.3k</text><rect x='260' y='62' width='70' height='158' rx='4' fill='#6750a4'/><text x='295' y='245' text-anchor='middle' font-size='13' fill='currentColor'>East</text><text x='295' y='54' text-anchor='middle' font-size='12' fill='currentColor'>189.5k</text><rect x='370' y='50' width='70' height='170' rx='4' fill='#6750a4'/><text x='405' y='245' text-anchor='middle' font-size='13' fill='currentColor'>West</text><text x='405' y='42' text-anchor='middle' font-size='12' fill='currentColor'>203.2k</text></svg>"
+        }
+      ]
+    },
+    {
+      "id": "51de0000-0004-4000-8000-000000000004",
+      "type": "code",
+      "language": "csharp",
+      "source": "var q1Total = 698_000m;\nvar q2Total = 765_900m;\nvar growth = (q2Total - q1Total) / q1Total;\nConsole.WriteLine($\"Q1 {q1Total:N0} -> Q2 {q2Total:N0}\");\nConsole.WriteLine($\"Quarter over quarter growth: {growth:P1}\");",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Q1 698,000 -> Q2 765,900\nQuarter over quarter growth: 9.7%\n"
+        }
+      ],
+      "metadata": {
+        "verso.showcase.slideStudio:presenter": {
+          "include": true,
+          "showSource": true,
+          "showOutput": true
+        }
+      }
+    },
+    {
+      "id": "51de0000-0005-4000-8000-000000000005",
+      "type": "markdown",
+      "source": "## Next steps\n\n- Investigate the East region dip before the Q3 planning cycle\n- Roll the West playbook out to South\n- Bring the updated pricing model to the next review",
+      "outputs": [
+        {
+          "mimeType": "text/html",
+          "content": "<h2>Next steps</h2>\n<ul>\n<li>Investigate the East region dip before the Q3 planning cycle</li>\n<li>Roll the West playbook out to South</li>\n<li>Bring the updated pricing model to the next review</li>\n</ul>"
+        }
+      ]
+    },
+    {
+      "id": "51de0000-0006-4000-8000-000000000006",
+      "type": "code",
+      "language": "csharp",
+      "source": "// Scratch: sanity-check the totals before the review. This cell is\n// excluded from the presenter view (its filmstrip checkbox is off).\nvar q1 = new[] { 182_400, 146_100, 201_700, 167_800 };\nvar q2 = new[] { 214_900, 158_300, 189_500, 203_200 };\nConsole.WriteLine($\"Q1 {q1.Sum():N0} / Q2 {q2.Sum():N0}\");",
+      "outputs": [
+        {
+          "mimeType": "text/plain",
+          "content": "Q1 698,000 / Q2 765,900\n"
+        }
+      ],
+      "metadata": {
+        "verso.showcase.slideStudio:presenter": {
+          "include": false,
+          "showSource": false,
+          "showOutput": true
+        }
+      }
+    }
+  ]
+}
