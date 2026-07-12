@@ -19,7 +19,19 @@ public sealed class ServerNotebookServiceDiffTests
     [TestCleanup]
     public void RemoveTempDir()
     {
-        try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
+        if (!Directory.Exists(_tempDir)) return;
+        try
+        {
+            // Git creates its object files read-only; on Windows a recursive delete throws
+            // UnauthorizedAccessException on them unless the attribute is cleared first.
+            foreach (var file in Directory.EnumerateFiles(_tempDir, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+            }
+            Directory.Delete(_tempDir, recursive: true);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 
     [TestMethod]
