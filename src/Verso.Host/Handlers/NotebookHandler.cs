@@ -284,9 +284,12 @@ public static class NotebookHandler
             format = fmtEl.GetString()!;
         }
 
-        // Flush layout metadata (grid positions, etc.) into the notebook model
+        // Flush layout metadata (grid positions, etc.) and extension settings into the
+        // notebook model; both live in their managers until saved.
         if (ns.Scaffold.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(ns.Scaffold.Notebook);
+        if (ns.Scaffold.SettingsManager is { } sm)
+            await sm.SaveSettingsAsync(ns.Scaffold.Notebook);
 
         // Run post-processors before serialization. The format key the post-processor
         // sees matches the requested serializer so format-specific processors can opt in.

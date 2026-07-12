@@ -3178,6 +3178,13 @@ html, body {
     min-width: 140px;
 }
 
+/* Values can be truncated JSON previews (layout state, extension settings); break anywhere
+   so a long unbroken token cannot force the row wider than the panel. */
+.verso-diff-metadata-value {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
 .verso-diff-metadata-value--baseline {
     color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
     text-decoration: line-through;

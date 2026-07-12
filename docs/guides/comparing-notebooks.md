@@ -24,7 +24,7 @@ The view lists cells in the current notebook's order:
 - **Moved** cells kept their content but changed position; the header shows the old and new positions.
 - Runs of unchanged cells collapse into a single row you can expand.
 
-Notebook-level settings changes (title, default kernel, layout, theme, extension requirements) are listed at the top. Save-time noise such as the modified timestamp is excluded.
+Notebook-level settings changes are listed at the top: title, default kernel, layout, theme, extension requirements, parameter definitions, extension settings, and saved layout state. Changes made through settings panes or by interactive layouts count as real changes, including ones you have not saved yet. Large values such as a layout's stored document show a shortened preview. Save-time noise such as the modified timestamp is excluded.
 
 On very large change sets, source comparisons start collapsed and load as you expand them, keeping the view responsive.
 

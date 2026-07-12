@@ -160,6 +160,175 @@ public sealed class NotebookDiffEngineTests
     }
 
     [TestMethod]
+    public void Compute_ParameterAdded_Reported()
+    {
+        var baseline = Notebook();
+        var current = Notebook();
+        current.Parameters = new Dictionary<string, NotebookParameterDefinition>
+        {
+            ["region"] = new() { Type = "string", Default = "us-east" },
+        };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        var change = result.MetadataChanges.Single();
+        Assert.AreEqual("Parameter 'region'", change.Field);
+        Assert.IsNull(change.BaselineValue);
+        StringAssert.Contains(change.CurrentValue, "us-east");
+    }
+
+    [TestMethod]
+    public void Compute_ParameterDefaultChanged_Reported()
+    {
+        var baseline = Notebook();
+        baseline.Parameters = new Dictionary<string, NotebookParameterDefinition>
+        {
+            ["limit"] = new() { Type = "int", Default = 10 },
+        };
+        var current = Notebook();
+        current.Parameters = new Dictionary<string, NotebookParameterDefinition>
+        {
+            ["limit"] = new() { Type = "int", Default = 25 },
+        };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        var change = result.MetadataChanges.Single();
+        Assert.AreEqual("Parameter 'limit'", change.Field);
+        StringAssert.Contains(change.BaselineValue, "10");
+        StringAssert.Contains(change.CurrentValue, "25");
+    }
+
+    [TestMethod]
+    public void Compute_ExtensionSettingChanged_ReportedPerSetting()
+    {
+        var baseline = Notebook();
+        baseline.ExtensionSettings["verso.charts"] = new Dictionary<string, object?>
+        {
+            ["palette"] = "classic",
+            ["gridlines"] = true,
+        };
+        var current = Notebook();
+        current.ExtensionSettings["verso.charts"] = new Dictionary<string, object?>
+        {
+            ["palette"] = "vivid",
+            ["gridlines"] = true,
+        };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        var change = result.MetadataChanges.Single();
+        Assert.AreEqual("Extension setting 'verso.charts.palette'", change.Field);
+        StringAssert.Contains(change.BaselineValue, "classic");
+        StringAssert.Contains(change.CurrentValue, "vivid");
+    }
+
+    [TestMethod]
+    public void Compute_LayoutStateChanged_ReportedPerLayout()
+    {
+        var baseline = Notebook();
+        baseline.Layouts["acme.studio:studio"] = new Dictionary<string, object> { ["document"] = "{\"layers\":1}" };
+        var current = Notebook();
+        current.Layouts["acme.studio:studio"] = new Dictionary<string, object> { ["document"] = "{\"layers\":2}" };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        var change = result.MetadataChanges.Single();
+        Assert.AreEqual("Layout state 'acme.studio:studio'", change.Field);
+        StringAssert.Contains(change.BaselineValue, "layers");
+    }
+
+    [TestMethod]
+    public void Compute_LayoutStateSameContentDifferentKeyOrder_NotReported()
+    {
+        var baseline = Notebook();
+        baseline.Layouts["dashboard"] = new Dictionary<string, object> { ["rows"] = 2, ["cols"] = 3 };
+        var current = Notebook();
+        current.Layouts["dashboard"] = new Dictionary<string, object> { ["cols"] = 3, ["rows"] = 2 };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        Assert.AreEqual(0, result.MetadataChanges.Count);
+    }
+
+    [TestMethod]
+    public void Compute_LayoutStateBareBaselineKey_QualifiedCurrentKey_SameContent_NotReported()
+    {
+        var baseline = Notebook();
+        baseline.Layouts["dashboard"] = new Dictionary<string, object> { ["rows"] = 2 };
+        var current = Notebook();
+        current.Layouts["verso.layout.dashboard:dashboard"] = new Dictionary<string, object> { ["rows"] = 2 };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        Assert.AreEqual(0, result.MetadataChanges.Count,
+            "A legacy bare layout key promoted to its qualified form must not read as a change.");
+    }
+
+    [TestMethod]
+    public void Compute_LayoutStateLargeValue_TruncatedInReport()
+    {
+        var baseline = Notebook();
+        var current = Notebook();
+        current.Layouts["acme.studio:studio"] = new Dictionary<string, object>
+        {
+            ["document"] = new string('x', 5000),
+        };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        var change = result.MetadataChanges.Single();
+        Assert.IsNotNull(change.CurrentValue);
+        Assert.IsTrue(change.CurrentValue.Length < 200,
+            $"Large values must be truncated for display, got {change.CurrentValue.Length} chars.");
+        StringAssert.EndsWith(change.CurrentValue, "...");
+    }
+
+    [TestMethod]
+    public void Compute_JsonElementBaseline_ClrCurrent_SameSettings_NotReported()
+    {
+        var baseline = Notebook();
+        baseline.ExtensionSettings["verso.charts"] = new Dictionary<string, object?>
+        {
+            ["limit"] = System.Text.Json.JsonSerializer.Deserialize<object>("25"),
+            ["palette"] = System.Text.Json.JsonSerializer.Deserialize<object>("\"vivid\""),
+        };
+        var current = Notebook();
+        current.ExtensionSettings["verso.charts"] = new Dictionary<string, object?>
+        {
+            ["limit"] = 25,
+            ["palette"] = "vivid",
+        };
+
+        var result = NotebookDiffEngine.Compute(baseline, current, "Last Saved");
+
+        Assert.AreEqual(0, result.MetadataChanges.Count,
+            "A deserialized baseline (JsonElement values) must compare equal to the live model (CLR values).");
+    }
+
+    [TestMethod]
+    public async Task Compute_SerializeRoundTrip_NoMetadataNoise()
+    {
+        var original = Notebook(Cell("print(1)"));
+        original.Title = "Round Trip";
+        original.Parameters = new Dictionary<string, NotebookParameterDefinition>
+        {
+            ["limit"] = new() { Type = "int", Default = 10, Required = true },
+        };
+        original.ExtensionSettings["verso.charts"] = new Dictionary<string, object?> { ["palette"] = "vivid" };
+        original.Layouts["acme.studio:studio"] = new Dictionary<string, object> { ["document"] = "{\"layers\":[1,2]}" };
+
+        var serializer = new Verso.Serializers.VersoSerializer();
+        var roundTripped = await serializer.DeserializeAsync(await serializer.SerializeAsync(original));
+
+        var result = NotebookDiffEngine.Compute(roundTripped, original, "Last Saved");
+
+        Assert.AreEqual(0, result.MetadataChanges.Count,
+            "Comparing a notebook against its own serialized form must report no metadata changes: " +
+            string.Join("; ", result.MetadataChanges.Select(c => c.Field)));
+    }
+
+    [TestMethod]
     public void Compute_OutputsChanged_SourceUnchanged_FlaggedOutputsChangedOnly()
     {
         var cell = Cell("print(1)");

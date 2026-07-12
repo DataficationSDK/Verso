@@ -9,8 +9,9 @@ namespace Verso.Host.Handlers;
 
 /// <summary>
 /// Handles <c>notebook/diff</c>: parses a baseline notebook payload and compares it against the
-/// live session's in-memory notebook (including unsaved edits). Read-only: nothing on the
-/// session is mutated.
+/// live session's in-memory notebook (including unsaved edits). Never marks the document dirty;
+/// the only session-side effect is flushing live layout and settings state into the model, the
+/// same flush a save performs.
 /// </summary>
 public static class DiffHandler
 {
@@ -57,6 +58,14 @@ public static class DiffHandler
         {
             baseline = await pp.PostDeserializeAsync(baseline, p.BaselineFilePath);
         }
+
+        // Layout state and extension settings live in their managers until save flushes them
+        // into the model; flush here too, or unsaved pane and layout edits are invisible to
+        // the comparison. Neither flush marks the document dirty.
+        if (ns.Scaffold.LayoutManager is { } lm)
+            await lm.SaveMetadataAsync(ns.Scaffold.Notebook);
+        if (ns.Scaffold.SettingsManager is { } sm)
+            await sm.SaveSettingsAsync(ns.Scaffold.Notebook);
 
         return NotebookDiffEngine.Compute(baseline, ns.Scaffold.Notebook, p.BaselineLabel);
     }

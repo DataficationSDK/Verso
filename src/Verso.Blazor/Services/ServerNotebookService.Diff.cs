@@ -54,6 +54,15 @@ public sealed partial class ServerNotebookService
         };
 
         var baseline = await DeserializeBaselineAsync(content, baselinePath);
+
+        // Layout state and extension settings live in their managers until save flushes them
+        // into the model; flush here too, or unsaved pane and layout edits are invisible to
+        // the comparison. Neither flush marks the notebook dirty.
+        if (_scaffold.LayoutManager is { } lm)
+            await lm.SaveMetadataAsync(_scaffold.Notebook);
+        if (_scaffold.SettingsManager is { } sm)
+            await sm.SaveSettingsAsync(_scaffold.Notebook);
+
         return NotebookDiffEngine.Compute(baseline, _scaffold.Notebook, label);
     }
 

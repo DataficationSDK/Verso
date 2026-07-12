@@ -205,4 +205,36 @@ public class DiffHandlerTests
             "CellDiffKind must serialize as a string on the wire so untyped clients stay readable.");
         StringAssert.Contains(response, "\"summary\"");
     }
+
+    [TestMethod]
+    public async Task HandleDiffAsync_LiveExtensionSettingsAndLayoutState_VisibleWithoutSave()
+    {
+        var cellId = Guid.NewGuid();
+        var content = await SerializeNotebook(new NotebookModel
+        {
+            Cells = { new CellModel { Id = cellId, Source = "var x = 1;", Language = "csharp" } },
+        });
+        var (session, notebookId) = await CreateOpenSession(content);
+        var ns = session.GetSession(notebookId);
+
+        // Simulate pane and layout edits that have reached the live model but were never saved.
+        ns.Scaffold.Notebook.ExtensionSettings["acme.demo"] =
+            new Dictionary<string, object?> { ["palette"] = "vivid" };
+        ns.Scaffold.Notebook.Layouts["acme.studio:studio"] =
+            new Dictionary<string, object> { ["document"] = "{\"layers\":2}" };
+
+        var result = await DiffHandler.HandleDiffAsync(ns, ToParams(new NotebookDiffParams
+        {
+            BaselineContent = content,
+            BaselineFilePath = "notebook.verso",
+            BaselineLabel = "Last Saved",
+        }));
+
+        Assert.AreEqual(0, result.Summary.Modified, "Cells did not change.");
+        var settingChange = result.MetadataChanges.Single(c => c.Field == "Extension setting 'acme.demo.palette'");
+        Assert.IsNull(settingChange.BaselineValue);
+        StringAssert.Contains(settingChange.CurrentValue, "vivid");
+        var layoutChange = result.MetadataChanges.Single(c => c.Field == "Layout state 'acme.studio:studio'");
+        StringAssert.Contains(layoutChange.CurrentValue, "layers");
+    }
 }
