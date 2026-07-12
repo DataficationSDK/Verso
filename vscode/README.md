@@ -13,6 +13,7 @@
 - **Markdown, HTML, and Mermaid** cells for documentation, visualizations, and diagrams
 - **Variable sharing** across languages so you can set a value in C# and use it in SQL, F#, or PowerShell
 - **Notebook and Dashboard layouts** to view cells as a linear document or arrange them in a drag-and-drop grid
+- **Notebook comparison** against the last saved file, git HEAD, any ref, or another notebook file, with cell-level diffs, moved-cell detection, and side-by-side rendered output comparison
 - **Light, Dark, and High Contrast themes** that are hot-swappable at runtime (High Contrast meets WCAG 2.1 AA)
 - **Import Jupyter (.ipynb) and Polyglot (.dib) notebooks** with automatic conversion of magic commands and cell types
 - **Fully extensible** with a public API for adding new languages, cell types, themes, layouts, and more
@@ -72,6 +73,10 @@ Verso integrates with GitHub Copilot Chat through the `@verso` participant. With
 | `@verso /vars` | Show all variables currently in scope |
 
 Copilot can chain multiple actions in a single conversation, for example creating a cell, running it, reading the output, and then fixing an error. The integration requires GitHub Copilot Chat and VS Code 1.99 or later.
+
+## Comparing Notebooks
+
+Click **Compare** in the notebook toolbar, use the diff icon in the editor title bar, or run **Verso: Compare Notebook with...** from the command palette to see what changed in the open notebook. Compare against the last saved file, git HEAD, any branch, tag, or commit, or another notebook file (`.verso`, `.ipynb`, or `.dib`). The view shows added, removed, edited, and moved cells with side-by-side source comparison, and when a cell's outputs changed, the old and new rendered outputs appear next to each other. Unsaved edits are included by design, and the comparison is read-only. Git baselines use VS Code's built-in git support.
 
 ## Importing Existing Notebooks
 
