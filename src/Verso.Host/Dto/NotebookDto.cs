@@ -43,6 +43,18 @@ public sealed class NotebookSaveResult
     public string Content { get; set; } = "";
 }
 
+public sealed class NotebookDiffParams
+{
+    /// <summary>Full text of the baseline notebook file (.verso, .ipynb, or .dib).</summary>
+    public string BaselineContent { get; set; } = "";
+
+    /// <summary>Baseline file path, used to pick the right serializer by extension.</summary>
+    public string? BaselineFilePath { get; set; }
+
+    /// <summary>Display label for the baseline (e.g. "Git: HEAD").</summary>
+    public string BaselineLabel { get; set; } = "Baseline";
+}
+
 public sealed class CellTypesResult
 {
     public List<CellTypeDto> CellTypes { get; set; } = new();

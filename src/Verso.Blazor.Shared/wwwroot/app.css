@@ -3026,3 +3026,363 @@ html, body {
         overflow-x: auto;
     }
 }
+
+/* ============================================================
+   Notebook diff view
+   ============================================================ */
+
+.verso-diff-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF));
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    outline: none;
+}
+
+.verso-diff-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.verso-diff-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F5F5F5));
+    flex: none;
+}
+
+.verso-diff-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.verso-diff-title-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.verso-diff-summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.verso-diff-summary-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+    background: var(--vscode-editorWidget-background, var(--verso-cell-hover-background, #ECECEC));
+    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+}
+
+.verso-diff-summary-badge--added {
+    color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32));
+    border-color: currentColor;
+}
+
+.verso-diff-summary-badge--removed {
+    color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
+    border-color: currentColor;
+}
+
+.verso-diff-summary-badge--modified {
+    color: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning, #B26A00));
+    border-color: currentColor;
+}
+
+.verso-diff-summary-badge--moved {
+    color: var(--vscode-textLink-foreground, var(--verso-status-info, #0B5FA5));
+    border-color: currentColor;
+}
+
+.verso-diff-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--verso-button-border-radius, 4px);
+    background: transparent;
+    color: var(--vscode-editor-foreground, var(--verso-editor-line-number, #858585));
+    cursor: pointer;
+    flex: none;
+}
+
+.verso-diff-close:hover {
+    background: var(--vscode-toolbar-hoverBackground, var(--verso-cell-hover-background, #ECECEC));
+}
+
+.verso-diff-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Cards keep their natural height in short viewports. They clip overflow for the rounded
+   corners, which zeroes the flex automatic minimum size; without this they compress to
+   slivers instead of scrolling when the container is shorter than the content. */
+.verso-diff-body > * {
+    flex-shrink: 0;
+}
+
+.verso-diff-metadata {
+    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    border-radius: 6px;
+    padding: 10px 14px;
+    background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F8F8F8));
+}
+
+.verso-diff-metadata-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+}
+
+.verso-diff-metadata-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    padding: 2px 0;
+    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+}
+
+/* Field names can embed layout or setting keys ("Layout state 'ext:key'"). Cap the column
+   and keep it from shrinking so a long key wraps inside its own box instead of painting
+   over the baseline value (flex items default to overflow: visible). */
+.verso-diff-metadata-field {
+    font-weight: 600;
+    min-width: 140px;
+    max-width: 240px;
+    flex-shrink: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Values can be truncated JSON previews (layout state, extension settings); break anywhere
+   so a long unbroken token cannot force the row wider than the panel. */
+.verso-diff-metadata-value {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.verso-diff-metadata-value--baseline {
+    color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
+    text-decoration: line-through;
+}
+
+.verso-diff-metadata-value--current {
+    color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32));
+}
+
+.verso-diff-metadata-arrow {
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+}
+
+.verso-diff-cell {
+    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.verso-diff-cell--added {
+    border-color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32));
+}
+
+.verso-diff-cell--removed {
+    border-color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
+}
+
+.verso-diff-cell--modified {
+    border-color: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning, #B26A00));
+}
+
+.verso-diff-cell--moved,
+.verso-diff-cell--unchanged {
+    border-style: dashed;
+}
+
+.verso-diff-cell-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F8F8F8));
+    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+}
+
+/* The gitDecoration-* theme tokens are foreground colors, so they become the chip's TEXT
+   color with a translucent tint of the same color behind it. A solid token background with
+   fixed white text goes unreadable in dark themes, where these tokens are light pastels. */
+.verso-diff-kind-badge {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 7px;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.verso-diff-kind-badge--added { color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32)); }
+.verso-diff-kind-badge--removed { color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828)); }
+.verso-diff-kind-badge--modified { color: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning, #B26A00)); }
+.verso-diff-kind-badge--moved { color: var(--vscode-textLink-foreground, var(--verso-status-info, #0B5FA5)); }
+
+.verso-diff-cell-position {
+    font-family: var(--verso-code-output-font-family, monospace);
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+}
+
+.verso-diff-cell-type,
+.verso-diff-cell-lang {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #6E6E6E));
+}
+
+.verso-diff-heuristic-hint {
+    font-size: 11px;
+    font-style: italic;
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    cursor: help;
+}
+
+.verso-diff-flag-chip {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--vscode-badge-background, var(--verso-cell-hover-background, #ECECEC));
+    color: var(--vscode-badge-foreground, var(--verso-editor-foreground, #1E1E1E));
+}
+
+.verso-diff-move-detail {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+}
+
+.verso-diff-source-block {
+    margin: 0;
+    padding: 10px 14px;
+    font-family: var(--verso-code-output-font-family, monospace);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+    background: var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF));
+}
+
+.verso-diff-source-block--added {
+    background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #2E7D32) 8%, var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF)));
+}
+
+.verso-diff-source-block--removed {
+    background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #C62828) 8%, var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF)));
+    text-decoration: none;
+}
+
+.verso-diff-unchanged-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.verso-diff-unchanged-toggle,
+.verso-diff-outputs-toggle,
+.verso-diff-expand-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px dashed var(--vscode-editorWidget-border, var(--verso-border-default, #D0D0D0));
+    border-radius: 4px;
+    background: transparent;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+.verso-diff-unchanged-toggle:hover,
+.verso-diff-outputs-toggle:hover,
+.verso-diff-expand-btn:hover {
+    background: var(--vscode-list-hoverBackground, var(--verso-cell-hover-background, #F0F0F0));
+}
+
+.verso-diff-chevron {
+    display: inline-block;
+    font-size: 9px;
+    transition: transform 0.1s;
+}
+
+.verso-diff-chevron--open {
+    transform: rotate(90deg);
+}
+
+.verso-diff-outputs {
+    border-top: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.verso-diff-outputs-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    min-width: 0;
+}
+
+.verso-diff-outputs-column {
+    min-width: 0;
+    overflow-x: auto;
+    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.verso-diff-outputs-column-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+}
+
+.verso-monaco-diff-editor {
+    width: 100%;
+    min-height: 60px;
+}

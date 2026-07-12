@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { BlazorEditorProvider } from "./blazor/blazorEditorProvider";
 import { registerParticipant } from "./copilot/participant";
-import { registerTools } from "./copilot/tools";
+import { registerTools, resolveNotebook } from "./copilot/tools";
 import { initialize as initializeLog, log } from "./log";
 
 type HostPathResolutionOptions = {
@@ -45,6 +45,42 @@ export async function activate(
     vscode.commands.registerCommand("verso.newNotebook", () =>
       blazorProvider.createScratchNotebook()
     )
+  );
+
+  // Opens the notebook diff view: the source is picked natively here, then the webview
+  // is told which comparison to run (it fetches the baseline via the bridge and renders
+  // the diff). resolveNotebook shows a quick pick when more than one notebook is open.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("verso.compareWithBaseline", async () => {
+      const notebook = await resolveNotebook();
+      if (!notebook) {
+        vscode.window.showInformationMessage(
+          "Verso: Open a notebook to compare it with a baseline."
+        );
+        return;
+      }
+
+      const { sources } = notebook.bridge.listDiffSources();
+      const picked = await vscode.window.showQuickPick(
+        sources.map((s) => ({
+          label: s.label,
+          description: s.available ? "" : s.description ?? "unavailable",
+          sourceId: s.id,
+          available: s.available,
+        })),
+        { placeHolder: "Compare notebook with..." }
+      );
+      if (!picked) {
+        return;
+      }
+      if (!picked.available) {
+        vscode.window.showInformationMessage(
+          `Verso: ${picked.description || "This comparison source is not available."}`
+        );
+        return;
+      }
+      notebook.bridge.notify("diff/requested", { sourceId: picked.sourceId });
+    })
   );
 
   // Register Copilot chat participant and tools (requires vscode.chat and vscode.lm APIs,

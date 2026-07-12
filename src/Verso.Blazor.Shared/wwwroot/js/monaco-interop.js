@@ -1,6 +1,7 @@
 // Monaco Editor JS interop for Verso.Blazor
 window.versoMonaco = (function () {
     const editors = {};
+    const diffEditors = {};         // elementId → { editor, originalModel, modifiedModel }
     const layoutFns = {};           // elementId → height/layout updater
     const visibilityObservers = {}; // elementId → ResizeObserver watching for first visibility
     const dotnetRefs = {};          // model URI → DotNetObjectReference
@@ -368,6 +369,86 @@ window.versoMonaco = (function () {
             }
         },
 
+        // Creates a read-only side-by-side (or inline) diff editor comparing two source strings.
+        // Diff editors are display-only: no completion providers, keyboard shortcuts, or .NET
+        // callbacks are wired, and content never changes after creation.
+        createDiffEditor: function (elementId, options) {
+            ensureMonaco(function () {
+                const container = document.getElementById(elementId);
+                if (!container) return;
+
+                const originalModel = monaco.editor.createModel(options.originalValue || '', options.language || 'csharp');
+                const modifiedModel = monaco.editor.createModel(options.modifiedValue || '', options.language || 'csharp');
+                const editor = monaco.editor.createDiffEditor(container, {
+                    theme: _currentTheme,
+                    readOnly: true,
+                    originalEditable: false,
+                    renderSideBySide: options.renderSideBySide !== false,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    lineNumbers: 'on',
+                    glyphMargin: false,
+                    folding: false,
+                    lineDecorationsWidth: 10,
+                    lineNumbersMinChars: 3,
+                    renderOverviewRuler: false,
+                    automaticLayout: true,
+                    fontSize: _editorSettings.fontSize,
+                    fontFamily: _editorSettings.fontFamily,
+                    fontLigatures: _editorSettings.fontLigatures,
+                    scrollbar: {
+                        vertical: 'auto',
+                        horizontal: 'auto',
+                        verticalScrollbarSize: 10,
+                        horizontalScrollbarSize: 10,
+                        alwaysConsumeMouseWheel: false
+                    }
+                });
+                editor.setModel({ original: originalModel, modified: modifiedModel });
+                diffEditors[elementId] = { editor: editor, originalModel: originalModel, modifiedModel: modifiedModel };
+
+                // Size to content like create()'s applyHeight, using the taller side. The diff
+                // view mounts its editors only while visible, but the first measure can still
+                // race Monaco's async setup, so keep a short bounded retry.
+                function applyHeight() {
+                    const modifiedEditor = editor.getModifiedEditor();
+                    const lineHeight = modifiedEditor.getOption(monaco.editor.EditorOption.lineHeight);
+                    if (!lineHeight) return false;
+                    const lineCount = Math.max(originalModel.getLineCount(), modifiedModel.getLineCount());
+                    const minLines = 3;
+                    const maxLines = 40;
+                    const lines = Math.max(minLines, Math.min(maxLines, lineCount));
+                    const padding = 14;
+                    container.style.height = (lines * lineHeight + padding) + 'px';
+                    editor.layout();
+                    return true;
+                }
+
+                let tries = 0;
+                (function retry() {
+                    if (!diffEditors[elementId]) return; // disposed mid-window
+                    if (applyHeight() || tries++ > 60) return;
+                    requestAnimationFrame(retry);
+                })();
+            });
+        },
+
+        disposeDiffEditor: function (elementId) {
+            const entry = diffEditors[elementId];
+            if (!entry) return;
+            entry.editor.dispose();
+            entry.originalModel.dispose();
+            entry.modifiedModel.dispose();
+            delete diffEditors[elementId];
+        },
+
+        // Focuses an element by id, used by overlay surfaces to capture keyboard events
+        // (e.g. Escape-to-close) as soon as they mount.
+        focusElement: function (elementId) {
+            const el = document.getElementById(elementId);
+            if (el) el.focus();
+        },
+
         // Re-measure and re-lay-out an editor. Used after a custom layout portals a cell from the
         // hidden pool into a visible slot: the editor may have been created while unmeasurable, so
         // re-running its height updater now that it is on-screen restores the correct size.
@@ -467,6 +548,7 @@ window.versoMonaco = (function () {
             if (settings.fontFamily !== undefined) opts.fontFamily = settings.fontFamily;
             if (settings.fontLigatures !== undefined) opts.fontLigatures = settings.fontLigatures;
             Object.values(editors).forEach(function (ed) { ed.updateOptions(opts); });
+            Object.values(diffEditors).forEach(function (entry) { entry.editor.updateOptions(opts); });
         }
     };
 })();

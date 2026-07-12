@@ -54,6 +54,10 @@ The same notebook can be viewed as a linear document or rearranged into a 12-col
 
 ![Side-by-side comparison of Notebook Layout and Dashboard Layout](https://datafication.co/assets/verso/VersoLayouts.gif)
 
+### Notebook Comparison
+
+Compare the open notebook, unsaved edits included, against the last saved file, git HEAD, any branch, tag, or commit, or another notebook file on disk. Because every cell in a `.verso` file has a stable identity, the diff distinguishes an edited cell from a removed-plus-added pair and recognizes cells that merely moved. Modified cells show side-by-side source comparison, and when outputs changed, the old and new rendered outputs (tables, charts, HTML) appear next to each other. Notebook-level settings changes such as the active layout, theme, and parameters are summarized at the top. See the [comparing notebooks guide](docs/guides/comparing-notebooks.md).
+
 ### Database Connectivity
 
 Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect to any supported database, execute queries with paginated result tables, inspect schema, and scaffold EF Core DbContext classes at runtime. SQL results are shared to the variable store for use in C#, F#, and other cells. See the [database connectivity guide](docs/guides/database-connectivity.md) for connection setup, provider support, EF Core scaffolding, and CI/CD pipeline examples.
@@ -196,7 +200,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid) |
 | **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
-| **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Switch Layout, Switch Theme, Export HTML, Export Markdown |
+| **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Compare, Switch Layout, Switch Theme, Export HTML, Export Markdown |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types, SQL result sets |
 | **Serializers** | `.verso` (native JSON, read/write), `.ipynb` (read/write, write opt-in), `.dib` (read only) |
 
@@ -234,7 +238,7 @@ JSON-based, human-readable, and diff-friendly:
 ## Documentation
 
 - [Architecture](docs/architecture/overview.md): the engine, front-ends, and extension host in depth
-- [Guides](docs/guides/): database connectivity, Mermaid diagrams, and more
+- [Guides](docs/guides/): database connectivity, Mermaid diagrams, notebook comparison, and more
 - [Extension authoring](docs/extensions/): the full interface reference and walkthroughs
 - [CLI reference](src/Verso.Cli/README.md): every command, option, meta-command, and exit code
 

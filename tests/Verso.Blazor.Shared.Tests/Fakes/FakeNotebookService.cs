@@ -90,6 +90,7 @@ public sealed class FakeNotebookService : INotebookService
     public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
     public event Action? OnDirtyStateChanged;
     public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
+    public event Action<string?>? OnDiffRequested;
 
     // ── Call tracking ──────────────────────────────────────────────────
 
@@ -121,6 +122,40 @@ public sealed class FakeNotebookService : INotebookService
     public Func<Task<IReadOnlyList<ExecutionResultDto>>>? ExecuteAllAsyncHandler { get; set; }
 
     // ── File operations ────────────────────────────────────────────────
+
+    // ── Notebook diff ──────────────────────────────────────────────────
+
+    public IReadOnlyList<DiffSourceInfo> DiffSourcesToReturn { get; set; } = new List<DiffSourceInfo>
+    {
+        new("lastSaved", "Last Saved", "lastSaved", true),
+        new("gitHead", "Git: HEAD", "git", true),
+        new("gitRef", "Git: Compare with Ref...", "git", true),
+        new("file", "Choose File...", "file", true),
+    };
+
+    public NotebookDiffResult? DiffResultToReturn { get; set; }
+    public Exception? ComputeDiffExceptionToThrow { get; set; }
+    public int ComputeDiffCallCount { get; private set; }
+    public string? LastDiffSourceId { get; private set; }
+    public string? LastDiffExplicitInput { get; private set; }
+
+    public Task<IReadOnlyList<DiffSourceInfo>> GetDiffSourcesAsync()
+        => Task.FromResult(DiffSourcesToReturn);
+
+    public Task<NotebookDiffResult?> ComputeDiffAsync(string sourceId, string? explicitInput = null)
+    {
+        ComputeDiffCallCount++;
+        LastDiffSourceId = sourceId;
+        LastDiffExplicitInput = explicitInput;
+        if (ComputeDiffExceptionToThrow is not null)
+        {
+            throw ComputeDiffExceptionToThrow;
+        }
+
+        return Task.FromResult(DiffResultToReturn);
+    }
+
+    public void RaiseDiffRequested(string? sourceId) => OnDiffRequested?.Invoke(sourceId);
 
     public Task NewNotebookAsync()
     {

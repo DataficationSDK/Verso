@@ -319,6 +319,7 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.NotebookSetFilePath => NotebookHandler.HandleSetFilePath(ns, @params),
             MethodNames.NotebookSetDefaultKernel => NotebookHandler.HandleSetDefaultKernel(ns, @params),
             MethodNames.NotebookSave => await NotebookHandler.HandleSaveAsync(ns, @params),
+            MethodNames.NotebookDiff => await DiffHandler.HandleDiffAsync(ns, @params),
             MethodNames.NotebookGetLanguages => NotebookHandler.HandleGetLanguages(ns),
             MethodNames.NotebookGetToolbarActions => NotebookHandler.HandleGetToolbarActions(ns),
             MethodNames.NotebookGetTheme => ThemeHandler.HandleGetTheme(ns),

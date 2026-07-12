@@ -164,6 +164,28 @@ public interface INotebookService
     /// Distinct from the restart events, which track a normal restart's progress.</summary>
     event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
+    /// <summary>Raised when the host asks the UI to open the notebook diff view without a prior
+    /// in-app trigger (e.g. a VS Code command). The payload is a pre-selected source id from
+    /// <see cref="GetDiffSourcesAsync"/>, or <see langword="null"/> to open with the source
+    /// picker shown.</summary>
+    event Action<string?>? OnDiffRequested;
+
+    // ── Notebook diff ──────────────────────────────────────────────────
+
+    /// <summary>Lists the baselines the current notebook can be compared against. Sources that
+    /// cannot be resolved right now (no file path yet, not in a git repository) are returned
+    /// with <see cref="DiffSourceInfo.Available"/> set to <see langword="false"/> so the UI can
+    /// explain why rather than hide them.</summary>
+    Task<IReadOnlyList<DiffSourceInfo>> GetDiffSourcesAsync();
+
+    /// <summary>Computes a cell-level diff of the live in-memory notebook (including unsaved
+    /// edits) against the baseline named by <paramref name="sourceId"/>. For the "gitRef" and
+    /// "file" sources, <paramref name="explicitInput"/> carries the ref name or file path on
+    /// hosts whose picker lives in the notebook UI; hosts with native pickers (VS Code) ignore
+    /// it and prompt themselves. Returns <see langword="null"/> when the user cancels a
+    /// picker.</summary>
+    Task<NotebookDiffResult?> ComputeDiffAsync(string sourceId, string? explicitInput = null);
+
     // ── File operations ────────────────────────────────────────────────
 
     /// <summary>Create a new empty notebook.</summary>

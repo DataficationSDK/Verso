@@ -31,7 +31,8 @@
   ],
   "activationEvents": [
     "onCustomEditor:verso.blazorNotebook",
-    "onCommand:verso.newNotebook"
+    "onCommand:verso.newNotebook",
+    "onCommand:verso.compareWithBaseline"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -40,8 +41,29 @@
         "command": "verso.newNotebook",
         "title": "New Notebook",
         "category": "Verso"
+      },
+      {
+        "command": "verso.compareWithBaseline",
+        "title": "Compare Notebook with...",
+        "category": "Verso",
+        "icon": "$(diff)"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "verso.compareWithBaseline",
+          "when": "activeCustomEditorId == verso.blazorNotebook"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "verso.compareWithBaseline",
+          "when": "activeCustomEditorId == verso.blazorNotebook",
+          "group": "navigation"
+        }
+      ]
+    },
     "customEditors": [
       {
         "viewType": "verso.blazorNotebook",

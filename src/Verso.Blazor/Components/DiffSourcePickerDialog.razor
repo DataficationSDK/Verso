@@ -1,0 +1,89 @@
+@if (IsVisible)
+{
+    <div class="verso-modal-overlay" @onclick="HandleCancel">
+        <div class="verso-modal" role="dialog" aria-modal="true" aria-label="@Title" @onclick:stopPropagation="true">
+            <div class="verso-modal-header">
+                <span class="verso-modal-title">@Title</span>
+                <button type="button" class="verso-modal-close" @onclick="HandleCancel" title="Cancel">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="verso-modal-body">
+                <label class="verso-modal-label" for="diffSourceInput">@Prompt</label>
+                <input id="diffSourceInput"
+                       class="verso-modal-input"
+                       type="text"
+                       placeholder="@Placeholder"
+                       @bind="_value"
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       autocomplete="off"
+                       spellcheck="false" />
+            </div>
+            <div class="verso-modal-footer">
+                <button type="button"
+                        class="verso-modal-btn verso-modal-btn--secondary"
+                        @onclick="HandleCancel">Cancel</button>
+                <button type="button"
+                        class="verso-modal-btn verso-modal-btn--primary"
+                        disabled="@string.IsNullOrWhiteSpace(_value)"
+                        @onclick="HandleSubmit">Compare</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _value = string.Empty;
+    private bool _wasVisible;
+
+    [Parameter] public bool IsVisible { get; set; }
+
+    /// <summary>Which input the dialog collects: "gitRef" or "file".</summary>
+    [Parameter] public string Kind { get; set; } = "gitRef";
+
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private bool IsGitRef => Kind == "gitRef";
+
+    private string Title => IsGitRef ? "Compare with Git Ref" : "Compare with File";
+
+    private string Prompt => IsGitRef
+        ? "Branch, tag, or commit"
+        : "Path to a notebook file (.verso, .ipynb, .dib)";
+
+    private string Placeholder => IsGitRef ? "main" : "/path/to/notebook.verso";
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && !_wasVisible)
+        {
+            _value = string.Empty;
+        }
+
+        _wasVisible = IsVisible;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!string.IsNullOrWhiteSpace(_value))
+        {
+            await OnSubmit.InvokeAsync(_value.Trim());
+        }
+    }
+
+    private Task HandleCancel() => OnCancel.InvokeAsync();
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+        else if (e.Key == "Escape")
+        {
+            await HandleCancel();
+        }
+    }
+}

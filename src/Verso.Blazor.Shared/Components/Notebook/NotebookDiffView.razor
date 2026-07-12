@@ -1,0 +1,316 @@
+@inject IJSRuntime JS
+
+<div id="@_overlayId" class="verso-diff-overlay" tabindex="-1"
+     @onkeydown="HandleKeyDown" @onkeydown:stopPropagation="true">
+    <div class="verso-diff-panel">
+        <div class="verso-diff-header">
+            <div class="verso-diff-title">
+                <span class="verso-diff-title-text">Comparing with @Diff.BaselineLabel</span>
+                <div class="verso-diff-summary">
+                    @if (Diff.Summary.Added > 0)
+                    {
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--added">+@Diff.Summary.Added added</span>
+                    }
+                    @if (Diff.Summary.Removed > 0)
+                    {
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--removed">&#8722;@Diff.Summary.Removed removed</span>
+                    }
+                    @if (Diff.Summary.Modified > 0)
+                    {
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--modified">@Diff.Summary.Modified modified</span>
+                    }
+                    @if (Diff.Summary.Moved > 0)
+                    {
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--moved">@Diff.Summary.Moved moved</span>
+                    }
+                    @if (!HasChanges)
+                    {
+                        <span class="verso-diff-summary-badge">No changes</span>
+                    }
+                </div>
+            </div>
+            <button class="verso-diff-close" title="Close (Esc)" @onclick="() => OnClose.InvokeAsync()">&#x2715;</button>
+        </div>
+
+        <div class="verso-diff-body">
+            @if (Diff.MetadataChanges.Count > 0)
+            {
+                <div class="verso-diff-metadata">
+                    <div class="verso-diff-metadata-title">Notebook settings</div>
+                    @foreach (var change in Diff.MetadataChanges)
+                    {
+                        <div class="verso-diff-metadata-row">
+                            <span class="verso-diff-metadata-field">@change.Field</span>
+                            <span class="verso-diff-metadata-value verso-diff-metadata-value--baseline">@(change.BaselineValue ?? "(not set)")</span>
+                            <span class="verso-diff-metadata-arrow">&#8594;</span>
+                            <span class="verso-diff-metadata-value verso-diff-metadata-value--current">@(change.CurrentValue ?? "(not set)")</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            @foreach (var block in BuildBlocks())
+            {
+                @if (block.UnchangedRun is not null)
+                {
+                    var run = block.UnchangedRun;
+                    <div class="verso-diff-unchanged-group">
+                        <button class="verso-diff-unchanged-toggle" @onclick="() => ToggleGroup(run.StartIndex)">
+                            <span class="verso-diff-chevron @(IsGroupExpanded(run.StartIndex) ? "verso-diff-chevron--open" : "")">&#x25B6;</span>
+                            @run.Entries.Count unchanged @(run.Entries.Count == 1 ? "cell" : "cells")
+                        </button>
+                        @if (IsGroupExpanded(run.StartIndex))
+                        {
+                            @foreach (var entry in run.Entries)
+                            {
+                                <div class="verso-diff-cell verso-diff-cell--unchanged">
+                                    <div class="verso-diff-cell-header">
+                                        @CellBadges(entry)
+                                    </div>
+                                    <pre class="verso-diff-source-block">@entry.CurrentCell!.Source</pre>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+                else
+                {
+                    var entry = block.Entry!;
+                    var entryIndex = block.EntryIndex;
+                    @switch (entry.Kind)
+                    {
+                        case CellDiffKind.Added:
+                            <div class="verso-diff-cell verso-diff-cell--added">
+                                <div class="verso-diff-cell-header">
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--added">Added</span>
+                                    @CellBadges(entry)
+                                </div>
+                                <pre class="verso-diff-source-block verso-diff-source-block--added">@entry.CurrentCell!.Source</pre>
+                            </div>
+                            break;
+
+                        case CellDiffKind.Removed:
+                            <div class="verso-diff-cell verso-diff-cell--removed">
+                                <div class="verso-diff-cell-header">
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--removed">Removed</span>
+                                    @CellBadges(entry)
+                                </div>
+                                <pre class="verso-diff-source-block verso-diff-source-block--removed">@entry.BaselineCell!.Source</pre>
+                            </div>
+                            break;
+
+                        case CellDiffKind.Moved:
+                            <div class="verso-diff-cell verso-diff-cell--moved">
+                                <div class="verso-diff-cell-header">
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--moved">Moved</span>
+                                    @CellBadges(entry)
+                                    <span class="verso-diff-move-detail">position @(entry.BaselineIndex + 1) &#8594; @(entry.CurrentIndex + 1)</span>
+                                </div>
+                            </div>
+                            break;
+
+                        case CellDiffKind.Modified:
+                            <div class="verso-diff-cell verso-diff-cell--modified">
+                                <div class="verso-diff-cell-header">
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--modified">Modified</span>
+                                    @CellBadges(entry)
+                                    @ChangeFlagChips(entry)
+                                </div>
+                                @if (entry.SourceChanged)
+                                {
+                                    @if (IsDiffExpanded(entryIndex))
+                                    {
+                                        <MonacoDiffEditor OriginalValue="@entry.BaselineCell!.Source"
+                                                          ModifiedValue="@entry.CurrentCell!.Source"
+                                                          Language="@LanguageFor(entry.CurrentCell)" />
+                                    }
+                                    else
+                                    {
+                                        <button class="verso-diff-expand-btn" @onclick="() => ExpandDiff(entryIndex)">
+                                            Show source changes
+                                        </button>
+                                    }
+                                }
+                                @if (entry.OutputsChanged)
+                                {
+                                    <div class="verso-diff-outputs">
+                                        <button class="verso-diff-outputs-toggle" @onclick="() => ToggleOutputs(entryIndex)">
+                                            <span class="verso-diff-chevron @(AreOutputsExpanded(entryIndex) ? "verso-diff-chevron--open" : "")">&#x25B6;</span>
+                                            Outputs changed
+                                        </button>
+                                        @if (AreOutputsExpanded(entryIndex))
+                                        {
+                                            <div class="verso-diff-outputs-columns">
+                                                <div class="verso-diff-outputs-column">
+                                                    <div class="verso-diff-outputs-column-title">@Diff.BaselineLabel</div>
+                                                    <OutputView Outputs="entry.BaselineCell!.Outputs" />
+                                                </div>
+                                                <div class="verso-diff-outputs-column">
+                                                    <div class="verso-diff-outputs-column-title">Current</div>
+                                                    <OutputView Outputs="entry.CurrentCell!.Outputs" />
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            break;
+                    }
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The computed diff to display.</summary>
+    [Parameter] public NotebookDiffResult Diff { get; set; } = default!;
+
+    /// <summary>Invoked when the user closes the view (close button or Escape).</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// When more than this many cells are modified, source diffs start collapsed and mount
+    /// their Monaco editors only when expanded, bounding concurrent editor instances on
+    /// large notebooks.
+    /// </summary>
+    public const int MaxEagerDiffEditors = 25;
+
+    private readonly string _overlayId = $"verso-diff-{Guid.NewGuid():N}";
+    private readonly HashSet<int> _expandedGroups = new();
+    private readonly HashSet<int> _expandedOutputs = new();
+    private readonly HashSet<int> _expandedDiffs = new();
+    private bool _eagerDiffEditors;
+
+    private bool HasChanges
+        => Diff.Summary.Added + Diff.Summary.Removed + Diff.Summary.Modified + Diff.Summary.Moved > 0
+            || Diff.MetadataChanges.Count > 0;
+
+    protected override void OnParametersSet()
+    {
+        _eagerDiffEditors = Diff.Summary.Modified <= MaxEagerDiffEditors;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("versoMonaco.focusElement", _overlayId); }
+            catch (JSException) { }
+        }
+    }
+
+    private bool IsGroupExpanded(int startIndex) => _expandedGroups.Contains(startIndex);
+
+    private void ToggleGroup(int startIndex)
+    {
+        if (!_expandedGroups.Remove(startIndex))
+        {
+            _expandedGroups.Add(startIndex);
+        }
+    }
+
+    private bool AreOutputsExpanded(int entryIndex) => _expandedOutputs.Contains(entryIndex);
+
+    private void ToggleOutputs(int entryIndex)
+    {
+        if (!_expandedOutputs.Remove(entryIndex))
+        {
+            _expandedOutputs.Add(entryIndex);
+        }
+    }
+
+    private bool IsDiffExpanded(int entryIndex) => _eagerDiffEditors || _expandedDiffs.Contains(entryIndex);
+
+    private void ExpandDiff(int entryIndex) => _expandedDiffs.Add(entryIndex);
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    private static string LanguageFor(CellModel cell)
+        => cell.Type == "markdown" ? "markdown" : (cell.Language ?? "csharp");
+
+    private RenderFragment CellBadges(CellDiffEntry entry) => __builder =>
+    {
+        var cell = entry.CurrentCell ?? entry.BaselineCell;
+        var position = entry.CurrentIndex ?? entry.BaselineIndex;
+        <span class="verso-diff-cell-position">[@(position + 1)]</span>
+        <span class="verso-diff-cell-type">@cell!.Type</span>
+        @if (cell.Type == "code" && cell.Language is not null)
+        {
+            <span class="verso-diff-cell-lang">@cell.Language</span>
+        }
+        @if (entry.MatchedByContent && entry.Kind is CellDiffKind.Modified)
+        {
+            <span class="verso-diff-heuristic-hint" title="These files carry no shared cell identity, so this pairing is based on content similarity.">approximate match</span>
+        }
+    };
+
+    private RenderFragment ChangeFlagChips(CellDiffEntry entry) => __builder =>
+    {
+        @if (entry.TypeOrLanguageChanged)
+        {
+            <span class="verso-diff-flag-chip">@FormatTypeChange(entry)</span>
+        }
+        @if (entry.CellMetadataChanged)
+        {
+            <span class="verso-diff-flag-chip">metadata</span>
+        }
+    };
+
+    private static string FormatTypeChange(CellDiffEntry entry)
+    {
+        var from = DescribeCellKind(entry.BaselineCell!);
+        var to = DescribeCellKind(entry.CurrentCell!);
+        return $"{from} → {to}";
+    }
+
+    private static string DescribeCellKind(CellModel cell)
+        => cell.Type == "code" && cell.Language is not null ? $"{cell.Type} ({cell.Language})" : cell.Type;
+
+    private sealed class UnchangedRun
+    {
+        public int StartIndex { get; init; }
+        public List<CellDiffEntry> Entries { get; } = new();
+    }
+
+    private sealed class DiffBlock
+    {
+        public UnchangedRun? UnchangedRun { get; init; }
+        public CellDiffEntry? Entry { get; init; }
+        public int EntryIndex { get; init; }
+    }
+
+    private IEnumerable<DiffBlock> BuildBlocks()
+    {
+        UnchangedRun? run = null;
+        for (var i = 0; i < Diff.Cells.Count; i++)
+        {
+            var entry = Diff.Cells[i];
+            if (entry.Kind == CellDiffKind.Unchanged)
+            {
+                run ??= new UnchangedRun { StartIndex = i };
+                run.Entries.Add(entry);
+                continue;
+            }
+
+            if (run is not null)
+            {
+                yield return new DiffBlock { UnchangedRun = run };
+                run = null;
+            }
+
+            yield return new DiffBlock { Entry = entry, EntryIndex = i };
+        }
+
+        if (run is not null)
+        {
+            yield return new DiffBlock { UnchangedRun = run };
+        }
+    }
+}

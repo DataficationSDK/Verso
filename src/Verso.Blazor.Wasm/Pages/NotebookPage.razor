@@ -17,7 +17,17 @@
              OnAddCell="HandleAddCell"
              OnActionExecuted="HandleActionExecuted"
              OnInterceptAction="HandleInterceptAction"
-             OnError="HandleError" />
+             OnError="HandleError"
+             OnDiffComputed="HandleDiffComputed"
+             OnDiffError="HandleDiffError"
+             @ref="_toolbar" />
+
+    @if (_showDiffView && _diffResult is not null)
+    {
+        <NotebookDiffView Diff="_diffResult" OnClose="CloseDiffView" />
+    }
+
+    <DiffErrorDialog Message="@_diffErrorMessage" OnDismiss="() => _diffErrorMessage = null" />
 
     @if (_showExtensionConsent && _pendingConsentExtensions is not null)
     {
@@ -211,6 +221,10 @@
 
     private bool _panelResizeInitialized;
     private bool _showExtensionConsent;
+    private Toolbar? _toolbar;
+    private bool _showDiffView;
+    private NotebookDiffResult? _diffResult;
+    private string? _diffErrorMessage;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
     private bool _userPrefsApplied;
     private bool _restoringPrefs;
@@ -239,6 +253,7 @@
         Service.OnVariablesChanged += HandleVariablesChanged;
         Service.OnSettingsChanged += HandleSettingsChanged;
         Service.OnOutputUpdated += HandleOutputUpdated;
+        Service.OnDiffRequested += HandleDiffRequested;
 
         if (Service is RemoteNotebookService remoteService)
         {
@@ -258,6 +273,10 @@
     {
         _ = InvokeAsync(async () =>
         {
+            // A restart replaces the backing session; a diff computed against it is stale.
+            if (_showDiffView)
+                CloseDiffView();
+
             // Persistent banner — cleared explicitly by HandleKernelRestarted rather
             // than the 3-second timeout used by ShowStatusAsync.
             _statusCts?.Cancel();
@@ -705,6 +724,11 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
+        // The diff overlay owns the keyboard while open (it stops propagation itself; this
+        // guard covers focus landing back on the notebook container while it is still up).
+        if (_showDiffView)
+            return;
+
         // Run All works regardless of edit or command mode.
         if (e.Key == "Enter" && e.CtrlKey && e.AltKey)
         {
@@ -989,6 +1013,45 @@
         return Task.CompletedTask;
     }
 
+    // ── Notebook diff ───────────────────────────────────────────────────
+
+    private void HandleDiffComputed(NotebookDiffResult result)
+    {
+        _diffResult = result;
+        _showDiffView = true;
+    }
+
+    private void CloseDiffView()
+    {
+        _showDiffView = false;
+        _diffResult = null;
+    }
+
+    private void HandleDiffError(string message)
+    {
+        _diffErrorMessage = message;
+    }
+
+    private void HandleDiffRequested(string? sourceId)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_toolbar is null)
+                return;
+
+            if (sourceId is not null)
+            {
+                await _toolbar.ComputeDiffAsync(sourceId, null);
+            }
+            else
+            {
+                await _toolbar.OpenCompareMenuAsync();
+            }
+
+            StateHasChanged();
+        });
+    }
+
     public void Dispose()
     {
         _statusCts?.Cancel();
@@ -1006,6 +1069,7 @@
         Service.OnVariablesChanged -= HandleVariablesChanged;
         Service.OnSettingsChanged -= HandleSettingsChanged;
         Service.OnOutputUpdated -= HandleOutputUpdated;
+        Service.OnDiffRequested -= HandleDiffRequested;
 
         if (Service is RemoteNotebookService remoteService)
         {
