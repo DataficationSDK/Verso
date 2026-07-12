@@ -369,6 +369,29 @@ public sealed class SlideStudioLayoutTests
     }
 
     [TestMethod]
+    public async Task Render_MermaidOutput_CopiesAsMermaidContainer()
+    {
+        var cell = new CellModel { Type = "mermaid", Source = "graph TD\n A --> B" };
+        cell.Outputs.Add(new CellOutput(
+            "text/x-verso-mermaid", "graph TD\n A[Hi<br/>there] --> B"));
+
+        var result = await new SlideStudioLayout().RenderLayoutAsync(new[] { cell }, _context);
+
+        // Mermaid output is copy-safe (the host renders the source client-side with
+        // generated element ids), so the tile, the output pane fallback, and the slide
+        // fallback all carry the diagram source in the host's container markup, encoded.
+        StringAssert.Contains(result.Content, "vss-out--mermaid verso-mermaid-container");
+        StringAssert.Contains(result.Content, "<pre class=\"mermaid\">");
+        StringAssert.Contains(result.Content, "A[Hi&lt;br/&gt;there]");
+        Assert.IsFalse(result.Content.Contains("vss-tile-interactive"));
+
+        // The slide still presents the live cell through its portal slot, with the
+        // copy as the fallback for the states where the live element does not exist.
+        StringAssert.Contains(result.Content, $"vss-slide-live\" data-cell-slot=\"{cell.Id}\"");
+        StringAssert.Contains(result.Content, "vss-slide-copy");
+    }
+
+    [TestMethod]
     public async Task Render_RemovedActiveCell_FallsBackToFirstCell()
     {
         var cells = new List<CellModel> { Cell(), Cell() };

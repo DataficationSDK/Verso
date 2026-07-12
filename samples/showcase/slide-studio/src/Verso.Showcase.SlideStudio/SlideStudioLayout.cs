@@ -600,6 +600,16 @@ public sealed class SlideStudioLayout :
         {
             sb.Append("<div class=\"vss-out vss-out--html\">").Append(output.Content).Append("</div>");
         }
+        else if (output.MimeType == "text/x-verso-mermaid")
+        {
+            // The copy carries the diagram source in the host's mermaid container markup,
+            // so the client-side pipeline that renders the live output renders the copy
+            // too. Unlike id-targeted chart scripts, this is copy-safe: every render
+            // generates its own element ids.
+            sb.Append("<div class=\"vss-out vss-out--mermaid verso-mermaid-container\"><pre class=\"mermaid\">")
+              .Append(WebUtility.HtmlEncode(output.Content))
+              .Append("</pre></div>");
+        }
         else if (output.MimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
             sb.Append("<div class=\"vss-out vss-out--image\"><img src=\"data:")

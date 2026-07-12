@@ -202,6 +202,11 @@ internal static class SlideStudioStyles
             "font-size:var(--verso-font-size-base, 13px);");
         R(".vss-out--error", "color:var(--verso-status-error, #b3261e);");
         R(".vss-out--image img", "max-width:100%; height:auto;");
+        // A mermaid copy is diagram source the host renders client-side after injection.
+        // Hide the source until then; visibility (not display) keeps the box, which is
+        // what tells the deferred renderer the node is ready to measure.
+        R(".vss-out--mermaid .mermaid:not([data-processed])", "visibility:hidden;");
+        R(".vss-out--mermaid pre.mermaid", "margin:0; text-align:center;");
 
         // --- Presenter view ---------------------------------------------------------------------
         R(".vss-presenter",
@@ -244,6 +249,11 @@ internal static class SlideStudioStyles
         R(".vss-slide-live .verso-output",
             "display:flex; flex-direction:column; align-items:center;");
         R(".vss-slide-live .verso-output > *", "max-width:100%;");
+        // The mermaid pre needs an explicit width: as a centered flex item it would
+        // shrink-to-fit, and the rendered SVG's 100% width cannot resolve against
+        // that (it falls back to the replaced-element default). Full width lets the
+        // SVG fill the canvas up to its natural size; narrower diagrams center.
+        R(".vss-slide-live pre.mermaid", "width:100%; margin:0; text-align:center;");
         R(".vss-slide-live .verso-output--text pre",
             "font-size:15px; line-height:1.55; margin:0;");
         // The slide's fallback copy: hidden while the live cell contributes an output
@@ -255,6 +265,9 @@ internal static class SlideStudioStyles
         R(".vss-slide-live:not(:has(.verso-cell-outputs)) + .vss-slide-copy", "display:block;");
         R(".vss-slide-copy .vss-out",
             "width:fit-content; max-width:100%; margin-left:auto; margin-right:auto;");
+        // Not for mermaid copies: the rendered SVG asks for 100% width, which collapses
+        // inside a fit-content box. Fluid width; the copy centers its own content.
+        R(".vss-slide-copy .vss-out--mermaid", "width:100%;");
         R(".vss-slide-copy .vss-out--text pre, .vss-slide-copy .vss-out--error pre",
             "font-size:15px; line-height:1.55;");
         R(".vss-presenter-hud",

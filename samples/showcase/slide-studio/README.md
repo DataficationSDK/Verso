@@ -44,6 +44,9 @@ cell interaction, and cell property extension points.
   source excerpt instead. Because Verso persists outputs in the `.verso` file, the filmstrip is
   meaningful the moment the notebook opens. Script-driven HTML outputs are the exception: a
   tile shows an "Interactive output" placeholder rather than a copy, for the reasons above.
+  Diagram outputs are the counter-example that proves the rule: a mermaid copy is only the
+  diagram source in the host's container markup, rendered client-side with fresh element ids,
+  so tiles and the fallback copies show real rendered diagrams.
 - **The presenter deck is prerendered.** Every render also emits the slides as a hidden overlay,
   so presenting and navigating are pure client-side visibility switches with no server round
   trip per keypress.
