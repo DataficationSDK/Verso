@@ -3173,9 +3173,15 @@ html, body {
     color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
 }
 
+/* Field names can embed layout or setting keys ("Layout state 'ext:key'"). Cap the column
+   and keep it from shrinking so a long key wraps inside its own box instead of painting
+   over the baseline value (flex items default to overflow: visible). */
 .verso-diff-metadata-field {
     font-weight: 600;
     min-width: 140px;
+    max-width: 240px;
+    flex-shrink: 0;
+    overflow-wrap: anywhere;
 }
 
 /* Values can be truncated JSON previews (layout state, extension settings); break anywhere
