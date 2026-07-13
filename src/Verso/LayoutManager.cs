@@ -14,6 +14,11 @@ public sealed class LayoutManager
     private volatile IReadOnlyList<ILayoutEngine> _availableLayouts;
     private volatile ILayoutEngine? _activeLayout;
 
+    // The default reference that failed to resolve at construction. Refresh() retries it
+    // when new layouts register (a required extension finishing its load after open), so
+    // the notebook lands on the layout it asked for instead of the fallback.
+    private LayoutReference? _pendingDefault;
+
     public LayoutManager(IReadOnlyList<ILayoutEngine> availableLayouts, string? defaultLayoutId = null)
         : this(availableLayouts, defaultLayoutId is null ? null : new LayoutReference(string.Empty, defaultLayoutId))
     {
@@ -26,10 +31,13 @@ public sealed class LayoutManager
         if (defaultLayout is { } defaultRef && !TryActivate(defaultRef))
         {
             // Layout referenced by the notebook isn't registered yet — typically because
-            // it ships in an extension that the notebook will load via a #!extension or
-            // #!nuget cell. Record the missing id so the host can surface it to the UI;
-            // leave _activeLayout null so the default capability set takes over.
+            // it ships in an extension that is still loading (a required extension) or
+            // that the notebook will load via a #!extension or #!nuget cell. Record the
+            // missing id so the host can surface it to the UI, and keep the reference so
+            // Refresh() can retry it; leave _activeLayout null so the default capability
+            // set takes over.
             MissingLayoutId = defaultRef.LayoutId;
+            _pendingDefault = defaultRef;
         }
     }
 
@@ -72,6 +80,12 @@ public sealed class LayoutManager
                 (activeExtension is null ||
                  (l is IExtension ext && string.Equals(ext.ExtensionId, activeExtension, StringComparison.OrdinalIgnoreCase))));
         }
+
+        // A default layout that was missing at construction may have just arrived with a
+        // freshly loaded extension (a required extension resolving after open): retry it
+        // before falling back, so the notebook lands on the layout it asked for.
+        if (_activeLayout is null && _pendingDefault is { } pending && TryActivate(pending))
+            return;
 
         // If the previously active layout was disabled, fall back to the well-known default
         // layout by id, then any non-custom-renderer layout, then the first available.
@@ -160,6 +174,7 @@ public sealed class LayoutManager
 
         _activeLayout = layout;
         MissingLayoutId = null;
+        _pendingDefault = null;
         OnLayoutChanged?.Invoke(layout);
         return true;
     }

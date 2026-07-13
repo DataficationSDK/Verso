@@ -127,6 +127,49 @@ public class NuGetMarketplaceLocalInstallTests
     }
 
     [TestMethod]
+    public async Task LoadRequired_PreSessionPass_LoadsApprovedLocalCopyOfUnpinnedReference()
+    {
+        // Lay a copy in the managed store the way a prior install would have.
+        var service = new NuGetMarketplaceService();
+        var installed = await service.InstallFromFileAsync(SampleDllPath, _managedDir, CancellationToken.None);
+
+        await using var host = new ExtensionHost();
+        var trustStore = ExtensionTrustStore.Load(Path.Combine(_managedDir, "trust.json"));
+        trustStore.Approve(installed.PackageId, installed.ResolvedVersion);
+
+        var notebook = new NotebookModel();
+        notebook.RequiredExtensions.Add(installed.PackageId); // unpinned reference
+
+        // The pre-session pass has no consent channel and must stay offline, but an
+        // approved copy already on disk should load so the extension's layouts are
+        // registered before the notebook resolves its active layout.
+        await MarketplaceLoader.LoadRequiredAsync(
+            host, notebook, trustStore, service, _managedDir, promptForConsent: false);
+
+        Assert.IsTrue(host.IsExtensionPackageLoaded(installed.PackageId));
+    }
+
+    [TestMethod]
+    public async Task LoadRequired_PreSessionPass_SkipsUnapprovedLocalCopy()
+    {
+        var service = new NuGetMarketplaceService();
+        var installed = await service.InstallFromFileAsync(SampleDllPath, _managedDir, CancellationToken.None);
+
+        await using var host = new ExtensionHost();
+        var trustStore = ExtensionTrustStore.Load(Path.Combine(_managedDir, "trust.json"));
+
+        var notebook = new NotebookModel();
+        notebook.RequiredExtensions.Add(installed.PackageId);
+
+        // Present on disk but never approved: the pre-session pass must not load it
+        // (consent belongs to the later pass, which has the client channel).
+        await MarketplaceLoader.LoadRequiredAsync(
+            host, notebook, trustStore, service, _managedDir, promptForConsent: false);
+
+        Assert.IsFalse(host.IsExtensionPackageLoaded(installed.PackageId));
+    }
+
+    [TestMethod]
     public async Task InstallLocalFileAsync_PromptsConsent_InstallsToManagedDir_AndMarksLoaded()
     {
         await using var host = new ExtensionHost();

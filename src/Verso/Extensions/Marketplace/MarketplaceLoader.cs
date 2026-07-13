@@ -77,8 +77,10 @@ public static class MarketplaceLoader
 
         // Resolve the concrete version each reference would load. A pinned reference passes
         // through unchanged; an unpinned NuGet reference is resolved to the latest stable so
-        // it can be pinned on approval. In the pre-session pass (no consent channel) unpinned
-        // references are skipped entirely so that pass stays fast and offline.
+        // it can be pinned on approval. The pre-session pass (no consent channel) stays fast
+        // and offline: an unpinned reference resolves against the highest approved copy
+        // already on disk, so a previously installed extension registers before the layout
+        // is first resolved; anything needing a feed or consent defers to the consent pass.
         var plans = new List<ResolvedRef>(refs.Count);
         foreach (var (id, version, source) in refs)
         {
@@ -89,15 +91,23 @@ public static class MarketplaceLoader
             if (effectiveVersion is null && source != ExtensionSource.Local)
             {
                 if (!promptForConsent)
-                    continue; // defer unpinned references to the consent pass
-                try
                 {
-                    effectiveVersion = await marketplace.ResolveVersionAsync(id, null, ct).ConfigureAwait(false);
+                    var installed = marketplace.TryResolveInstalledLatest(id, managedDir);
+                    if (installed is null || !trustStore.IsApproved(id, installed.ResolvedVersion))
+                        continue; // nothing local and approved — defer to the consent pass
+                    effectiveVersion = installed.ResolvedVersion;
                 }
-                catch (OperationCanceledException) { throw; }
-                catch
+                else
                 {
-                    effectiveVersion = null; // offline / not found — handled by the load fallback
+                    try
+                    {
+                        effectiveVersion = await marketplace.ResolveVersionAsync(id, null, ct).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch
+                    {
+                        effectiveVersion = null; // offline / not found — handled by the load fallback
+                    }
                 }
             }
 

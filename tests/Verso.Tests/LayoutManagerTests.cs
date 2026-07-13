@@ -48,6 +48,39 @@ public sealed class LayoutManagerTests
     }
 
     [TestMethod]
+    public void Refresh_MissingDefaultArrives_ActivatesRequestedLayout()
+    {
+        // A required extension can finish loading after the manager was built. When its
+        // layout registers, the notebook should land on the layout it asked for, not the
+        // fallback, and the missing marker should clear.
+        var notebook = new NotebookLayout();
+        var manager = new LayoutManager(new ILayoutEngine[] { notebook }, "dashboard");
+        Assert.AreEqual("dashboard", manager.MissingLayoutId);
+
+        var dashboard = new DashboardLayout();
+        manager.Refresh(new ILayoutEngine[] { notebook, dashboard });
+
+        Assert.AreSame(dashboard, manager.ActiveLayout);
+        Assert.IsNull(manager.MissingLayoutId);
+    }
+
+    [TestMethod]
+    public void Refresh_AfterExplicitActivation_DoesNotRevertToMissingDefault()
+    {
+        // Once the user picked a layout themselves, a late-arriving default must not
+        // steal the active layout back.
+        var notebook = new NotebookLayout();
+        var manager = new LayoutManager(new ILayoutEngine[] { notebook }, "dashboard");
+        Assert.IsTrue(manager.TryActivate("notebook"));
+
+        var dashboard = new DashboardLayout();
+        manager.Refresh(new ILayoutEngine[] { notebook, dashboard });
+
+        Assert.AreSame(notebook, manager.ActiveLayout);
+        Assert.IsNull(manager.MissingLayoutId);
+    }
+
+    [TestMethod]
     public void TryActivate_KnownId_ReturnsTrueAndClearsMissingId()
     {
         var notebook = new NotebookLayout();

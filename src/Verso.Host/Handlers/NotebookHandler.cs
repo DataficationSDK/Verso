@@ -143,6 +143,9 @@ public static class NotebookHandler
         // Now that the consent channel exists, prompt for and load any required extensions
         // that are not yet trusted. Fire-and-forget so the open response is not blocked; each
         // loaded extension raises extension/changed so the client refreshes its caches.
+        // The missing-layout banner waits for this pass: it should only surface when the
+        // layout's extension could not be found locally or downloaded, not while a required
+        // extension that provides it is still resolving.
         if (notebook.RequiredExtensions.Count > 0)
         {
             _ = Task.Run(async () =>
@@ -159,8 +162,16 @@ public static class NotebookHandler
                 }
                 catch
                 {
-                    // Non-fatal: the notebook is already open; the layout banner covers a
+                    // Non-fatal: the notebook is already open; the banner below covers a
                     // still-missing required layout until the user reloads.
+                }
+
+                // Each successful load refreshed the layout manager, which retries the
+                // notebook's requested layout. Only a layout that is STILL missing after
+                // the resolution attempt warrants the banner.
+                if (scaffold.LayoutManager?.MissingLayoutId is { } stillMissing)
+                {
+                    ns.SendNotification(MethodNames.LayoutMissing, new { layoutId = stillMissing });
                 }
             });
         }
@@ -177,8 +188,11 @@ public static class NotebookHandler
 
         // Surface a missing-layout banner if the notebook references a layout that
         // isn't registered yet (typically because it ships in an extension the
-        // notebook will load via #!extension or #!nuget).
-        if (scaffold.LayoutManager?.MissingLayoutId is { } missingLayoutId)
+        // notebook will load via #!extension or #!nuget). When the notebook declares
+        // required extensions the banner is deferred to the load above instead, so it
+        // only appears when resolution actually failed.
+        if (notebook.RequiredExtensions.Count == 0 &&
+            scaffold.LayoutManager?.MissingLayoutId is { } missingLayoutId)
         {
             ns.SendNotification(MethodNames.LayoutMissing, new { layoutId = missingLayoutId });
         }
