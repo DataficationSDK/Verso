@@ -46,6 +46,12 @@ export interface NotebookOpenResult {
   title?: string;
   cells: CellDto[];
   defaultKernel?: string;
+  /**
+   * The notebook's resolved active layout, when the host provides it. Forwarded to
+   * the webview in the notebook/opened notification so the WASM app can render the
+   * correct layout on first paint instead of re-rendering once layouts are fetched.
+   */
+  activeLayout?: LayoutDto;
 }
 
 export interface NotebookCloseParams {
@@ -242,7 +248,10 @@ export interface LayoutDto {
   displayName: string;
   icon?: string;
   requiresCustomRenderer: boolean;
+  rendererIsolation?: string;
   isActive: boolean;
+  capabilities?: number;
+  supportsPropertiesPanel?: boolean;
 }
 
 export interface LayoutSwitchParams {

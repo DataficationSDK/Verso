@@ -1666,6 +1666,15 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         // notebook's required-extension load reports its own via extension/unavailable.
         _unavailableExtensionReasons.Clear();
 
+        // Seed the active layout from the open payload (when the host provides it) so the
+        // first render already selects the correct layout renderer. Without this the layout
+        // arrives with the deferred extension-data refresh below, changing ActiveLayoutKey
+        // mid-load and re-keying the whole layout subtree, which shows as a visible flash
+        // while every cell re-mounts. Older hosts omit the field; they keep the old
+        // behavior of resolving the layout during the refresh.
+        if (result.ActiveLayout is { } activeLayout)
+            _layouts = new List<LayoutInfo> { MapLayoutFromDto(activeLayout) };
+
         // Notify immediately so the UI can render cells while supplementary data loads
         OnNotebookChanged?.Invoke();
 
@@ -1713,22 +1722,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         // Layouts
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);
-        _layouts = layoutsResult.Layouts?.Select(l =>
-        {
-            if (l.IsActive)
-            {
-                _activeLayout = string.IsNullOrEmpty(l.ExtensionId)
-                    ? new LayoutReference(string.Empty, l.Id)
-                    : new LayoutReference(l.ExtensionId, l.Id);
-                _isDashboardLayout = l.RequiresCustomRenderer;
-                _layoutCapabilities = (LayoutCapabilities)l.Capabilities;
-                _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel;
-                _activeLayoutRendererIsolation = string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation;
-            }
-            return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer,
-                (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel, l.ExtensionId ?? string.Empty,
-                string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation);
-        }).ToList() ?? new();
+        _layouts = layoutsResult.Layouts?.Select(MapLayoutFromDto).ToList() ?? new();
 
         // Themes
         var themesResult = await _bridge.RequestAsync<ThemesResponse>("theme/getThemes", null);
@@ -1853,6 +1847,30 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     }
 
     // ── DTO mapping ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Maps a layout wire item to <see cref="LayoutInfo"/>. When the item is flagged
+    /// active, also records it as the current layout so <see cref="ActiveLayoutKey"/>
+    /// and the renderer-selection properties (capabilities, isolation, properties
+    /// panel) reflect it.
+    /// </summary>
+    private LayoutInfo MapLayoutFromDto(LayoutItem l)
+    {
+        var isolation = string.IsNullOrEmpty(l.RendererIsolation) ? "inline" : l.RendererIsolation;
+        if (l.IsActive)
+        {
+            _activeLayout = string.IsNullOrEmpty(l.ExtensionId)
+                ? new LayoutReference(string.Empty, l.Id)
+                : new LayoutReference(l.ExtensionId, l.Id);
+            _isDashboardLayout = l.RequiresCustomRenderer;
+            _layoutCapabilities = (LayoutCapabilities)l.Capabilities;
+            _activeLayoutSupportsPropertiesPanel = l.SupportsPropertiesPanel;
+            _activeLayoutRendererIsolation = isolation;
+        }
+        return new LayoutInfo(l.Id, l.DisplayName, l.RequiresCustomRenderer,
+            (LayoutCapabilities)l.Capabilities, l.SupportsPropertiesPanel, l.ExtensionId ?? string.Empty,
+            isolation);
+    }
 
     private static CellModel MapCellFromDto(CellDto dto)
     {
@@ -2008,6 +2026,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? Title { get; set; }
         public string? DefaultKernel { get; set; }
         public List<CellDto>? Cells { get; set; }
+        // Resolved active layout forwarded from the host's notebook/open response.
+        // Null when the host predates the field or no layout is registered.
+        public LayoutItem? ActiveLayout { get; set; }
     }
 
     private sealed class ExecutionStateNotification

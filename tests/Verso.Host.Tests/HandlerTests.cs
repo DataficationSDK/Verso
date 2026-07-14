@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Verso.Abstractions;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
 using Verso.Host.Protocol;
@@ -515,5 +516,24 @@ public class HandlerTests
         Assert.AreEqual(1, result.Variables.Count);
         Assert.AreEqual("myVar", result.Variables[0].Name);
         Assert.AreEqual("Int32", result.Variables[0].TypeName);
+    }
+
+    [TestMethod]
+    public async Task Open_ReturnsResolvedActiveLayout()
+    {
+        var session = CreateSession();
+        var openParams = JsonSerializer.SerializeToElement(
+            new NotebookOpenParams { Content = "" },
+            JsonRpcMessage.SerializerOptions);
+
+        var result = await NotebookHandler.HandleOpenAsync(session, openParams);
+
+        // The open response must carry the resolved active layout so clients can select
+        // the correct layout renderer on their first paint instead of re-rendering after
+        // a separate layout/getLayouts round trip.
+        Assert.IsNotNull(result.ActiveLayout);
+        Assert.AreEqual(LayoutDefaults.LayoutId, result.ActiveLayout.Id);
+        Assert.AreEqual(LayoutDefaults.ExtensionId, result.ActiveLayout.ExtensionId);
+        Assert.IsTrue(result.ActiveLayout.IsActive);
     }
 }

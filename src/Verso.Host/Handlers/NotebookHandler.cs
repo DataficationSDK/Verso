@@ -245,7 +245,8 @@ public static class NotebookHandler
             NotebookId = notebookId,
             Title = notebook.Title,
             DefaultKernel = notebook.DefaultKernelId,
-            Cells = scaffold.Cells.Select(MapCell).ToList()
+            Cells = scaffold.Cells.Select(MapCell).ToList(),
+            ActiveLayout = LayoutHandler.GetActiveLayout(ns)
         };
     }
 

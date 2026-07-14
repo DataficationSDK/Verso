@@ -21,6 +21,14 @@ public sealed class NotebookOpenResult
     public string? Title { get; set; }
     public List<CellDto> Cells { get; set; } = new();
     public string? DefaultKernel { get; set; }
+
+    /// <summary>
+    /// The notebook's resolved active layout, or null when no layout manager exists or
+    /// the referenced layout is not registered yet. Carrying it in the open result lets
+    /// the client select the correct layout renderer on its first paint instead of
+    /// re-keying the layout subtree once layout/getLayouts responds.
+    /// </summary>
+    public LayoutDto? ActiveLayout { get; set; }
 }
 
 public sealed class NotebookCloseParams

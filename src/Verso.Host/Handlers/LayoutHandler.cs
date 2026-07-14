@@ -26,19 +26,35 @@ public static class LayoutHandler
                 var isActive = string.Equals(l.LayoutId, activeLayoutId, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(owningExtensionId, activeExtensionId, StringComparison.OrdinalIgnoreCase);
 
-                return new LayoutDto
-                {
-                    Id = l.LayoutId,
-                    ExtensionId = owningExtensionId,
-                    DisplayName = l.DisplayName,
-                    Icon = l.Icon,
-                    RequiresCustomRenderer = l.RequiresCustomRenderer,
-                    RendererIsolation = l.RendererIsolation.ToWireString(),
-                    IsActive = isActive,
-                    Capabilities = (int)l.Capabilities,
-                    SupportsPropertiesPanel = l.SupportsPropertiesPanel
-                };
+                return MapLayout(l, isActive);
             }).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Maps the session's resolved active layout to its wire shape, or null when no
+    /// layout manager exists or the notebook's referenced layout is not registered.
+    /// Used by the notebook/open response so clients can render the correct layout
+    /// on first paint without waiting for a layout/getLayouts round trip.
+    /// </summary>
+    internal static LayoutDto? GetActiveLayout(NotebookSession ns)
+        => ns.Scaffold.LayoutManager?.ActiveLayout is { } active
+            ? MapLayout(active, isActive: true)
+            : null;
+
+    internal static LayoutDto MapLayout(ILayoutEngine layout, bool isActive)
+    {
+        return new LayoutDto
+        {
+            Id = layout.LayoutId,
+            ExtensionId = (layout as IExtension)?.ExtensionId ?? string.Empty,
+            DisplayName = layout.DisplayName,
+            Icon = layout.Icon,
+            RequiresCustomRenderer = layout.RequiresCustomRenderer,
+            RendererIsolation = layout.RendererIsolation.ToWireString(),
+            IsActive = isActive,
+            Capabilities = (int)layout.Capabilities,
+            SupportsPropertiesPanel = layout.SupportsPropertiesPanel
         };
     }
 
