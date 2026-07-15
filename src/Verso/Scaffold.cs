@@ -552,6 +552,41 @@ public sealed class Scaffold : IAsyncDisposable
     }
 
     /// <summary>
+    /// Renders every cell whose type is render-only (no kernel) and declares transient
+    /// outputs (<see cref="ICellType.PersistsOutputs"/> is <c>false</c>), when the cell has
+    /// source but no outputs yet. Hosts call this when a notebook opens so markup cells
+    /// (e.g. Markdown) display rendered on first paint instead of as raw source. The render
+    /// pipeline runs directly: execution counts are not incremented and no execution events
+    /// fire, so rendering at open cannot mark the notebook as edited.
+    /// </summary>
+    public async Task RenderTransientCellsAsync(CancellationToken ct = default)
+    {
+        var cellTypes = ExtensionHostContext.GetCellTypes();
+        if (cellTypes.Count == 0)
+            return;
+
+        List<CellModel> cells;
+        lock (_cellLock) { cells = _notebook.Cells.ToList(); }
+
+        ExecutionPipeline? pipeline = null;
+        foreach (var cell in cells)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (cell.Outputs.Count > 0 || string.IsNullOrWhiteSpace(cell.Source))
+                continue;
+
+            var cellType = cellTypes.FirstOrDefault(t =>
+                string.Equals(t.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+            if (cellType is null || cellType.Kernel is not null || cellType.PersistsOutputs)
+                continue;
+
+            pipeline ??= BuildPipeline();
+            await pipeline.ExecuteAsync(cell, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
     /// Ensures parameter defaults are injected into the variable store.
     /// Safe to call multiple times; only injects values not already present.
     /// </summary>

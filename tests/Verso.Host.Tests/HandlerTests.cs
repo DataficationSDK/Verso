@@ -4,6 +4,7 @@ using Verso.Abstractions;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
 using Verso.Host.Protocol;
+using Verso.Serializers;
 
 namespace Verso.Host.Tests;
 
@@ -42,17 +43,20 @@ public class HandlerTests
         var (session, notebookId) = await CreateOpenSession();
         var ns = GetNs(session, notebookId);
 
-        // Parameters cell outputs are transient (re-rendered from metadata on open), so executing
-        // it (including the auto-render on open) must not report the notebook as dirty.
+        // Parameters and Markdown outputs are transient (re-rendered on open), so executing
+        // them (including the auto-render on open) must not report the notebook as dirty.
         var paramCell = ns.Scaffold.AddCell("parameters");
-        // Markdown outputs are persisted, so executing it reports dirty.
         var mdCell = ns.Scaffold.AddCell("markdown", source: "# hi");
+        // HTML outputs are persisted, so executing an HTML cell reports dirty.
+        var htmlCell = ns.Scaffold.AddCell("html", source: "<p>hi</p>");
 
         var paramResult = await ExecutionHandler.HandleRunAsync(ns, RunParams(paramCell.Id));
         var mdResult = await ExecutionHandler.HandleRunAsync(ns, RunParams(mdCell.Id));
+        var htmlResult = await ExecutionHandler.HandleRunAsync(ns, RunParams(htmlCell.Id));
 
         Assert.IsFalse(paramResult.Dirty, "parameters auto-render must not dirty the notebook");
-        Assert.IsTrue(mdResult.Dirty, "a persisted-output cell must dirty the notebook when executed");
+        Assert.IsFalse(mdResult.Dirty, "markdown render must not dirty the notebook");
+        Assert.IsTrue(htmlResult.Dirty, "a persisted-output cell must dirty the notebook when executed");
     }
 
     private static JsonElement InteractParams(
@@ -151,6 +155,32 @@ public class HandlerTests
         var result2 = await NotebookHandler.HandleOpenAsync(session, openParams);
 
         Assert.AreNotEqual(result1.NotebookId, result2.NotebookId);
+    }
+
+    [TestMethod]
+    public async Task Open_RendersMarkdownCells()
+    {
+        var notebook = new NotebookModel();
+        notebook.Cells.Add(new CellModel { Type = "markdown", Source = "# Title" });
+        notebook.Cells.Add(new CellModel { Type = "markdown", Source = "   " });
+        notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = "1 + 1" });
+        var content = await new VersoSerializer().SerializeAsync(notebook);
+
+        var session = CreateSession();
+        var openParams = JsonSerializer.SerializeToElement(
+            new NotebookOpenParams { Content = content },
+            JsonRpcMessage.SerializerOptions);
+
+        var result = await NotebookHandler.HandleOpenAsync(session, openParams);
+
+        // Markdown cells with source arrive already rendered so the client displays them
+        // on first paint instead of showing raw source until each cell is run.
+        Assert.AreEqual(1, result.Cells[0].Outputs.Count);
+        Assert.AreEqual("text/html", result.Cells[0].Outputs[0].MimeType);
+        StringAssert.Contains(result.Cells[0].Outputs[0].Content, "<h1");
+        // Blank markdown cells have nothing to render, and code cells never run at open.
+        Assert.AreEqual(0, result.Cells[1].Outputs.Count);
+        Assert.AreEqual(0, result.Cells[2].Outputs.Count);
     }
 
     [TestMethod]

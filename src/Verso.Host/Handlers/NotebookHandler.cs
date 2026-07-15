@@ -111,6 +111,11 @@ public static class NotebookHandler
             await lm.RestoreMetadataAsync(notebook, context).ConfigureAwait(false);
         }
 
+        // Render markup cells (e.g. Markdown) before the response is built so they arrive
+        // at the client already displayed. Their outputs are transient (not written back
+        // to disk), so this cannot make the document differ from its saved content.
+        await scaffold.RenderTransientCellsAsync().ConfigureAwait(false);
+
         // Diagnostic: log loaded extensions to stderr (captured by VS Code extension host)
         var kernels = extensionHost.GetKernels();
         var magicCommands = extensionHost.GetMagicCommands();

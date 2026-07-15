@@ -333,7 +333,7 @@
             try
             {
                 await Service.OpenAsync(RecoverPath);
-                _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+                _selectedCellId = InitialCellSelection();
             }
             catch (Exception ex)
             {
@@ -422,7 +422,7 @@
                 return;
             }
 
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+            _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await JS.InvokeVoidAsync("versoRecovery.clearState");
             StateHasChanged();
@@ -740,7 +740,7 @@
             try { await JS.InvokeVoidAsync("versoSaveDialog.clearHandle"); } catch { }
             try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
             await Service.NewNotebookAsync();
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+            _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await ApplyUserPreferencesAsync();
         }
@@ -760,7 +760,7 @@
             try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
             await JS.InvokeVoidAsync("versoMonaco.waitForReady");
             await Service.OpenAsync(filePath);
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+            _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await ApplyUserPreferencesAsync();
         }
@@ -769,6 +769,16 @@
             _error = $"Failed to open file: {ex.Message}";
         }
     }
+
+    // The cell to select when a notebook opens: the first cell that will not display as
+    // rendered markup. Selecting a rendered cell (e.g. a Markdown title) would swap it back
+    // to its editor, defeating render-on-open for the most common first cell in prose-heavy
+    // notebooks. Mirrors the preview-mode condition in Cell.razor.
+    private Guid? InitialCellSelection() => Service.Cells.FirstOrDefault(c =>
+            !(Service.ShouldCollapseInput(c.Type)
+              && c.Outputs.Count > 0
+              && !string.IsNullOrWhiteSpace(c.Source)))
+        ?.Id;
 
     private async Task HandleBrowse((string FileName, string Content) args)
     {
@@ -780,7 +790,7 @@
             try { await JS.InvokeVoidAsync("versoRecovery.clearState"); } catch { }
             await JS.InvokeVoidAsync("versoMonaco.waitForReady");
             await Service.OpenFromContentAsync(args.FileName, args.Content);
-            _selectedCellId = Service.Cells.FirstOrDefault()?.Id;
+            _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await ApplyUserPreferencesAsync();
         }

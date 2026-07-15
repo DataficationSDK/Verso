@@ -521,4 +521,30 @@ public sealed class VersoSerializerTests
         var result = await _serializer.DeserializeAsync(json);
         Assert.IsFalse(result.Parameters!["optional"].Required);
     }
+
+    [TestMethod]
+    public async Task Serialize_TransientOutputCellType_StripsOutputs()
+    {
+        var notebook = new NotebookModel();
+        var markdown = new CellModel { Type = "markdown", Source = "# hi" };
+        markdown.Outputs.Add(new CellOutput("text/html", "<h1>hi</h1>"));
+        var code = new CellModel { Type = "code", Language = "csharp", Source = "1 + 1" };
+        code.Outputs.Add(new CellOutput("text/plain", "2"));
+        notebook.Cells.Add(markdown);
+        notebook.Cells.Add(code);
+
+        var serializer = new VersoSerializer(
+            new ICellType[] { new Verso.Extensions.CellTypes.MarkdownCellType() });
+        var json = await serializer.SerializeAsync(notebook);
+
+        // Markdown outputs are transient (re-rendered on open), so they never reach disk;
+        // code outputs persist as before.
+        Assert.IsFalse(json.Contains("<h1>hi</h1>"), "transient markdown output must be stripped");
+        Assert.IsTrue(json.Contains("\"2\""), "code output must still be persisted");
+
+        // A round-trip loads the markdown cell with no outputs; the open path re-renders it.
+        var result = await serializer.DeserializeAsync(json);
+        Assert.AreEqual(0, result.Cells[0].Outputs.Count);
+        Assert.AreEqual(1, result.Cells[1].Outputs.Count);
+    }
 }

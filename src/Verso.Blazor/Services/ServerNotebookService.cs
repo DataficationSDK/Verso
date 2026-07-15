@@ -409,6 +409,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         EnsureDefaults();
         await RestoreLayoutMetadataAsync();
         await RestoreSettingsAsync();
+
+        // Render markup cells (e.g. Markdown) before engine events are wired and before the
+        // first paint, so the notebook opens with them displayed without becoming dirty.
+        await _scaffold.RenderTransientCellsAsync();
+
         _filePath = filePath;
         SubscribeToEngineEvents();
         WarmUpKernelsInBackground();
@@ -448,6 +453,10 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         EnsureDefaults();
         await RestoreLayoutMetadataAsync();
         await RestoreSettingsAsync();
+
+        // See OpenAsync: markup cells render before events are wired and the first paint.
+        await _scaffold.RenderTransientCellsAsync();
+
         _filePath = null;
         SubscribeToEngineEvents();
         WarmUpKernelsInBackground();

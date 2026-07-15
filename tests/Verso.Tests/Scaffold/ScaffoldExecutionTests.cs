@@ -408,4 +408,30 @@ public sealed class ScaffoldExecutionTests
         Assert.AreEqual(1, defaultExecuted.Count,
             "A language with no kernel anywhere should keep the default-kernel fallback.");
     }
+
+    [TestMethod]
+    public async Task RenderTransientCells_RendersMarkdownWithSource_LeavesEverythingElseAlone()
+    {
+        await using var host = new Verso.Extensions.ExtensionHost();
+        await host.LoadBuiltInExtensionsAsync();
+        await using var scaffold = new Verso.Scaffold(new NotebookModel(), host);
+
+        var markdown = scaffold.AddCell("markdown", source: "# Hello");
+        var blank = scaffold.AddCell("markdown", source: "   ");
+        var code = scaffold.AddCell("code", source: "1 + 1");
+        var preRendered = scaffold.AddCell("markdown", source: "kept");
+        preRendered.Outputs.Add(new CellOutput("text/html", "<p>saved</p>"));
+
+        await scaffold.RenderTransientCellsAsync();
+
+        Assert.AreEqual(1, markdown.Outputs.Count, "markdown with source renders at open");
+        Assert.AreEqual("text/html", markdown.Outputs[0].MimeType);
+        StringAssert.Contains(markdown.Outputs[0].Content, "<h1");
+        Assert.IsNull(markdown.ExecutionCount, "an open-time render consumes no execution count");
+
+        Assert.AreEqual(0, blank.Outputs.Count, "blank markdown has nothing to render");
+        Assert.AreEqual(0, code.Outputs.Count, "code cells never run at open");
+        Assert.AreEqual("<p>saved</p>", preRendered.Outputs[0].Content,
+            "cells that already have outputs are left untouched");
+    }
 }
