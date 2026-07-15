@@ -492,8 +492,9 @@ public sealed class NotebookService : IAsyncDisposable
 
     private void HandleScaffoldCellExecuted(Guid cellId)
     {
+        // Only the per-cell completion event fires here; see RemoteNotebookService for why the
+        // parameterless OnCellExecuted is not also raised on completion.
         OnCellExecutionCompleted?.Invoke(cellId);
-        OnCellExecuted?.Invoke();
     }
 
     private void HandleExtensionStatusChanged(string extensionId, ExtensionStatus status)

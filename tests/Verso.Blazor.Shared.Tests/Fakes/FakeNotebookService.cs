@@ -246,9 +246,14 @@ public sealed class FakeNotebookService : INotebookService
     public IReadOnlyList<ToolbarActionInfo> GetToolbarActions(ToolbarPlacement placement)
         => ToolbarActions.Where(a => a.Placement == placement).ToList();
 
+    public int GetActionEnabledStatesCallCount { get; private set; }
+
     public Task<Dictionary<string, bool>> GetActionEnabledStatesAsync(
         ToolbarPlacement placement, IReadOnlyList<Guid> selectedCellIds)
-        => Task.FromResult(ActionEnabledStates);
+    {
+        GetActionEnabledStatesCallCount++;
+        return Task.FromResult(ActionEnabledStates);
+    }
 
     public List<string> ExecutedActionIds { get; } = new();
 

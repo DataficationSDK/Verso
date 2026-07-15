@@ -1405,8 +1405,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         // parameters form) must not mark the notebook edited when they auto-render on open.
         if (CellTypePersistsOutputs(cellId))
             SetDirty(true);
+        // Only the per-cell completion event fires here; see RemoteNotebookService for why the
+        // parameterless OnCellExecuted is not also raised on completion.
         OnCellExecutionCompleted?.Invoke(cellId);
-        OnCellExecuted?.Invoke();
     }
 
     private void HandleScaffoldKernelRestarting(string? kernelId)
@@ -1422,10 +1423,30 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         => OnKernelHealthChanged?.Invoke(
             new KernelHealthChangedEventArgs(KernelHealth.Faulted, ex.Message));
 
+    // Coalesce whole-page output-update notifications so a burst of Display() calls during Run All
+    // raises OnOutputUpdated (and a whole-page render) at most once per window rather than per output.
+    // Cell outputs are updated synchronously by the scaffold; only the render notification is throttled.
+    private bool _outputNotifyScheduled;
+    private const int OutputNotifyCoalesceMs = 32;
+
     private void HandleScaffoldCellOutputUpdated(Guid cellId)
     {
-        OnOutputUpdated?.Invoke();
+        NotifyOutputUpdatedCoalesced();
         RaiseCellOutputUpdated(cellId);
+    }
+
+    private void NotifyOutputUpdatedCoalesced()
+    {
+        if (_outputNotifyScheduled) return;
+        _outputNotifyScheduled = true;
+        _ = FlushOutputNotifyAsync();
+    }
+
+    private async Task FlushOutputNotifyAsync()
+    {
+        await Task.Delay(OutputNotifyCoalesceMs);
+        _outputNotifyScheduled = false;
+        OnOutputUpdated?.Invoke();
     }
 
     private async Task<string?> RequestInputFromUIAsync(
