@@ -376,6 +376,48 @@ public sealed class CellTests : BunitTestContext
         Assert.AreEqual(1, runCount);
     }
 
+    [TestMethod]
+    public void CellToolbar_RequeriesEnabledStates_WhenHostSideStateChanges()
+    {
+        _service.ToolbarActions.Add(new ToolbarActionInfo(
+            "verso.action.clear-cell-output", "Clear Output", null, ToolbarPlacement.CellToolbar, 31));
+        _service.ActionEnabledStates["verso.action.clear-cell-output"] = true;
+
+        var cell = CreateCodeCell("var x = 1;");
+        var cut = RenderCell(cell);
+        Assert.AreEqual(1, _service.GetActionEnabledStatesCallCount);
+
+        // An extension's IsEnabled predicate can depend on host-side state (variables, other
+        // cells, kernel), so these events must re-query even though none of this cell's own
+        // render inputs changed and no parent re-render is guaranteed to follow.
+        _service.RaiseVariablesChanged();
+        cut.WaitForAssertion(() => Assert.AreEqual(2, _service.GetActionEnabledStatesCallCount));
+
+        _service.RaiseKernelRestarted();
+        cut.WaitForAssertion(() => Assert.AreEqual(3, _service.GetActionEnabledStatesCallCount));
+
+        _service.RaiseExtensionStatusChanged();
+        cut.WaitForAssertion(() => Assert.AreEqual(4, _service.GetActionEnabledStatesCallCount));
+    }
+
+    [TestMethod]
+    public void CellToolbar_RequeriesEnabledStates_WhenCellLanguageChanges()
+    {
+        _service.ToolbarActions.Add(new ToolbarActionInfo(
+            "verso.action.clear-cell-output", "Clear Output", null, ToolbarPlacement.CellToolbar, 31));
+        _service.ActionEnabledStates["verso.action.clear-cell-output"] = true;
+
+        var cell = CreateCodeCell("var x = 1;");
+        var cut = RenderCell(cell);
+        Assert.AreEqual(1, _service.GetActionEnabledStatesCallCount);
+
+        // Language-specific actions change availability with the cell language. The CellData
+        // reference stays the same, so only the language field distinguishes the signatures.
+        cell.Language = "python";
+        cut.SetParametersAndRender(p => p.Add(c => c.CellData, cell));
+        Assert.AreEqual(2, _service.GetActionEnabledStatesCallCount);
+    }
+
     private IRenderedComponent<Cell> RenderCell(
         CellModel cell,
         bool isSelected = false,

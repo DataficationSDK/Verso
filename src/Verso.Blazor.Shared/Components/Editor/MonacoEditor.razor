@@ -17,6 +17,7 @@
     private DotNetObjectReference<MonacoEditor>? _dotnetRef;
     private bool _initialized;
     private string? _lastSetValue;
+    private string? _lastSetLanguage;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -31,6 +32,7 @@
             }, _dotnetRef);
             _initialized = true;
             _lastSetValue = Value;
+            _lastSetLanguage = Language;
         }
     }
 
@@ -44,7 +46,15 @@
             await JS.InvokeVoidAsync("versoMonaco.setValue", _elementId, Value);
         }
 
-        await JS.InvokeVoidAsync("versoMonaco.setLanguage", _elementId, Language);
+        // Guarded like setValue above: this method runs on every parent render (during Run All,
+        // once per coalesced output flush for every code cell), and an unconditional interop call
+        // here keeps the webview main thread busy for no reason. The language virtually never
+        // changes after creation.
+        if (Language != _lastSetLanguage)
+        {
+            _lastSetLanguage = Language;
+            await JS.InvokeVoidAsync("versoMonaco.setLanguage", _elementId, Language);
+        }
     }
 
     [JSInvokable]

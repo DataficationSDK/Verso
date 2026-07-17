@@ -129,51 +129,56 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         return result;
     }
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
-        if (_initialized) return Task.CompletedTask;
+        if (_initialized) return;
 
         // Support re-initialization after disposal (kernel restart)
         _disposed = false;
 
-        _sessionManager = new FsiSessionManager();
-        _sessionManager.Initialize(_options);
-
-        // Evaluate default open declarations silently
-        var opens = _options.DefaultOpens ?? FSharpKernelOptions.DefaultOpenNamespaces;
-        foreach (var ns in opens)
+        // Create the FSI session on a thread-pool thread (mirroring PythonKernel). FCS blocks the
+        // creating thread internally while posting async continuations to the ambient
+        // SynchronizationContext, so building the session inline on a context-bound caller (e.g.
+        // the Blazor Server renderer dispatcher during a kernel restart) deadlocks it.
+        await Task.Run(() =>
         {
-            _sessionManager.EvalSilent($"open {ns}");
-        }
+            _sessionManager = new FsiSessionManager();
+            _sessionManager.Initialize(_options);
 
-        // Add Verso.Abstractions reference so IVariableStore API is available in F# cells
-        var abstractionsAssembly = typeof(Verso.Abstractions.IVariableStore).Assembly.Location;
-        if (!string.IsNullOrEmpty(abstractionsAssembly))
-        {
-            _sessionManager.EvalSilent($"#r @\"{abstractionsAssembly}\"");
-        }
+            // Evaluate default open declarations silently
+            var opens = _options.DefaultOpens ?? FSharpKernelOptions.DefaultOpenNamespaces;
+            foreach (var ns in opens)
+            {
+                _sessionManager.EvalSilent($"open {ns}");
+            }
 
-        _variableBridge = new VariableBridge(_options);
-        _variablesInjected = false;
-        _parametersInjected = false;
-        _executionLock = new SemaphoreSlim(1, 1);
+            // Add Verso.Abstractions reference so IVariableStore API is available in F# cells
+            var abstractionsAssembly = typeof(Verso.Abstractions.IVariableStore).Assembly.Location;
+            if (!string.IsNullOrEmpty(abstractionsAssembly))
+            {
+                _sessionManager.EvalSilent($"#r @\"{abstractionsAssembly}\"");
+            }
 
-        // Initialize IntelliSense infrastructure
-        _checkerManager = new FSharpCheckerManager();
-        _checkerManager.Initialize();
+            _variableBridge = new VariableBridge(_options);
+            _variablesInjected = false;
+            _parametersInjected = false;
+            _executionLock = new SemaphoreSlim(1, 1);
 
-        _projectContext = new FSharpProjectContext(
-            opens,
-            _sessionManager.ResolvedArgs);
+            // Initialize IntelliSense infrastructure
+            _checkerManager = new FSharpCheckerManager();
+            _checkerManager.Initialize();
 
-        // Initialize NuGet and script directive processors
-        _nugetProcessor = new NuGetReferenceProcessor();
-        _nugetProcessor.ProbeNuGetSupport(_sessionManager);
-        _scriptDirectiveProcessor = new ScriptDirectiveProcessor();
+            _projectContext = new FSharpProjectContext(
+                opens,
+                _sessionManager.ResolvedArgs);
+
+            // Initialize NuGet and script directive processors
+            _nugetProcessor = new NuGetReferenceProcessor();
+            _nugetProcessor.ProbeNuGetSupport(_sessionManager);
+            _scriptDirectiveProcessor = new ScriptDirectiveProcessor();
+        }).ConfigureAwait(false);
 
         _initialized = true;
-
-        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
