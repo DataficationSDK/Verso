@@ -89,4 +89,26 @@ public class TypeScriptKernelTests
         await kernel.DisposeAsync();
         await kernel.DisposeAsync(); // Should not throw
     }
+
+    [TestMethod]
+    public void AutoInstallSpec_IsPinnedToSupportedMajor()
+    {
+        // TypeScript 7+ dropped the compiler API the Node bridge depends on, so the
+        // auto-install must never float to latest.
+        Assert.AreEqual("typescript@6", TypeScriptKernel.TypeScriptInstallSpec);
+    }
+
+    [DataTestMethod]
+    [DataRow("5.9.2", true)]
+    [DataRow("6.0.2", true)]
+    [DataRow("6.1.0-beta", true)]
+    [DataRow("7.0.2", false)]
+    [DataRow("7.1.0-dev.20260717.1", false)]
+    [DataRow("8.0.0", false)]
+    [DataRow("not-a-version", false)]
+    [DataRow("", false)]
+    public void IsSupportedTypeScriptVersion_ClassifiesVersions(string version, bool expected)
+    {
+        Assert.AreEqual(expected, TypeScriptKernel.IsSupportedTypeScriptVersion(version));
+    }
 }

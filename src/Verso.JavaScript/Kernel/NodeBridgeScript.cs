@@ -231,21 +231,32 @@ internal static class NodeBridgeScript
         // --- TypeScript transpilation ---
         let _verso_ts = null;
         let _verso_tsChecked = false;
+        let _verso_tsError = null;
 
         function _verso_ensureTypeScript() {
             if (_verso_tsChecked) return _verso_ts !== null;
             _verso_tsChecked = true;
             try {
-                _verso_ts = require('typescript');
+                const mod = require('typescript');
+                // TypeScript 7+ packages export only version metadata from the package
+                // root; the compiler API used below is no longer included.
+                if (typeof mod.transpileModule !== 'function') {
+                    _verso_tsError = 'The installed typescript package (' +
+                        (mod.version || 'unknown version') +
+                        ') does not include the compiler API. Install a supported version with #!npm typescript@6';
+                    return false;
+                }
+                _verso_ts = mod;
                 return true;
             } catch (_) {
+                _verso_tsError = 'TypeScript module not found. Install it with #!npm typescript@6';
                 return false;
             }
         }
 
         function _verso_transpileTypeScript(code) {
             if (!_verso_ensureTypeScript()) {
-                return { error: 'TypeScript module not found. Install it with #!npm typescript' };
+                return { error: _verso_tsError };
             }
             try {
                 const result = _verso_ts.transpileModule(code, {

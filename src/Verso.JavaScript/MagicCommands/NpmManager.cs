@@ -124,6 +124,28 @@ internal static class NpmManager
         return Directory.Exists(dir);
     }
 
+    /// <summary>
+    /// Reads the installed version of a package from its package.json in node_modules.
+    /// Returns null when the package is not installed or the version cannot be read.
+    /// </summary>
+    public static string? GetInstalledPackageVersion(string packageName)
+    {
+        try
+        {
+            var packageJson = Path.Combine(NodeModulesPath, packageName, "package.json");
+            if (!File.Exists(packageJson)) return null;
+
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(packageJson));
+            return doc.RootElement.TryGetProperty("version", out var version)
+                ? version.GetString()
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string? FindNpm()
     {
         try

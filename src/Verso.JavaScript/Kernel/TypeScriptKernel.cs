@@ -217,19 +217,31 @@ public sealed class TypeScriptKernel : ILanguageKernel
         return outputs;
     }
 
+    /// <summary>
+    /// The npm install spec for the auto-installed compiler. TypeScript 7 and later (the
+    /// Go-native compiler) no longer export the JavaScript compiler API the Node bridge
+    /// uses for transpilation (transpileModule, ScriptTarget, ...), so installs are pinned
+    /// to the 6.x line, the final release line that ships that API.
+    /// </summary>
+    internal const string TypeScriptInstallSpec = "typescript@6";
+
+    private const int MaxSupportedTypeScriptMajor = 6;
+
     private async Task EnsureTypeScriptInstalledAsync(IExecutionContext context, CancellationToken ct)
     {
         // Quick check: try transpiling a trivial expression
         var probe = await _runner!.TranspileAsync("const _: number = 1;", ct);
         if (probe.Success) return;
 
-        // TypeScript not available, auto-install silently
-        if (!NpmManager.IsPackageInstalled("typescript"))
+        // Auto-install silently when typescript is missing, or reinstall the pin when an
+        // unsupported version is cached (an unpinned install may have pulled 7.x, which
+        // fails every transpile because the compiler API is absent).
+        if (!NpmManager.IsPackageInstalled("typescript") || !InstalledTypeScriptIsSupported())
         {
             await NpmManager.EnsureInitializedAsync(ct);
-            var success = await NpmManager.InstallSilentAsync("typescript", ct);
+            var success = await NpmManager.InstallSilentAsync(TypeScriptInstallSpec, ct);
             if (!success)
-                throw new InvalidOperationException("Failed to install the typescript npm package.");
+                throw new InvalidOperationException($"Failed to install the {TypeScriptInstallSpec} npm package.");
         }
 
         // Update NODE_PATH so the bridge can find the module
@@ -253,7 +265,28 @@ public sealed class TypeScriptKernel : ILanguageKernel
         // Verify
         var verify = await _runner.TranspileAsync("const _: number = 1;", ct);
         if (!verify.Success)
-            throw new InvalidOperationException($"TypeScript compiler not working after install: {verify.Error}");
+        {
+            var installed = NpmManager.GetInstalledPackageVersion("typescript");
+            throw new InvalidOperationException(
+                $"TypeScript compiler not working after install (typescript {installed ?? "version unknown"}): {verify.Error}");
+        }
+    }
+
+    private static bool InstalledTypeScriptIsSupported()
+    {
+        var version = NpmManager.GetInstalledPackageVersion("typescript");
+        return version is not null && IsSupportedTypeScriptVersion(version);
+    }
+
+    /// <summary>
+    /// Whether an installed typescript package version still ships the JavaScript
+    /// compiler API the bridge needs. True for majors up to 6; 7+ dropped the API.
+    /// </summary>
+    internal static bool IsSupportedTypeScriptVersion(string version)
+    {
+        var dot = version.IndexOf('.');
+        var majorText = dot >= 0 ? version[..dot] : version;
+        return int.TryParse(majorText, out var major) && major > 0 && major <= MaxSupportedTypeScriptMajor;
     }
 
     private async Task EnsureInitializedAsync()
