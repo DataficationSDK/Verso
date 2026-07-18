@@ -8,7 +8,7 @@ using Verso.Stubs;
 namespace Verso;
 
 /// <summary>
-/// Core orchestrator — cell CRUD, kernel registry, execution dispatch, shared state, and subsystem hooks.
+/// Core orchestrator: cell CRUD, kernel registry, execution dispatch, shared state, and subsystem hooks.
 /// </summary>
 public sealed class Scaffold : IAsyncDisposable
 {
@@ -776,7 +776,7 @@ public sealed class Scaffold : IAsyncDisposable
 
     /// <summary>
     /// Eagerly initializes a kernel so IntelliSense is available before the first execution.
-    /// Safe to call concurrently — concurrent calls for the same language share a single init task.
+    /// Safe to call concurrently; concurrent calls for the same language share a single init task.
     /// </summary>
     public Task WarmUpKernelAsync(string languageId)
     {

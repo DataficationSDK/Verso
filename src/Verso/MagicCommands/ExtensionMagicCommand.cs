@@ -6,11 +6,11 @@ using Verso.Kernels;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!extension PackageId [Version]</c> — resolves a NuGet package, requests user consent,
+/// <c>#!extension PackageId [Version]</c> resolves a NuGet package, requests user consent,
 /// loads extensions from its assemblies via <see cref="ExtensionHost"/>, and stores assembly
 /// paths in the variable store so the CSharpKernel picks them up as MetadataReferences.
 /// <para>
-/// <c>#!extension ./path/to/MyExtension.dll</c> — loads extensions directly from a local
+/// <c>#!extension ./path/to/MyExtension.dll</c> loads extensions directly from a local
 /// assembly file. Paths are resolved relative to the notebook's directory. No consent dialog
 /// is shown for local files.
 /// </para>

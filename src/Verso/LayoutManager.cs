@@ -144,7 +144,7 @@ public sealed class LayoutManager
     /// Attempts to activate the layout by qualified reference. Returns <c>true</c> on
     /// success, or <c>false</c> when no matching layout is registered. An unqualified
     /// reference (empty <see cref="LayoutReference.ExtensionId"/>) falls back to the
-    /// legacy resolution path — matching on LayoutId alone — and fails when more than
+    /// legacy resolution path (matching on LayoutId alone) and fails when more than
     /// one loaded extension provides that LayoutId.
     /// </summary>
     public bool TryActivate(LayoutReference reference)

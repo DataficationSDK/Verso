@@ -4,7 +4,7 @@ using Verso.Abstractions;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!about</c> — outputs Verso version, runtime, and loaded extensions; suppresses execution.
+/// <c>#!about</c> outputs Verso version, runtime, and loaded extensions; suppresses execution.
 /// </summary>
 [VersoExtension]
 public sealed class AboutMagicCommand : IMagicCommand

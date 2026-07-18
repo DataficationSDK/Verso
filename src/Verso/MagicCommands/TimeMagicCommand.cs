@@ -4,7 +4,7 @@ using Verso.Contexts;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!time</c> — signals the pipeline to report elapsed time after kernel execution.
+/// <c>#!time</c> signals the pipeline to report elapsed time after kernel execution.
 /// </summary>
 [VersoExtension]
 public sealed class TimeMagicCommand : IMagicCommand

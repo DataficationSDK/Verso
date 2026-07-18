@@ -16,7 +16,7 @@ namespace Verso.Extensions.Layouts;
 /// 2. A small set of <c>--verso-*</c> token overrides set on the layout root. Because the live cell
 ///    component is physically moved (portaled) inside the layout root, those custom properties
 ///    cascade into it, so the editor chrome, buttons, and outputs pick up the same shape and
-///    surfaces too — the cell stays fully live and editable, it just adopts the layout's styling.
+///    surfaces too; the cell stays fully live and editable, it just adopts the layout's styling.
 /// </summary>
 internal static class NotebookLayoutStyles
 {

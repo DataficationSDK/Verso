@@ -3,7 +3,7 @@ using Verso.Abstractions;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!restart [kernelId]</c> — restarts the specified kernel (or default); suppresses execution.
+/// <c>#!restart [kernelId]</c> restarts the specified kernel (or default); suppresses execution.
 /// </summary>
 [VersoExtension]
 public sealed class RestartMagicCommand : IMagicCommand

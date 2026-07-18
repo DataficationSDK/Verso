@@ -4,7 +4,7 @@ using Verso.Kernels;
 namespace Verso.MagicCommands;
 
 /// <summary>
-/// <c>#!nuget Package [Version]</c> — resolves a NuGet package and stores assembly paths
+/// <c>#!nuget Package [Version]</c> resolves a NuGet package and stores assembly paths
 /// in the variable store for the kernel to pick up.
 /// </summary>
 [VersoExtension]

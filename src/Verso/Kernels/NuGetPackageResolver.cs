@@ -11,7 +11,7 @@ namespace Verso.Kernels;
 
 /// <summary>
 /// Result of resolving a NuGet package, including the resolved version, assembly paths,
-/// and the full transitive set of packages that were resolved (id + version) — useful
+/// and the full transitive set of packages that were resolved (id + version), useful
 /// for diagnostics when a runtime assembly load fails and the user needs to see what
 /// actually got pulled in.
 /// </summary>
@@ -663,7 +663,7 @@ internal sealed class NuGetPackageResolver
     /// should not be downloaded (already available at runtime).
     /// <para>
     /// Only core runtime meta-packages (<c>Microsoft.NETCore.*</c>, <c>NETStandard.*</c>)
-    /// are skipped — these contain no real assemblies, only target-framework metadata.
+    /// are skipped; these contain no real assemblies, only target-framework metadata.
     /// </para>
     /// <para>
     /// <c>System.*</c> and <c>Microsoft.Extensions.*</c> packages are NOT skipped, even
