@@ -12,10 +12,14 @@
 - **HTTP requests** using `.http` file syntax with variable interpolation, dynamic variables, named request chaining, and cross-kernel response sharing
 - **Markdown, HTML, and Mermaid** cells for documentation, visualizations, and diagrams
 - **Variable sharing** across languages so you can set a value in C# and use it in SQL, F#, or PowerShell
-- **Notebook and Dashboard layouts** to view cells as a linear document or arrange them in a drag-and-drop grid
+- **Typed notebook parameters** that turn a notebook into a reusable template, filled in from a form in the editor or `--param` flags on the CLI
+- **Notebook, Dashboard, and Presentation layouts** to view cells as a linear document, arrange them in a drag-and-drop grid, or present read-only results
 - **Notebook comparison** against the last saved file, git HEAD, any ref, or another notebook file, with cell-level diffs, moved-cell detection, and side-by-side rendered output comparison
+- **GitHub Copilot integration** with a `@verso` chat participant and agent-mode tools that let Copilot create, edit, and run cells for you
+- **In-app extension marketplace** to search NuGet and install new kernels, layouts, and themes without leaving the notebook
 - **Light, Dark, and High Contrast themes** that are hot-swappable at runtime (High Contrast meets WCAG 2.1 AA)
 - **Import Jupyter (.ipynb) and Polyglot (.dib) notebooks** with automatic conversion of magic commands and cell types
+- **Export to HTML or Markdown** from the editor's Export menu or headlessly with the Verso CLI
 - **Fully extensible** with a public API for adding new languages, cell types, themes, layouts, and more
 
 ## Writing Code with IntelliSense
@@ -41,9 +45,17 @@ In environments where Node.js is not installed, the JavaScript kernel falls back
 
 ![C# IntelliSense in Verso](https://datafication.co/assets/verso/IntellisenseVerso.gif)
 
-## Notebook and Dashboard Layouts
+## Notebook, Dashboard, and Presentation Layouts
 
-Every notebook can be viewed in two ways. **Notebook layout** presents cells in a familiar top-to-bottom flow. **Dashboard layout** lets you drag and resize cells on a 12-column grid to build interactive dashboards. Both layouts are saved in the `.verso` file and you can switch between them at any time.
+Every notebook can be viewed in three ways. **Notebook layout** presents cells in a familiar top-to-bottom flow. **Dashboard layout** lets you drag and resize cells on a 12-column grid to build interactive dashboards. **Presentation layout** turns the notebook into a read-only, output-focused flow for walking through results. The active layout is saved in the `.verso` file and you can switch at any time from the View menu.
+
+Layouts are also an extension point: installing a layout extension adds new ways to view the same notebook. The `Verso.Showcase.*` packages on NuGet demonstrate this with an image compositor (Image Studio), form-driven notebooks with charts (Form Studio), editable data grids (Grid Studio), and slide-deck authoring with a filmstrip and full-screen presenter (Slide Studio).
+
+## Extension Marketplace
+
+Every built-in feature of Verso is an extension, and you can add more without leaving the editor. The extensions panel includes a marketplace search over your configured NuGet feeds (nuget.org by default): type a package name, pick a version, and install. Because extensions are executable code, Verso asks for consent before loading a downloaded package, and trust is pinned to the exact version you approved.
+
+Notebooks can also declare **required extensions**. When you open such a notebook, Verso resolves and loads them first, prompting once for anything not yet trusted, so a shared notebook brings its own kernels, layouts, and themes with it.
 
 ## SQL Database Support
 
@@ -52,6 +64,16 @@ Connect to any ADO.NET-compatible database (SQL Server, PostgreSQL, MySQL, SQLit
 ## HTTP Requests
 
 Send REST API requests directly in your notebook using `.http` file syntax, the same format supported by VS Code's REST Client and JetBrains HTTP Client. Responses are formatted with status badges, timing, collapsible headers, and pretty-printed JSON. Declare variables with `@name = value`, use dynamic variables like `{{$guid}}` and `{{$timestamp}}`, chain named requests, and send multiple requests per cell with `###` separators. Response data is automatically shared to C#, F#, and other kernels via the variable store.
+
+## Parameterized Notebooks
+
+A **parameters cell** declares typed inputs with defaults, descriptions, and required flags through a form in the editor, no JSON editing needed. Verso injects the values into the shared variable store before any cell runs, so every kernel sees them as ordinary variables. Fill them in interactively and Run All, or run the same notebook headlessly with the Verso CLI:
+
+```bash
+verso run pipeline.verso --param region=us-east --param batchSize=5000
+```
+
+String values are coerced to the declared type, and a missing required parameter fails validation instead of running with bad inputs. One notebook can serve as an ad hoc scratchpad, a report template, and a scheduled CI job.
 
 ## GitHub Copilot Integration
 
@@ -72,7 +94,11 @@ Verso integrates with GitHub Copilot Chat through the `@verso` participant. With
 | `@verso /run` | Run all cells and show results |
 | `@verso /vars` | Show all variables currently in scope |
 
-Copilot can chain multiple actions in a single conversation, for example creating a cell, running it, reading the output, and then fixing an error. The integration requires GitHub Copilot Chat and VS Code 1.99 or later.
+Copilot can chain multiple actions in a single conversation, for example creating a cell, running it, reading the output, and then fixing an error.
+
+**Agent mode:** Verso also registers twenty language model tools, so in Copilot agent mode Copilot can list, add, edit, move, and run cells, inspect variables, manage parameters, and switch layouts as part of a larger task, without you typing `@verso` at all.
+
+The integration requires GitHub Copilot Chat and VS Code 1.99 or later.
 
 ## Comparing Notebooks
 
@@ -103,12 +129,13 @@ The JavaScript kernel works out of the box with no external dependencies by usin
 
 The Python kernel requires **Python 3.8-3.12** installed on your system. Python 3.13+ is not yet supported by pythonnet. The kernel auto-detects your Python installation; if auto-detection fails you can set the `PythonDll` option to the path of your Python shared library (e.g. `python312.dll` on Windows, `libpython3.12.dylib` on macOS, `libpython3.12.so` on Linux).
 
-To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` file.
-
 ### Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| `verso.dotnetPath` | auto-detect | Path to the `dotnet` executable used to run notebooks. If empty, Verso reuses an installed .NET runtime, locating it via the .NET Install Tool. |
+| `verso.extensionsPath` | `[]` | Directories of third-party Verso extension assemblies to load on notebook open, one directory per entry. Applies on the next notebook open. |
+| `verso.hostPath` | bundled | Path to a custom `Verso.Host.dll`. If empty, the bundled host is used. |
 | `verso.preserveOriginalFormat` | `false` | When opening an `.ipynb` file, save changes back to `.ipynb` (cell outputs preserved) instead of converting to a sibling `.verso` file. Leave off to keep the existing convert-on-save behavior. |
 
 ## Supported Languages
@@ -133,11 +160,17 @@ To import an existing notebook, use **File > Open** on any `.ipynb` or `.dib` fi
 
 Verso is built on a fully extensible architecture. Every built-in feature, from the C# kernel to the Dark theme, is implemented using the same public interfaces available to extension authors. You can create new language kernels, cell types, themes, layouts, toolbar actions, and data formatters.
 
-See the [Verso repository](https://github.com/DataficationSDK/Verso) for documentation, extension samples, and the `dotnet new verso-extension` template.
+See the [extension authoring docs](https://www.versonotebooks.com/docs/index.html) and the [Verso repository](https://github.com/DataficationSDK/Verso) for extension samples and the `dotnet new verso-extension` template.
+
+## Learn More
+
+- [Documentation](https://www.versonotebooks.com/docs/index.html): guides, architecture, and extension authoring
+- [Notebook gallery](https://www.versonotebooks.com/gallery/index.html): real notebooks with baked outputs, ready to download and run
+- [Release notes](https://www.versonotebooks.com/release-notes.html): what changed in each release
 
 ## Support
 
-Found a bug or have a feature request? [Open an issue on GitHub](https://github.com/DataficationSDK/Verso/issues).
+Found a bug or have a feature request? [Open an issue on GitHub](https://github.com/DataficationSDK/Verso/issues), or ask a question in [Discussions](https://github.com/DataficationSDK/Verso/discussions).
 
 ## License
 

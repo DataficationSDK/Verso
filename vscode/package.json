@@ -1,11 +1,20 @@
 {
   "name": "verso-notebook",
   "displayName": "Verso Notebook",
-  "description": "Interactive .NET notebooks with C#, F#, PowerShell, Python, SQL, IntelliSense, database connectivity, and EF Core scaffolding",
+  "description": "Polyglot .NET notebooks with C#, F#, Python, JavaScript, TypeScript, PowerShell, SQL, and HTTP cells. One shared variable store across languages, IntelliSense, dashboards, Jupyter import, and GitHub Copilot integration.",
   "version": "1.0.0",
   "publisher": "datafication",
   "license": "MIT",
   "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#0e3050",
+    "theme": "dark"
+  },
+  "homepage": "https://www.versonotebooks.com",
+  "bugs": {
+    "url": "https://github.com/DataficationSDK/Verso/issues"
+  },
+  "qna": "https://github.com/DataficationSDK/Verso/discussions",
   "repository": {
     "type": "git",
     "url": "https://github.com/DataficationSDK/Verso"
@@ -18,16 +27,40 @@
     "Machine Learning",
     "Visualization",
     "Notebooks",
-    "Chat"
+    "Chat",
+    "AI"
   ],
   "keywords": [
     "dotnet",
+    ".net",
     "notebook",
+    "notebooks",
+    "interactive",
     "csharp",
-    "jupyter",
-    "polyglot-notebook",
+    "c#",
+    "fsharp",
+    "f#",
+    "python",
     "powershell",
-    "copilot"
+    "sql",
+    "javascript",
+    "typescript",
+    "jupyter",
+    "ipynb",
+    "polyglot-notebook",
+    "dotnet-interactive",
+    "repl",
+    "data-science",
+    "database",
+    "ef-core",
+    "entity-framework",
+    "http-client",
+    "rest-client",
+    "dashboard",
+    "visualization",
+    "charts",
+    "copilot",
+    "ai"
   ],
   "activationEvents": [
     "onCustomEditor:verso.blazorNotebook",
