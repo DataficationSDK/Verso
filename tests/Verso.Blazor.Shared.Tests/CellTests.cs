@@ -322,6 +322,102 @@ public sealed class CellTests : BunitTestContext
         };
     }
 
+    [TestMethod]
+    public void CellToolbar_QueriesEnabledStates_OnlyWhenInputsChange()
+    {
+        // A non-hardcoded cell-toolbar action (like the built-in Clear Output) opens the enabled-state
+        // path; run-cell is hardcoded and would not.
+        _service.ToolbarActions.Add(new ToolbarActionInfo(
+            "verso.action.clear-cell-output", "Clear Output", null, ToolbarPlacement.CellToolbar, 31));
+        _service.ActionEnabledStates["verso.action.clear-cell-output"] = true;
+
+        var cell = CreateCodeCell("var x = 1;");
+        var cut = RenderCell(cell);
+
+        // Initial render queries the host exactly once.
+        Assert.AreEqual(1, _service.GetActionEnabledStatesCallCount);
+
+        // Re-supplying identical parameters (what the parent does on every whole-notebook re-render,
+        // e.g. once per streamed output during Run All) must not re-query the host.
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, false));
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, false));
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, false));
+        Assert.AreEqual(1, _service.GetActionEnabledStatesCallCount);
+
+        // Changing an input that affects enablement (selection) re-queries exactly once more.
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, true));
+        Assert.AreEqual(2, _service.GetActionEnabledStatesCallCount);
+    }
+
+    [TestMethod]
+    public void NonEditableCell_AutoRenders_Once_AcrossReRenders()
+    {
+        // Loose JS interop so the non-editable cell's OnAfterRender lifecycle runs without stubbing
+        // every JS call; the auto-render path under test is pure C#.
+        TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var cell = CreateCodeCell(string.Empty);
+        var runCount = 0;
+
+        var cut = RenderComponent<Cell>(p => p
+            .Add(c => c.CellData, cell)
+            .Add(c => c.IsEditable, false)
+            .Add(c => c.OnRunCell, Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Guid>(this, _ => runCount++)));
+
+        // A non-editable cell with no outputs (e.g. the parameters form) auto-renders exactly once on open.
+        Assert.AreEqual(1, runCount);
+
+        // Re-renders that occur before the first output arrives (outputs still empty, and a render-only
+        // cell never reports an executing state) must NOT re-trigger execution; otherwise the cell spins
+        // and can lock the UI. This is the regression the issue #83 fixes must not introduce.
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, false));
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, true));
+        cut.SetParametersAndRender(p => p.Add(c => c.IsSelected, false));
+        Assert.AreEqual(1, runCount);
+    }
+
+    [TestMethod]
+    public void CellToolbar_RequeriesEnabledStates_WhenHostSideStateChanges()
+    {
+        _service.ToolbarActions.Add(new ToolbarActionInfo(
+            "verso.action.clear-cell-output", "Clear Output", null, ToolbarPlacement.CellToolbar, 31));
+        _service.ActionEnabledStates["verso.action.clear-cell-output"] = true;
+
+        var cell = CreateCodeCell("var x = 1;");
+        var cut = RenderCell(cell);
+        Assert.AreEqual(1, _service.GetActionEnabledStatesCallCount);
+
+        // An extension's IsEnabled predicate can depend on host-side state (variables, other
+        // cells, kernel), so these events must re-query even though none of this cell's own
+        // render inputs changed and no parent re-render is guaranteed to follow.
+        _service.RaiseVariablesChanged();
+        cut.WaitForAssertion(() => Assert.AreEqual(2, _service.GetActionEnabledStatesCallCount));
+
+        _service.RaiseKernelRestarted();
+        cut.WaitForAssertion(() => Assert.AreEqual(3, _service.GetActionEnabledStatesCallCount));
+
+        _service.RaiseExtensionStatusChanged();
+        cut.WaitForAssertion(() => Assert.AreEqual(4, _service.GetActionEnabledStatesCallCount));
+    }
+
+    [TestMethod]
+    public void CellToolbar_RequeriesEnabledStates_WhenCellLanguageChanges()
+    {
+        _service.ToolbarActions.Add(new ToolbarActionInfo(
+            "verso.action.clear-cell-output", "Clear Output", null, ToolbarPlacement.CellToolbar, 31));
+        _service.ActionEnabledStates["verso.action.clear-cell-output"] = true;
+
+        var cell = CreateCodeCell("var x = 1;");
+        var cut = RenderCell(cell);
+        Assert.AreEqual(1, _service.GetActionEnabledStatesCallCount);
+
+        // Language-specific actions change availability with the cell language. The CellData
+        // reference stays the same, so only the language field distinguishes the signatures.
+        cell.Language = "python";
+        cut.SetParametersAndRender(p => p.Add(c => c.CellData, cell));
+        Assert.AreEqual(2, _service.GetActionEnabledStatesCallCount);
+    }
+
     private IRenderedComponent<Cell> RenderCell(
         CellModel cell,
         bool isSelected = false,

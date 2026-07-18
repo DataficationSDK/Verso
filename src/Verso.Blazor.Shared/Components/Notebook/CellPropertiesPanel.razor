@@ -53,10 +53,12 @@
             if (_subscribedService is not null)
             {
                 _subscribedService.OnCellExecuted -= HandleCellChanged;
+                _subscribedService.OnCellExecutionCompleted -= HandleCellCompleted;
                 _subscribedService.OnNotebookChanged -= HandleNotebookChanged;
             }
             _subscribedService = Service;
             Service.OnCellExecuted += HandleCellChanged;
+            Service.OnCellExecutionCompleted += HandleCellCompleted;
             Service.OnNotebookChanged += HandleNotebookChanged;
         }
 
@@ -111,6 +113,11 @@
         });
     }
 
+    // A cell finishing execution now raises only the per-cell completion event, not the parameterless
+    // OnCellExecuted, so listen here too to keep the panel refreshed after a run. The completed cell id
+    // is ignored: the panel always reloads whichever cell is currently selected, matching prior behavior.
+    private void HandleCellCompleted(Guid cellId) => HandleCellChanged();
+
     private async void HandleNotebookChanged()
     {
         await InvokeAsync(async () =>
@@ -125,6 +132,7 @@
         if (_subscribedService is not null)
         {
             _subscribedService.OnCellExecuted -= HandleCellChanged;
+            _subscribedService.OnCellExecutionCompleted -= HandleCellCompleted;
             _subscribedService.OnNotebookChanged -= HandleNotebookChanged;
         }
     }

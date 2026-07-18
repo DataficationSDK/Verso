@@ -124,4 +124,54 @@ public sealed class OutputViewTests : BunitTestContext
         StringAssert.Contains(outputs[0].TextContent, "first");
         StringAssert.Contains(outputs[1].TextContent, "second");
     }
+
+    [TestMethod]
+    public void ThrowingOutput_DegradesToErrorCard_WithoutTakingDownSiblings()
+    {
+        // A null MIME type is a malformed payload: the MIME dispatch throws while rendering it.
+        var outputs = new List<CellOutput>
+        {
+            CellOutput.Html("<b>before</b>"),
+            new(null!, "malformed"),
+            CellOutput.Plain("after")
+        };
+
+        var cut = Render(outputs);
+
+        // Only the bad output degrades to an error card; its siblings still render.
+        StringAssert.Contains(cut.Markup, "before");
+        StringAssert.Contains(cut.Markup, "after");
+        StringAssert.Contains(cut.Markup, "This output could not be rendered");
+    }
+
+    [TestMethod]
+    public void FaultedOutputBoundary_Recovers_WhenOutputIsReplaced()
+    {
+        var cut = Render(new List<CellOutput> { new(null!, "malformed") });
+        StringAssert.Contains(cut.Markup, "This output could not be rendered");
+
+        // Re-runs and interaction updates replace the output object; the boundary key includes
+        // the output, so the replacement recreates the boundary and recovers without user action.
+        cut.SetParametersAndRender(p => p.Add(o => o.Outputs,
+            new List<CellOutput> { CellOutput.Html("<i>fixed</i>") }));
+
+        Assert.IsFalse(cut.Markup.Contains("This output could not be rendered"));
+        StringAssert.Contains(cut.Markup, "fixed");
+    }
+
+    [TestMethod]
+    public void FaultedOutputBoundary_Recovers_OnRetryClick()
+    {
+        var outputs = new List<CellOutput> { new(null!, "malformed") };
+        var cut = Render(outputs);
+        StringAssert.Contains(cut.Markup, "This output could not be rendered");
+
+        // The outputs list is mutated in place (no parameter change reaches the component), so
+        // only the Retry button's key rotation can pick up the repaired content.
+        outputs[0] = CellOutput.Plain("now fine");
+        cut.Find("button[title='Retry rendering this output']").Click();
+
+        Assert.IsFalse(cut.Markup.Contains("This output could not be rendered"));
+        StringAssert.Contains(cut.Markup, "now fine");
+    }
 }

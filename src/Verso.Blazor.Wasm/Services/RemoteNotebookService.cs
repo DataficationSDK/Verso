@@ -57,6 +57,14 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private readonly Dictionary<Guid, CancellationTokenSource> _debounceCts = new();
     private const int DebounceDelayMs = 250;
 
+    // ── Coalesced whole-page output notifications ───────────────────────
+    // A burst of Display() calls during Run All would otherwise raise OnOutputUpdated (and a whole-page
+    // StateHasChanged) once per output. Cell outputs are updated synchronously as each notification
+    // arrives; only the render notification is throttled to roughly one per frame, with a trailing raise
+    // guaranteeing the final state renders.
+    private bool _outputNotifyScheduled;
+    private const int OutputNotifyCoalesceMs = 32;
+
     // ── Events ──────────────────────────────────────────────────────────
     public event Action? OnCellExecuted;
     public event Action<Guid>? OnCellExecuting;
@@ -1574,7 +1582,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                         foreach (var output in notif.Outputs ?? Enumerable.Empty<CellOutputDto>())
                             cell.Outputs.Add(MapOutputFromDto(output));
 
-                        OnOutputUpdated?.Invoke();
+                        NotifyOutputUpdatedCoalesced();
                         RaiseCellOutputUpdated(paramsJson!, cellId);
                         return;
                     }
@@ -1603,6 +1611,22 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         catch (JsonException) { }
     }
 
+    // Throttle the whole-page output-update notification: schedule at most one raise per coalescing
+    // window during a burst. The trailing raise ensures the final output state is rendered.
+    private void NotifyOutputUpdatedCoalesced()
+    {
+        if (_outputNotifyScheduled) return;
+        _outputNotifyScheduled = true;
+        _ = FlushOutputNotifyAsync();
+    }
+
+    private async Task FlushOutputNotifyAsync()
+    {
+        await Task.Delay(OutputNotifyCoalesceMs);
+        _outputNotifyScheduled = false;
+        OnOutputUpdated?.Invoke();
+    }
+
     private void HandleCellExecutionState(string? paramsJson)
     {
         if (paramsJson is null) return;
@@ -1617,10 +1641,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         }
         else
         {
+            // Only the per-cell completion event fires here. The parameterless OnCellExecuted is
+            // reserved for non-execution mutations (clear-outputs, toolbar actions); firing both on
+            // completion made every subscriber render twice per finished cell, which during Run All
+            // multiplied into a whole-page render storm.
             OnCellExecutionCompleted?.Invoke(id);
-            // Preserve the parameterless event so existing subscribers (e.g. StateHasChanged)
-            // continue to trigger a UI refresh per cell.
-            OnCellExecuted?.Invoke();
         }
     }
 

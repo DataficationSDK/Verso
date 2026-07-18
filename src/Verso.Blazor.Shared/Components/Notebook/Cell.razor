@@ -2,6 +2,7 @@
 @using System.Text
 @using System.Text.Json
 @using Verso.Blazor.Shared.Models
+@implements IDisposable
 @inject INotebookService Service
 @inject IJSRuntime JS
 
@@ -143,7 +144,12 @@
                      style="@OutputPreviewStyle"
                      data-cell-id="@CellData.Id"
                      @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
-                    <OutputView Outputs="CellData.Outputs" ExtendedMimeTypes="false" />
+                    <ErrorBoundary @ref="_outputErrorBoundary" @key="@OutputBoundaryKey">
+                        <ChildContent>
+                            <OutputView Outputs="CellData.Outputs" ExtendedMimeTypes="false" />
+                        </ChildContent>
+                        <ErrorContent>@RenderOutputError(context)</ErrorContent>
+                    </ErrorBoundary>
                 </div>
             }
             else
@@ -201,7 +207,12 @@
                      style="@OutputPreviewStyle"
                      data-cell-id="@CellData.Id"
                      @onclick="HandleOutputClick">
-                    <OutputView Outputs="CellData.Outputs" />
+                    <ErrorBoundary @ref="_outputErrorBoundary" @key="@OutputBoundaryKey">
+                        <ChildContent>
+                            <OutputView Outputs="CellData.Outputs" />
+                        </ChildContent>
+                        <ErrorContent>@RenderOutputError(context)</ErrorContent>
+                    </ErrorBoundary>
                 </div>
             }
         }
@@ -232,8 +243,24 @@
     [Parameter] public EventCallback<Guid> OnToggleSection { get; set; }
 
     private List<ToolbarActionInfo> _enabledCellActions = new();
+    private string? _enabledActionsSignature;
     private bool _showTypeDropdown;
     private bool _showLanguageDropdown;
+
+    // OutputView isolates each output in its own per-output ErrorBoundary (the first line of
+    // defense); this cell-level boundary is the outer net for failures outside any per-output
+    // scope, so neither tears down the whole notebook renderer. It is keyed by execution count,
+    // so re-running the cell starts a fresh (recovered) boundary; clearing the cell's outputs
+    // removes it entirely, and Retry recovers it in place.
+    private ErrorBoundary? _outputErrorBoundary;
+    private string OutputBoundaryKey => $"output-boundary-{CellData.ExecutionCount?.ToString() ?? "0"}";
+    private void RecoverOutputRender() => _outputErrorBoundary?.Recover();
+    private RenderFragment<Exception> RenderOutputError => renderError =>
+        @<div class="verso-output verso-output--error">
+            <div class="verso-output-error-name">This output could not be rendered</div>
+            <pre class="verso-output-error-content">@renderError.Message</pre>
+            <button class="verso-cell-btn verso-cell-btn--action" @onclick="RecoverOutputRender" title="Retry rendering this output">Retry</button>
+        </div>;
 
     // The type/language menus render in the browser top layer (popover) so they paint above the
     // composited Monaco editors of neighbouring cells. These refs let OnAfterRenderAsync show the
@@ -257,6 +284,11 @@
     };
 
     private bool _pendingAutoExecute;
+    // Latches the one-time auto-render request for non-editable cells (e.g. the parameters form) so a
+    // re-render that happens before the first render's output arrives does not re-request execution.
+    // A render-only cell never reports an executing state, so IsExecuting alone cannot guard against
+    // re-entrancy; without this latch the cell would repeatedly re-run and spin the UI.
+    private bool _autoExecuteRequested;
 
     private bool SupportsInputCollapse => IsEditable && string.Equals(CellData.Type, "code", StringComparison.OrdinalIgnoreCase);
 
@@ -320,7 +352,37 @@
             : $"{ts.TotalMinutes:F1}m";
     }
 
+    protected override void OnInitialized()
+    {
+        // Enabled states are computed host-side from more than this cell's render inputs: an
+        // extension's IsEnabled predicate can read variables, other cells, and kernel state, none
+        // of which the signature below can see. These events invalidate the cached signature and
+        // re-query so the toolbar does not go stale when that state changes on its own.
+        Service.OnVariablesChanged += HandleEnablementStateChanged;
+        Service.OnExtensionStatusChanged += HandleEnablementStateChanged;
+        Service.OnKernelRestarted += HandleEnablementStateChangedForKernel;
+    }
+
     protected override async Task OnParametersSetAsync()
+    {
+        await RefreshEnabledCellActionsAsync();
+
+        // Auto-render non-editable cells (e.g. the parameters form) once on open when they have no
+        // outputs yet. The latch resets as soon as outputs exist, so clearing a cell's outputs re-renders
+        // the form, but it prevents the many re-renders that occur before the first output arrives from
+        // each re-triggering execution.
+        if (CellData.Outputs.Count > 0)
+        {
+            _autoExecuteRequested = false;
+        }
+        else if (!IsEditable && !IsExecuting && !_autoExecuteRequested)
+        {
+            _pendingAutoExecute = true;
+            _autoExecuteRequested = true;
+        }
+    }
+
+    private async Task RefreshEnabledCellActionsAsync()
     {
         if (!Service.IsLoaded)
         {
@@ -335,8 +397,29 @@
         if (cellActions.Count == 0)
         {
             _enabledCellActions = new();
+            _enabledActionsSignature = null;
             return;
         }
+
+        // Query the host for enabled states only when an input that can affect them has changed.
+        // Blazor re-runs OnParametersSetAsync on every parent render, and during Run All the
+        // notebook re-renders once per streamed output; without this guard each of those
+        // re-renders issued a toolbar/getEnabledStates round-trip per cell, flooding the host's
+        // request channel. Host-side state the signature cannot see (variables, extensions,
+        // kernel) invalidates it through the events wired in OnInitialized.
+        var signature = string.Join(
+            "|",
+            cellActions.Count,
+            string.Join(",", cellActions.Select(a => a.ActionId)),
+            CellData.Id,
+            CellData.Type,
+            CellData.Language,
+            CellData.Outputs.Count,
+            IsSelected,
+            EffectiveStatus,
+            IsExecuting);
+
+        if (signature == _enabledActionsSignature) return;
 
         var enabledStates = await Service.GetActionEnabledStatesAsync(
             ToolbarPlacement.CellToolbar,
@@ -346,10 +429,37 @@
             .Where(a => enabledStates.GetValueOrDefault(a.ActionId, false)
                         && !_hardcodedActionIds.Contains(a.ActionId))
             .ToList();
+        _enabledActionsSignature = signature;
+    }
 
-        // Schedule auto-execute for non-editable cells that have no outputs yet
-        if (!IsEditable && CellData.Outputs.Count == 0 && !IsExecuting)
-            _pendingAutoExecute = true;
+    // True while an invalidation-triggered refresh is queued, so a burst of host-side state
+    // changes coalesces into one re-query.
+    private bool _enablementRefreshScheduled;
+
+    private void HandleEnablementStateChanged()
+    {
+        _enabledActionsSignature = null;
+
+        if (_enablementRefreshScheduled) return;
+        _enablementRefreshScheduled = true;
+
+        // The event can arrive off the dispatcher, and a parent render (which would re-run
+        // OnParametersSetAsync) is not guaranteed to follow, so marshal and re-query directly.
+        _ = InvokeAsync(async () =>
+        {
+            _enablementRefreshScheduled = false;
+            await RefreshEnabledCellActionsAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleEnablementStateChangedForKernel(string? kernelId) => HandleEnablementStateChanged();
+
+    public void Dispose()
+    {
+        Service.OnVariablesChanged -= HandleEnablementStateChanged;
+        Service.OnExtensionStatusChanged -= HandleEnablementStateChanged;
+        Service.OnKernelRestarted -= HandleEnablementStateChangedForKernel;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
