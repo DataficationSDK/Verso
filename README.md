@@ -275,10 +275,6 @@ dotnet test Verso.sln
 
 Contributions are welcome. Open an issue to discuss what you'd like to work on. Verso accepts contributions under the [Developer Certificate of Origin](https://developercertificate.org/); see [CONTRIBUTING.md](CONTRIBUTING.md) for the sign-off workflow.
 
-## Sponsors
-
-Thanks to [@fiVISION](https://github.com/fiVISION) for supporting this project.
-
 ## License
 
 [MIT](LICENSE.md)
