@@ -13,15 +13,15 @@ public static class ConvertCommand
     {
         var inputArg = new Argument<FileInfo>("input", "Path to the source notebook file.");
 
-        var toOption = new Option<string>("--to", "Target format: verso, ipynb, or dib.")
+        var toOption = new Option<string>("--to", "Target format: verso, ipynb, md, or dib.")
         {
             IsRequired = true
         };
         toOption.AddValidator(result =>
         {
             var value = result.GetValueForOption(toOption);
-            if (value is not ("verso" or "ipynb" or "dib"))
-                result.ErrorMessage = $"Unsupported format '{value}'. Supported: verso, ipynb, dib";
+            if (value is not ("verso" or "ipynb" or "md" or "dib"))
+                result.ErrorMessage = $"Unsupported format '{value}'. Supported: verso, ipynb, md, dib";
         });
 
         var outputOption = new Option<FileInfo?>("--output",

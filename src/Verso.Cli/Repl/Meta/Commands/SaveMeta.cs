@@ -30,9 +30,14 @@ public sealed class SaveMeta : IMetaCommand
 
         // Implicit-target saves on a non-.verso path: when the user has not asked to preserve
         // the original format, route to a sibling .verso file (matching the VS Code default).
-        // Explicit `.save foo.ipynb` always honors the path the user typed.
+        // Explicit `.save foo.ipynb` always honors the path the user typed. Formats whose
+        // serializer preserves by default (e.g. Markdown) skip the conversion entirely.
+        var preservesByDefault = context.Session.ExtensionHost.GetSerializers()
+            .Any(s => s.CanImport(targetPath) && s.PreservesFormatByDefault);
+
         if (!explicitTarget
             && !context.Session.PreserveFormat
+            && !preservesByDefault
             && !targetPath.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
         {
             context.Console.MarkupLine(

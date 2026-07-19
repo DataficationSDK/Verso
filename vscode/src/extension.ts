@@ -39,6 +39,31 @@ export async function activate(
     )
   );
 
+  // Second registration of the same provider for Markdown notebooks. Declared with
+  // priority "option" in package.json so Verso never becomes the default editor for
+  // .md files; users reach it via "Open With..." or the explorer context command.
+  context.subscriptions.push(
+    vscode.window.registerCustomEditorProvider(
+      BlazorEditorProvider.markdownViewType,
+      blazorProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }
+    )
+  );
+
+  // Explorer right-click entry for .md files (also callable with the active editor's file).
+  context.subscriptions.push(
+    vscode.commands.registerCommand("verso.openInVerso", (uri?: vscode.Uri) => {
+      const target = uri ?? vscode.window.activeTextEditor?.document.uri;
+      if (target) {
+        return vscode.commands.executeCommand(
+          "vscode.openWith",
+          target,
+          BlazorEditorProvider.markdownViewType
+        );
+      }
+    })
+  );
+
   // Command-palette entry to start a blank notebook without first creating a
   // file. Opens a scratch .verso the provider cleans up if it's never kept.
   context.subscriptions.push(

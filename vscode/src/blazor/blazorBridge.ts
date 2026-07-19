@@ -504,6 +504,9 @@ export class BlazorBridge implements vscode.Disposable {
       case "text/markdown":
         return { "Markdown Files": ["md"], "All Files": ["*"] };
       default:
+        if (ext === "verso") {
+          return { "Verso Notebooks": ["verso"], "All Files": ["*"] };
+        }
         if (ext) {
           return { Files: [ext], "All Files": ["*"] };
         }

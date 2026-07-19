@@ -37,4 +37,12 @@ public interface INotebookSerializer : IExtension
     /// <param name="filePath">Absolute or relative path to the file.</param>
     /// <returns><c>true</c> if this serializer can import the file; otherwise <c>false</c>.</returns>
     bool CanImport(string filePath);
+
+    /// <summary>
+    /// Whether this format is automatically selected when saving a notebook whose file path this
+    /// serializer handles, without requiring an explicit opt-in such as a preserve-format setting
+    /// or command-line flag. Defaults to <c>false</c>, which keeps the host's convert-to-native
+    /// behavior for formats that opt out.
+    /// </summary>
+    bool PreservesFormatByDefault => false;
 }

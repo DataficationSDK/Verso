@@ -58,7 +58,7 @@ public sealed class BlazorToolbarActionContext : IToolbarActionContext
         public BlazorNotebookMetadata(Scaffold scaffold) => _scaffold = scaffold;
         public string? Title => _scaffold.Title;
         public string? DefaultKernelId => _scaffold.DefaultKernelId;
-        public string? FilePath => null;
+        public string? FilePath => _scaffold.FilePath;
         public Dictionary<string, NotebookParameterDefinition>? Parameters => _scaffold.Notebook.Parameters;
     }
 }

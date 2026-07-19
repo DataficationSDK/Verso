@@ -51,7 +51,7 @@
 
     private string Prompt => IsGitRef
         ? "Branch, tag, or commit"
-        : "Path to a notebook file (.verso, .ipynb, .dib)";
+        : "Path to a notebook file (.verso, .ipynb, .md, .dib)";
 
     private string Placeholder => IsGitRef ? "main" : "/path/to/notebook.verso";
 

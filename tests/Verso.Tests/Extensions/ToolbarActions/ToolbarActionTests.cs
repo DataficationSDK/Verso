@@ -1,4 +1,6 @@
+using System.Text;
 using Verso.Abstractions;
+using Verso.Contexts;
 using Verso.Extensions.ToolbarActions;
 using Verso.Testing.Stubs;
 using Verso.Testing.Fakes;
@@ -357,6 +359,82 @@ public sealed class ToolbarActionTests
         Assert.IsTrue(context.DownloadedFiles[0].FileName.EndsWith(".md"));
         Assert.AreEqual("text/markdown", context.DownloadedFiles[0].ContentType);
         Assert.IsTrue(context.DownloadedFiles[0].Data.Length > 0);
+    }
+
+    // --- ExportVersoAction ---
+
+    [TestMethod]
+    public void ExportVerso_Metadata_IsCorrect()
+    {
+        var action = new ExportVersoAction();
+        Assert.AreEqual("verso.action.export-verso", action.ActionId);
+        Assert.AreEqual(ToolbarPlacement.ExportMenu, action.Placement);
+        Assert.AreEqual(66, action.Order);
+    }
+
+    [TestMethod]
+    public async Task ExportVerso_IsEnabled_WhenMdFileAndDefaultLayout()
+    {
+        var action = new ExportVersoAction();
+        var context = CreateContext(cells: new[] { new CellModel() });
+        context.NotebookMetadata = new NotebookMetadataContext(new NotebookModel(), "/notes/sample.md");
+
+        context.ActiveLayoutId = null;
+        Assert.IsTrue(await action.IsEnabledAsync(context));
+
+        context.ActiveLayoutId = LayoutDefaults.LayoutId;
+        Assert.IsTrue(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public async Task ExportVerso_IsDisabled_WhenNotMdFile()
+    {
+        var action = new ExportVersoAction();
+        var context = CreateContext(cells: new[] { new CellModel() });
+        context.NotebookMetadata = new NotebookMetadataContext(new NotebookModel(), "/notes/sample.verso");
+
+        Assert.IsFalse(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public async Task ExportVerso_IsDisabled_WhenNoFilePath()
+    {
+        var action = new ExportVersoAction();
+        var context = CreateContext(cells: new[] { new CellModel() });
+
+        Assert.IsFalse(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public async Task ExportVerso_IsDisabled_WhenCustomLayoutActive()
+    {
+        var action = new ExportVersoAction();
+        var context = CreateContext(cells: new[] { new CellModel() });
+        context.NotebookMetadata = new NotebookMetadataContext(new NotebookModel(), "/notes/sample.md");
+        context.ActiveLayoutId = "grid";
+
+        Assert.IsFalse(await action.IsEnabledAsync(context));
+    }
+
+    [TestMethod]
+    public async Task ExportVerso_Execute_DownloadsVersoAndStripsMarkdownMetadata()
+    {
+        var action = new ExportVersoAction();
+        var cell = new CellModel { Type = "code", Language = "csharp", Source = "var x = 1;" };
+        cell.Metadata["md.fence"] = "```cs";
+        cell.Metadata["keep"] = "kept-value";
+        var context = CreateContext(cells: new[] { cell });
+        context.NotebookMetadata = new NotebookMetadataContext(new NotebookModel(), "/notes/sample.md");
+
+        await action.ExecuteAsync(context);
+
+        Assert.AreEqual(1, context.DownloadedFiles.Count);
+        Assert.AreEqual("sample.verso", context.DownloadedFiles[0].FileName);
+        Assert.AreEqual("application/octet-stream", context.DownloadedFiles[0].ContentType);
+
+        var json = Encoding.UTF8.GetString(context.DownloadedFiles[0].Data);
+        StringAssert.Contains(json, "kept-value");
+        Assert.IsFalse(json.Contains("md.fence"));
     }
 
     // --- Helper ---
