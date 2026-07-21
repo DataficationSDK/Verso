@@ -150,14 +150,20 @@ window.versoCellMenu = (function () {
  *
  * A rendered (collapsed-input) cell shows its output as a preview, and a single click on that
  * preview selects the cell, which swaps in the editor. That is the right gesture for plain
- * content, but it also fires when the output contains interactive controls (a button, an input,
- * a link, a web component), so clicking a widget would yank the cell into edit mode instead of
- * letting the widget respond.
+ * content, but two kinds of click must not trigger it:
  *
- * This installs one listener that, when a click lands on an interactive element inside a
- * clickable preview, stops the event before it reaches the notebook's delegated click handler.
- * The control still receives the click in the target phase, so it works normally; the cell just
- * stays rendered. Clicking any non-interactive part of the preview still enters edit mode.
+ *   - A click on an interactive control inside the output (a button, an input, a link, a web
+ *     component). The widget should respond; the cell should stay rendered.
+ *   - The click that ends a drag-selection of preview text. Selecting the cell unmounts the
+ *     preview DOM to make room for the editor, which destroys the highlight before it can be
+ *     copied. A plain click is unaffected because the browser collapses any selection on
+ *     mousedown, so by the time its click event fires there is no live selection; only a drag
+ *     (or a shift-click extension) reaches the click event with one.
+ *
+ * This installs one listener that stops such clicks before they reach the notebook's delegated
+ * click handler. For the interactive case the control still receives the click in the target
+ * phase, so it works normally. Clicking any non-interactive part of the preview without a live
+ * selection still enters edit mode.
  *
  * The walk uses event.composedPath() rather than event.target so it sees through Shadow DOM:
  * clicks inside a web component's shadow root are retargeted to the host element by the time they
@@ -176,6 +182,19 @@ window.versoCellMenu = (function () {
         '[contenteditable=""], [contenteditable="true"], ' +
         '[role="button"], [role="link"], [role="checkbox"], [role="tab"], ' +
         '[data-verso-interactive]';
+
+    function hasSelectionWithin(previewEl) {
+        var sel = window.getSelection ? window.getSelection() : null;
+        if (!sel || sel.isCollapsed || sel.rangeCount === 0) return false;
+        // Only honor a selection that actually involves this preview. A leftover selection
+        // elsewhere on the page (mousedown normally clears one, but not in every engine and
+        // not for shift-clicks) should not block editing this cell.
+        for (var i = 0; i < sel.rangeCount; i++) {
+            var range = sel.getRangeAt(i);
+            if (range.intersectsNode && range.intersectsNode(previewEl)) return true;
+        }
+        return false;
+    }
 
     function isInteractive(el) {
         // A standard control, an ARIA control, or an author opt-in.
@@ -197,9 +216,10 @@ window.versoCellMenu = (function () {
             var node = path[i];
             if (!node || node.nodeType !== 1) continue;        // elements only
             if (node.classList && node.classList.contains(PREVIEW_CLASS)) {
-                // Reached the edit-trigger surface. If anything below it was interactive, let the
-                // control keep the click and leave the cell rendered.
-                if (sawInteractive) e.stopPropagation();
+                // Reached the edit-trigger surface. If anything below it was interactive, or the
+                // click is the tail of a drag that selected text in this preview, leave the cell
+                // rendered.
+                if (sawInteractive || hasSelectionWithin(node)) e.stopPropagation();
                 return;
             }
             if (isInteractive(node)) sawInteractive = true;

@@ -293,7 +293,7 @@ const handler: vscode.ChatRequestHandler = async (
   // Check if any notebook is open
   if (hostRegistry.size === 0) {
     stream.markdown(
-      "No Verso notebook is currently open. Open a `.verso`, `.ipynb`, or `.dib` file first."
+      "No Verso notebook is currently open. Open a `.verso`, `.ipynb`, `.md`, or `.dib` file first."
     );
     return {};
   }

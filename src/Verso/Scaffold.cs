@@ -115,6 +115,11 @@ public sealed class Scaffold : IAsyncDisposable
         _metadata.FilePath = filePath;
     }
 
+    /// <summary>
+    /// The notebook's current file path, or <c>null</c> when the notebook has no backing file.
+    /// </summary>
+    public string? FilePath => _metadata.FilePath;
+
     // --- Subsystem initialization ---
 
     /// <summary>

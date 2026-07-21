@@ -64,8 +64,10 @@
   ],
   "activationEvents": [
     "onCustomEditor:verso.blazorNotebook",
+    "onCustomEditor:verso.markdownNotebook",
     "onCommand:verso.newNotebook",
-    "onCommand:verso.compareWithBaseline"
+    "onCommand:verso.compareWithBaseline",
+    "onCommand:verso.openInVerso"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -80,19 +82,35 @@
         "title": "Compare Notebook with...",
         "category": "Verso",
         "icon": "$(diff)"
+      },
+      {
+        "command": "verso.openInVerso",
+        "title": "Open in Verso",
+        "category": "Verso"
       }
     ],
     "menus": {
       "commandPalette": [
         {
           "command": "verso.compareWithBaseline",
-          "when": "activeCustomEditorId == verso.blazorNotebook"
+          "when": "activeCustomEditorId == verso.blazorNotebook || activeCustomEditorId == verso.markdownNotebook"
+        },
+        {
+          "command": "verso.openInVerso",
+          "when": "false"
         }
       ],
       "editor/title": [
         {
           "command": "verso.compareWithBaseline",
-          "when": "activeCustomEditorId == verso.blazorNotebook",
+          "when": "activeCustomEditorId == verso.blazorNotebook || activeCustomEditorId == verso.markdownNotebook",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "verso.openInVerso",
+          "when": "resourceExtname == .md && config.verso.showOpenInVersoMenu",
           "group": "navigation"
         }
       ]
@@ -113,6 +131,16 @@
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "verso.markdownNotebook",
+        "displayName": "Verso Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "option"
       }
     ],
     "configuration": {
@@ -139,7 +167,12 @@
         "verso.preserveOriginalFormat": {
           "type": "boolean",
           "default": false,
-          "description": "When opening an .ipynb file, save changes back to .ipynb instead of converting to .verso. Cell outputs are preserved. Default off keeps the existing convert-on-save behavior."
+          "description": "When opening an .ipynb file, save changes back to .ipynb instead of converting to .verso. Cell outputs are preserved. Default off keeps the existing convert-on-save behavior. Markdown (.md) notebooks always save back to .md regardless of this setting."
+        },
+        "verso.showOpenInVersoMenu": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the 'Open in Verso' entry in the Explorer context menu for Markdown (.md) files. Disabling this hides the menu entry only; .md files can still be opened in Verso through the editor's 'Reopen Editor With...' picker."
         }
       }
     },

@@ -473,19 +473,28 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         if (_scaffold is null) return;
 
-        var json = await PrepareSerializedContentAsync();
+        var json = await PrepareSerializedContentAsync(filePath);
         await File.WriteAllTextAsync(filePath, json);
         _filePath = filePath;
+        _scaffold.SetFilePath(filePath);
         SetDirty(false);
     }
 
     public async Task<string?> GetSerializedContentAsync()
     {
         if (_scaffold is null) return null;
-        return await PrepareSerializedContentAsync();
+        return await PrepareSerializedContentAsync(_filePath);
     }
 
-    private async Task<string> PrepareSerializedContentAsync()
+    /// <summary>
+    /// Whether saving to <paramref name="path"/> keeps that file's own format instead of
+    /// converting to the native .verso format.
+    /// </summary>
+    public bool PreservesFormat(string path) =>
+        _extensionHost?.GetSerializers()
+            .Any(s => s.CanImport(path) && s.PreservesFormatByDefault) ?? false;
+
+    private async Task<string> PrepareSerializedContentAsync(string? targetPath)
     {
         if (_scaffold!.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(_scaffold.Notebook);
@@ -494,15 +503,23 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             await sm.SaveSettingsAsync(_scaffold.Notebook);
 
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
-        INotebookSerializer serializer = ResolveSerializer();
+        INotebookSerializer serializer = ResolveSerializer(targetPath);
         return await serializer.SerializeAsync(_scaffold.Notebook);
     }
 
-    private INotebookSerializer ResolveSerializer()
+    private INotebookSerializer ResolveSerializer(string? filePath)
     {
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            var preserving = _extensionHost?.GetSerializers()
+                .FirstOrDefault(s => s.CanImport(filePath) && s.PreservesFormatByDefault);
+            if (preserving is not null)
+                return preserving;
+        }
+
         if (_options.PreserveFormat
-            && !string.IsNullOrEmpty(_filePath)
-            && _filePath.EndsWith(".ipynb", StringComparison.OrdinalIgnoreCase))
+            && !string.IsNullOrEmpty(filePath)
+            && filePath.EndsWith(".ipynb", StringComparison.OrdinalIgnoreCase))
         {
             return new JupyterSerializer();
         }

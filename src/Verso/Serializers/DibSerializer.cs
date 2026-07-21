@@ -14,30 +14,6 @@ public sealed class DibSerializer : INotebookSerializer
         @"^#!(\w[\w#-]*)$",
         RegexOptions.Compiled);
 
-    private static readonly Dictionary<string, (string Type, string? Language)> DirectiveMap =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["markdown"] = ("markdown", null),
-            ["csharp"] = ("code", "csharp"),
-            ["cs"] = ("code", "csharp"),
-            ["c#"] = ("code", "csharp"),
-            ["fsharp"] = ("code", "fsharp"),
-            ["fs"] = ("code", "fsharp"),
-            ["f#"] = ("code", "fsharp"),
-            ["pwsh"] = ("code", "powershell"),
-            ["powershell"] = ("code", "powershell"),
-            ["python"] = ("code", "python"),
-            ["py"] = ("code", "python"),
-            ["javascript"] = ("code", "javascript"),
-            ["js"] = ("code", "javascript"),
-            ["typescript"] = ("code", "typescript"),
-            ["ts"] = ("code", "typescript"),
-            ["html"] = ("html", null),
-            ["mermaid"] = ("mermaid", null),
-            ["sql"] = ("sql", null),
-            ["value"] = ("code", "value"),
-        };
-
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.dib";
@@ -192,7 +168,7 @@ public sealed class DibSerializer : INotebookSerializer
 
                 var directive = match.Groups[1].Value;
 
-                if (DirectiveMap.TryGetValue(directive, out var mapped))
+                if (LanguageDirectiveMap.Aliases.TryGetValue(directive, out var mapped))
                 {
                     currentType = mapped.Type;
                     currentLanguage = mapped.Language;

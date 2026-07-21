@@ -295,7 +295,7 @@ public static class NotebookHandler
 
     public static async Task<NotebookSaveResult> HandleSaveAsync(NotebookSession ns, JsonElement? @params)
     {
-        var format = "verso";
+        string? format = null;
         if (@params is { ValueKind: JsonValueKind.Object } p
             && p.TryGetProperty("format", out var fmtEl)
             && fmtEl.ValueKind == JsonValueKind.String
@@ -303,6 +303,18 @@ public static class NotebookHandler
         {
             format = fmtEl.GetString()!;
         }
+
+        // Implicit saves (no explicit format, e.g. kernel-restart snapshots or clients that
+        // rely on host-side defaults) prefer a serializer that preserves this notebook's own
+        // file format over the native default, so a round trip through save and reopen never
+        // reinterprets content in the wrong format.
+        if (format is null && ns.Scaffold.FilePath is { Length: > 0 } scaffoldPath)
+        {
+            format = ns.ExtensionHost.GetSerializers()
+                .FirstOrDefault(s => s.CanImport(scaffoldPath) && s.PreservesFormatByDefault)
+                ?.FormatId;
+        }
+        format ??= "verso";
 
         // Flush layout metadata (grid positions, etc.) and extension settings into the
         // notebook model; both live in their managers until saved.

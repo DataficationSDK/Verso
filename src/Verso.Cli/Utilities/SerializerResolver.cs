@@ -23,7 +23,7 @@ public static class SerializerResolver
         {
             var extension = Path.GetExtension(filePath);
             throw new SerializerNotFoundException(
-                $"Unsupported notebook format '{extension}'. Supported formats: .verso, .ipynb, .dib");
+                $"Unsupported notebook format '{extension}'. Supported formats: .verso, .ipynb, .md, .dib");
         }
 
         return serializer;
@@ -39,6 +39,7 @@ public static class SerializerResolver
         var formatId = format.ToLowerInvariant() switch
         {
             "ipynb" => "jupyter",
+            "md" => "markdown",
             _ => format.ToLowerInvariant()
         };
 
@@ -48,7 +49,7 @@ public static class SerializerResolver
         if (serializer is null)
         {
             throw new SerializerNotFoundException(
-                $"Unsupported output format '{format}'. Supported formats: verso, ipynb, dib");
+                $"Unsupported output format '{format}'. Supported formats: verso, ipynb, md, dib");
         }
 
         return serializer;

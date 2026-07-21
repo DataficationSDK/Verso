@@ -309,6 +309,7 @@ Serializes and deserializes notebooks to and from file formats. The host selects
 | `SerializeAsync(NotebookModel)` | `Task<string>` | Converts a `NotebookModel` to its serialized string form. |
 | `DeserializeAsync(string)` | `Task<NotebookModel>` | Parses serialized content into a `NotebookModel`. |
 | `CanImport(string)` | `bool` | Checks if this serializer can import the file at the given path. |
+| `PreservesFormatByDefault` | `bool` | Whether this format is auto-selected on save without an explicit opt-in setting or flag. Default interface member, defaults to `false`. |
 
 ### Lifecycle
 
