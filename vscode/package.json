@@ -110,7 +110,7 @@
       "explorer/context": [
         {
           "command": "verso.openInVerso",
-          "when": "resourceExtname == .md",
+          "when": "resourceExtname == .md && config.verso.showOpenInVersoMenu",
           "group": "navigation"
         }
       ]
@@ -168,6 +168,11 @@
           "type": "boolean",
           "default": false,
           "description": "When opening an .ipynb file, save changes back to .ipynb instead of converting to .verso. Cell outputs are preserved. Default off keeps the existing convert-on-save behavior. Markdown (.md) notebooks always save back to .md regardless of this setting."
+        },
+        "verso.showOpenInVersoMenu": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the 'Open in Verso' entry in the Explorer context menu for Markdown (.md) files. Disabling this hides the menu entry only; .md files can still be opened in Verso through the editor's 'Reopen Editor With...' picker."
         }
       }
     },
