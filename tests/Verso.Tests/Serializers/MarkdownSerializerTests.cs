@@ -330,6 +330,35 @@ public sealed class MarkdownSerializerTests
     }
 
     [TestMethod]
+    public async Task Deserialize_BareCarriageReturns_ParseAsLineBreaks()
+    {
+        // Markdig counts a lone \r as a line break; the offset math must agree with it
+        // or fence positions land on the wrong lines (or past the end of the table).
+        var md = "A\rB\rC\rD\r```csharp\nvar x = 1;\n```\n";
+
+        var notebook = await _serializer.DeserializeAsync(md);
+
+        Assert.AreEqual(2, notebook.Cells.Count);
+        Assert.AreEqual("A\nB\nC\nD", notebook.Cells[0].Source);
+        Assert.AreEqual("var x = 1;", notebook.Cells[1].Source);
+        Assert.AreEqual("```csharp", notebook.Cells[1].Metadata[MarkdownSerializer.FenceMetadataKey]);
+    }
+
+    [TestMethod]
+    public async Task Deserialize_SingleBareCarriageReturn_KeepsFenceContentIntact()
+    {
+        var md = "Intro\r```csharp\nvar x = 1;\n```\nAfter.\n";
+
+        var notebook = await _serializer.DeserializeAsync(md);
+
+        Assert.AreEqual(3, notebook.Cells.Count);
+        Assert.AreEqual("Intro", notebook.Cells[0].Source);
+        Assert.AreEqual("var x = 1;", notebook.Cells[1].Source);
+        Assert.AreEqual("```csharp", notebook.Cells[1].Metadata[MarkdownSerializer.FenceMetadataKey]);
+        Assert.AreEqual("After.", notebook.Cells[2].Source);
+    }
+
+    [TestMethod]
     public async Task RoundTrip_UnknownFenceInProse_Preserved()
     {
         var md = "Before.\n\n```json\n{ \"a\": 1 }\n```\n\nAfter.\n";

@@ -56,6 +56,13 @@ public sealed class MarkdownSerializer : INotebookSerializer
         var hadCrLf = content.Contains("\r\n", StringComparison.Ordinal);
         var text = hadCrLf ? content.Replace("\r\n", "\n") : content;
 
+        // Markdig counts a lone \r as a line break (per CommonMark), so any carriage return
+        // left behind after the \r\n pass would desynchronize block line numbers from the
+        // line-start table computed below, corrupting cell slices or indexing past the end
+        // of the table. Normalize them so both sides count lines the same way.
+        if (text.Contains('\r'))
+            text = text.Replace('\r', '\n');
+
         var notebook = new NotebookModel { FormatVersion = NotebookFormatVersion.Current };
         var lineStarts = ComputeLineStarts(text);
         var document = Markdown.Parse(text, Pipeline);
