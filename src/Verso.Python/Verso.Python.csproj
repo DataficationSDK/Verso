@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Host/versohost.py" LogicalName="Verso.Python.Host.versohost.py" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Verso.Python.Tests" />
   </ItemGroup>
 
