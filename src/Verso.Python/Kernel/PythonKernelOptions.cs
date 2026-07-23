@@ -1,10 +1,35 @@
 namespace Verso.Python.Kernel;
 
 /// <summary>
+/// Controls whether the fast uv tool is used to create and manage Python environments.
+/// </summary>
+public enum UvUsage
+{
+    /// <summary>Use uv when it is available, otherwise fall back to the standard-library <c>venv</c> module.</summary>
+    Auto,
+
+    /// <summary>Never use uv; always create environments with the standard-library <c>venv</c> module.</summary>
+    Off,
+}
+
+/// <summary>
 /// Configuration options for the Python language kernel.
 /// </summary>
 public sealed record PythonKernelOptions
 {
+    /// <summary>
+    /// Explicit path or name of the Python interpreter executable to run. When <c>null</c>, the
+    /// interpreter is discovered from the environment, the workspace, and well-known locations.
+    /// This is the highest-precedence selection and is where a host interpreter setting flows in.
+    /// </summary>
+    public string? PythonExecutable { get; init; }
+
+    /// <summary>
+    /// Whether to use the uv tool when creating managed Python environments. Defaults to
+    /// <see cref="UvUsage.Auto"/>.
+    /// </summary>
+    public UvUsage UseUv { get; init; } = UvUsage.Auto;
+
     /// <summary>
     /// Path to the Python shared library (e.g. "python3.12" or full path).
     /// When <c>null</c>, the engine manager auto-detects the system Python.
