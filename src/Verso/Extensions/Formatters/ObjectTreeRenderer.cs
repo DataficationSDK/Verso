@@ -82,6 +82,18 @@ internal static class ObjectTreeRenderer
             return;
         }
 
+        // Framework types (System.*, Microsoft.*, System.Reflection.*) are
+        // opaque beyond depth 1 — render via ToString() to avoid expanding
+        // reflection internals (e.g. Type.Assembly.DefinedTypes fans out to
+        // thousands of types × ~40 properties, wasting the output budget and
+        // producing hundreds of MB of HTML). At depth 0–1 the user can still
+        // expand framework types to see their immediate properties. (VERSO-007)
+        if (depth > 1 && IsFrameworkType(type))
+        {
+            sb.Append(WebUtility.HtmlEncode(value.ToString() ?? ""));
+            return;
+        }
+
         // Cycle detection — skip value types (can't form reference cycles)
         if (!type.IsValueType && !seen.Add(value))
         {
@@ -230,6 +242,21 @@ internal static class ObjectTreeRenderer
     internal static bool IsPrimitiveLike(Type type)
     {
         return type.IsPrimitive || type.IsEnum || PrimitiveLikeTypes.Contains(type);
+    }
+
+    /// <summary>
+    /// Identifies framework/runtime types whose property graphs should not be
+    /// expanded beyond depth 1. These types (System.Type, System.Reflection.Assembly,
+    /// etc.) expose reflection internals that fan out combinatorially and waste the
+    /// output budget without providing useful information to the notebook user.
+    /// (VERSO-007)
+    /// </summary>
+    internal static bool IsFrameworkType(Type type)
+    {
+        var ns = type.Namespace;
+        if (ns is null) return false;
+        return ns.StartsWith("System", StringComparison.Ordinal)
+            || ns.StartsWith("Microsoft", StringComparison.Ordinal);
     }
 
     internal static bool HasPublicMembers(Type type)
