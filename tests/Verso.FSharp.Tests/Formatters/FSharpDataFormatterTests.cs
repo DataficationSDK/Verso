@@ -338,4 +338,33 @@ public sealed class FSharpDataFormatterTests
         var result = await _formatter.FormatAsync(color!, _context);
         Assert.IsTrue(result.Content.Contains("Red"), "Should contain case name");
     }
+
+    [TestMethod]
+    public async Task FormatAsync_KernelAnonymousRecord_RendersFieldTable()
+    {
+        // Anonymous records carry CompilationMappingAttribute, so
+        // FSharpType.IsRecord recognizes them and they format as field tables
+        // just like named records. Note that F# orders anonymous record fields
+        // alphabetically, so Age precedes Name here regardless of the literal.
+        await using var kernel = new FSharpKernel();
+        await kernel.InitializeAsync();
+        var ctx = new StubExecutionContext();
+
+        await kernel.ExecuteAsync(
+            "let anon = {| Name = \"Alice\"; Age = 30 |}\n" +
+            "Variables.Set(\"anon\", anon)",
+            ctx);
+
+        var anon = ctx.Variables.Get<object>("anon");
+        Assert.IsNotNull(anon, "Anonymous record should be in variable store");
+        Assert.IsTrue(_formatter.CanFormat(anon!, _context), "Should recognize anonymous record type");
+
+        var result = await _formatter.FormatAsync(anon!, _context);
+        Assert.IsTrue(result.Content.Contains("<th>Field</th>"), "Should have Field column");
+        Assert.IsTrue(result.Content.Contains("<th>Value</th>"), "Should have Value column");
+        Assert.IsTrue(result.Content.Contains("Name"), "Should contain field name");
+        Assert.IsTrue(result.Content.Contains("Alice"), "Should contain field value");
+        Assert.IsTrue(result.Content.Contains("Age"), "Should contain field name");
+        Assert.IsTrue(result.Content.Contains("30"), "Should contain field value");
+    }
 }

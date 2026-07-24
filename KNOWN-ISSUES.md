@@ -6,7 +6,7 @@
 |---|-------|--------|----------|
 | [VERSO-001](#verso-001-browse-file-picker-breaks-relative-imports-in-blazor) | Browse file picker breaks relative imports in Blazor | Fixed | Verso.Blazor |
 | [VERSO-002](#verso-002-f-none-values-cannot-be-stored-in-the-variable-store) | F# `None` values cannot be stored in the variable store | By Design | Verso.FSharp |
-| [VERSO-003](#verso-003-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Open | Verso.FSharp |
+| [VERSO-003](#verso-003-f-anonymous-records-not-recognized-by-data-formatter) | F# anonymous records not recognized by data formatter | Fixed | Verso.FSharp |
 | [VERSO-004](#verso-004-f-compiler-settings-changes-require-kernel-restart) | F# compiler settings changes require kernel restart | By Design | Verso.FSharp |
 | [VERSO-005](#verso-005-jupyter-f-import-share-uses-untyped-variable-binding) | Jupyter F# import `#!share` uses untyped variable binding | Open | Verso.FSharp |
 | [VERSO-006](#verso-006-blazor-wasm-webview-fails-to-initialize-in-github-codespaces) | Blazor WASM webview fails to initialize in GitHub Codespaces | Mitigated | Verso.VSCode |
@@ -35,7 +35,7 @@ Opening the same file by pasting its path into the "Open" text input works corre
 
 ### Root cause
 
-The browser's security model strips the full directory path from file picker selections — only the filename is available. `OpenFromContentAsync` created a `Scaffold` without a `filePath`, so `ImportMagicCommand.ResolvePath` fell back to `Directory.GetCurrentDirectory()` (the Blazor project directory) instead of the notebook's actual directory.
+The browser's security model strips the full directory path from file picker selections, leaving only the filename. `OpenFromContentAsync` created a `Scaffold` without a `filePath`, so `ImportMagicCommand.ResolvePath` fell back to `Directory.GetCurrentDirectory()` (the Blazor project directory) instead of the notebook's actual directory.
 
 ### Fix
 
@@ -73,7 +73,7 @@ match myOption with
 | None -> ()  // None cannot be stored
 ```
 
-The F# kernel's automatic variable publishing already handles this — `None` bindings are excluded from the variable store during the post-execution diff.
+The F# kernel's automatic variable publishing already handles this, excluding `None` bindings from the variable store during the post-execution diff.
 
 ---
 
@@ -81,25 +81,28 @@ The F# kernel's automatic variable publishing already handles this — `None` bi
 
 | | |
 |---|---|
-| **Status** | Open |
+| **Status** | Fixed |
 | **Affected** | Verso.FSharp |
 | **Severity** | Low |
+| **Fixed in** | No code change required, resolved by the compiler services version in use |
 
-### Symptom
+### Symptom (historical)
 
-Anonymous record values (`{| Name = "Alice"; Age = 30 |}`) are not rendered with the rich HTML table format. They fall back to plain-text `ToString()` output.
+Anonymous record values (`{| Name = "Alice"; Age = 30 |}`) were reported as not rendering with the rich HTML table format, falling back to plain-text `ToString()` output.
 
-### Root cause
+### Root cause (historical)
 
-The `FSharpDataFormatter.CanFormat` method detects regular F# records via `FSharpType.IsRecord(type, null)`, which relies on the `CompilationMapping` attribute. F# anonymous records compile to anonymous types without this attribute, so they are not recognized as F# types.
+The original diagnosis assumed anonymous records compile to plain anonymous types without the `CompilationMapping` attribute, which would make `FSharpType.IsRecord(type, null)` return `false` inside `FSharpDataFormatter.CanFormat`.
 
-### Planned fix
+### Resolution
 
-Add anonymous record detection to `CanFormat` by checking for types whose name starts with `<>f__AnonymousType` or by inspecting for the `CompilationMappingAttribute` with `SourceConstructFlags.RecordType` on individual properties.
+That assumption does not hold for the compiler services version currently referenced (`FSharp.Compiler.Service` 43.12.202). Anonymous record types do carry `CompilationMappingAttribute`, so `FSharpType.IsRecord` recognizes them and the existing `CanFormat` path already accepts them. No formatter change was needed.
 
-### Workaround
+Verified by executing `{| Name = "Alice"; Age = 30 |}` through the F# kernel and formatting the stored value: the generated type is `<>f__AnonymousType...` carrying `CompilerGeneratedAttribute`, `CompilationMappingAttribute` and `SerializableAttribute`, `FSharpType.IsRecord` returns `true`, and the output is the standard Field/Value table. Covered by `FormatAsync_KernelAnonymousRecord_RendersFieldTable`.
 
-Use named record types for rich formatting, or call `printfn "%A" value` for structured text output of anonymous records.
+### Note
+
+F# orders anonymous record fields alphabetically rather than in literal order, so the table above lists `Age` before `Name`. This is a language characteristic, not a formatter behavior.
 
 ---
 
@@ -145,7 +148,7 @@ The user must manually add a type annotation or downcast to use the variable wit
 
 ### Root cause
 
-The `JupyterFSharpPostProcessor` cannot determine the runtime type of shared variables at import time — type information is only available during execution. The generated code uses `obj` as a safe fallback.
+The `JupyterFSharpPostProcessor` cannot determine the runtime type of shared variables at import time, since type information is only available during execution. The generated code uses `obj` as a safe fallback.
 
 ### Workaround
 
@@ -214,7 +217,15 @@ The `ObjectFormatter` and `CollectionFormatter` use recursive tree view renderin
 
 ### Mitigation
 
-A 512 KB hard cap (`ObjectTreeRenderer.MaxOutputSize`) stops further tree expansion once the rendered HTML exceeds that threshold. Values beyond the cap fall back to `.ToString()`, matching the behavior at the depth limit. This prevents the serialization crash while still providing tree view output for the portion of the graph that fits within the budget.
+Two mitigations are in place.
+
+A 512 KB cap (`ObjectTreeRenderer.MaxOutputSize`) stops further tree expansion once the rendered HTML exceeds that threshold. Values beyond the cap fall back to `.ToString()`, matching the behavior at the depth limit. This prevents the serialization crash while still providing tree view output for the portion of the graph that fits within the budget.
+
+Framework types (`System.*` and `Microsoft.*`) are also rendered via `.ToString()` at depth 2 and deeper instead of having their property graphs expanded, which removes the `Type` to `Assembly` to `DefinedTypes` path entirely. Framework types at depth 0 and 1 still expand so immediate properties remain inspectable, and namespace matching is exact so user namespaces such as `Systematic` are unaffected.
+
+Collections need a separate rule, because reflection metadata is reached through collection properties (`Type.CustomAttributes`, and in turn `CustomAttributeData.ConstructorArguments` and `NamedArguments`). Suppressing them by type does not work, since `List<string>` and `ReadOnlyCollection<CustomAttributeData>` both live in `System.*`, and element types are no better because `Dictionary<string, object>` yields `KeyValuePair`. The renderer instead tracks whether a value was reached by expanding a framework object, and only summarizes collections inside such a subtree. User collections expand at every depth regardless of nesting, and a reflection collection queried directly, such as the result of `typeof(T).GetMethods()`, still expands because it arrives as the root value rather than as framework internals.
+
+Together these bound the cases that motivated this entry. An object holding a single `System.Type` property renders about 12 KB, and a bare `System.Type` about 34 KB, against roughly 600 KB and 640 KB before. `FormatAsync_TypeMember_ProducesBoundedOutput` and `FormatAsync_BareTypeValue_ProducesBoundedOutput` assert the size directly, since asserting the absence of a single member name proved too weak to catch fan-out that had simply moved to another property.
 
 ### Workaround
 
@@ -227,6 +238,12 @@ If you encounter this issue with a specific type, register a higher-priority cus
 }
 ```
 
+### Remaining limitation
+
+Asking for a reflection collection directly still produces sizeable output, because such a value is the root rather than framework internals and the first two levels expand by design. Rendering five `MethodInfo` values returns roughly 170 KB, since the table carries one column per public member and each cell expands its own members one level further. This stays below the cap and is the intended behavior for an explicit query, but a large query such as the full method list of a common type will reach the cap and be truncated.
+
+The cap itself overshoots slightly. It is tested when a value is about to be rendered, so a table already in progress keeps emitting markup after the budget is exhausted. Testing the budget before opening each new node would make the limit hold exactly.
+
 ### Planned improvement
 
-Consider treating types from runtime assemblies (`System.*`, `System.Reflection.*`) as opaque beyond depth 1, rendering them via `.ToString()` rather than expanding their full property graphs. This would reduce wasted output budget on framework internals and preserve more of it for user-defined types.
+Framework types with useful members but an unhelpful `ToString()` lose information at depth 2 and deeper. `Task<T>` is the clearest case: it renders as its raw type name where it previously showed `Result`, `Status` and `IsCompleted`. Types such as `System.Data.DataTable` and `Lazy<T>` are affected the same way, while types with meaningful `ToString()` output such as `Stopwatch`, `Uri` and `TimeSpan` read well. Narrowing the opacity rule from all of `System.*` and `Microsoft.*` to reflection namespaces specifically would preserve those members, at the cost of reintroducing fan-out for any other framework type with a wide property graph.
