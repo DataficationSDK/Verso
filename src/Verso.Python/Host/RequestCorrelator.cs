@@ -53,6 +53,13 @@ internal sealed class RequestCorrelator
     public bool TryComplete(int reqId, JsonObject reply)
         => _pending.TryRemove(reqId, out var tcs) && tcs.TrySetResult(reply);
 
+    /// <summary>
+    /// Abandon a pending request that never reached the wire, for example when the send that
+    /// should have carried it failed. Returns <c>false</c> when nothing is awaiting that id.
+    /// </summary>
+    public bool TryAbandon(int id)
+        => _pending.TryRemove(id, out var tcs) && tcs.TrySetCanceled();
+
     /// <summary>Fail every pending request, for example when the connection drops.</summary>
     public void FailAll(Exception exception)
     {

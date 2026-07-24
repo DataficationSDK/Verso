@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Python.Interpreter;
+using Verso.Python.Kernel;
 
 namespace Verso.Python.MagicCommands;
 
@@ -13,6 +14,7 @@ namespace Verso.Python.MagicCommands;
 /// The selection is held for the session only; a restart applies it. To pin an interpreter across
 /// sessions, keep a <c>#!python &lt;path&gt;</c> line in a cell, or set the host interpreter setting.
 /// </summary>
+[VersoExtension]
 public sealed class PythonMagicCommand : IMagicCommand
 {
     /// <summary>Session variable key under which the selected interpreter path is held.</summary>
@@ -103,7 +105,14 @@ public sealed class PythonMagicCommand : IMagicCommand
             return;
         }
 
-        await context.WriteOutputAsync(CellOutput.Plain(Describe(resolution.Interpreter!))).ConfigureAwait(false);
+        var text = Describe(resolution.Interpreter!);
+
+        // Without the out-of-process host the running interpreter is the embedded runtime, not the
+        // executable resolved here, and saying so avoids reporting something that is not in use.
+        if (FindPythonKernel(context) is not { UsesHostProcess: true })
+            text += "\nThis applies to the out-of-process Python host, which is not enabled for this session.";
+
+        await context.WriteOutputAsync(CellOutput.Plain(text)).ConfigureAwait(false);
     }
 
     private async Task ListAsync(IMagicCommandContext context, InterpreterQuery query)
@@ -137,10 +146,39 @@ public sealed class PythonMagicCommand : IMagicCommand
         var interpreter = validation.Info!;
         context.Variables.Set(InterpreterSelectionStoreKey, interpreter.Executable);
 
-        await context.WriteOutputAsync(CellOutput.Plain(
-                $"Selected {interpreter.Executable} (Python {interpreter.RawVersion}). " +
-                "Restart the kernel to apply the change (for example, run #!restart)."))
-            .ConfigureAwait(false);
+        // The store is cleared as part of a restart, and the selection has to survive that, so the
+        // kernel is told directly as well. This is also the only route when the cell holds nothing
+        // but this command: execution never reaches the kernel in that case.
+        var kernel = FindPythonKernel(context);
+        kernel?.SetSessionInterpreter(interpreter.Executable);
+
+        var message = $"Selected {interpreter.Executable} (Python {interpreter.RawVersion}). ";
+        message += kernel is null or { UsesHostProcess: false }
+            ? "It applies to the out-of-process Python host, which is not enabled for this session."
+            : "Restarting the kernel to apply it.";
+
+        await context.WriteOutputAsync(CellOutput.Plain(message)).ConfigureAwait(false);
+
+        if (kernel is { UsesHostProcess: true })
+        {
+            try
+            {
+                await context.Notebook.RestartKernelAsync("python").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await context.WriteOutputAsync(CellOutput.Error(
+                        $"The kernel could not be restarted automatically ({ex.Message}). " +
+                        "Run #!restart to apply the selection."))
+                    .ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static PythonKernel? FindPythonKernel(IMagicCommandContext context)
+    {
+        try { return context.ExtensionHost?.GetKernels().OfType<PythonKernel>().FirstOrDefault(); }
+        catch { return null; }
     }
 
     private async Task<InterpreterValidation> ResolveRequestedAsync(

@@ -65,6 +65,8 @@ public static class RunCommand
         var ignoreViewStateOption = new Option<bool>("--ignore-view-state", () => false,
             "Ignore per-cell verso:ui.outputVisibility and verso:ui.inputCollapsed metadata; show all outputs in full.");
 
+        var pythonOption = PythonInterpreterOption.Create();
+
         var command = new Command("run", "Execute a notebook headlessly and stream cell outputs.")
         {
             notebookArg,
@@ -82,7 +84,8 @@ public static class RunCommand
             includeMarkdownOption,
             showParametersOption,
             trustLocalOption,
-            ignoreViewStateOption
+            ignoreViewStateOption,
+            pythonOption
         };
 
         command.SetHandler(async (context) =>
@@ -103,6 +106,8 @@ public static class RunCommand
             var showParameters = context.ParseResult.GetValueForOption(showParametersOption);
             var trustLocal = context.ParseResult.GetValueForOption(trustLocalOption);
             var ignoreViewState = context.ParseResult.GetValueForOption(ignoreViewStateOption);
+
+            PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
 
             // Parse --param name=value pairs into a dictionary
             var paramDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

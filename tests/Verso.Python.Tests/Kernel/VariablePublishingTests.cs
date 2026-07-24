@@ -15,6 +15,8 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_SelfReferentialGlobals_DoesNotCrash()
     {
+        EmbeddedRuntimeOnly.Require("Variable sharing");
+
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
         var context = new StubExecutionContext();
@@ -30,6 +32,8 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_CyclicContainers_DoNotCrash_AndNormalDataStillPublishes()
     {
+        EmbeddedRuntimeOnly.Require("Variable sharing");
+
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
         var context = new StubExecutionContext();
@@ -57,6 +61,8 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_DeeplyNestedAcyclicList_DoesNotCrash()
     {
+        EmbeddedRuntimeOnly.Require("Variable sharing");
+
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
         var context = new StubExecutionContext();

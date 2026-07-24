@@ -156,6 +156,11 @@
           "default": "",
           "description": "Path to the 'dotnet' executable used to run notebooks. If empty, Verso reuses an installed .NET runtime (locating it via the .NET Install Tool when available) and falls back to 'dotnet' on PATH."
         },
+        "verso.python.interpreterPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Python interpreter used by Python cells. If empty, Verso discovers one from the active virtual environment, the workspace, and well-known install locations. Changes apply on next notebook open or kernel restart."
+        },
         "verso.extensionsPath": {
           "type": "array",
           "items": {

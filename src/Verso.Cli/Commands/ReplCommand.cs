@@ -71,6 +71,8 @@ public static class ReplCommand
         var preserveFormatOption = new Option<bool>("--preserve-format", () => false,
             "When the loaded notebook is .ipynb, .save (no arg) writes back to .ipynb instead of converting to .verso. Cell outputs are preserved.");
 
+        var pythonOption = PythonInterpreterOption.Create();
+
         var command = new Command("repl", "Start an interactive Verso REPL in the terminal.")
         {
             notebookArg,
@@ -84,7 +86,8 @@ public static class ReplCommand
             historyOption,
             listKernelsOption,
             listThemesOption,
-            preserveFormatOption
+            preserveFormatOption,
+            pythonOption
         };
 
         command.SetHandler(async (context) =>
@@ -101,6 +104,8 @@ public static class ReplCommand
             var listKernels = context.ParseResult.GetValueForOption(listKernelsOption);
             var listThemes = context.ParseResult.GetValueForOption(listThemesOption);
             var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
+
+            PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
 
             var ct = context.GetCancellationToken();
 

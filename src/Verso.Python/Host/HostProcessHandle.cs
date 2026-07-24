@@ -15,6 +15,15 @@ internal interface IHostProcessHandle : IDisposable
     TextReader StandardOutput { get; }
     TextReader StandardError { get; }
     Task WaitForExitAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Ask the interpreter to raise <c>KeyboardInterrupt</c> in the thread running user code.
+    /// Returns <c>false</c> when the platform could not deliver the signal, which is the normal
+    /// outcome on Windows when the managing process has no console to share with the child. The
+    /// caller falls back to the protocol's interrupt message in that case.
+    /// </summary>
+    bool TrySendInterrupt();
+
     void Kill();
 }
 
@@ -77,6 +86,23 @@ internal sealed class ManagedHostProcessHandle : IHostProcessHandle
     public Task WaitForExitAsync(CancellationToken cancellationToken)
         => _process.WaitForExitAsync(cancellationToken);
 
+    public bool TrySendInterrupt()
+    {
+        // The managed process API can only terminate, so the signal goes through libc. CPython's
+        // default SIGINT handler raises KeyboardInterrupt on the main thread, which is exactly
+        // where cell code runs.
+        try
+        {
+            if (_process.HasExited)
+                return false;
+            return Kill(_process.Id, SIGINT) == 0;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     public void Kill()
     {
         try { _process.Kill(entireProcessTree: true); }
@@ -84,4 +110,9 @@ internal sealed class ManagedHostProcessHandle : IHostProcessHandle
     }
 
     public void Dispose() => _process.Dispose();
+
+    private const int SIGINT = 2;
+
+    [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
+    private static extern int Kill(int pid, int signal);
 }

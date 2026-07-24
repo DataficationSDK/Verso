@@ -17,6 +17,7 @@ internal sealed class PythonHostProcess : IAsyncDisposable
     private readonly string _workingDirectory;
     private readonly TimeSpan _handshakeTimeout;
     private readonly string? _scriptPathOverride;
+    private readonly HostBootstrap _bootstrap;
 
     private readonly object _stdErrTailLock = new();
     private readonly StringBuilder _stdErrTail = new();
@@ -26,20 +27,24 @@ internal sealed class PythonHostProcess : IAsyncDisposable
     private HostHandshake? _handshake;
     private Task? _stdoutPump;
     private Task? _stderrPump;
+    private volatile bool _stopping;
     private bool _disposed;
 
     /// <param name="pythonExecutable">Interpreter to run (a bare name is resolved through PATH).</param>
     /// <param name="workingDirectory">Working directory for the subprocess (the notebook's directory).</param>
+    /// <param name="bootstrap">Scope preparation replayed on every start, including after a respawn.</param>
     /// <param name="handshakeTimeout">Handshake deadline; defaults to 30 seconds.</param>
     /// <param name="scriptPathOverride">Host script path to run instead of the extracted script; for tests.</param>
     public PythonHostProcess(
         string pythonExecutable,
         string workingDirectory,
+        HostBootstrap? bootstrap = null,
         TimeSpan? handshakeTimeout = null,
         string? scriptPathOverride = null)
     {
         _pythonExecutable = pythonExecutable ?? throw new ArgumentNullException(nameof(pythonExecutable));
         _workingDirectory = string.IsNullOrEmpty(workingDirectory) ? Environment.CurrentDirectory : workingDirectory;
+        _bootstrap = bootstrap ?? HostBootstrap.Empty;
         _handshakeTimeout = handshakeTimeout ?? DefaultHandshakeTimeout;
         _scriptPathOverride = scriptPathOverride;
     }
@@ -47,6 +52,19 @@ internal sealed class PythonHostProcess : IAsyncDisposable
     public bool IsAlive => _connection is not null && _process is { HasExited: false };
     public int ProcessId => _process?.Id ?? -1;
     public HostHandshake? Handshake => _handshake;
+
+    /// <summary>The live connection, valid between a successful start and the next teardown.</summary>
+    public PythonHostConnection? Connection => _connection;
+
+    /// <summary>
+    /// Raised for text the subprocess wrote straight to its real standard output or error, which
+    /// bypasses the redirected Python streams. Native extensions and interpreter-level crash
+    /// reports arrive this way. The flag distinguishes the two channels.
+    /// </summary>
+    public event Action<string, bool>? RawOutputReceived;
+
+    /// <summary>Raised once when the subprocess exits, carrying its exit code.</summary>
+    public event Action<int>? Exited;
 
     /// <summary>The most recent bounded tail of the subprocess's raw standard error.</summary>
     public string StandardErrorTail
@@ -60,6 +78,9 @@ internal sealed class PythonHostProcess : IAsyncDisposable
         ThrowIfDisposed();
         if (_connection is not null)
             throw new InvalidOperationException("The host process has already been started.");
+
+        // A previous shutdown suppressed exit reporting; a fresh start is watched again.
+        _stopping = false;
 
         var scriptPath = _scriptPathOverride ?? HostScriptExtractor.EnsureExtracted();
         var connection = new PythonHostConnection();
@@ -96,13 +117,48 @@ internal sealed class PythonHostProcess : IAsyncDisposable
         }
 
         // Bootstrap configuration releases the subprocess from its handshake into the message loop.
+        // The script applies it before reading further, so a request sent immediately after this
+        // point still runs against a fully prepared scope.
         await connection.SendAsync(BuildHelloOk(), cancellationToken).ConfigureAwait(false);
+        connection.StartPump();
+
+        WatchForExit(process);
+    }
+
+    /// <summary>
+    /// Ask the running cell to stop. Prefers the operating system signal and falls back to the
+    /// protocol's interrupt message where the signal cannot be delivered. Returns <c>false</c>
+    /// when neither route was available, leaving escalation to the caller.
+    /// </summary>
+    public async Task<bool> TryInterruptAsync(CancellationToken cancellationToken)
+    {
+        var process = _process;
+        var connection = _connection;
+        if (process is null || connection is null || process.HasExited)
+            return false;
+
+        if (process.TrySendInterrupt())
+            return true;
+
+        try
+        {
+            await connection.SendAsync(
+                new JsonObject { [HostProtocol.TypeField] = HostProtocol.Interrupt },
+                cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>Ask the subprocess to exit, waiting a short grace period before killing it.</summary>
     public async Task ShutdownAsync()
     {
         if (_process is null) return;
+
+        _stopping = true;
 
         if (!_process.HasExited && _connection is not null)
         {
@@ -127,11 +183,13 @@ internal sealed class PythonHostProcess : IAsyncDisposable
         await TeardownAsync(kill: false).ConfigureAwait(false);
     }
 
-    /// <summary>Kill the current subprocess and start a fresh one.</summary>
+    /// <summary>Kill the current subprocess and start a fresh one, replaying bootstrap.</summary>
     public async Task RespawnAsync(CancellationToken cancellationToken = default)
     {
+        _stopping = true;
         await TeardownAsync(kill: true).ConfigureAwait(false);
         ClearStandardErrorTail();
+        _stopping = false;
         await StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -199,14 +257,37 @@ internal sealed class PythonHostProcess : IAsyncDisposable
             {
                 if (isError)
                     AppendStandardErrorTail(buffer, read);
-                // Raw standard output is drained to keep the pipe from filling; forwarding it as cell
-                // output belongs to the execution pipeline layered on top of this supervisor.
+
+                var text = new string(buffer, 0, read);
+                try { RawOutputReceived?.Invoke(text, isError); }
+                catch { /* a subscriber must not stall the pipe */ }
             }
         }
         catch
         {
             // The pipe closed with the process; nothing further to drain.
         }
+    }
+
+    private void WatchForExit(IHostProcessHandle process)
+    {
+        _ = Task.Run(async () =>
+        {
+            try { await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false); }
+            catch { return; }
+
+            // A respawn or shutdown has already replaced or cleared the handle by the time an
+            // intentional exit lands here; only an unexpected death still owns the current slot.
+            if (!ReferenceEquals(_process, process) || _stopping)
+                return;
+
+            int exitCode;
+            try { exitCode = process.ExitCode; }
+            catch { exitCode = -1; }
+
+            try { Exited?.Invoke(exitCode); }
+            catch { /* a subscriber must not break crash reporting */ }
+        });
     }
 
     private void AppendStandardErrorTail(char[] buffer, int count)
@@ -265,11 +346,11 @@ internal sealed class PythonHostProcess : IAsyncDisposable
         catch { return -1; }
     }
 
-    private static JsonObject BuildHelloOk() => new()
+    private JsonObject BuildHelloOk() => new()
     {
         [HostProtocol.TypeField] = HostProtocol.HelloOk,
         [HostProtocol.ProtocolField] = HostProtocol.ProtocolVersion,
-        ["config"] = new JsonObject(),
+        [HostProtocol.ConfigField] = _bootstrap.ToJson(),
     };
 
     private static string FormatTail(string tail)
@@ -278,5 +359,32 @@ internal sealed class PythonHostProcess : IAsyncDisposable
     private void ThrowIfDisposed()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(PythonHostProcess));
+    }
+}
+
+/// <summary>
+/// Scope preparation the subprocess applies before it processes any request. It travels on the
+/// handshake reply, so a respawn replays it without the managing side having to remember to.
+/// </summary>
+internal sealed record HostBootstrap(IReadOnlyList<string> DefaultImports, string? StartupCode)
+{
+    public static readonly HostBootstrap Empty = new(Array.Empty<string>(), null);
+
+    public JsonObject ToJson()
+    {
+        var imports = new JsonArray();
+        foreach (var import in DefaultImports)
+        {
+            // Built through the string overload rather than the generic Add, which boxes into a
+            // value that only serializes with a type resolver configured.
+            if (!string.IsNullOrWhiteSpace(import))
+                imports.Add(JsonValue.Create(import));
+        }
+
+        var config = new JsonObject { [HostProtocol.DefaultImportsField] = imports };
+        if (!string.IsNullOrWhiteSpace(StartupCode))
+            config[HostProtocol.StartupCodeField] = StartupCode;
+
+        return config;
     }
 }

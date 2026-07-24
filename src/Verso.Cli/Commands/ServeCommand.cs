@@ -35,6 +35,8 @@ public static class ServeCommand
         var preserveFormatOption = new Option<bool>("--preserve-format", () => false,
             "When a loaded .ipynb notebook is saved, write back to .ipynb instead of converting to .verso. Cell outputs are preserved.");
 
+        var pythonOption = PythonInterpreterOption.Create();
+
         var command = new Command("serve", "Launch the Verso Blazor application as a local web server.")
         {
             notebookArg,
@@ -43,7 +45,8 @@ public static class ServeCommand
             noHttpsOption,
             extensionsOption,
             verboseOption,
-            preserveFormatOption
+            preserveFormatOption,
+            pythonOption
         };
 
         command.SetHandler(async (context) =>
@@ -55,6 +58,8 @@ public static class ServeCommand
             var extensions = context.ParseResult.GetValueForOption(extensionsOption);
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
             var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
+
+            PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
 
             // Validate notebook path if provided
             string? notebookPath = null;

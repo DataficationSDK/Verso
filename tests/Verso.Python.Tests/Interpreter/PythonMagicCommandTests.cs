@@ -95,7 +95,7 @@ public sealed class PythonMagicCommandTests
     }
 
     [TestMethod]
-    public async Task Select_ByPath_StoresSessionSelectionAndOffersRestart()
+    public async Task Select_ByPath_StoresSessionSelection()
     {
         var executable = NewTempExecutable();
         var validator = new FakeInterpreterValidator().Valid(executable, version: "3.12.0");
@@ -107,10 +107,24 @@ public sealed class PythonMagicCommandTests
         Assert.IsFalse(context.SuppressExecution);
         Assert.IsFalse(context.WrittenOutputs[0].IsError);
         StringAssert.Contains(context.WrittenOutputs[0].Content, "Selected");
-        StringAssert.Contains(context.WrittenOutputs[0].Content, "Restart the kernel");
 
         Assert.IsTrue(context.Variables.TryGet<string>(PythonMagicCommand.InterpreterSelectionStoreKey, out var stored));
         Assert.AreEqual(executable, stored);
+    }
+
+    [TestMethod]
+    public async Task Select_WithoutTheHostProcess_SaysTheSelectionIsNotInEffect()
+    {
+        // No Python kernel is registered, so nothing consumes the selection. Reporting a restart
+        // would imply the choice takes effect, which it does not until the host process is used.
+        var executable = NewTempExecutable();
+        var validator = new FakeInterpreterValidator().Valid(executable, version: "3.12.0");
+        var command = MakeCommand(validator);
+        var context = new StubMagicCommandContext();
+
+        await command.ExecuteAsync(executable, context);
+
+        StringAssert.Contains(context.WrittenOutputs[0].Content, "not enabled for this session");
     }
 
     [TestMethod]

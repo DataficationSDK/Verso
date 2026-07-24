@@ -38,6 +38,29 @@ export class HostStartError extends Error {
 const RUNTIME_MISSING_PATTERN =
   /You must install or update \.NET|It was not possible to find any compatible framework version|no frameworks were found|Microsoft\.NETCore\.App[^\n]*\bnot\b[^\n]*\bfound\b/i;
 
+/**
+ * The environment the host process runs with. Settings that select a tool the host
+ * launches in turn are passed this way rather than through the notebook protocol,
+ * because the host reads them where the tool is discovered rather than per notebook.
+ * Changing one therefore applies on the next host start, matching how the extension
+ * documents these settings.
+ */
+function buildHostEnvironment(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+
+  const interpreterPath = vscode.workspace
+    .getConfiguration("verso.python")
+    .get<string>("interpreterPath")
+    ?.trim();
+
+  if (interpreterPath) {
+    log.info(`Using verso.python.interpreterPath override: ${interpreterPath}`);
+    env.VERSO_PYTHON = interpreterPath;
+  }
+
+  return env;
+}
+
 export class HostProcess implements vscode.Disposable {
   private process: ChildProcess | undefined;
   private readline: ReadlineInterface | undefined;
@@ -105,6 +128,7 @@ export class HostProcess implements vscode.Disposable {
       log.info(`Spawning Verso.Host: ${this.dotnetCommand} ${this.hostDllPath}`);
       this.process = spawn(this.dotnetCommand, [this.hostDllPath], {
         stdio: ["pipe", "pipe", "pipe"],
+        env: buildHostEnvironment(),
       });
 
       this.process.on("error", (err) => {

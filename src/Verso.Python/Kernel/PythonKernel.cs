@@ -1,5 +1,6 @@
 using Python.Runtime;
 using Verso.Abstractions;
+using Verso.Python.Host;
 
 namespace Verso.Python.Kernel;
 
@@ -10,10 +11,20 @@ namespace Verso.Python.Kernel;
 [VersoExtension]
 public sealed class PythonKernel : ILanguageKernel
 {
+    /// <summary>
+    /// Opts a session into running Python in a separate process against the user's own interpreter
+    /// instead of the embedded runtime. The embedded runtime remains the default while the
+    /// out-of-process path is completed.
+    /// </summary>
+    internal const string HostOptInVariable = "VERSO_PYTHON_HOST";
+
     private readonly PythonKernelOptions _options;
+    private readonly bool _useHostProcess;
     private SemaphoreSlim _executionLock = new(1, 1);
     private PythonScopeManager? _scopeManager;
     private PythonCompletionProvider? _completionProvider;
+    private PythonHostSession? _session;
+    private string? _sessionInterpreter;
     private bool _initialized;
     private bool _disposed;
 
@@ -22,7 +33,28 @@ public sealed class PythonKernel : ILanguageKernel
     public PythonKernel(PythonKernelOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _useHostProcess = IsHostProcessEnabled();
     }
+
+    private static bool IsHostProcessEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable(HostOptInVariable);
+        return value is "1" or "true" or "TRUE" or "True";
+    }
+
+    /// <summary>
+    /// Records the interpreter chosen with <c>#!python</c> for this session. Held on the kernel
+    /// because a restart clears the variable store before the kernel starts again, and the
+    /// selection has to outlive that.
+    /// </summary>
+    internal void SetSessionInterpreter(string? executable)
+    {
+        _sessionInterpreter = executable;
+        _session?.SetSessionInterpreter(executable);
+    }
+
+    /// <summary>Whether this kernel runs Python out of process.</summary>
+    internal bool UsesHostProcess => _useHostProcess;
 
     // --- IExtension ---
 
@@ -47,6 +79,12 @@ public sealed class PythonKernel : ILanguageKernel
 
         // Support re-initialization after disposal (kernel restart)
         _disposed = false;
+
+        if (_useHostProcess)
+        {
+            await InitializeHostSessionAsync().ConfigureAwait(false);
+            return;
+        }
 
         PythonEngineManager.EnsureInitialized(_options.PythonDll);
 
@@ -115,6 +153,28 @@ public sealed class PythonKernel : ILanguageKernel
         }
     }
 
+    /// <summary>
+    /// Starts the out-of-process host. Kernel initialization carries no notebook context, so the
+    /// interpreter is resolved against the process working directory and the first execution
+    /// rebinds to the notebook's own directory if they differ. A startup failure is not thrown
+    /// here: it is reported as cell output on the first execution, where the user can see it.
+    /// </summary>
+    private async Task InitializeHostSessionAsync()
+    {
+        _session = new PythonHostSession(_options, _sessionInterpreter);
+        _executionLock = new SemaphoreSlim(1, 1);
+        _initialized = true;
+
+        try
+        {
+            await _session.StartAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            // The session restarts on demand and surfaces the reason as an error output.
+        }
+    }
+
     public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
     {
         ThrowIfDisposed();
@@ -122,6 +182,19 @@ public sealed class PythonKernel : ILanguageKernel
 
         if (string.IsNullOrWhiteSpace(code))
             return Array.Empty<CellOutput>();
+
+        if (_useHostProcess)
+        {
+            await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await _session!.ExecuteAsync(code, context).ConfigureAwait(false);
+            }
+            finally
+            {
+                _executionLock.Release();
+            }
+        }
 
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         try
@@ -190,6 +263,13 @@ public sealed class PythonKernel : ILanguageKernel
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
         _initialized = false;
+
+        if (_session is not null)
+        {
+            var session = _session;
+            _session = null;
+            return session.DisposeAsync();
+        }
 
         _completionProvider?.Dispose();
         _completionProvider = null;

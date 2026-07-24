@@ -15,6 +15,7 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     private const int STARTF_USESTDHANDLES = 0x00000100;
     private const int HANDLE_FLAG_INHERIT = 0x00000001;
     private const int CREATE_NEW_PROCESS_GROUP = 0x00000200;
+    private const int CTRL_BREAK_EVENT = 1;
     private const int CREATE_NO_WINDOW = 0x08000000;
     private const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     private const uint STILL_ACTIVE = 259;
@@ -146,6 +147,21 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
 
     public Task WaitForExitAsync(CancellationToken cancellationToken)
         => _exitedTcs.Task.WaitAsync(cancellationToken);
+
+    public bool TrySendInterrupt()
+    {
+        if (HasExited) return false;
+
+        // CREATE_NEW_PROCESS_GROUP made the child its own group, so a CTRL_BREAK event can be
+        // addressed to it by id. Delivery still requires the caller to share the child's console,
+        // which a windowless host (an editor extension host, a server) does not have, so a false
+        // return here is expected rather than exceptional and the caller uses the message path.
+        try { return GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, Id); }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
 
     public void Kill()
     {
@@ -323,4 +339,8 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CloseHandle(IntPtr hObject);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GenerateConsoleCtrlEvent(int dwCtrlEvent, int dwProcessGroupId);
 }

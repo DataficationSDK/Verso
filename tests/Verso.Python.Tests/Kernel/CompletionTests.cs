@@ -39,6 +39,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_DotOnModule_ReturnsModuleMembers()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         var code = "os.";
@@ -52,6 +54,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_AfterExecution_IncludesUserVariables()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         await _kernel.ExecuteAsync("x = [1, 2, 3]", _context);
@@ -68,6 +72,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_PartialTyping_FiltersByPrefix()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         var code = "os.pa";
@@ -80,6 +86,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_BuiltinAvailable()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var code = "le";
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);
 
@@ -90,6 +98,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_EmptyCode_DoesNotThrow()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var completions = await _kernel.GetCompletionsAsync("", 0);
         Assert.IsNotNull(completions);
     }
@@ -97,6 +107,8 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_KindMapping_ReturnsCorrectKinds()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var code = "os.";
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);
 

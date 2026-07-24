@@ -57,4 +57,11 @@ public sealed record PythonKernelOptions
     /// into the Python scope before each cell execution.
     /// </summary>
     public bool InjectVariables { get; init; } = true;
+
+    /// <summary>
+    /// How long a cancelled cell is given to stop on its own after being interrupted, before the
+    /// interpreter is stopped outright. Code executing inside a native call can ignore the
+    /// interrupt entirely, so termination is the only remaining option once this elapses.
+    /// </summary>
+    public TimeSpan InterruptGracePeriod { get; init; } = TimeSpan.FromSeconds(5);
 }

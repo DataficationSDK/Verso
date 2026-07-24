@@ -37,6 +37,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_BuiltinFunction_ShowsInfo()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         var code = "len";
@@ -51,6 +53,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_AfterExecution_ReturnsInfoForVariable()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         await _kernel.ExecuteAsync("my_list = [1, 2, 3]", _context);
@@ -64,6 +68,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_OnWhitespace_ReturnsNull()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var code = "   ";
         var hover = await _kernel.GetHoverInfoAsync(code, 1);
 
@@ -73,6 +79,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_EmptyCode_ReturnsNull()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var hover = await _kernel.GetHoverInfoAsync("", 0);
         Assert.IsNull(hover, "Expected null for empty code.");
     }
@@ -80,6 +88,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_IncludesRange()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         var code = "len";

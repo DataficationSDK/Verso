@@ -14,9 +14,13 @@ internal sealed class PythonHostConnection : IAsyncDisposable
 {
     private readonly TcpListener _listener;
     private readonly byte[] _tokenBytes;
+    private readonly RequestCorrelator _correlator = new();
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
     private TcpClient? _client;
     private NetworkStream? _stream;
     private NdjsonFramer? _framer;
+    private CancellationTokenSource? _pumpCancellation;
+    private Task? _pump;
     private bool _authenticated;
     private bool _disposed;
 
@@ -69,11 +73,73 @@ internal sealed class PythonHostConnection : IAsyncDisposable
         return HostHandshake.FromHello(message);
     }
 
+    /// <summary>
+    /// Raised for every message that is not a reply to a pending request: the <c>stream</c>,
+    /// <c>display</c>, and <c>input_request</c> events. Handlers must not block the pump.
+    /// </summary>
+    public event Action<JsonObject>? EventReceived;
+
+    /// <summary>
+    /// Raised once when the pump stops, carrying the fault that ended it or <c>null</c> for a
+    /// clean end of stream. Pending requests have already been failed when this runs.
+    /// </summary>
+    public event Action<Exception?>? Closed;
+
+    /// <summary>
+    /// Begin reading messages continuously, completing pending requests and raising
+    /// <see cref="EventReceived"/> for everything else. Call once, after the handshake.
+    /// </summary>
+    public void StartPump()
+    {
+        EnsureReady();
+        if (_pump is not null)
+            throw new InvalidOperationException("The read pump has already been started.");
+
+        _pumpCancellation = new CancellationTokenSource();
+        _pump = Task.Run(() => PumpAsync(_pumpCancellation.Token));
+    }
+
     /// <summary>Send a message to the subprocess.</summary>
-    public Task SendAsync(JsonObject message, CancellationToken cancellationToken)
+    public async Task SendAsync(JsonObject message, CancellationToken cancellationToken)
     {
         var framer = EnsureReady();
-        return framer.WriteFrameAsync(HostProtocol.Serialize(message), cancellationToken);
+        var payload = HostProtocol.Serialize(message);
+
+        // Frames must not interleave, and an execute can race an input reply from another thread.
+        await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await framer.WriteFrameAsync(payload, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Send a request and await its reply. The request id is assigned here and the pending
+    /// registration is made before the send, so a fast reply cannot be missed.
+    /// </summary>
+    public async Task<JsonObject> SendRequestAsync(JsonObject message, CancellationToken cancellationToken)
+    {
+        EnsureReady();
+
+        var id = _correlator.NextId();
+        message[HostProtocol.IdField] = id;
+
+        var reply = _correlator.RegisterAsync(id, cancellationToken);
+        try
+        {
+            await SendAsync(message, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            _correlator.TryAbandon(id); // nothing will ever reply to a request that never left
+            throw;
+        }
+
+        return await reply.ConfigureAwait(false);
     }
 
     /// <summary>Read the next message from the subprocess, or null at end of stream.</summary>
@@ -84,17 +150,81 @@ internal sealed class PythonHostConnection : IAsyncDisposable
         return frame is null ? null : HostProtocol.Deserialize(frame);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        if (_disposed) return ValueTask.CompletedTask;
+        if (_disposed) return;
         _disposed = true;
+
+        if (_pumpCancellation is not null)
+        {
+            try { _pumpCancellation.Cancel(); } catch { /* best effort */ }
+        }
 
         try { _stream?.Dispose(); } catch { /* best effort */ }
         try { _client?.Dispose(); } catch { /* best effort */ }
         try { _listener.Stop(); } catch { /* best effort */ }
-        CryptographicOperations.ZeroMemory(_tokenBytes);
 
-        return ValueTask.CompletedTask;
+        if (_pump is not null)
+        {
+            try { await _pump.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }
+            catch { /* the pump is torn down with the socket regardless */ }
+        }
+
+        _pumpCancellation?.Dispose();
+        _sendLock.Dispose();
+        CryptographicOperations.ZeroMemory(_tokenBytes);
+    }
+
+    private async Task PumpAsync(CancellationToken cancellationToken)
+    {
+        Exception? fault = null;
+        try
+        {
+            while (true)
+            {
+                var message = await ReadMessageAsync(cancellationToken).ConfigureAwait(false);
+                if (message is null)
+                    break; // the subprocess closed the connection cleanly
+
+                Dispatch(message);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutting down; not a fault.
+        }
+        catch (Exception ex)
+        {
+            fault = ex;
+        }
+        finally
+        {
+            _correlator.FailAll(fault ?? new PythonHostException(
+                "The Python host closed the connection before replying."));
+
+            // A disposal tears the socket out from under the pump, which surfaces as a fault
+            // here. That is an expected shutdown, not a crash, so it is not announced.
+            if (!_disposed)
+            {
+                try { Closed?.Invoke(fault); } catch { /* a subscriber must not break teardown */ }
+            }
+        }
+    }
+
+    private void Dispatch(JsonObject message)
+    {
+        var messageType = HostProtocol.GetMessageType(message);
+
+        if (HostProtocol.IsReply(messageType)
+            && HostProtocol.TryGetInt(message, HostProtocol.ReqIdField) is int requestId
+            && _correlator.TryComplete(requestId, message))
+        {
+            return;
+        }
+
+        // A handler that throws must not take the pump down with it: the remaining events,
+        // and the terminal reply the caller is waiting on, still have to arrive.
+        try { EventReceived?.Invoke(message); } catch { /* reported through the execute result */ }
     }
 
     private NdjsonFramer EnsureReady()

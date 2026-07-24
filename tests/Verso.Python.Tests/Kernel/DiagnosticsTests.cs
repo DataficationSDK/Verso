@@ -38,6 +38,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_ValidCode_ReturnsEmpty()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var diagnostics = await _kernel.GetDiagnosticsAsync("x = 10");
         Assert.AreEqual(0, diagnostics.Count);
     }
@@ -45,6 +47,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_SyntaxError_ReturnsError()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         var diagnostics = await _kernel.GetDiagnosticsAsync("def foo(:");
@@ -59,6 +63,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_LinePositions_AreCorrect()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         var code = "x = 10\ndef foo(:";
@@ -73,6 +79,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_EmptyCode_ReturnsEmpty()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         var diagnostics = await _kernel.GetDiagnosticsAsync("");
         Assert.IsNotNull(diagnostics);
     }
@@ -80,6 +88,8 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_PreviousCellContext_Respected()
     {
+        EmbeddedRuntimeOnly.Require("IntelliSense");
+
         RequireJedi();
 
         // Execute a binding in a first "cell"
