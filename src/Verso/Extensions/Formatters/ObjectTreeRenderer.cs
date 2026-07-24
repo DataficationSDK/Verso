@@ -82,17 +82,43 @@ internal static class ObjectTreeRenderer
             return;
         }
 
+        // Collections still expand at all depths — a List<string> nested inside
+        // an object should show its items, not just its type name. This runs
+        // before the framework-type opacity check so that normal collections
+        // (which live in System.* namespaces) are not hidden at depth 2+.
+        if (value is IEnumerable enumerable and not string)
+        {
+            // Cycle detection for collections — skip value types
+            if (!type.IsValueType && !seen.Add(value))
+            {
+                sb.Append("<span class=\"verso-obj-cycle\">[circular reference]</span>");
+                return;
+            }
+            RenderNestedCollection(sb, enumerable, depth, seen);
+            if (!type.IsValueType) seen.Remove(value);
+            return;
+        }
+
+        // Framework types (System.*, Microsoft.*, System.Reflection.*) are
+        // opaque beyond depth 1 — render via ToString() to avoid expanding
+        // reflection internals (e.g. Type.Assembly.DefinedTypes fans out to
+        // thousands of types × ~40 properties, wasting the output budget and
+        // producing hundreds of MB of HTML). At depth 0–1 the user can still
+        // expand framework types to see their immediate properties. (VERSO-007)
+        //
+        // This check runs before cycle detection because shared framework
+        // instances (e.g. typeof(int) is always the same object) would
+        // otherwise trigger false [circular reference] output.
+        if (depth > 1 && IsFrameworkType(type))
+        {
+            sb.Append(WebUtility.HtmlEncode(value.ToString() ?? ""));
+            return;
+        }
+
         // Cycle detection — skip value types (can't form reference cycles)
         if (!type.IsValueType && !seen.Add(value))
         {
             sb.Append("<span class=\"verso-obj-cycle\">[circular reference]</span>");
-            return;
-        }
-
-        if (value is IEnumerable enumerable and not string)
-        {
-            RenderNestedCollection(sb, enumerable, depth, seen);
-            if (!type.IsValueType) seen.Remove(value);
             return;
         }
 
@@ -230,6 +256,21 @@ internal static class ObjectTreeRenderer
     internal static bool IsPrimitiveLike(Type type)
     {
         return type.IsPrimitive || type.IsEnum || PrimitiveLikeTypes.Contains(type);
+    }
+
+    /// <summary>
+    /// Identifies framework/runtime types whose property graphs should not be
+    /// expanded beyond depth 1. These types (System.Type, System.Reflection.Assembly,
+    /// etc.) expose reflection internals that fan out combinatorially and waste the
+    /// output budget without providing useful information to the notebook user.
+    /// (VERSO-007)
+    /// </summary>
+    internal static bool IsFrameworkType(Type type)
+    {
+        var ns = type.Namespace;
+        if (ns is null) return false;
+        return ns == "System" || ns.StartsWith("System.", StringComparison.Ordinal)
+            || ns == "Microsoft" || ns.StartsWith("Microsoft.", StringComparison.Ordinal);
     }
 
     internal static bool HasPublicMembers(Type type)
