@@ -36,7 +36,7 @@ internal static class ObjectTreeRenderer
         sb.Append("<div class=\"verso-obj-tree\">");
 
         var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        RenderNestedObject(sb, value, type, 0, seen);
+        RenderNestedObject(sb, value, type, 0, seen, insideFrameworkGraph: false);
 
         sb.Append("</div>");
         return sb.ToString();
@@ -52,7 +52,7 @@ internal static class ObjectTreeRenderer
         sb.Append("<div class=\"verso-obj-tree\">");
 
         var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        RenderNestedCollection(sb, enumerable, 0, seen);
+        RenderNestedCollection(sb, enumerable, 0, seen, insideFrameworkGraph: false);
 
         sb.Append("</div>");
         return sb.ToString();
@@ -60,7 +60,11 @@ internal static class ObjectTreeRenderer
 
     // --- Recursive dispatch ---
 
-    private static void RenderValue(StringBuilder sb, object? value, int depth, HashSet<object> seen)
+    /// <param name="insideFrameworkGraph">
+    /// True when this value was reached by expanding a framework object, which
+    /// means everything below it is framework internals rather than user data.
+    /// </param>
+    private static void RenderValue(StringBuilder sb, object? value, int depth, HashSet<object> seen, bool insideFrameworkGraph)
     {
         if (value is null)
         {
@@ -82,29 +86,52 @@ internal static class ObjectTreeRenderer
             return;
         }
 
-        // Collections still expand at all depths — a List<string> nested inside
+        // Collections still expand at all depths. A List<string> nested inside
         // an object should show its items, not just its type name. This runs
         // before the framework-type opacity check so that normal collections
         // (which live in System.* namespaces) are not hidden at depth 2+.
         if (value is IEnumerable enumerable and not string)
         {
-            // Cycle detection for collections — skip value types
+            // Reflection metadata is reached through collection properties
+            // (Type.CustomAttributes, and in turn CustomAttributeData's
+            // ConstructorArguments and NamedArguments), so opacity that only
+            // covered non-collection values still let those graphs fan out.
+            // Collections are only summarized inside a framework graph, which
+            // leaves user collections expandable at every depth. Membership
+            // cannot be decided from the type itself: List<string> and
+            // ReadOnlyCollection<CustomAttributeData> are both System.*, and
+            // element types are no better because Dictionary<string, object>
+            // yields KeyValuePair. Position in the tree is what separates them.
+            //
+            // No depth test is needed: the flag is only ever set when a
+            // framework object expanded its members, so reaching this point
+            // already means the collection is part of that object's internals.
+            // Reflection collections queried directly, such as the result of
+            // typeof(T).GetMethods(), arrive as the root value and still expand.
+            if (insideFrameworkGraph)
+            {
+                sb.Append(WebUtility.HtmlEncode(GetFriendlyTypeName(type)));
+                return;
+            }
+
+            // Cycle detection for collections, skipping value types
             if (!type.IsValueType && !seen.Add(value))
             {
                 sb.Append("<span class=\"verso-obj-cycle\">[circular reference]</span>");
                 return;
             }
-            RenderNestedCollection(sb, enumerable, depth, seen);
+            RenderNestedCollection(sb, enumerable, depth, seen, insideFrameworkGraph);
             if (!type.IsValueType) seen.Remove(value);
             return;
         }
 
         // Framework types (System.*, Microsoft.*, System.Reflection.*) are
-        // opaque beyond depth 1 — render via ToString() to avoid expanding
+        // opaque beyond depth 1. Render via ToString() to avoid expanding
         // reflection internals (e.g. Type.Assembly.DefinedTypes fans out to
-        // thousands of types × ~40 properties, wasting the output budget and
-        // producing hundreds of MB of HTML). At depth 0–1 the user can still
-        // expand framework types to see their immediate properties. (VERSO-007)
+        // thousands of types with ~40 properties each, wasting the output
+        // budget and producing hundreds of MB of HTML). At depth 0 and 1 the
+        // user can still expand framework types to see their immediate
+        // properties. (VERSO-007)
         //
         // This check runs before cycle detection because shared framework
         // instances (e.g. typeof(int) is always the same object) would
@@ -115,7 +142,7 @@ internal static class ObjectTreeRenderer
             return;
         }
 
-        // Cycle detection — skip value types (can't form reference cycles)
+        // Cycle detection, skipping value types (they cannot form reference cycles)
         if (!type.IsValueType && !seen.Add(value))
         {
             sb.Append("<span class=\"verso-obj-cycle\">[circular reference]</span>");
@@ -125,7 +152,7 @@ internal static class ObjectTreeRenderer
         var members = GetPublicMemberValues(type, value);
         if (members.Length > 0)
         {
-            RenderNestedObject(sb, value, type, depth, seen);
+            RenderNestedObject(sb, value, type, depth, seen, insideFrameworkGraph);
             if (!type.IsValueType) seen.Remove(value);
             return;
         }
@@ -137,8 +164,11 @@ internal static class ObjectTreeRenderer
 
     // --- Object rendering ---
 
-    private static void RenderNestedObject(StringBuilder sb, object value, Type type, int depth, HashSet<object> seen)
+    private static void RenderNestedObject(StringBuilder sb, object value, Type type, int depth, HashSet<object> seen, bool insideFrameworkGraph)
     {
+        // Everything below a framework object is framework internals, even when
+        // the object itself is expanded because it sits at depth 0 or 1.
+        var childrenAreFrameworkInternals = insideFrameworkGraph || IsFrameworkType(type);
         var members = GetPublicMemberValues(type, value);
         var openAttr = depth == 0 ? " open" : "";
         var typeName = WebUtility.HtmlEncode(GetFriendlyTypeName(type));
@@ -155,7 +185,7 @@ internal static class ObjectTreeRenderer
             sb.Append("<tr><td class=\"verso-obj-member\">");
             sb.Append(WebUtility.HtmlEncode(name));
             sb.Append("</td><td class=\"verso-obj-value\">");
-            RenderValue(sb, memberValue, depth + 1, seen);
+            RenderValue(sb, memberValue, depth + 1, seen, childrenAreFrameworkInternals);
             sb.Append("</td></tr>");
         }
 
@@ -164,7 +194,7 @@ internal static class ObjectTreeRenderer
 
     // --- Collection rendering ---
 
-    private static void RenderNestedCollection(StringBuilder sb, IEnumerable enumerable, int depth, HashSet<object> seen)
+    private static void RenderNestedCollection(StringBuilder sb, IEnumerable enumerable, int depth, HashSet<object> seen, bool insideFrameworkGraph)
     {
         int limit = depth == 0 ? RootCollectionLimit : NestedCollectionLimit;
         var items = Materialize(enumerable, limit + 1);
@@ -204,13 +234,18 @@ internal static class ObjectTreeRenderer
             for (int i = 0; i < displayCount; i++)
             {
                 sb.Append("<tr><td class=\"verso-obj-value\">");
-                RenderValue(sb, items[i], depth + 1, seen);
+                RenderValue(sb, items[i], depth + 1, seen, insideFrameworkGraph);
                 sb.Append("</td></tr>");
             }
         }
         else
         {
             var columns = GetPublicMembers(elementType);
+
+            // Column cells hold members of the element, so a framework element
+            // makes them framework internals in the same way a framework object
+            // does for its own members.
+            var cellsAreFrameworkInternals = insideFrameworkGraph || IsFrameworkType(elementType);
 
             sb.Append("<thead><tr>");
             foreach (var col in columns)
@@ -225,7 +260,7 @@ internal static class ObjectTreeRenderer
                 if (isPrimitive || columns.Length == 0)
                 {
                     sb.Append("<td class=\"verso-obj-value\">");
-                    RenderValue(sb, item, depth + 1, seen);
+                    RenderValue(sb, item, depth + 1, seen, insideFrameworkGraph);
                     sb.Append("</td>");
                 }
                 else
@@ -234,7 +269,7 @@ internal static class ObjectTreeRenderer
                     {
                         var val = item is not null ? GetMemberValue(col, item) : null;
                         sb.Append("<td class=\"verso-obj-value\">");
-                        RenderValue(sb, val, depth + 1, seen);
+                        RenderValue(sb, val, depth + 1, seen, cellsAreFrameworkInternals);
                         sb.Append("</td>");
                     }
                 }

@@ -174,16 +174,16 @@ public sealed class ObjectFormatterTests
         var result = await _formatter.FormatAsync(obj, _context);
 
         // Depth 0: TypeHolder expands (user type)
-        // Depth 1: DataType (System.Type) — still expandable per the plan,
-        //           so member names like "Assembly" appear as labels
-        // Depth 2+: System.Type's member VALUES (Assembly, etc.) are opaque
-        //           — rendered as ToString(), not further expanded
+        // Depth 1: DataType (System.Type) is still expandable, so member names
+        //          like "Assembly" appear as labels
+        // Depth 2+: System.Type's member VALUES (Assembly, etc.) are opaque,
+        //          rendered as ToString() rather than expanded further
         //
-        // The explosion path is: Type → Assembly → DefinedTypes → thousands
-        // of types × 40 properties. DefinedTypes only appears if Assembly's
+        // The explosion path is Type to Assembly to DefinedTypes, thousands of
+        // types with 40 properties each. DefinedTypes only appears if Assembly's
         // value is expanded at depth 2, which the fix prevents.
         Assert.IsFalse(result.Content.Contains("DefinedTypes"),
-            "Reflection internals like DefinedTypes should not appear — Assembly value should be opaque at depth 2 (VERSO-007)");
+            "Reflection internals like DefinedTypes should not appear, the Assembly value should be opaque at depth 2 (VERSO-007)");
 
         // The user's own properties should still be present
         Assert.IsTrue(result.Content.Contains("Name"), "User property Name should be present");
@@ -199,14 +199,17 @@ public sealed class ObjectFormatterTests
         var obj = new TypeHolder();
         var result = await _formatter.FormatAsync(obj, _context);
 
-        // DataType is at depth 1 — it should render as an expandable node
-        // (its summary should appear), not just a flat ToString().
+        // DataType is at depth 1, so it should render as an expandable node
+        // rather than a flat ToString().
         Assert.IsTrue(result.Content.Contains("DataType"),
             "DataType property should be present at depth 1");
-        // The Type node itself should appear as a details/summary element
-        // (expandable), showing the type name in its summary.
-        Assert.IsTrue(result.Content.Contains("Type") || result.Content.Contains("Int32"),
-            "System.Type at depth 1 should show its type name, not be fully opaque");
+
+        // "AssemblyQualifiedName" is a member label that can only appear inside
+        // an expanded System.Type node, so it proves the node expanded. A looser
+        // check such as Contains("Type") would pass even when the node is
+        // opaque, because "Type" is a substring of "DataType" and "TypeHolder".
+        Assert.IsTrue(result.Content.Contains("AssemblyQualifiedName"),
+            "System.Type at depth 1 should expand its own members, not be rendered opaquely");
     }
 
     /// <summary>
@@ -236,7 +239,7 @@ public sealed class ObjectFormatterTests
     [TestMethod]
     public async Task FormatAsync_NestedCollectionAtDepth2_StillShowsItems()
     {
-        // Collection nested two levels deep — still needs to show items.
+        // Collection nested two levels deep still needs to show items.
         // The framework-type opacity must not hide collections.
         var nested = new
         {
@@ -268,7 +271,7 @@ public sealed class ObjectFormatterTests
         var obj = new SharedTypeHolder();
         var result = await _formatter.FormatAsync(obj, _context);
 
-        // Both properties hold typeof(int) — the same object in memory.
+        // Both properties hold typeof(int), the same object in memory.
         // The second occurrence must NOT show [circular reference].
         Assert.IsFalse(result.Content.Contains("[circular reference]"),
             "Shared framework type instances should not trigger circular reference detection");
@@ -276,5 +279,64 @@ public sealed class ObjectFormatterTests
         // Both should show System.Int32 somewhere in the output
         Assert.IsTrue(result.Content.Contains("System.Int32"),
             "Both Type properties should render their ToString() value");
+    }
+
+    /// <summary>
+    /// A dictionary nested deep enough to be affected by the framework-graph
+    /// rule. Dictionary entries are KeyValuePair, which lives in System.*, so
+    /// any rule based on element type would wrongly hide user dictionaries.
+    /// </summary>
+    private class DictionaryHolder
+    {
+        public string Label { get; set; } = "config";
+        public Dictionary<string, object> Settings { get; set; } = new()
+        {
+            ["timeout"] = 30,
+            ["retries"] = 5
+        };
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_UserDictionaryAtDepth2_StillShowsEntries()
+    {
+        var nested = new
+        {
+            Outer = "value",
+            Inner = new DictionaryHolder()
+        };
+        var result = await _formatter.FormatAsync(nested, _context);
+
+        Assert.IsTrue(result.Content.Contains("timeout"),
+            "User dictionary keys should be visible at depth 2+");
+        Assert.IsTrue(result.Content.Contains("retries"),
+            "User dictionary keys should be visible at depth 2+");
+        Assert.IsTrue(result.Content.Contains("30"),
+            "User dictionary values should be visible at depth 2+");
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_TypeMember_ProducesBoundedOutput()
+    {
+        // Asserting the absence of a single member name is not enough to know
+        // the output budget is respected: reflection metadata is also reachable
+        // through collection properties such as Type.CustomAttributes, which
+        // kept the graph fanning out while a name-based assertion still passed.
+        // Size is the property that actually matters here.
+        var obj = new TypeHolder();
+        var result = await _formatter.FormatAsync(obj, _context);
+
+        Assert.IsTrue(result.Content.Length < 100_000,
+            $"An object holding one System.Type should render far below the {ObjectTreeRenderer.MaxOutputSize} byte cap, was {result.Content.Length}");
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_BareTypeValue_ProducesBoundedOutput()
+    {
+        // A Type rendered as the root still expands at depth 0 and 1 by design,
+        // so its own members and their collections are the widest case.
+        var result = await _formatter.FormatAsync(typeof(int), _context);
+
+        Assert.IsTrue(result.Content.Length < 100_000,
+            $"A bare System.Type should render far below the {ObjectTreeRenderer.MaxOutputSize} byte cap, was {result.Content.Length}");
     }
 }
