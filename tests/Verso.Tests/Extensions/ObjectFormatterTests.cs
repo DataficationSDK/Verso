@@ -208,4 +208,73 @@ public sealed class ObjectFormatterTests
         Assert.IsTrue(result.Content.Contains("Type") || result.Content.Contains("Int32"),
             "System.Type at depth 1 should show its type name, not be fully opaque");
     }
+
+    /// <summary>
+    /// A class with a nested collection, to verify that collections still
+    /// expand at all depths even though they live in System.* namespaces.
+    /// Without the collection-first ordering, List<string> would be hidden
+    /// by the framework-type opacity check at depth 2+.
+    /// </summary>
+    private class CollectionHolder
+    {
+        public string Name { get; set; } = "test";
+        public List<string> Tags { get; set; } = new() { "apple", "banana", "cherry" };
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_NestedCollectionAtDepth1_StillShowsItems()
+    {
+        var obj = new CollectionHolder();
+        var result = await _formatter.FormatAsync(obj, _context);
+
+        // The collection items should appear, not just the type name
+        Assert.IsTrue(result.Content.Contains("apple"), "Collection items should be visible");
+        Assert.IsTrue(result.Content.Contains("banana"), "Collection items should be visible");
+        Assert.IsTrue(result.Content.Contains("cherry"), "Collection items should be visible");
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_NestedCollectionAtDepth2_StillShowsItems()
+    {
+        // Collection nested two levels deep — still needs to show items.
+        // The framework-type opacity must not hide collections.
+        var nested = new
+        {
+            Outer = "value",
+            Inner = new CollectionHolder()
+        };
+        var result = await _formatter.FormatAsync(nested, _context);
+
+        Assert.IsTrue(result.Content.Contains("apple"),
+            "Collection items should be visible even at depth 2+");
+        Assert.IsTrue(result.Content.Contains("banana"),
+            "Collection items should be visible even at depth 2+");
+    }
+
+    /// <summary>
+    /// Two properties holding the same shared Type instance (e.g. typeof(int)
+    /// is always the same object in memory). Both should render their ToString()
+    /// value, not show [circular reference] on the second one.
+    /// </summary>
+    private class SharedTypeHolder
+    {
+        public Type First { get; set; } = typeof(int);
+        public Type Second { get; set; } = typeof(int);
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_SharedFrameworkTypeInstance_NoCircularReference()
+    {
+        var obj = new SharedTypeHolder();
+        var result = await _formatter.FormatAsync(obj, _context);
+
+        // Both properties hold typeof(int) — the same object in memory.
+        // The second occurrence must NOT show [circular reference].
+        Assert.IsFalse(result.Content.Contains("[circular reference]"),
+            "Shared framework type instances should not trigger circular reference detection");
+
+        // Both should show System.Int32 somewhere in the output
+        Assert.IsTrue(result.Content.Contains("System.Int32"),
+            "Both Type properties should render their ToString() value");
+    }
 }

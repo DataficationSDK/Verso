@@ -82,12 +82,33 @@ internal static class ObjectTreeRenderer
             return;
         }
 
+        // Collections still expand at all depths — a List<string> nested inside
+        // an object should show its items, not just its type name. This runs
+        // before the framework-type opacity check so that normal collections
+        // (which live in System.* namespaces) are not hidden at depth 2+.
+        if (value is IEnumerable enumerable and not string)
+        {
+            // Cycle detection for collections — skip value types
+            if (!type.IsValueType && !seen.Add(value))
+            {
+                sb.Append("<span class=\"verso-obj-cycle\">[circular reference]</span>");
+                return;
+            }
+            RenderNestedCollection(sb, enumerable, depth, seen);
+            if (!type.IsValueType) seen.Remove(value);
+            return;
+        }
+
         // Framework types (System.*, Microsoft.*, System.Reflection.*) are
         // opaque beyond depth 1 — render via ToString() to avoid expanding
         // reflection internals (e.g. Type.Assembly.DefinedTypes fans out to
         // thousands of types × ~40 properties, wasting the output budget and
         // producing hundreds of MB of HTML). At depth 0–1 the user can still
         // expand framework types to see their immediate properties. (VERSO-007)
+        //
+        // This check runs before cycle detection because shared framework
+        // instances (e.g. typeof(int) is always the same object) would
+        // otherwise trigger false [circular reference] output.
         if (depth > 1 && IsFrameworkType(type))
         {
             sb.Append(WebUtility.HtmlEncode(value.ToString() ?? ""));
@@ -98,13 +119,6 @@ internal static class ObjectTreeRenderer
         if (!type.IsValueType && !seen.Add(value))
         {
             sb.Append("<span class=\"verso-obj-cycle\">[circular reference]</span>");
-            return;
-        }
-
-        if (value is IEnumerable enumerable and not string)
-        {
-            RenderNestedCollection(sb, enumerable, depth, seen);
-            if (!type.IsValueType) seen.Remove(value);
             return;
         }
 
@@ -255,8 +269,8 @@ internal static class ObjectTreeRenderer
     {
         var ns = type.Namespace;
         if (ns is null) return false;
-        return ns.StartsWith("System", StringComparison.Ordinal)
-            || ns.StartsWith("Microsoft", StringComparison.Ordinal);
+        return ns == "System" || ns.StartsWith("System.", StringComparison.Ordinal)
+            || ns == "Microsoft" || ns.StartsWith("Microsoft.", StringComparison.Ordinal);
     }
 
     internal static bool HasPublicMembers(Type type)
