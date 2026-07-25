@@ -19,13 +19,20 @@ import linecache
 import os
 import platform
 import queue
+import shlex
 import signal
 import socket
+import subprocess
 import sys
 import threading
 import traceback
 import _thread
 from collections import deque
+
+# Siblings of this script, extracted alongside it. Imported before the working directory
+# joins sys.path so a file in the notebook's folder cannot stand in for either.
+import _versohost_display as display_support
+import _versohost_vars as variable_support
 
 PROTOCOL_VERSION = 1
 MAX_FRAME_BYTES = 64 * 1024 * 1024
@@ -373,24 +380,55 @@ def syntax_error_payload(exc):
     }
 
 
-def render_value(value):
-    """
-    Reduce a value to a MIME payload. This covers the HTML and plain-text cases that the
-    1.x kernel supported; the wider repr chain arrives with the rich display work.
-    """
-    if value is None:
-        return None
+def _is_shorthand(line):
+    stripped = line.strip()
+    return stripped.startswith("!") or stripped.startswith("%pip")
 
-    html = getattr(value, "_repr_html_", None)
-    if callable(html):
-        try:
-            rendered = html()
-            if rendered is not None:
-                return {"mime": "text/html", "data": str(rendered)}
-        except Exception:
-            pass  # fall through to the plain-text form
 
-    return {"mime": "text/plain", "data": repr(value)}
+def transform_escapes(source):
+    """
+    Rewrite the notebook shorthands a cell may carry: a line starting with ``!`` runs as a
+    shell command, and ``%pip`` runs pip against this interpreter.
+
+    Source that already parses is returned untouched. That single check is what keeps a
+    ``!`` line inside a string literal from being rewritten, because such a cell is valid
+    Python and never reaches the substitution below.
+    """
+    lines = source.splitlines(True)
+
+    # Checked before parsing, so an ordinary cell pays nothing for a feature it is not using.
+    if not any(_is_shorthand(line) for line in lines):
+        return source
+
+    try:
+        ast.parse(source)
+    except SyntaxError:
+        pass
+    except Exception:
+        return source
+    else:
+        return source
+
+    rewritten = []
+    changed = False
+
+    for line in lines:
+        body = line.rstrip("\r\n")
+        ending = line[len(body):]
+        stripped = body.strip()
+        indent = body[: len(body) - len(body.lstrip())]
+
+        if stripped.startswith("!"):
+            # Indentation is preserved so the command still composes inside a loop or an if.
+            rewritten.append("%s__verso_shell__(%r)%s" % (indent, stripped[1:].strip(), ending))
+            changed = True
+        elif stripped.startswith("%pip"):
+            rewritten.append("%s__verso_pip__(%r)%s" % (indent, stripped[4:].strip(), ending))
+            changed = True
+        else:
+            rewritten.append(line)
+
+    return "".join(rewritten) if changed else source
 
 
 class HostSession:
@@ -402,6 +440,8 @@ class HostSession:
         self.input_bridge = InputBridge(channel, self.router)
         self.scope = new_scope()
         self.request_id = UNSOLICITED_REQUEST_ID
+        self.shell_escapes = True
+        self.publish_limit_bytes = variable_support.DEFAULT_LIMIT_BYTES
 
         # Created up front and installed as this thread's loop, so a cell that schedules work
         # without awaiting it (asyncio.ensure_future, get_event_loop) uses the same loop a later
@@ -417,8 +457,12 @@ class HostSession:
         sys.stdout = StreamWriter(self.router, "stdout")
         sys.stderr = StreamWriter(self.router, "stderr")
 
+        display_support.install(self._emit_display)
+
         builtins.input = self._input
-        builtins.display = self._display
+        builtins.display = display_support.display
+        builtins.__verso_shell__ = self._shell
+        builtins.__verso_pip__ = self._pip
 
         try:
             import getpass
@@ -438,6 +482,13 @@ class HostSession:
     def apply_bootstrap(self, config):
         """Import the configured modules and run startup code in the persistent scope."""
         config = config or {}
+
+        if "enable_shell_escapes" in config:
+            self.shell_escapes = bool(config.get("enable_shell_escapes"))
+
+        limit = config.get("variable_publish_limit_bytes")
+        if isinstance(limit, int) and limit > 0:
+            self.publish_limit_bytes = limit
 
         for name in config.get("default_imports") or []:
             if not isinstance(name, str) or not name:
@@ -471,9 +522,18 @@ class HostSession:
         self.request_id = request_id
         self.router.set_request(request_id)
 
+        # A package installed moments ago by a magic command in this same cell is only
+        # importable once the finders forget what they saw on the path before it existed.
+        importlib.invalidate_caches()
+
+        variable_support.apply_inject(self.scope, message.get("inject"))
+
         status = "ok"
         result = None
         error = None
+
+        if self.shell_escapes:
+            source = transform_escapes(source)
 
         filename = cell_filename(request_id)
         register_source(filename, source)
@@ -490,7 +550,7 @@ class HostSession:
                 if expression is not None:
                     value = self._run(expression)
                     if not suppresses_result(source):
-                        result = render_value(value)
+                        result = display_support.render_value(value)
             except KeyboardInterrupt:
                 status = "cancelled"
             except SystemExit as exc:
@@ -501,6 +561,23 @@ class HostSession:
                 status = "error"
                 error = error_payload(exc)
 
+        # Figures the cell drew but never showed belong to it, so they are emitted before
+        # the result and while the request is still the one being answered.
+        if status != "cancelled":
+            try:
+                display_support.flush_figures()
+            except Exception:
+                pass
+
+        variables = {}
+        oversized = []
+        if status != "cancelled" and message.get("publish"):
+            try:
+                variables, oversized = variable_support.collect(
+                    self.scope, self.publish_limit_bytes)
+            except Exception:
+                variables, oversized = {}, []
+
         self.router.set_request(UNSOLICITED_REQUEST_ID)
         self.request_id = UNSOLICITED_REQUEST_ID
 
@@ -510,7 +587,8 @@ class HostSession:
             "status": status,
             "result": result,
             "error": error,
-            "variables": {},
+            "variables": variables,
+            "oversized": oversized,
         })
 
     def _run(self, code):
@@ -535,25 +613,59 @@ class HostSession:
     def _getpass(self, prompt="Password: ", stream=None):
         return self.input_bridge.request(str(prompt), True, self.request_id)
 
-    def _display(self, obj, mime_type=None):
-        if obj is None:
-            return
-
-        if mime_type:
-            payload = {"mime": str(mime_type), "data": str(obj)}
-        else:
-            payload = render_value(obj)
-            if payload is None:
-                return
-
+    def _emit_display(self, mime, data):
         # Output written before this call belongs above it.
         self.router.flush()
         self.channel.write({
             "type": "display",
             "req_id": self.request_id,
-            "mime": payload["mime"],
-            "data": payload["data"],
+            "mime": mime,
+            "data": data,
         })
+
+    def _shell(self, command):
+        """Run a shell command for a ``!`` line, streaming its output into the cell."""
+        command = (command or "").strip()
+        if not command:
+            return
+
+        self._stream_process(command, shell=True)
+
+    def _pip(self, arguments):
+        """Run pip for a ``%pip`` line against the interpreter this host is running."""
+        sys.stdout.write(
+            "%pip runs pip in this notebook's interpreter. #!pip is the Verso equivalent.\n")
+
+        try:
+            argv = shlex.split(arguments or "")
+        except ValueError:
+            argv = (arguments or "").split()
+
+        self._stream_process([sys.executable, "-m", "pip"] + argv, shell=False)
+
+    def _stream_process(self, command, shell):
+        process = subprocess.Popen(
+            command,
+            shell=shell,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True)
+
+        try:
+            for line in process.stdout:
+                sys.stdout.write(line)
+            code = process.wait()
+        except KeyboardInterrupt:
+            # The cell is being cancelled, so the child goes with it.
+            process.kill()
+            process.wait()
+            raise
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+
+        if code != 0:
+            sys.stderr.write("Command exited with code %d.\n" % code)
 
     # --- teardown ---
 
@@ -649,6 +761,13 @@ def main(argv=None):
 
     token = os.environ.get("VERSO_PYHOST_TOKEN", "")
     host, port = _parse_endpoint(args.connect)
+
+    # The process runs in the notebook's own directory, so putting it on the path lets a
+    # cell import a module sitting next to the notebook. It goes after this script's own
+    # directory, which stays first, so a user file cannot stand in for a host module.
+    working_directory = os.getcwd()
+    if working_directory not in sys.path:
+        sys.path.insert(1, working_directory)
 
     sock = socket.create_connection((host, port))
     try:

@@ -17,6 +17,9 @@ public enum UvUsage
 /// </summary>
 public sealed record PythonKernelOptions
 {
+    /// <summary>Default ceiling on the serialized size of a single published variable.</summary>
+    public const int DefaultVariablePublishLimitBytes = 8 * 1024 * 1024;
+
     /// <summary>
     /// Explicit path or name of the Python interpreter executable to run. When <c>null</c>, the
     /// interpreter is discovered from the environment, the workspace, and well-known locations.
@@ -64,4 +67,17 @@ public sealed record PythonKernelOptions
     /// interrupt entirely, so termination is the only remaining option once this elapses.
     /// </summary>
     public TimeSpan InterruptGracePeriod { get; init; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Ceiling on the serialized size of a single published variable. A value over the limit is
+    /// published as a short descriptor instead, so one accidental multi-gigabyte object cannot
+    /// stall a cell or overwhelm the shared store.
+    /// </summary>
+    public int VariablePublishLimitBytes { get; init; } = DefaultVariablePublishLimitBytes;
+
+    /// <summary>
+    /// When <c>true</c>, a cell line beginning with <c>!</c> runs as a shell command and
+    /// <c>%pip</c> runs pip against the active interpreter, matching notebook convention.
+    /// </summary>
+    public bool EnableShellEscapes { get; init; } = true;
 }

@@ -20,11 +20,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private readonly ManagedEnvironment _managedEnvironment;
     private readonly HostBootstrap _bootstrap;
 
+    private readonly Dictionary<string, string> _injectedHashes = new(StringComparer.Ordinal);
+
     private PythonHostProcess? _process;
+    private Dictionary<string, object>? _preExecutionSnapshot;
     private string _executable = "";
     private string _workingDirectory = "";
     private string? _sessionSelection;
     private bool _boundToNotebook;
+    private bool _oversizeNoticeShown;
     private int _crashExitCode;
     private bool _crashed;
     private bool _disposed;
@@ -39,7 +43,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
         _sessionSelection = sessionSelection;
         _locator = locator ?? new InterpreterLocator(new InterpreterValidator());
         _managedEnvironment = managedEnvironment ?? new ManagedEnvironment();
-        _bootstrap = new HostBootstrap(options.DefaultImports, options.StartupCode);
+        _bootstrap = new HostBootstrap(
+            options.DefaultImports,
+            options.StartupCode,
+            options.EnableShellEscapes,
+            options.VariablePublishLimitBytes);
     }
 
     /// <summary>The interpreter the subprocess is running, once one has been resolved.</summary>
@@ -101,13 +109,16 @@ internal sealed class PythonHostSession : IAsyncDisposable
             return outputs;
         }
 
+        // Taken before the request goes out, so a value another kernel writes while this cell
+        // runs can be told apart from one the cell itself produced.
+        SnapshotStore(context.Variables);
+
         var request = new JsonObject
         {
             [HostProtocol.TypeField] = HostProtocol.Execute,
             [HostProtocol.CodeField] = code,
-            // Variable exchange rides on these fields; it is wired up with the rich display work.
-            [HostProtocol.InjectField] = new JsonObject(),
-            [HostProtocol.PublishField] = false,
+            [HostProtocol.InjectField] = BuildInjectPayload(context.Variables),
+            [HostProtocol.PublishField] = JsonValue.Create(_options.PublishVariables),
         };
 
         var events = Channel.CreateUnbounded<JsonObject>(
@@ -207,6 +218,9 @@ internal sealed class PythonHostSession : IAsyncDisposable
         var process = new PythonHostProcess(executable, workingDirectory, _bootstrap);
         process.Exited += OnProcessExited;
 
+        // The new interpreter has an empty scope, so nothing counts as already injected.
+        _injectedHashes.Clear();
+
         await process.StartAsync(cancellationToken).ConfigureAwait(false);
 
         _process = process;
@@ -225,28 +239,42 @@ internal sealed class PythonHostSession : IAsyncDisposable
     /// Bring the subprocess into the state this execution needs: bound to the notebook's directory
     /// and interpreter on the first cell, and alive after a crash.
     /// </summary>
+    /// <summary>
+    /// Bind the session to a notebook's directory and interpreter, restarting the subprocess when
+    /// either differs from what it was started with. Initialization runs without a notebook, so
+    /// this is the first point at which either is known. Rebinding costs nothing here: no cell has
+    /// run, so there is no interpreter state to lose.
+    /// </summary>
+    /// <returns>Whether the subprocess was started or restarted by this call.</returns>
+    public async Task<bool> EnsureBoundAsync(string? notebookDirectory, CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+
+        if (_boundToNotebook)
+            return false;
+
+        var directory = notebookDirectory ?? Environment.CurrentDirectory;
+        var executable = await ResolveExecutableAsync(directory, cancellationToken).ConfigureAwait(false);
+
+        // Only marked once resolution succeeded, so a failure here is retried on the next run
+        // rather than leaving the session bound to an interpreter it never found.
+        _boundToNotebook = true;
+
+        if (_process is null || !PathsEqual(directory, _workingDirectory) || !PathsEqual(executable, _executable))
+        {
+            await StartProcessAsync(executable, directory, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+
+        return false;
+    }
+
     private async Task PrepareForExecutionAsync(IExecutionContext context, List<CellOutput> outputs)
     {
         var cancellationToken = context.CancellationToken;
 
-        if (!_boundToNotebook)
-        {
-            // Initialization ran without a notebook, so this is the first chance to honour the
-            // notebook's own directory and any interpreter chosen for the session. Rebinding is
-            // free here: no cell has run, so there is no interpreter state to lose.
-            var directory = NotebookDirectory(context) ?? Environment.CurrentDirectory;
-            var executable = await ResolveExecutableAsync(directory, cancellationToken).ConfigureAwait(false);
-
-            // Only marked once resolution succeeded, so a failure here is retried on the next run
-            // rather than leaving the session bound to an interpreter it never found.
-            _boundToNotebook = true;
-
-            if (_process is null || !PathsEqual(directory, _workingDirectory) || !PathsEqual(executable, _executable))
-            {
-                await StartProcessAsync(executable, directory, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-        }
+        if (await EnsureBoundAsync(NotebookDirectory(context), cancellationToken).ConfigureAwait(false))
+            return;
 
         if (_process is not null && _process.IsAlive && !_crashed)
             return;
@@ -339,9 +367,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
             case HostProtocol.Display:
             {
-                var mime = HostProtocol.TryGetString(message, HostProtocol.MimeField) ?? "text/plain";
-                var data = HostProtocol.TryGetString(message, HostProtocol.DataField) ?? "";
-                await EmitAsync(new CellOutput(mime, data), context, outputs).ConfigureAwait(false);
+                await EmitAsync(MapPayload(message), context, outputs).ConfigureAwait(false);
                 return;
             }
 
@@ -386,14 +412,133 @@ internal sealed class PythonHostSession : IAsyncDisposable
         catch { /* the process is gone; the pending execute reports it */ }
     }
 
+    /// <summary>
+    /// Turn a MIME payload into the output shape the notebook renderers expect. Raster images are
+    /// wrapped as HTML elements rather than passed through as image outputs, because the narrower
+    /// renderer used for collapsed and non-editable cells shows only text, HTML, and SVG, and a
+    /// bare image there would appear as its Base64 text.
+    /// </summary>
+    internal static CellOutput MapPayload(string mime, string data) => mime switch
+    {
+        "text/html" => CellOutput.Html(data),
+        "image/svg+xml" => CellOutput.Svg(data),
+        "image/png" or "image/jpeg" or "image/gif" or "image/webp" or "image/bmp" =>
+            CellOutput.Html($"<img src=\"data:{mime};base64,{data}\" />"),
+        "application/json" => CellOutput.Json(data),
+        "text/plain" => CellOutput.Plain(data),
+        _ => new CellOutput(mime, data),
+    };
+
+    private static CellOutput MapPayload(JsonObject payload)
+        => MapPayload(
+            HostProtocol.TryGetString(payload, HostProtocol.MimeField) ?? "text/plain",
+            HostProtocol.TryGetString(payload, HostProtocol.DataField) ?? "");
+
+    // --- variable exchange ---
+
+    /// <summary>
+    /// Build the set of store values to place in the Python scope. Values whose serialized form
+    /// has not changed since they were last sent are left out: re-injecting them would overwrite
+    /// whatever the cell did with the name, which is the behavior the in-process kernel had.
+    /// </summary>
+    private JsonObject BuildInjectPayload(IVariableStore store)
+    {
+        var payload = new JsonObject();
+        if (!_options.InjectVariables)
+            return payload;
+
+        foreach (var descriptor in store.GetAll())
+        {
+            if (descriptor.Value is null)
+                continue;
+            if (!HostVariables.TryToJson(descriptor.Value, out var node) || node is null)
+                continue;
+
+            var hash = HostVariables.ComputeHash(node);
+            if (_injectedHashes.TryGetValue(descriptor.Name, out var previous) && previous == hash)
+                continue;
+
+            payload[descriptor.Name] = node;
+            _injectedHashes[descriptor.Name] = hash;
+        }
+
+        return payload;
+    }
+
+    private void SnapshotStore(IVariableStore store)
+    {
+        _preExecutionSnapshot = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var descriptor in store.GetAll())
+        {
+            if (descriptor.Value is not null)
+                _preExecutionSnapshot[descriptor.Name] = descriptor.Value;
+        }
+    }
+
+    /// <summary>
+    /// Whether a store entry was written by something other than this cell while it ran. Such an
+    /// entry is left alone: the newer write is the one the user meant.
+    /// </summary>
+    private bool WasSetDuringExecution(string name, IVariableStore store)
+    {
+        if (_preExecutionSnapshot is null)
+            return false;
+
+        if (!store.TryGet<object>(name, out var current) || current is null)
+            return false;
+
+        // Absent from the snapshot but present now: added by something other than this cell.
+        if (!_preExecutionSnapshot.TryGetValue(name, out var snapshot))
+            return true;
+
+        return !ReferenceEquals(snapshot, current) && !snapshot.Equals(current);
+    }
+
+    private async Task PublishVariablesAsync(
+        JsonObject reply, IExecutionContext context, List<CellOutput> outputs)
+    {
+        if (!_options.PublishVariables)
+            return;
+
+        if (reply[HostProtocol.VariablesField] is JsonObject variables)
+        {
+            foreach (var pair in variables)
+            {
+                if (WasSetDuringExecution(pair.Key, context.Variables))
+                    continue;
+
+                var value = HostVariables.FromJson(pair.Value);
+                if (value is null)
+                    continue;
+
+                context.Variables.Set(pair.Key, value);
+
+                // The value now in the store came from Python, so recording its hash keeps the
+                // next cell from injecting the same content straight back.
+                _injectedHashes[pair.Key] = HostVariables.ComputeHash(pair.Value);
+            }
+        }
+
+        if (_oversizeNoticeShown || reply[HostProtocol.OversizedField] is not JsonArray oversized
+            || oversized.Count == 0)
+        {
+            return;
+        }
+
+        _oversizeNoticeShown = true;
+        var names = string.Join(", ", oversized.Select(node => node?.ToString()).Where(n => !string.IsNullOrEmpty(n)));
+        await EmitAsync(
+            CellOutput.Plain(
+                $"Some variables were too large to share with other kernels ({names}). " +
+                "They remain available in Python; only the shared copy is a short description. " +
+                "Raise VariablePublishLimitBytes to share more."),
+            context, outputs).ConfigureAwait(false);
+    }
+
     private async Task AppendReplyAsync(JsonObject reply, IExecutionContext context, List<CellOutput> outputs)
     {
         if (reply[HostProtocol.ResultField] is JsonObject result)
-        {
-            var mime = HostProtocol.TryGetString(result, HostProtocol.MimeField) ?? "text/plain";
-            var data = HostProtocol.TryGetString(result, HostProtocol.DataField) ?? "";
-            await EmitAsync(new CellOutput(mime, data), context, outputs).ConfigureAwait(false);
-        }
+            await EmitAsync(MapPayload(result), context, outputs).ConfigureAwait(false);
 
         if (reply[HostProtocol.ErrorField] is JsonObject error)
         {
@@ -407,6 +552,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 new CellOutput("text/plain", text, IsError: true, ErrorName: name), context, outputs)
                 .ConfigureAwait(false);
         }
+
+        await PublishVariablesAsync(reply, context, outputs).ConfigureAwait(false);
     }
 
     private async Task ReportCrashAsync(Exception ex, IExecutionContext context, List<CellOutput> outputs)
@@ -451,7 +598,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
         await context.WriteOutputAsync(output).ConfigureAwait(false);
     }
 
-    private static string? NotebookDirectory(IExecutionContext context)
+    public static string? NotebookDirectory(IVersoContext context)
     {
         var filePath = context.NotebookMetadata?.FilePath;
         if (string.IsNullOrEmpty(filePath))

@@ -1,4 +1,5 @@
 using Verso.Python.Kernel;
+using Verso.Python.Tests.Host;
 using Verso.Testing.Stubs;
 
 namespace Verso.Python.Tests.Kernel;
@@ -12,10 +13,20 @@ namespace Verso.Python.Tests.Kernel;
 [TestClass]
 public sealed class VariablePublishingTests
 {
+    /// <summary>
+    /// Both runtimes publish variables. The out-of-process one needs an interpreter to publish
+    /// from, so a machine without Python skips rather than fails.
+    /// </summary>
+    private static void RequireRuntime()
+    {
+        if (EmbeddedRuntimeOnly.HostProcessEnabled)
+            PythonProbe.Require();
+    }
+
     [TestMethod]
     public async Task Publish_SelfReferentialGlobals_DoesNotCrash()
     {
-        EmbeddedRuntimeOnly.Require("Variable sharing");
+        RequireRuntime();
 
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
@@ -32,7 +43,7 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_CyclicContainers_DoNotCrash_AndNormalDataStillPublishes()
     {
-        EmbeddedRuntimeOnly.Require("Variable sharing");
+        RequireRuntime();
 
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
@@ -61,7 +72,7 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_DeeplyNestedAcyclicList_DoesNotCrash()
     {
-        EmbeddedRuntimeOnly.Require("Variable sharing");
+        RequireRuntime();
 
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();

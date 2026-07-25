@@ -3,14 +3,25 @@ using System.Security.Cryptography;
 namespace Verso.Python.Host;
 
 /// <summary>
-/// Extracts the embedded Python host script to a per-version location under the user's Verso
-/// directory so the script on disk always matches the managing assembly. Extraction is
-/// idempotent: an existing, byte-identical file is left in place.
+/// Extracts the embedded Python host script and its supporting modules to a per-version
+/// location under the user's Verso directory, so what runs on disk always matches the managing
+/// assembly. Extraction is idempotent: an existing, byte-identical file is left in place.
 /// </summary>
 internal static class HostScriptExtractor
 {
-    private const string ResourceName = "Verso.Python.Host.versohost.py";
+    private const string ResourcePrefix = "Verso.Python.Host.";
     private const string ScriptFileName = "versohost.py";
+
+    /// <summary>
+    /// The entry script first, then the modules it imports. All of them are written before the
+    /// path is handed out, because the script imports its siblings at load time.
+    /// </summary>
+    private static readonly string[] ScriptFileNames =
+    {
+        ScriptFileName,
+        "_versohost_display.py",
+        "_versohost_vars.py",
+    };
 
     /// <summary>The per-user root under which versioned host scripts are written.</summary>
     public static string DefaultRoot { get; } = Path.Combine(
@@ -25,39 +36,46 @@ internal static class HostScriptExtractor
     {
         var version = typeof(HostScriptExtractor).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
         var directory = Path.Combine(rootDirectory ?? DefaultRoot, version);
-        var scriptPath = Path.Combine(directory, ScriptFileName);
 
-        var payload = ReadEmbeddedScript();
+        foreach (var fileName in ScriptFileNames)
+            EnsureFileExtracted(directory, fileName);
 
-        if (File.Exists(scriptPath) && FileMatches(scriptPath, payload))
-            return scriptPath;
+        return Path.Combine(directory, ScriptFileName);
+    }
+
+    private static void EnsureFileExtracted(string directory, string fileName)
+    {
+        var path = Path.Combine(directory, fileName);
+        var payload = ReadEmbeddedScript(fileName);
+
+        if (File.Exists(path) && FileMatches(path, payload))
+            return;
 
         Directory.CreateDirectory(directory);
 
         // Write to a temporary sibling then move into place so a concurrent reader never observes
         // a partially written script.
-        var tempPath = Path.Combine(directory, $"{ScriptFileName}.{Guid.NewGuid():N}.tmp");
+        var tempPath = Path.Combine(directory, $"{fileName}.{Guid.NewGuid():N}.tmp");
         File.WriteAllBytes(tempPath, payload);
         try
         {
-            File.Move(tempPath, scriptPath, overwrite: true);
+            File.Move(tempPath, path, overwrite: true);
         }
         catch
         {
             SafeDelete(tempPath);
             // Another writer may have won the race; accept its identical result.
-            if (File.Exists(scriptPath) && FileMatches(scriptPath, payload))
-                return scriptPath;
+            if (File.Exists(path) && FileMatches(path, payload))
+                return;
             throw;
         }
-
-        return scriptPath;
     }
 
-    private static byte[] ReadEmbeddedScript()
+    private static byte[] ReadEmbeddedScript(string fileName)
     {
-        using var stream = typeof(HostScriptExtractor).Assembly.GetManifestResourceStream(ResourceName)
-            ?? throw new InvalidOperationException($"Embedded host script '{ResourceName}' was not found.");
+        var resourceName = ResourcePrefix + fileName;
+        using var stream = typeof(HostScriptExtractor).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded host script '{resourceName}' was not found.");
         using var memory = new MemoryStream();
         stream.CopyTo(memory);
         return memory.ToArray();

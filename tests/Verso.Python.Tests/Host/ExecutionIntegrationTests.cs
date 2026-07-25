@@ -170,6 +170,61 @@ public sealed class ExecutionIntegrationTests
             $"output should stream during the cell, but the first chunk arrived at {first} of {total}");
     }
 
+    // --- rich display ---
+
+    [TestMethod]
+    public async Task Execute_DisplayEmitsBeforeTheCellEnds()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        var code =
+            "class Card:\n" +
+            "    def _repr_html_(self):\n" +
+            "        return '<b>card</b>'\n" +
+            "display(Card())\n" +
+            "print('after')";
+
+        var outputs = await session.ExecuteAsync(code, context);
+
+        // The display arrives where the call was made, ahead of the print that follows it.
+        Assert.AreEqual("text/html", outputs[0].MimeType);
+        Assert.AreEqual("<b>card</b>", outputs[0].Content);
+        StringAssert.Contains(TextOf(outputs), "after");
+    }
+
+    [TestMethod]
+    public async Task Execute_DisplaysAnImageAsAnElement()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        var code =
+            "class Picture:\n" +
+            "    def _repr_png_(self):\n" +
+            "        return b'\\x89PNG\\r\\n\\x1a\\n'\n" +
+            "Picture()";
+
+        var outputs = await session.ExecuteAsync(code, context);
+
+        Assert.AreEqual("text/html", outputs[^1].MimeType);
+        StringAssert.Contains(outputs[^1].Content, "data:image/png;base64,");
+    }
+
+    [TestMethod]
+    public async Task Execute_ProvidesTheDisplayNamesWithoutIPythonInstalled()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        var outputs = await session.ExecuteAsync(
+            "from IPython.display import HTML, clear_output\nclear_output()\nHTML('<i>shim</i>')",
+            context);
+
+        Assert.AreEqual("text/html", outputs[^1].MimeType);
+        Assert.AreEqual("<i>shim</i>", outputs[^1].Content);
+    }
+
     // --- errors ---
 
     [TestMethod]

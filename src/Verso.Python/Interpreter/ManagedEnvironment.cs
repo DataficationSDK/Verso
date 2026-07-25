@@ -22,7 +22,6 @@ internal sealed class ManagedEnvironment
     private static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
     private readonly string _root;
-    private bool? _uvAvailable;
 
     /// <param name="environmentsRoot">Root directory for derived environments; defaults to the per-user location.</param>
     public ManagedEnvironment(string? environmentsRoot = null)
@@ -39,11 +38,7 @@ internal sealed class ManagedEnvironment
             : Path.Combine(environmentPath, "bin", "python");
 
     /// <summary>Returns whether the uv tool is available on the search path.</summary>
-    public bool IsUvAvailable()
-    {
-        _uvAvailable ??= ProbeUv();
-        return _uvAvailable.Value;
-    }
+    public bool IsUvAvailable() => UvTool.IsAvailable();
 
     /// <summary>
     /// Ensures a derived environment exists for the given base interpreter and returns its executable.
@@ -73,7 +68,10 @@ internal sealed class ManagedEnvironment
     }
 
     private static Task<bool> CreateWithUvAsync(string basePython, string environmentPath, CancellationToken ct)
-        => RunAsync("uv", new[] { "venv", "--python", basePython, "--system-site-packages", environmentPath }, ct);
+        => RunAsync(
+            UvTool.Executable,
+            new[] { "venv", "--python", basePython, "--system-site-packages", environmentPath },
+            ct);
 
     private static Task<bool> CreateWithVenvAsync(string basePython, string environmentPath, CancellationToken ct)
         => RunAsync(basePython, new[] { "-m", "venv", "--system-site-packages", environmentPath }, ct);
@@ -99,32 +97,6 @@ internal sealed class ManagedEnvironment
             _ = await process.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
             await process.WaitForExitAsync(ct).ConfigureAwait(false);
             return process.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool ProbeUv()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo("uv")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            psi.ArgumentList.Add("--version");
-
-            using var process = Process.Start(psi);
-            if (process is null)
-                return false;
-
-            process.WaitForExit(5000);
-            return process.HasExited && process.ExitCode == 0;
         }
         catch
         {

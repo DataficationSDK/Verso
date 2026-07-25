@@ -366,7 +366,11 @@ internal sealed class PythonHostProcess : IAsyncDisposable
 /// Scope preparation the subprocess applies before it processes any request. It travels on the
 /// handshake reply, so a respawn replays it without the managing side having to remember to.
 /// </summary>
-internal sealed record HostBootstrap(IReadOnlyList<string> DefaultImports, string? StartupCode)
+internal sealed record HostBootstrap(
+    IReadOnlyList<string> DefaultImports,
+    string? StartupCode,
+    bool EnableShellEscapes = true,
+    int VariablePublishLimitBytes = Kernel.PythonKernelOptions.DefaultVariablePublishLimitBytes)
 {
     public static readonly HostBootstrap Empty = new(Array.Empty<string>(), null);
 
@@ -381,7 +385,13 @@ internal sealed record HostBootstrap(IReadOnlyList<string> DefaultImports, strin
                 imports.Add(JsonValue.Create(import));
         }
 
-        var config = new JsonObject { [HostProtocol.DefaultImportsField] = imports };
+        var config = new JsonObject
+        {
+            [HostProtocol.DefaultImportsField] = imports,
+            [HostProtocol.EnableShellEscapesField] = JsonValue.Create(EnableShellEscapes),
+            [HostProtocol.VariablePublishLimitField] = JsonValue.Create(VariablePublishLimitBytes),
+        };
+
         if (!string.IsNullOrWhiteSpace(StartupCode))
             config[HostProtocol.StartupCodeField] = StartupCode;
 

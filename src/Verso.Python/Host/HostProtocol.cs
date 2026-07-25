@@ -48,6 +48,8 @@ internal static class HostProtocol
     // Field names: bootstrap configuration carried on hello_ok.
     public const string DefaultImportsField = "default_imports";
     public const string StartupCodeField = "startup_code";
+    public const string EnableShellEscapesField = "enable_shell_escapes";
+    public const string VariablePublishLimitField = "variable_publish_limit_bytes";
 
     // Field names: execute request and result.
     public const string CodeField = "code";
@@ -57,6 +59,7 @@ internal static class HostProtocol
     public const string ResultField = "result";
     public const string ErrorField = "error";
     public const string VariablesField = "variables";
+    public const string OversizedField = "oversized";
     public const string MimeField = "mime";
     public const string DataField = "data";
     public const string NameField = "name";
@@ -79,13 +82,25 @@ internal static class HostProtocol
     public const string StreamStdout = "stdout";
     public const string StreamStderr = "stderr";
 
+    /// <summary>
+    /// Nesting ceiling for a frame. Both sides reduce a variable to at most 100 levels, and the
+    /// message envelope wraps that, so the transport has to allow more than the default 64 or a
+    /// legitimately deep value would be rejected as a malformed frame. Frames come from this
+    /// kernel's own subprocess over an authenticated loopback socket, so the wider limit is not
+    /// an exposure.
+    /// </summary>
+    public const int MaxJsonDepth = 128;
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         // Leave non-ASCII and HTML-sensitive characters unescaped, matching the Python side's
         // ensure_ascii=False. Control characters, including newline, are always escaped, so a
         // serialized frame never contains a raw newline.
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        MaxDepth = MaxJsonDepth,
     };
+
+    private static readonly JsonDocumentOptions DocumentOptions = new() { MaxDepth = MaxJsonDepth };
 
     /// <summary>Serialize a message to UTF-8 JSON bytes with no trailing newline.</summary>
     public static byte[] Serialize(JsonNode message)
@@ -100,7 +115,7 @@ internal static class HostProtocol
         JsonNode? node;
         try
         {
-            node = JsonNode.Parse(utf8);
+            node = JsonNode.Parse(utf8, nodeOptions: null, DocumentOptions);
         }
         catch (JsonException ex)
         {

@@ -189,6 +189,27 @@ jobs:
       - name: Run host script tests
         run: python -m pytest tests/versohost -q
 
+  embedded-python:
+    name: Embedded Python Runtime
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      # The Python kernel runs the user's own interpreter by default. The in-process runtime is
+      # still supported and still shipped, so it gets a run of its own until it is retired.
+      - name: Test with the embedded runtime
+        run: dotnet test tests/Verso.Python.Tests/Verso.Python.Tests.csproj -c Release
+        env:
+          VERSO_PYTHON_HOST: "0"
+
   vscode-extension:
     name: VS Code Extension
     runs-on: ubuntu-latest

@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Host/versohost.py" LogicalName="Verso.Python.Host.versohost.py" />
+    <EmbeddedResource Include="Host/_versohost_display.py" LogicalName="Verso.Python.Host._versohost_display.py" />
+    <EmbeddedResource Include="Host/_versohost_vars.py" LogicalName="Verso.Python.Host._versohost_vars.py" />
   </ItemGroup>
 
   <ItemGroup>

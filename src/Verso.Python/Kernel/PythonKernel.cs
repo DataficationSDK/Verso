@@ -12,9 +12,9 @@ namespace Verso.Python.Kernel;
 public sealed class PythonKernel : ILanguageKernel
 {
     /// <summary>
-    /// Opts a session into running Python in a separate process against the user's own interpreter
-    /// instead of the embedded runtime. The embedded runtime remains the default while the
-    /// out-of-process path is completed.
+    /// Set to <c>0</c> or <c>false</c> to run Python inside this process against the embedded
+    /// runtime instead of as a separate process against the user's own interpreter. The separate
+    /// process is the default; the embedded runtime remains available while it is retired.
     /// </summary>
     internal const string HostOptInVariable = "VERSO_PYTHON_HOST";
 
@@ -39,7 +39,7 @@ public sealed class PythonKernel : ILanguageKernel
     private static bool IsHostProcessEnabled()
     {
         var value = Environment.GetEnvironmentVariable(HostOptInVariable);
-        return value is "1" or "true" or "TRUE" or "True";
+        return value is not ("0" or "false" or "FALSE" or "False");
     }
 
     /// <summary>
@@ -56,13 +56,38 @@ public sealed class PythonKernel : ILanguageKernel
     /// <summary>Whether this kernel runs Python out of process.</summary>
     internal bool UsesHostProcess => _useHostProcess;
 
+    /// <summary>
+    /// Resolve the interpreter this kernel executes against, binding the session to the notebook
+    /// first so a magic command running in the very first cell installs into the same environment
+    /// the cell below it will import from. Returns null when Python runs in this process, which
+    /// has no separate interpreter to install into.
+    /// </summary>
+    internal async Task<string?> GetActiveInterpreterAsync(
+        IVersoContext context, CancellationToken cancellationToken)
+    {
+        if (!_useHostProcess)
+            return null;
+
+        if (!_initialized)
+            await InitializeAsync().ConfigureAwait(false);
+
+        var session = _session;
+        if (session is null)
+            return null;
+
+        await session.EnsureBoundAsync(PythonHostSession.NotebookDirectory(context), cancellationToken)
+            .ConfigureAwait(false);
+
+        return session.Interpreter?.Executable;
+    }
+
     // --- IExtension ---
 
     public string ExtensionId => "verso.kernel.python";
-    public string Name => "Python (pythonnet)";
+    public string Name => "Python";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Python language kernel powered by pythonnet.";
+    public string? Description => "Python language kernel.";
 
     // --- ILanguageKernel ---
 
