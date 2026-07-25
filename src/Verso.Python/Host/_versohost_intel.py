@@ -35,16 +35,6 @@ _tools_stamp = None
 # finds the attempt already under way waits for it rather than reading a half-set outcome.
 _import_lock = threading.Lock()
 
-# The same arrangement for the first inference, which is a separate and larger cost from the
-# import. A request that arrives while it is under way waits for it and is then answered from
-# what it built, rather than parsing the same type information a second time alongside it.
-_warm_lock = threading.Lock()
-_warmed = False
-
-# Member lookup on a list literal, which is what forces the type information for the built-in
-# types to be read. It is the bulk of a first answer's cost and every later answer reuses it.
-_WARM_SOURCE = "[]."
-
 
 def configure(tools_path):
     """Record the tools directory and place it at the end of the import path."""
@@ -60,43 +50,11 @@ def configure(tools_path):
 
 def reset_cache():
     """Forget the recorded import outcome so the next request tries again."""
-    global _jedi, _jedi_attempted, _tools_stamp, _warmed
+    global _jedi, _jedi_attempted, _tools_stamp
 
     _jedi = None
     _jedi_attempted = False
     _tools_stamp = None
-    _warmed = False
-
-
-def ensure_warm():
-    """
-    Read the standard library's type information once, so the request that needs it does not
-    have to. Answering the first question about a built-in type means parsing several megabytes
-    of type stubs, which takes long enough to outrun what an editor is willing to wait for;
-    every answer after it is served from what this built and returns in milliseconds.
-
-    Called on a thread of its own as the host starts, and again by the requests that need it,
-    so whichever gets there first does the work and the other waits for it. Never raises: an
-    analysis that cannot warm still answers, only more slowly.
-    """
-    global _warmed
-
-    jedi = load_jedi()
-    if jedi is None or _warmed:
-        return
-
-    with _warm_lock:
-        if _warmed:
-            return
-
-        try:
-            jedi.Interpreter(_WARM_SOURCE, namespaces=[{}]).complete(1, len(_WARM_SOURCE))
-        except Exception:
-            pass
-
-        # Set whether or not the attempt produced anything. This is a head start, not a
-        # capability, and repeating a failed one on every keystroke would be its own cost.
-        _warmed = True
 
 
 def jedi_available():
@@ -204,8 +162,6 @@ def complete(history, code, cursor, namespace):
     if jedi is None:
         return _stdlib_completions(code, cursor, namespace)
 
-    ensure_warm()
-
     try:
         combined, prefix_lines = build_combined_source(history, code)
         line, column = offset_to_line_column(code, cursor)
@@ -286,8 +242,6 @@ def hover(history, code, cursor, namespace):
     jedi = load_jedi()
     if jedi is None:
         return None
-
-    ensure_warm()
 
     try:
         combined, prefix_lines = build_combined_source(history, code)

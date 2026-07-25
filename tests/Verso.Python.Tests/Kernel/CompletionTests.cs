@@ -43,6 +43,17 @@ public sealed class CompletionTests
             Assert.Inconclusive("jedi is not available in this environment.");
     }
 
+    /// <summary>
+    /// What came back, for a failure message. Which component answered is readable from the
+    /// shape: the analysis library reports the trailing segment of a name and the
+    /// standard-library fallback reports the whole dotted path, so a failure that lists "x.append"
+    /// is a fallback and one that lists nothing is a request that went unanswered.
+    /// </summary>
+    private static string Describe(IReadOnlyList<Completion> completions)
+        => completions.Count == 0
+            ? "nothing"
+            : string.Join(", ", completions.Take(8).Select(c => c.DisplayText));
+
     [TestMethod]
     public async Task Completions_DotOnModule_ReturnsModuleMembers()
     {
@@ -73,7 +84,7 @@ public sealed class CompletionTests
         Assert.IsTrue(completions.Count > 0,
             "Expected completions for user variable 'x'.");
         Assert.IsTrue(completions.Any(c => c.DisplayText == "append"),
-            "Expected 'append' in list completions.");
+            "Expected 'append' in list completions. Got: " + Describe(completions));
     }
 
     [TestMethod]

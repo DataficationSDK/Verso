@@ -14,6 +14,11 @@ namespace Verso.Python.Interpreter;
 /// directory per process, and fails silently: an offline machine keeps the standard-library
 /// fallbacks rather than an error the user cannot act on.
 /// </para>
+/// <para>
+/// The directory appears whole or not at all. Sessions start against it while an install for a
+/// different notebook may be running, and one that read a half-written copy would import a
+/// library it cannot use, so the install is staged beside it and moved into place in one step.
+/// </para>
 /// </summary>
 internal static class JediTools
 {
@@ -83,31 +88,87 @@ internal static class JediTools
     private static async Task<bool> InstallAsync(
         string toolsPath, string executable, UvUsage useUv, CancellationToken cancellationToken)
     {
+        // Installed beside the directory readers look in, and moved there only once it is whole.
+        // Writing straight into it would publish it one file at a time: a session starting during
+        // an install would find a package it can import but cannot use, and would then spend the
+        // rest of its life on the fallbacks. The name is unique so two processes installing at
+        // once stage separately.
+        var staging = toolsPath + ".incoming-" + Path.GetRandomFileName();
+
         try
         {
-            Directory.CreateDirectory(toolsPath);
+            Directory.CreateDirectory(staging);
         }
         catch
         {
             return false;
         }
 
-        var installed = useUv == UvUsage.Auto && UvTool.IsAvailable()
-            ? await ProcessRunner.RunAsync(
-                UvTool.Executable,
-                new[] { "pip", "install", "--python", executable, "--target", toolsPath, PackageName },
-                cancellationToken).ConfigureAwait(false)
-            : await ProcessRunner.RunAsync(
-                executable,
-                new[]
-                {
-                    "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--no-input",
-                    "--target", toolsPath, PackageName,
-                },
-                cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var installed = useUv == UvUsage.Auto && UvTool.IsAvailable()
+                ? await ProcessRunner.RunAsync(
+                    UvTool.Executable,
+                    new[] { "pip", "install", "--python", executable, "--target", staging, PackageName },
+                    cancellationToken).ConfigureAwait(false)
+                : await ProcessRunner.RunAsync(
+                    executable,
+                    new[]
+                    {
+                        "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--no-input",
+                        "--target", staging, PackageName,
+                    },
+                    cancellationToken).ConfigureAwait(false);
 
-        // The install reporting success is not the same as the package being importable, and a
-        // partial install would leave the host retrying a directory that will never serve it.
-        return installed && Directory.Exists(Path.Combine(toolsPath, PackageName));
+            // The install reporting success is not the same as the package being there, and a
+            // partial one must not be published as though it were finished.
+            return installed
+                && Directory.Exists(Path.Combine(staging, PackageName))
+                && Publish(staging, toolsPath);
+        }
+        finally
+        {
+            // Nothing is left behind by an install that failed or lost the race to publish.
+            TryDelete(staging);
+        }
+    }
+
+    /// <summary>
+    /// Move a finished install to where readers look for it. One step, so a session starting
+    /// alongside finds either no tools or all of them. Another process getting there first is a
+    /// success rather than a conflict: what matters is that the directory is now complete.
+    /// </summary>
+    private static bool Publish(string staging, string toolsPath)
+    {
+        try
+        {
+            var parent = Path.GetDirectoryName(toolsPath);
+            if (!string.IsNullOrEmpty(parent))
+                Directory.CreateDirectory(parent);
+
+            Directory.Move(staging, toolsPath);
+            return true;
+        }
+        catch (IOException)
+        {
+            return Directory.Exists(Path.Combine(toolsPath, PackageName));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Directory.Exists(Path.Combine(toolsPath, PackageName));
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+        catch
+        {
+            // Best effort. A staging directory left behind costs disk, not correctness.
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Verso.Abstractions;
 using Verso.Python.Host;
 using Verso.Python.Interpreter;
 using Verso.Python.Kernel;
@@ -46,6 +47,17 @@ public sealed class IntelliSenseIntegrationTests
 
     private static Task RequireAnalysisAsync() => AnalysisTools.RequireAsync();
 
+    /// <summary>
+    /// What came back, for a failure message. Which component answered is readable from the
+    /// shape: the analysis library reports the trailing segment of a name and the
+    /// standard-library fallback reports the whole dotted path, so a failure that lists
+    /// "items.append" is a fallback and one that lists nothing is a request that went unanswered.
+    /// </summary>
+    private static string Describe(IReadOnlyList<Completion> completions)
+        => completions.Count == 0
+            ? "nothing"
+            : string.Join(", ", completions.Take(8).Select(c => c.DisplayText));
+
     // --- completions ---
 
     [TestMethod]
@@ -83,7 +95,7 @@ public sealed class IntelliSenseIntegrationTests
         var completions = await session.GetCompletionsAsync("items.", 6);
 
         Assert.IsTrue(completions.Any(c => c.DisplayText == "append"),
-            "Expected list members for a name defined by an earlier cell.");
+            "Expected list members for a name defined by an earlier cell. Got: " + Describe(completions));
     }
 
     [TestMethod]
