@@ -1,5 +1,7 @@
 """Error reporting: status selection and traceback shaping."""
 
+import threading
+
 import versohost
 
 
@@ -66,6 +68,36 @@ def test_an_interrupt_inside_a_call_still_cancels(execute):
     result = execute("def stop():\n    raise KeyboardInterrupt()\nstop()")
 
     assert result["status"] == "cancelled"
+
+
+def test_an_interrupt_message_is_raised_as_it_arrives(session, monkeypatch):
+    """
+    The reader raises an interrupt itself rather than queueing it.
+
+    While a cell runs, the main thread is inside user code and not reading the queue, so a
+    queued interrupt would only be seen once the cell it was meant to stop had ended. Where
+    the managing process cannot deliver a signal, this message is the only way to stop a cell.
+    """
+    raised = threading.Event()
+    monkeypatch.setattr(versohost._thread, "interrupt_main", raised.set)
+
+    versohost._run(ScriptedChannel([{"type": "interrupt"}, {"type": "shutdown"}]), session)
+
+    assert raised.is_set()
+
+
+class ScriptedChannel:
+    """Hands the reader a fixed run of messages, then reports the stream as ended."""
+
+    def __init__(self, messages):
+        self._messages = list(messages)
+        self.written = []
+
+    def read(self):
+        return self._messages.pop(0) if self._messages else None
+
+    def write(self, message):
+        self.written.append(message)
 
 
 def test_exit_ends_the_cell_rather_than_the_host(execute):

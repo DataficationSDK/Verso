@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Net.Sockets;
 
 namespace Verso.Python.Host;
 
@@ -33,8 +34,9 @@ internal sealed class NdjsonFramer
 
     /// <summary>
     /// Read the next frame's payload bytes, without the newline. Returns <c>null</c> at a clean
-    /// end of stream. Throws <see cref="PythonHostProtocolException"/> when a frame exceeds the
-    /// ceiling or the stream ends part way through a frame.
+    /// end of stream, which includes a connection the peer reset rather than closed. Throws
+    /// <see cref="PythonHostProtocolException"/> when a frame exceeds the ceiling or the stream
+    /// ends part way through a frame.
     /// </summary>
     public async Task<byte[]?> ReadFrameAsync(CancellationToken cancellationToken)
     {
@@ -55,7 +57,19 @@ internal sealed class NdjsonFramer
             if (_pendingLength > _maxFrameBytes)
                 throw new PythonHostProtocolException("Incoming frame exceeds the size limit.");
 
-            var read = await _stream.ReadAsync(_readChunk, cancellationToken).ConfigureAwait(false);
+            int read;
+            try
+            {
+                read = await _stream.ReadAsync(_readChunk, cancellationToken).ConfigureAwait(false);
+            }
+            catch (IOException ex) when (IsPeerGone(ex))
+            {
+                // A peer that dies without closing its socket resets the connection, which Windows
+                // reports as a read failure where Unix reports a clean end of stream. Both say the
+                // same thing, and callers read the end of the stream as the subprocess being gone.
+                read = 0;
+            }
+
             if (read == 0)
             {
                 if (_pendingLength > 0)
@@ -89,6 +103,12 @@ internal sealed class NdjsonFramer
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
+
+    private static bool IsPeerGone(IOException exception)
+        => exception.InnerException is SocketException
+        {
+            SocketErrorCode: SocketError.ConnectionReset or SocketError.ConnectionAborted,
+        };
 
     private void AppendPending(byte[] source, int count)
     {

@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
 using Verso.Python.Host;
@@ -50,6 +52,35 @@ public sealed class NdjsonFramerTests
         var stream = new MemoryStream();
         var reader = new NdjsonFramer(stream);
         Assert.IsNull(await reader.ReadFrameAsync(CancellationToken.None));
+    }
+
+    [TestMethod]
+    public async Task Read_ReturnsNull_WhenThePeerResetsTheConnection()
+    {
+        // A subprocess that dies mid-cell leaves its socket to be reset rather than closed, which
+        // Windows reports as a failed read where Unix reports an end of stream. The reader has to
+        // read both as the peer being gone, or a crash surfaces as a transport error instead of
+        // the message telling the notebook its interpreter went away.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var accepting = listener.AcceptTcpClientAsync();
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port);
+            var peer = await accepting;
+
+            // Discarding buffered data on close is what sends a reset instead of an orderly close.
+            peer.Client.LingerState = new LingerOption(true, 0);
+            peer.Close();
+
+            var framer = new NdjsonFramer(client.GetStream());
+            Assert.IsNull(await framer.ReadFrameAsync(CancellationToken.None));
+        }
+        finally
+        {
+            listener.Stop();
+        }
     }
 
     [TestMethod]

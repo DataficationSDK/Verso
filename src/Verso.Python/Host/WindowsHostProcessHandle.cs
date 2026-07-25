@@ -25,6 +25,7 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     private readonly ManualResetEvent _exitedEvent;
     private readonly RegisteredWaitHandle _registeredWait;
     private readonly TaskCompletionSource _exitedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly bool _sharesConsole;
     private bool _disposed;
 
     public int Id { get; }
@@ -62,6 +63,16 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
         var environmentBlock = BuildEnvironmentBlock(startInfo.Environment);
         var environmentHandle = GCHandle.Alloc(environmentBlock, GCHandleType.Pinned);
 
+        // A console control event only reaches a child that shares the sender's console, so when
+        // this process has one the child inherits it and the interrupt can travel as a signal. No
+        // window appears, because the console already exists. Where there is none, asking for one
+        // would put a black window on screen for every editor session, so the child is spawned
+        // windowless and the interrupt travels as a protocol message instead.
+        _sharesConsole = GetConsoleWindow() != IntPtr.Zero;
+        var creationFlags = CREATE_NEW_PROCESS_GROUP | CREATE_UNICODE_ENVIRONMENT;
+        if (!_sharesConsole)
+            creationFlags |= CREATE_NO_WINDOW;
+
         bool created;
         PROCESS_INFORMATION processInfo;
         try
@@ -72,7 +83,7 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
                 lpProcessAttributes: IntPtr.Zero,
                 lpThreadAttributes: IntPtr.Zero,
                 bInheritHandles: true,
-                dwCreationFlags: CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+                dwCreationFlags: creationFlags,
                 lpEnvironment: environmentHandle.AddrOfPinnedObject(),
                 lpCurrentDirectory: startInfo.WorkingDirectory,
                 lpStartupInfo: ref startup,
@@ -150,12 +161,14 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
 
     public bool TrySendInterrupt()
     {
-        if (HasExited) return false;
+        // Delivery requires a console shared with the child, and the event is silently dropped
+        // without one: the call still succeeds, it simply reaches no process. Reporting that as a
+        // delivered interrupt would leave the cell waiting out the grace period before anything
+        // stopped it, so a windowless host declines here and the caller uses the message path.
+        if (!_sharesConsole || HasExited) return false;
 
         // CREATE_NEW_PROCESS_GROUP made the child its own group, so a CTRL_BREAK event can be
-        // addressed to it by id. Delivery still requires the caller to share the child's console,
-        // which a windowless host (an editor extension host, a server) does not have, so a false
-        // return here is expected rather than exceptional and the caller uses the message path.
+        // addressed to it by id, and this process, being in a different group, does not receive it.
         try { return GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, Id); }
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
         {
@@ -343,4 +356,7 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GenerateConsoleCtrlEvent(int dwCtrlEvent, int dwProcessGroupId);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetConsoleWindow();
 }
