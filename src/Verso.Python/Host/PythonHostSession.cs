@@ -431,11 +431,17 @@ internal sealed class PythonHostSession : IAsyncDisposable
     // --- editor assistance ---
 
     /// <summary>
-    /// How long an editor request waits for its answer. Short by design: a keystroke that goes
-    /// unanswered is better than one that holds up the editor, and unlike an execute there is
-    /// nothing here worth interrupting the interpreter over.
+    /// How long an editor request waits for its answer. Nothing here is worth interrupting the
+    /// interpreter over, so a request that outlives this is abandoned rather than chased.
+    /// <para>
+    /// The budget is set by the first request rather than the typical one. Answers arrive in
+    /// milliseconds once the analysis has read the standard library's type information, but the
+    /// reading itself takes seconds on a modest machine, and cutting that off would leave the
+    /// first question of a session unanswered on exactly the machines that can least afford to
+    /// ask it twice.
+    /// </para>
     /// </summary>
-    private static readonly TimeSpan IntelliSenseTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan IntelliSenseTimeout = TimeSpan.FromSeconds(10);
 
     public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
     {

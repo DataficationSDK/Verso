@@ -1,6 +1,7 @@
 """Completions, hover, and diagnostics, with and without the analysis library."""
 
 import os
+import threading
 
 import pytest
 
@@ -128,6 +129,75 @@ def test_a_top_level_await_is_not_a_compiler_diagnostic(without_jedi):
 
 def test_empty_code_has_no_compiler_diagnostics(without_jedi):
     assert intel.diagnostics([], "   \n  ") == []
+
+
+# --- warming ---
+
+
+def settle_warm():
+    """
+    Wait out a warm-up a bootstrap in another test started. It runs on a thread of its own and
+    writes the same record these tests read, so a test that did not wait would be measuring it.
+    """
+    for thread in threading.enumerate():
+        if thread.name == "verso-host-intel-warmup":
+            thread.join(timeout=60)
+
+
+@jedi_required
+def test_warming_reads_the_type_information_once(monkeypatch):
+    settle_warm()
+
+    jedi = intel.load_jedi()
+    seen = []
+    original = jedi.Interpreter
+
+    def counting(source, *args, **kwargs):
+        seen.append(source)
+        return original(source, *args, **kwargs)
+
+    monkeypatch.setattr(jedi, "Interpreter", counting)
+    monkeypatch.setattr(intel, "_warmed", False)
+
+    intel.ensure_warm()
+    intel.ensure_warm()
+
+    assert seen == [intel._WARM_SOURCE]
+
+
+@jedi_required
+def test_a_completion_warms_what_it_needs(monkeypatch):
+    settle_warm()
+    monkeypatch.setattr(intel, "_warmed", False)
+
+    intel.complete([], "os.", 3, {"os": os})
+
+    assert intel._warmed is True
+
+
+def test_warming_without_the_analysis_is_not_an_error(without_jedi, monkeypatch):
+    settle_warm()
+    monkeypatch.setattr(intel, "_warmed", False)
+
+    intel.ensure_warm()
+
+    # Nothing was read, so nothing is recorded as read: an analysis that arrives later still
+    # gets its head start.
+    assert intel._warmed is False
+
+
+def test_resetting_the_cache_forgets_the_warm(monkeypatch):
+    settle_warm()
+
+    # Every field the reset clears is pinned, so the rest of the suite keeps the analysis it
+    # already loaded.
+    for name in ("_jedi", "_jedi_attempted", "_tools_stamp"):
+        monkeypatch.setattr(intel, name, getattr(intel, name))
+    monkeypatch.setattr(intel, "_warmed", True)
+
+    intel.reset_cache()
+
+    assert intel._warmed is False
 
 
 # --- jedi paths ---

@@ -518,11 +518,12 @@ class HostSession:
 
         intel_support.configure(config.get("jedi_tools_path"))
 
-        # The first editor request would otherwise pay for importing the analysis library, which
-        # takes long enough to notice. Warmed on a thread of its own so startup does not wait for
-        # it, and a request that arrives meanwhile waits for this attempt rather than starting over.
+        # The first editor request would otherwise pay for importing the analysis library and for
+        # reading the standard library's type information, which together take long enough to
+        # notice. Warmed on a thread of its own so startup does not wait for it, and a request that
+        # arrives meanwhile waits for this attempt rather than starting over.
         threading.Thread(
-            target=intel_support.load_jedi, name="verso-host-intel-warmup", daemon=True).start()
+            target=intel_support.ensure_warm, name="verso-host-intel-warmup", daemon=True).start()
 
         for name in config.get("default_imports") or []:
             if not isinstance(name, str) or not name:
