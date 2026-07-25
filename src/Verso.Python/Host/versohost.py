@@ -32,6 +32,7 @@ from collections import deque
 # Siblings of this script, extracted alongside it. Imported before the working directory
 # joins sys.path so a file in the notebook's folder cannot stand in for either.
 import _versohost_display as display_support
+import _versohost_intel as intel_support
 import _versohost_vars as variable_support
 
 PROTOCOL_VERSION = 1
@@ -50,6 +51,11 @@ CELL_FILENAME_PREFIX = "<cell"
 CELL_FILENAME = "<cell>"
 CELL_SOURCE_LIMIT = 200
 
+# Sources of cells that have run, replayed as context for completions and hover. Bounded for
+# the same reason the traceback cache is: a long session must not grow without limit, and the
+# live namespace already carries everything those cells defined.
+CELL_HISTORY_LIMIT = CELL_SOURCE_LIMIT
+
 # Buffered output is emitted on this cadence, or earlier when a flush is requested or the
 # buffer grows past the threshold, so long-running cells show progress as it happens.
 FLUSH_INTERVAL_SECONDS = 0.05
@@ -59,6 +65,9 @@ FLUSH_THRESHOLD_CHARS = 8192
 WAIT_POLL_SECONDS = 0.05
 
 _registered_sources = deque()
+
+# Requests answered off the main thread, because the main thread may be inside a cell.
+INTELLISENSE_REQUESTS = ("complete", "hover", "diagnostics")
 
 
 class SocketClosed(Exception):
@@ -443,6 +452,11 @@ class HostSession:
         self.shell_escapes = True
         self.publish_limit_bytes = variable_support.DEFAULT_LIMIT_BYTES
 
+        # Read from the editor-assistance thread while the main thread runs a cell, which is
+        # exactly when an answer would be both slow to produce and stale on arrival.
+        self.executing = False
+        self.history = deque(maxlen=CELL_HISTORY_LIMIT)
+
         # Created up front and installed as this thread's loop, so a cell that schedules work
         # without awaiting it (asyncio.ensure_future, get_event_loop) uses the same loop a later
         # cell awaits on. Creating it lazily would strand those tasks on a loop that never runs.
@@ -489,6 +503,14 @@ class HostSession:
         limit = config.get("variable_publish_limit_bytes")
         if isinstance(limit, int) and limit > 0:
             self.publish_limit_bytes = limit
+
+        intel_support.configure(config.get("jedi_tools_path"))
+
+        # The first editor request would otherwise pay for importing the analysis library, which
+        # takes long enough to notice. Warmed on a thread of its own so startup does not wait for
+        # it, and a request that arrives meanwhile waits for this attempt rather than starting over.
+        threading.Thread(
+            target=intel_support.load_jedi, name="verso-host-intel-warmup", daemon=True).start()
 
         for name in config.get("default_imports") or []:
             if not isinstance(name, str) or not name:
@@ -538,28 +560,38 @@ class HostSession:
         filename = cell_filename(request_id)
         register_source(filename, source)
 
+        self.executing = True
         try:
-            statements, expression = split_cell(source, filename)
-        except SyntaxError as exc:
-            status = "error"
-            error = syntax_error_payload(exc)
-        else:
             try:
-                if statements is not None:
-                    self._run(statements)
-                if expression is not None:
-                    value = self._run(expression)
-                    if not suppresses_result(source):
-                        result = display_support.render_value(value)
-            except KeyboardInterrupt:
-                status = "cancelled"
-            except SystemExit as exc:
-                # A cell calling sys.exit() ends the cell, not the interpreter.
+                statements, expression = split_cell(source, filename)
+            except SyntaxError as exc:
                 status = "error"
-                error = error_payload(exc)
-            except BaseException as exc:
-                status = "error"
-                error = error_payload(exc)
+                error = syntax_error_payload(exc)
+            else:
+                try:
+                    if statements is not None:
+                        self._run(statements)
+                    if expression is not None:
+                        value = self._run(expression)
+                        if not suppresses_result(source):
+                            result = display_support.render_value(value)
+                except KeyboardInterrupt:
+                    status = "cancelled"
+                except SystemExit as exc:
+                    # A cell calling sys.exit() ends the cell, not the interpreter.
+                    status = "error"
+                    error = error_payload(exc)
+                except BaseException as exc:
+                    status = "error"
+                    error = error_payload(exc)
+
+                # Kept as context for later completions and hover. A cell that failed to
+                # parse is left out, because its text would spoil every answer after it, and
+                # so is a cancelled one, which ran only in part.
+                if status != "cancelled":
+                    self.history.append(source)
+        finally:
+            self.executing = False
 
         # Figures the cell drew but never showed belong to it, so they are emitted before
         # the result and while the request is still the one being answered.
@@ -602,6 +634,57 @@ class HostSession:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
         return self._loop
+
+    # --- editor assistance ---
+
+    def answer_intellisense(self, message):
+        """
+        Answer a completion, hover, or diagnostics request. This runs on a thread of its own
+        and must never raise: an answer that cannot be produced is an empty one.
+        """
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+        kind = message.get("type")
+        code = message.get("code") or ""
+        cursor = message.get("cursor")
+        if not isinstance(cursor, int):
+            cursor = 0
+
+        # A cell in flight is in the middle of changing the namespace these answers are built
+        # from, and waiting for it would answer a cursor the user has long since left. An empty
+        # result is both the honest reply and the prompt one.
+        busy = self.executing
+        history = [] if message.get("history") is False else list(self.history)
+
+        if kind == "complete":
+            completions = []
+            if not busy:
+                try:
+                    completions = intel_support.complete(history, code, cursor, self.scope)
+                except Exception:
+                    completions = []
+            self._write_reply("complete_reply", request_id, "completions", completions)
+        elif kind == "hover":
+            info = None
+            if not busy:
+                try:
+                    info = intel_support.hover(history, code, cursor, self.scope)
+                except Exception:
+                    info = None
+            self._write_reply("hover_reply", request_id, "hover", info)
+        elif kind == "diagnostics":
+            found = []
+            if not busy:
+                try:
+                    found = intel_support.diagnostics(history, code)
+                except Exception:
+                    found = []
+            self._write_reply("diagnostics_reply", request_id, "diagnostics", found)
+
+    def _write_reply(self, reply_type, request_id, field, payload):
+        try:
+            self.channel.write({"type": reply_type, "req_id": request_id, field: payload})
+        except Exception:
+            pass  # the connection has gone; the request's own deadline covers it
 
     # --- builtins handed to user code ---
 
@@ -690,7 +773,27 @@ def _parse_endpoint(value):
     return host, int(port)
 
 
+def _has_jedi():
+    """
+    Whether the richer analysis is already installed in this interpreter's own environment.
+    Checked with the finders rather than an import, which would cost startup time for a
+    question the managing side only needs answered to decide whether to provision.
+    """
+    try:
+        import importlib.util
+        return importlib.util.find_spec("jedi") is not None
+    except Exception:
+        return False
+
+
 def _hello_payload(token):
+    capabilities = [
+        "execute", "stream", "display", "input", "interrupt",
+        "complete", "hover", "diagnostics",
+    ]
+    if _has_jedi():
+        capabilities.append("jedi")
+
     return {
         "type": "hello",
         "token": token,
@@ -700,13 +803,14 @@ def _hello_payload(token):
             "executable": sys.executable,
             "implementation": platform.python_implementation(),
         },
-        "capabilities": ["execute", "stream", "display", "input", "interrupt"],
+        "capabilities": capabilities,
     }
 
 
 def _run(channel, session):
     """Feed inbound messages onto a queue and dispatch them on the main thread."""
     inbox = queue.Queue()
+    intel_inbox = queue.Queue()
 
     def reader():
         try:
@@ -726,15 +830,34 @@ def _run(channel, session):
                     _thread.interrupt_main()
                     continue
 
+                # Editor requests go to a thread of their own for the same reason, and not to
+                # this one, because producing an answer takes long enough to hold up the next
+                # interrupt if it ran here.
+                if kind in INTELLISENSE_REQUESTS:
+                    intel_inbox.put(message)
+                    continue
+
                 inbox.put(message)
         except (OSError, SocketClosed, ProtocolError, ValueError):
             pass
         finally:
             session.input_bridge.abandon()
-            inbox.put(None)  # sentinel: stream ended
+            intel_inbox.put(None)  # sentinel: stream ended
+            inbox.put(None)
+
+    def intellisense():
+        while True:
+            message = intel_inbox.get()
+            if message is None:
+                break
+            session.answer_intellisense(message)
 
     reader_thread = threading.Thread(target=reader, name="verso-host-reader", daemon=True)
     reader_thread.start()
+
+    intel_thread = threading.Thread(
+        target=intellisense, name="verso-host-intellisense", daemon=True)
+    intel_thread.start()
 
     while True:
         try:

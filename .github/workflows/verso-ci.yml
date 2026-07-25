@@ -183,8 +183,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # jedi is what the host uses for completions, hover, and diagnostics when it is available.
+      # Installing it here exercises those paths; the tests that cover the standard-library
+      # fallbacks force them regardless of whether it is present.
       - name: Install test dependencies
-        run: python -m pip install --upgrade pip pytest
+        run: python -m pip install --upgrade pip pytest jedi
 
       - name: Run host script tests
         run: python -m pytest tests/versohost -q

@@ -370,7 +370,8 @@ internal sealed record HostBootstrap(
     IReadOnlyList<string> DefaultImports,
     string? StartupCode,
     bool EnableShellEscapes = true,
-    int VariablePublishLimitBytes = Kernel.PythonKernelOptions.DefaultVariablePublishLimitBytes)
+    int VariablePublishLimitBytes = Kernel.PythonKernelOptions.DefaultVariablePublishLimitBytes,
+    string? JediToolsPath = null)
 {
     public static readonly HostBootstrap Empty = new(Array.Empty<string>(), null);
 
@@ -394,6 +395,11 @@ internal sealed record HostBootstrap(
 
         if (!string.IsNullOrWhiteSpace(StartupCode))
             config[HostProtocol.StartupCodeField] = StartupCode;
+
+        // Sent whether or not the directory exists yet: the tools it holds are provisioned in the
+        // background, and the subprocess picks them up once they land.
+        if (!string.IsNullOrWhiteSpace(JediToolsPath))
+            config[HostProtocol.JediToolsPathField] = JediToolsPath;
 
         return config;
     }

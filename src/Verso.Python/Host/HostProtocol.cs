@@ -35,6 +35,14 @@ internal static class HostProtocol
     public const string InputRequest = "input_request";
     public const string InputReply = "input_reply";
 
+    // Message types: editor assistance.
+    public const string Complete = "complete";
+    public const string CompleteReply = "complete_reply";
+    public const string Hover = "hover";
+    public const string HoverReply = "hover_reply";
+    public const string Diagnostics = "diagnostics";
+    public const string DiagnosticsReply = "diagnostics_reply";
+
     // Field names: envelope.
     public const string TypeField = "type";
     public const string TokenField = "token";
@@ -50,6 +58,7 @@ internal static class HostProtocol
     public const string StartupCodeField = "startup_code";
     public const string EnableShellEscapesField = "enable_shell_escapes";
     public const string VariablePublishLimitField = "variable_publish_limit_bytes";
+    public const string JediToolsPathField = "jedi_tools_path";
 
     // Field names: execute request and result.
     public const string CodeField = "code";
@@ -73,6 +82,32 @@ internal static class HostProtocol
     public const string ValueField = "value";
     public const string DisplayIdField = "display_id";
 
+    // Field names: completion, hover, and diagnostic requests and replies.
+    public const string CursorField = "cursor";
+    public const string HistoryField = "history";
+    public const string CompletionsField = "completions";
+    public const string InsertField = "insert";
+    public const string DocField = "doc";
+    public const string HoverField = "hover";
+    public const string ContentField = "content";
+    public const string DiagnosticsField = "diagnostics";
+    public const string LineField = "line";
+    public const string ColumnField = "column";
+    public const string EndLineField = "end_line";
+    public const string EndColumnField = "end_column";
+
+    /// <summary>
+    /// A diagnostic's rule identifier. Shares its wire name with nothing else: it lives inside a
+    /// diagnostics item, where <see cref="CodeField"/> (the source of a request) never appears.
+    /// </summary>
+    public const string DiagnosticCodeField = "code";
+
+    /// <summary>
+    /// A completion's kind as the analyzer reported it, before it is mapped to the vocabulary the
+    /// editors use. Carries jedi's own type name when jedi answered the request.
+    /// </summary>
+    public const string KindField = "kind";
+
     // Execute result status values.
     public const string StatusOk = "ok";
     public const string StatusError = "error";
@@ -81,6 +116,12 @@ internal static class HostProtocol
     // Stream names.
     public const string StreamStdout = "stdout";
     public const string StreamStderr = "stderr";
+
+    /// <summary>
+    /// Advertised in the handshake when the interpreter's own environment already provides the
+    /// analysis library, which is the managing side's cue not to provision a copy of it.
+    /// </summary>
+    public const string JediCapability = "jedi";
 
     /// <summary>
     /// Nesting ceiling for a frame. Both sides reduce a variable to at most 100 levels, and the
@@ -136,7 +177,8 @@ internal static class HostProtocol
     /// Events such as <c>stream</c> also carry a <c>req_id</c>, but they correlate without
     /// concluding the request, so type is what distinguishes the two.
     /// </summary>
-    public static bool IsReply(string? messageType) => messageType is ExecuteResult;
+    public static bool IsReply(string? messageType)
+        => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply;
 
     /// <summary>Read a string property without throwing when it is absent or not a string.</summary>
     public static string? TryGetString(JsonObject obj, string name)

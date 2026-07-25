@@ -27,6 +27,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private string _executable = "";
     private string _workingDirectory = "";
     private string? _sessionSelection;
+    private volatile bool _executing;
     private bool _boundToNotebook;
     private bool _oversizeNoticeShown;
     private int _crashExitCode;
@@ -127,6 +128,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
         void OnEvent(JsonObject message) => events.Writer.TryWrite(message);
         connection.EventReceived += OnEvent;
 
+        // Editor requests are answered as empty while this is set: they read the same namespace
+        // the cell is changing, and an answer that waited out a long cell would arrive against a
+        // cursor the user has left.
+        _executing = true;
+
         try
         {
             // Not cancelled through the token: interrupt escalation below decides when to give up
@@ -157,10 +163,95 @@ internal sealed class PythonHostSession : IAsyncDisposable
         }
         finally
         {
+            _executing = false;
             connection.EventReceived -= OnEvent;
         }
 
         return outputs;
+    }
+
+    // --- editor assistance ---
+
+    /// <summary>
+    /// How long an editor request waits for its answer. Short by design: a keystroke that goes
+    /// unanswered is better than one that holds up the editor, and unlike an execute there is
+    /// nothing here worth interrupting the interpreter over.
+    /// </summary>
+    private static readonly TimeSpan IntelliSenseTimeout = TimeSpan.FromSeconds(3);
+
+    public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+    {
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.Complete,
+            [HostProtocol.CodeField] = code,
+            [HostProtocol.CursorField] = cursorPosition,
+        };
+
+        return HostIntelliSense.MapCompletions(await RequestAssistanceAsync(request).ConfigureAwait(false));
+    }
+
+    public async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
+    {
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.Diagnostics,
+            [HostProtocol.CodeField] = code,
+        };
+
+        return HostIntelliSense.MapDiagnostics(await RequestAssistanceAsync(request).ConfigureAwait(false));
+    }
+
+    public async Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
+    {
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.Hover,
+            [HostProtocol.CodeField] = code,
+            [HostProtocol.CursorField] = cursorPosition,
+        };
+
+        var reply = await RequestAssistanceAsync(request).ConfigureAwait(false);
+        return HostIntelliSense.MapHover(reply, code, cursorPosition);
+    }
+
+    /// <summary>
+    /// Send an editor request and return its reply, or null when there is nothing to ask, nobody
+    /// to ask, or no answer in time. Every one of those means the same thing to the caller.
+    /// </summary>
+    private async Task<JsonObject?> RequestAssistanceAsync(JsonObject request)
+    {
+        if (_disposed || _executing)
+            return null;
+
+        var connection = _process is { IsAlive: true } process ? process.Connection : null;
+        if (connection is null)
+            return null;
+
+        try
+        {
+            using var deadline = new CancellationTokenSource(IntelliSenseTimeout);
+            return await connection.SendRequestAsync(request, deadline.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The deadline passed. The registration is abandoned, so a late reply is discarded.
+            return null;
+        }
+        catch (PythonHostException)
+        {
+            return null;
+        }
+        catch (ObjectDisposedException)
+        {
+            // The subprocess went away between the check above and the send.
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            // The connection has not finished its handshake.
+            return null;
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -215,7 +306,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
             _process = null;
         }
 
-        var process = new PythonHostProcess(executable, workingDirectory, _bootstrap);
+        var process = new PythonHostProcess(executable, workingDirectory, BuildBootstrap());
         process.Exited += OnProcessExited;
 
         // The new interpreter has an empty scope, so nothing counts as already injected.
@@ -227,6 +318,38 @@ internal sealed class PythonHostSession : IAsyncDisposable
         _executable = executable;
         _workingDirectory = workingDirectory;
         _crashed = false;
+
+        ProvisionToolsInBackground(process);
+    }
+
+    /// <summary>
+    /// The bootstrap for this start. Everything but the analysis tools directory is fixed for the
+    /// session; that directory is keyed by the interpreter's version, so it is composed here,
+    /// once the interpreter is known.
+    /// </summary>
+    private HostBootstrap BuildBootstrap()
+        => Interpreter is { } interpreter
+            ? _bootstrap with { JediToolsPath = JediTools.ComputeToolsPath(interpreter.Version) }
+            : _bootstrap;
+
+    /// <summary>
+    /// Install the analysis tools when the interpreter does not already carry them. Deliberately
+    /// not awaited: it can involve a download, and the startup budget belongs to the first cell.
+    /// The subprocess has the directory on its import path from bootstrap and picks the tools up
+    /// once they land.
+    /// </summary>
+    private void ProvisionToolsInBackground(PythonHostProcess process)
+    {
+        if (Interpreter is not { } interpreter)
+            return;
+
+        // The handshake reports whether the interpreter's own environment already provides them,
+        // in which case a second copy would be a download for nothing.
+        if (process.Handshake?.Capabilities.Contains(HostProtocol.JediCapability) == true)
+            return;
+
+        _ = Task.Run(() => JediTools.EnsureProvisionedAsync(
+            interpreter.Executable, interpreter.Version, _options.UseUv, CancellationToken.None));
     }
 
     private void OnProcessExited(int exitCode)

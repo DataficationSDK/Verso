@@ -20,6 +20,7 @@ internal static class HostScriptExtractor
     {
         ScriptFileName,
         "_versohost_display.py",
+        "_versohost_intel.py",
         "_versohost_vars.py",
     };
 

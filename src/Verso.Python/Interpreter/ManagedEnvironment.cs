@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -68,41 +67,14 @@ internal sealed class ManagedEnvironment
     }
 
     private static Task<bool> CreateWithUvAsync(string basePython, string environmentPath, CancellationToken ct)
-        => RunAsync(
+        => ProcessRunner.RunAsync(
             UvTool.Executable,
             new[] { "venv", "--python", basePython, "--system-site-packages", environmentPath },
             ct);
 
     private static Task<bool> CreateWithVenvAsync(string basePython, string environmentPath, CancellationToken ct)
-        => RunAsync(basePython, new[] { "-m", "venv", "--system-site-packages", environmentPath }, ct);
-
-    private static async Task<bool> RunAsync(string executable, string[] arguments, CancellationToken ct)
-    {
-        var psi = new ProcessStartInfo(executable)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        foreach (var argument in arguments)
-            psi.ArgumentList.Add(argument);
-
-        try
-        {
-            using var process = Process.Start(psi);
-            if (process is null)
-                return false;
-
-            _ = await process.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
-            await process.WaitForExitAsync(ct).ConfigureAwait(false);
-            return process.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+        => ProcessRunner.RunAsync(
+            basePython, new[] { "-m", "venv", "--system-site-packages", environmentPath }, ct);
 
     private static string HashPath(string path)
     {

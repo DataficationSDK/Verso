@@ -333,8 +333,8 @@ public sealed class PipMagicCommand : IMagicCommand
             }
 
             // Resolve and store package paths so the kernel can add them to sys.path.
-            // On Windows this includes both the venv site-packages (jedi) and the
-            // overlay directory (user #!pip installs).
+            // On Windows this includes both the venv site-packages and the overlay
+            // directory that user installs land in.
             var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
                 .ConfigureAwait(false);
             if (packagePaths.Count > 0)

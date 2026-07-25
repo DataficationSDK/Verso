@@ -67,3 +67,22 @@ def execute(session, channel):
 
     run.counter = 0
     return run
+
+
+@pytest.fixture
+def assist(session, channel):
+    """Send an editor request and return its reply."""
+    def run(kind, code="", cursor=None, request_id=None, **extra):
+        if request_id is None:
+            run.counter += 1
+            request_id = run.counter
+        if cursor is None:
+            cursor = len(code)
+
+        message = {"type": kind, "id": request_id, "code": code, "cursor": cursor}
+        message.update(extra)
+        session.answer_intellisense(message)
+        return channel.of_type(kind + "_reply")[-1]
+
+    run.counter = 0
+    return run

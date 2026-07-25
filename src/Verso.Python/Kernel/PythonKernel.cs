@@ -22,7 +22,6 @@ public sealed class PythonKernel : ILanguageKernel
     private readonly bool _useHostProcess;
     private SemaphoreSlim _executionLock = new(1, 1);
     private PythonScopeManager? _scopeManager;
-    private PythonCompletionProvider? _completionProvider;
     private PythonHostSession? _session;
     private string? _sessionInterpreter;
     private bool _initialized;
@@ -147,35 +146,6 @@ public sealed class PythonKernel : ILanguageKernel
             _executionLock = new SemaphoreSlim(1, 1);
             _initialized = true;
         }).ConfigureAwait(false);
-
-        // Initialize IntelliSense provider
-        _completionProvider = new PythonCompletionProvider(_scopeManager!);
-        await _completionProvider.ProbeJediAsync().ConfigureAwait(false);
-
-        if (!_completionProvider.JediAvailable)
-        {
-            if (await VenvManager.EnsureJediInstalledAsync(CancellationToken.None).ConfigureAwait(false))
-            {
-                // Add venv site-packages to sys.path so jedi is importable
-                var sitePackages = await VenvManager.GetSitePackagesPathAsync(CancellationToken.None)
-                    .ConfigureAwait(false);
-                if (sitePackages is not null)
-                {
-                    await Task.Run(() =>
-                    {
-                        using (Py.GIL())
-                        {
-                            var escaped = sitePackages.Replace("\\", "\\\\").Replace("'", "\\'");
-                            _scopeManager!.Exec(
-                                $"import sys\n" +
-                                $"if '{escaped}' not in sys.path: sys.path.insert(0, '{escaped}')");
-                        }
-                    }).ConfigureAwait(false);
-                }
-
-                await _completionProvider.ProbeJediAsync().ConfigureAwait(false);
-            }
-        }
     }
 
     /// <summary>
@@ -224,13 +194,8 @@ public sealed class PythonKernel : ILanguageKernel
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         try
         {
-            var outputs = await Task.Run(() => ExecuteWithGil(code, context), context.CancellationToken)
+            return await Task.Run(() => ExecuteWithGil(code, context), context.CancellationToken)
                 .ConfigureAwait(false);
-
-            // Track successfully executed code for cross-cell IntelliSense context
-            _completionProvider?.AppendExecutedCode(code);
-
-            return outputs;
         }
         finally
         {
@@ -238,14 +203,17 @@ public sealed class PythonKernel : ILanguageKernel
         }
     }
 
+    // Editor assistance is answered by the Python process itself, so it sees the interpreter the
+    // cells run in and the names they defined. The embedded runtime does not provide it.
+
     public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
     {
-        if (_completionProvider is null)
+        if (_session is null)
             return Array.Empty<Completion>();
 
         try
         {
-            return await _completionProvider.GetCompletionsAsync(code, cursorPosition).ConfigureAwait(false);
+            return await _session.GetCompletionsAsync(code, cursorPosition).ConfigureAwait(false);
         }
         catch
         {
@@ -255,12 +223,12 @@ public sealed class PythonKernel : ILanguageKernel
 
     public async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
     {
-        if (_completionProvider is null)
+        if (_session is null)
             return Array.Empty<Diagnostic>();
 
         try
         {
-            return await _completionProvider.GetDiagnosticsAsync(code).ConfigureAwait(false);
+            return await _session.GetDiagnosticsAsync(code).ConfigureAwait(false);
         }
         catch
         {
@@ -270,12 +238,12 @@ public sealed class PythonKernel : ILanguageKernel
 
     public async Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
     {
-        if (_completionProvider is null)
+        if (_session is null)
             return null;
 
         try
         {
-            return await _completionProvider.GetHoverInfoAsync(code, cursorPosition).ConfigureAwait(false);
+            return await _session.GetHoverInfoAsync(code, cursorPosition).ConfigureAwait(false);
         }
         catch
         {
@@ -295,9 +263,6 @@ public sealed class PythonKernel : ILanguageKernel
             _session = null;
             return session.DisposeAsync();
         }
-
-        _completionProvider?.Dispose();
-        _completionProvider = null;
 
         if (_scopeManager is not null)
         {

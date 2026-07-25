@@ -67,25 +67,4 @@ internal static class PythonPositionHelpers
     /// </summary>
     internal static bool IsIdentifierChar(char c)
         => char.IsLetterOrDigit(c) || c == '_';
-
-    /// <summary>
-    /// Returns true if the character is valid within a dotted expression (identifier char or dot).
-    /// </summary>
-    internal static bool IsIdentifierOrDot(char c)
-        => char.IsLetterOrDigit(c) || c == '_' || c == '.';
-
-    /// <summary>
-    /// Builds a combined source string from all previously executed cells plus the current cell.
-    /// Returns the combined source and the number of prefix lines (for adjusting positions back to cell-relative).
-    /// </summary>
-    internal static (string CombinedSource, int PrefixLineCount) BuildCombinedSource(
-        IReadOnlyList<string> executedSources, string currentCode)
-    {
-        if (executedSources.Count == 0)
-            return (currentCode, 0);
-
-        var prefix = string.Join("\n", executedSources) + "\n";
-        var prefixLineCount = prefix.Split('\n').Length - 1; // number of complete lines
-        return (prefix + currentCode, prefixLineCount);
-    }
 }

@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Python.Kernel;
+using Verso.Python.Tests.Host;
 using Verso.Testing.Stubs;
 
 namespace Verso.Python.Tests.Kernel;
@@ -18,9 +19,13 @@ public sealed class DiagnosticsTests
         await _kernel.InitializeAsync();
         _context = new StubExecutionContext();
 
-        // Probe jedi availability — diagnostics require jedi
-        var probe = await _kernel.GetDiagnosticsAsync("def __probe__(:");
-        _jediAvailable = probe.Count > 0;
+        // The analysis library is installed in the background as the kernel starts, so probing
+        // for it straight away would race that. Hover is the discriminator, because syntax
+        // diagnostics are also produced by the compiler when the library is absent.
+        if (EmbeddedRuntimeOnly.HostProcessEnabled)
+            await AnalysisTools.TryEnsureAsync();
+
+        _jediAvailable = await _kernel.GetHoverInfoAsync("len", 1) is not null;
     }
 
     [TestCleanup]
@@ -38,7 +43,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_ValidCode_ReturnsEmpty()
     {
-        EmbeddedRuntimeOnly.Require("IntelliSense");
+        HostRuntimeOnly.Require("Editor assistance");
 
         var diagnostics = await _kernel.GetDiagnosticsAsync("x = 10");
         Assert.AreEqual(0, diagnostics.Count);
@@ -47,7 +52,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_SyntaxError_ReturnsError()
     {
-        EmbeddedRuntimeOnly.Require("IntelliSense");
+        HostRuntimeOnly.Require("Editor assistance");
 
         RequireJedi();
 
@@ -63,7 +68,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_LinePositions_AreCorrect()
     {
-        EmbeddedRuntimeOnly.Require("IntelliSense");
+        HostRuntimeOnly.Require("Editor assistance");
 
         RequireJedi();
 
@@ -79,7 +84,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_EmptyCode_ReturnsEmpty()
     {
-        EmbeddedRuntimeOnly.Require("IntelliSense");
+        HostRuntimeOnly.Require("Editor assistance");
 
         var diagnostics = await _kernel.GetDiagnosticsAsync("");
         Assert.IsNotNull(diagnostics);
@@ -88,14 +93,14 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_PreviousCellContext_Respected()
     {
-        EmbeddedRuntimeOnly.Require("IntelliSense");
+        HostRuntimeOnly.Require("Editor assistance");
 
         RequireJedi();
 
         // Execute a binding in a first "cell"
         await _kernel.ExecuteAsync("my_var = 42", _context);
 
-        // Diagnostics on valid code using the binding — should return no errors
+        // Diagnostics on valid code using the binding, which should report no errors
         var diagnostics = await _kernel.GetDiagnosticsAsync("result = my_var + 1");
         Assert.AreEqual(0, diagnostics.Count,
             "Previously executed binding should not cause syntax errors.");

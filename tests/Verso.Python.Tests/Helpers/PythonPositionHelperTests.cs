@@ -86,32 +86,6 @@ public sealed class PythonPositionHelperTests
         Assert.IsNull(result);
     }
 
-    // ---- BuildCombinedSource ----
-
-    [TestMethod]
-    public void BuildCombinedSource_NoHistory_ReturnsCurrent()
-    {
-        var (combined, prefixLineCount) = PythonPositionHelpers.BuildCombinedSource(
-            Array.Empty<string>(), "x = 1");
-        Assert.AreEqual("x = 1", combined);
-        Assert.AreEqual(0, prefixLineCount);
-    }
-
-    [TestMethod]
-    public void BuildCombinedSource_WithHistory_ConcatenatesAndCountsLines()
-    {
-        var history = new[] { "a = 1", "b = 2" };
-        var (combined, prefixLineCount) = PythonPositionHelpers.BuildCombinedSource(history, "c = 3");
-        Assert.AreEqual("a = 1\nb = 2\nc = 3", combined);
-        Assert.AreEqual(2, prefixLineCount);
-    }
-
-    [TestMethod]
-    public void BuildCombinedSource_MultiLineCells_CorrectLineCount()
-    {
-        var history = new[] { "a = 1\nb = 2", "c = 3" };
-        var (combined, prefixLineCount) = PythonPositionHelpers.BuildCombinedSource(history, "d = 4");
-        Assert.AreEqual("a = 1\nb = 2\nc = 3\nd = 4", combined);
-        Assert.AreEqual(3, prefixLineCount);
-    }
+    // Cross-cell context is assembled inside the Python process now, next to the analysis that
+    // consumes it, and is covered by the host script's own test suite.
 }
