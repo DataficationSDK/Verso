@@ -86,6 +86,13 @@
                                                     </select>
                                                     break;
 
+                                                case SettingType.StringList:
+                                                    <input type="text"
+                                                           value="@FormatList(currentValue)"
+                                                           placeholder="comma separated"
+                                                           @onchange="e => HandleListChange(extId, d.Name, e.Value, d.Constraints?.MaxItems)" />
+                                                    break;
+
                                                 default:
                                                     <input type="text"
                                                            value="@currentValue"
@@ -138,4 +145,29 @@
         if (double.TryParse(value?.ToString(), out var dblVal))
             await Service.UpdateSettingAsync(extensionId, settingName, dblVal);
     }
+
+    private async Task HandleListChange(
+        string extensionId, string settingName, object? value, int? maxItems)
+    {
+        var entries = (value?.ToString() ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (maxItems is { } limit && entries.Length > limit)
+            entries = entries.Take(limit).ToArray();
+
+        await Service.UpdateSettingAsync(extensionId, settingName, entries);
+    }
+
+    /// <summary>
+    /// Render a list setting for editing. A persisted value arrives as a collection, so it is
+    /// joined rather than printed: ToString on a list shows its type name.
+    /// </summary>
+    private static string FormatList(object? value) => value switch
+    {
+        null => string.Empty,
+        string text => text,
+        System.Collections.IEnumerable items =>
+            string.Join(", ", items.Cast<object?>().Select(i => i?.ToString()).Where(i => !string.IsNullOrWhiteSpace(i))),
+        _ => value.ToString() ?? string.Empty,
+    };
 }

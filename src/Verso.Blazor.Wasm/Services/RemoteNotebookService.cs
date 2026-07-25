@@ -1662,7 +1662,16 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         _pendingConsentRequestId = request.RequestId;
         _pendingConsentExtensions = request.Extensions?
-            .Select(e => new ExtensionConsentInfo(e.PackageId ?? "", e.Version, e.Source ?? "cell"))
+            .Select(e => new ExtensionConsentInfo(
+                e.PackageId ?? "",
+                e.Version,
+                e.Source ?? "cell")
+            {
+                Kind = string.Equals(e.Kind, "package", StringComparison.OrdinalIgnoreCase)
+                    ? ConsentKind.Package
+                    : ConsentKind.Extension,
+                Target = e.Target,
+            })
             .ToList()
             ?? new List<ExtensionConsentInfo>();
 
@@ -2452,6 +2461,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? PackageId { get; set; }
         public string? Version { get; set; }
         public string? Source { get; set; }
+        public string? Kind { get; set; }
+        public string? Target { get; set; }
     }
 
     private sealed class CellInteractResponse

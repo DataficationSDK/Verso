@@ -129,6 +129,11 @@ public sealed class HeadlessRunner
             await using var scaffold = new Scaffold(notebook, extensionHost, filePath);
             scaffold.InitializeSubsystems();
 
+            // Hand each extension the settings the notebook saved for it. Without this the values
+            // are written on save and never read back, so a setting appears to be forgotten.
+            if (scaffold.SettingsManager is { } extensionSettings)
+                await extensionSettings.RestoreSettingsAsync(notebook);
+
             // Resolve and inject notebook parameters
             var isVersoFormat = filePath.EndsWith(".verso", StringComparison.OrdinalIgnoreCase);
             var resolver = new ParameterResolver(

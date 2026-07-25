@@ -1,20 +1,20 @@
-using Verso.Python.MagicCommands;
+using Verso.Python.PackageManagement;
 
-namespace Verso.Python.Tests.MagicCommands;
+namespace Verso.Python.Tests.PackageManagement;
 
 /// <summary>
-/// Covers how <c>#!pip</c> builds its install command. The install itself is left to the manual
-/// end-to-end run: reaching a package index would make the suite depend on the network.
+/// Covers how the shared installer builds its command. The install itself is covered by the
+/// integration tests, which use a local wheel directory so the suite never reaches an index.
 /// </summary>
 [TestClass]
-public sealed class PipMagicCommandTests
+public sealed class PackageInstallerTests
 {
     private const string Interpreter = "/tmp/env/bin/python";
 
     [TestMethod]
     public void Install_TargetsTheActiveInterpreterThroughPip()
     {
-        var command = PipMagicCommand.BuildInstallCommand(Interpreter, "requests", useUv: false);
+        var command = PackageInstaller.BuildInstallCommand(Interpreter, "requests", useUv: false);
 
         Assert.AreEqual(Interpreter, command.FileName);
         CollectionAssert.AreEqual(
@@ -25,7 +25,7 @@ public sealed class PipMagicCommandTests
     [TestMethod]
     public void Install_NamesTheActiveInterpreterWhenUvRuns()
     {
-        var command = PipMagicCommand.BuildInstallCommand(Interpreter, "requests", useUv: true);
+        var command = PackageInstaller.BuildInstallCommand(Interpreter, "requests", useUv: true);
 
         Assert.AreEqual("uv", command.FileName);
         CollectionAssert.AreEqual(
@@ -36,7 +36,7 @@ public sealed class PipMagicCommandTests
     [TestMethod]
     public void Install_PassesEveryPackageAndOptionThrough()
     {
-        var command = PipMagicCommand.BuildInstallCommand(
+        var command = PackageInstaller.BuildInstallCommand(
             Interpreter, "pandas==2.0 numpy --upgrade", useUv: false);
 
         CollectionAssert.Contains(command.ArgumentList.ToArray(), "pandas==2.0");
@@ -47,7 +47,7 @@ public sealed class PipMagicCommandTests
     [TestMethod]
     public void Install_CapturesOutputSoItCanBeStreamed()
     {
-        var command = PipMagicCommand.BuildInstallCommand(Interpreter, "requests", useUv: false);
+        var command = PackageInstaller.BuildInstallCommand(Interpreter, "requests", useUv: false);
 
         Assert.IsTrue(command.RedirectStandardOutput);
         Assert.IsTrue(command.RedirectStandardError);
@@ -55,9 +55,19 @@ public sealed class PipMagicCommandTests
     }
 
     [TestMethod]
+    public void Install_AcceptsAPreSplitSpecifierList()
+    {
+        var command = PackageInstaller.BuildInstallCommand(
+            Interpreter, new[] { "pandas>=2", "--no-index" }, useUv: false);
+
+        CollectionAssert.Contains(command.ArgumentList.ToArray(), "pandas>=2");
+        CollectionAssert.Contains(command.ArgumentList.ToArray(), "--no-index");
+    }
+
+    [TestMethod]
     public void SplitArguments_KeepsAQuotedSpecifierTogether()
     {
-        var parts = PipMagicCommand.SplitArguments("\"pandas >= 2.0\" numpy");
+        var parts = PackageInstaller.SplitArguments("\"pandas >= 2.0\" numpy");
 
         CollectionAssert.AreEqual(new[] { "pandas >= 2.0", "numpy" }, parts.ToArray());
     }
@@ -65,7 +75,7 @@ public sealed class PipMagicCommandTests
     [TestMethod]
     public void SplitArguments_IgnoresRepeatedWhitespace()
     {
-        var parts = PipMagicCommand.SplitArguments("  a   b  ");
+        var parts = PackageInstaller.SplitArguments("  a   b  ");
 
         CollectionAssert.AreEqual(new[] { "a", "b" }, parts.ToArray());
     }

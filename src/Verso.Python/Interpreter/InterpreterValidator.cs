@@ -56,16 +56,20 @@ internal sealed class InterpreterValidator : IInterpreterValidator
 
     // A single-argument probe passed via ArgumentList so no shell quoting is involved. It prints one
     // JSON line describing the interpreter. The externally-managed marker lives beside the standard
-    // library per PEP 668.
+    // library per PEP 668, and it governs only the interpreter's default install location: a
+    // virtual environment installs into its own site directory and is always writable, so it is
+    // never reported managed even though its stdlib path resolves back to the base it was made
+    // from, where the marker sits.
     private const string ProbeScript =
         "import json, sys, sysconfig, os, platform\n" +
         "stdlib = sysconfig.get_path('stdlib') or ''\n" +
         "marker = os.path.join(stdlib, 'EXTERNALLY-MANAGED')\n" +
+        "venv = sys.prefix != getattr(sys, 'base_prefix', sys.prefix)\n" +
         "print(json.dumps({\n" +
         "    'version': platform.python_version(),\n" +
         "    'executable': sys.executable,\n" +
         "    'implementation': platform.python_implementation(),\n" +
-        "    'managed': os.path.exists(marker),\n" +
+        "    'managed': (not venv) and os.path.exists(marker),\n" +
         "}))";
 
     private static readonly Regex VersionPrefix = new(@"^\s*(\d+)\.(\d+)(?:\.(\d+))?", RegexOptions.Compiled);

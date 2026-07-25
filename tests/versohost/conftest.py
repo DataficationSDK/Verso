@@ -70,6 +70,25 @@ def execute(session, channel):
 
 
 @pytest.fixture
+def scan(session, channel):
+    """Send an import scan and return its reply."""
+    def run(code="", requirements=None, request_id=None):
+        if request_id is None:
+            run.counter += 1
+            request_id = run.counter
+
+        message = {"type": "scan_imports", "id": request_id, "code": code}
+        if requirements is not None:
+            message["requirements"] = requirements
+
+        session.scan_imports(message)
+        return channel.of_type("scan_reply")[-1]
+
+    run.counter = 0
+    return run
+
+
+@pytest.fixture
 def assist(session, channel):
     """Send an editor request and return its reply."""
     def run(kind, code="", cursor=None, request_id=None, **extra):

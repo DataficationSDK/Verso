@@ -66,6 +66,7 @@ public static class RunCommand
             "Ignore per-cell verso:ui.outputVisibility and verso:ui.inputCollapsed metadata; show all outputs in full.");
 
         var pythonOption = PythonInterpreterOption.Create();
+        var autoInstallOption = PythonAutoInstallOption.Create();
 
         var command = new Command("run", "Execute a notebook headlessly and stream cell outputs.")
         {
@@ -85,7 +86,8 @@ public static class RunCommand
             showParametersOption,
             trustLocalOption,
             ignoreViewStateOption,
-            pythonOption
+            pythonOption,
+            autoInstallOption
         };
 
         command.SetHandler(async (context) =>
@@ -108,6 +110,7 @@ public static class RunCommand
             var ignoreViewState = context.ParseResult.GetValueForOption(ignoreViewStateOption);
 
             PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
+            PythonAutoInstallOption.Apply(context.ParseResult.GetValueForOption(autoInstallOption));
 
             // Parse --param name=value pairs into a dictionary
             var paramDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

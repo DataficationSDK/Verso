@@ -30,6 +30,30 @@ def test_a_runtime_error_carries_the_exception_type(execute):
     assert "ValueError: nope" in result["error"]["traceback"]
 
 
+def test_a_missing_module_is_named_on_the_error(execute):
+    # A dynamic import is invisible to a pre-execution scan, so the failure is the only place
+    # the module can be named for the install path to act on.
+    result = execute("import verso_absent_module_for_tests")
+
+    assert result["error"]["name"] == "ModuleNotFoundError"
+    assert result["error"]["missing_module"] == "verso_absent_module_for_tests"
+
+
+def test_a_missing_submodule_names_the_module_it_failed_on(execute):
+    result = execute("import verso_absent_module_for_tests.inner")
+
+    assert result["error"]["missing_module"].startswith("verso_absent_module_for_tests")
+
+
+def test_a_missing_name_inside_a_real_module_is_not_a_missing_module(execute):
+    # ImportError rather than ModuleNotFoundError: the module is there and the name is not,
+    # which no install fixes.
+    result = execute("from os import definitely_not_a_real_attribute")
+
+    assert result["error"]["name"] == "ImportError"
+    assert "missing_module" not in result["error"]
+
+
 def test_a_traceback_starts_at_the_user_frame(execute):
     result = execute("def boom():\n    raise ValueError('nope')\nboom()")
 

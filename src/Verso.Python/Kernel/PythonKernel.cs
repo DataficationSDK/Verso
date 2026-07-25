@@ -9,7 +9,7 @@ namespace Verso.Python.Kernel;
 /// and provides bidirectional variable sharing with other kernels.
 /// </summary>
 [VersoExtension]
-public sealed class PythonKernel : ILanguageKernel
+public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
 {
     /// <summary>
     /// Set to <c>0</c> or <c>false</c> to run Python inside this process against the embedded
@@ -18,7 +18,23 @@ public sealed class PythonKernel : ILanguageKernel
     /// </summary>
     internal const string HostOptInVariable = "VERSO_PYTHON_HOST";
 
-    private readonly PythonKernelOptions _options;
+    /// <summary>
+    /// Selects the install policy: <c>off</c>, <c>prompt</c>, or <c>auto</c>. Delivered through the
+    /// environment rather than a notebook setting, because a policy that travelled inside a
+    /// notebook file would let a downloaded notebook decide what may install itself.
+    /// </summary>
+    internal const string AutoInstallVariable = "VERSO_PYTHON_AUTO_INSTALL";
+
+    /// <summary>
+    /// Set to <c>off</c> to install and create environments with pip and the standard library
+    /// rather than uv, even when uv is on the path.
+    /// </summary>
+    internal const string UvVariable = "VERSO_PYTHON_UV";
+
+    /// <summary>The notebook setting carrying the requirement list ensured on first execution.</summary>
+    internal const string DependenciesSetting = "dependencies";
+
+    private PythonKernelOptions _options;
     private readonly bool _useHostProcess;
     private SemaphoreSlim _executionLock = new(1, 1);
     private PythonScopeManager? _scopeManager;
@@ -33,12 +49,40 @@ public sealed class PythonKernel : ILanguageKernel
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _useHostProcess = IsHostProcessEnabled();
+
+        // Kernels are constructed by the extension host with default options, so the host's own
+        // choices arrive through the environment. An option set explicitly by an embedder wins.
+        _options = ApplyEnvironment(_options);
     }
 
     private static bool IsHostProcessEnabled()
     {
         var value = Environment.GetEnvironmentVariable(HostOptInVariable);
         return value is not ("0" or "false" or "FALSE" or "False");
+    }
+
+    private static PythonKernelOptions ApplyEnvironment(PythonKernelOptions options)
+    {
+        var policy = Environment.GetEnvironmentVariable(AutoInstallVariable);
+        if (TryParsePolicy(policy, out var parsed))
+            options = options with { AutoInstall = parsed };
+
+        var uv = Environment.GetEnvironmentVariable(UvVariable);
+        if (uv is "0" or "off" or "OFF" or "Off" or "false" or "FALSE" or "False")
+            options = options with { UseUv = UvUsage.Off };
+
+        return options;
+    }
+
+    internal static bool TryParsePolicy(string? value, out AutoInstallPolicy policy)
+    {
+        switch (value?.Trim().ToLowerInvariant())
+        {
+            case "off": policy = AutoInstallPolicy.Off; return true;
+            case "prompt": policy = AutoInstallPolicy.Prompt; return true;
+            case "auto": policy = AutoInstallPolicy.Auto; return true;
+            default: policy = AutoInstallPolicy.Prompt; return false;
+        }
     }
 
     /// <summary>
@@ -96,6 +140,81 @@ public sealed class PythonKernel : ILanguageKernel
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
+
+    // --- IExtensionSettings ---
+
+    public IReadOnlyList<SettingDefinition> SettingDefinitions { get; } = new[]
+    {
+        new SettingDefinition(DependenciesSetting, "Dependencies",
+            "Requirement strings installed into the notebook's Python environment before the " +
+            "first cell runs, under the same consent policy as an import. One per entry, in the " +
+            "form pip accepts (for example \"pandas>=2\").",
+            SettingType.StringList, null, "Packages"),
+    };
+
+    public IReadOnlyDictionary<string, object?> GetSettingValues()
+    {
+        var values = new Dictionary<string, object?>();
+        if (_options.Dependencies.Count > 0)
+            values[DependenciesSetting] = _options.Dependencies.ToArray();
+        return values;
+    }
+
+    public Task ApplySettingsAsync(IReadOnlyDictionary<string, object?> values)
+    {
+        if (values.TryGetValue(DependenciesSetting, out var value))
+            SetDependencies(ReadStringList(value));
+
+        return Task.CompletedTask;
+    }
+
+    public Task OnSettingChangedAsync(string name, object? value)
+    {
+        if (string.Equals(name, DependenciesSetting, StringComparison.Ordinal))
+            SetDependencies(ReadStringList(value));
+
+        return Task.CompletedTask;
+    }
+
+    private void SetDependencies(IReadOnlyList<string> dependencies)
+    {
+        _options = _options with { Dependencies = dependencies };
+
+        // A running session holds its own copy so a settings change that lands after
+        // initialization still takes effect on the next cell.
+        _session?.AutoInstall.UpdateOptions(_options);
+    }
+
+    /// <summary>
+    /// Read a list setting, which arrives as a string array from the settings UI and as a
+    /// deserialized JSON array from a notebook file.
+    /// </summary>
+    private static IReadOnlyList<string> ReadStringList(object? value)
+    {
+        if (value is null)
+            return Array.Empty<string>();
+
+        // A settings surface that has no list editor sends one comma-separated string, which is
+        // also the most natural thing for a person to type.
+        if (value is string single)
+        {
+            return single
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+
+        if (value is not System.Collections.IEnumerable items)
+            return Array.Empty<string>();
+
+        var results = new List<string>();
+        foreach (var item in items)
+        {
+            var text = item?.ToString();
+            if (!string.IsNullOrWhiteSpace(text))
+                results.Add(text!.Trim());
+        }
+
+        return results;
+    }
 
     public async Task InitializeAsync()
     {

@@ -13,6 +13,29 @@ public enum UvUsage
 }
 
 /// <summary>
+/// Controls whether a cell's missing imports are installed for it, and whether the user is asked
+/// first.
+/// </summary>
+public enum AutoInstallPolicy
+{
+    /// <summary>
+    /// Ask before installing, listing the exact distributions and the environment they go into.
+    /// Declining runs the cell anyway, so it fails at the import as it would have without this.
+    /// </summary>
+    Prompt,
+
+    /// <summary>
+    /// Install known distributions without asking. A module whose distribution name is only a
+    /// guess is reported instead of installed, because a misspelled import resolves to a
+    /// plausible package name that somebody may well have published.
+    /// </summary>
+    Auto,
+
+    /// <summary>Never scan and never install. The default for non-interactive runs.</summary>
+    Off,
+}
+
+/// <summary>
 /// Configuration options for the Python language kernel.
 /// </summary>
 public sealed record PythonKernelOptions
@@ -80,4 +103,26 @@ public sealed record PythonKernelOptions
     /// <c>%pip</c> runs pip against the active interpreter, matching notebook convention.
     /// </summary>
     public bool EnableShellEscapes { get; init; } = true;
+
+    /// <summary>
+    /// Whether a cell's missing imports are installed for it, and whether the user is asked
+    /// first. Defaults to <see cref="AutoInstallPolicy.Prompt"/>; hosts without a way to ask
+    /// select <see cref="AutoInstallPolicy.Off"/>.
+    /// </summary>
+    public AutoInstallPolicy AutoInstall { get; init; } = AutoInstallPolicy.Prompt;
+
+    /// <summary>
+    /// Extra module-to-distribution entries consulted ahead of the built-in table, for packages
+    /// whose import name differs from their distribution name in a way Verso does not know.
+    /// An entry here counts as known, so it installs without asking under
+    /// <see cref="AutoInstallPolicy.Auto"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> ImportMap { get; init; } =
+        new Dictionary<string, string>();
+
+    /// <summary>
+    /// Requirement strings ensured once per session before the first cell runs, under the same
+    /// policy gate as an import. Populated from the notebook's saved settings.
+    /// </summary>
+    public IReadOnlyList<string> Dependencies { get; init; } = Array.Empty<string>();
 }

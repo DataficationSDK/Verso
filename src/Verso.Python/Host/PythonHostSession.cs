@@ -4,6 +4,7 @@ using System.Threading.Channels;
 using Verso.Abstractions;
 using Verso.Python.Interpreter;
 using Verso.Python.Kernel;
+using Verso.Python.PackageManagement;
 
 namespace Verso.Python.Host;
 
@@ -21,6 +22,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private readonly HostBootstrap _bootstrap;
 
     private readonly Dictionary<string, string> _injectedHashes = new(StringComparer.Ordinal);
+    private readonly AutoInstallService _autoInstall;
 
     private PythonHostProcess? _process;
     private Dictionary<string, object>? _preExecutionSnapshot;
@@ -29,6 +31,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private string? _sessionSelection;
     private volatile bool _executing;
     private bool _boundToNotebook;
+    private bool _dependenciesRequested;
+    private bool _requiresPythonReported;
     private bool _oversizeNoticeShown;
     private int _crashExitCode;
     private bool _crashed;
@@ -49,7 +53,14 @@ internal sealed class PythonHostSession : IAsyncDisposable
             options.StartupCode,
             options.EnableShellEscapes,
             options.VariablePublishLimitBytes);
+        _autoInstall = new AutoInstallService(options);
     }
+
+    /// <summary>
+    /// The install policy engine, exposed so the kernel can hand it a settings change and so the
+    /// tests can redirect installs at a local wheel directory.
+    /// </summary>
+    internal AutoInstallService AutoInstall => _autoInstall;
 
     /// <summary>The interpreter the subprocess is running, once one has been resolved.</summary>
     public InterpreterInfo? Interpreter { get; private set; }
@@ -110,6 +121,10 @@ internal sealed class PythonHostSession : IAsyncDisposable
             return outputs;
         }
 
+        // Anything the cell imports that the environment cannot provide is dealt with before the
+        // cell runs, so the install lands in time for the import rather than after it fails.
+        await EnsurePackagesAsync(code, context, outputs).ConfigureAwait(false);
+
         // Taken before the request goes out, so a value another kernel writes while this cell
         // runs can be told apart from one the cell itself produced.
         SnapshotStore(context.Variables);
@@ -125,7 +140,20 @@ internal sealed class PythonHostSession : IAsyncDisposable
         var events = Channel.CreateUnbounded<JsonObject>(
             new UnboundedChannelOptions { SingleReader = true });
 
-        void OnEvent(JsonObject message) => events.Writer.TryWrite(message);
+        // Counted as frames arrive rather than as they are consumed, because the backstop below
+        // has to know whether the cell wrote anything before it failed, and the consumer runs
+        // concurrently. Frames are dispatched in order on the read pump, so every event that
+        // preceded the reply has already been counted by the time the reply completes.
+        var emitted = 0;
+
+        void OnEvent(JsonObject message)
+        {
+            if (HostProtocol.GetMessageType(message) is HostProtocol.Stream or HostProtocol.Display)
+                Interlocked.Increment(ref emitted);
+
+            events.Writer.TryWrite(message);
+        }
+
         connection.EventReceived += OnEvent;
 
         // Editor requests are answered as empty while this is set: they read the same namespace
@@ -142,12 +170,27 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
             var completedNormally = await AwaitReplyAsync(reply, process, context, outputs).ConfigureAwait(false);
 
+            // The backstop runs while the event channel is still open: a retried cell produces
+            // its own stream and display events, and completing the writer first would drop them.
+            JsonObject? finalReply = null;
+            if (completedNormally)
+            {
+                finalReply = await ApplyImportBackstopAsync(
+                    request,
+                    await reply.ConfigureAwait(false),
+                    () => Volatile.Read(ref emitted) == 0,
+                    connection,
+                    process,
+                    context,
+                    outputs).ConfigureAwait(false);
+            }
+
             events.Writer.TryComplete();
             await consumer.ConfigureAwait(false);
 
-            if (completedNormally)
+            if (finalReply is not null)
             {
-                await AppendReplyAsync(await reply.ConfigureAwait(false), context, outputs).ConfigureAwait(false);
+                await AppendReplyAsync(finalReply, context, outputs).ConfigureAwait(false);
             }
             else
             {
@@ -169,6 +212,221 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
         return outputs;
     }
+
+    // --- package management ---
+
+    /// <summary>
+    /// How long an import scan waits for its answer. The scan is an optimization over failing at
+    /// the import, so an answer that does not arrive promptly is dropped and the cell runs.
+    /// </summary>
+    private static readonly TimeSpan ScanTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Ask the interpreter what it cannot satisfy for this cell, then install what the policy
+    /// allows. Everything here is best effort: a cell always runs, whether or not the scan
+    /// answered and whether or not the install worked.
+    /// </summary>
+    private async Task EnsurePackagesAsync(string code, IExecutionContext context, List<CellOutput> outputs)
+    {
+        if (Interpreter is not { } interpreter)
+            return;
+
+        var requirements = new List<string>();
+
+        if (Pep723Block.TryRead(code, out var metadata))
+        {
+            requirements.AddRange(metadata.Requirements);
+
+            // Reported whatever the install policy is: the interpreter in use not meeting a
+            // declared floor is worth knowing even when nothing here may install anything.
+            await ReportRequiresPythonAsync(metadata.RequiresPython, interpreter, context, outputs)
+                .ConfigureAwait(false);
+        }
+
+        if (!_autoInstall.Enabled)
+            return;
+
+        // The notebook's declared list is checked once for the session, per its contract. It is
+        // sent on the first cell that gets this far, whichever cell the user ran.
+        if (!_dependenciesRequested && _autoInstall.Dependencies.Count > 0)
+        {
+            requirements.AddRange(_autoInstall.Dependencies);
+            _dependenciesRequested = true;
+        }
+
+        if (!_autoInstall.ShouldScan(code, requirements))
+            return;
+
+        var scan = await ScanAsync(code, requirements).ConfigureAwait(false);
+        if (scan is null)
+        {
+            // No answer, so nothing is known to be missing. A cell that does need something
+            // still reaches the backstop when the import fails.
+            _dependenciesRequested = false;
+            return;
+        }
+
+        await _autoInstall
+            .EnsureAsync(scan, interpreter.Executable, Describe(interpreter), context)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The distributions this cell's imports need, or null when the subprocess did not answer.
+    /// The two cases are distinguished so a scan that never ran can be retried.
+    /// </summary>
+    private async Task<ImportScan?> ScanAsync(string code, IReadOnlyList<string> requirements)
+    {
+        if (_disposed)
+            return null;
+
+        var process = _process is { IsAlive: true } alive ? alive : null;
+        var connection = process?.Connection;
+        if (process is null || connection is null)
+            return null;
+
+        // A host script from an earlier release ignores the request rather than answering it,
+        // which would cost the cell the whole deadline for nothing.
+        if (process.Handshake?.Capabilities.Contains(HostProtocol.ScanCapability) != true)
+            return null;
+
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.ScanImports,
+            [HostProtocol.CodeField] = code,
+        };
+
+        if (requirements.Count > 0)
+        {
+            var declared = new JsonArray();
+            foreach (var requirement in requirements)
+                declared.Add(JsonValue.Create(requirement));
+            request[HostProtocol.RequirementsField] = declared;
+        }
+
+        try
+        {
+            using var deadline = new CancellationTokenSource(ScanTimeout);
+            var reply = await connection.SendRequestAsync(request, deadline.Token).ConfigureAwait(false);
+            return HostPackages.MapScan(reply);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (PythonHostException)
+        {
+            return null;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// A cell can reach an import the scan could not see, either because it is built at runtime
+    /// or because it sits behind a call the scan does not follow. The failure names the module,
+    /// which is enough to resolve and install it.
+    /// <para>
+    /// The cell is only run again when it had produced no output before failing. Output already
+    /// written to a cell cannot be retracted, so a retry after a partial run would show the
+    /// first attempt's lines twice.
+    /// </para>
+    /// </summary>
+    /// <returns>The reply to report: the retry's when there was one, otherwise the original.</returns>
+    private async Task<JsonObject> ApplyImportBackstopAsync(
+        JsonObject request,
+        JsonObject reply,
+        Func<bool> cellIsSilent,
+        PythonHostConnection connection,
+        PythonHostProcess process,
+        IExecutionContext context,
+        List<CellOutput> outputs)
+    {
+        if (!_autoInstall.Enabled || Interpreter is not { } interpreter)
+            return reply;
+
+        if (HostProtocol.TryGetString(reply, HostProtocol.StatusField) != HostProtocol.StatusError)
+            return reply;
+
+        if (reply[HostProtocol.ErrorField] is not JsonObject error)
+            return reply;
+
+        var module = HostProtocol.TryGetString(error, HostProtocol.MissingModuleField);
+        if (string.IsNullOrWhiteSpace(module))
+            return reply;
+
+        var silent = cellIsSilent();
+
+        var installed = await _autoInstall
+            .EnsureModuleAsync(module!, interpreter.Executable, Describe(interpreter), context)
+            .ConfigureAwait(false);
+
+        if (installed is null)
+            return reply;
+
+        if (!silent)
+        {
+            await EmitAsync(
+                CellOutput.Plain($"{installed} is installed now. Run the cell again to continue."),
+                context, outputs).ConfigureAwait(false);
+            return reply;
+        }
+
+        if (!process.IsAlive || _crashed)
+            return reply;
+
+        try
+        {
+            await EmitAsync(CellOutput.Plain("Running the cell again."), context, outputs)
+                .ConfigureAwait(false);
+
+            return await connection.SendRequestAsync(request, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (PythonHostException)
+        {
+            return reply;
+        }
+        catch (ObjectDisposedException)
+        {
+            return reply;
+        }
+        catch (InvalidOperationException)
+        {
+            return reply;
+        }
+    }
+
+    private async Task ReportRequiresPythonAsync(
+        string? specifier,
+        InterpreterInfo interpreter,
+        IExecutionContext context,
+        List<CellOutput> outputs)
+    {
+        if (_requiresPythonReported || string.IsNullOrWhiteSpace(specifier))
+            return;
+
+        if (RequiresPython.IsSatisfied(specifier, interpreter.Version))
+            return;
+
+        // Said once: the interpreter cannot be swapped underneath a running session, so
+        // repeating it on every cell would only add noise.
+        _requiresPythonReported = true;
+
+        await EmitAsync(
+            CellOutput.Plain(
+                $"This notebook declares Python {specifier} and is running {interpreter.RawVersion}. " +
+                "Use #!python to select a different interpreter, then restart the kernel."),
+            context, outputs).ConfigureAwait(false);
+    }
+
+    private static string Describe(InterpreterInfo interpreter)
+        => $"Python {interpreter.RawVersion} ({interpreter.EnvironmentKind}) at {interpreter.Executable}";
 
     // --- editor assistance ---
 

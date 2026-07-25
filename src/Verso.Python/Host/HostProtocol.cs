@@ -43,6 +43,10 @@ internal static class HostProtocol
     public const string Diagnostics = "diagnostics";
     public const string DiagnosticsReply = "diagnostics_reply";
 
+    // Message types: package discovery.
+    public const string ScanImports = "scan_imports";
+    public const string ScanReply = "scan_reply";
+
     // Field names: envelope.
     public const string TypeField = "type";
     public const string TokenField = "token";
@@ -74,6 +78,20 @@ internal static class HostProtocol
     public const string NameField = "name";
     public const string MessageField = "message";
     public const string TracebackField = "traceback";
+
+    /// <summary>
+    /// The module a <c>ModuleNotFoundError</c> could not import, carried on the error payload. A
+    /// dynamic import is invisible to a pre-execution scan by definition, so this is the only
+    /// signal that one was reached.
+    /// </summary>
+    public const string MissingModuleField = "missing_module";
+
+    // Field names: package discovery request and reply.
+    public const string RequirementsField = "requirements";
+    public const string MissingField = "missing";
+    public const string UnsatisfiedField = "unsatisfied";
+    public const string ModuleField = "module";
+    public const string OptionalField = "optional";
 
     // Field names: stream, display, and input events.
     public const string TextField = "text";
@@ -122,6 +140,13 @@ internal static class HostProtocol
     /// analysis library, which is the managing side's cue not to provision a copy of it.
     /// </summary>
     public const string JediCapability = "jedi";
+
+    /// <summary>
+    /// Advertised in the handshake when the subprocess can answer import scans. A host script
+    /// predating this phase ignores the request, so the capability is what keeps the managing
+    /// side from waiting out a deadline for a reply that will never come.
+    /// </summary>
+    public const string ScanCapability = "scan_imports";
 
     /// <summary>
     /// Nesting ceiling for a frame. Both sides reduce a variable to at most 100 levels, and the
@@ -178,7 +203,7 @@ internal static class HostProtocol
     /// concluding the request, so type is what distinguishes the two.
     /// </summary>
     public static bool IsReply(string? messageType)
-        => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply;
+        => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply or ScanReply;
 
     /// <summary>Read a string property without throwing when it is absent or not a string.</summary>
     public static string? TryGetString(JsonObject obj, string name)

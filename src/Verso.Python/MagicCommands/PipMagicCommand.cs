@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Verso.Abstractions;
-using Verso.Python.Interpreter;
 using Verso.Python.Kernel;
+using Verso.Python.PackageManagement;
 
 namespace Verso.Python.MagicCommands;
 
@@ -97,162 +97,12 @@ public sealed class PipMagicCommand : IMagicCommand
     private static async Task InstallIntoActiveEnvironmentAsync(
         string interpreter, string args, IMagicCommandContext context)
     {
-        // The active environment is always writable: an interpreter carrying a marker that
-        // forbids installs is replaced by a derived environment before the kernel runs it.
-        var psi = BuildInstallCommand(interpreter, args);
-
-        try
-        {
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", "Failed to start pip process.", IsError: true))
-                    .ConfigureAwait(false);
-                context.SuppressExecution = true;
-                return;
-            }
-
-            var failure = await StreamInstallAsync(process, context).ConfigureAwait(false);
-            if (failure)
-                context.SuppressExecution = true;
-        }
-        catch (Exception ex)
-        {
-            await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Failed to run pip: {ex.Message}", IsError: true))
-                .ConfigureAwait(false);
-            context.SuppressExecution = true;
-        }
-    }
-
-    /// <summary>
-    /// Builds the install command, preferring uv when it is available because it resolves and
-    /// installs considerably faster. pip remains the fallback and the behavioral reference.
-    /// </summary>
-    internal static ProcessStartInfo BuildInstallCommand(string interpreter, string args, bool? useUv = null)
-    {
-        var withUv = useUv ?? UvTool.IsAvailable();
-
-        var psi = withUv
-            ? new ProcessStartInfo(UvTool.Executable)
-            : new ProcessStartInfo(interpreter);
-
-        if (withUv)
-        {
-            psi.ArgumentList.Add("pip");
-            psi.ArgumentList.Add("install");
-            psi.ArgumentList.Add("--python");
-            psi.ArgumentList.Add(interpreter);
-        }
-        else
-        {
-            psi.ArgumentList.Add("-m");
-            psi.ArgumentList.Add("pip");
-            psi.ArgumentList.Add("install");
-            psi.ArgumentList.Add("--no-input");
-        }
-
-        foreach (var argument in SplitArguments(args))
-            psi.ArgumentList.Add(argument);
-
-        psi.RedirectStandardOutput = true;
-        psi.RedirectStandardError = true;
-        psi.UseShellExecute = false;
-        psi.CreateNoWindow = true;
-        return psi;
-    }
-
-    /// <summary>Splits an argument string on whitespace, honoring quoted spans.</summary>
-    internal static IReadOnlyList<string> SplitArguments(string args)
-    {
-        var parts = new List<string>();
-        var current = new System.Text.StringBuilder();
-        var quote = '\0';
-
-        foreach (var character in args)
-        {
-            if (quote != '\0')
-            {
-                if (character == quote) quote = '\0';
-                else current.Append(character);
-                continue;
-            }
-
-            if (character is '"' or '\'')
-            {
-                quote = character;
-                continue;
-            }
-
-            if (char.IsWhiteSpace(character))
-            {
-                if (current.Length > 0)
-                {
-                    parts.Add(current.ToString());
-                    current.Clear();
-                }
-                continue;
-            }
-
-            current.Append(character);
-        }
-
-        if (current.Length > 0)
-            parts.Add(current.ToString());
-
-        return parts;
-    }
-
-    /// <summary>
-    /// Forwards installer output as it arrives. Resolving a large dependency set takes long
-    /// enough that a silent cell looks stalled.
-    /// </summary>
-    private static async Task<bool> StreamInstallAsync(Process process, IMagicCommandContext context)
-    {
-        var cancellationToken = context.CancellationToken;
-
-        // Both pipes are read at once so neither can fill and block the installer, but the cell
-        // takes one line at a time: the output pipeline is not written for concurrent callers.
-        using var writing = new SemaphoreSlim(1, 1);
-
-        async Task PumpAsync(StreamReader reader)
-        {
-            while (true)
-            {
-                var line = await reader.ReadLineAsync().ConfigureAwait(false);
-                if (line is null) break;
-                if (line.Length == 0) continue;
-
-                await writing.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-                try
-                {
-                    await context.WriteOutputAsync(new CellOutput("text/plain", line))
-                        .ConfigureAwait(false);
-                }
-                finally
-                {
-                    writing.Release();
-                }
-            }
-        }
-
-        var stdout = PumpAsync(process.StandardOutput);
-
-        // pip writes progress and warnings to stderr even on success, so it is reported as
-        // ordinary output and the exit code decides whether the install failed.
-        var stderr = PumpAsync(process.StandardError);
-
-        await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-        if (process.ExitCode == 0)
-            return false;
-
-        await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"pip install failed (exit code {process.ExitCode}).", IsError: true))
+        var succeeded = await PackageInstaller
+            .InstallAsync(interpreter, PackageInstaller.SplitArguments(args), context)
             .ConfigureAwait(false);
-        return true;
+
+        if (!succeeded)
+            context.SuppressExecution = true;
     }
 
     // --- the embedded runtime's own environment ---

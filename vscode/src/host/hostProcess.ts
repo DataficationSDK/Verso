@@ -48,14 +48,22 @@ const RUNTIME_MISSING_PATTERN =
 function buildHostEnvironment(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
 
-  const interpreterPath = vscode.workspace
-    .getConfiguration("verso.python")
-    .get<string>("interpreterPath")
-    ?.trim();
+  const python = vscode.workspace.getConfiguration("verso.python");
 
+  const interpreterPath = python.get<string>("interpreterPath")?.trim();
   if (interpreterPath) {
     log.info(`Using verso.python.interpreterPath override: ${interpreterPath}`);
     env.VERSO_PYTHON = interpreterPath;
+  }
+
+  const autoInstall = python.get<string>("autoInstall")?.trim();
+  if (autoInstall) {
+    env.VERSO_PYTHON_AUTO_INSTALL = autoInstall;
+  }
+
+  // Only the non-default is sent, so an unset value leaves the kernel on its own default.
+  if (python.get<boolean>("useUv") === false) {
+    env.VERSO_PYTHON_UV = "off";
   }
 
   return env;

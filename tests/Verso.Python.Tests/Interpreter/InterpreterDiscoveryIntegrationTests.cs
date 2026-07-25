@@ -80,6 +80,27 @@ public sealed class InterpreterDiscoveryIntegrationTests
     }
 
     [TestMethod]
+    public async Task VirtualEnv_IsNeverReportedExternallyManaged()
+    {
+        // A venv installs into its own site directory and is always writable, but its stdlib path
+        // resolves back to the base it was made from, where a distribution's install marker sits.
+        // Reading the marker there would replace the user's own environment with a managed one and
+        // put their packages somewhere they did not ask for.
+        RequirePython();
+        var venvRoot = NewTempRoot("verso-venv-managed-");
+        Assert.IsTrue(await CreateVenvAsync(_python!, venvRoot, systemSitePackages: false),
+            "failed to create a test virtual environment");
+
+        var interpreter = ManagedEnvironment.GetInterpreterPath(venvRoot);
+        var validation = await new InterpreterValidator()
+            .ValidateAsync(interpreter, CancellationToken.None);
+
+        Assert.AreEqual(InterpreterValidationStatus.Valid, validation.Status);
+        Assert.IsFalse(validation.Info!.IsExternallyManaged,
+            "a virtual environment is writable and must be used directly");
+    }
+
+    [TestMethod]
     public async Task ManagedEnvironment_CreatesOnceAndReuses()
     {
         RequirePython();

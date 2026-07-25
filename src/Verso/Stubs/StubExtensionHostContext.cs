@@ -19,6 +19,18 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
         _getRenderers = getRenderers ?? (() => Array.Empty<ICellRenderer>());
     }
 
+    /// <summary>
+    /// Optional consent answer. Unset it behaves like a host with no way to ask, which the
+    /// interface documents as approval; set it to decide, or to observe what was requested.
+    /// </summary>
+    public Func<IReadOnlyList<ExtensionConsentInfo>, CancellationToken, Task<bool>>? ConsentHandler { get; set; }
+
+    /// <inheritdoc />
+    public Task<bool> RequestExtensionConsentAsync(
+        IReadOnlyList<ExtensionConsentInfo> extensions,
+        CancellationToken cancellationToken = default)
+        => ConsentHandler?.Invoke(extensions, cancellationToken) ?? Task.FromResult(true);
+
     /// <inheritdoc />
     public IReadOnlyList<IExtension> GetLoadedExtensions() => _getKernels();
 

@@ -33,6 +33,7 @@ from collections import deque
 # joins sys.path so a file in the notebook's folder cannot stand in for either.
 import _versohost_display as display_support
 import _versohost_intel as intel_support
+import _versohost_scan as scan_support
 import _versohost_vars as variable_support
 
 PROTOCOL_VERSION = 1
@@ -372,11 +373,22 @@ def user_traceback(tb):
 def error_payload(exc):
     formatted = traceback.format_exception(
         type(exc), exc, user_traceback(exc.__traceback__))
-    return {
+    payload = {
         "name": type(exc).__name__,
         "message": str(exc),
         "traceback": "".join(formatted),
     }
+
+    # A dynamic import is invisible to a pre-execution scan, so the failure itself is the
+    # only place the missing module can be named. Narrower than ImportError deliberately: a
+    # plain ImportError means the module was found and the name inside it was not, which no
+    # install fixes.
+    if isinstance(exc, ModuleNotFoundError):
+        missing = getattr(exc, "name", None)
+        if isinstance(missing, str) and missing:
+            payload["missing_module"] = missing
+
+    return payload
 
 
 def syntax_error_payload(exc):
@@ -680,6 +692,46 @@ class HostSession:
                     found = []
             self._write_reply("diagnostics_reply", request_id, "diagnostics", found)
 
+    # --- package discovery ---
+
+    def scan_imports(self, message):
+        """
+        Report the modules this cell imports that the environment cannot resolve, and which
+        of the declared requirements are not installed.
+
+        Answered on the main thread, which is where the import path and the site directories
+        this reply describes are the ones the cell is about to run against. Never raises: a
+        scan that cannot be produced is an empty one, and the cell runs either way.
+        """
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        # A package installed by a magic command moments ago is only discoverable once the
+        # finders forget what the path looked like before it existed.
+        try:
+            importlib.invalidate_caches()
+        except Exception:
+            pass
+
+        try:
+            missing = scan_support.scan(message.get("code") or "")
+        except Exception:
+            missing = []
+
+        try:
+            pending = scan_support.unsatisfied(message.get("requirements") or [])
+        except Exception:
+            pending = []
+
+        try:
+            self.channel.write({
+                "type": "scan_reply",
+                "req_id": request_id,
+                "missing": missing,
+                "unsatisfied": pending,
+            })
+        except Exception:
+            pass  # the connection has gone; the request's own deadline covers it
+
     def _write_reply(self, reply_type, request_id, field, payload):
         try:
             self.channel.write({"type": reply_type, "req_id": request_id, field: payload})
@@ -789,7 +841,7 @@ def _has_jedi():
 def _hello_payload(token):
     capabilities = [
         "execute", "stream", "display", "input", "interrupt",
-        "complete", "hover", "diagnostics",
+        "complete", "hover", "diagnostics", "scan_imports",
     ]
     if _has_jedi():
         capabilities.append("jedi")
@@ -874,6 +926,12 @@ def _run(channel, session):
             break
         if kind == "execute":
             session.execute(message)
+        elif kind == "scan_imports":
+            # Deliberately here rather than on the assistance thread: that thread answers
+            # empty while a cell runs, which is the opposite of what a scan needs, and a
+            # scan is always sequenced immediately before its own cell's execute, so this
+            # thread is between cells when it arrives.
+            session.scan_imports(message)
         # Other message types are handled by later layers; ignore them here.
 
 

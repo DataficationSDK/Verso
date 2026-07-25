@@ -73,6 +73,11 @@ public static class ExportCommand
             var list = context.ParseResult.GetValueForOption(listOption);
             var listThemes = context.ParseResult.GetValueForOption(listThemesOption);
 
+            // Export approves consent requests outright so it can load the extensions a notebook
+            // declares. That must not extend to installing packages, so the policy is turned off
+            // rather than left to a prompt that would be answered yes by the handler below.
+            PythonAutoInstallOption.Disable();
+
             ExtensionHost? extensionHost = null;
             Scaffold? scaffold = null;
             try
@@ -149,6 +154,12 @@ public static class ExportCommand
                 {
                     scaffold = new Scaffold(notebook, extensionHost, inputPath);
                     scaffold.InitializeSubsystems();
+
+                    // Hand each extension the settings the notebook saved for it, so an export
+                    // that runs the notebook runs it configured the way it was saved.
+                    if (scaffold.SettingsManager is { } exportSettings)
+                        await exportSettings.RestoreSettingsAsync(notebook);
+
                     var results = await scaffold.ExecuteAllAsync(context.GetCancellationToken());
 
                     if (HasAnyFailure(notebook, results))

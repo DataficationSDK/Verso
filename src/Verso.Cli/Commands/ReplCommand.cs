@@ -107,6 +107,10 @@ public static class ReplCommand
 
             PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
 
+            // The REPL has no consent dialog, and a prompt that nothing can answer would be
+            // approved by default. #!pip is the route to installing something from here.
+            PythonAutoInstallOption.Disable();
+
             var ct = context.GetCancellationToken();
 
             var options = new ReplOptions
@@ -233,6 +237,11 @@ public static class ReplCommand
             // Build Scaffold.
             var scaffold = new Scaffold(notebook, extensionHost, notebookPath);
             scaffold.InitializeSubsystems();
+
+            // Hand each extension the settings the notebook saved for it. Without this the
+            // values are written on save and never read back.
+            if (scaffold.SettingsManager is { } replSettings)
+                await replSettings.RestoreSettingsAsync(notebook);
 
             session = new ReplSession(notebook, scaffold, extensionHost, notebookPath)
             {
