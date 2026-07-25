@@ -187,18 +187,21 @@ export function resolveHostPath(
 
   // Search workspace folders for the Verso.Host.dll (check Release first, then Debug)
   const configs = ["Release", "Debug"];
+  const targetFrameworks = ["net10.0", "net8.0"];
   const workspaceFolders = options.workspaceFolders ?? vscode.workspace.workspaceFolders ?? [];
   for (const folder of workspaceFolders) {
     for (const cfg of configs) {
-      const candidates = [
-        // Direct workspace is the Verso project
-        path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
-        // Workspace is a parent
-        path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
-      ];
-      for (const candidate of candidates) {
-        if (existsSync(candidate)) {
-          return candidate;
+      for (const tfm of targetFrameworks) {
+        const candidates = [
+          // Direct workspace is the Verso project
+          path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", cfg, tfm, "Verso.Host.dll"),
+          // Workspace is a parent
+          path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, tfm, "Verso.Host.dll"),
+        ];
+        for (const candidate of candidates) {
+          if (existsSync(candidate)) {
+            return candidate;
+          }
         }
       }
     }
@@ -206,9 +209,11 @@ export function resolveHostPath(
 
   // Fallback: relative to extension path (works in dev host / local install)
   for (const cfg of configs) {
-    const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll");
-    if (existsSync(extensionRelative)) {
-      return extensionRelative;
+    for (const tfm of targetFrameworks) {
+      const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", cfg, tfm, "Verso.Host.dll");
+      if (existsSync(extensionRelative)) {
+        return extensionRelative;
+      }
     }
   }
 

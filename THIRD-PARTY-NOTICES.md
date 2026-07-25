@@ -7,10 +7,10 @@ The original copyright notices and license texts are provided for each component
 
 | Component | Version | License | Project |
 |---|---|---|---|
-| Microsoft.CodeAnalysis (Roslyn) | 4.12.0 | MIT | [dotnet/roslyn](https://github.com/dotnet/roslyn) |
+| Microsoft.CodeAnalysis (Roslyn) | 4.12.0 / 5.0.0 | MIT | [dotnet/roslyn](https://github.com/dotnet/roslyn) |
 | NuGet.Protocol | 6.9.1 | Apache-2.0 | [NuGet/NuGet.Client](https://github.com/NuGet/NuGet.Client) |
 | Microsoft.AspNetCore.Components | 8.0.0 | MIT | [dotnet/aspnetcore](https://github.com/dotnet/aspnetcore) |
-| Microsoft.PowerShell.SDK | 7.4.7 | MIT | [PowerShell/PowerShell](https://github.com/PowerShell/PowerShell) |
+| Microsoft.PowerShell.SDK | 7.4.15 / 7.6.4 | MIT | [PowerShell/PowerShell](https://github.com/PowerShell/PowerShell) |
 | FSharp.Compiler.Service | 43.9.100 | MIT | [dotnet/fsharp](https://github.com/dotnet/fsharp) |
 | Jint | 4.6.4 | BSD-2-Clause | [sebastienros/jint](https://github.com/sebastienros/jint) |
 | pythonnet | 3.1.0-rc.0 | MIT | [pythonnet/pythonnet](https://github.com/pythonnet/pythonnet) |

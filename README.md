@@ -256,7 +256,7 @@ dotnet run --project src/Verso.Blazor
 ### Build the VS Code Extension
 
 ```bash
-dotnet build src/Verso.Host
+dotnet build src/Verso.Host -f net10.0
 cd vscode
 npm install
 npm run build:all

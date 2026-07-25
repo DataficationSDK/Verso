@@ -86,4 +86,28 @@ suite("Extension Activation", () => {
 
     assert.strictEqual(resolved, configured);
   });
+
+  test("Workspace host resolution prefers net10 over net8", () => {
+    const extensionPath = path.join("repo", "vscode");
+    const workspacePath = path.resolve("repo", "Verso");
+    const context = {
+      extensionPath,
+      extensionMode: vscode.ExtensionMode.Production,
+    } as vscode.ExtensionContext;
+    const workspaceFolder = {
+      uri: vscode.Uri.file(workspacePath),
+      name: "Verso",
+      index: 0,
+    };
+    const workspaceFsPath = workspaceFolder.uri.fsPath;
+    const net10Host = path.join(workspaceFsPath, "src", "Verso.Host", "bin", "Debug", "net10.0", "Verso.Host.dll");
+    const net8Host = path.join(workspaceFsPath, "src", "Verso.Host", "bin", "Debug", "net8.0", "Verso.Host.dll");
+
+    const resolved = resolveHostPath(context, {
+      existsSync: candidate => candidate === net10Host || candidate === net8Host,
+      workspaceFolders: [workspaceFolder],
+    });
+
+    assert.strictEqual(resolved, net10Host);
+  });
 });
