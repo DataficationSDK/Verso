@@ -28,6 +28,9 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
     /// <summary>The notebook setting carrying the requirement list ensured on first execution.</summary>
     internal const string DependenciesSetting = "dependencies";
 
+    /// <summary>The notebook setting deciding how much of an install a cell shows.</summary>
+    internal const string HideInstallOutputSetting = "hideInstallOutput";
+
     private PythonKernelOptions _options;
     private SemaphoreSlim _executionLock = new(1, 1);
     private PythonHostSession? _session;
@@ -130,20 +133,42 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
             "installer options and locations such as a URL, a version control reference or a " +
             "path are refused, because a notebook does not choose where packages come from.",
             SettingType.StringList, null, "Packages"),
+        new SettingDefinition(HideInstallOutputSetting, "Hide Installation Output",
+            "Report an install as the packages it added and the versions they came in at, rather " +
+            "than relaying everything the installer printed on the way there. Installing one " +
+            "package pulls in its dependencies, and the resulting screen of text is saved into " +
+            "the notebook alongside the output the cell was actually run for. An install that " +
+            "fails is always reported in full.",
+            SettingType.Boolean, true, "Packages", Order: 1),
     };
+
+    /// <summary>
+    /// Whether a cell names every distribution an install brought in. Read by the <c>#!pip</c>
+    /// magic command, which reaches the setting through the kernel it is installing for.
+    /// </summary>
+    internal bool ShowInstallOutput => !_options.HideInstallOutput;
 
     public IReadOnlyDictionary<string, object?> GetSettingValues()
     {
         var values = new Dictionary<string, object?>();
         if (_options.Dependencies.Count > 0)
             values[DependenciesSetting] = _options.Dependencies.ToArray();
+
+        // Reported only when it differs from the default, so a notebook whose author never
+        // touched it does not carry the key.
+        if (!_options.HideInstallOutput)
+            values[HideInstallOutputSetting] = false;
+
         return values;
     }
 
     public Task ApplySettingsAsync(IReadOnlyDictionary<string, object?> values)
     {
-        if (values.TryGetValue(DependenciesSetting, out var value))
-            SetDependencies(ReadStringList(value));
+        if (values.TryGetValue(DependenciesSetting, out var dependencies))
+            SetDependencies(ReadStringList(dependencies));
+
+        if (values.TryGetValue(HideInstallOutputSetting, out var hide))
+            SetHideInstallOutput(hide);
 
         return Task.CompletedTask;
     }
@@ -152,6 +177,9 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
     {
         if (string.Equals(name, DependenciesSetting, StringComparison.Ordinal))
             SetDependencies(ReadStringList(value));
+
+        if (string.Equals(name, HideInstallOutputSetting, StringComparison.Ordinal))
+            SetHideInstallOutput(value);
 
         return Task.CompletedTask;
     }
@@ -164,6 +192,24 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
         // initialization still takes effect on the next cell.
         _session?.AutoInstall.UpdateOptions(_options);
     }
+
+    private void SetHideInstallOutput(object? value)
+    {
+        _options = _options with { HideInstallOutput = ReadBool(value, _options.HideInstallOutput) };
+        _session?.AutoInstall.UpdateOptions(_options);
+    }
+
+    /// <summary>
+    /// Read a boolean setting, which arrives as a <see cref="bool"/> from the settings UI and from
+    /// a notebook file, and as text from a surface that has only string values. A value that is
+    /// neither leaves the setting as it was rather than guessing at what was meant.
+    /// </summary>
+    private static bool ReadBool(object? value, bool fallback) => value switch
+    {
+        bool flag => flag,
+        string text when bool.TryParse(text, out var parsed) => parsed,
+        _ => fallback,
+    };
 
     /// <summary>
     /// Read a list setting, which arrives as a string array from the settings UI and as a

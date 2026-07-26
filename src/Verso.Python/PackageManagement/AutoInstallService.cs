@@ -16,12 +16,14 @@ internal sealed class AutoInstallService
     private AutoInstallPolicy _policy;
     private IReadOnlyDictionary<string, string> _userMap;
     private UvUsage _useUv;
+    private bool _hideInstallOutput;
 
     public AutoInstallService(PythonKernelOptions options)
     {
         _policy = options.AutoInstall;
         _userMap = options.ImportMap;
         _useUv = options.UseUv;
+        _hideInstallOutput = options.HideInstallOutput;
         Dependencies = options.Dependencies;
     }
 
@@ -50,6 +52,7 @@ internal sealed class AutoInstallService
         _policy = options.AutoInstall;
         _userMap = options.ImportMap;
         _useUv = options.UseUv;
+        _hideInstallOutput = options.HideInstallOutput;
         Dependencies = options.Dependencies;
     }
 
@@ -281,7 +284,7 @@ internal sealed class AutoInstallService
             useUv = false;
 
         var succeeded = await PackageInstaller
-            .InstallAsync(interpreter, arguments, context, useUv)
+            .InstallAsync(interpreter, arguments, context, useUv, detail: !_hideInstallOutput)
             .ConfigureAwait(false);
 
         if (!succeeded)
@@ -294,7 +297,7 @@ internal sealed class AutoInstallService
         foreach (var requirement in declared)
             _ensured.Add(requirement);
 
-        await WriteAsync(context, $"Installed {Join(specs)}.").ConfigureAwait(false);
+        // What was installed is reported by the installer, which knows the versions it settled on.
         return specs;
     }
 

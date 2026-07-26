@@ -234,6 +234,55 @@ public sealed class AutoImportIntegrationTests
         StringAssert.Contains(OutputOf(outputs) + Output, _wheelhouse.Module + " loaded");
     }
 
+    // --- what the cell says about the install ---
+
+    [TestMethod]
+    public async Task AnInstallIsReportedAsThePackageAndVersionItAdded()
+    {
+        // Against a real pip, so the summary is held to what the installer actually printed
+        // rather than to a sample of it.
+        await using var session = await StartedSessionAsync();
+
+        var outputs = await session.ExecuteAsync($"import {_wheelhouse.Module}", _context);
+        var all = OutputOf(outputs) + Output;
+
+        // Named as the installer spelled it, which for a wheel is the underscore form.
+        StringAssert.Contains(all, $"Installed {_wheelhouse.Module} 1.0.0.");
+    }
+
+    [TestMethod]
+    public async Task TheInstallersOwnNarrationDoesNotReachTheCell()
+    {
+        await using var session = await StartedSessionAsync();
+
+        var outputs = await session.ExecuteAsync($"import {_wheelhouse.Module}", _context);
+        var all = OutputOf(outputs) + Output;
+
+        Assert.IsFalse(all.Contains("Processing "), "pip's per-file narration is the thing being removed");
+        Assert.IsFalse(all.Contains("Looking in links"));
+        Assert.IsFalse(all.Contains("Installing collected packages"));
+    }
+
+    [TestMethod]
+    public async Task AFailedInstallStillReportsInFull()
+    {
+        // Hiding output must never hide a diagnosis: the installer's account of the failure is
+        // the only one there is.
+        await using var session = await StartedSessionAsync(AutoInstallPolicy.Auto);
+
+        var code =
+            "# /// script\n" +
+            "# dependencies = [\"verso-no-such-distribution\"]\n" +
+            "# ///\n" +
+            "x = 1";
+
+        var outputs = await session.ExecuteAsync(code, _context);
+        var all = OutputOf(outputs) + Output;
+
+        StringAssert.Contains(all, "verso-no-such-distribution");
+        StringAssert.Contains(all, "Package install failed");
+    }
+
     [TestMethod]
     public async Task AnInlineMetadataBlockCannotPassAnInstallerOption()
     {

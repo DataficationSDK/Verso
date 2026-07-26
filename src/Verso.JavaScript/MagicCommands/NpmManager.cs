@@ -33,10 +33,20 @@ internal static class NpmManager
     }
 
     /// <summary>
-    /// Installs npm packages into the Verso node directory.
+    /// Installs npm packages into the Verso node directory and reports what arrived.
     /// </summary>
+    /// <param name="packages">The specifiers as the cell wrote them.</param>
+    /// <param name="requested">The package names those specifiers name, used to tell what was
+    /// asked for from what came with it.</param>
+    /// <param name="context">Where the report goes.</param>
+    /// <param name="detail">Whether to name every package rather than count the incidental ones.</param>
+    /// <param name="ct">Cancels the install.</param>
     public static async Task<bool> InstallAsync(
-        string packages, IVersoContext context, CancellationToken ct)
+        string packages,
+        IReadOnlyList<string> requested,
+        IVersoContext context,
+        bool detail,
+        CancellationToken ct)
     {
         var npmExe = FindNpm();
         if (npmExe is null)
@@ -48,7 +58,9 @@ internal static class NpmManager
 
         await EnsureInitializedAsync(ct);
 
-        var args = $"install --prefix \"{VersoNodeDir}\" --save {packages}";
+        // Asked for its report as JSON. npm's prose counts packages without naming them, so the
+        // version that arrived cannot be said at all without this.
+        var args = $"install --prefix \"{VersoNodeDir}\" --save --json {packages}";
         var psi = new ProcessStartInfo(npmExe, args)
         {
             RedirectStandardOutput = true,
@@ -70,18 +82,49 @@ internal static class NpmManager
         var stderr = await proc.StandardError.ReadToEndAsync(ct);
         await proc.WaitForExitAsync(ct);
 
-        if (!string.IsNullOrWhiteSpace(stdout))
-            await context.WriteOutputAsync(new CellOutput("text/plain", stdout.Trim()));
+        var report = NpmReport.Parse(stdout, stderr);
 
         if (proc.ExitCode != 0)
         {
-            if (!string.IsNullOrWhiteSpace(stderr))
-                await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", stderr.Trim(), IsError: true, ErrorName: "NpmError"));
+            await ReportFailureAsync(report, stderr, context);
             return false;
         }
 
+        // An npm too old to report as JSON is relayed as it stands rather than summarized into a
+        // claim about a run that was never read.
+        if (!report.Understood)
+        {
+            if (!string.IsNullOrWhiteSpace(stdout))
+                await context.WriteOutputAsync(new CellOutput("text/plain", stdout.Trim()));
+            return true;
+        }
+
+        foreach (var line in report.Summarize(requested, detail))
+            await context.WriteOutputAsync(new CellOutput("text/plain", line));
+
         return true;
+    }
+
+    /// <summary>
+    /// Reports a failure in full whatever the display setting is. npm's warning stream carries
+    /// the readable account of what went wrong, and it is the only account there is.
+    /// </summary>
+    private static async Task ReportFailureAsync(
+        NpmReport report, string standardError, IVersoContext context)
+    {
+        var explanation = string.IsNullOrWhiteSpace(standardError)
+            ? report.Error
+            : standardError.Trim();
+
+        if (!string.IsNullOrWhiteSpace(explanation))
+        {
+            await context.WriteOutputAsync(new CellOutput(
+                "text/plain", explanation!, IsError: true, ErrorName: "NpmError"));
+            return;
+        }
+
+        await context.WriteOutputAsync(new CellOutput(
+            "text/plain", "The npm install failed.", IsError: true, ErrorName: "NpmError"));
     }
 
     /// <summary>
@@ -116,10 +159,31 @@ internal static class NpmManager
     }
 
     /// <summary>
+    /// The package a specifier names, dropping any version that follows it. A scoped package
+    /// begins with an <c>@</c> of its own, so the version separator is the next one along rather
+    /// than the first.
+    /// </summary>
+    public static string PackageName(string specifier)
+    {
+        var spec = (specifier ?? string.Empty).Trim();
+        if (spec.Length == 0)
+            return string.Empty;
+
+        var start = spec.StartsWith('@') ? 1 : 0;
+        var separator = spec.IndexOf('@', start);
+        return separator < 0 ? spec : spec[..separator];
+    }
+
+    /// <summary>
     /// Quick check whether a package directory exists in node_modules.
     /// </summary>
     public static bool IsPackageInstalled(string packageName)
     {
+        // An empty name would otherwise test node_modules itself, which exists, and report that
+        // anything at all is already there.
+        if (string.IsNullOrWhiteSpace(packageName))
+            return false;
+
         var dir = Path.Combine(NodeModulesPath, packageName);
         return Directory.Exists(dir);
     }

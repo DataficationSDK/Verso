@@ -51,7 +51,9 @@ public sealed class PipMagicCommand : IMagicCommand
         if (args.StartsWith("install ", StringComparison.OrdinalIgnoreCase))
             args = args.Substring("install ".Length).TrimStart();
 
-        var interpreter = await ResolveActiveInterpreterAsync(context).ConfigureAwait(false);
+        var kernel = FindPythonKernel(context);
+
+        var interpreter = await ResolveActiveInterpreterAsync(kernel, context).ConfigureAwait(false);
         if (interpreter is null)
         {
             // Packages go into the interpreter the cells run in, so without one there is nowhere
@@ -67,7 +69,7 @@ public sealed class PipMagicCommand : IMagicCommand
             return;
         }
 
-        await InstallIntoActiveEnvironmentAsync(interpreter, args, context).ConfigureAwait(false);
+        await InstallIntoActiveEnvironmentAsync(kernel, interpreter, args, context).ConfigureAwait(false);
     }
 
     // --- the interpreter the kernel is running ---
@@ -75,9 +77,9 @@ public sealed class PipMagicCommand : IMagicCommand
     /// <summary>
     /// The executable the Python kernel runs, or null when none could be resolved.
     /// </summary>
-    private static async Task<string?> ResolveActiveInterpreterAsync(IMagicCommandContext context)
+    private static async Task<string?> ResolveActiveInterpreterAsync(
+        PythonKernel? kernel, IMagicCommandContext context)
     {
-        var kernel = FindPythonKernel(context);
         if (kernel is null)
             return null;
 
@@ -101,10 +103,23 @@ public sealed class PipMagicCommand : IMagicCommand
     }
 
     private static async Task InstallIntoActiveEnvironmentAsync(
-        string interpreter, string args, IMagicCommandContext context)
+        PythonKernel? kernel, string interpreter, string args, IMagicCommandContext context)
     {
+        var specifiers = PackageInstaller.SplitArguments(args);
+
+        // Said before the install starts rather than after it finishes. Resolving a package with
+        // a large dependency set takes long enough that a cell showing nothing looks stuck, and
+        // the installer's own narration is no longer there to fill the gap.
+        var packages = specifiers.Where(s => !s.StartsWith('-')).ToList();
+        if (packages.Count > 0)
+        {
+            await context.WriteOutputAsync(new CellOutput(
+                "text/plain", $"Installing {string.Join(", ", packages)}..."))
+                .ConfigureAwait(false);
+        }
+
         var succeeded = await PackageInstaller
-            .InstallAsync(interpreter, PackageInstaller.SplitArguments(args), context)
+            .InstallAsync(interpreter, specifiers, context, detail: kernel?.ShowInstallOutput ?? false)
             .ConfigureAwait(false);
 
         if (!succeeded)

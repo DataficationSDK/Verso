@@ -61,29 +61,47 @@ public sealed class NpmMagicCommand : IMagicCommand
 
         // Fast-path: check if all packages are already installed
         var packageNames = packages.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Split('@')[0])
+            .Select(NpmManager.PackageName)
+            .Where(name => name.Length > 0)
             .ToList();
 
-        if (packageNames.All(NpmManager.IsPackageInstalled))
+        if (packageNames.Count > 0 && packageNames.All(NpmManager.IsPackageInstalled))
         {
             context.Variables.Set(NpmManager.NodePathStoreKey, NpmManager.NodeModulesPath);
-            await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Packages already installed: {string.Join(", ", packageNames)}"));
+            await context.WriteOutputAsync(new CellOutput("text/plain", AlreadyInstalled(packageNames)));
             return;
         }
 
-        // Run npm install
-        var success = await NpmManager.InstallAsync(packages, context, context.CancellationToken);
+        // Said before the install starts rather than after it finishes. Resolving a package with
+        // a large dependency tree takes long enough that a cell showing nothing looks stuck.
+        await context.WriteOutputAsync(new CellOutput(
+            "text/plain", $"Installing {string.Join(", ", packageNames)}..."));
+
+        var detail = (jsKernel as Kernel.JavaScriptKernel)?.ShowInstallOutput ?? false;
+
+        var success = await NpmManager.InstallAsync(
+            packages, packageNames, context, detail, context.CancellationToken);
 
         if (success)
-        {
             context.Variables.Set(NpmManager.NodePathStoreKey, NpmManager.NodeModulesPath);
-            await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Installed: {packages}"));
-        }
         else
-        {
             context.SuppressExecution = true;
-        }
+    }
+
+    /// <summary>
+    /// What to say when nothing needed installing. The version is read from the package itself,
+    /// so the cell says which one is in use rather than only that something is.
+    /// </summary>
+    private static string AlreadyInstalled(IReadOnlyList<string> packageNames)
+    {
+        var described = packageNames
+            .Select(name => NpmManager.GetInstalledPackageVersion(name) is { } version
+                ? $"{name} {version}"
+                : name)
+            .ToList();
+
+        return described.Count == 1
+            ? $"{described[0]} is already installed."
+            : $"{string.Join(", ", described)} are already installed.";
     }
 }

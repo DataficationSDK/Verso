@@ -37,6 +37,14 @@ PowerShell has no dedicated directive; install modules with ordinary PowerShell 
 
 Python cells can also install on demand: importing a package the environment does not have offers to install it first. See [Python Packages](python-packages.md).
 
+Whichever directive runs, the cell reports what arrived rather than relaying the installer's own narration of getting there:
+
+```
+Installed lodash 4.17.23 and 2 dependencies.
+```
+
+That output is saved with the notebook, so whoever opens the file next sees it too. To name every package instead of counting the ones that came along, clear **Hide Installation Output** under Packages in the notebook's settings, in the Python or JavaScript group depending on which installs you want the detail for. An install that fails is always reported in full, and so is anything an audit found.
+
 ## Sharing variables across languages
 
 All kernels in a notebook share a single variable store. There is no per-kernel isolation: a variable set in one language is immediately readable in every other. This is the feature that makes a mixed-language notebook worthwhile.

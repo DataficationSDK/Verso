@@ -8,9 +8,12 @@ namespace Verso.JavaScript.Kernel;
 /// with Jint (pure .NET) as an in-process fallback.
 /// </summary>
 [VersoExtension]
-public sealed class JavaScriptKernel : ILanguageKernel
+public sealed class JavaScriptKernel : ILanguageKernel, IExtensionSettings
 {
-    private readonly JavaScriptKernelOptions _options;
+    /// <summary>The notebook setting deciding how much of an npm install a cell shows.</summary>
+    internal const string HideInstallOutputSetting = "hideInstallOutput";
+
+    private JavaScriptKernelOptions _options;
     private SemaphoreSlim _executionLock = new(1, 1);
     private IJavaScriptRunner? _runner;
     private VariableBridge? _variableBridge;
@@ -36,6 +39,68 @@ public sealed class JavaScriptKernel : ILanguageKernel
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
+
+    // IExtensionSettings
+
+    public IReadOnlyList<SettingDefinition> SettingDefinitions { get; } =
+    [
+        new SettingDefinition(HideInstallOutputSetting, "Hide Installation Output",
+            "Report an npm install as the packages it added and the versions they came in at, " +
+            "rather than relaying npm's own narration and its funding and audit footers. " +
+            "Installing one package brings in its dependencies, and that block is saved into the " +
+            "notebook alongside the output the cell was actually run for. An install that fails " +
+            "is always reported in full, as is anything npm's audit found.",
+            SettingType.Boolean, true, "Packages"),
+    ];
+
+    /// <summary>
+    /// Whether a cell names every package an install brought in. Read by the <c>#!npm</c> magic
+    /// command, which reaches the setting through the kernel it is installing for.
+    /// </summary>
+    internal bool ShowInstallOutput => !_options.HideInstallOutput;
+
+    public IReadOnlyDictionary<string, object?> GetSettingValues()
+    {
+        var values = new Dictionary<string, object?>();
+
+        // Reported only when it differs from the default, so a notebook whose author never
+        // touched it does not carry the key.
+        if (!_options.HideInstallOutput)
+            values[HideInstallOutputSetting] = false;
+
+        return values;
+    }
+
+    public Task ApplySettingsAsync(IReadOnlyDictionary<string, object?> values)
+    {
+        if (values.TryGetValue(HideInstallOutputSetting, out var hide))
+            SetHideInstallOutput(hide);
+
+        return Task.CompletedTask;
+    }
+
+    public Task OnSettingChangedAsync(string name, object? value)
+    {
+        if (string.Equals(name, HideInstallOutputSetting, StringComparison.Ordinal))
+            SetHideInstallOutput(value);
+
+        return Task.CompletedTask;
+    }
+
+    private void SetHideInstallOutput(object? value)
+        => _options = _options with { HideInstallOutput = ReadBool(value, _options.HideInstallOutput) };
+
+    /// <summary>
+    /// Read a boolean setting, which arrives as a <see cref="bool"/> from the settings UI and from
+    /// a notebook file, and as text from a surface that has only string values. A value that is
+    /// neither leaves the setting as it was rather than guessing at what was meant.
+    /// </summary>
+    private static bool ReadBool(object? value, bool fallback) => value switch
+    {
+        bool flag => flag,
+        string text when bool.TryParse(text, out var parsed) => parsed,
+        _ => fallback,
+    };
 
     public async Task InitializeAsync()
     {

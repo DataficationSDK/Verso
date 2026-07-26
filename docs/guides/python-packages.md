@@ -11,7 +11,7 @@ There are three ways to get a package into a notebook: ask for it explicitly, le
 import requests
 ```
 
-`#!pip` runs before the rest of the cell, so the import below it succeeds on the first run. It takes the same package specifiers and options pip does, and its output streams into the cell as it goes.
+`#!pip` runs before the rest of the cell, so the import below it succeeds on the first run. It takes the same package specifiers and options pip does.
 
 If `uv` is on your `PATH`, Verso uses it, which is considerably faster. Set `verso.python.useUv` to false to always use pip and the standard library.
 
@@ -21,6 +21,29 @@ Two familiar notebook shorthands also work in a Python cell:
 %pip install requests      # runs pip against this notebook's interpreter
 !echo hello                # runs a shell command
 ```
+
+## What an install shows
+
+Installing one package brings in its dependencies, and both pip and uv narrate every step of that. A cell reports the result instead:
+
+```
+Installing k3d into Python 3.13.3 (managed environment) at /home/you/.verso/python/envs/3.13.3.
+Installed k3d 2.17.0 and 23 dependencies.
+```
+
+That output is saved with the notebook, so whoever opens the file next sees it too, which is why it is kept to what the install actually did.
+
+To see every distribution by name, clear **Hide Installation Output** under Packages in the notebook's settings. The report then names the dependencies and their versions, and anything the environment already had:
+
+```
+Installed k3d 2.17.0 and 23 dependencies.
+Dependencies: comm 0.2.3, decorator 5.2.1, deepcomparer 0.4.0, ipython 9.15.0, ...
+Already present: numpy 2.5.1.
+```
+
+Two things are never hidden. An install that fails reports the installer's output in full, because that output is the only account of why it failed. So does a dependency conflict, which pip reports while still exiting successfully, since an environment that no longer agrees with itself is worth hearing about when it happens.
+
+The `%pip` and `!` forms above are shell commands you typed, and they show exactly what the command printed.
 
 ## Installing on import
 

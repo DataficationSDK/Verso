@@ -125,6 +125,15 @@ public sealed record PythonKernelOptions
     public AutoInstallPolicy AutoInstall { get; init; } = AutoInstallPolicy.Prompt;
 
     /// <summary>
+    /// When <c>true</c>, an install reports which distributions it added and at which versions
+    /// rather than relaying the installer's own narration of every download. Defaults to
+    /// <c>true</c>: installing one package pulls in its dependencies, and the resulting screen of
+    /// text is saved into the notebook alongside the output the cell was actually run for.
+    /// A failed install always reports in full, whatever this says.
+    /// </summary>
+    public bool HideInstallOutput { get; init; } = true;
+
+    /// <summary>
     /// Extra module-to-distribution entries consulted ahead of the built-in table, for packages
     /// whose import name differs from their distribution name in a way Verso does not know.
     /// An entry here counts as known, so it installs without asking under

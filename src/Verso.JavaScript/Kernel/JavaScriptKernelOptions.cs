@@ -34,4 +34,13 @@ public sealed record JavaScriptKernelOptions
     /// Optional JavaScript code to execute after initialization.
     /// </summary>
     public string? StartupCode { get; init; }
+
+    /// <summary>
+    /// When true, an npm install reports which packages it added and at which versions rather
+    /// than relaying npm's own narration and its funding and audit footers. Defaults to true:
+    /// installing one package brings in its dependencies, and that block is saved into the
+    /// notebook alongside the output the cell was actually run for. A failed install always
+    /// reports in full, as does anything npm's audit found.
+    /// </summary>
+    public bool HideInstallOutput { get; init; } = true;
 }

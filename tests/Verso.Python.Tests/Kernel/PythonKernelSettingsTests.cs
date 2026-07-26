@@ -132,6 +132,65 @@ public sealed class PythonKernelSettingsTests
         Assert.IsFalse(kernel.GetSettingValues().ContainsKey("dependencies"));
     }
 
+    // --- how much of an install a cell shows ---
+
+    [TestMethod]
+    public void InstallOutputIsHiddenUntilSomebodyAsksForIt()
+    {
+        var definition = Kernel().SettingDefinitions
+            .Single(d => d.Name == "hideInstallOutput");
+
+        Assert.AreEqual(SettingType.Boolean, definition.SettingType);
+        Assert.AreEqual("Packages", definition.Category);
+        Assert.AreEqual(true, definition.DefaultValue);
+        Assert.IsFalse(Kernel().ShowInstallOutput);
+    }
+
+    [TestMethod]
+    public async Task ClearingTheCheckboxShowsTheDetail()
+    {
+        var kernel = Kernel();
+
+        await kernel.OnSettingChangedAsync("hideInstallOutput", false);
+
+        Assert.IsTrue(kernel.ShowInstallOutput);
+        Assert.AreEqual(false, kernel.GetSettingValues()["hideInstallOutput"]);
+    }
+
+    [TestMethod]
+    public async Task TheDefaultIsNotPersisted()
+    {
+        var kernel = Kernel();
+        await kernel.OnSettingChangedAsync("hideInstallOutput", false);
+
+        await kernel.OnSettingChangedAsync("hideInstallOutput", true);
+
+        Assert.IsFalse(kernel.GetSettingValues().ContainsKey("hideInstallOutput"));
+    }
+
+    [TestMethod]
+    public async Task ASettingSavedInANotebookIsRead()
+    {
+        var kernel = Kernel();
+
+        await kernel.ApplySettingsAsync(new Dictionary<string, object?>
+        {
+            ["hideInstallOutput"] = false,
+        });
+
+        Assert.IsTrue(kernel.ShowInstallOutput);
+    }
+
+    [TestMethod]
+    public async Task AValueThatIsNeitherTrueNorFalseLeavesTheSettingAlone()
+    {
+        var kernel = Kernel();
+
+        await kernel.OnSettingChangedAsync("hideInstallOutput", "perhaps");
+
+        Assert.IsFalse(kernel.ShowInstallOutput);
+    }
+
     // --- policy from the environment ---
 
     [TestMethod]
