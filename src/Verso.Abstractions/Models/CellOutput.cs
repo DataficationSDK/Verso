@@ -63,6 +63,44 @@ public sealed record CellOutput(
     public static CellOutput Mermaid(string content) => new("text/x-verso-mermaid", content);
 
     /// <summary>
+    /// The MIME type of a self-contained widget document: a whole page, carrying its own state
+    /// and loader, that draws itself once it is running in a browser.
+    /// <para>
+    /// It is kept apart from <c>text/html</c> because it is a document rather than a fragment,
+    /// and because its loader resolves paths against the location of the page it runs in. A
+    /// surface showing one has to give it a frame with a real address; a surface that cannot
+    /// says so rather than pasting the markup inline.
+    /// </para>
+    /// </summary>
+    public const string WidgetMimeType = "text/x-verso-widget";
+
+    /// <summary>Creates a <c>text/x-verso-widget</c> output.</summary>
+    public static CellOutput Widget(string document) => new(WidgetMimeType, document);
+
+    /// <summary>
+    /// The drawable part of a widget document: whatever its body element contains.
+    /// <para>
+    /// A surface that is itself a page at a real address, such as an exported file, can put this
+    /// straight into its own body instead of giving the widget a frame, and the widget's loader
+    /// then resolves against that page. A document this cannot make sense of is returned whole,
+    /// since a browser ignores a nested <c>html</c> element rather than choking on it.
+    /// </para>
+    /// </summary>
+    public static string WidgetBody(string? document)
+    {
+        if (string.IsNullOrEmpty(document)) return string.Empty;
+
+        var open = document.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+        if (open < 0) return document;
+
+        var start = document.IndexOf('>', open);
+        if (start < 0) return document;
+
+        var end = document.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+        return end <= start ? document[(start + 1)..] : document[(start + 1)..end];
+    }
+
+    /// <summary>
     /// Creates a progress output, which every surface renders as a progress indicator rather than
     /// as text.
     /// <para>

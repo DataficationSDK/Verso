@@ -1,0 +1,50 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* Filled by the interop, which splices its own script in ahead of the widget before handing
+   the whole document to the frame. *@
+<iframe @ref="_frame"
+        class="verso-widget-frame"
+        title="Widget output"
+        sandbox="allow-scripts"
+        style="width:100%;border:0;display:block"></iframe>
+
+@code {
+    /// <summary>The self-contained widget document to draw in the frame.</summary>
+    [Parameter, EditorRequired] public string Document { get; set; } = string.Empty;
+
+    private ElementReference _frame;
+    private int? _handle;
+    private bool _mounted;
+
+    // Mounted once. The document is fixed for the lifetime of this component: a re-run
+    // produces a different output object, and the caller keys on it so a new frame is built
+    // rather than this one being refilled.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_mounted || string.IsNullOrEmpty(Document)) return;
+        _mounted = true;
+
+        try
+        {
+            _handle = await JS.InvokeAsync<int?>("versoWidget.mount", _frame, Document);
+        }
+        catch (JSException)
+        {
+            // A host without the interop loaded shows an empty frame rather than failing the
+            // cell, which has already run and whose other outputs are worth keeping.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handle is null) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("versoWidget.detach", _handle);
+        }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+    }
+}

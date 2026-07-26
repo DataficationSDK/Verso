@@ -112,6 +112,32 @@ The cell that first encounters one also says so in its output. The value remains
 
 Changes made in Python are shared when you assign the name. Modifying a shared collection in place, such as appending to a list that came from another language, is not reported back; assign the result to the name instead.
 
+### Plots and widgets in a Python cell
+
+A Python cell shows whatever the value knows how to render itself as: HTML, Markdown, SVG, images, and JSON all display directly, and a matplotlib figure appears at `show()` or at the end of the cell.
+
+Libraries built on `ipywidgets` are handled too. These are the ones that draw nothing on their own and instead hand the notebook a reference to a model, which is why a cell that ends in `plot.display()` would otherwise print something like `Plot(antialias=3, axes=['x', 'y', 'z'], ...)` instead of a picture. Verso packages the widget's state into a small self-contained page and gives it a frame of its own in the cell, so it draws:
+
+```python
+import k3d
+import numpy as np
+
+plot = k3d.plot()
+plot += k3d.points(np.random.randn(5000, 3).astype(np.float32), point_size=0.03)
+plot.display()
+```
+
+This covers the libraries that render only as widgets, among them k3d, ipyleaflet, pythreejs, bqplot, and ipyvolume. Libraries that already produce HTML, such as plotly and bokeh, never needed it and are unaffected. Nothing has to be installed for this: `ipywidgets` is already present whenever one of these libraries is, and a cell falls back to the plain description if it is somehow missing.
+
+Four things are worth knowing before leaning on it:
+
+- **The drawing code is fetched when the widget is shown.** The state travels in the notebook but the JavaScript that draws it comes from a public CDN, so a machine with no network shows an empty frame. The rest of the notebook is unaffected.
+- **The state is saved with the notebook.** Reopening the file draws the widget again without re-running the cell, which is the point, but it does make the file bigger. A five thousand point scatter adds roughly 90 KB each time the cell is run and saved. A widget carrying more data than a notebook should reasonably hold is refused with a message rather than written to disk.
+- **Interaction is one-way.** Rotating, zooming, and panning work, because that all happens in the browser. A widget control wired to a Python variable, such as a slider driving a computation, does not run the Python behind it.
+- **An output area is not shown.** Libraries that draw into an `ipywidgets.Output` inside a `with` block get an empty one here, because capturing that way needs an IPython shell and this host has none. The empty area is left out rather than drawn as a blank box under the figure.
+
+Exporting a notebook to HTML keeps its widgets, and they draw in the exported page under the same CDN condition.
+
 ## Restarting a kernel
 
 Kernels initialize lazily the first time you run a cell in that language. If a kernel gets into a bad state, restart it to clear its variables and reload. A full "Run All" also resets the kernels first, so it behaves as if the notebook were being executed from scratch.

@@ -50,6 +50,18 @@
                     </div>
                 </div>
             }
+            @* Not gated on ExtendedMimeTypes, for the same reason the HTML branch below is not:
+               the narrower renderer would otherwise fall through to the text branch and print a
+               whole document into a <pre>. *@
+            else if (output.MimeType == CellOutput.WidgetMimeType)
+            {
+                @* A widget is a whole document and gets its own frame. Keyed like the HTML
+                   branch so a re-run builds a new frame rather than refilling this one, which
+                   would leave the previous widget's code running inside it. *@
+                <div class="verso-output verso-output--widget">
+                    <WidgetFrame @key="(index, output)" Document="@output.Content" />
+                </div>
+            }
             else if (ExtendedMimeTypes && output.MimeType == "text/x-verso-mermaid")
             {
                 <div class="verso-output verso-output--html verso-mermaid-container">

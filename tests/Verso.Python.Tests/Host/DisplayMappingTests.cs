@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Verso.Abstractions;
 using Verso.Python.Host;
 
 namespace Verso.Python.Tests.Host;
@@ -72,6 +73,19 @@ public sealed class DisplayMappingTests
 
         Assert.AreEqual("application/vnd.custom", output.MimeType);
         Assert.AreEqual("opaque", output.Content);
+    }
+
+    [TestMethod]
+    public void Map_AWidgetKeepsItsOwnType()
+    {
+        // Deliberately not folded into text/html: a widget is a whole document, and the surface
+        // showing it has to give it a frame with a real address rather than paste it inline.
+        var document = "<!DOCTYPE html><html><body><script>widget</script></body></html>";
+
+        var output = PythonHostSession.MapPayload(CellOutput.WidgetMimeType, document);
+
+        Assert.AreEqual(CellOutput.WidgetMimeType, output.MimeType);
+        Assert.AreEqual(document, output.Content);
     }
 
     // --- store values to JSON ---

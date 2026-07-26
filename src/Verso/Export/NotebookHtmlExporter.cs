@@ -247,6 +247,15 @@ internal static class NotebookHtmlExporter
                 sb.AppendLine("</div>");
                 break;
 
+            case CellOutput.WidgetMimeType:
+                // Unwrapped into this page rather than framed. A frame would need an address of
+                // its own and an exported notebook is one file, while this page does have a real
+                // address once it is opened, which is all the widget's loader needs.
+                sb.AppendLine("<div class=\"verso-output--html\">");
+                sb.AppendLine(CellOutput.WidgetBody(output.Content));
+                sb.AppendLine("</div>");
+                break;
+
             case "text/x-verso-mermaid":
                 hasMermaid = true;
                 sb.AppendLine("<div class=\"verso-output--html\">");

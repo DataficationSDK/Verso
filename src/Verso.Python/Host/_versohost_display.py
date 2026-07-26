@@ -33,6 +33,24 @@ BINARY_MIMES = ("image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp
 
 PYPLOT_MODULE = "matplotlib.pyplot"
 
+# What a widget offers instead of a rendering: a reference to a model the front end is
+# expected to already hold. Nothing in this host holds one, so the reference is turned into
+# a self-contained document carrying the model's state with it.
+WIDGET_MIME = "application/vnd.jupyter.widget-view+json"
+
+# Carries that document. Named apart from text/html because it is a whole page rather than a
+# fragment, and the surface showing it has to give it a frame of its own to run in.
+WIDGET_OUTPUT_MIME = "text/x-verso-widget"
+
+# A widget document is saved into the notebook, so it is charged against the file every time
+# the cell runs. Widget state is mostly the data being drawn, and a large mesh or a long
+# series reaches a size worth refusing rather than quietly writing to disk.
+WIDGET_LIMIT_BYTES = 4 * 1024 * 1024
+
+# Returned by a chain step that has decided a value is not worth showing at all, as opposed
+# to None, which means the step declined and the next one should try.
+SUPPRESS = object()
+
 _emitter = None
 
 
@@ -89,10 +107,84 @@ def render_value(value):
             payload = step(value)
         except Exception:
             continue
+        if payload is SUPPRESS:
+            return None
         if payload is not None:
             return payload
 
     return {"mime": "text/plain", "data": _safe_repr(value)}
+
+
+def _from_widget(value):
+    """
+    Turn a widget into a document that can draw itself.
+
+    A widget reports only a model reference and a plain-text repr, so the ordinary chain
+    settles for the repr and the cell shows something like ``Plot(antialias=3, ...)``. The
+    reference is only useful to a front end already holding the model, which is a thing this
+    host does not have and cannot cheaply become.
+
+    ipywidgets can serialize a widget's state into a page that carries its own loader, so the
+    state travels with the notebook and the drawing happens in the browser. That page is what
+    this returns. It is only reachable when the author's own environment has ipywidgets, which
+    it does whenever a widget exists to be shown, so nothing is added to this host to support
+    it. Anything that fails along the way declines and leaves the repr reachable.
+    """
+    bundle = _mimebundle_of(value)
+    if bundle is None or WIDGET_MIME not in bundle:
+        return None
+
+    if _is_empty_output_widget(value):
+        return SUPPRESS
+
+    try:
+        from ipywidgets.embed import embed_snippet
+    except Exception:
+        return None
+
+    try:
+        snippet = embed_snippet(views=[value])
+    except Exception:
+        return None
+
+    document = WIDGET_DOCUMENT.replace("{snippet}", snippet)
+    if len(document.encode("utf-8", "replace")) > WIDGET_LIMIT_BYTES:
+        return {
+            "mime": "text/plain",
+            "data": (
+                "This widget holds too much data to embed in the notebook "
+                "(over %d MB). Draw fewer points, or export it with the library's own "
+                "save or snapshot function." % (WIDGET_LIMIT_BYTES // (1024 * 1024))
+            ),
+        }
+
+    return {"mime": WIDGET_OUTPUT_MIME, "data": document}
+
+
+def _is_empty_output_widget(value):
+    """
+    Whether this is an output area with nothing in it.
+
+    ``ipywidgets.Output`` captures what is displayed inside a ``with`` block, and it does that
+    by talking to an IPython shell. There is no shell here, so the block captures nothing and
+    the widget is always empty. Libraries still use the pattern and then display the empty
+    area alongside the real figure, which would otherwise put a second, blank frame under
+    every plot. An area that somehow does hold something is left alone and rendered normally.
+    """
+    if type(value).__name__ != "Output":
+        return False
+    if getattr(type(value), "__module__", "").split(".")[0] != "ipywidgets":
+        return False
+    return not getattr(value, "outputs", None)
+
+
+def _mimebundle_of(value):
+    method = getattr(value, "_repr_mimebundle_", None)
+    if not callable(method):
+        return None
+
+    bundle = _unwrap(method())
+    return bundle if isinstance(bundle, dict) else None
 
 
 def _from_mimebundle(value):
@@ -146,7 +238,28 @@ def _from_json(value):
     return _from_repr_method(value, "_repr_json_", "application/json")
 
 
+# The page a widget is delivered in. Deliberately bare: the loader and the widget's own
+# styling come with the snippet, and the surface showing this gives it its own frame, so
+# anything added here would only compete with both. The background is left transparent so
+# the notebook's own background shows through in either theme.
+WIDGET_DOCUMENT = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Widget</title>
+<style>
+html, body { margin: 0; padding: 0; background: transparent; }
+</style>
+</head>
+<body>
+{snippet}
+</body>
+</html>
+"""
+
 _CHAIN = (
+    # Ahead of the bundle reader, which would otherwise settle for a widget's plain-text repr.
+    _from_widget,
     _from_mimebundle,
     _from_html,
     _from_markdown,

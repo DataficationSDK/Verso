@@ -134,6 +134,34 @@ public sealed class NotebookHtmlExporterTests
     }
 
     [TestMethod]
+    public void Export_WidgetOutput_IsUnwrappedIntoThePage()
+    {
+        // The widget's own page is folded into this one. An exported notebook is a single
+        // file with nowhere to point a frame at, and this page has a real address once it is
+        // opened, which is what the widget's loader needs to resolve against.
+        var document =
+            "<!DOCTYPE html><html><head><title>Widget</title></head>" +
+            "<body>\n<script>drawTheWidget();</script>\n</body></html>";
+
+        var cells = new[]
+        {
+            new CellModel
+            {
+                Type = "code",
+                Source = "plot.display()",
+                Outputs = { CellOutput.Widget(document) }
+            }
+        };
+
+        var html = ExportToString(null, cells, null);
+
+        Assert.IsTrue(html.Contains("<script>drawTheWidget();</script>"));
+        Assert.IsTrue(html.Contains("verso-output--html"));
+        Assert.IsFalse(html.Contains("&lt;script&gt;"), "the widget was escaped instead of embedded");
+        Assert.IsFalse(html.Contains("<title>Widget</title>"), "the widget's own page framing leaked in");
+    }
+
+    [TestMethod]
     public void Export_ErrorOutput_RenderedWithErrorClass()
     {
         var cells = new[]

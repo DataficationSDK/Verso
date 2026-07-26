@@ -34,6 +34,10 @@ public sealed class MimeDispatcher
             "image/png" or "image/jpeg" or "image/gif" or "image/webp" or "image/bmp" or "image/svg+xml"
                 => ImagePlaceholderRenderer.AsRenderable(output, cellCounter, outputIndex, _useColor),
             "text/x-verso-mermaid" => PlainTextRenderer.AsRenderable(output, policy),
+            // A widget only exists once a browser has run it, so a terminal says it is there
+            // rather than printing the page it would have run.
+            CellOutput.WidgetMimeType => PlainTextRenderer.AsRenderable(
+                output with { Content = "[widget output, shown when the notebook is opened]" }, policy),
             // A terminal has no live bar to show once the cell is done, so the last reported
             // state is rendered as one line.
             CellOutput.ProgressMimeType => PlainTextRenderer.AsRenderable(
