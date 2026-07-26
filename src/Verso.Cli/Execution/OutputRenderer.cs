@@ -113,6 +113,15 @@ public sealed partial class OutputRenderer
     }
 
     /// <summary>
+    /// Writes the summary footer from results alone, counting only the recorded status. A cell that
+    /// raised is usually recorded as having completed, and reports the failure as an error output
+    /// instead, so this undercounts failures. Kept for callers compiled against it; pass the cells
+    /// as well to have those counted.
+    /// </summary>
+    public void WriteSummary(IReadOnlyList<ExecutionResult> results, TimeSpan totalElapsed)
+        => WriteSummary(results, Array.Empty<CellModel>(), totalElapsed);
+
+    /// <summary>
     /// Writes the summary footer with execution counts and total elapsed time. The cells are needed
     /// as well as their results, because a cell that raised usually reports it as an error output
     /// while the execution itself is recorded as having completed.

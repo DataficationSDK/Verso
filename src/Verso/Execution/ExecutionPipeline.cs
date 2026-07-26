@@ -28,6 +28,7 @@ internal sealed class ExecutionPipeline
     private readonly Func<string, IMagicCommand?> _resolveMagicCommand;
     private readonly Action<Guid>? _notifyOutputUpdated;
     private readonly Func<Guid, string, bool, CancellationToken, Task<string?>>? _requestInput;
+    private readonly BackgroundFaultSink? _backgroundFaults;
 
     public ExecutionPipeline(
         IVariableStore variables,
@@ -42,7 +43,8 @@ internal sealed class ExecutionPipeline
         Func<Guid, int> getExecutionCount,
         Func<string, IMagicCommand?>? resolveMagicCommand = null,
         Action<Guid>? notifyOutputUpdated = null,
-        Func<Guid, string, bool, CancellationToken, Task<string?>>? requestInput = null)
+        Func<Guid, string, bool, CancellationToken, Task<string?>>? requestInput = null,
+        BackgroundFaultSink? backgroundFaults = null)
     {
         _variables = variables;
         _theme = theme;
@@ -57,6 +59,7 @@ internal sealed class ExecutionPipeline
         _resolveMagicCommand = resolveMagicCommand ?? (_ => null);
         _notifyOutputUpdated = notifyOutputUpdated;
         _requestInput = requestInput;
+        _backgroundFaults = backgroundFaults;
     }
 
     public async Task<ExecutionResult> ExecuteAsync(CellModel cell, CancellationToken ct)
@@ -345,7 +348,14 @@ internal sealed class ExecutionPipeline
         var displayHandler = new DisplayHandler(AppendOutput, _extensionHost, displayFormatterContext);
         using var _ = DisplayContext.SetHandler(displayHandler.DisplayAsync);
 
-        var returnedOutputs = await kernel.ExecuteAsync(codeToExecute, context).ConfigureAwait(false);
+        // Marks this notebook as the one running while the cell is in flight. A background failure
+        // surfacing now has no record of which notebook started the work that raised it, and this
+        // is the only signal available for guessing.
+        IReadOnlyList<CellOutput> returnedOutputs;
+        using (_backgroundFaults?.BeginExecution())
+        {
+            returnedOutputs = await kernel.ExecuteAsync(codeToExecute, context).ConfigureAwait(false);
+        }
 
         if (returnedOutputs is { Count: > 0 })
         {
@@ -370,7 +380,7 @@ internal sealed class ExecutionPipeline
         // answered. This is the first moment there is a cell to report it against. Reported
         // regardless of how much output the cell already produced: a failure the user has no other
         // way to learn about is exactly what must not be dropped to save room.
-        var backgroundFaults = BackgroundFaultMonitor.Drain();
+        var backgroundFaults = _backgroundFaults?.Drain() ?? Array.Empty<CellOutput>();
         if (backgroundFaults.Count > 0)
         {
             lock (outputLock)

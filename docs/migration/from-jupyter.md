@@ -72,6 +72,8 @@ When a Jupyter output contains multiple MIME types, Verso selects the richest av
 
 The `execution_count` from each cell is preserved in cell metadata.
 
+Exporting the other way, a `stream` output carries the channel it came from: `name` is written as `stderr` for text a cell wrote to standard error and `stdout` otherwise, so a tool reading the exported `.ipynb` sees the same distinction the notebook did.
+
 ### Metadata
 
 Notebook-level metadata beyond kernel detection (`kernelspec.name`, `kernelspec.display_name`, `language_info.version`, `language_info.codemirror_mode`) is not carried over. If you need to preserve specific metadata, note it before converting.

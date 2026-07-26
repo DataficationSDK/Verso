@@ -20,7 +20,23 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     private const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     private const uint STILL_ACTIVE = 259;
 
+    private const int JobObjectExtendedLimitInformation = 9;
+    private const int JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
+
     private readonly SafeProcessHandle _processHandle;
+
+    /// <summary>
+    /// Holds the interpreter and anything it starts, so terminating the job takes the whole tree.
+    /// A cell running a shell command has a child of its own, and killing only the interpreter
+    /// would leave that child running with nobody reading its output.
+    /// <para>
+    /// Null when the job could not be created or the child could not be assigned to it, in which
+    /// case termination falls back to the interpreter alone. That is worth having rather than
+    /// refusing to start Python at all.
+    /// </para>
+    /// </summary>
+    private readonly SafeJobHandle? _job;
+
     private readonly SafeFileHandle _stdinWrite;
     private readonly ManualResetEvent _exitedEvent;
     private readonly RegisteredWaitHandle _registeredWait;
@@ -117,6 +133,7 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
 
         Id = processInfo.dwProcessId;
         _processHandle = new SafeProcessHandle(processInfo.hProcess, ownsHandle: true);
+        _job = TryCreateJob(_processHandle);
         _stdinWrite = stdinWrite;
 
         StandardOutput = new StreamReader(new FileStream(stdoutRead, FileAccess.Read), Encoding.UTF8);
@@ -179,7 +196,16 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     public void Kill()
     {
         if (HasExited) return;
-        try { TerminateProcess(_processHandle, 1); }
+
+        try
+        {
+            // The job holds anything the interpreter started, so this reaches a shell command a
+            // cell left running as well as the interpreter itself.
+            if (_job is { IsInvalid: false } && TerminateJobObject(_job, 1))
+                return;
+
+            TerminateProcess(_processHandle, 1);
+        }
         catch (ObjectDisposedException) { /* already gone */ }
     }
 
@@ -193,7 +219,63 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
         try { StandardError.Dispose(); } catch { /* best effort */ }
         _stdinWrite.Dispose();
         _exitedEvent.Dispose();
+
+        // Closing the last handle to the job kills whatever is still in it, so a host that goes
+        // down without shutting the interpreter cleanly does not leave Python behind.
+        _job?.Dispose();
         _processHandle.Dispose();
+    }
+
+    /// <summary>
+    /// Put the child in a job that dies with this process. Returns null when the platform refuses,
+    /// which leaves termination on the interpreter alone rather than failing the spawn.
+    /// </summary>
+    private static SafeJobHandle? TryCreateJob(SafeProcessHandle process)
+    {
+        SafeJobHandle? job = null;
+        try
+        {
+            job = CreateJobObject(IntPtr.Zero, null);
+            if (job.IsInvalid)
+            {
+                job.Dispose();
+                return null;
+            }
+
+            var limits = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
+            limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+            var size = Marshal.SizeOf<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>();
+            var buffer = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.StructureToPtr(limits, buffer, fDeleteOld: false);
+                if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, buffer, (uint)size))
+                {
+                    job.Dispose();
+                    return null;
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+
+            if (!AssignProcessToJobObject(job, process))
+            {
+                // A process already in a job that forbids nesting cannot be reassigned. Rare, and
+                // not a reason to refuse to run Python.
+                job.Dispose();
+                return null;
+            }
+
+            return job;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            job?.Dispose();
+            return null;
+        }
     }
 
     private static void CreatePipeOrThrow(out SafeFileHandle read, out SafeFileHandle write, ref SECURITY_ATTRIBUTES security)
@@ -318,6 +400,50 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
         public int dwThreadId;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JOBOBJECT_BASIC_LIMIT_INFORMATION
+    {
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public int LimitFlags;
+        public IntPtr MinimumWorkingSetSize;
+        public IntPtr MaximumWorkingSetSize;
+        public int ActiveProcessLimit;
+        public IntPtr Affinity;
+        public int PriorityClass;
+        public int SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IO_COUNTERS
+    {
+        public ulong ReadOperationCount;
+        public ulong WriteOperationCount;
+        public ulong OtherOperationCount;
+        public ulong ReadTransferCount;
+        public ulong WriteTransferCount;
+        public ulong OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+    {
+        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+        public IO_COUNTERS IoInfo;
+        public IntPtr ProcessMemoryLimit;
+        public IntPtr JobMemoryLimit;
+        public IntPtr PeakProcessMemoryUsed;
+        public IntPtr PeakJobMemoryUsed;
+    }
+
+    /// <summary>Owns a job object handle, so closing it is what kills the processes inside.</summary>
+    private sealed class SafeJobHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public SafeJobHandle() : base(ownsHandle: true) { }
+
+        protected override bool ReleaseHandle() => CloseHandle(handle);
+    }
+
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CreatePipe(
@@ -356,6 +482,22 @@ internal sealed class WindowsHostProcessHandle : IHostProcessHandle
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GenerateConsoleCtrlEvent(int dwCtrlEvent, int dwProcessGroupId);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "CreateJobObjectW")]
+    private static extern SafeJobHandle CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetInformationJobObject(
+        SafeJobHandle hJob, int JobObjectInformationClass, IntPtr lpJobObjectInformation, uint cbJobObjectInformationLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AssignProcessToJobObject(SafeJobHandle hJob, SafeProcessHandle hProcess);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool TerminateJobObject(SafeJobHandle hJob, uint uExitCode);
 
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetConsoleWindow();

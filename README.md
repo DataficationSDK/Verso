@@ -26,7 +26,7 @@ dotnet tool install -g Verso.Cli
 verso serve
 ```
 
-Requirements: the VS Code extension needs the [.NET runtime, version 8.0 or later](https://dotnet.microsoft.com/download/dotnet) and offers to install it for you if it is missing; the `verso` CLI needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for `dotnet tool install`. [Node.js 18+](https://nodejs.org/) and [Python 3.8-3.12](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
+Requirements: the VS Code extension needs the [.NET runtime, version 8.0 or later](https://dotnet.microsoft.com/download/dotnet) and offers to install it for you if it is missing; the `verso` CLI needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for `dotnet tool install`. [Node.js 18+](https://nodejs.org/) and [Python 3.8 or newer](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
 
 ## Why Verso
 
@@ -195,7 +195,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 
 | Category | Included |
 |----------|----------|
-| **Kernels** | C# (Roslyn), F# (FCS), JavaScript (Node.js / Jint), TypeScript, PowerShell, Python (pythonnet), HTTP |
+| **Kernels** | C# (Roslyn), F# (FCS), JavaScript (Node.js / Jint), TypeScript, PowerShell, Python (your own interpreter, run out of process), HTTP |
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL, HTTP |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid) |

@@ -195,7 +195,13 @@ internal sealed class InterpreterValidator : IInterpreterValidator
 
         try
         {
+            // Both pipes are drained before waiting. A candidate that writes past the buffer on
+            // one of them and is never read blocks there, and the wait below would then sit out
+            // the whole probe timeout for every such candidate on the search path.
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            await Task.WhenAll(stdoutTask, stderrTask).WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+
             await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
             var stdout = await stdoutTask.ConfigureAwait(false);
             return process.ExitCode == 0 ? stdout : null;

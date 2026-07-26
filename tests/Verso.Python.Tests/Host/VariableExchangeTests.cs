@@ -135,6 +135,39 @@ public sealed class VariableExchangeTests
     }
 
     [TestMethod]
+    public async Task Inject_LeavesInterpreterOwnedNamesAlone()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        // Binding this one would take away every builtin the cell has. Verso's own session keys
+        // share the prefix, and the magic command writes one of them to this very store.
+        context.Variables.Set("__builtins__", "clobbered");
+        context.Variables.Set("__verso_python_interpreter", "/usr/bin/python3");
+        context.Variables.Set("usable", 5);
+
+        var outputs = await session.ExecuteAsync("(len(__builtins__.__dict__) > 0, usable)", context);
+
+        Assert.AreEqual("(True, 5)", outputs[^1].Content);
+    }
+
+    [TestMethod]
+    public async Task Inject_KeepsASingleUnderscoreName()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        // Only a double underscore means the interpreter or Verso owns the name. A single one is a
+        // convention Python applies to itself, and other languages use it for ordinary variables,
+        // so a C# cell binding _rowCount is sharing a value rather than hiding one.
+        context.Variables.Set("_rowCount", 42);
+
+        var outputs = await session.ExecuteAsync("_rowCount", context);
+
+        Assert.AreEqual("42", outputs[^1].Content);
+    }
+
+    [TestMethod]
     public async Task Inject_SkipsValuesJsonCannotDescribe()
     {
         await using var session = await StartedSessionAsync();

@@ -86,6 +86,8 @@ internal sealed class AutoInstallService
         if (!Enabled || scan.IsEmpty)
             return Array.Empty<string>();
 
+        var refused = new List<(string Requirement, RequirementRefusal Reason)>();
+
         var candidates = new List<ResolvedImport>();
         foreach (var missing in scan.Missing)
         {
@@ -97,7 +99,18 @@ internal sealed class AutoInstallService
             if (_declined.Contains(missing.Module))
                 continue;
 
-            candidates.Add(ImportMap.Resolve(missing.Module, _userMap));
+            var resolved = ImportMap.Resolve(missing.Module, _userMap);
+
+            // A configured mapping lands in the same argument position a requirement does, so it
+            // is held to the same rule.
+            var mappedRefusal = RequirementGuard.Classify(resolved.Distribution);
+            if (mappedRefusal != RequirementRefusal.None)
+            {
+                Refuse(resolved.Distribution, missing.Module, mappedRefusal, refused);
+                continue;
+            }
+
+            candidates.Add(resolved);
         }
 
         var declared = new List<string>();
@@ -106,8 +119,19 @@ internal sealed class AutoInstallService
             if (_declined.Contains(requirement) || _ensured.Contains(requirement))
                 continue;
 
+            // The notebook is the one place these strings come from, and it is not necessarily
+            // written by whoever is running it.
+            var refusal = RequirementGuard.Classify(requirement);
+            if (refusal != RequirementRefusal.None)
+            {
+                Refuse(requirement, null, refusal, refused);
+                continue;
+            }
+
             declared.Add(requirement);
         }
+
+        await ReportRefusedAsync(refused, context).ConfigureAwait(false);
 
         if (candidates.Count == 0 && declared.Count == 0)
             return Array.Empty<string>();
@@ -273,6 +297,58 @@ internal sealed class AutoInstallService
         await WriteAsync(context, $"Installed {Join(specs)}.").ConfigureAwait(false);
         return specs;
     }
+
+    /// <summary>
+    /// Record a requirement that named an installer option rather than a package. The decision is
+    /// remembered so a cell that carries one does not say the same thing on every run.
+    /// </summary>
+    /// <param name="requirement">The string that was refused.</param>
+    /// <param name="module">The import it was resolved from, when it came from a mapping.</param>
+    /// <param name="reason">Which rule it fell foul of, which decides what the report says.</param>
+    /// <param name="refused">Collects what to report once the whole request has been examined.</param>
+    private void Refuse(
+        string requirement,
+        string? module,
+        RequirementRefusal reason,
+        List<(string Requirement, RequirementRefusal Reason)> refused)
+    {
+        refused.Add((requirement, reason));
+        _declined.Add(module ?? requirement);
+    }
+
+    private static async Task ReportRefusedAsync(
+        IReadOnlyList<(string Requirement, RequirementRefusal Reason)> refused, IVersoContext context)
+    {
+        if (refused.Count == 0)
+            return;
+
+        // Said plainly, because the person reading it did not necessarily write the notebook, and
+        // separated by reason, because the two say different things about what the entry was doing.
+        var options = Select(refused, RequirementRefusal.InstallerOption);
+        if (options.Count > 0)
+        {
+            await WriteAsync(context,
+                $"Not installed: {Join(options)}. A dependency has to name a package; these are " +
+                "installer options, which a notebook is not allowed to pass. Remove them, or run " +
+                "the install yourself with #!pip if you meant them.")
+                .ConfigureAwait(false);
+        }
+
+        var sources = Select(refused, RequirementRefusal.ExternalSource);
+        if (sources.Count > 0)
+        {
+            await WriteAsync(context,
+                $"Not installed: {Join(sources)}. A dependency has to name a package; these name " +
+                "somewhere to install from, which would have fetched code from a location the " +
+                "notebook chose rather than from the configured index. Name the package instead, " +
+                "or run the install yourself with #!pip if you meant them.")
+                .ConfigureAwait(false);
+        }
+    }
+
+    private static IReadOnlyList<string> Select(
+        IReadOnlyList<(string Requirement, RequirementRefusal Reason)> refused, RequirementRefusal reason)
+        => refused.Where(entry => entry.Reason == reason).Select(entry => entry.Requirement).ToList();
 
     private static string Join(IReadOnlyList<string> values) => string.Join(", ", values);
 

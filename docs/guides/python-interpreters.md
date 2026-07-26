@@ -49,6 +49,8 @@ A selection made this way lasts for the session and is not written into the note
 
 The kernel restarts when you select an interpreter, so variables defined in earlier Python cells are cleared. Values shared into the notebook's variable store by other languages are unaffected.
 
+Stopping the interpreter takes anything it started with it, so a process launched from a cell, such as a shell command left running in the background, ends with the restart rather than outliving it.
+
 ## Externally managed installations
 
 Some Python installations, particularly those from a Linux distribution's package manager, mark themselves as externally managed to stop tools from installing into them. Installing a package into one of these is refused by pip itself.

@@ -233,11 +233,20 @@ internal sealed class PythonHostProcess : IAsyncDisposable
         {
             return await acceptTask.ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception ex) when (
+            ex is OperationCanceledException or PythonHostAuthenticationException
+            && !cancellationToken.IsCancellationRequested)
         {
+            // The accept loop reports the last connection it turned away, because on the port that
+            // is usually the story. It is not the story when the budget simply ran out: what
+            // happened then is that our subprocess never arrived, and its own error output says
+            // more about why than a stranger on the port does. The rejection is kept as context.
             var tail = await CollectStderrAsync().ConfigureAwait(false);
+            var refused = ex is PythonHostAuthenticationException
+                ? $" The last connection to the port was refused: {ex.Message}"
+                : "";
             throw new PythonHostTimeoutException(
-                $"The Python host did not complete its handshake within {_handshakeTimeout.TotalSeconds:0} seconds.{FormatTail(tail)}");
+                $"The Python host did not complete its handshake within {_handshakeTimeout.TotalSeconds:0} seconds.{refused}{FormatTail(tail)}");
         }
     }
 

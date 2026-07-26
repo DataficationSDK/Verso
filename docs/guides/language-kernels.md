@@ -41,6 +41,8 @@ Python cells can also install on demand: importing a package the environment doe
 
 All kernels in a notebook share a single variable store. There is no per-kernel isolation: a variable set in one language is immediately readable in every other. This is the feature that makes a mixed-language notebook worthwhile.
 
+The one exception is that a variable whose name begins with a double underscore does not reach Python cells, because Python reserves that prefix for names the interpreter itself owns. A single leading underscore is fine, so a C# variable named `_rowCount` still arrives.
+
 ```csharp
 // C# cell
 var rows = LoadData();      // returns some collection

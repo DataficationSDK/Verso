@@ -60,6 +60,15 @@ Open the notebook's settings, find the Python kernel's **Dependencies** setting 
 
 A requirement list travels between machines sensibly, which is why this one is saved into the notebook while the interpreter path and the install policy are not.
 
+Because it travels, a declared requirement may only name a package. Two kinds of entry are refused rather than installed, and reported once when they are:
+
+- An installer option, meaning anything starting with a hyphen, such as `--index-url` or `--find-links`.
+- A location to install from, meaning a direct reference like `name @ https://example.com/pkg.whl`, a version control reference like `git+https://example.com/pkg.git`, a bare URL, or a filesystem path.
+
+Both decide where code is fetched from, and that is a decision for whoever runs the notebook rather than for the file they opened. Ordinary requirements are untouched, including extras, version specifiers and environment markers, so `pandas[performance]>=2; python_version < "3.12"` installs normally. If you do mean one of the refused forms, run the install yourself with `#!pip`, which is a visible line in a cell and still passes anything through.
+
+The same rule applies to the inline form below.
+
 You can also declare requirements inline, using the standard script metadata format, at the top of the first cell you run:
 
 ```python

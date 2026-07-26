@@ -29,6 +29,14 @@ public sealed class Scaffold : IAsyncDisposable
     private LayoutManager? _layoutManager;
     private SettingsManager? _settingsManager;
     private readonly NotebookOperations _notebookOps;
+
+    /// <summary>
+    /// This notebook's share of the failures raised by work its cells started and did not wait for.
+    /// Held per notebook rather than per process so a fault cannot be reported against a notebook
+    /// running alongside this one in the same host.
+    /// </summary>
+    private readonly BackgroundFaultSink _backgroundFaults = new();
+    private readonly IDisposable _backgroundFaultRegistration;
     private bool _disposed;
 
     public Scaffold() : this(new NotebookModel()) { }
@@ -40,6 +48,7 @@ public sealed class Scaffold : IAsyncDisposable
         // Every host builds a Scaffold, so this is where watching for failures on work a cell
         // started and did not wait for gets turned on. Installing is idempotent.
         BackgroundFaultMonitor.Install();
+        _backgroundFaultRegistration = BackgroundFaultMonitor.Register(_backgroundFaults);
 
         _notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));
         _metadata = new NotebookMetadataContext(_notebook, filePath);
@@ -750,6 +759,10 @@ public sealed class Scaffold : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
+        // Stop collecting first: a fault raised from here on has no cell of this notebook's left
+        // to be reported against.
+        _backgroundFaultRegistration.Dispose();
+
         foreach (var kernel in _kernels.Values)
         {
             await kernel.DisposeAsync().ConfigureAwait(false);
@@ -881,6 +894,7 @@ public sealed class Scaffold : IAsyncDisposable
             GetExecutionCount,
             ResolveMagicCommand,
             id => OnCellOutputUpdated?.Invoke(id),
-            InputRequester);
+            InputRequester,
+            _backgroundFaults);
     }
 }

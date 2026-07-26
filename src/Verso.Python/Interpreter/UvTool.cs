@@ -41,8 +41,15 @@ internal static class UvTool
             if (process is null)
                 return false;
 
-            process.WaitForExit(5000);
-            return process.HasExited && process.ExitCode == 0;
+            if (!process.WaitForExit(5000))
+            {
+                // Disposing the handle would leave the tool running with nothing reading its
+                // pipes, which is how a probe turns into a process nobody owns.
+                try { process.Kill(entireProcessTree: true); } catch { /* best effort */ }
+                return false;
+            }
+
+            return process.ExitCode == 0;
         }
         catch
         {

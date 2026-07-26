@@ -92,4 +92,42 @@ public sealed class InterpreterValidatorTests
 
         Assert.AreEqual(InterpreterValidationStatus.NotFound, result.Status);
     }
+
+    [TestMethod]
+    public async Task ValidateAsync_IsNotHeldUpByACandidateThatFloodsStandardError()
+    {
+        // A wrapper script, a broken environment, or a shell profile that prints warnings can fill
+        // the error pipe. A candidate whose error output is never read blocks writing to it and the
+        // probe then waits out its whole timeout, once for every candidate on the search path.
+        if (OperatingSystem.IsWindows())
+            Assert.Inconclusive("The stand-in candidate is a shell script; skipping on Windows.");
+
+        var directory = Directory.CreateTempSubdirectory("verso-noisy-python-");
+        var candidate = Path.Combine(directory.FullName, "python3");
+
+        try
+        {
+            await File.WriteAllTextAsync(candidate,
+                "#!/bin/sh\n" +
+                "# Far past any pipe buffer, then the answer the probe is actually asking for.\n" +
+                "awk 'BEGIN { while (i++ < 4000) print \"warning: something is not quite right\" }' >&2\n" +
+                "echo '{\"version\":\"3.12.1\",\"executable\":\"" + candidate +
+                "\",\"implementation\":\"CPython\",\"managed\":false}'\n");
+
+            File.SetUnixFileMode(candidate,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+            var validator = new InterpreterValidator();
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            var result = await validator.ValidateAsync(candidate, deadline.Token);
+
+            Assert.AreEqual(InterpreterValidationStatus.Valid, result.Status);
+            Assert.AreEqual("3.12.1", result.Info!.RawVersion);
+        }
+        finally
+        {
+            try { directory.Delete(recursive: true); } catch { /* best effort */ }
+        }
+    }
 }

@@ -895,6 +895,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
         foreach (var descriptor in store.GetAll())
         {
+            if (!IsInjectable(descriptor.Name))
+                continue;
             if (descriptor.Value is null)
                 continue;
             if (!HostVariables.TryToJson(descriptor.Value, out var node) || node is null)
@@ -910,6 +912,21 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
         return payload;
     }
+
+    /// <summary>
+    /// Whether a store name may be placed in the Python scope. A double underscore prefix is the
+    /// dividing line: it covers the names the interpreter owns, where binding one would replace
+    /// something the scope needs (<c>__builtins__</c> is how a cell reaches every builtin there is),
+    /// and it covers Verso's own session keys, which live under a <c>__verso_</c> prefix.
+    /// <para>
+    /// A single leading underscore is only a convention in Python, and other languages use it for
+    /// ordinary variables, so a C# cell binding <c>_rowCount</c> still reaches a Python cell. The
+    /// publish side is stricter in the other direction because there the convention does mean
+    /// private, and a name Python calls private is not one it intends to share.
+    /// </para>
+    /// </summary>
+    private static bool IsInjectable(string name)
+        => !string.IsNullOrEmpty(name) && !name.StartsWith("__", StringComparison.Ordinal);
 
     private void SnapshotStore(IVariableStore store)
     {

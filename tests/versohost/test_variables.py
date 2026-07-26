@@ -111,6 +111,35 @@ def test_inject_sets_names_into_the_scope():
     assert scope == {"greeting": "hello", "count": 2}
 
 
+def test_inject_leaves_interpreter_owned_names_alone():
+    scope = {"__builtins__": "the real thing"}
+
+    variable_support.apply_inject(
+        scope,
+        {
+            "__builtins__": "clobbered",
+            "__verso_python_interpreter": "/usr/bin/python3",
+            "greeting": "hello",
+        },
+    )
+
+    # Replacing __builtins__ would take away every builtin the cell has, and the session keys
+    # Verso writes to the same store are not variables anyone asked for.
+    assert scope["__builtins__"] == "the real thing"
+    assert "__verso_python_interpreter" not in scope
+    assert scope["greeting"] == "hello"
+
+
+def test_inject_keeps_a_single_underscore_name():
+    scope = {}
+
+    # Other languages use a leading underscore for ordinary variables, so a C# cell binding
+    # _row_count is sharing a value rather than hiding one.
+    variable_support.apply_inject(scope, {"_row_count": 42})
+
+    assert scope["_row_count"] == 42
+
+
 def test_inject_ignores_a_payload_that_is_not_a_mapping():
     scope = {}
 

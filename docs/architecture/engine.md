@@ -126,6 +126,8 @@ The `OnVariablesChanged` event fires after every mutation. Front-ends subscribe 
 
 All kernels receive the same `IVariableStore` instance through the context objects injected at execution time. There is no per-kernel isolation. A variable set by C# is immediately available to F#, Python, SQL, and every other kernel.
 
+One name shape is held back. A store entry beginning with a double underscore is not injected into the Python scope, because that prefix covers both the names the interpreter owns, where binding `__builtins__` would take every builtin away from the cell, and the side-channel keys described below. Every other kernel still receives those entries, and a single leading underscore is left alone, since other languages use it for ordinary variables.
+
 The typical patterns are:
 
 - **Publish**: After execution, a kernel iterates its internal state and calls `Variables.Set()` for each variable. The C# kernel, for example, reads Roslyn's script state variables and publishes them.

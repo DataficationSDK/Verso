@@ -126,7 +126,9 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
         new SettingDefinition(DependenciesSetting, "Dependencies",
             "Requirement strings installed into the notebook's Python environment before the " +
             "first cell runs, under the same consent policy as an import. One per entry, in the " +
-            "form pip accepts (for example \"pandas>=2\").",
+            "form pip accepts (for example \"pandas>=2\"). An entry has to name a package: " +
+            "installer options and locations such as a URL, a version control reference or a " +
+            "path are refused, because a notebook does not choose where packages come from.",
             SettingType.StringList, null, "Packages"),
     };
 

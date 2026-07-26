@@ -235,6 +235,30 @@ public sealed class AutoImportIntegrationTests
     }
 
     [TestMethod]
+    public async Task AnInlineMetadataBlockCannotPassAnInstallerOption()
+    {
+        // Auto is the case that matters: a declared dependency installs there without asking, so
+        // a notebook that could name an installer switch would be choosing where packages come
+        // from on a machine whose owner never saw the string.
+        await using var session = await StartedSessionAsync(AutoInstallPolicy.Auto);
+
+        var code =
+            "# /// script\n" +
+            "# dependencies = [\"--index-url=http://127.0.0.1:1/simple\"]\n" +
+            "# ///\n" +
+            "print('ran')";
+
+        var outputs = await session.ExecuteAsync(code, _context);
+        var all = OutputOf(outputs) + Output;
+
+        StringAssert.Contains(all, "installer options");
+        Assert.IsFalse(all.Contains("Installing --index-url"), "The option must never reach the installer.");
+
+        // The cell is not the casualty of its own dependency list.
+        StringAssert.Contains(all, "ran");
+    }
+
+    [TestMethod]
     public async Task AnInlineMetadataBlockReportsAnInterpreterFloorItCannotMeet()
     {
         await using var session = await StartedSessionAsync(AutoInstallPolicy.Off);

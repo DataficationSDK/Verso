@@ -10,6 +10,29 @@ public class VersoContext : IVersoContext
     private readonly Func<CellOutput, Task> _writeOutput;
     private readonly Func<string, CellOutput, Task>? _updateOutput;
 
+    /// <summary>
+    /// Builds a context with no in-place output updating, which is what a host that cannot revise
+    /// an output provides.
+    /// </summary>
+    /// <remarks>
+    /// Kept as its own overload rather than folded into the one below. An optional parameter is
+    /// resolved where the call is compiled, so adding one to a shipped constructor changes the
+    /// signature every existing compiled caller looks for.
+    /// </remarks>
+    public VersoContext(
+        IVariableStore variables,
+        CancellationToken cancellationToken,
+        IThemeContext theme,
+        LayoutCapabilities layoutCapabilities,
+        IExtensionHostContext extensionHost,
+        INotebookMetadata notebookMetadata,
+        INotebookOperations notebook,
+        Func<CellOutput, Task> writeOutput)
+        : this(variables, cancellationToken, theme, layoutCapabilities, extensionHost,
+               notebookMetadata, notebook, writeOutput, updateOutput: null)
+    {
+    }
+
     public VersoContext(
         IVariableStore variables,
         CancellationToken cancellationToken,
@@ -19,7 +42,7 @@ public class VersoContext : IVersoContext
         INotebookMetadata notebookMetadata,
         INotebookOperations notebook,
         Func<CellOutput, Task> writeOutput,
-        Func<string, CellOutput, Task>? updateOutput = null)
+        Func<string, CellOutput, Task>? updateOutput)
     {
         Variables = variables ?? throw new ArgumentNullException(nameof(variables));
         CancellationToken = cancellationToken;

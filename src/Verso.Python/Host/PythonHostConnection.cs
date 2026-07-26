@@ -12,6 +12,13 @@ namespace Verso.Python.Host;
 /// </summary>
 internal sealed class PythonHostConnection : IAsyncDisposable
 {
+    /// <summary>
+    /// How long one connection has to present its handshake before it is dropped and the next is
+    /// taken. Generous for a subprocess that sends it immediately on connecting, and short enough
+    /// that something else holding the socket open costs the startup only this much.
+    /// </summary>
+    private static readonly TimeSpan GreetingTimeout = TimeSpan.FromSeconds(5);
+
     private readonly TcpListener _listener;
     private readonly byte[] _tokenBytes;
     private readonly RequestCorrelator _correlator = new();
@@ -40,9 +47,25 @@ internal sealed class PythonHostConnection : IAsyncDisposable
     public string Token { get; }
 
     /// <summary>
-    /// Accept exactly one connection, then stop listening, and validate its handshake. Only a
-    /// connection presenting the correct token is accepted; anything else throws
-    /// <see cref="PythonHostAuthenticationException"/>.
+    /// Accept connections until one completes the handshake, then stop listening. Only a connection
+    /// presenting the correct token is kept.
+    /// <para>
+    /// The port is on the loopback interface, so any process on the machine can reach it. One that
+    /// arrives ahead of the subprocess is dropped and the listener keeps waiting, because refusing
+    /// the whole session over it would hand any local process the ability to stop Python from
+    /// starting simply by connecting first.
+    /// </para>
+    /// <para>
+    /// Each connection gets its own short window to identify itself, so one that says nothing at
+    /// all is turned away rather than holding the queue behind it for the whole startup budget.
+    /// The subprocess sends its handshake as soon as it connects, so the window only ever expires
+    /// on something that is not it.
+    /// </para>
+    /// <para>
+    /// Throws <see cref="PythonHostAuthenticationException"/> when the caller gives up and
+    /// something had been turned away, since that is the more useful account of what happened than
+    /// the bare cancellation.
+    /// </para>
     /// </summary>
     public async Task<HostHandshake> AcceptAndAuthenticateAsync(CancellationToken cancellationToken)
     {
@@ -50,17 +73,99 @@ internal sealed class PythonHostConnection : IAsyncDisposable
         if (_client is not null)
             throw new InvalidOperationException("A connection has already been accepted.");
 
-        _client = await _listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
-        _listener.Stop();
-        _client.NoDelay = true;
-        _stream = _client.GetStream();
+        string? lastRejection = null;
+
+        while (true)
+        {
+            TcpClient client;
+            try
+            {
+                client = await _listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (lastRejection is not null)
+            {
+                throw new PythonHostAuthenticationException(lastRejection);
+            }
+
+            using var greeting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            greeting.CancelAfter(GreetingTimeout);
+
+            try
+            {
+                var handshake = await AuthenticateAsync(client, greeting.Token).ConfigureAwait(false);
+
+                _listener.Stop();
+                _client = client;
+                _authenticated = true;
+                return handshake;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // This one connected and then said nothing. Move on to the next.
+                lastRejection = "A connection to the host port did not send a handshake.";
+                _stream = null;
+                _framer = null;
+                try { client.Dispose(); } catch { /* best effort */ }
+            }
+            catch (PythonHostAuthenticationException ex)
+            {
+                // Not ours. Drop it and keep listening for the one that is.
+                lastRejection = ex.Message;
+                _stream = null;
+                _framer = null;
+                try { client.Dispose(); } catch { /* best effort */ }
+            }
+            catch (OperationCanceledException) when (lastRejection is not null)
+            {
+                try { client.Dispose(); } catch { /* best effort */ }
+                throw new PythonHostAuthenticationException(lastRejection);
+            }
+            catch
+            {
+                try { client.Dispose(); } catch { /* best effort */ }
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Read one connection's handshake and decide whether it is the subprocess we started. Leaves
+    /// the framer in place on success, which is what the rest of the session reads through.
+    /// </summary>
+    private async Task<HostHandshake> AuthenticateAsync(TcpClient client, CancellationToken cancellationToken)
+    {
+        client.NoDelay = true;
+        _stream = client.GetStream();
         _framer = new NdjsonFramer(_stream);
 
-        var frame = await _framer.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new PythonHostAuthenticationException(
+        byte[]? frame;
+        try
+        {
+            frame = await _framer.ReadFrameAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or PythonHostProtocolException)
+        {
+            // A peer that sends nothing legible, or drops mid-frame, says the same thing a wrong
+            // token does: this is not the subprocess.
+            throw new PythonHostAuthenticationException(
+                "A connection to the host port sent no readable handshake.");
+        }
+
+        if (frame is null)
+            throw new PythonHostAuthenticationException(
                 "The subprocess closed the connection before sending a handshake.");
 
-        var message = HostProtocol.Deserialize(frame);
+        JsonObject message;
+        try
+        {
+            message = HostProtocol.Deserialize(frame);
+        }
+        catch (PythonHostProtocolException)
+        {
+            throw new PythonHostAuthenticationException(
+                "A connection to the host port sent a handshake that could not be read.");
+        }
+
         if (HostProtocol.GetMessageType(message) != HostProtocol.Hello)
             throw new PythonHostAuthenticationException(
                 "The subprocess did not begin with a valid handshake message.");
@@ -69,7 +174,6 @@ internal sealed class PythonHostConnection : IAsyncDisposable
             throw new PythonHostAuthenticationException(
                 "The subprocess presented an incorrect or missing handshake token.");
 
-        _authenticated = true;
         return HostHandshake.FromHello(message);
     }
 
