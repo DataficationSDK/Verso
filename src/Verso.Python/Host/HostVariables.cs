@@ -390,8 +390,105 @@ internal static class HostVariables
     /// </summary>
     public static string ComputeHash(JsonNode? node)
     {
-        var text = node?.ToJsonString() ?? "null";
-        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(text));
+        var builder = new StringBuilder();
+        Fingerprint(node, builder);
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return Convert.ToBase64String(digest);
     }
+
+    /// <summary>
+    /// Describe a value in one spelling, whichever side wrote it.
+    ///
+    /// <para>
+    /// The two fingerprints compared are of values that reached us through different writers: one
+    /// rendered by Python, one by <see cref="System.Text.Json"/>. They agree on most numbers but
+    /// not all, because Python writes <c>1e-05</c> and <c>1e+16</c> where System.Text.Json writes
+    /// <c>1E-05</c> and <c>10000000000000000</c> for the same two doubles. Comparing the JSON as it
+    /// arrived reports a difference that is not there, and the value is then sent back over the
+    /// live object it was published from, so a NumPy array or a DataFrame carrying one small enough
+    /// number becomes the list of numbers it was reduced to. Rewriting every number in one form
+    /// here is what makes the two sides comparable. Member order is normalized for the same reason,
+    /// since neither side promises the other's.
+    /// </para>
+    ///
+    /// <para>
+    /// The result is a fingerprint rather than JSON. Lengths are written ahead of the text they
+    /// measure so that no arrangement of names and values can spell another.
+    /// </para>
+    /// </summary>
+    private static void Fingerprint(JsonNode? node, StringBuilder builder)
+    {
+        switch (node)
+        {
+            case null:
+                builder.Append('n');
+                return;
+
+            case JsonArray array:
+                builder.Append('[').Append(array.Count).Append(':');
+                foreach (var item in array)
+                    Fingerprint(item, builder);
+                return;
+
+            case JsonObject obj:
+            {
+                var names = new List<string>(obj.Count);
+                foreach (var pair in obj)
+                    names.Add(pair.Key);
+                names.Sort(StringComparer.Ordinal);
+
+                builder.Append('{').Append(names.Count).Append(':');
+                foreach (var name in names)
+                {
+                    AppendText(name, builder);
+                    Fingerprint(obj[name], builder);
+                }
+
+                return;
+            }
+
+            case JsonValue value:
+                AppendScalar(value, builder);
+                return;
+
+            default:
+                AppendText(node.ToString(), builder);
+                return;
+        }
+    }
+
+    private static void AppendScalar(JsonValue value, StringBuilder builder)
+    {
+        if (value.TryGetValue<bool>(out var flag))
+        {
+            builder.Append(flag ? 't' : 'f');
+            return;
+        }
+
+        if (value.TryGetValue<string>(out var text))
+        {
+            builder.Append('s');
+            AppendText(text, builder);
+            return;
+        }
+
+        // Whole numbers are kept as they are so that one too large for a double to hold exactly
+        // still tells itself apart from its neighbours. Everything else goes through the shortest
+        // form that reads back as the same double, which is the spelling both writers can agree on.
+        if (value.TryGetValue<long>(out var integer))
+        {
+            builder.Append('#').Append(integer.ToString(CultureInfo.InvariantCulture)).Append(';');
+            return;
+        }
+
+        var raw = value.ToJsonString();
+        builder.Append('#')
+            .Append(double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+                ? number.ToString("R", CultureInfo.InvariantCulture)
+                : raw)
+            .Append(';');
+    }
+
+    private static void AppendText(string text, StringBuilder builder)
+        => builder.Append(text.Length).Append(':').Append(text);
 }

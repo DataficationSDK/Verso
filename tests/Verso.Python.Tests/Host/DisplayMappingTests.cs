@@ -286,4 +286,52 @@ public sealed class DisplayMappingTests
         Assert.AreEqual(HostVariables.ComputeHash(first), HostVariables.ComputeHash(same));
         Assert.AreNotEqual(HostVariables.ComputeHash(first), HostVariables.ComputeHash(different));
     }
+
+    /// <summary>
+    /// The spellings Python and System.Text.Json disagree on. A value that fingerprints differently
+    /// on the two sides is taken for a value the cell changed, and the store copy is then injected
+    /// over the live object, which is how an array of small numbers arrives in the next cell as a
+    /// list. Both of these reached a notebook: the first is any probability or residual, the second
+    /// any count past a quadrillion.
+    /// </summary>
+    [DataTestMethod]
+    [DataRow("1e-05")]
+    [DataRow("1.5e-07")]
+    [DataRow("1e+16")]
+    [DataRow("-2.5e-11")]
+    [DataRow("3.0")]
+    [DataRow("0.25")]
+    public void Hash_IgnoresHowEitherSideSpelledANumber(string pythonSpelling)
+    {
+        // What Python sent, kept exactly as its own JSON writer wrote it.
+        var fromPython = JsonNode.Parse($"[{pythonSpelling}]");
+
+        // The same value after a round trip through the store, rewritten by System.Text.Json.
+        HostVariables.TryToJson(HostVariables.FromJson(fromPython), out var fromStore);
+
+        Assert.AreEqual(
+            HostVariables.ComputeHash(fromPython),
+            HostVariables.ComputeHash(fromStore),
+            $"{pythonSpelling} was re-sent to Python because the two sides spelled it differently");
+    }
+
+    [TestMethod]
+    public void Hash_StillSeparatesNumbersTooCloseForADoubleToTell()
+    {
+        // Adjacent integers past a double's exact range. Rewriting numbers must not round them
+        // together, or a changed value would look unchanged and never reach the store.
+        var first = JsonNode.Parse("[9007199254740993]");
+        var second = JsonNode.Parse("[9007199254740992]");
+
+        Assert.AreNotEqual(HostVariables.ComputeHash(first), HostVariables.ComputeHash(second));
+    }
+
+    [TestMethod]
+    public void Hash_SeparatesValuesThatDifferOnlyInWhereAKeyEnds()
+    {
+        var first = JsonNode.Parse("{\"a\":\"b\",\"c\":\"d\"}");
+        var second = JsonNode.Parse("{\"a\":\"bc\",\"\":\"d\"}");
+
+        Assert.AreNotEqual(HostVariables.ComputeHash(first), HostVariables.ComputeHash(second));
+    }
 }
