@@ -1,0 +1,80 @@
+# Python Packages
+
+Packages install into the interpreter your cells actually run in, so an import on the next line finds them without a restart. Which interpreter that is comes from [Python Interpreters](python-interpreters.md).
+
+There are three ways to get a package into a notebook: ask for it explicitly, let an import ask for it, or declare it once for the whole notebook.
+
+## Installing explicitly
+
+```python
+#!pip requests pandas>=2
+import requests
+```
+
+`#!pip` runs before the rest of the cell, so the import below it succeeds on the first run. It takes the same package specifiers and options pip does, and its output streams into the cell as it goes.
+
+If `uv` is on your `PATH`, Verso uses it, which is considerably faster. Set `verso.python.useUv` to false to always use pip and the standard library.
+
+Two familiar notebook shorthands also work in a Python cell:
+
+```python
+%pip install requests      # runs pip against this notebook's interpreter
+!echo hello                # runs a shell command
+```
+
+## Installing on import
+
+By default, a cell that imports something the environment does not have will offer to install it rather than simply failing.
+
+```python
+import pandas as pd
+```
+
+If `pandas` is missing, a dialog appears titled "Package Install Required". It names the distribution that will be installed, the import that asked for it, and the interpreter it will go into. Approving installs it and the cell then runs normally. Declining runs the cell anyway, so it fails at the import exactly as it would have without the offer, and the same cell will not ask again during the session.
+
+The distribution name is often not the import name. Verso knows the common cases, so `import cv2` offers `opencv-python`, `import PIL` offers `Pillow`, and `import sklearn` offers `scikit-learn`.
+
+An import wrapped in `try` is never installed. A cell that guards an import has already said it can run without the module, so installing it would answer a question the cell did not ask.
+
+Dynamic imports cannot be seen ahead of time. If `importlib.import_module` raises `ModuleNotFoundError`, Verso offers the install then. If the cell had not yet written any output it is re-run for you; if it had, the install is reported and you are asked to run the cell again, because output that has already appeared cannot be taken back.
+
+### Policies
+
+`verso.python.autoInstall` controls all of this.
+
+| Value | Behaviour |
+|-------|-----------|
+| `prompt` | Ask first, listing the exact distributions and the environment. The default. |
+| `auto` | Install recognized distributions without asking. |
+| `off` | Never scan a cell's imports and never install. |
+
+Under `auto`, a name Verso only guessed at is reported rather than installed. Guessing means falling back to using the import name as the distribution name, and that is precisely the case worth being careful about: a typo like `import pandsa` produces a plausible package name that somebody may well have published. Recognized names install silently; guesses are named in the output so you can install them deliberately.
+
+The command line never installs anything unless asked. `verso run` uses `off`, and `verso run --auto-install` selects `auto`.
+
+## Declaring dependencies
+
+For a notebook that always needs the same packages, declare them once instead of putting a `#!pip` line in a cell.
+
+Open the notebook's settings, find the Python kernel's **Dependencies** setting under Packages, and list the requirements one per entry in the form pip accepts, such as `pandas>=2`. They are saved with the notebook and checked once before the first cell runs, under the same policy as an import. Anything already present is left alone.
+
+A requirement list travels between machines sensibly, which is why this one is saved into the notebook while the interpreter path and the install policy are not.
+
+You can also declare requirements inline, using the standard script metadata format, at the top of the first cell you run:
+
+```python
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["requests", "rich"]
+# ///
+
+import requests
+```
+
+`requires-python` is checked and reported whenever the running interpreter does not satisfy it, whatever the install policy is, because that is worth knowing even where nothing may be installed. It is a note rather than an error: use `#!python` to select a different interpreter if you want to act on it.
+
+## See also
+
+- [Python Interpreters](python-interpreters.md)
+- [Language Kernels](language-kernels.md)
+- [Managing Extensions](managing-extensions.md)

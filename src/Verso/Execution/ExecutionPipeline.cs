@@ -152,14 +152,95 @@ internal sealed class ExecutionPipeline
         var outputLock = new object();
         var streamedOutputs = new HashSet<CellOutput>(ReferenceEqualityComparer.Instance);
 
-        Task AppendOutput(CellOutput output)
+        // How much this cell is still allowed to produce. A runaway loop that prints is otherwise
+        // bounded by nothing, and every block it makes is saved with the notebook.
+        var budget = new OutputBudget();
+
+        // Adds one output if the cell still has room, and otherwise the one-time notice saying it
+        // does not. Returns whether the cell's outputs changed. Callers hold outputLock.
+        bool Admit(CellOutput output)
         {
-            lock (outputLock)
+            if (budget.TryAddBlock(cell.Outputs.Count, output.Content))
             {
                 cell.Outputs.Add(output);
                 streamedOutputs.Add(output);
+                return true;
             }
-            _notifyOutputUpdated?.Invoke(cell.Id);
+
+            var notice = budget.TryDescribeLimit();
+            if (notice is null)
+                return false;
+
+            cell.Outputs.Add(notice);
+            return true;
+        }
+
+        Task AppendOutput(CellOutput output)
+        {
+            bool changed;
+            lock (outputLock)
+            {
+                changed = Admit(output);
+            }
+
+            if (changed)
+                _notifyOutputUpdated?.Invoke(cell.Id);
+
+            return Task.CompletedTask;
+        }
+
+        // Where each named output block currently sits. Held for the length of one execution and
+        // nowhere else: an identifier only has to survive long enough for the kernel that minted
+        // it to write to the same block again, and keeping it off CellOutput means the record's
+        // equality (which the diff view compares on) stays about content rather than identity.
+        var outputBlocks = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        Task UpdateOutput(string blockId, CellOutput output)
+        {
+            bool changed;
+            lock (outputLock)
+            {
+                if (outputBlocks.TryGetValue(blockId, out var index) && index < cell.Outputs.Count)
+                {
+                    var existing = cell.Outputs[index];
+                    var admitted = budget.TryReviseBlock(existing.Content, output.Content);
+                    changed = admitted is not null;
+
+                    if (admitted is not null)
+                    {
+                        var revised = admitted.Length == output.Content.Length
+                            ? output
+                            : output with { Content = admitted };
+
+                        // The instance being replaced is no longer the one the kernel will return,
+                        // so the new one is tracked in its place to keep the end-of-cell append
+                        // from adding it a second time.
+                        streamedOutputs.Remove(existing);
+                        cell.Outputs[index] = revised;
+                        streamedOutputs.Add(revised);
+                    }
+
+                    var notice = budget.TryDescribeLimit();
+                    if (notice is not null)
+                    {
+                        cell.Outputs.Add(notice);
+                        changed = true;
+                    }
+                }
+                else
+                {
+                    // A block only claims its position once it is known to fit, so a rejected first
+                    // write leaves nothing for a later write to that name to revise.
+                    var position = cell.Outputs.Count;
+                    changed = Admit(output);
+                    if (changed && !budget.LimitReached)
+                        outputBlocks[blockId] = position;
+                }
+            }
+
+            if (changed)
+                _notifyOutputUpdated?.Invoke(cell.Id);
+
             return Task.CompletedTask;
         }
 
@@ -254,7 +335,8 @@ internal sealed class ExecutionPipeline
             requestInput: (prompt, isPassword, inputCt) =>
                 _requestInput is null
                     ? throw new NotSupportedException("Interactive input is not supported by this host.")
-                    : _requestInput(cell.Id, prompt, isPassword, inputCt == default ? ct : inputCt));
+                    : _requestInput(cell.Id, prompt, isPassword, inputCt == default ? ct : inputCt),
+            updateOutput: UpdateOutput);
 
         ct.ThrowIfCancellationRequested();
 
@@ -271,10 +353,32 @@ internal sealed class ExecutionPipeline
             {
                 foreach (var output in returnedOutputs)
                 {
-                    if (!streamedOutputs.Contains(output))
-                        cell.Outputs.Add(output);
+                    if (streamedOutputs.Contains(output))
+                        continue;
+
+                    Admit(output);
+
+                    // Once the cell is full the rest cannot fit either, and the notice explaining
+                    // why has already been added.
+                    if (budget.LimitReached)
+                        break;
                 }
             }
+        }
+
+        // Work an earlier cell started and did not wait for can fail long after that cell was
+        // answered. This is the first moment there is a cell to report it against. Reported
+        // regardless of how much output the cell already produced: a failure the user has no other
+        // way to learn about is exactly what must not be dropped to save room.
+        var backgroundFaults = BackgroundFaultMonitor.Drain();
+        if (backgroundFaults.Count > 0)
+        {
+            lock (outputLock)
+            {
+                foreach (var fault in backgroundFaults)
+                    cell.Outputs.Add(fault);
+            }
+            _notifyOutputUpdated?.Invoke(cell.Id);
         }
 
         stopwatch.Stop();

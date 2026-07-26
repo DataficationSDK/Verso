@@ -145,6 +145,18 @@ internal static class NotebookMarkdownExporter
             return;
         }
 
+        if (output.Channel == OutputChannel.Stderr)
+        {
+            sb.AppendLine("```text");
+            sb.AppendLine("[stderr]");
+            foreach (var line in output.Content.Split('\n'))
+            {
+                sb.AppendLine(line.TrimEnd('\r'));
+            }
+            sb.AppendLine("```");
+            return;
+        }
+
         switch (output.MimeType)
         {
             case "text/plain":

@@ -8,7 +8,7 @@ A kernel is what executes a code cell in a given language. Verso ships kernels f
 |----------|------------------|-----------------|
 | C# (Roslyn scripting) | `csharp` | `.cs`, `.csx` |
 | F# (F# Interactive) | `fsharp` | `.fs`, `.fsx` |
-| Python (via pythonnet) | `python` | `.py` |
+| Python (your installed interpreter, 3.8+) | `python` | `.py` |
 | JavaScript (Jint) | `javascript` | `.js`, `.mjs` |
 | TypeScript (Jint) | `typescript` | `.ts`, `.tsx` |
 | PowerShell | `powershell` | `.ps1`, `.psm1` |
@@ -34,6 +34,8 @@ Each language brings in dependencies with a short directive at the top of a cell
 | JavaScript and TypeScript | `#!npm` | `#!npm lodash` |
 
 PowerShell has no dedicated directive; install modules with ordinary PowerShell code such as `Install-Module`. SQL connects to a database with `#!sql-connect` (see [Database Connectivity](database-connectivity.md)), and HTTP configures a base URL and headers with `#!http-set-base` and friends (see [HTTP Requests](http-requests.md)).
+
+Python cells can also install on demand: importing a package the environment does not have offers to install it first. See [Python Packages](python-packages.md).
 
 ## Sharing variables across languages
 
@@ -66,6 +68,7 @@ Kernels initialize lazily the first time you run a cell in that language. If a k
 
 ## See also
 
+- [Python Interpreters](python-interpreters.md) and [Python Packages](python-packages.md)
 - [Cell Types](cell-types.md)
 - [HTTP Requests](http-requests.md) and [Database Connectivity](database-connectivity.md)
 - [Notebook Parameters](notebook-parameters.md)

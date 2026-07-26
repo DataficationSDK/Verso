@@ -1,3 +1,4 @@
+using System.Net;
 using Verso.Http.Kernel;
 using Verso.Testing.Stubs;
 
@@ -28,6 +29,94 @@ public sealed class HttpKernelTests
         var outputs = await kernel.ExecuteAsync("GET /api/users", ctx);
 
         Assert.IsTrue(outputs.Any(o => o.IsError && o.Content.Contains("base URL")));
+    }
+
+    /// <summary>
+    /// A request that came back 5xx did not do what the cell asked. Reporting it as a success
+    /// meant a notebook could pass in a pipeline while every call it made was failing.
+    /// </summary>
+    [TestMethod]
+    public async Task ExecuteAsync_ServerError_FailsTheCell()
+    {
+        using var server = new LocalServer(statusCode: 500, body: "boom");
+        var kernel = new HttpKernel();
+        var ctx = new StubExecutionContext();
+
+        var outputs = await kernel.ExecuteAsync($"GET {server.Url}", ctx);
+
+        var failure = outputs.FirstOrDefault(o => o.IsError);
+        Assert.IsNotNull(failure, "a 500 response should fail the cell");
+        Assert.AreEqual("HttpRequestFailed", failure!.ErrorName);
+        StringAssert.Contains(failure.Content, "500");
+
+        // The response is still shown, because the status line and body are the whole point of
+        // looking, and it has to read before the verdict.
+        Assert.IsTrue(outputs.Count > 1, "the response itself should still be reported");
+        Assert.IsFalse(outputs[0].IsError, "the response should come before the failure");
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_SuccessfulResponse_DoesNotFailTheCell()
+    {
+        using var server = new LocalServer(statusCode: 200, body: "fine");
+        var kernel = new HttpKernel();
+        var ctx = new StubExecutionContext();
+
+        var outputs = await kernel.ExecuteAsync($"GET {server.Url}", ctx);
+
+        Assert.IsFalse(outputs.Any(o => o.IsError), "a 200 response is not a failure");
+    }
+
+    /// <summary>A one-request loopback server, so these tests need no network.</summary>
+    private sealed class LocalServer : IDisposable
+    {
+        private readonly HttpListener _listener = new();
+
+        public LocalServer(int statusCode, string body)
+        {
+            var port = GetFreePort();
+            Url = $"http://127.0.0.1:{port}/";
+            _listener.Prefixes.Add(Url);
+            _listener.Start();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var context = await _listener.GetContextAsync();
+                    context.Response.StatusCode = statusCode;
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(body);
+                    context.Response.ContentLength64 = bytes.Length;
+                    await context.Response.OutputStream.WriteAsync(bytes);
+                    context.Response.Close();
+                }
+                catch (HttpListenerException)
+                {
+                    // Disposed while waiting, which is how the test ends.
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
+        }
+
+        public string Url { get; }
+
+        private static int GetFreePort()
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
+
+        public void Dispose()
+        {
+            if (_listener.IsListening)
+                _listener.Stop();
+            _listener.Close();
+        }
     }
 
     [TestMethod]

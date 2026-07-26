@@ -34,6 +34,10 @@ public sealed class MimeDispatcher
             "image/png" or "image/jpeg" or "image/gif" or "image/webp" or "image/bmp" or "image/svg+xml"
                 => ImagePlaceholderRenderer.AsRenderable(output, cellCounter, outputIndex, _useColor),
             "text/x-verso-mermaid" => PlainTextRenderer.AsRenderable(output, policy),
+            // A terminal has no live bar to show once the cell is done, so the last reported
+            // state is rendered as one line.
+            CellOutput.ProgressMimeType => PlainTextRenderer.AsRenderable(
+                output with { Content = CellOutput.DescribeProgress(output.Content) }, policy),
             _ => BuildUnknown(output, policy)
         };
     }

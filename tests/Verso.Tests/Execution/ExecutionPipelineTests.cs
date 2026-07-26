@@ -141,6 +141,93 @@ public sealed class ExecutionPipelineTests
         CollectionAssert.Contains(notified, cell.Id, "Render-only cell must notify that its output updated.");
     }
 
+    [TestMethod]
+    public async Task Outputs_StopAtTheBlockLimit_AndSayWhy()
+    {
+        var kernel = new FakeLanguageKernel("csharp", executeFunc: async (code, ctx) =>
+        {
+            for (var i = 0; i < OutputBudget.MaxBlocks + 50; i++)
+                await ctx.WriteOutputAsync(CellOutput.Stdout("line"));
+            return Array.Empty<CellOutput>();
+        });
+        var cell = new CellModel { Language = "csharp", Source = "while (true) Console.WriteLine();" };
+
+        var pipeline = BuildPipeline(kernel, cell);
+        var result = await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        Assert.AreEqual(OutputBudget.MaxBlocks + 1, cell.Outputs.Count,
+            "A cell should keep its limit of blocks plus the one notice explaining the limit.");
+        StringAssert.Contains(cell.Outputs[^1].Content, "Output stopped after");
+        Assert.IsFalse(cell.Outputs[^1].IsError, "Reaching the output limit is not a cell failure.");
+        Assert.AreEqual(ExecutionResult.ExecutionStatus.Success, result.Status);
+    }
+
+    [TestMethod]
+    public async Task Outputs_StopAtTheCharacterLimit_AndSayWhy()
+    {
+        // One string, written repeatedly, so the test measures the limit rather than allocating
+        // its way up to it.
+        var chunk = new string('x', 4 * 1024 * 1024);
+        var kernel = new FakeLanguageKernel("csharp", executeFunc: async (code, ctx) =>
+        {
+            for (var i = 0; i < 8; i++)
+                await ctx.WriteOutputAsync(CellOutput.Stdout(chunk));
+            return Array.Empty<CellOutput>();
+        });
+        var cell = new CellModel { Language = "csharp", Source = "x" };
+
+        var pipeline = BuildPipeline(kernel, cell);
+        await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        var accepted = OutputBudget.MaxCharacters / chunk.Length;
+        Assert.AreEqual(accepted + 1, cell.Outputs.Count);
+        StringAssert.Contains(cell.Outputs[^1].Content, "Output stopped at");
+    }
+
+    [TestMethod]
+    public async Task ReturnedOutputs_StopAtTheBlockLimit()
+    {
+        // Output the kernel hands back at the end is subject to the same limit as output it
+        // streamed, or a rejected block would simply reappear here.
+        var returned = Enumerable.Range(0, OutputBudget.MaxBlocks + 50)
+            .Select(_ => CellOutput.Plain("line"))
+            .ToArray();
+        var kernel = new FakeLanguageKernel("csharp", executeFunc: (code, ctx) =>
+            Task.FromResult<IReadOnlyList<CellOutput>>(returned));
+        var cell = new CellModel { Language = "csharp", Source = "x" };
+
+        var pipeline = BuildPipeline(kernel, cell);
+        await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        Assert.AreEqual(OutputBudget.MaxBlocks + 1, cell.Outputs.Count);
+        StringAssert.Contains(cell.Outputs[^1].Content, "Output stopped after");
+    }
+
+    [TestMethod]
+    public async Task RevisedBlock_StopsGrowingAtTheCharacterLimit()
+    {
+        // A cell that streams into one block never adds a second, so the block count cannot bound
+        // it. Its content is what has to stop growing.
+        var opening = new string('x', 1024);
+        var overflowing = new string('y', OutputBudget.MaxCharacters + 10);
+
+        var kernel = new FakeLanguageKernel("csharp", executeFunc: async (code, ctx) =>
+        {
+            await ctx.UpdateOutputAsync("stream-0", CellOutput.Stdout(opening));
+            await ctx.UpdateOutputAsync("stream-0", CellOutput.Stdout(overflowing));
+            await ctx.UpdateOutputAsync("stream-0", CellOutput.Stdout(overflowing));
+            return Array.Empty<CellOutput>();
+        });
+        var cell = new CellModel { Language = "csharp", Source = "x" };
+
+        var pipeline = BuildPipeline(kernel, cell);
+        await pipeline.ExecuteAsync(cell, CancellationToken.None);
+
+        Assert.AreEqual(2, cell.Outputs.Count, "The stream block, and the notice after it.");
+        Assert.AreEqual(OutputBudget.MaxCharacters, cell.Outputs[0].Content.Length);
+        StringAssert.Contains(cell.Outputs[1].Content, "Output stopped at");
+    }
+
     private static ExecutionPipeline BuildPipeline(
         FakeLanguageKernel? kernel, CellModel cell, string? defaultKernelId = null,
         IReadOnlyList<ICellRenderer>? renderers = null,

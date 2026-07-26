@@ -339,36 +339,9 @@ public sealed class HeadlessRunner
         return resolved;
     }
 
-    /// <summary>
-    /// Checks whether a cell had errors, either via the ExecutionResult status
-    /// or by inspecting cell outputs for error markers. The Verso kernel may
-    /// catch exceptions and report them as error outputs while returning Success.
-    /// </summary>
     private static bool CellHasErrors(Guid cellId, NotebookModel notebook, ExecutionResult result)
-    {
-        if (result.Status == ExecutionResult.ExecutionStatus.Failed)
-            return true;
+        => CellOutcome.Failed(CellOutcome.Find(notebook.Cells, cellId), result);
 
-        var cell = notebook.Cells.FirstOrDefault(c => c.Id == cellId);
-        return cell?.Outputs.Any(o => o.IsError) ?? false;
-    }
-
-    /// <summary>
-    /// Checks whether any executed cell had failures.
-    /// </summary>
     private static bool HasAnyFailure(NotebookModel notebook, IReadOnlyList<ExecutionResult> results)
-    {
-        if (results.Any(r => r.Status == ExecutionResult.ExecutionStatus.Failed))
-            return true;
-
-        // Also check cell outputs for errors that the kernel handled internally
-        foreach (var result in results)
-        {
-            var cell = notebook.Cells.FirstOrDefault(c => c.Id == result.CellId);
-            if (cell?.Outputs.Any(o => o.IsError) == true)
-                return true;
-        }
-
-        return false;
-    }
+        => CellOutcome.AnyFailed(notebook.Cells, results);
 }

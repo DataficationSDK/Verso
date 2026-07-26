@@ -11,12 +11,15 @@ The original copyright notices and license texts are provided for each component
 | NuGet.Protocol | 6.9.1 | Apache-2.0 | [NuGet/NuGet.Client](https://github.com/NuGet/NuGet.Client) |
 | Microsoft.AspNetCore.Components | 8.0.0 | MIT | [dotnet/aspnetcore](https://github.com/dotnet/aspnetcore) |
 | Microsoft.PowerShell.SDK | 7.4.7 | MIT | [PowerShell/PowerShell](https://github.com/PowerShell/PowerShell) |
-| FSharp.Compiler.Service | 43.9.100 | MIT | [dotnet/fsharp](https://github.com/dotnet/fsharp) |
-| Jint | 4.6.4 | BSD-2-Clause | [sebastienros/jint](https://github.com/sebastienros/jint) |
-| pythonnet | 3.1.0-rc.0 | MIT | [pythonnet/pythonnet](https://github.com/pythonnet/pythonnet) |
+| FSharp.Compiler.Service | 43.12.202 | MIT | [dotnet/fsharp](https://github.com/dotnet/fsharp) |
+| Jint | 4.12.0 | BSD-2-Clause | [sebastienros/jint](https://github.com/sebastienros/jint) |
 | Markdig | 0.37.0 | BSD-2-Clause | [lunet-io/markdig](https://github.com/lunet-io/markdig) |
 | Spectre.Console | 0.49.1 | MIT | [spectreconsole/spectre.console](https://github.com/spectreconsole/spectre.console) |
+| System.CommandLine | 2.0.0-beta4.22272.1 | MIT | [dotnet/command-line-api](https://github.com/dotnet/command-line-api) |
 | PrettyPrompt | 4.1.0 | MPL-2.0 | [waf/PrettyPrompt](https://github.com/waf/PrettyPrompt) |
+
+The Python kernel runs the interpreter installed on the machine as a separate process and
+redistributes no Python components of its own.
 
 ### Roslyn packages included
 
@@ -30,6 +33,11 @@ The original copyright notices and license texts are provided for each component
 - Microsoft.AspNetCore.Components.Web
 - Microsoft.AspNetCore.Components.WebAssembly
 
+### Spectre.Console packages included
+
+- Spectre.Console
+- Spectre.Console.Json
+
 ---
 
 ## MIT License
@@ -40,8 +48,8 @@ The following components are licensed under the MIT License:
 - **Microsoft.AspNetCore.Components** - Copyright (c) .NET Foundation and Contributors
 - **Microsoft.PowerShell.SDK** - Copyright (c) Microsoft Corporation
 - **FSharp.Compiler.Service** - Copyright (c) Microsoft Corporation and Contributors
-- **pythonnet** - Copyright (c) the contributors of the pythonnet project
 - **Spectre.Console** - Copyright (c) Patrik Svensson, Phil Scott, Nils Andresen
+- **System.CommandLine** - Copyright (c) .NET Foundation and Contributors
 
 ```
 Permission is hereby granted, free of charge, to any person obtaining a copy

@@ -280,17 +280,5 @@ public static class ExportCommand
     }
 
     private static bool HasAnyFailure(NotebookModel notebook, IReadOnlyList<ExecutionResult> results)
-    {
-        if (results.Any(r => r.Status == ExecutionResult.ExecutionStatus.Failed))
-            return true;
-
-        foreach (var result in results)
-        {
-            var cell = notebook.Cells.FirstOrDefault(c => c.Id == result.CellId);
-            if (cell?.Outputs.Any(o => o.IsError) == true)
-                return true;
-        }
-
-        return false;
-    }
+        => CellOutcome.AnyFailed(notebook.Cells, results);
 }

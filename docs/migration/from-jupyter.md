@@ -81,7 +81,8 @@ Notebook-level metadata beyond kernel detection (`kernelspec.name`, `kernelspec.
 Python is the most common Jupyter kernel. When importing a Python notebook:
 
 - All code cells are set to the `python` language
-- Python package management uses `#!pip` instead of `!pip` or `%pip`:
+- Python cells run the interpreter installed on your machine, Python 3.8 or newer, picked up from an active virtual environment or conda environment where there is one. See [Python Interpreters](../guides/python-interpreters.md).
+- `#!pip` is the Verso form of package installation, though `%pip` and `!` both work as they do in Jupyter:
 
   **Jupyter:**
   ```python
@@ -95,6 +96,8 @@ Python is the most common Jupyter kernel. When importing a Python notebook:
   #!pip numpy
   ```
 
+  You often do not need any of them. Importing a package the environment lacks offers to install it first. See [Python Packages](../guides/python-packages.md).
+
 - Jupyter magic commands (`%matplotlib`, `%%timeit`, `%env`, etc.) are IPython-specific and do not have direct Verso equivalents. These need to be replaced:
 
   | Jupyter Magic | Verso Alternative |
@@ -103,7 +106,8 @@ Python is the most common Jupyter kernel. When importing a Python notebook:
   | `%%timeit` / `%time` | `#!time` magic command |
   | `%env VAR value` | Set environment variables in a preceding cell |
   | `%load_ext` | `#!extension` for Verso extensions |
-  | `!command` | Shell commands depend on the kernel (not directly supported in Python cells) |
+  | `!command` | Supported in Python cells, which run a real interpreter of your own |
+  | `%pip install` | Supported, though `#!pip` is the Verso form |
 
 - A `display()` function is built into every Python cell (no import needed) for rich output. When the `IPython` package is installed (via `#!pip IPython`), `IPython.display.display` is wired to the same function, so `from IPython.display import display, HTML, Markdown` works too. Objects that implement `_repr_html_`, `_repr_png_`, or `_repr_svg_` render through it automatically.
 

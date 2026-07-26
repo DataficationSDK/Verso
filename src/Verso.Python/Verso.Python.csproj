@@ -8,7 +8,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Python</PackageId>
     <Title>Verso Python</Title>
-    <Description>Python language kernel extension for Verso notebooks via pythonnet.</Description>
+    <Description>Python language kernel extension for Verso notebooks, running the interpreter installed on the machine.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,10 +25,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Verso.Python.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="pythonnet" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>

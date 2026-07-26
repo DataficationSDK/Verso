@@ -22,8 +22,7 @@ public sealed class CompletionTests
         // The analysis library is installed in the background as the kernel starts, so probing
         // for it straight away would race that. Settled first, and left alone on a machine that
         // cannot install it, where the tests needing it report inconclusive.
-        if (EmbeddedRuntimeOnly.HostProcessEnabled)
-            await AnalysisTools.TryEnsureAsync();
+        await AnalysisTools.TryEnsureAsync();
 
         // Hover is the discriminator: it is the one answer the standard-library fallbacks cannot
         // produce. Without the library, completions come from the standard completer, which
@@ -57,7 +56,7 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_DotOnModule_ReturnsModuleMembers()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -72,7 +71,7 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_AfterExecution_IncludesUserVariables()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -90,7 +89,7 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_PartialTyping_FiltersByPrefix()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -104,7 +103,7 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_BuiltinAvailable()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var code = "le";
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);
@@ -116,7 +115,7 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_EmptyCode_DoesNotThrow()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var completions = await _kernel.GetCompletionsAsync("", 0);
         Assert.IsNotNull(completions);
@@ -125,7 +124,7 @@ public sealed class CompletionTests
     [TestMethod]
     public async Task Completions_KindMapping_ReturnsCorrectKinds()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var code = "os.";
         var completions = await _kernel.GetCompletionsAsync(code, code.Length);

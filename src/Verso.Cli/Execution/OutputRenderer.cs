@@ -113,12 +113,17 @@ public sealed partial class OutputRenderer
     }
 
     /// <summary>
-    /// Writes the summary footer with execution counts and total elapsed time.
+    /// Writes the summary footer with execution counts and total elapsed time. The cells are needed
+    /// as well as their results, because a cell that raised usually reports it as an error output
+    /// while the execution itself is recorded as having completed.
     /// </summary>
-    public void WriteSummary(IReadOnlyList<ExecutionResult> results, TimeSpan totalElapsed)
+    public void WriteSummary(
+        IReadOnlyList<ExecutionResult> results,
+        IReadOnlyList<CellModel> cells,
+        TimeSpan totalElapsed)
     {
-        var succeeded = results.Count(r => r.Status == ExecutionResult.ExecutionStatus.Success);
-        var failed = results.Count(r => r.Status == ExecutionResult.ExecutionStatus.Failed);
+        var succeeded = results.Count(r => CellOutcome.Succeeded(CellOutcome.Find(cells, r.CellId), r));
+        var failed = results.Count(r => CellOutcome.Failed(CellOutcome.Find(cells, r.CellId), r));
         var total = results.Count;
 
         _stdout.WriteLine($"\u2500\u2500\u2500 Summary \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
@@ -133,6 +138,8 @@ public sealed partial class OutputRenderer
             case "text/plain":
                 if (output.IsError)
                     WriteError(output.Content);
+                else if (output.Channel == OutputChannel.Stderr)
+                    WriteStandardError(output.Content);
                 else
                     WriteMaybeTruncated(output.Content, preview, previewLineCount);
                 break;
@@ -161,6 +168,12 @@ public sealed partial class OutputRenderer
                 WriteError(output.Content);
                 break;
 
+            case CellOutput.ProgressMimeType:
+                // Nothing is in flight by the time this prints, so the last state is reported as
+                // one line rather than as a bar that would look like it were still moving.
+                _stdout.WriteLine(CellOutput.DescribeProgress(output.Content));
+                break;
+
             case "text/markdown":
                 if (_includeMarkdown && !string.IsNullOrWhiteSpace(output.Content))
                     WriteMaybeTruncated(output.Content, preview, previewLineCount);
@@ -171,6 +184,8 @@ public sealed partial class OutputRenderer
                     break; // Skip images in text mode
                 if (output.IsError)
                     WriteError(output.Content);
+                else if (output.Channel == OutputChannel.Stderr)
+                    WriteStandardError(output.Content);
                 else
                     _stdout.WriteLine(output.Content);
                 break;
@@ -197,6 +212,20 @@ public sealed partial class OutputRenderer
 
         var omitted = lines.Length - previewLineCount;
         _stdout.WriteLine($"... ({omitted} more {(omitted == 1 ? "line" : "lines")})");
+    }
+
+    /// <summary>
+    /// Writes text a kernel sent to standard error. It goes to this process's standard error so
+    /// redirection keeps behaving the way a shell user expects, but it is not tagged as an error,
+    /// because it did not fail anything. The tag is still textual rather than colour alone, so the
+    /// distinction survives being piped to a file.
+    /// </summary>
+    private void WriteStandardError(string content)
+    {
+        if (_supportsAnsi)
+            _stderr.WriteLine($"\x1b[2m[stderr] {content}\x1b[0m");
+        else
+            _stderr.WriteLine($"[stderr] {content}");
     }
 
     private void WriteError(string content)

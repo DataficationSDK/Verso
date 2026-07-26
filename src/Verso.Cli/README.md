@@ -344,7 +344,7 @@ The CLI ships with all built-in Verso extensions, discovered automatically at ru
 
 - **C#** (Roslyn scripting)
 - **F#** (F# Interactive)
-- **Python** (pythonnet)
+- **Python** (the interpreter installed on the machine, 3.8+)
 - **JavaScript/TypeScript** (Jint)
 - **PowerShell**
 - **SQL** (ADO.NET, multi-provider)

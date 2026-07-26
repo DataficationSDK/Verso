@@ -43,14 +43,19 @@ public class ExecutionTests
         Assert.IsTrue(jsonOutput.Content.Contains("3"), $"Expected '3' in output, got: {jsonOutput.Content}");
     }
 
+    /// <summary>
+    /// console.error reports a diagnostic; it does not throw and does not stop the cell. A
+    /// thrown error is what fails a JavaScript cell, covered by RuntimeError_ReturnsErrorOutput.
+    /// </summary>
     [TestMethod]
-    public async Task ConsoleError_ReturnsErrorOutput()
+    public async Task ConsoleError_GoesToStandardErrorWithoutFailingTheCell()
     {
         var outputs = await _kernel.ExecuteAsync("console.error('something failed')", _context);
-        Assert.IsTrue(outputs.Any(o => o.IsError), "Expected an error output");
-        var errorOutput = outputs.First(o => o.IsError);
-        Assert.IsTrue(errorOutput.Content.Contains("something failed"),
-            $"Expected 'something failed' in error, got: {errorOutput.Content}");
+        var stderrOutput = outputs.FirstOrDefault(o => o.Channel == OutputChannel.Stderr);
+        Assert.IsNotNull(stderrOutput, "Expected standard error output");
+        Assert.IsTrue(stderrOutput!.Content.Contains("something failed"),
+            $"Expected 'something failed' in output, got: {stderrOutput.Content}");
+        Assert.IsFalse(outputs.Any(o => o.IsError), "console.error is not a failure");
     }
 
     [TestMethod]
@@ -132,13 +137,14 @@ public class ExecutionTests
     }
 
     [TestMethod]
-    public async Task ConsoleWarn_GoesToStderr()
+    public async Task ConsoleWarn_GoesToStandardErrorWithoutFailingTheCell()
     {
         var outputs = await _kernel.ExecuteAsync("console.warn('caution')", _context);
-        Assert.IsTrue(outputs.Any(o => o.IsError), "Expected console.warn to produce error output");
-        var warnOutput = outputs.First(o => o.IsError);
-        Assert.IsTrue(warnOutput.Content.Contains("caution"),
+        var warnOutput = outputs.FirstOrDefault(o => o.Channel == OutputChannel.Stderr);
+        Assert.IsNotNull(warnOutput, "Expected standard error output");
+        Assert.IsTrue(warnOutput!.Content.Contains("caution"),
             $"Expected 'caution' in output, got: {warnOutput.Content}");
+        Assert.IsFalse(outputs.Any(o => o.IsError), "a warning is not a failure");
     }
 
     [TestMethod]

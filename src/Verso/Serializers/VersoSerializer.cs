@@ -134,7 +134,8 @@ public sealed class VersoSerializer : INotebookSerializer
                         Content = o.Content,
                         IsError = o.IsError ? true : null,
                         ErrorName = o.ErrorName,
-                        ErrorStackTrace = o.ErrorStackTrace
+                        ErrorStackTrace = o.ErrorStackTrace,
+                        Channel = o.Channel?.ToString().ToLowerInvariant()
                     }).ToList()
                     : null,
                 Metadata = c.Metadata.Count > 0 ? SerializeMetadata(c.Metadata) : null
@@ -194,7 +195,10 @@ public sealed class VersoSerializer : INotebookSerializer
                             output.Content ?? "",
                             output.IsError ?? false,
                             output.ErrorName,
-                            output.ErrorStackTrace));
+                            output.ErrorStackTrace)
+                        {
+                            Channel = ParseChannel(output.Channel)
+                        });
                     }
                 }
 
@@ -517,6 +521,17 @@ public sealed class VersoSerializer : INotebookSerializer
         public Dictionary<string, JsonElement>? Metadata { get; set; }
     }
 
+    /// <summary>
+    /// Reads a persisted channel name. An unrecognised value is treated as absent rather than
+    /// rejected, so a file written by a later version still opens.
+    /// </summary>
+    private static OutputChannel? ParseChannel(string? value) => value?.ToLowerInvariant() switch
+    {
+        "stdout" => OutputChannel.Stdout,
+        "stderr" => OutputChannel.Stderr,
+        _ => null
+    };
+
     private sealed class VersoCellOutput
     {
         public string? MimeType { get; set; }
@@ -524,5 +539,12 @@ public sealed class VersoSerializer : INotebookSerializer
         public bool? IsError { get; set; }
         public string? ErrorName { get; set; }
         public string? ErrorStackTrace { get; set; }
+
+        /// <summary>
+        /// Written as "stdout" or "stderr", and absent for outputs that are not stream text. A
+        /// file saved before this existed reads back with no channel, which is correct: the
+        /// information was never recorded.
+        /// </summary>
+        public string? Channel { get; set; }
     }
 }

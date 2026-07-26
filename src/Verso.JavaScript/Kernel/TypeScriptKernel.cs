@@ -188,10 +188,12 @@ public sealed class TypeScriptKernel : ILanguageKernel
 
         // Build outputs
         if (result.Stdout is not null)
-            outputs.Add(new CellOutput("text/plain", result.Stdout));
+            outputs.Add(CellOutput.Stdout(result.Stdout));
 
+        // console.error and console.warn are diagnostics, not failures. A thrown error arrives
+        // separately as result.HasError below.
         if (result.Stderr is not null)
-            outputs.Add(new CellOutput("text/plain", result.Stderr, IsError: true));
+            outputs.Add(CellOutput.Stderr(result.Stderr));
 
         if (result.HasError)
         {

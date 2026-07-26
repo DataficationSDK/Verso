@@ -123,20 +123,56 @@ public class OutputRendererTests
     public void WriteSummary_ShowsCorrectCounts()
     {
         var renderer = new OutputRenderer(_stdout, _stderr, verbose: false);
+        var cells = new[]
+        {
+            new CellModel { Type = "code", Language = "csharp" },
+            new CellModel { Type = "code", Language = "csharp" },
+            new CellModel { Type = "code", Language = "csharp" }
+        };
         var results = new List<ExecutionResult>
         {
-            ExecutionResult.Success(Guid.NewGuid(), 1, TimeSpan.FromSeconds(1)),
-            ExecutionResult.Success(Guid.NewGuid(), 2, TimeSpan.FromSeconds(2)),
-            ExecutionResult.Failed(Guid.NewGuid(), 3, TimeSpan.FromSeconds(1), new Exception("fail"))
+            ExecutionResult.Success(cells[0].Id, 1, TimeSpan.FromSeconds(1)),
+            ExecutionResult.Success(cells[1].Id, 2, TimeSpan.FromSeconds(2)),
+            ExecutionResult.Failed(cells[2].Id, 3, TimeSpan.FromSeconds(1), new Exception("fail"))
         };
 
-        renderer.WriteSummary(results, TimeSpan.FromSeconds(4));
+        renderer.WriteSummary(results, cells, TimeSpan.FromSeconds(4));
 
         var output = _stdout.ToString();
         Assert.IsTrue(output.Contains("3 total"));
         Assert.IsTrue(output.Contains("2 succeeded"));
         Assert.IsTrue(output.Contains("1 failed"));
         Assert.IsTrue(output.Contains("4.0s"));
+    }
+
+    /// <summary>
+    /// A cell whose kernel caught the exception and reported it as an error output completed, so
+    /// its recorded status is a success. The summary has to look at the outputs, or it disagrees
+    /// with the exit code the same run returns.
+    /// </summary>
+    [TestMethod]
+    public void WriteSummary_CountsACellThatRaisedAsFailed()
+    {
+        var renderer = new OutputRenderer(_stdout, _stderr, verbose: false);
+        var cells = new[]
+        {
+            new CellModel { Type = "code", Language = "python" },
+            new CellModel { Type = "code", Language = "python" }
+        };
+        cells[1].Outputs.Add(new CellOutput(
+            "text/plain", "ModuleNotFoundError: No module named 'humanize'", IsError: true));
+
+        var results = new List<ExecutionResult>
+        {
+            ExecutionResult.Success(cells[0].Id, 1, TimeSpan.FromSeconds(1)),
+            ExecutionResult.Success(cells[1].Id, 2, TimeSpan.FromSeconds(1))
+        };
+
+        renderer.WriteSummary(results, cells, TimeSpan.FromSeconds(2));
+
+        var output = _stdout.ToString();
+        Assert.IsTrue(output.Contains("1 succeeded"), output);
+        Assert.IsTrue(output.Contains("1 failed"), output);
     }
 
     [TestMethod]

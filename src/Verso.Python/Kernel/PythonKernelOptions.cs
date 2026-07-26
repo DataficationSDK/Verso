@@ -57,9 +57,11 @@ public sealed record PythonKernelOptions
     public UvUsage UseUv { get; init; } = UvUsage.Auto;
 
     /// <summary>
-    /// Path to the Python shared library (e.g. "python3.12" or full path).
-    /// When <c>null</c>, the engine manager auto-detects the system Python.
+    /// Path to a Python shared library. Ignored: cells run in a separate process against an
+    /// interpreter executable, so there is no library for this process to load. Use
+    /// <see cref="PythonExecutable"/> to name an interpreter instead.
     /// </summary>
+    [Obsolete("Python runs as a separate process and loads no shared library. Use PythonExecutable to select an interpreter.")]
     public string? PythonDll { get; init; }
 
     /// <summary>

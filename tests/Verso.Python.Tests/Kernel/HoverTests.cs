@@ -20,8 +20,7 @@ public sealed class HoverTests
 
         // The analysis library is installed in the background as the kernel starts, so probing
         // for it straight away would race that. Hover is what needs it, so hover is the probe.
-        if (EmbeddedRuntimeOnly.HostProcessEnabled)
-            await AnalysisTools.TryEnsureAsync();
+        await AnalysisTools.TryEnsureAsync();
 
         var probe = await _kernel.GetHoverInfoAsync("len", 1);
         _jediAvailable = probe is not null;
@@ -42,7 +41,7 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_BuiltinFunction_ShowsInfo()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -58,7 +57,7 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_AfterExecution_ReturnsInfoForVariable()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -73,7 +72,7 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_OnWhitespace_ReturnsNull()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var code = "   ";
         var hover = await _kernel.GetHoverInfoAsync(code, 1);
@@ -84,7 +83,7 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_EmptyCode_ReturnsNull()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var hover = await _kernel.GetHoverInfoAsync("", 0);
         Assert.IsNull(hover, "Expected null for empty code.");
@@ -93,7 +92,7 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_IncludesRange()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 

@@ -123,6 +123,13 @@ public sealed class CellOutputDto
     public bool IsError { get; set; }
     public string? ErrorName { get; set; }
     public string? ErrorStackTrace { get; set; }
+
+    /// <summary>
+    /// "stdout" or "stderr" for stream text, absent otherwise. The Blazor WebAssembly client
+    /// declares its own copy of this shape, so a field added here has to be added there too or
+    /// it will not survive the round trip.
+    /// </summary>
+    public string? Channel { get; set; }
 }
 
 public sealed class CellAddParams

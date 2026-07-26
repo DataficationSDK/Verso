@@ -23,8 +23,9 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
         INotebookOperations notebook,
         Func<CellOutput, Task> writeOutput,
         Func<CellOutput, Task> display,
-        Func<string, bool, CancellationToken, Task<string?>>? requestInput = null)
-        : base(variables, cancellationToken, theme, layoutCapabilities, extensionHost, notebookMetadata, notebook, writeOutput)
+        Func<string, bool, CancellationToken, Task<string?>>? requestInput = null,
+        Func<string, CellOutput, Task>? updateOutput = null)
+        : base(variables, cancellationToken, theme, layoutCapabilities, extensionHost, notebookMetadata, notebook, writeOutput, updateOutput)
     {
         CellId = cellId;
         ExecutionCount = executionCount;

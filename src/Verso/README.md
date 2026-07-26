@@ -28,14 +28,16 @@ This package depends on [Verso.Abstractions](https://www.nuget.org/packages/Vers
 
 ## Related Packages
 
+Entries marked bundled ship inside Verso itself and are not published separately.
+
 | Package | Description |
 |---------|-------------|
 | [Verso.Abstractions](https://www.nuget.org/packages/Verso.Abstractions) | Extension interfaces (for extension authors) |
 | [Verso.Ado](https://www.nuget.org/packages/Verso.Ado) | SQL database connectivity |
 | [Verso.FSharp](https://www.nuget.org/packages/Verso.FSharp) | F# Interactive kernel |
 | [Verso.PowerShell](https://www.nuget.org/packages/Verso.PowerShell) | PowerShell kernel |
-| [Verso.Python](https://www.nuget.org/packages/Verso.Python) | Python kernel via pythonnet |
-| [Verso.Http](https://www.nuget.org/packages/Verso.Http) | HTTP request cell type |
+| Verso.Python (bundled) | Python kernel running the interpreter installed on the machine |
+| Verso.Http (bundled) | HTTP request cell type |
 | [Verso.JavaScript](https://www.nuget.org/packages/Verso.JavaScript) | JavaScript kernel |
 | [Verso.Cli](https://www.nuget.org/packages/Verso.Cli) | Command-line interface |
 | [Verso.Testing](https://www.nuget.org/packages/Verso.Testing) | Test utilities for extensions |

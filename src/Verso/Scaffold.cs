@@ -37,6 +37,10 @@ public sealed class Scaffold : IAsyncDisposable
 
     public Scaffold(NotebookModel notebook, ExtensionHost? extensionHost, string? filePath = null)
     {
+        // Every host builds a Scaffold, so this is where watching for failures on work a cell
+        // started and did not wait for gets turned on. Installing is idempotent.
+        BackgroundFaultMonitor.Install();
+
         _notebook = notebook ?? throw new ArgumentNullException(nameof(notebook));
         _metadata = new NotebookMetadataContext(_notebook, filePath);
         _extensionHost = extensionHost;

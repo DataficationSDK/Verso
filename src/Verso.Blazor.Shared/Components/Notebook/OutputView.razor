@@ -26,6 +26,30 @@
                     }
                 </div>
             }
+            else if (output.MimeType == CellOutput.ProgressMimeType)
+            {
+                @* A progress bar redrawn several times a second must not be announced on every
+                   frame, so the value updates silently and only the label is read. *@
+                var progress = ReadProgress(output.Content);
+                <div class="verso-output verso-output--progress">
+                    <div class="verso-progress-label">
+                        <span>@progress.Activity</span>
+                        @if (!string.IsNullOrEmpty(progress.Status))
+                        {
+                            <span class="verso-progress-status">@progress.Status</span>
+                        }
+                    </div>
+                    <div class="verso-progress-track"
+                         role="progressbar"
+                         aria-label="@progress.Activity"
+                         aria-valuemin="0"
+                         aria-valuemax="100"
+                         aria-valuenow="@(progress.Percent?.ToString() ?? null)">
+                        <div class="verso-progress-fill@(progress.Percent is null ? " verso-progress-fill--indeterminate" : "")"
+                             style="@(progress.Percent is null ? "" : $"width:{progress.Percent}%")"></div>
+                    </div>
+                </div>
+            }
             else if (ExtendedMimeTypes && output.MimeType == "text/x-verso-mermaid")
             {
                 <div class="verso-output verso-output--html verso-mermaid-container">
@@ -61,6 +85,17 @@
                     @((MarkupString)RenderCsvTable(output.Content))
                 </div>
             }
+            else if (output.Channel == OutputChannel.Stderr)
+            {
+                @* Standard error is shown so it can be told apart from ordinary output, but it is
+                   not a failure: progress bars, logging, and warnings all arrive here from
+                   programs that are working correctly. The label carries the meaning on its own,
+                   because colour is dropped when a notebook is printed. *@
+                <div class="verso-output verso-output--stderr" role="note" aria-label="Standard error output">
+                    <div class="verso-output-stderr-label">stderr</div>
+                    <pre>@output.Content</pre>
+                </div>
+            }
             else
             {
                 <div class="verso-output verso-output--text">
@@ -94,6 +129,38 @@
     private int _retryVersion;
 
     private void RetryOutputRender() => _retryVersion++;
+
+    private readonly record struct ProgressPayload(string Activity, string? Status, int? Percent, bool Done);
+
+    /// <summary>
+    /// Reads a progress payload. A malformed one still renders as an indeterminate bar rather than
+    /// throwing, because a progress report is never worth failing a cell's rendering over.
+    /// </summary>
+    private static ProgressPayload ReadProgress(string content)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            var root = doc.RootElement;
+
+            var activity = root.TryGetProperty("activity", out var a) && a.ValueKind == JsonValueKind.String
+                ? a.GetString() ?? "Working"
+                : "Working";
+            var status = root.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.String
+                ? s.GetString()
+                : null;
+            int? percent = root.TryGetProperty("percent", out var p) && p.ValueKind == JsonValueKind.Number
+                ? Math.Clamp(p.GetInt32(), 0, 100)
+                : null;
+            var done = root.TryGetProperty("done", out var d) && d.ValueKind == JsonValueKind.True;
+
+            return new ProgressPayload(activity, status, done ? 100 : percent, done);
+        }
+        catch (JsonException)
+        {
+            return new ProgressPayload("Working", null, null, false);
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

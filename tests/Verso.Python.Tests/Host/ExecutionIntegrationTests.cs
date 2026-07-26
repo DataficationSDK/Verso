@@ -127,24 +127,117 @@ public sealed class ExecutionIntegrationTests
         StringAssert.Contains(TextOf(outputs), "one");
         StringAssert.Contains(TextOf(outputs), "two");
 
-        // The same instances must be written and returned, so the execution pipeline recognizes
-        // them as already streamed and does not add a second copy to the cell.
+        // The same instances must reach the host and be returned, so the execution pipeline
+        // recognizes them as already streamed and does not add a second copy to the cell.
+        // Running text is revised in place rather than appended, so an output can arrive either
+        // way and both count.
+        var seen = context.WrittenOutputs
+            .Concat(context.UpdatedOutputs.Select(u => u.Output))
+            .ToList();
+
         Assert.IsTrue(
-            outputs.All(o => context.WrittenOutputs.Any(written => ReferenceEquals(written, o))),
-            "returned outputs must be the instances that were written during execution");
+            outputs.All(o => seen.Any(s => ReferenceEquals(s, o))),
+            "returned outputs must be the instances that reached the host during execution");
+    }
+
+    /// <summary>
+    /// A progress bar redraws its line by writing a carriage return and the line again. Appended
+    /// verbatim that is one output per redraw; interpreted as a terminal would, it is one line
+    /// that changes.
+    /// </summary>
+    [TestMethod]
+    public async Task Execute_RedrawnLine_ProducesOneRevisedOutputRatherThanMany()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        var code =
+            "import sys, time\n" +
+            "for i in range(5):\n" +
+            "    sys.stdout.write('\\rstep %d' % i)\n" +
+            "    sys.stdout.flush()\n" +
+            "    time.sleep(0.06)\n" +
+            "sys.stdout.write('\\n')\n";
+
+        var outputs = await session.ExecuteAsync(code, context);
+
+        // Every redraw revised the same block, so the cell ends with one stream output showing the
+        // last state of the line rather than five showing each state. Filtered by channel because
+        // the cell's final expression value is an output too: write() returns a character count.
+        var streamed = outputs.Where(o => o.Channel == OutputChannel.Stdout).ToList();
+        Assert.AreEqual(1, streamed.Count, $"expected a single revised output, got: {TextOf(outputs)}");
+        StringAssert.Contains(streamed[0].Content, "step 4");
+        Assert.IsFalse(streamed[0].Content.Contains("step 0"), "an overwritten redraw must not linger");
     }
 
     [TestMethod]
-    public async Task Execute_MarksStandardErrorAsAnErrorOutput()
+    public async Task Execute_LongOutput_RollsOntoFurtherBlocksInsteadOfOneGrowingBlock()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        // Revising a block sends everything it holds, so one block that only ever grows makes each
+        // chunk cost more than the last. Past a point the text rolls onto another block and the
+        // cost stays flat. Nothing may be lost in the handover.
+        var code =
+            "line = 'x' * 1000\n" +
+            "for i in range(400):\n" +
+            "    print(line)\n";
+
+        var outputs = await session.ExecuteAsync(code, context);
+
+        var streamed = outputs.Where(o => o.Channel == OutputChannel.Stdout).ToList();
+        Assert.IsTrue(streamed.Count > 1, "400 KB of output should not sit in a single block.");
+
+        var combined = string.Concat(streamed.Select(o => o.Content));
+        Assert.AreEqual(400, combined.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length,
+            "every line written must survive the handover between blocks");
+    }
+
+    /// <summary>
+    /// Writing to standard error is how a great many working programs report progress and
+    /// warnings, so it is recorded as its own channel and must not fail the cell.
+    /// </summary>
+    [TestMethod]
+    public async Task Execute_RecordsStandardErrorAsItsOwnChannelWithoutFailingTheCell()
     {
         await using var session = await StartedSessionAsync();
 
         var outputs = await session.ExecuteAsync(
             "import sys\nsys.stderr.write('careful\\n');", new StubExecutionContext());
 
-        var stderr = outputs.SingleOrDefault(o => o.IsError);
-        Assert.IsNotNull(stderr, "standard error should surface as an error output");
+        var stderr = outputs.SingleOrDefault(o => o.Channel == OutputChannel.Stderr);
+        Assert.IsNotNull(stderr, "standard error should surface as its own channel");
         StringAssert.Contains(stderr!.Content, "careful");
+        Assert.IsFalse(outputs.Any(o => o.IsError), "writing to standard error is not a failure");
+    }
+
+    /// <summary>
+    /// An exception on a thread the cell started never reaches the reply that reports the cell's
+    /// result, so without the host's own hook it would arrive as ordinary text and the notebook
+    /// would look like it succeeded.
+    /// </summary>
+    [TestMethod]
+    public async Task Execute_ReportsAnExceptionRaisedOnABackgroundThread()
+    {
+        await using var session = await StartedSessionAsync();
+
+        var code =
+            "import threading\n" +
+            "\n" +
+            "def boom():\n" +
+            "    raise ValueError('background failure')\n" +
+            "\n" +
+            "t = threading.Thread(target=boom)\n" +
+            "t.start()\n" +
+            "t.join()\n";
+
+        var outputs = await session.ExecuteAsync(code, new StubExecutionContext());
+
+        var failure = outputs.SingleOrDefault(o => o.IsError);
+        Assert.IsNotNull(failure, "a background thread failure should fail the cell");
+        StringAssert.Contains(failure!.Content, "background failure");
+        Assert.AreEqual("ValueError", failure.ErrorName);
     }
 
     [TestMethod]
@@ -333,6 +426,45 @@ public sealed class ExecutionIntegrationTests
         // The process was replaced, so a later cell still runs.
         var recovered = await session.ExecuteAsync("'alive'", new StubExecutionContext());
         Assert.AreEqual("'alive'", recovered[0].Content);
+    }
+
+    // --- startup budget ---
+
+    /// <summary>
+    /// Running Python in another process trades a warm in-process interpreter for a spawn, a
+    /// handshake, and a bootstrap, and the whole design rests on that trade staying cheap. This is
+    /// a tripwire rather than a benchmark: the ceiling is loose enough for a loaded shared runner,
+    /// so it catches a startup path that has become pathological, not one that has slowed a little.
+    /// The measurement is printed either way, which is what makes a gradual drift visible in the
+    /// logs before it ever trips.
+    /// <para>
+    /// The first execute is included because <c>StartAsync</c> sends the bootstrap without waiting
+    /// for it to be applied, so only a completed round trip proves the session is ready to run a
+    /// cell. Interpreter discovery is stubbed here, as everywhere in this class, so what is being
+    /// timed is the host and not the search that precedes it.
+    /// </para>
+    /// </summary>
+    [TestMethod]
+    public async Task Startup_ThroughTheFirstCell_StaysWithinBudget()
+    {
+        var budget = TimeSpan.FromSeconds(10);
+
+        var stopwatch = Stopwatch.StartNew();
+        await using var session = await StartedSessionAsync();
+        var started = stopwatch.Elapsed;
+
+        var outputs = await session.ExecuteAsync("1 + 1", new StubExecutionContext());
+        var total = stopwatch.Elapsed;
+
+        Assert.AreEqual("2", outputs[0].Content, "the first cell should have run");
+
+        Console.WriteLine(
+            $"Startup budget: spawn, handshake, and bootstrap {started.TotalMilliseconds:F0} ms, " +
+            $"through the first cell {total.TotalMilliseconds:F0} ms, budget {budget.TotalSeconds:F0} s.");
+
+        Assert.IsTrue(total < budget,
+            $"Starting the host and running one cell took {total.TotalSeconds:F1} s, " +
+            $"over the {budget.TotalSeconds:F0} s budget.");
     }
 
     // --- crash recovery ---

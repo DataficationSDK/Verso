@@ -79,6 +79,10 @@ public sealed class PowerShellKernel : ILanguageKernel
 
             var outputs = new List<CellOutput>();
 
+            // Where each revisable block sits in this cell's outputs, so a repeated report
+            // replaces its previous value instead of stacking up.
+            var blockIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
+
             Task AppendHostOutput(PowerShellHostOutput output)
             {
                 var cellOutput = new CellOutput(
@@ -87,8 +91,29 @@ public sealed class PowerShellKernel : ILanguageKernel
                     output.IsError,
                     output.ErrorName);
 
-                outputs.Add(cellOutput);
-                return context.WriteOutputAsync(cellOutput);
+                if (output.BlockId is null)
+                {
+                    outputs.Add(cellOutput);
+                    return context.WriteOutputAsync(cellOutput);
+                }
+
+                if (blockIndexes.TryGetValue(output.BlockId, out var index) && index < outputs.Count)
+                    outputs[index] = cellOutput;
+                else
+                {
+                    blockIndexes[output.BlockId] = outputs.Count;
+                    outputs.Add(cellOutput);
+                }
+
+                try
+                {
+                    return context.UpdateOutputAsync(output.BlockId, cellOutput);
+                }
+                catch (NotSupportedException)
+                {
+                    // A host that cannot revise still shows the report, just repeatedly.
+                    return context.WriteOutputAsync(cellOutput);
+                }
             }
 
             Task<string?> RequestHostInput(PowerShellHostInputRequest request)

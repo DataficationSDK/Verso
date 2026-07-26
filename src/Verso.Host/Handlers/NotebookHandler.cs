@@ -441,7 +441,8 @@ public static class NotebookHandler
             Content = output.Content,
             IsError = output.IsError,
             ErrorName = output.ErrorName,
-            ErrorStackTrace = output.ErrorStackTrace
+            ErrorStackTrace = output.ErrorStackTrace,
+            Channel = output.Channel?.ToString().ToLowerInvariant()
         };
     }
 

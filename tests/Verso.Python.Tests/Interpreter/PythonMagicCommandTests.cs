@@ -113,10 +113,11 @@ public sealed class PythonMagicCommandTests
     }
 
     [TestMethod]
-    public async Task Select_WithoutTheHostProcess_SaysTheSelectionIsNotInEffect()
+    public async Task Select_WithoutAKernel_SaysWhenTheSelectionTakesEffect()
     {
-        // No Python kernel is registered, so nothing consumes the selection. Reporting a restart
-        // would imply the choice takes effect, which it does not until the host process is used.
+        // No Python kernel is registered, so there is nothing to restart. The selection is still
+        // recorded, and saying it applies at the next start is the honest account: claiming a
+        // restart would imply the choice is already live.
         var executable = NewTempExecutable();
         var validator = new FakeInterpreterValidator().Valid(executable, version: "3.12.0");
         var command = MakeCommand(validator);
@@ -124,7 +125,7 @@ public sealed class PythonMagicCommandTests
 
         await command.ExecuteAsync(executable, context);
 
-        StringAssert.Contains(context.WrittenOutputs[0].Content, "not enabled for this session");
+        StringAssert.Contains(context.WrittenOutputs[0].Content, "next time the Python kernel starts");
     }
 
     [TestMethod]

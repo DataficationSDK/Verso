@@ -4,6 +4,7 @@ using System.Management.Automation;
 using System.Management.Automation.Host;
 using System.Security;
 using System.Text;
+using Verso.Abstractions;
 using System.Text.RegularExpressions;
 
 namespace Verso.PowerShell.Kernel.Host;
@@ -210,8 +211,32 @@ internal sealed partial class VersoPowerShellHostUserInterface : PSHostUserInter
 
     public override void WriteProgress(long sourceId, ProgressRecord record)
     {
-        // Progress records are intentionally suppressed for now. Streaming every
-        // update would create noisy notebook output and needs a dedicated UI shape.
+        if (record is null)
+            return;
+
+        // Each activity revises its own block, so a long-running command shows one indicator that
+        // advances rather than a line per update. Progress that has completed is reported once
+        // more as finished so the indicator settles instead of appearing to stall.
+        var blockId = $"powershell-progress-{sourceId}-{record.ActivityId}";
+        var done = record.RecordType == ProgressRecordType.Completed;
+
+        int? percent = record.PercentComplete >= 0 && record.PercentComplete <= 100
+            ? record.PercentComplete
+            : null;
+
+        var callback = _outputCallbackProvider();
+        if (callback is null)
+            return;
+
+        var progress = CellOutput.Progress(
+            record.Activity ?? "Working",
+            record.StatusDescription,
+            percent,
+            done);
+
+        callback(new PowerShellHostOutput(
+            progress.MimeType, progress.Content, BlockId: blockId))
+            .GetAwaiter().GetResult();
     }
 
     public override void WriteVerboseLine(string message)

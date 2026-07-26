@@ -40,7 +40,10 @@ public sealed class JsonOutputWriter
                 Index = i,
                 Id = cell.Id.ToString(),
                 Language = cell.Language ?? "unknown",
-                Status = result?.Status.ToString() ?? "Skipped",
+                // A cell that raised is reported as failed here too. Leaving it as the recorded
+                // status would put "Success" beside the traceback that says otherwise, and would
+                // disagree with the summary counted below.
+                Status = StatusOf(cell, result),
                 Elapsed = result?.Elapsed.ToString() ?? TimeSpan.Zero.ToString(),
                 Outputs = cell.Outputs.Select(o => new JsonMimeOutput
                 {
@@ -48,13 +51,14 @@ public sealed class JsonOutputWriter
                     Content = o.Content,
                     IsError = o.IsError ? true : null,
                     ErrorName = o.ErrorName,
-                    ErrorStackTrace = o.ErrorStackTrace
+                    ErrorStackTrace = o.ErrorStackTrace,
+                    Channel = o.Channel?.ToString().ToLowerInvariant()
                 }).ToList()
             });
         }
 
-        var succeeded = results.Count(r => r.Status == ExecutionResult.ExecutionStatus.Success);
-        var failed = results.Count(r => r.Status == ExecutionResult.ExecutionStatus.Failed);
+        var succeeded = results.Count(r => CellOutcome.Succeeded(CellOutcome.Find(cells, r.CellId), r));
+        var failed = results.Count(r => CellOutcome.Failed(CellOutcome.Find(cells, r.CellId), r));
 
         var doc = new JsonOutputDocument
         {
@@ -111,6 +115,20 @@ public sealed class JsonOutputWriter
         var json = Serialize(document);
         await File.WriteAllTextAsync(filePath, json);
     }
+
+    /// <summary>
+    /// The reported status of a cell: what was recorded, unless the cell produced an error output
+    /// while completing, which is how a raised exception usually arrives.
+    /// </summary>
+    private static string StatusOf(CellModel cell, ExecutionResult? result)
+    {
+        if (result is null)
+            return "Skipped";
+
+        return CellOutcome.Failed(cell, result)
+            ? ExecutionResult.ExecutionStatus.Failed.ToString()
+            : result.Status.ToString();
+    }
 }
 
 public sealed class JsonOutputDocument
@@ -139,6 +157,9 @@ public sealed class JsonMimeOutput
     public bool? IsError { get; set; }
     public string? ErrorName { get; set; }
     public string? ErrorStackTrace { get; set; }
+
+    /// <summary>"stdout" or "stderr" for stream text, omitted otherwise.</summary>
+    public string? Channel { get; set; }
 }
 
 public sealed class JsonSummary

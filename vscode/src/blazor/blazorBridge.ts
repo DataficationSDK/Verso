@@ -473,7 +473,7 @@ export class BlazorBridge implements vscode.Disposable {
     }
 
     const value = await vscode.window.showInputBox({
-      prompt: p.prompt || "PowerShell input",
+      prompt: p.prompt || "Notebook input",
       password: !!p.isPassword,
       ignoreFocusOut: true,
     });

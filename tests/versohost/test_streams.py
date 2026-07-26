@@ -147,3 +147,21 @@ def test_print_reaches_the_channel(router, channel):
 
     router.flush()
     assert channel.stream_text() == "from print\n"
+
+
+def test_text_too_large_for_one_frame_is_split_rather_than_dropped(router, channel):
+    # A single write can be arbitrarily large. Before it was split, one that did not fit in a
+    # frame raised on send and the whole flush was abandoned, losing the output silently.
+    oversized = "z" * (versohost.MAX_STREAM_TEXT_CHARS + 100)
+    router.write("stdout", oversized)
+    router.flush()
+
+    assert len(channel.of_type("stream")) == 2
+    assert channel.stream_text() == oversized
+
+
+def test_text_that_fits_is_sent_whole(router, channel):
+    router.write("stdout", "z" * versohost.MAX_STREAM_TEXT_CHARS)
+    router.flush()
+
+    assert len(channel.of_type("stream")) == 1

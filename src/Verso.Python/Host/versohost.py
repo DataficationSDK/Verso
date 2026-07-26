@@ -62,6 +62,11 @@ CELL_HISTORY_LIMIT = CELL_SOURCE_LIMIT
 FLUSH_INTERVAL_SECONDS = 0.05
 FLUSH_THRESHOLD_CHARS = 8192
 
+# A single write can be arbitrarily large, and one that does not fit in a frame would be lost
+# entirely. Oversized text is split across frames instead, well under the frame limit so that
+# escaping and multi-byte characters cannot push a piece over it.
+MAX_STREAM_TEXT_CHARS = 1024 * 1024
+
 # Blocking waits poll at this interval so a KeyboardInterrupt is observed promptly.
 WAIT_POLL_SECONDS = 0.05
 
@@ -116,6 +121,19 @@ class FrameChannel:
         frame = data + b"\n"
         with self._send_lock:
             self._sock.sendall(frame)
+
+
+def _split_stream_text(text):
+    """
+    Yield ``text`` in pieces small enough to each fit in one frame. Text that already fits is
+    yielded whole, which is every ordinary case.
+    """
+    if len(text) <= MAX_STREAM_TEXT_CHARS:
+        yield text
+        return
+
+    for start in range(0, len(text), MAX_STREAM_TEXT_CHARS):
+        yield text[start:start + MAX_STREAM_TEXT_CHARS]
 
 
 class OutputRouter:
@@ -174,12 +192,36 @@ class OutputRouter:
         # Emitted outside the lock: a send can block, and user code writing from another
         # thread must not be held up behind it.
         for name, text in segments:
+            for piece in _split_stream_text(text):
+                try:
+                    self._channel.write({
+                        "type": "stream",
+                        "req_id": request_id,
+                        "name": name,
+                        "text": piece,
+                    })
+                except (OSError, ProtocolError, ValueError):
+                    # The connection is gone; there is nowhere left to report output.
+                    return
+
+    def write_error(self, name, text, error_name):
+        """
+        Emit text that reports a failure rather than ordinary stream output. Anything already
+        buffered is flushed first so the failure still appears after the output that preceded it.
+        """
+        self.flush()
+
+        with self._lock:
+            request_id = self._request_id
+
+        for piece in _split_stream_text(text):
             try:
                 self._channel.write({
                     "type": "stream",
                     "req_id": request_id,
                     "name": name,
-                    "text": text,
+                    "text": piece,
+                    "error": error_name,
                 })
             except (OSError, ProtocolError, ValueError):
                 # The connection is gone; there is nowhere left to report output.
@@ -496,6 +538,11 @@ class HostSession:
         except ImportError:
             pass
 
+        # An exception raised on a thread the cell started never reaches the code that reports
+        # the cell's result, so the interpreter's default hook would print it to standard error
+        # and it would read as ordinary text. Reported as a failure instead.
+        threading.excepthook = self._thread_excepthook
+
         # Windows delivers a console control event rather than SIGINT; the handler turns it
         # into the same KeyboardInterrupt the Unix default handler raises.
         sigbreak = getattr(signal, "SIGBREAK", None)
@@ -504,6 +551,23 @@ class HostSession:
                 signal.signal(sigbreak, _raise_keyboard_interrupt)
             except (ValueError, OSError):
                 pass  # no console attached; the interrupt message path still applies
+
+    def _thread_excepthook(self, args):
+        """Report an unhandled background-thread exception as a failure rather than as text."""
+        # SystemExit is how a thread is asked to stop, not a fault, and the default hook
+        # ignores it for the same reason.
+        if args.exc_type is SystemExit:
+            return
+
+        formatted = traceback.format_exception(
+            args.exc_type, args.exc_value, args.exc_traceback)
+        thread_name = getattr(args.thread, "name", None) or "a background thread"
+        name = args.exc_type.__name__ if args.exc_type is not None else "ThreadError"
+
+        self.router.write_error(
+            "stderr",
+            "Exception on {}:\n{}".format(thread_name, "".join(formatted)),
+            name)
 
     def apply_bootstrap(self, config):
         """Import the configured modules and run startup code in the persistent scope."""

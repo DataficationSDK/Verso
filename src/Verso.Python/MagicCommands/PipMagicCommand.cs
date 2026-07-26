@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Verso.Abstractions;
 using Verso.Python.Kernel;
 using Verso.Python.PackageManagement;
@@ -54,25 +52,33 @@ public sealed class PipMagicCommand : IMagicCommand
             args = args.Substring("install ".Length).TrimStart();
 
         var interpreter = await ResolveActiveInterpreterAsync(context).ConfigureAwait(false);
-        if (interpreter is not null)
+        if (interpreter is null)
         {
-            await InstallIntoActiveEnvironmentAsync(interpreter, args, context).ConfigureAwait(false);
+            // Packages go into the interpreter the cells run in, so without one there is nowhere
+            // for them to land. The cell is stopped rather than run against an environment that
+            // was never prepared.
+            await context.WriteOutputAsync(new CellOutput(
+                "text/plain",
+                "No Python interpreter is available, so there is nothing to install into. " +
+                "Install Python 3.8 or newer, or select an interpreter with #!python.",
+                IsError: true))
+                .ConfigureAwait(false);
+            context.SuppressExecution = true;
             return;
         }
 
-        await InstallIntoEmbeddedVenvAsync(args, context).ConfigureAwait(false);
+        await InstallIntoActiveEnvironmentAsync(interpreter, args, context).ConfigureAwait(false);
     }
 
     // --- the interpreter the kernel is running ---
 
     /// <summary>
-    /// The executable the Python kernel runs, or null when Python runs inside this process and
-    /// there is no separate environment to install into.
+    /// The executable the Python kernel runs, or null when none could be resolved.
     /// </summary>
     private static async Task<string?> ResolveActiveInterpreterAsync(IMagicCommandContext context)
     {
         var kernel = FindPythonKernel(context);
-        if (kernel is null || !kernel.UsesHostProcess)
+        if (kernel is null)
             return null;
 
         try
@@ -82,8 +88,8 @@ public sealed class PipMagicCommand : IMagicCommand
         }
         catch
         {
-            // No interpreter, or one that will not start. The cell's own execution reports the
-            // actionable message; there is nothing useful to add from here.
+            // No interpreter, or one that will not start. Either way there is nowhere to install
+            // to, which the caller reports.
             return null;
         }
     }
@@ -103,109 +109,5 @@ public sealed class PipMagicCommand : IMagicCommand
 
         if (!succeeded)
             context.SuppressExecution = true;
-    }
-
-    // --- the embedded runtime's own environment ---
-
-    private static async Task InstallIntoEmbeddedVenvAsync(string args, IMagicCommandContext context)
-    {
-        // Resolve the system Python (used to create the venv if needed).
-        // Prefer the executable that matches the DLL pythonnet loaded so the
-        // venv uses the same Python version as the embedded runtime.
-        var systemPython = PythonEngineManager.GetMatchingPythonExecutable()
-            ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python3");
-
-        // Ensure the venv exists
-        if (!await VenvManager.EnsureCreatedAsync(systemPython, context, context.CancellationToken)
-                .ConfigureAwait(false))
-        {
-            context.SuppressExecution = true;
-            return;
-        }
-
-        // Fast-path: if every requested package directory already exists in the
-        // install location, skip the expensive pip subprocess entirely.
-        if (VenvManager.ArePackagesInstalled(args))
-        {
-            var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
-                .ConfigureAwait(false);
-            if (packagePaths.Count > 0)
-            {
-                context.Variables.Set(VenvManager.SitePackagesStoreKey,
-                    string.Join(Path.PathSeparator.ToString(), packagePaths));
-            }
-            return; // packages present, silently continue to cell code
-        }
-
-        var venvPython = VenvManager.GetPythonPath();
-        var pipExtra = VenvManager.GetPipInstallArgs();
-
-        var psi = new ProcessStartInfo(venvPython, $"-m pip install --quiet --no-input {pipExtra} {args}")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        try
-        {
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", "Failed to start pip process.", IsError: true))
-                    .ConfigureAwait(false);
-                context.SuppressExecution = true;
-                return;
-            }
-
-            // Collect output into single blocks (--quiet keeps this minimal)
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(context.CancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(context.CancellationToken);
-
-            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
-            await process.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
-
-            var stdout = stdoutTask.Result.Trim();
-            var stderr = stderrTask.Result.Trim();
-
-            if (process.ExitCode != 0)
-            {
-                var errorMsg = !string.IsNullOrEmpty(stderr) ? stderr : stdout;
-                await context.WriteOutputAsync(new CellOutput(
-                    "text/plain",
-                    $"pip install failed (exit code {process.ExitCode}):\n{errorMsg}",
-                    IsError: true))
-                    .ConfigureAwait(false);
-                context.SuppressExecution = true;
-                return;
-            }
-
-            // Resolve and store package paths so the kernel can add them to sys.path.
-            // On Windows this includes both the venv site-packages and the overlay
-            // directory that user installs land in.
-            var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
-                .ConfigureAwait(false);
-            if (packagePaths.Count > 0)
-            {
-                context.Variables.Set(VenvManager.SitePackagesStoreKey,
-                    string.Join(Path.PathSeparator.ToString(), packagePaths));
-            }
-
-            // Show pip's summary (e.g. "Successfully installed X-1.0 Y-2.0") or our own confirmation
-            var message = !string.IsNullOrEmpty(stdout) ? stdout : $"Installed: {args}";
-            await context.WriteOutputAsync(new CellOutput("text/plain", message))
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            await context.WriteOutputAsync(new CellOutput(
-                "text/plain",
-                $"Failed to run pip: {ex.Message}",
-                IsError: true))
-                .ConfigureAwait(false);
-            context.SuppressExecution = true;
-        }
     }
 }

@@ -33,8 +33,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private bool _boundToNotebook;
     private bool _dependenciesRequested;
     private bool _requiresPythonReported;
+    private bool _pythonDllReported;
     private bool _oversizeNoticeShown;
     private int _crashExitCode;
+
+    /// <summary>Assembles streamed text into terminal-like lines. Replaced for each cell.</summary>
+    private StreamLineAssembler _lines = new();
+
+    /// <summary>Where each revisable block sits in the outputs this cell will return.</summary>
+    private readonly Dictionary<string, int> _blockIndexes = new(StringComparer.Ordinal);
     private bool _crashed;
     private bool _disposed;
 
@@ -100,6 +107,12 @@ internal sealed class PythonHostSession : IAsyncDisposable
         ThrowIfDisposed();
 
         var outputs = new List<CellOutput>();
+
+        // Both are per cell: a block written by the previous cell cannot be revised by this one.
+        _lines = new StreamLineAssembler();
+        _blockIndexes.Clear();
+
+        await ReportIgnoredPythonDllAsync(context, outputs).ConfigureAwait(false);
 
         PythonHostProcess process;
         PythonHostConnection connection;
@@ -425,6 +438,28 @@ internal sealed class PythonHostSession : IAsyncDisposable
             context, outputs).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Tell an embedder that a shared-library path it set is doing nothing. Only reachable from
+    /// code that configured the option directly, and said once for the same reason the version
+    /// note is: the answer cannot change while the session runs.
+    /// </summary>
+    private async Task ReportIgnoredPythonDllAsync(IExecutionContext context, List<CellOutput> outputs)
+    {
+#pragma warning disable CS0618 // Reporting the obsolete option is the point.
+        if (_pythonDllReported || string.IsNullOrWhiteSpace(_options.PythonDll))
+            return;
+#pragma warning restore CS0618
+
+        _pythonDllReported = true;
+
+        await EmitAsync(
+            CellOutput.Plain(
+                "PythonKernelOptions.PythonDll is ignored. Python runs as a separate process and " +
+                "loads no shared library. Name an interpreter with PythonExecutable, the " +
+                "VERSO_PYTHON environment variable, or #!python."),
+            context, outputs).ConfigureAwait(false);
+    }
+
     private static string Describe(InterpreterInfo interpreter)
         => $"Python {interpreter.RawVersion} ({interpreter.EnvironmentKind}) at {interpreter.Executable}";
 
@@ -746,9 +781,33 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 var text = HostProtocol.TryGetString(message, HostProtocol.TextField);
                 if (string.IsNullOrEmpty(text)) return;
 
-                var isError = HostProtocol.TryGetString(message, HostProtocol.NameField) == HostProtocol.StreamStderr;
-                await EmitAsync(new CellOutput("text/plain", text!, IsError: isError), context, outputs)
-                    .ConfigureAwait(false);
+                // A stream event carries an error name only when the host has something to report
+                // that no reply can carry, such as an exception on a thread the cell started.
+                // Ordinary stream text is recorded by channel and is not a failure: plenty of
+                // programs write progress and logging to standard error while succeeding.
+                var errorName = HostProtocol.TryGetString(message, HostProtocol.ErrorField);
+                var channel = HostProtocol.TryGetString(message, HostProtocol.NameField) == HostProtocol.StreamStderr
+                    ? OutputChannel.Stderr
+                    : OutputChannel.Stdout;
+
+                if (!string.IsNullOrEmpty(errorName))
+                {
+                    // A reported failure is its own output rather than part of the running text,
+                    // so it is never revised and never overwritten by a later redraw.
+                    await EmitAsync(
+                        new CellOutput("text/plain", text!, IsError: true, ErrorName: errorName) { Channel = channel },
+                        context, outputs).ConfigureAwait(false);
+                    return;
+                }
+
+                var assembled = _lines.Append(channel, text!);
+                if (assembled is null)
+                    return;
+
+                await ReviseAsync(
+                    _lines.BlockId,
+                    new CellOutput("text/plain", assembled) { Channel = channel },
+                    context, outputs).ConfigureAwait(false);
                 return;
             }
 
@@ -983,6 +1042,36 @@ internal sealed class PythonHostSession : IAsyncDisposable
         // execution pipeline recognizes it and does not append a duplicate at the end.
         outputs.Add(output);
         await context.WriteOutputAsync(output).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Shows a block of running text, replacing what that block showed before rather than adding
+    /// to it. Falls back to appending on a host that cannot revise an output, which yields the
+    /// old behaviour of one output per chunk rather than an error.
+    /// </summary>
+    private async Task ReviseAsync(
+        string blockId, CellOutput output, IExecutionContext context, List<CellOutput> outputs)
+    {
+        if (_blockIndexes.TryGetValue(blockId, out var index) && index < outputs.Count)
+        {
+            outputs[index] = output;
+        }
+        else
+        {
+            _blockIndexes[blockId] = outputs.Count;
+            outputs.Add(output);
+        }
+
+        try
+        {
+            await context.UpdateOutputAsync(blockId, output).ConfigureAwait(false);
+        }
+        catch (NotSupportedException)
+        {
+            // An older host cannot revise an output. Appending each version is noisier than
+            // intended but keeps the text visible, which matters more.
+            await context.WriteOutputAsync(output).ConfigureAwait(false);
+        }
     }
 
     public static string? NotebookDirectory(IVersoContext context)

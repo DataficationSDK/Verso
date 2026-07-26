@@ -22,8 +22,7 @@ public sealed class DiagnosticsTests
         // The analysis library is installed in the background as the kernel starts, so probing
         // for it straight away would race that. Hover is the discriminator, because syntax
         // diagnostics are also produced by the compiler when the library is absent.
-        if (EmbeddedRuntimeOnly.HostProcessEnabled)
-            await AnalysisTools.TryEnsureAsync();
+        await AnalysisTools.TryEnsureAsync();
 
         _jediAvailable = await _kernel.GetHoverInfoAsync("len", 1) is not null;
     }
@@ -43,7 +42,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_ValidCode_ReturnsEmpty()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var diagnostics = await _kernel.GetDiagnosticsAsync("x = 10");
         Assert.AreEqual(0, diagnostics.Count);
@@ -52,7 +51,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_SyntaxError_ReturnsError()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -68,7 +67,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_LinePositions_AreCorrect()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 
@@ -84,7 +83,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_EmptyCode_ReturnsEmpty()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         var diagnostics = await _kernel.GetDiagnosticsAsync("");
         Assert.IsNotNull(diagnostics);
@@ -93,7 +92,7 @@ public sealed class DiagnosticsTests
     [TestMethod]
     public async Task Diagnostics_PreviousCellContext_Respected()
     {
-        HostRuntimeOnly.Require("Editor assistance");
+        PythonProbe.Require();
 
         RequireJedi();
 

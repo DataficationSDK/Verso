@@ -63,6 +63,86 @@ public class JsonOutputWriterTests
         Assert.AreEqual(1, doc.Summary.Failed);
     }
 
+    /// <summary>
+    /// The usual shape of a failing cell: a kernel catches the exception, reports it as an error
+    /// output, and returns a completed execution. Counting the recorded status alone called a
+    /// notebook full of tracebacks entirely successful, which contradicted the exit code.
+    /// </summary>
+    [TestMethod]
+    public void Build_CellThatRaised_CountsAsFailedDespiteCompleting()
+    {
+        var cells = new[]
+        {
+            new CellModel { Type = "code", Language = "python" },
+            new CellModel { Type = "code", Language = "python" }
+        };
+
+        cells[1].Outputs.Add(new CellOutput(
+            "text/plain",
+            "Traceback (most recent call last):\nModuleNotFoundError: No module named 'humanize'",
+            IsError: true,
+            ErrorName: "ModuleNotFoundError"));
+
+        var results = new[]
+        {
+            ExecutionResult.Success(cells[0].Id, 1, TimeSpan.FromSeconds(1)),
+            ExecutionResult.Success(cells[1].Id, 2, TimeSpan.FromSeconds(1))
+        };
+
+        var doc = JsonOutputWriter.Build("test.verso", cells, results, TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(1, doc.Summary.Succeeded);
+        Assert.AreEqual(1, doc.Summary.Failed);
+        Assert.AreEqual("Success", doc.Cells[0].Status);
+        Assert.AreEqual("Failed", doc.Cells[1].Status, "the per-cell status must agree with the summary");
+    }
+
+    /// <summary>
+    /// Progress bars, logging, and warnings are routinely written to standard error by programs
+    /// that are working, so the channel on its own must not fail the cell or the run.
+    /// </summary>
+    [TestMethod]
+    public void Build_CellThatWroteToStandardError_StillCountsAsSucceeded()
+    {
+        var cell = new CellModel { Type = "code", Language = "python" };
+        cell.Outputs.Add(CellOutput.Stderr("working:  50%|#####     | 10/20"));
+
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        var doc = JsonOutputWriter.Build("test.verso", new[] { cell }, new[] { result }, TimeSpan.FromSeconds(1));
+
+        Assert.AreEqual(1, doc.Summary.Succeeded);
+        Assert.AreEqual(0, doc.Summary.Failed);
+        Assert.AreEqual("Success", doc.Cells[0].Status);
+    }
+
+    /// <summary>
+    /// A pipeline can opt back into strictness, which is the only thing that makes standard error
+    /// count as a failure.
+    /// </summary>
+    [TestMethod]
+    public void Build_WithFailOnStandardError_CountsStandardErrorAsFailed()
+    {
+        var cell = new CellModel { Type = "code", Language = "python" };
+        cell.Outputs.Add(CellOutput.Stderr("DeprecationWarning: this will stop working"));
+
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        CellOutcome.FailOnStandardError = true;
+        try
+        {
+            var doc = JsonOutputWriter.Build("test.verso", new[] { cell }, new[] { result }, TimeSpan.FromSeconds(1));
+
+            Assert.AreEqual(0, doc.Summary.Succeeded);
+            Assert.AreEqual(1, doc.Summary.Failed);
+            Assert.AreEqual("Failed", doc.Cells[0].Status);
+        }
+        finally
+        {
+            CellOutcome.FailOnStandardError = false;
+        }
+    }
+
     [TestMethod]
     public void Build_FailedCell_IncludesErrorInfo()
     {

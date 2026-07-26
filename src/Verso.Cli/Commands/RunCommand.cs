@@ -40,6 +40,11 @@ public static class RunCommand
         var failFastOption = new Option<bool>("--fail-fast", () => false,
             "Stop execution on the first cell failure.");
 
+        var failOnStderrOption = new Option<bool>("--fail-on-stderr", () => false,
+            "Treat anything a cell writes to standard error as a failure. Off by default, because " +
+            "progress bars, logging, and warnings are normally written there by programs that are " +
+            "succeeding. Use this to make a pipeline strict about them.");
+
         var verboseOption = new Option<bool>("--verbose", () => false,
             "Print cell execution progress to stderr.");
 
@@ -79,6 +84,7 @@ public static class RunCommand
             timeoutOption,
             extensionsOption,
             failFastOption,
+            failOnStderrOption,
             verboseOption,
             paramOption,
             interactiveOption,
@@ -101,6 +107,11 @@ public static class RunCommand
             var timeout = context.ParseResult.GetValueForOption(timeoutOption);
             var extensions = context.ParseResult.GetValueForOption(extensionsOption);
             var failFast = context.ParseResult.GetValueForOption(failFastOption);
+
+            // Set before anything executes, because it changes what counts as a failed cell for
+            // the summary, the JSON, --fail-fast, and the exit code alike.
+            CellOutcome.FailOnStandardError = context.ParseResult.GetValueForOption(failOnStderrOption);
+
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
             var paramValues = context.ParseResult.GetValueForOption(paramOption);
             var interactive = context.ParseResult.GetValueForOption(interactiveOption);
@@ -209,7 +220,7 @@ public static class RunCommand
                                 result.ResolvedParameters);
                         }
                     }
-                    renderer.WriteSummary(result.CellResults, result.TotalElapsed);
+                    renderer.WriteSummary(result.CellResults, result.Cells, result.TotalElapsed);
                     break;
 
                 case OutputFormat.Json:

@@ -105,14 +105,8 @@ public sealed class PythonMagicCommand : IMagicCommand
             return;
         }
 
-        var text = Describe(resolution.Interpreter!);
-
-        // Without the out-of-process host the running interpreter is the embedded runtime, not the
-        // executable resolved here, and saying so avoids reporting something that is not in use.
-        if (FindPythonKernel(context) is not { UsesHostProcess: true })
-            text += "\nThis applies to the out-of-process Python host, which is not enabled for this session.";
-
-        await context.WriteOutputAsync(CellOutput.Plain(text)).ConfigureAwait(false);
+        await context.WriteOutputAsync(CellOutput.Plain(Describe(resolution.Interpreter!)))
+            .ConfigureAwait(false);
     }
 
     private async Task ListAsync(IMagicCommandContext context, InterpreterQuery query)
@@ -153,13 +147,13 @@ public sealed class PythonMagicCommand : IMagicCommand
         kernel?.SetSessionInterpreter(interpreter.Executable);
 
         var message = $"Selected {interpreter.Executable} (Python {interpreter.RawVersion}). ";
-        message += kernel is null or { UsesHostProcess: false }
-            ? "It applies to the out-of-process Python host, which is not enabled for this session."
+        message += kernel is null
+            ? "It applies the next time the Python kernel starts."
             : "Restarting the kernel to apply it.";
 
         await context.WriteOutputAsync(CellOutput.Plain(message)).ConfigureAwait(false);
 
-        if (kernel is { UsesHostProcess: true })
+        if (kernel is not null)
         {
             try
             {
