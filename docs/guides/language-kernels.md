@@ -64,6 +64,46 @@ var t = Variables.Get<double>("threshold");
 
 SQL cells resolve `@name` bindings from the same store, and the HTTP kernel writes its last response back into it. Because the store is shared, a query result loaded in one cell can be charted, transformed, or exported by a cell in another language.
 
+### What a value looks like in a Python cell
+
+Python runs in its own process, so a value reaches it as data rather than as the original object. Most of that is invisible: numbers, text, lists, and dictionaries arrive as themselves.
+
+An object with named fields, such as a C# or F# record, arrives as a mapping that answers both spellings, so either of these works:
+
+```python
+first = readings[0]
+print(first.Time, first["Price"])
+```
+
+A date arrives as a real `datetime`, so it behaves normally with `pandas` and with date arithmetic. It also answers the field names used in .NET, which means a cell written for an earlier version of Verso keeps working:
+
+```python
+print(reading.Time.year, reading.Time.Year)          # both 2026
+print(reading.Time.microsecond, reading.Time.Millisecond)
+```
+
+A SQL result arrives as a list of row mappings, which is what a DataFrame is built from directly:
+
+```python
+import pandas as pd
+df = pd.DataFrame(lastSqlResult)
+```
+
+Exact decimals stay exact rather than becoming floats, and `Guid`, `TimeSpan`, and byte arrays arrive as `uuid.UUID`, `timedelta`, and `bytes`. Going the other way, `datetime`, `Decimal`, `UUID`, `bytes`, NumPy arrays, and pandas frames and series all convert back.
+
+### When a value cannot cross
+
+Some values have no meaning outside the process that made them: a function, a task in flight, an open connection, a type description. These do not silently disappear. The name is still defined, printing it explains what happened, and using it raises an error saying which variable it was and why:
+
+```python
+print(callback)
+# <callback was not shared with Python: a function, which cannot be called from another process>
+```
+
+The cell that first encounters one also says so in its output. The value remains fully available to cells in the language that produced it.
+
+Changes made in Python are shared when you assign the name. Modifying a shared collection in place, such as appending to a list that came from another language, is not reported back; assign the result to the name instead.
+
 ## Restarting a kernel
 
 Kernels initialize lazily the first time you run a cell in that language. If a kernel gets into a bad state, restart it to clear its variables and reload. A full "Run All" also resets the kernels first, so it behaves as if the notebook were being executed from scratch.

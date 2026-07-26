@@ -22,6 +22,16 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private readonly HostBootstrap _bootstrap;
 
     private readonly Dictionary<string, string> _injectedHashes = new(StringComparer.Ordinal);
+
+    /// <summary>Why each name currently cannot be shared, so the reason is given once per change.</summary>
+    private readonly Dictionary<string, string> _unavailable = new(StringComparer.Ordinal);
+
+    /// <summary>Names whose shareability changed while building the current cell's payload.</summary>
+    private readonly List<(string Name, string? Reason)> _statusChanges = new();
+
+    /// <summary>Names already reported as too large to publish, so each is mentioned once.</summary>
+    private readonly HashSet<string> _oversizeReported = new(StringComparer.Ordinal);
+
     private readonly AutoInstallService _autoInstall;
 
     private PythonHostProcess? _process;
@@ -34,7 +44,6 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private bool _dependenciesRequested;
     private bool _requiresPythonReported;
     private bool _pythonDllReported;
-    private bool _oversizeNoticeShown;
     private int _crashExitCode;
 
     /// <summary>Assembles streamed text into terminal-like lines. Replaced for each cell.</summary>
@@ -608,8 +617,12 @@ internal sealed class PythonHostSession : IAsyncDisposable
         var process = new PythonHostProcess(executable, workingDirectory, BuildBootstrap());
         process.Exited += OnProcessExited;
 
-        // The new interpreter has an empty scope, so nothing counts as already injected.
+        // The new interpreter has an empty scope, so nothing counts as already injected, and
+        // anything explained about a name earlier is worth explaining again to the new scope.
         _injectedHashes.Clear();
+        _unavailable.Clear();
+        _statusChanges.Clear();
+        _oversizeReported.Clear();
 
         await process.StartAsync(cancellationToken).ConfigureAwait(false);
 
@@ -893,14 +906,61 @@ internal sealed class PythonHostSession : IAsyncDisposable
         if (!_options.InjectVariables)
             return payload;
 
+        var perVariable = _options.VariableInjectLimitBytes > 0
+            ? _options.VariableInjectLimitBytes
+            : PythonKernelOptions.DefaultVariableInjectLimitBytes;
+        var remaining = (long)perVariable * 4;
+
         foreach (var descriptor in store.GetAll())
         {
             if (!IsInjectable(descriptor.Name))
                 continue;
             if (descriptor.Value is null)
                 continue;
-            if (!HostVariables.TryToJson(descriptor.Value, out var node) || node is null)
-                continue;
+
+            JsonNode? node;
+            if (HostVariables.TryToJson(descriptor.Value, out var converted, out var reason))
+            {
+                if (converted is null)
+                    continue;
+
+                node = converted;
+                if (_unavailable.Remove(descriptor.Name))
+                    _statusChanges.Add((descriptor.Name, null));
+            }
+            else
+            {
+                // The name is still bound, carrying the reason instead of the value. Leaving it
+                // out was what produced a bare NameError beside a variables pane that listed it.
+                node = WireTag.Node(WireTag.Unavailable, reason ?? "it has no JSON form");
+                if (!_unavailable.TryGetValue(descriptor.Name, out var told) || told != reason)
+                {
+                    _unavailable[descriptor.Name] = reason ?? "";
+                    _statusChanges.Add((descriptor.Name, reason));
+                }
+            }
+
+            // Measured once the value is built, and charged against both a per-variable ceiling
+            // and what is left for the payload as a whole. Sending more than the transport will
+            // carry surfaces as a lost subprocess rather than as the size problem it is.
+            var size = node.ToJsonString().Length;
+            if (size > perVariable || size > remaining)
+            {
+                var explanation = size > perVariable
+                    ? $"larger than the {perVariable} byte limit for a shared value"
+                    : "past what is left of this cell's sharing budget";
+
+                node = WireTag.Node(WireTag.Unavailable, explanation);
+                if (!_unavailable.TryGetValue(descriptor.Name, out var told) || told != explanation)
+                {
+                    _unavailable[descriptor.Name] = explanation;
+                    _statusChanges.Add((descriptor.Name, explanation));
+                }
+            }
+            else
+            {
+                remaining -= size;
+            }
 
             var hash = HostVariables.ComputeHash(node);
             if (_injectedHashes.TryGetValue(descriptor.Name, out var previous) && previous == hash)
@@ -911,6 +971,34 @@ internal sealed class PythonHostSession : IAsyncDisposable
         }
 
         return payload;
+    }
+
+    /// <summary>
+    /// Say once, per name, that a variable could not be shared and why. A name is mentioned again
+    /// only when its answer changes, so a cell that keeps referring to the same unshareable value
+    /// is not narrated every time, and a workaround the author bound for that name is not
+    /// contradicted by a later, unrelated cell.
+    /// </summary>
+    private async Task ReportUnavailableAsync(IExecutionContext context, List<CellOutput> outputs)
+    {
+        if (_statusChanges.Count == 0)
+            return;
+
+        var lines = _statusChanges
+            .Where(change => change.Reason is not null)
+            .Select(change => $"{change.Name} was not shared with Python because it is {change.Reason}.")
+            .ToList();
+
+        _statusChanges.Clear();
+        if (lines.Count == 0)
+            return;
+
+        lines.Add(
+            "Each name is still bound, and using one explains itself. The value remains available "
+            + "to the cells in the language that produced it.");
+
+        await EmitAsync(CellOutput.Plain(string.Join(Environment.NewLine, lines)), context, outputs)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -970,6 +1058,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 if (WasSetDuringExecution(pair.Key, context.Variables))
                     continue;
 
+                // Python reports its whole scope rather than only what the cell touched, so most
+                // of what arrives here is a value we injected coming straight back. Storing it
+                // would replace a typed value with whatever shape JSON reduced it to: an int
+                // published from F# returns as a long, and a later typed read of that name then
+                // finds nothing. Identical content means the store already holds the better copy.
+                var hash = HostVariables.ComputeHash(pair.Value);
+                if (_injectedHashes.TryGetValue(pair.Key, out var injected) && injected == hash)
+                    continue;
+
                 var value = HostVariables.FromJson(pair.Value);
                 if (value is null)
                     continue;
@@ -978,18 +1075,24 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
                 // The value now in the store came from Python, so recording its hash keeps the
                 // next cell from injecting the same content straight back.
-                _injectedHashes[pair.Key] = HostVariables.ComputeHash(pair.Value);
+                _injectedHashes[pair.Key] = hash;
             }
         }
 
-        if (_oversizeNoticeShown || reply[HostProtocol.OversizedField] is not JsonArray oversized
-            || oversized.Count == 0)
-        {
+        if (reply[HostProtocol.OversizedField] is not JsonArray oversized || oversized.Count == 0)
             return;
-        }
 
-        _oversizeNoticeShown = true;
-        var names = string.Join(", ", oversized.Select(node => node?.ToString()).Where(n => !string.IsNullOrEmpty(n)));
+        // Tracked per name rather than once per session, so a second variable running into the
+        // limit is still reported instead of being hidden by the first one having been.
+        var fresh = oversized
+            .Select(node => node?.ToString())
+            .Where(name => !string.IsNullOrEmpty(name) && _oversizeReported.Add(name!))
+            .ToList();
+
+        if (fresh.Count == 0)
+            return;
+
+        var names = string.Join(", ", fresh);
         await EmitAsync(
             CellOutput.Plain(
                 $"Some variables were too large to share with other kernels ({names}). " +
@@ -1016,6 +1119,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 .ConfigureAwait(false);
         }
 
+        await ReportUnavailableAsync(context, outputs).ConfigureAwait(false);
         await PublishVariablesAsync(reply, context, outputs).ConfigureAwait(false);
     }
 

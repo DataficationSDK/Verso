@@ -129,6 +129,8 @@ Jupyter notebooks are typically single-language, determined by the kernel. Verso
 
 In Jupyter, all cells share the same kernel and namespace. In Verso, each language has its own kernel, but all kernels share a single variable store. Variables set in a Python cell are available to C#, F#, SQL, and other cells. This is transparent for single-language notebooks but becomes powerful when you add cells in other languages.
 
+Python runs in its own process, so a value from another language reaches it as data. Records arrive as mappings that answer both `row.Field` and `row["Field"]`, dates arrive as real `datetime` values, and a SQL result arrives as a list of rows ready for `pd.DataFrame`. A value with no meaning outside its own process, such as a function or an open connection, is still bound to its name but explains itself when printed or used. See [Language Kernels](../guides/language-kernels.md) for the details.
+
 ### Package Management
 
 | Jupyter | Verso |

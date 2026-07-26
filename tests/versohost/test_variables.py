@@ -3,6 +3,7 @@
 import sys
 
 import _versohost_vars as variable_support
+import _versohost_wiretypes as wiretypes
 
 
 def test_plain_values_survive_the_round_trip():
@@ -60,13 +61,18 @@ def test_a_deep_but_acyclic_value_stops_at_the_depth_limit():
     assert isinstance(variables["deep"], list)
 
 
-def test_non_finite_floats_travel_as_text():
+def test_non_finite_floats_travel_tagged():
     variables, _ = variable_support.collect(
         {"nan": float("nan"), "inf": float("inf"), "negative": float("-inf")})
 
     # JSON has no way to say these, and the bare tokens Python would write are not parseable
-    # by the managing side.
-    assert variables == {"nan": "nan", "inf": "inf", "negative": "-inf"}
+    # by the managing side. Tagged, they arrive as the numbers they are rather than as text
+    # that happens to spell one.
+    assert variables == {
+        "nan": wiretypes.tag(wiretypes.TAG_FLOAT, "NaN"),
+        "inf": wiretypes.tag(wiretypes.TAG_FLOAT, "Infinity"),
+        "negative": wiretypes.tag(wiretypes.TAG_FLOAT, "-Infinity"),
+    }
 
 
 def test_a_value_json_cannot_describe_publishes_the_way_it_prints():

@@ -84,10 +84,34 @@ public sealed class JsonOutputWriter
         {
             doc.Variables = variables.ToDictionary(
                 v => v.Name,
-                v => v.Value);
+                v => Representable(v.Value));
         }
 
         return doc;
+    }
+
+    /// <summary>
+    /// Reduce a variable to something that is certain to serialize, describing it instead when it
+    /// will not. A query result is a <see cref="System.Data.DataTable"/>, which has no JSON form,
+    /// and one of those in the store would otherwise take down the whole run at the point of
+    /// writing its output rather than while executing anything.
+    /// </summary>
+    private static object? Representable(object? value)
+    {
+        if (value is null)
+            return null;
+
+        try
+        {
+            // Proven here, where a failure costs one variable, rather than at the point of
+            // writing the document, where it would take down the run after the work was done.
+            JsonSerializer.Serialize(value, SerializerOptions);
+            return value;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return $"<{value.GetType().Name}, which has no JSON form>";
+        }
     }
 
     /// <summary>

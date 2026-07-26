@@ -21,6 +21,7 @@
     <EmbeddedResource Include="Host/_versohost_intel.py" LogicalName="Verso.Python.Host._versohost_intel.py" />
     <EmbeddedResource Include="Host/_versohost_scan.py" LogicalName="Verso.Python.Host._versohost_scan.py" />
     <EmbeddedResource Include="Host/_versohost_vars.py" LogicalName="Verso.Python.Host._versohost_vars.py" />
+    <EmbeddedResource Include="Host/_versohost_wiretypes.py" LogicalName="Verso.Python.Host._versohost_wiretypes.py" />
   </ItemGroup>
 
   <ItemGroup>

@@ -253,6 +253,15 @@ foreach (DataRow row in dt.Rows)
 }
 ```
 
+In a Python cell the same result arrives as a list of row mappings, which is the shape a DataFrame is built from directly. Date columns arrive as real `datetime` values and a NULL arrives as `None`:
+
+```python
+import pandas as pd
+
+df = pd.DataFrame(customers)
+print(customers[0]["CustomerName"], customers[0].OrderCount)
+```
+
 A typed `SqlResultSet` is also stored under `{name}__resultset` with structured column metadata:
 
 ```csharp

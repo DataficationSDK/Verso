@@ -6,8 +6,15 @@ under the same depth and cycle limits the in-process kernel applied, with a byte
 one enormous value cannot stall a cell or overflow a frame.
 """
 
+import base64
+import datetime
+import decimal
 import math
+import sys
 import types
+import uuid
+
+import _versohost_wiretypes as wiretypes
 
 # A self-referential value such as globals() would recurse forever, and a value that is
 # merely very deep defeats identity tracking because every node is distinct. Both limits
@@ -15,6 +22,9 @@ import types
 MAX_DEPTH = 100
 
 DEFAULT_LIMIT_BYTES = 8 * 1024 * 1024
+
+# Where .NET's own integer range ends, past which a value travels as digits rather than a number.
+_INT64_BOUND = 2 ** 63
 
 # Rough serialized cost of the scalar forms, used to spend the budget without building the
 # JSON text first. Exactness does not matter: the budget is a guard rail, not an accountant.
@@ -27,6 +37,12 @@ _ITEM_COST = 1
 
 class _TooLarge(Exception):
     """Raised inside a reduction once a value has spent its budget."""
+
+
+# What was injected, by name, as (the object placed in the scope, the wire value it came from).
+# Holding the object is what lets a later cell tell "still exactly what we were given" from
+# "replaced by something the cell computed", without reducing the value again to find out.
+_injected = {}
 
 
 def apply_inject(scope, values):
@@ -45,7 +61,14 @@ def apply_inject(scope, values):
 
     for name, value in values.items():
         if isinstance(name, str) and name and not name.startswith("__"):
-            scope[name] = value
+            hydrated = wiretypes.hydrate(value, name)
+            scope[name] = hydrated
+            _injected[name] = (hydrated, value)
+
+
+def forget_injected():
+    """Drop what is remembered about injected values, for a scope that has been reset."""
+    _injected.clear()
 
 
 def collect(scope, limit_bytes=DEFAULT_LIMIT_BYTES, total_limit_bytes=None):
@@ -69,6 +92,16 @@ def collect(scope, limit_bytes=DEFAULT_LIMIT_BYTES, total_limit_bytes=None):
         if not is_publishable(name, value):
             continue
 
+        # Still the object we were handed, so the cell did not produce it and the store already
+        # holds the original in the type it was written in. Reporting the reduced form instead
+        # would replace that with whatever JSON could describe: an int written in F# would come
+        # back a long, and a later typed read of the name would find nothing. Sending back what
+        # arrived, unchanged, is what lets the other side recognize it and leave the store alone.
+        remembered = _injected.get(name)
+        if remembered is not None and remembered[0] is value:
+            variables[name] = remembered[1]
+            continue
+
         allowance = min(limit_bytes, remaining)
         budget = [allowance]
         try:
@@ -89,6 +122,10 @@ def is_publishable(name, value):
         return False
     if value is None:
         return False
+    # A stand-in for something that never arrived has nothing to send back, and its repr
+    # deliberately does not raise, so without this it would publish over the real value.
+    if isinstance(value, wiretypes.VersoUnavailable):
+        return False
     if isinstance(value, types.ModuleType):
         return False
     if callable(value):
@@ -108,17 +145,65 @@ def _reduce(value, depth, seen, budget):
 
     if isinstance(value, int):
         _charge(budget, _NUMBER_COST)
-        return value
+        # Past the range .NET can hold as an integer, digits carry it exactly where a JSON
+        # number would be read back through a double and quietly lose its low end.
+        if -_INT64_BOUND <= value < _INT64_BOUND:
+            return value
+        return wiretypes.tag(wiretypes.TAG_BIGINT, str(value))
 
     if isinstance(value, float):
         _charge(budget, _NUMBER_COST)
         # JSON has no NaN or infinity. Python's encoder writes bare tokens for them, which
-        # the managing side cannot parse, so they travel in their textual form instead.
-        return value if math.isfinite(value) else repr(value)
+        # the managing side cannot parse, so they travel tagged instead.
+        if math.isfinite(value):
+            return value
+        if math.isnan(value):
+            return wiretypes.tag(wiretypes.TAG_FLOAT, "NaN")
+        return wiretypes.tag(
+            wiretypes.TAG_FLOAT, "Infinity" if value > 0 else "-Infinity")
 
     if isinstance(value, str):
         _charge(budget, len(value) + 2)
         return value
+
+    # Pandas' own missing values answer isinstance checks for the types they stand in for, so a
+    # missing date would otherwise be asked to format itself. Absent is what they mean.
+    if _is_missing(value):
+        _charge(budget, _NULL_COST)
+        return None
+
+    # Checked before date, which datetime subclasses, and before the containers, since none of
+    # these are one. Each keeps its own kind rather than arriving as the text it prints as.
+    if isinstance(value, datetime.datetime):
+        _charge(budget, _NUMBER_COST + _CONTAINER_COST)
+        name = (wiretypes.TAG_DATETIMEOFFSET if value.tzinfo is not None
+                else wiretypes.TAG_DATETIME)
+        return wiretypes.tag(name, value.isoformat(timespec="microseconds"))
+
+    if isinstance(value, datetime.date):
+        _charge(budget, _NUMBER_COST + _CONTAINER_COST)
+        return wiretypes.tag(wiretypes.TAG_DATE, value.isoformat())
+
+    if isinstance(value, datetime.time):
+        _charge(budget, _NUMBER_COST + _CONTAINER_COST)
+        return wiretypes.tag(wiretypes.TAG_TIME, value.isoformat(timespec="microseconds"))
+
+    if isinstance(value, datetime.timedelta):
+        _charge(budget, _NUMBER_COST + _CONTAINER_COST)
+        return wiretypes.tag(wiretypes.TAG_TIMESPAN, value.total_seconds())
+
+    if isinstance(value, decimal.Decimal):
+        _charge(budget, _NUMBER_COST + _CONTAINER_COST)
+        return wiretypes.tag(wiretypes.TAG_DECIMAL, str(value))
+
+    if isinstance(value, uuid.UUID):
+        _charge(budget, _NUMBER_COST + _CONTAINER_COST)
+        return wiretypes.tag(wiretypes.TAG_GUID, str(value))
+
+    if isinstance(value, (bytes, bytearray)):
+        encoded = base64.b64encode(bytes(value)).decode("ascii")
+        _charge(budget, len(encoded) + _CONTAINER_COST)
+        return wiretypes.tag(wiretypes.TAG_BYTES, encoded)
 
     if depth >= MAX_DEPTH:
         return None
@@ -129,7 +214,54 @@ def _reduce(value, depth, seen, budget):
     if isinstance(value, dict):
         return _reduce_mapping(value, depth, seen, budget)
 
+    plain, recognized = _to_plain(value)
+    if recognized:
+        return _reduce(plain, depth, seen, budget)
+
     return _fallback(value, budget)
+
+
+def _is_missing(value):
+    """Whether a value is one of pandas' stand-ins for a value that is not there."""
+    pandas = sys.modules.get("pandas")
+    if pandas is None:
+        return False
+    return value is getattr(pandas, "NaT", None) or value is getattr(pandas, "NA", None)
+
+
+def _to_plain(value):
+    """
+    Reduce an array or frame to the ordinary Python shapes, when those libraries are in use.
+
+    Recognized by asking for the module that is already imported rather than importing one, so a
+    notebook that never loads them pays nothing and one that does needs no configuring.
+    """
+    numpy = sys.modules.get("numpy")
+    if numpy is not None:
+        if isinstance(value, numpy.ndarray):
+            return value.tolist(), True
+        if isinstance(value, numpy.generic):
+            kind = getattr(getattr(value, "dtype", None), "kind", "")
+            if kind in ("M", "m"):
+                # A date or duration held in nanoseconds answers item() with a count of them
+                # rather than with a date, so it is narrowed to microseconds first. Microseconds
+                # are as fine as Python's own datetime goes.
+                try:
+                    unit = "datetime64[us]" if kind == "M" else "timedelta64[us]"
+                    return value.astype(unit).item(), True
+                except Exception:
+                    return value.item(), True
+            return value.item(), True
+
+    pandas = sys.modules.get("pandas")
+    if pandas is not None:
+        if isinstance(value, pandas.DataFrame):
+            # Rows of named cells, which is the shape a table is read back from.
+            return value.to_dict(orient="records"), True
+        if isinstance(value, (pandas.Series, pandas.Index)):
+            return value.tolist(), True
+
+    return None, False
 
 
 def _reduce_sequence(value, depth, seen, budget):

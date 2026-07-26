@@ -43,6 +43,9 @@ public sealed record PythonKernelOptions
     /// <summary>Default ceiling on the serialized size of a single published variable.</summary>
     public const int DefaultVariablePublishLimitBytes = 8 * 1024 * 1024;
 
+    /// <summary>Default ceiling on the serialized size of a single injected variable.</summary>
+    public const int DefaultVariableInjectLimitBytes = 8 * 1024 * 1024;
+
     /// <summary>
     /// Explicit path or name of the Python interpreter executable to run. When <c>null</c>, the
     /// interpreter is discovered from the environment, the workspace, and well-known locations.
@@ -99,6 +102,14 @@ public sealed record PythonKernelOptions
     /// stall a cell or overwhelm the shared store.
     /// </summary>
     public int VariablePublishLimitBytes { get; init; } = DefaultVariablePublishLimitBytes;
+
+    /// <summary>
+    /// Ceiling on the serialized size of a single variable sent into the Python scope. A value
+    /// over the limit arrives as an explanation instead. The whole payload is bounded at four
+    /// times this, because several large but legal values still have to leave the frame inside
+    /// what the transport will carry, and exceeding that reads as the subprocess having died.
+    /// </summary>
+    public int VariableInjectLimitBytes { get; init; } = DefaultVariableInjectLimitBytes;
 
     /// <summary>
     /// When <c>true</c>, a cell line beginning with <c>!</c> runs as a shell command and

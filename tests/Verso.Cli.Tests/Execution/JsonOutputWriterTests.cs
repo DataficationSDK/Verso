@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Verso.Abstractions;
@@ -216,6 +217,33 @@ public class JsonOutputWriterTests
         Assert.AreEqual(2, doc.Variables.Count);
         Assert.AreEqual(42, doc.Variables["count"]);
         Assert.AreEqual("test", doc.Variables["name"]);
+    }
+
+    [TestMethod]
+    public void Build_DescribesAVariableWithNoJsonForm()
+    {
+        var cell = new CellModel { Type = "code", Language = "csharp" };
+        var result = ExecutionResult.Success(cell.Id, 1, TimeSpan.FromSeconds(1));
+
+        // A query result is one of these, so any notebook with a SQL cell reached this path and
+        // took the whole run down while writing its output rather than while executing anything.
+        var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Rows.Add(1);
+
+        var variables = new List<VariableDescriptor>
+        {
+            new("lastSqlResult", table, typeof(DataTable)),
+            new("count", 42, typeof(int)),
+        };
+
+        var doc = JsonOutputWriter.Build("test.verso", new[] { cell }, new[] { result },
+            TimeSpan.FromSeconds(1), variables);
+
+        var json = JsonOutputWriter.Serialize(doc);
+
+        StringAssert.Contains(json, "no JSON form");
+        Assert.AreEqual(42, doc.Variables!["count"]);
     }
 
     [TestMethod]

@@ -23,6 +23,7 @@ internal static class HostScriptExtractor
         "_versohost_intel.py",
         "_versohost_scan.py",
         "_versohost_vars.py",
+        "_versohost_wiretypes.py",
     };
 
     /// <summary>The per-user root under which versioned host scripts are written.</summary>

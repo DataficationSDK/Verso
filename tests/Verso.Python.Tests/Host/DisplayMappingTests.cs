@@ -95,37 +95,82 @@ public sealed class DisplayMappingTests
     }
 
     [TestMethod]
-    public void ToJson_SkipsValuesWithNoJsonForm()
+    public void ToJson_RefusesWhatDescribesTheProgramAndSaysWhy()
     {
-        Assert.IsFalse(HostVariables.TryToJson(new Action(() => { }), out _));
-        Assert.IsFalse(HostVariables.TryToJson(Task.CompletedTask, out _));
-        Assert.IsFalse(HostVariables.TryToJson(CancellationToken.None, out _));
-        Assert.IsFalse(HostVariables.TryToJson(new object(), out _));
+        // These describe the running program rather than data, so there is nothing to send. What
+        // matters is that each says why: the reason is what the notebook is shown in its place.
+        Assert.IsFalse(HostVariables.TryToJson(new Action(() => { }), out _, out var callback));
+        StringAssert.Contains(callback!, "function");
+
+        Assert.IsFalse(HostVariables.TryToJson(Task.CompletedTask, out _, out var task));
+        StringAssert.Contains(task!, "operation");
+
+        Assert.IsFalse(HostVariables.TryToJson(CancellationToken.None, out _, out var token));
+        StringAssert.Contains(token!, "operation");
     }
 
     [TestMethod]
-    public void ToJson_SkipsNonFiniteNumbers()
+    public void ToJson_CarriesAPlainObjectAsItsProperties()
     {
-        // JSON cannot express these, and the host script refuses the bare tokens.
-        Assert.IsFalse(HostVariables.TryToJson(double.NaN, out _));
-        Assert.IsFalse(HostVariables.TryToJson(double.PositiveInfinity, out _));
+        // Previously refused outright, which is what left a record from another language absent
+        // from the Python scope with nothing said about it.
+        Assert.IsTrue(HostVariables.TryToJson(new { Name = "row", Count = 2 }, out var node));
+        Assert.AreEqual("{\"Name\":\"row\",\"Count\":2}", node!.ToJsonString());
     }
 
     [TestMethod]
-    public void ToJson_SkipsADictionaryWithNonStringKeys()
+    public void ToJson_TagsNonFiniteNumbersRatherThanRefusingThem()
+    {
+        // JSON has no token for these, so they travel tagged. Refusing them used to discard every
+        // other element of whatever array one of them appeared in.
+        Assert.IsTrue(HostVariables.TryToJson(double.NaN, out var nan));
+        StringAssert.Contains(nan!.ToJsonString(), "NaN");
+
+        Assert.IsTrue(HostVariables.TryToJson(new List<object> { 1.0, double.NaN, 3.0 }, out var list));
+        // Written with their fraction intact, so a column of measurements that happens to land on
+        // whole values is still read as fractional on the other side.
+        var array = (JsonArray)list!;
+        Assert.AreEqual(3, array.Count);
+        Assert.AreEqual("1.0", array[0]!.ToJsonString());
+        Assert.AreEqual("3.0", array[2]!.ToJsonString());
+    }
+
+    [TestMethod]
+    public void ToJson_StringifiesNonStringDictionaryKeys()
     {
         var value = new Dictionary<int, string> { [1] = "one" };
 
-        Assert.IsFalse(HostVariables.TryToJson(value, out _));
+        Assert.IsTrue(HostVariables.TryToJson(value, out var node));
+        Assert.AreEqual("{\"1\":\"one\"}", node!.ToJsonString());
     }
 
     [TestMethod]
-    public void ToJson_StopsAtASelfReferentialValue()
+    public void ToJson_ReplacesABackReferenceRatherThanTheWholeValue()
     {
         var cyclic = new List<object>();
         cyclic.Add(cyclic);
 
-        Assert.IsFalse(HostVariables.TryToJson(cyclic, out _));
+        // The cycle itself cannot be described, but everything around it can, so only the back
+        // reference is lost. Refusing the whole value for it lost data that was perfectly fine.
+        Assert.IsTrue(HostVariables.TryToJson(cyclic, out var node));
+        Assert.AreEqual("[null]", node!.ToJsonString());
+    }
+
+    [TestMethod]
+    public void ToJson_IsolatesAPropertyThatThrowsWhenRead()
+    {
+        Assert.IsTrue(HostVariables.TryToJson(new ThrowingProperty(), out var node));
+
+        var text = node!.ToJsonString();
+        StringAssert.Contains(text, "\"Good\":1");
+        StringAssert.Contains(text, WireTag.Unavailable);
+    }
+
+    private sealed class ThrowingProperty
+    {
+        public int Good => 1;
+
+        public int Bad => throw new InvalidOperationException("no");
     }
 
     [TestMethod]
@@ -151,6 +196,70 @@ public sealed class DisplayMappingTests
 
         var map = (Dictionary<string, object>)HostVariables.FromJson(JsonNode.Parse("{\"a\":1}"))!;
         Assert.AreEqual(1L, map["a"]);
+    }
+
+    [TestMethod]
+    public void ToJson_KeepsWhatJsonHasNoFormFor()
+    {
+        // A date stays a date, and an exact decimal stays exact. Written as plain JSON a decimal
+        // is indistinguishable from a double, so the reason for choosing it would be lost quietly.
+        Assert.IsTrue(HostVariables.TryToJson(new DateTime(2026, 4, 16, 8, 0, 0), out var stamp));
+        StringAssert.Contains(stamp!.ToJsonString(), "2026-04-16T08:00:00.000000");
+
+        Assert.IsTrue(HostVariables.TryToJson(1.005m, out var money));
+        StringAssert.Contains(money!.ToJsonString(), "\"1.005\"");
+    }
+
+    [TestMethod]
+    public void ToJson_WritesADateInTheFormOlderInterpretersAccept()
+    {
+        // CPython before 3.11 rejects both a seven digit fraction, which is what .NET writes by
+        // default, and a bare Z. Six digits with an explicit offset is accepted by every version.
+        Assert.IsTrue(HostVariables.TryToJson(
+            new DateTime(2026, 4, 16, 8, 0, 0, DateTimeKind.Utc), out var utc));
+
+        // Read from the tag rather than the rendered JSON, which escapes the plus sign.
+        Assert.IsTrue(WireTag.TryRead(utc, out var tag, out var value));
+        Assert.AreEqual(WireTag.DateTime, tag);
+
+        var text = value!.GetValue<string>();
+        StringAssert.EndsWith(text, "+00:00");
+        Assert.IsFalse(text.EndsWith('Z'), "A bare Z suffix cannot be parsed before 3.11.");
+        Assert.IsFalse(text.Contains(".0000000"), "Seven fractional digits cannot be parsed before 3.11.");
+    }
+
+    [TestMethod]
+    public void FromJson_RebuildsTheTaggedTypes()
+    {
+        Assert.AreEqual(
+            new DateTime(2026, 4, 16, 8, 0, 0),
+            HostVariables.FromJson(WireTag.Node(WireTag.DateTime, "2026-04-16T08:00:00.000000")));
+
+        Assert.AreEqual(1.005m, HostVariables.FromJson(WireTag.Node(WireTag.Decimal, "1.005")));
+        Assert.AreEqual(
+            Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            HostVariables.FromJson(WireTag.Node(WireTag.Guid, "00000000-0000-0000-0000-000000000001")));
+        Assert.AreEqual(double.NaN, HostVariables.FromJson(WireTag.Node(WireTag.Float, "NaN")));
+    }
+
+    [TestMethod]
+    public void FromJson_KeepsTheTextWhenATagWillNotParse()
+    {
+        // The caller reads a whole cell's variables with no handler of its own, so one malformed
+        // value must not cost every value after it. Python's Decimal has states .NET's has not.
+        Assert.AreEqual("NaN", HostVariables.FromJson(WireTag.Node(WireTag.Decimal, "NaN")));
+    }
+
+    [TestMethod]
+    public void FromJson_ReadsAnOrdinaryObjectThatBorrowsATagName()
+    {
+        // Only an object of exactly the two reserved keys is a tag. One that merely contains a
+        // key by that name is a dictionary the notebook built, and stays one.
+        var node = JsonNode.Parse($"{{\"{WireTag.TypeKey}\":\"datetime\",\"other\":1}}");
+        var map = (Dictionary<string, object>)HostVariables.FromJson(node)!;
+
+        Assert.AreEqual(2, map.Count);
+        Assert.AreEqual(1L, map["other"]);
     }
 
     [TestMethod]

@@ -1,3 +1,4 @@
+using System.Data;
 using Verso.Abstractions;
 using Verso.Python.Host;
 using Verso.Python.Interpreter;
@@ -168,17 +169,55 @@ public sealed class VariableExchangeTests
     }
 
     [TestMethod]
-    public async Task Inject_SkipsValuesJsonCannotDescribe()
+    public async Task Inject_BindsAnExplanationForValuesJsonCannotDescribe()
     {
         await using var session = await StartedSessionAsync();
         var context = new StubExecutionContext();
         context.Variables.Set("callback", new Action(() => { }));
         context.Variables.Set("usable", 5);
 
+        // The name exists, so the cell is not left with a bare NameError beside a variables pane
+        // that lists the variable. Printing it explains itself.
         var outputs = await session.ExecuteAsync("'callback' in dir()", context);
 
-        Assert.AreEqual("False", outputs[^1].Content);
-        Assert.AreEqual(5L, context.Variables.Get<object>("usable"));
+        Assert.IsTrue(outputs.Any(o => o.Content.Trim() == "True"));
+
+        // The usable value is untouched by the cell, so it keeps the type it was stored with
+        // rather than the one a JSON round trip would have left it as.
+        Assert.AreEqual(5, context.Variables.Get<int>("usable"));
+        Assert.IsTrue(
+            outputs.Any(o => o.Content.Contains("callback was not shared")),
+            "The cell should say which variable could not be shared and why.");
+    }
+
+    [TestMethod]
+    public async Task Inject_ExplainsAnUnshareableValueOnlyOnce()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+        context.Variables.Set("callback", new Action(() => { }));
+
+        await session.ExecuteAsync("1", context);
+        var second = await session.ExecuteAsync("2", context);
+
+        Assert.IsFalse(
+            second.Any(o => o.Content.Contains("callback was not shared")),
+            "A name whose answer has not changed should not be narrated on every cell.");
+    }
+
+    [TestMethod]
+    public async Task Inject_UsingAnUnshareableValueRaisesWithTheReason()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+        context.Variables.Set("callback", new Action(() => { }));
+
+        var outputs = await session.ExecuteAsync(
+            "try:\n    callback.anything\nexcept Exception as e:\n    print(e)", context);
+
+        Assert.IsTrue(
+            outputs.Any(o => o.Content.Contains("callback") && o.Content.Contains("function")),
+            "Using the value should raise an error naming the variable and the reason.");
     }
 
     [TestMethod]
@@ -229,6 +268,82 @@ public sealed class VariableExchangeTests
         Assert.AreEqual(99, context.Variables.Get<object>("contended"));
     }
 
+    /// <summary>
+    /// The shape that went missing: an array of records carrying a date. A C# record stands in for
+    /// the F# one that was reported, because both reach Python by the same route, through their
+    /// public properties.
+    /// </summary>
+    private sealed record Measurement(DateTime Time, double Price, double Volume);
+
+    [TestMethod]
+    public async Task Inject_CarriesRecordsWithDatesForFieldAccess()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+        context.Variables.Set("readings", new[]
+        {
+            new Measurement(new DateTime(2026, 4, 16, 8, 0, 0), 2.0, 100.0),
+            new Measurement(new DateTime(2026, 4, 16, 8, 10, 30), 3.0, 10.0),
+        });
+
+        var outputs = await session.ExecuteAsync(
+            "r = readings[1]\n"
+            + "print(r.Time.Year, r.Time.Minute, r.Price, r['Volume'])", context);
+
+        Assert.AreEqual("2026 10 3.0 10.0", outputs[^1].Content.Trim());
+    }
+
+    [TestMethod]
+    public async Task Inject_CarriesADateAsARealDateTime()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+        context.Variables.Set("stamp", new DateTime(2026, 4, 16, 8, 0, 0, 250));
+
+        var outputs = await session.ExecuteAsync(
+            "import datetime\n"
+            + "print(isinstance(stamp, datetime.datetime), stamp.Millisecond, stamp.microsecond)",
+            context);
+
+        // Millisecond is the .NET spelling and range, kept so cells written against the previous
+        // kernel still run; microsecond is Python's own and both describe the same instant.
+        Assert.AreEqual("True 250 250000", outputs[^1].Content.Trim());
+    }
+
+    [TestMethod]
+    public async Task Inject_CarriesAQueryResultAsRows()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+
+        var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("When", typeof(DateTime));
+        table.Rows.Add(1, new DateTime(2026, 4, 16, 8, 0, 0));
+        table.Rows.Add(2, DBNull.Value);
+        context.Variables.Set("lastSqlResult", table);
+
+        var outputs = await session.ExecuteAsync(
+            "print(len(lastSqlResult), lastSqlResult[0]['Id'], lastSqlResult[0].When.Year, "
+            + "lastSqlResult[1]['When'])", context);
+
+        Assert.AreEqual("2 1 2026 None", outputs[^1].Content.Trim());
+    }
+
+    [TestMethod]
+    public async Task Publish_LeavesAnUntouchedValueAsItWasStored()
+    {
+        await using var session = await StartedSessionAsync();
+        var context = new StubExecutionContext();
+        context.Variables.Set("count", 7);
+
+        // Python reports its whole scope, so a cell that never mentions the name still returns it.
+        // Storing what came back would leave an int readable only as a long.
+        await session.ExecuteAsync("unrelated = 1", context);
+
+        Assert.AreEqual(7, context.Variables.Get<int>("count"));
+    }
+
     [TestMethod]
     public async Task Publish_DescribesAValueTooLargeToShare()
     {
@@ -247,15 +362,21 @@ public sealed class VariableExchangeTests
     }
 
     [TestMethod]
-    public async Task Publish_ExplainsTheLimitOnlyOnce()
+    public async Task Publish_ExplainsTheLimitOncePerName()
     {
         await using var session = await StartedSessionAsync(
             new PythonKernelOptions { VariablePublishLimitBytes = 1024 });
         var context = new StubExecutionContext();
 
         await session.ExecuteAsync("blob = 'x' * 100000", context);
-        var second = await session.ExecuteAsync("other = 'y' * 100000", context);
 
-        Assert.IsFalse(second.Any(o => o.Content.Contains("too large to share")));
+        // A different variable running into the same limit is its own news. Reporting only the
+        // first one meant every later one went unmentioned for the rest of the session.
+        var second = await session.ExecuteAsync("other = 'y' * 100000", context);
+        Assert.IsTrue(second.Any(o => o.Content.Contains("other")));
+
+        // The same variable again is not, so a cell that keeps referring to it stays readable.
+        var third = await session.ExecuteAsync("blob", context);
+        Assert.IsFalse(third.Any(o => o.Content.Contains("too large to share")));
     }
 }
