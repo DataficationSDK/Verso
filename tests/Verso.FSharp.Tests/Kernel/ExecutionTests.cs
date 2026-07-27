@@ -188,22 +188,24 @@ public class ExecutionTests
     }
 
     [TestMethod]
-    public async Task OutputOrdering_FsiThenConsoleThenError()
+    public async Task OutputOrdering_FsiThenConsoleThenStandardError()
     {
         // FSI output (let binding), Console.Out (printfn), and Console.Error should appear in order
         var outputs = await _kernel.ExecuteAsync(
             "let orderTest = 42\nprintfn \"console out\"\nSystem.Console.Error.Write(\"stderr msg\")", _context);
 
-        // Verify non-error outputs come before error outputs
-        var nonErrorOutputs = outputs.Where(o => !o.IsError).ToList();
-        var errorOutputs = outputs.Where(o => o.IsError).ToList();
+        var stdoutOutputs = outputs.Where(o => o.Channel != OutputChannel.Stderr).ToList();
+        var stderrOutputs = outputs.Where(o => o.Channel == OutputChannel.Stderr).ToList();
 
-        Assert.IsTrue(nonErrorOutputs.Count >= 1, "Should have non-error outputs");
-        Assert.IsTrue(errorOutputs.Count >= 1, "Should have error outputs (stderr)");
+        Assert.IsTrue(stdoutOutputs.Count >= 1, "Should have ordinary outputs");
+        Assert.IsTrue(stderrOutputs.Count >= 1, "Should have standard error output");
 
-        // Verify stderr is captured as error
-        var stderrText = string.Join(" ", errorOutputs.Select(o => o.Content));
+        var stderrText = string.Join(" ", stderrOutputs.Select(o => o.Content));
         Assert.IsTrue(stderrText.Contains("stderr msg"), $"Expected stderr captured, got: {stderrText}");
+
+        // Writing to Console.Error is a diagnostic, not a failure. A compilation error or a
+        // thrown exception is what fails an F# cell, and both are covered separately.
+        Assert.IsFalse(outputs.Any(o => o.IsError), "writing to standard error is not a failure");
     }
 
     [TestMethod]

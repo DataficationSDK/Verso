@@ -8,7 +8,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Verso.Python</PackageId>
     <Title>Verso Python</Title>
-    <Description>Python language kernel extension for Verso notebooks via pythonnet.</Description>
+    <Description>Python language kernel extension for Verso notebooks, running the interpreter installed on the machine.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,11 +16,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Verso.Python.Tests" />
+    <EmbeddedResource Include="Host/versohost.py" LogicalName="Verso.Python.Host.versohost.py" />
+    <EmbeddedResource Include="Host/_versohost_display.py" LogicalName="Verso.Python.Host._versohost_display.py" />
+    <EmbeddedResource Include="Host/_versohost_intel.py" LogicalName="Verso.Python.Host._versohost_intel.py" />
+    <EmbeddedResource Include="Host/_versohost_scan.py" LogicalName="Verso.Python.Host._versohost_scan.py" />
+    <EmbeddedResource Include="Host/_versohost_vars.py" LogicalName="Verso.Python.Host._versohost_vars.py" />
+    <EmbeddedResource Include="Host/_versohost_wiretypes.py" LogicalName="Verso.Python.Host._versohost_wiretypes.py" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="pythonnet" Version="3.1.0" />
+    <InternalsVisibleTo Include="Verso.Python.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -208,8 +208,11 @@ window.versoParameters = (() => {
             const cellId = cellAncestor.getAttribute('data-cell-id');
             const extensionId = extEl.getAttribute('data-extension-id');
             const payload = getPayload(actionable);
-            const outputEl = actionable.closest('[data-output-block-id]');
-            const outputBlockId = outputEl ? outputEl.getAttribute('data-output-block-id') : null;
+            // An extension marks the output it wants replaced with data-output-id, which is what
+            // the host searches its rendered content for. Without a match the whole cell's output
+            // is replaced instead, so the name has to be the one the host looks for.
+            const outputEl = actionable.closest('[data-output-id]');
+            const outputBlockId = outputEl ? outputEl.getAttribute('data-output-id') : null;
             if (window.versoCellInteract && typeof window.versoCellInteract.cellInteract === 'function') {
                 window.versoCellInteract
                     .cellInteract(cellId, extensionId, interactionType, payload, outputBlockId)

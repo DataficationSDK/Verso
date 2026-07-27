@@ -24,7 +24,7 @@
 
 ## Writing Code with IntelliSense
 
-Verso's C# kernel is powered by Roslyn, giving you the latest language features, persistent state across cells, real-time error checking, and code completions as you type. The F# kernel offers the same experience powered by FSharp.Compiler.Service. The PowerShell kernel hosts a persistent runspace with full cmdlet support, pipeline-aware output, and completions powered by `CommandCompletion`. The Python kernel embeds CPython via pythonnet with IntelliSense powered by jedi, bidirectional variable sharing with other kernels, and virtual environment support via `#!pip`.
+Verso's C# kernel is powered by Roslyn, giving you the latest language features, persistent state across cells, real-time error checking, and code completions as you type. The F# kernel offers the same experience powered by FSharp.Compiler.Service. The PowerShell kernel hosts a persistent runspace with full cmdlet support, pipeline-aware output, and completions powered by `CommandCompletion`. The Python kernel runs the interpreter installed on your machine and answers IntelliSense from inside it, so completions reflect the packages you actually have, alongside bidirectional variable sharing with other kernels and package installation via `#!pip`.
 
 ## JavaScript and TypeScript
 
@@ -127,7 +127,9 @@ The JavaScript kernel works out of the box with no external dependencies by usin
 
 ### Python Kernel
 
-The Python kernel requires **Python 3.8-3.12** installed on your system. Python 3.13+ is not yet supported by pythonnet. The kernel auto-detects your Python installation; if auto-detection fails you can set the `PythonDll` option to the path of your Python shared library (e.g. `python312.dll` on Windows, `libpython3.12.dylib` on macOS, `libpython3.12.so` on Linux).
+The Python kernel requires **Python 3.8 or newer** installed on your system, including 3.13 and 3.14. Cells run in that interpreter as a separate process, so an active virtual environment or conda environment is picked up automatically and its packages are simply there. Set `verso.python.interpreterPath` to pin a specific one, or run `#!python --list` in a cell to see what was found and `#!python <path>` to switch.
+
+Importing a package the environment does not have offers to install it rather than failing, into the interpreter the cells run in. `verso.python.autoInstall` controls whether that asks first, installs known packages silently, or is off entirely.
 
 ### Settings
 
@@ -137,6 +139,9 @@ The Python kernel requires **Python 3.8-3.12** installed on your system. Python 
 | `verso.extensionsPath` | `[]` | Directories of third-party Verso extension assemblies to load on notebook open, one directory per entry. Applies on the next notebook open. |
 | `verso.hostPath` | bundled | Path to a custom `Verso.Host.dll`. If empty, the bundled host is used. |
 | `verso.preserveOriginalFormat` | `false` | When opening an `.ipynb` file, save changes back to `.ipynb` (cell outputs preserved) instead of converting to a sibling `.verso` file. Leave off to keep the existing convert-on-save behavior. |
+| `verso.python.interpreterPath` | auto-detect | Path to the Python interpreter used by Python cells. If empty, Verso discovers one from the active virtual environment, the workspace, and well-known install locations. |
+| `verso.python.autoInstall` | `prompt` | What happens when a Python cell imports a package the environment lacks. `prompt` asks first and running the cell is never blocked by declining, `auto` installs recognized packages silently and reports names it can only guess at, `off` never scans or installs. |
+| `verso.python.useUv` | `true` | Use the `uv` tool for Python installs and environment creation when it is on PATH. When off, pip and the standard library `venv` module are used. |
 
 ## Supported Languages
 

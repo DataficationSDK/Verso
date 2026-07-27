@@ -236,11 +236,12 @@ public sealed class CSharpKernel : ILanguageKernel
                 outputs.Add(consoleCell);
             }
 
-            // Capture console error output (stderr)
+            // Capture console error output. Writing to Console.Error is not itself a failure, so
+            // this records the channel and leaves the verdict to the exception handlers below.
             var consoleError = consoleErrWriter.ToString();
             if (!string.IsNullOrEmpty(consoleError))
             {
-                var errCell = new CellOutput("text/plain", consoleError, IsError: true, ErrorName: "Error");
+                var errCell = CellOutput.Stderr(consoleError);
                 await context.WriteOutputAsync(errCell).ConfigureAwait(false);
                 outputs.Add(errCell);
             }

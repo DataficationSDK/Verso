@@ -1662,7 +1662,16 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         _pendingConsentRequestId = request.RequestId;
         _pendingConsentExtensions = request.Extensions?
-            .Select(e => new ExtensionConsentInfo(e.PackageId ?? "", e.Version, e.Source ?? "cell"))
+            .Select(e => new ExtensionConsentInfo(
+                e.PackageId ?? "",
+                e.Version,
+                e.Source ?? "cell")
+            {
+                Kind = string.Equals(e.Kind, "package", StringComparison.OrdinalIgnoreCase)
+                    ? ConsentKind.Package
+                    : ConsentKind.Extension,
+                Target = e.Target,
+            })
             .ToList()
             ?? new List<ExtensionConsentInfo>();
 
@@ -1921,7 +1930,15 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
     private static CellOutput MapOutputFromDto(CellOutputDto dto)
     {
-        return new CellOutput(dto.MimeType, dto.Content, dto.IsError, dto.ErrorName, dto.ErrorStackTrace);
+        return new CellOutput(dto.MimeType, dto.Content, dto.IsError, dto.ErrorName, dto.ErrorStackTrace)
+        {
+            Channel = dto.Channel?.ToLowerInvariant() switch
+            {
+                "stdout" => OutputChannel.Stdout,
+                "stderr" => OutputChannel.Stderr,
+                _ => null
+            }
+        };
     }
 
     private static ThemeColorTokens MapColorsFromDict(Dictionary<string, string> colors)
@@ -2098,6 +2115,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public Dictionary<string, object>? Metadata { get; set; }
     }
 
+    /// <summary>
+    /// Mirrors <c>Verso.Host</c>'s CellOutputDto. The two are separate declarations with no shared
+    /// type, so a field added to one has to be added to the other or it silently fails to arrive.
+    /// </summary>
     private sealed class CellOutputDto
     {
         public string MimeType { get; set; } = "";
@@ -2105,6 +2126,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public bool IsError { get; set; }
         public string? ErrorName { get; set; }
         public string? ErrorStackTrace { get; set; }
+        public string? Channel { get; set; }
     }
 
     private sealed class CellListResponse
@@ -2452,6 +2474,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? PackageId { get; set; }
         public string? Version { get; set; }
         public string? Source { get; set; }
+        public string? Kind { get; set; }
+        public string? Target { get; set; }
     }
 
     private sealed class CellInteractResponse

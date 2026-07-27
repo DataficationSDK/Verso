@@ -137,7 +137,12 @@ public sealed class NotebookSession : IAsyncDisposable
             {
                 packageId = e.PackageId,
                 version = e.Version,
-                source = e.Source
+                source = e.Source,
+
+                // Lower-cased so the client reads it without an enum converter, matching how
+                // the rest of these payloads travel.
+                kind = e.Kind.ToString().ToLowerInvariant(),
+                target = e.Target
             }).ToArray()
         });
 

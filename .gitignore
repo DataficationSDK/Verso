@@ -48,3 +48,8 @@ coverage/
 ## VS Code extension — Blazor WASM publish output
 vscode/blazor-wasm/
 /samples/internal-testing
+
+## Python host script tests
+__pycache__/
+*.pyc
+.pytest_cache/

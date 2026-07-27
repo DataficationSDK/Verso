@@ -1,4 +1,5 @@
 using Verso.Python.Kernel;
+using Verso.Python.Tests.Host;
 using Verso.Testing.Stubs;
 
 namespace Verso.Python.Tests.Kernel;
@@ -15,6 +16,8 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_SelfReferentialGlobals_DoesNotCrash()
     {
+        PythonProbe.Require();
+
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
         var context = new StubExecutionContext();
@@ -30,6 +33,8 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_CyclicContainers_DoNotCrash_AndNormalDataStillPublishes()
     {
+        PythonProbe.Require();
+
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
         var context = new StubExecutionContext();
@@ -57,6 +62,8 @@ public sealed class VariablePublishingTests
     [TestMethod]
     public async Task Publish_DeeplyNestedAcyclicList_DoesNotCrash()
     {
+        PythonProbe.Require();
+
         var kernel = new PythonKernel();
         await kernel.InitializeAsync();
         var context = new StubExecutionContext();

@@ -309,10 +309,11 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 outputs.Add(consoleCell);
             }
 
-            // 3. Console.Error capture (as error output)
+            // 3. Console.Error capture. Recorded by channel rather than as a failure; the
+            // compilation and exception paths below are what decide whether the cell failed.
             if (!string.IsNullOrEmpty(result.ConsoleError))
             {
-                var errCell = new CellOutput("text/plain", result.ConsoleError, IsError: true, ErrorName: "stderr");
+                var errCell = CellOutput.Stderr(result.ConsoleError);
                 await context.WriteOutputAsync(errCell).ConfigureAwait(false);
                 outputs.Add(errCell);
             }

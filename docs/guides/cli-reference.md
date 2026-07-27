@@ -54,6 +54,7 @@ verso run pipeline.verso --output json --output-file results.json --fail-fast
 | `--output-file <path>` | none | Write output to a file instead of stdout |
 | `--cell <id-or-index>` | none | Execute only the given cell (repeatable) |
 | `--fail-fast` | false | Stop on the first cell failure |
+| `--fail-on-stderr` | false | Count output written to standard error as a cell failure |
 | `--timeout <seconds>` | 300 | Maximum total execution time |
 | `--save` | false | Write updated outputs back to the notebook file |
 | `--interactive` | false | Prompt for missing required parameters on stdin |
@@ -62,6 +63,12 @@ verso run pipeline.verso --output json --output-file results.json --fail-fast
 | `--extensions <dir>` | none | Extra directory to scan for extension assemblies |
 
 See [Notebook Parameters](notebook-parameters.md) for how `--param` values are typed and validated.
+
+### What counts as a failure
+
+A cell fails when it produces an error. Text written to standard error does not fail it on its own, because a great deal of ordinary output arrives there: logging handlers, progress bars, and framework warnings all write to standard error while working exactly as intended.
+
+Pass `--fail-on-stderr` when you want the stricter reading, which is worth having in a pipeline whose whole purpose is to catch warnings. It affects the exit code and the counts in both the printed and the JSON summary, so a pipeline that relied on standard error failing a cell needs this flag to keep doing so.
 
 ## verso convert
 

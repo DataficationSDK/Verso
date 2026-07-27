@@ -102,6 +102,27 @@ public sealed class SqlKernel : ILanguageKernel
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         try
         {
+            // A database says things that do not arrive with the result set: SQL Server's PRINT,
+            // PostgreSQL's RAISE NOTICE, a procedure reporting how far it has got. They collect
+            // into one block that is revised as more arrive, so a chatty procedure reads as a
+            // running log rather than a column of separate outputs. The subscription lasts only as
+            // long as this cell, because the connection outlives it.
+            var messages = new StringBuilder();
+            var messageLock = new object();
+            using var messageListener = ProviderMessageListener.Subscribe(
+                connInfo.Connection,
+                text =>
+                {
+                    string current;
+                    lock (messageLock)
+                    {
+                        messages.AppendLine(text);
+                        current = messages.ToString();
+                    }
+
+                    ReportMessages(current, context);
+                });
+
             SqlResultSet? lastResultSet = null;
 
             // Accumulate consecutive non-query results into a single summary
@@ -191,6 +212,35 @@ public sealed class SqlKernel : ILanguageKernel
         }
 
         return outputs;
+    }
+
+    /// <summary>
+    /// Identifies the block the server's messages accumulate in, so each new one revises it rather
+    /// than adding another.
+    /// </summary>
+    private const string MessageBlockId = "sql-messages";
+
+    /// <summary>
+    /// Shows the messages received so far. Carries no output channel: this is not text a kernel
+    /// wrote to one of its own streams, it is what the server said, so it reads as ordinary output.
+    /// </summary>
+    private static void ReportMessages(string text, IExecutionContext context)
+    {
+        var trimmed = text.TrimEnd('\r', '\n');
+        if (trimmed.Length == 0)
+            return;
+
+        var output = new CellOutput("text/plain", trimmed);
+
+        try
+        {
+            context.UpdateOutputAsync(MessageBlockId, output).GetAwaiter().GetResult();
+        }
+        catch (NotSupportedException)
+        {
+            // A host that cannot revise still shows the messages, just one block per message.
+            context.WriteOutputAsync(output).GetAwaiter().GetResult();
+        }
     }
 
     private static void FlushNonQuerySummary(

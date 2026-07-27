@@ -72,6 +72,8 @@ When a Jupyter output contains multiple MIME types, Verso selects the richest av
 
 The `execution_count` from each cell is preserved in cell metadata.
 
+Exporting the other way, a `stream` output carries the channel it came from: `name` is written as `stderr` for text a cell wrote to standard error and `stdout` otherwise, so a tool reading the exported `.ipynb` sees the same distinction the notebook did.
+
 ### Metadata
 
 Notebook-level metadata beyond kernel detection (`kernelspec.name`, `kernelspec.display_name`, `language_info.version`, `language_info.codemirror_mode`) is not carried over. If you need to preserve specific metadata, note it before converting.
@@ -81,7 +83,8 @@ Notebook-level metadata beyond kernel detection (`kernelspec.name`, `kernelspec.
 Python is the most common Jupyter kernel. When importing a Python notebook:
 
 - All code cells are set to the `python` language
-- Python package management uses `#!pip` instead of `!pip` or `%pip`:
+- Python cells run the interpreter installed on your machine, Python 3.8 or newer, picked up from an active virtual environment or conda environment where there is one. See [Python Interpreters](../guides/python-interpreters.md).
+- `#!pip` is the Verso form of package installation, though `%pip` and `!` both work as they do in Jupyter:
 
   **Jupyter:**
   ```python
@@ -95,6 +98,8 @@ Python is the most common Jupyter kernel. When importing a Python notebook:
   #!pip numpy
   ```
 
+  You often do not need any of them. Importing a package the environment lacks offers to install it first. See [Python Packages](../guides/python-packages.md).
+
 - Jupyter magic commands (`%matplotlib`, `%%timeit`, `%env`, etc.) are IPython-specific and do not have direct Verso equivalents. These need to be replaced:
 
   | Jupyter Magic | Verso Alternative |
@@ -103,7 +108,8 @@ Python is the most common Jupyter kernel. When importing a Python notebook:
   | `%%timeit` / `%time` | `#!time` magic command |
   | `%env VAR value` | Set environment variables in a preceding cell |
   | `%load_ext` | `#!extension` for Verso extensions |
-  | `!command` | Shell commands depend on the kernel (not directly supported in Python cells) |
+  | `!command` | Supported in Python cells, which run a real interpreter of your own |
+  | `%pip install` | Supported, though `#!pip` is the Verso form |
 
 - A `display()` function is built into every Python cell (no import needed) for rich output. When the `IPython` package is installed (via `#!pip IPython`), `IPython.display.display` is wired to the same function, so `from IPython.display import display, HTML, Markdown` works too. Objects that implement `_repr_html_`, `_repr_png_`, or `_repr_svg_` render through it automatically.
 
@@ -122,6 +128,8 @@ Jupyter notebooks are typically single-language, determined by the kernel. Verso
 ### Variable Sharing
 
 In Jupyter, all cells share the same kernel and namespace. In Verso, each language has its own kernel, but all kernels share a single variable store. Variables set in a Python cell are available to C#, F#, SQL, and other cells. This is transparent for single-language notebooks but becomes powerful when you add cells in other languages.
+
+Python runs in its own process, so a value from another language reaches it as data. Records arrive as mappings that answer both `row.Field` and `row["Field"]`, dates arrive as real `datetime` values, and a SQL result arrives as a list of rows ready for `pd.DataFrame`. A value with no meaning outside its own process, such as a function or an open connection, is still bound to its name but explains itself when printed or used. See [Language Kernels](../guides/language-kernels.md) for the details.
 
 ### Package Management
 

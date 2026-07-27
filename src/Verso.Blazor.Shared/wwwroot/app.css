@@ -1126,6 +1126,70 @@ html, body {
     margin-bottom: 4px;
 }
 
+/* Standard error. Deliberately quieter than an error: a rule and a label rather than a filled
+   red card, because most text that arrives here comes from programs that are succeeding. The
+   label is what carries the meaning, since print drops background colour and a red/amber
+   distinction is not reliable for every reader. */
+.verso-output--stderr {
+    padding: var(--verso-output-padding, 8px);
+    border-left: 3px solid var(--verso-status-warning, #B26A00);
+}
+
+/* Progress. One indicator that advances, rather than a column of stale text lines. */
+.verso-output--progress {
+    padding: var(--verso-output-padding, 8px);
+}
+
+.verso-progress-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.verso-progress-status {
+    opacity: 0.7;
+}
+
+.verso-progress-track {
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--verso-border-default, rgba(127, 127, 127, 0.25));
+}
+
+.verso-progress-fill {
+    height: 100%;
+    background: var(--verso-status-success, #28A745);
+    transition: width 120ms linear;
+}
+
+/* Work whose size is not known: a band that travels rather than a width that means something. */
+.verso-progress-fill--indeterminate {
+    width: 35%;
+    animation: verso-progress-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes verso-progress-slide {
+    0% { margin-left: -35%; }
+    100% { margin-left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .verso-progress-fill { transition: none; }
+    .verso-progress-fill--indeterminate { animation: none; width: 100%; opacity: 0.4; }
+}
+
+.verso-output-stderr-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 2px;
+}
+
 .verso-output-error-content {
     margin: 0;
     white-space: pre-wrap;

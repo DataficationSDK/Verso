@@ -165,6 +165,33 @@ jobs:
           name: nuget-packages
           path: packages/*.nupkg
 
+  python-host:
+    name: Python Host (${{ matrix.python-version }})
+    # Pinned to 22.04: the 24.04 image does not serve Python 3.8, which is the oldest
+    # interpreter the host script supports and therefore has to keep being tested against.
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # jedi is what the host uses for completions, hover, and diagnostics when it is available.
+      # Installing it here exercises those paths; the tests that cover the standard-library
+      # fallbacks force them regardless of whether it is present.
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip pytest jedi
+
+      - name: Run host script tests
+        run: python -m pytest tests/versohost -q
+
   vscode-extension:
     name: VS Code Extension
     runs-on: ubuntu-latest

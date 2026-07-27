@@ -156,6 +156,31 @@
           "default": "",
           "description": "Path to the 'dotnet' executable used to run notebooks. If empty, Verso reuses an installed .NET runtime (locating it via the .NET Install Tool when available) and falls back to 'dotnet' on PATH."
         },
+        "verso.python.interpreterPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Python interpreter used by Python cells. If empty, Verso discovers one from the active virtual environment, the workspace, and well-known install locations. Changes apply on next notebook open or kernel restart."
+        },
+        "verso.python.autoInstall": {
+          "type": "string",
+          "enum": [
+            "prompt",
+            "auto",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Ask before installing, listing the exact packages and the environment they go into. Declining runs the cell anyway.",
+            "Install known packages without asking. A package name Verso can only guess at is reported instead of installed.",
+            "Never scan a cell's imports and never install."
+          ],
+          "default": "prompt",
+          "description": "What happens when a Python cell imports a package the environment does not have. Changes apply on next notebook open or kernel restart."
+        },
+        "verso.python.useUv": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the uv tool to install packages and create Python environments when it is on PATH. When off, pip and the standard library venv module are used. Changes apply on next notebook open or kernel restart."
+        },
         "verso.extensionsPath": {
           "type": "array",
           "items": {

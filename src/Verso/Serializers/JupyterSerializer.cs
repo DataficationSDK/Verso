@@ -198,7 +198,9 @@ public sealed class JupyterSerializer : INotebookSerializer
             return new JupyterWriteOutput
             {
                 OutputType = "stream",
-                Name = "stdout",
+                // Text with no recorded channel is written as stdout, which is what it was
+                // assumed to be before the channel was tracked at all.
+                Name = output.Channel == OutputChannel.Stderr ? "stderr" : "stdout",
                 Text = SplitSourceForJupyter(output.Content ?? "")
             };
         }
@@ -311,7 +313,14 @@ public sealed class JupyterSerializer : INotebookSerializer
         {
             case "stream":
                 var streamText = JoinSource(output.Text);
-                return new CellOutput("text/plain", streamText);
+                // Jupyter records which stream the text came from, and a stream output is never
+                // an error there: an error is its own output type, handled below.
+                return new CellOutput("text/plain", streamText)
+                {
+                    Channel = string.Equals(output.Name, "stderr", StringComparison.OrdinalIgnoreCase)
+                        ? OutputChannel.Stderr
+                        : OutputChannel.Stdout
+                };
 
             case "execute_result":
             case "display_data":

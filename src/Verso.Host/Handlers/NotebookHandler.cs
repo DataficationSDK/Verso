@@ -125,6 +125,11 @@ public static class NotebookHandler
 
         var notebookId = session.AddSession(scaffold, extensionHost);
 
+        // Hand each extension the settings the notebook saved for it. Without this the values are
+        // written on save and never read back, so a setting appears to be forgotten.
+        if (scaffold.SettingsManager is { } settings)
+            await settings.RestoreSettingsAsync(notebook);
+
         // Wire consent handler so extension commands can request consent via the client
         var ns = session.GetSession(notebookId);
         extensionHost.ConsentHandler = (extensions, ct) => ns.RequestConsentAsync(extensions, ct);
@@ -436,7 +441,8 @@ public static class NotebookHandler
             Content = output.Content,
             IsError = output.IsError,
             ErrorName = output.ErrorName,
-            ErrorStackTrace = output.ErrorStackTrace
+            ErrorStackTrace = output.ErrorStackTrace,
+            Channel = output.Channel?.ToString().ToLowerInvariant()
         };
     }
 

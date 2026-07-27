@@ -5,11 +5,21 @@ namespace Verso.Python.Tests.Kernel;
 [TestClass]
 public sealed class PythonKernelOptionsTests
 {
+    /// <summary>
+    /// The shared-library option outlived the runtime that read it. It stays settable so an
+    /// embedder still compiles, and the kernel says once that it is doing nothing, so the value
+    /// has to survive being set.
+    /// </summary>
     [TestMethod]
-    public void Default_PythonDll_IsNull()
+    public void PythonDll_IsObsoleteButStillRoundTrips()
     {
-        var options = new PythonKernelOptions();
-        Assert.IsNull(options.PythonDll);
+#pragma warning disable CS0618
+        Assert.IsNull(new PythonKernelOptions().PythonDll);
+
+        var options = new PythonKernelOptions { PythonDll = "/usr/lib/libpython3.12.so" };
+
+        Assert.AreEqual("/usr/lib/libpython3.12.so", options.PythonDll);
+#pragma warning restore CS0618
     }
 
     [TestMethod]
@@ -44,11 +54,11 @@ public sealed class PythonKernelOptionsTests
     {
         var options = new PythonKernelOptions() with
         {
-            PythonDll = "/usr/lib/libpython3.12.so",
+            PythonExecutable = "/usr/bin/python3.12",
             PublishVariables = false
         };
 
-        Assert.AreEqual("/usr/lib/libpython3.12.so", options.PythonDll);
+        Assert.AreEqual("/usr/bin/python3.12", options.PythonExecutable);
         Assert.IsFalse(options.PublishVariables);
         Assert.IsTrue(options.InjectVariables); // unchanged
     }

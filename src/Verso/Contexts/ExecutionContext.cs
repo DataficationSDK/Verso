@@ -11,6 +11,15 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
     private readonly Func<CellOutput, Task> _display;
     private readonly Func<string, bool, CancellationToken, Task<string?>>? _requestInput;
 
+    /// <summary>
+    /// Builds a context with no in-place output updating, which is what a host that cannot revise
+    /// an output provides.
+    /// </summary>
+    /// <remarks>
+    /// Kept as its own overload rather than folded into the one below. An optional parameter is
+    /// resolved where the call is compiled, so adding one to a shipped constructor changes the
+    /// signature every existing compiled caller looks for.
+    /// </remarks>
     public ExecutionContext(
         Guid cellId,
         int executionCount,
@@ -24,7 +33,27 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
         Func<CellOutput, Task> writeOutput,
         Func<CellOutput, Task> display,
         Func<string, bool, CancellationToken, Task<string?>>? requestInput = null)
-        : base(variables, cancellationToken, theme, layoutCapabilities, extensionHost, notebookMetadata, notebook, writeOutput)
+        : this(cellId, executionCount, variables, cancellationToken, theme, layoutCapabilities,
+               extensionHost, notebookMetadata, notebook, writeOutput, display, requestInput,
+               updateOutput: null)
+    {
+    }
+
+    public ExecutionContext(
+        Guid cellId,
+        int executionCount,
+        IVariableStore variables,
+        CancellationToken cancellationToken,
+        IThemeContext theme,
+        LayoutCapabilities layoutCapabilities,
+        IExtensionHostContext extensionHost,
+        INotebookMetadata notebookMetadata,
+        INotebookOperations notebook,
+        Func<CellOutput, Task> writeOutput,
+        Func<CellOutput, Task> display,
+        Func<string, bool, CancellationToken, Task<string?>>? requestInput,
+        Func<string, CellOutput, Task>? updateOutput)
+        : base(variables, cancellationToken, theme, layoutCapabilities, extensionHost, notebookMetadata, notebook, writeOutput, updateOutput)
     {
         CellId = cellId;
         ExecutionCount = executionCount;

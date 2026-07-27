@@ -205,6 +205,19 @@ internal static class NotebookHtmlExporter
             return;
         }
 
+        if (output.Channel == OutputChannel.Stderr)
+        {
+            // Labelled rather than merely tinted, because an exported page is often printed and
+            // browsers drop background colour by default.
+            sb.AppendLine("<div class=\"verso-output--stderr\">");
+            sb.AppendLine("<div class=\"verso-output--stderr-label\">stderr</div>");
+            sb.AppendLine("<pre>");
+            WriteTruncated(sb, output.Content, previewText, previewLineCount);
+            sb.AppendLine("</pre>");
+            sb.AppendLine("</div>");
+            return;
+        }
+
         var mime = output.MimeType ?? "text/plain";
 
         switch (mime)
@@ -221,6 +234,25 @@ internal static class NotebookHtmlExporter
             case "image/svg+xml":
                 sb.AppendLine("<div class=\"verso-output--html\">");
                 sb.AppendLine(output.Content);
+                sb.AppendLine("</div>");
+                break;
+
+            case CellOutput.ProgressMimeType:
+                // A static page has no work in flight, so the last reported state is written as a
+                // finished line rather than as a bar that would appear to be still running.
+                sb.AppendLine("<div class=\"verso-output--text\">");
+                sb.AppendLine("<pre>");
+                sb.Append(WebUtility.HtmlEncode(CellOutput.DescribeProgress(output.Content)));
+                sb.AppendLine("</pre>");
+                sb.AppendLine("</div>");
+                break;
+
+            case CellOutput.WidgetMimeType:
+                // Unwrapped into this page rather than framed. A frame would need an address of
+                // its own and an exported notebook is one file, while this page does have a real
+                // address once it is opened, which is all the widget's loader needs.
+                sb.AppendLine("<div class=\"verso-output--html\">");
+                sb.AppendLine(CellOutput.WidgetBody(output.Content));
                 sb.AppendLine("</div>");
                 break;
 
@@ -548,12 +580,41 @@ body {
   font-size: 0.85em;
 }
 
+/* Standard error output. Quieter than an error, and carried by a label rather than by colour
+   alone so it survives printing. */
+.verso-output--stderr {
+  margin: 0.5rem 0 1rem 0;
+  padding: var(--verso-output-padding, 8px);
+  border-left: 3px solid var(--verso-status-warning, #b26a00);
+}
+
+.verso-output--stderr-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 0.15rem;
+}
+
+.verso-output--stderr pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: var(--verso-code-output-font-family, 'Cascadia Mono', monospace);
+  font-size: var(--verso-code-output-font-size, 13px);
+}
+
 /* Print styles */
 @media print {
   body { background: white; }
   .verso-export { max-width: none; padding: 0; }
   .verso-export-code { break-inside: avoid; }
   .verso-output--error { break-inside: avoid; }
+  .verso-output--stderr { break-inside: avoid; }
+  /* Keep the error tint when printed; without this browsers drop backgrounds and an error
+     reads as ordinary output. The stderr tier does not rely on this, by design. */
+  .verso-output--error { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 ";
 }

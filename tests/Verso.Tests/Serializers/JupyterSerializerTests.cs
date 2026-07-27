@@ -140,6 +140,54 @@ public sealed class JupyterSerializerTests
         Assert.AreEqual(1, notebook.Cells[0].Outputs.Count);
         Assert.AreEqual("text/plain", notebook.Cells[0].Outputs[0].MimeType);
         Assert.AreEqual("hi\n", notebook.Cells[0].Outputs[0].Content);
+        Assert.AreEqual(OutputChannel.Stdout, notebook.Cells[0].Outputs[0].Channel);
+    }
+
+    /// <summary>
+    /// Jupyter records the stream a chunk came from, and a stream output is never an error there:
+    /// an error is its own output type. Importing stderr as a failure would turn every imported
+    /// progress bar into a failed cell.
+    /// </summary>
+    [TestMethod]
+    public async Task Deserialize_StderrStreamOutput_KeepsTheChannelAndIsNotAnError()
+    {
+        var json = @"{
+            ""nbformat"": 4, ""nbformat_minor"": 5,
+            ""metadata"": {},
+            ""cells"": [{
+                ""cell_type"": ""code"",
+                ""source"": ""import sys; sys.stderr.write('careful')"",
+                ""outputs"": [{
+                    ""output_type"": ""stream"",
+                    ""name"": ""stderr"",
+                    ""text"": ""careful\n""
+                }],
+                ""metadata"": {}
+            }]
+        }";
+
+        var notebook = await _serializer.DeserializeAsync(json);
+
+        var output = notebook.Cells[0].Outputs[0];
+        Assert.AreEqual(OutputChannel.Stderr, output.Channel);
+        Assert.IsFalse(output.IsError, "a Jupyter stream output is not an error");
+        Assert.AreEqual("careful\n", output.Content);
+    }
+
+    [TestMethod]
+    public async Task Serialize_StderrOutput_WritesTheStreamName()
+    {
+        var notebook = new NotebookModel();
+        var cell = new CellModel { Type = "code", Language = "python", Source = "x" };
+        cell.Outputs.Add(CellOutput.Stderr("careful\n"));
+        notebook.Cells.Add(cell);
+
+        var json = await _serializer.SerializeAsync(notebook);
+        using var doc = JsonDocument.Parse(json);
+
+        var output = doc.RootElement.GetProperty("cells")[0].GetProperty("outputs")[0];
+        Assert.AreEqual("stream", output.GetProperty("output_type").GetString());
+        Assert.AreEqual("stderr", output.GetProperty("name").GetString());
     }
 
     [TestMethod]

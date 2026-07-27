@@ -117,6 +117,14 @@ If the `#!time` magic command was used, a wall-time output (`"Wall time: X.Xms"`
 - `OperationCanceledException` returns `ExecutionResult.Cancelled`
 - Any other exception appends a `CellOutput` with `IsError: true`, `ErrorName`, and `ErrorStackTrace`, then returns `ExecutionResult.Failed`
 
+### Background Faults
+
+Cell code can start work and return before that work finishes. When it then throws there is no result left to carry the failure, and .NET discards an unobserved task exception silently. `BackgroundFaultMonitor` hooks `TaskScheduler.UnobservedTaskException` and `AppDomain.UnhandledException` and holds what arrives until there is a cell to report it against, as a `BackgroundFailure` output on the next cell to run.
+
+Neither runtime event says which notebook the work belonged to, so attribution is a heuristic. Each `Scaffold` registers a `BackgroundFaultSink`, and a fault goes to the single notebook that is inside a cell when it surfaces. When none or several are, it goes to all of them, on the grounds that a failure reported in more places than it happened is better than one nobody is told about. A host running one notebook, which includes the CLI and the VS Code extension, only ever has the one sink and is unaffected by the ambiguous case.
+
+Each sink holds at most 100 faults. Past that the oldest are dropped and the report says how many, since a queue belonging to an idle or closed notebook is never drained.
+
 ## Render-Only Flow
 
 `RenderCellAsync` handles cells that have a renderer but no kernel (like parameters and rich content cells):

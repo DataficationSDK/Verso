@@ -100,6 +100,8 @@ export interface CellOutputDto {
   isError: boolean;
   errorName?: string;
   errorStackTrace?: string;
+  /** Which stream this text came from, absent for outputs that are not stream text. */
+  channel?: "stdout" | "stderr";
 }
 
 export interface CellAddParams {

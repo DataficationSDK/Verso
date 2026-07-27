@@ -1,4 +1,5 @@
 using Verso.Python.Kernel;
+using Verso.Python.Tests.Host;
 using Verso.Testing.Stubs;
 
 namespace Verso.Python.Tests.Kernel;
@@ -17,8 +18,11 @@ public sealed class HoverTests
         await _kernel.InitializeAsync();
         _context = new StubExecutionContext();
 
-        // Probe jedi availability — hover requires jedi
-        var probe = await _kernel.GetHoverInfoAsync("len", 0);
+        // The analysis library is installed in the background as the kernel starts, so probing
+        // for it straight away would race that. Hover is what needs it, so hover is the probe.
+        await AnalysisTools.TryEnsureAsync();
+
+        var probe = await _kernel.GetHoverInfoAsync("len", 1);
         _jediAvailable = probe is not null;
     }
 
@@ -37,6 +41,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_BuiltinFunction_ShowsInfo()
     {
+        PythonProbe.Require();
+
         RequireJedi();
 
         var code = "len";
@@ -51,6 +57,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_AfterExecution_ReturnsInfoForVariable()
     {
+        PythonProbe.Require();
+
         RequireJedi();
 
         await _kernel.ExecuteAsync("my_list = [1, 2, 3]", _context);
@@ -64,6 +72,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_OnWhitespace_ReturnsNull()
     {
+        PythonProbe.Require();
+
         var code = "   ";
         var hover = await _kernel.GetHoverInfoAsync(code, 1);
 
@@ -73,6 +83,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_EmptyCode_ReturnsNull()
     {
+        PythonProbe.Require();
+
         var hover = await _kernel.GetHoverInfoAsync("", 0);
         Assert.IsNull(hover, "Expected null for empty code.");
     }
@@ -80,6 +92,8 @@ public sealed class HoverTests
     [TestMethod]
     public async Task Hover_IncludesRange()
     {
+        PythonProbe.Require();
+
         RequireJedi();
 
         var code = "len";

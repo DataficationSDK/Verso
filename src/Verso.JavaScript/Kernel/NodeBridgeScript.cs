@@ -49,6 +49,22 @@ internal static class NodeBridgeScript
         console.warn = (...args) => { _verso_stderrBuf.push(args.map(String).join(' ')); };
         console.info = (...args) => { _verso_stdoutBuf.push(args.map(String).join(' ')); };
 
+        // --- Background faults ---
+        // Without these, an error thrown from a timer callback or an unawaited promise takes the
+        // whole process down: the cell that caused it has already been answered, so nothing is
+        // reported, and the next unrelated cell just finds a dead process. Kept here instead and
+        // reported with the next result, which is the earliest moment there is a cell to attach
+        // them to. They are labelled, because that cell did not cause them.
+        let _verso_faults = [];
+
+        function _verso_recordFault(kind, err) {
+            const text = err && err.stack ? err.stack : String(err);
+            _verso_faults.push(kind + ': ' + text);
+        }
+
+        process.on('uncaughtException', (err) => { _verso_recordFault('Uncaught exception in background work', err); });
+        process.on('unhandledRejection', (reason) => { _verso_recordFault('Unhandled promise rejection', reason); });
+
         // --- Display function ---
         globalThis.display = function display(value, mimeType) {
             if (value === undefined || value === null) return;
@@ -184,6 +200,18 @@ internal static class NodeBridgeScript
             }
             const { stdout, stderr, displayOutputs } = _verso_flushOutput();
             const globals = _verso_getUserGlobals();
+
+            // A fault from earlier background work is reported now rather than lost. If the cell
+            // did not fail on its own, the fault becomes its error, since something did go wrong
+            // and no other cell can own it.
+            const faults = _verso_faults;
+            _verso_faults = [];
+            if (faults.length > 0 && error === null) {
+                error = { message: faults.join('\n'), stack: '' };
+            } else if (faults.length > 0) {
+                error.message = error.message + '\n' + faults.join('\n');
+            }
+
             return {
                 type: 'executeResult', id: cmd.id,
                 stdout, stderr, lastExpr, globals, error, displayOutputs,

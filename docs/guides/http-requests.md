@@ -83,6 +83,17 @@ GET /headers
 
 Per-request directives tune behavior: `# @no-redirect` stops the client following redirects, and `# @no-cookie-jar` disables the cookie jar for that request.
 
+## When a request fails the cell
+
+A response outside the 2xx range fails the cell. The status line and the body are still rendered above the failure, because they are usually the whole point of looking, and the failure is added after them so the evidence reads before the verdict.
+
+There is no setting to turn this off. If a request is expected to come back 4xx or 5xx, and the cell should not be marked failed for it, read `httpStatus` in a following cell and decide there:
+
+```csharp
+var status = Variables.Get<string>("httpStatus");
+if (status != "404") throw new Exception($"Expected a 404, got {status}.");
+```
+
 ## Using a response elsewhere
 
 After a request runs, the kernel writes the response body and status into the shared variable store, so a cell in another language can pick them up:

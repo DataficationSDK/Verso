@@ -14,8 +14,8 @@ public sealed class LifecycleTests
     {
         var kernel = new PythonKernel();
         Assert.AreEqual("verso.kernel.python", kernel.ExtensionId);
-        Assert.AreEqual("Python (pythonnet)", kernel.Name);
-        Assert.AreEqual("1.0.0", kernel.Version);
+        Assert.AreEqual("Python", kernel.Name);
+        Assert.AreEqual("1.1.0", kernel.Version);
         Assert.AreEqual("Verso Contributors", kernel.Author);
         Assert.IsNotNull(kernel.Description);
     }

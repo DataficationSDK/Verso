@@ -814,6 +814,9 @@ export class BlazorEditorProvider
     const tagInputInterop = toUri(
       "_content/Verso.Blazor.Shared/js/tag-input-interop.js"
     );
+    const widgetInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/widget-interop.js"
+    );
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -821,6 +824,9 @@ export class BlazorEditorProvider
     // Content Security Policy: allow scripts/styles from the webview origin,
     // the Monaco editor CDN, and any HTTPS source so HTML cells can load
     // external libraries (charting, visualization, etc.).
+    // font-src allows data: because widget outputs carry their typeface inline, which is how
+    // a 3D plot labels its axes. A framed widget inherits this policy, so without it the
+    // labels are dropped.
     const cspSource = webview.cspSource;
     const monacoCdn = "https://cdn.jsdelivr.net";
 
@@ -829,7 +835,7 @@ export class BlazorEditorProvider
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https: data:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
     <base id="blazor-base" href="/" />
     <script>
     // Set base href to match the webview origin so Blazor's NavigationManager
@@ -972,6 +978,7 @@ export class BlazorEditorProvider
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>
     <script src="${tagInputInterop}"></script>
+    <script src="${widgetInterop}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.

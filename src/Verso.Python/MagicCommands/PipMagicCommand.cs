@@ -1,13 +1,13 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Verso.Abstractions;
 using Verso.Python.Kernel;
+using Verso.Python.PackageManagement;
 
 namespace Verso.Python.MagicCommands;
 
 /// <summary>
-/// <c>#!pip &lt;packages&gt; [options]</c> — installs Python packages into an isolated
-/// virtual environment before the remaining cell code executes.
+/// <c>#!pip &lt;packages&gt; [options]</c> installs Python packages before the remaining cell code
+/// executes. Packages land in the environment the kernel is actually running, so the import in the
+/// next line finds them.
 /// </summary>
 [VersoExtension]
 public sealed class PipMagicCommand : IMagicCommand
@@ -51,103 +51,78 @@ public sealed class PipMagicCommand : IMagicCommand
         if (args.StartsWith("install ", StringComparison.OrdinalIgnoreCase))
             args = args.Substring("install ".Length).TrimStart();
 
-        // Resolve the system Python (used to create the venv if needed).
-        // Prefer the executable that matches the DLL pythonnet loaded so the
-        // venv uses the same Python version as the embedded runtime.
-        var systemPython = PythonEngineManager.GetMatchingPythonExecutable()
-            ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python3");
+        var kernel = FindPythonKernel(context);
 
-        // Ensure the venv exists
-        if (!await VenvManager.EnsureCreatedAsync(systemPython, context, context.CancellationToken)
-                .ConfigureAwait(false))
+        var interpreter = await ResolveActiveInterpreterAsync(kernel, context).ConfigureAwait(false);
+        if (interpreter is null)
         {
+            // Packages go into the interpreter the cells run in, so without one there is nowhere
+            // for them to land. The cell is stopped rather than run against an environment that
+            // was never prepared.
+            await context.WriteOutputAsync(new CellOutput(
+                "text/plain",
+                "No Python interpreter is available, so there is nothing to install into. " +
+                "Install Python 3.8 or newer, or select an interpreter with #!python.",
+                IsError: true))
+                .ConfigureAwait(false);
             context.SuppressExecution = true;
             return;
         }
 
-        // Fast-path: if every requested package directory already exists in the
-        // install location, skip the expensive pip subprocess entirely.
-        if (VenvManager.ArePackagesInstalled(args))
-        {
-            var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
-                .ConfigureAwait(false);
-            if (packagePaths.Count > 0)
-            {
-                context.Variables.Set(VenvManager.SitePackagesStoreKey,
-                    string.Join(Path.PathSeparator.ToString(), packagePaths));
-            }
-            return; // packages present — silently continue to cell code
-        }
+        await InstallIntoActiveEnvironmentAsync(kernel, interpreter, args, context).ConfigureAwait(false);
+    }
 
-        var venvPython = VenvManager.GetPythonPath();
-        var pipExtra = VenvManager.GetPipInstallArgs();
+    // --- the interpreter the kernel is running ---
 
-        var psi = new ProcessStartInfo(venvPython, $"-m pip install --quiet --no-input {pipExtra} {args}")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+    /// <summary>
+    /// The executable the Python kernel runs, or null when none could be resolved.
+    /// </summary>
+    private static async Task<string?> ResolveActiveInterpreterAsync(
+        PythonKernel? kernel, IMagicCommandContext context)
+    {
+        if (kernel is null)
+            return null;
 
         try
         {
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", "Failed to start pip process.", IsError: true))
-                    .ConfigureAwait(false);
-                context.SuppressExecution = true;
-                return;
-            }
-
-            // Collect output into single blocks (--quiet keeps this minimal)
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(context.CancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(context.CancellationToken);
-
-            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
-            await process.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
-
-            var stdout = stdoutTask.Result.Trim();
-            var stderr = stderrTask.Result.Trim();
-
-            if (process.ExitCode != 0)
-            {
-                var errorMsg = !string.IsNullOrEmpty(stderr) ? stderr : stdout;
-                await context.WriteOutputAsync(new CellOutput(
-                    "text/plain",
-                    $"pip install failed (exit code {process.ExitCode}):\n{errorMsg}",
-                    IsError: true))
-                    .ConfigureAwait(false);
-                context.SuppressExecution = true;
-                return;
-            }
-
-            // Resolve and store package paths so the kernel can add them to sys.path.
-            // On Windows this includes both the venv site-packages (jedi) and the
-            // overlay directory (user #!pip installs).
-            var packagePaths = await VenvManager.GetAllPackagePathsAsync(context.CancellationToken)
-                .ConfigureAwait(false);
-            if (packagePaths.Count > 0)
-            {
-                context.Variables.Set(VenvManager.SitePackagesStoreKey,
-                    string.Join(Path.PathSeparator.ToString(), packagePaths));
-            }
-
-            // Show pip's summary (e.g. "Successfully installed X-1.0 Y-2.0") or our own confirmation
-            var message = !string.IsNullOrEmpty(stdout) ? stdout : $"Installed: {args}";
-            await context.WriteOutputAsync(new CellOutput("text/plain", message))
+            return await kernel.GetActiveInterpreterAsync(context, context.CancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
+        {
+            // No interpreter, or one that will not start. Either way there is nowhere to install
+            // to, which the caller reports.
+            return null;
+        }
+    }
+
+    private static PythonKernel? FindPythonKernel(IMagicCommandContext context)
+    {
+        try { return context.ExtensionHost?.GetKernels().OfType<PythonKernel>().FirstOrDefault(); }
+        catch { return null; }
+    }
+
+    private static async Task InstallIntoActiveEnvironmentAsync(
+        PythonKernel? kernel, string interpreter, string args, IMagicCommandContext context)
+    {
+        var specifiers = PackageInstaller.SplitArguments(args);
+
+        // Said before the install starts rather than after it finishes. Resolving a package with
+        // a large dependency set takes long enough that a cell showing nothing looks stuck, and
+        // the installer's own narration is no longer there to fill the gap.
+        var packages = specifiers.Where(s => !s.StartsWith('-')).ToList();
+        if (packages.Count > 0)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain",
-                $"Failed to run pip: {ex.Message}",
-                IsError: true))
+                "text/plain", $"Installing {string.Join(", ", packages)}..."))
                 .ConfigureAwait(false);
-            context.SuppressExecution = true;
         }
+
+        var succeeded = await PackageInstaller
+            .InstallAsync(interpreter, specifiers, context, detail: kernel?.ShowInstallOutput ?? false)
+            .ConfigureAwait(false);
+
+        if (!succeeded)
+            context.SuppressExecution = true;
     }
 }

@@ -184,6 +184,19 @@ public sealed class HttpKernel : ILanguageKernel
                 // Store last response in variable store
                 context.Variables.Set("httpResponse", responseBody);
                 context.Variables.Set("httpStatus", responseData.StatusCode);
+
+                // A request that came back 4xx or 5xx did not do what the cell asked, so the cell
+                // failed. The response itself is still shown above, because the status line and
+                // the body are usually the whole point of looking. Added after the body so the
+                // evidence reads before the verdict.
+                if (!response.IsSuccessStatusCode)
+                {
+                    outputs.Add(new CellOutput(
+                        "text/plain",
+                        $"Request failed with status {(int)response.StatusCode} {response.ReasonPhrase}.",
+                        IsError: true,
+                        ErrorName: "HttpRequestFailed"));
+                }
             }
             catch (TaskCanceledException) when (!context.CancellationToken.IsCancellationRequested)
             {
@@ -194,7 +207,9 @@ public sealed class HttpKernel : ILanguageKernel
             catch (TaskCanceledException)
             {
                 sw.Stop();
-                outputs.Add(new CellOutput("text/plain", "Request cancelled.", IsError: true));
+                // The user stopped the cell. Cancellation is its own status everywhere else in
+                // Verso rather than a failure, so this says what happened without claiming one.
+                outputs.Add(CellOutput.Plain("Request cancelled."));
             }
             catch (HttpRequestException ex)
             {
