@@ -42,6 +42,21 @@ jobs:
             8.0.x
             10.0.x
 
+      # The Python kernel launches the user's own interpreter, so a large part of its suite needs
+      # a real one on PATH and reports a missing prerequisite without it. Pinned rather than left
+      # to whatever the runner image happens to carry, so every platform tests the same version,
+      # and it is what makes the Windows process launcher covered at all: it is native code that
+      # no developer machine here can run.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Installed into that interpreter rather than provisioned at test time, so the completion,
+      # hover, and diagnostics tests do not depend on reaching a package index while they run.
+      - name: Install Python test dependencies
+        run: python -m pip install --upgrade pip jedi
+
       - name: Restore
         run: dotnet restore Verso.sln
 

@@ -35,7 +35,7 @@ public sealed class HoverTests
     private void RequireJedi()
     {
         if (!_jediAvailable)
-            Assert.Inconclusive("jedi is not available in this environment.");
+            Prerequisite.Missing("The Python analysis library is not importable in this environment.");
     }
 
     [TestMethod]

@@ -49,12 +49,12 @@ internal static class PythonProbe
         return _cached;
     }
 
-    /// <summary>Returns the interpreter, or ends the test as inconclusive when there is none.</summary>
+    /// <summary>Returns the interpreter, or ends the test when there is none.</summary>
     public static string Require()
     {
         var python = Find();
         if (python is null)
-            Assert.Inconclusive("Python 3 was not found on PATH; skipping out-of-process host tests.");
+            Prerequisite.Missing("Python 3 was not found on PATH.");
         return python!;
     }
 }

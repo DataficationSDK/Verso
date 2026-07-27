@@ -166,7 +166,7 @@ public sealed class InterpreterDiscoveryIntegrationTests
     private static void RequirePython()
     {
         if (_python is null)
-            Assert.Inconclusive("Python 3 was not found on PATH; skipping interpreter discovery integration tests.");
+            Prerequisite.Missing("Python 3 was not found on PATH.");
     }
 
     private static string? FindPython()

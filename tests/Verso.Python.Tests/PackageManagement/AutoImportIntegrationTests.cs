@@ -57,8 +57,9 @@ public sealed class AutoImportIntegrationTests
     }
 
     /// <summary>
-    /// A fresh environment to install into, so a test never changes the developer's own. Reported
-    /// inconclusive rather than failed when one cannot be made.
+    /// A fresh environment to install into, so a test never changes the developer's own. Creating
+    /// one needs nothing but the interpreter, so a machine that cannot is reported as a missing
+    /// prerequisite rather than worked around.
     /// </summary>
     private async Task<string> EnvironmentAsync()
     {
@@ -69,7 +70,7 @@ public sealed class AutoImportIntegrationTests
         if (!await ProcessRunner.RunAsync(
                 Python, new[] { "-m", "venv", path }, CancellationToken.None))
         {
-            Assert.Inconclusive("A virtual environment could not be created; skipping.");
+            Prerequisite.Missing("A virtual environment could not be created.");
         }
 
         _interpreter = ManagedEnvironment.GetInterpreterPath(path);

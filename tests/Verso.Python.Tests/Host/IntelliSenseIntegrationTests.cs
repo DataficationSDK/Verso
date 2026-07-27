@@ -142,13 +142,13 @@ public sealed class IntelliSenseIntegrationTests
             if (!await ProcessRunner.RunAsync(
                     Python, new[] { "-m", "venv", environmentPath }, CancellationToken.None))
             {
-                Assert.Inconclusive("A virtual environment could not be created; skipping.");
+                Prerequisite.Missing("A virtual environment could not be created.");
             }
 
             var interpreter = ManagedEnvironment.GetInterpreterPath(environmentPath);
             var sitePackages = QuerySitePackages(interpreter);
             if (sitePackages is null || !Directory.Exists(sitePackages))
-                Assert.Inconclusive("The new environment did not report a package directory; skipping.");
+                Prerequisite.Missing("The new environment did not report a package directory.");
 
             // Written where an install would put it, so nothing about this module is knowable
             // from the managing process.

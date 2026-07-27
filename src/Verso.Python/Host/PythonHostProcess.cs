@@ -89,7 +89,15 @@ internal sealed class PythonHostProcess : IAsyncDisposable
             _pythonExecutable,
             new[] { "-X", "utf8", "-u", scriptPath, "--connect", $"127.0.0.1:{connection.Port}" },
             _workingDirectory,
-            new Dictionary<string, string> { ["VERSO_PYHOST_TOKEN"] = connection.Token });
+            new Dictionary<string, string>
+            {
+                ["VERSO_PYHOST_TOKEN"] = connection.Token,
+                // The subprocess watches for this pid disappearing, so that a kernel lost while a
+                // cell is running does not leave an interpreter behind. It is told rather than
+                // read on the other side because reading it there can be too late: a kernel that
+                // dies during startup has already been replaced by the time the child asks.
+                ["VERSO_PYHOST_PARENT"] = Environment.ProcessId.ToString(),
+            });
 
         IHostProcessHandle process;
         try

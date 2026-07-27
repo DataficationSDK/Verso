@@ -28,7 +28,7 @@ internal static class AnalysisTools
             _version ??= TryQueryVersion(python);
 
             if (_version is null)
-                Assert.Inconclusive("The Python interpreter did not report a usable version.");
+                Prerequisite.Missing("The Python interpreter did not report a usable version.");
 
             return _version!;
         }
@@ -53,7 +53,11 @@ internal static class AnalysisTools
             python, _version, UvUsage.Auto, CancellationToken.None);
     }
 
-    /// <summary>Ends the test as inconclusive when the tools cannot be made available.</summary>
+    /// <summary>
+    /// Ends the test as inconclusive when the tools cannot be made available. Inconclusive on a
+    /// build server as well, unlike the interpreter itself, because installing them reaches a
+    /// package index and a bad day there is not a defect in this code.
+    /// </summary>
     public static async Task RequireAsync()
     {
         if (!await TryEnsureAsync())

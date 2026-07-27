@@ -25,6 +25,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 import traceback
 import _thread
 from collections import deque
@@ -39,6 +40,15 @@ import _versohost_vars as variable_support
 PROTOCOL_VERSION = 1
 MAX_FRAME_BYTES = 64 * 1024 * 1024
 _RECV_CHUNK = 65536
+
+# How often the watchdog looks for the process that launched this one. The socket is the
+# ordinary way this process learns that process is gone, so this is a backstop for the one case
+# the socket cannot cover, and it does not need to be quick.
+PARENT_WATCH_INTERVAL_SECONDS = 2.0
+
+# Exit code used when the watchdog ends this process. Nothing reads it, because the process that
+# would have is by definition gone, but it separates this exit from a clean shutdown in a log.
+EXIT_PARENT_GONE = 3
 
 # Request id reserved for events raised on the host's own behalf rather than in response
 # to a request, such as a failure while replaying bootstrap configuration.
@@ -999,6 +1009,79 @@ def _run(channel, session):
         # Other message types are handled by later layers; ignore them here.
 
 
+def watch_parent(original_parent_id, interval=PARENT_WATCH_INTERVAL_SECONDS,
+                 get_parent_id=os.getppid, sleep=time.sleep, exit_process=os._exit):
+    """
+    Poll for the process that launched this one and leave when it is no longer there.
+
+    Reparenting is what makes its departure observable: once the launching process exits, this
+    one is handed to another parent, so a parent id that no longer matches the one recorded at
+    startup means the session's owner is gone. Leaving is deliberately abrupt, because the main
+    thread may be many frames into user code that will never return, which is the whole reason
+    this runs on a thread of its own, so there is nothing to unwind and nobody left to tell.
+    """
+    while True:
+        sleep(interval)
+
+        try:
+            current = get_parent_id()
+        except OSError:
+            # Being unable to ask is not evidence of an answer either way.
+            continue
+
+        if current != original_parent_id:
+            exit_process(EXIT_PARENT_GONE)
+            return
+
+
+def _expected_parent_id():
+    """
+    The pid this process should be a child of.
+
+    The kernel passes its own, and that is what makes the watch reliable: reading the parent id
+    here can already be too late, because a kernel that dies during startup has been replaced by
+    the time this process asks, and a watch comparing against what it read then would spend the
+    session watching a pid that was never its owner. The live reading remains the fallback, for a
+    host started by hand with no kernel to have been told by.
+    """
+    try:
+        given = int(os.environ.get("VERSO_PYHOST_PARENT", ""))
+    except ValueError:
+        return os.getppid()
+
+    return given if given > 0 else os.getppid()
+
+
+def start_parent_watchdog(interval=PARENT_WATCH_INTERVAL_SECONDS, platform_name=os.name,
+                          expected_parent_id=None):
+    """
+    Watch for the launching process going away, reporting the thread that does the watching.
+
+    The ordinary way this process ends is the socket: when the kernel exits, the reader sees end
+    of stream and the dispatch loop finishes. That path needs the main thread to come back to the
+    queue, which a cell running an unbounded loop never does, so a kernel lost while such a cell
+    is running would otherwise leave this process spinning against a closed socket with nobody
+    able to interrupt it.
+
+    Elsewhere the same case is covered from the outside, by a job object that ends this process
+    when the kernel's handle to it closes. It has to be, because a parent id is not updated when
+    the parent exits there, so the check this starts could never notice.
+    """
+    if platform_name != "posix":
+        return None
+
+    if expected_parent_id is None:
+        expected_parent_id = _expected_parent_id()
+
+    thread = threading.Thread(
+        target=watch_parent,
+        args=(expected_parent_id, interval),
+        name="verso-host-parent-watch",
+        daemon=True)
+    thread.start()
+    return thread
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--connect", required=True)
@@ -1006,6 +1089,10 @@ def main(argv=None):
 
     token = os.environ.get("VERSO_PYHOST_TOKEN", "")
     host, port = _parse_endpoint(args.connect)
+
+    # Started before the connection rather than after the handshake, so the window between
+    # launching and having a socket to notice anything on is covered as well.
+    start_parent_watchdog()
 
     # The process runs in the notebook's own directory, so putting it on the path lets a
     # cell import a module sitting next to the notebook. It goes after this script's own

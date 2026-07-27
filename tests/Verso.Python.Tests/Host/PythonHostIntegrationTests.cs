@@ -4,8 +4,9 @@ using Verso.Python.Host;
 namespace Verso.Python.Tests.Host;
 
 /// <summary>
-/// End-to-end lifecycle tests that require a Python 3 interpreter on PATH. When none is found the
-/// tests report inconclusive rather than failing, so the suite stays green on machines without Python.
+/// End-to-end lifecycle tests that require a Python 3 interpreter on PATH. When none is found they
+/// report a missing prerequisite, which keeps the suite green on a machine without Python and fails
+/// the build on a server that was supposed to provide one.
 /// </summary>
 [TestClass]
 public sealed class PythonHostIntegrationTests
@@ -88,10 +89,41 @@ public sealed class PythonHostIntegrationTests
         }
     }
 
+    [TestMethod]
+    public async Task Spawn_TellsTheSubprocessWhichProcessToWatch()
+    {
+        // The subprocess watches this pid and leaves when it goes away, which is what stops an
+        // interpreter outliving the kernel that started it while a cell is running. Reported back
+        // through the only channel a stand-in script has before a handshake.
+        RequirePython();
+
+        var scriptPath = Path.Combine(Path.GetTempPath(), "verso-stub-" + Guid.NewGuid().ToString("N") + ".py");
+        await File.WriteAllTextAsync(
+            scriptPath,
+            "import os, sys\n"
+            + "sys.stderr.write('parent=' + os.environ.get('VERSO_PYHOST_PARENT', 'unset'))\n"
+            + "sys.stderr.flush()\nsys.exit(7)\n");
+        try
+        {
+            await using var host = new PythonHostProcess(
+                _python!,
+                Environment.CurrentDirectory,
+                handshakeTimeout: TimeSpan.FromSeconds(5),
+                scriptPathOverride: scriptPath);
+
+            var ex = await Assert.ThrowsExceptionAsync<PythonHostException>(async () => await host.StartAsync());
+            StringAssert.Contains(ex.Message, $"parent={Environment.ProcessId}");
+        }
+        finally
+        {
+            try { File.Delete(scriptPath); } catch { /* best effort */ }
+        }
+    }
+
     private static void RequirePython()
     {
         if (_python is null)
-            Assert.Inconclusive("Python 3 was not found on PATH; skipping out-of-process host integration tests.");
+            Prerequisite.Missing("Python 3 was not found on PATH.");
     }
 
     private static bool IsRunning(int pid)
