@@ -369,6 +369,30 @@ public sealed class SlideStudioLayoutTests
     }
 
     [TestMethod]
+    public async Task Render_WidgetOutput_IsNeverCopied()
+    {
+        // Widget output is a whole document the host renders in a frame of its own.
+        // Serialized into the layout it would show as markup rather than render, so it
+        // is treated the same as script-driven HTML: placeholder in the filmstrip, no
+        // copy anywhere, and the live element left to do the drawing.
+        var cell = new CellModel { Type = "code", Source = "chart" };
+        cell.Outputs.Add(new CellOutput(
+            CellOutput.WidgetMimeType,
+            "<!DOCTYPE html><html><head></head><body><div id='plot'></div>"
+            + "<script>window.__marker__ = 1;</script></body></html>"));
+
+        var result = await new SlideStudioLayout().RenderLayoutAsync(new[] { cell }, _context);
+
+        StringAssert.Contains(result.Content, "vss-tile-interactive");
+        StringAssert.Contains(result.Content, "vss-output-body\"></div>");
+        Assert.IsFalse(result.Content.Contains("__marker__"));
+        Assert.IsFalse(result.Content.Contains("DOCTYPE"));
+
+        StringAssert.Contains(result.Content, $"vss-slide-live\" data-cell-slot=\"{cell.Id}\"");
+        Assert.IsFalse(result.Content.Contains("vss-slide-copy"));
+    }
+
+    [TestMethod]
     public async Task Render_MermaidOutput_CopiesAsMermaidContainer()
     {
         var cell = new CellModel { Type = "mermaid", Source = "graph TD\n A --> B" };

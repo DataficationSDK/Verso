@@ -570,13 +570,16 @@ public sealed class SlideStudioLayout :
     }
 
     /// <summary>
-    /// True when an HTML output carries its own script payload (a chart library
-    /// bootstrap, for example). Such an output only works as the live rendered element,
-    /// never as serialized HTML injected by the layout.
+    /// True when an output only works as the live rendered element, never as serialized
+    /// HTML injected by the layout. Two kinds qualify: HTML that carries its own script
+    /// payload (a chart library bootstrap, for example), and widget output, which is a
+    /// whole document the host renders in a frame of its own. Serializing either one
+    /// produces markup whose scripts never run, so the copy is suppressed instead.
     /// </summary>
     private static bool IsScriptDriven(CellOutput output) =>
-        output.MimeType == "text/html"
-        && output.Content.Contains("<script", StringComparison.OrdinalIgnoreCase);
+        output.MimeType == CellOutput.WidgetMimeType
+        || (output.MimeType == "text/html"
+            && output.Content.Contains("<script", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Serializes one output as static HTML. Copies appear only in the filmstrip

@@ -171,6 +171,14 @@ internal static class SlideStudioStyles
         R(".vss-editor-slot .verso-cell:not(.verso-cell--preview) .verso-cell-output-summary",
             "display:none;");
 
+        // Keep the overlay's containing block at .vss-main. A host may position the
+        // selected cell to lift it and its editor popups above the cells that follow it
+        // in a list, which is invisible in a notebook but would make the cell itself the
+        // containing block here and pull the overlay back into the editor column. One
+        // cell occupies this pane, so there is nothing for it to paint above, and the
+        // editor keeps its own stacking either way.
+        R(".vss-editor-slot .verso-cell--selected", "position:static; z-index:auto;");
+
         // Fill the pane: stretch the portal wrapper, the cell row, and its content column,
         // then let the editor take the leftover height. Monaco runs with automaticLayout,
         // so overriding the interop's content-based inline height with a flexed box is
