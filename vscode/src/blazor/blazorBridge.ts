@@ -321,6 +321,12 @@ export class BlazorBridge implements vscode.Disposable {
           p?.ids ?? []
         );
         result = { success: true };
+      } else if (method === "file/save") {
+        // A widget asked to save a file. The frame it runs in is sandboxed and cannot perform a
+        // download, so it hands the bytes out to the page, which forwards them here for the
+        // editor's own save dialog. Read-only as far as the notebook is concerned: writing a
+        // snapshot somewhere on disk does not change the document.
+        result = { saved: await this.saveIncomingFile(params) };
       } else if (method === "extension/browseLocalFile") {
         // Show VS Code's native open dialog for a sideloaded extension file. The chosen
         // path is returned to the webview, which then calls extension/installLocal so the
@@ -423,11 +429,23 @@ export class BlazorBridge implements vscode.Disposable {
    * Handle "file/download" notification — show a save dialog and write the file.
    */
   private async handleFileDownload(params: unknown): Promise<void> {
+    await this.saveIncomingFile(params);
+  }
+
+  /**
+   * Shows a save dialog for base64 file content and writes it where the user chooses.
+   *
+   * Shared by the host's "file/download" notification (toolbar exports) and the webview's
+   * "file/save" request (a widget's own save button, whose download the frame intercepts because
+   * a sandboxed frame is not allowed to perform one). Returns whether a file was written, so the
+   * webview can tell a cancelled dialog from a completed save.
+   */
+  private async saveIncomingFile(params: unknown): Promise<boolean> {
     const p = params as
       | { fileName?: string; contentType?: string; data?: string }
       | undefined;
     if (!p?.fileName || !p.data) {
-      return;
+      return false;
     }
 
     const defaultUri = this.documentUri
@@ -440,12 +458,13 @@ export class BlazorBridge implements vscode.Disposable {
     });
 
     if (!uri) {
-      return; // User cancelled
+      return false; // User cancelled
     }
 
     const bytes = Buffer.from(p.data, "base64");
     await vscode.workspace.fs.writeFile(uri, bytes);
     vscode.window.showInformationMessage(`Exported to ${uri.fsPath}`);
+    return true;
   }
 
   /**
@@ -503,6 +522,14 @@ export class BlazorBridge implements vscode.Disposable {
         return { "HTML Files": ["html", "htm"], "All Files": ["*"] };
       case "text/markdown":
         return { "Markdown Files": ["md"], "All Files": ["*"] };
+      case "image/png":
+        return { Images: ["png"], "All Files": ["*"] };
+      case "image/jpeg":
+        return { Images: ["jpg", "jpeg"], "All Files": ["*"] };
+      case "image/svg+xml":
+        return { Images: ["svg"], "All Files": ["*"] };
+      case "image/webp":
+        return { Images: ["webp"], "All Files": ["*"] };
       default:
         if (ext === "verso") {
           return { "Verso Notebooks": ["verso"], "All Files": ["*"] };

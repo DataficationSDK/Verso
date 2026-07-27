@@ -835,7 +835,11 @@ export class BlazorEditorProvider
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https: data:; img-src ${cspSource} https: data:; connect-src ${cspSource} ${monacoCdn} https: data:; worker-src ${cspSource} ${monacoCdn} blob:;" />
+    <!-- img-src and connect-src admit blob: because that is how a widget turns a drawing into a
+         file. A plot's save button renders itself to an image through a blob URL and then reads
+         it back, and a widget frame inherits this policy, so without blob: the picture never
+         loads and the widget reports that it could not save. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'; style-src ${cspSource} ${monacoCdn} https: blob: 'unsafe-inline'; font-src ${cspSource} ${monacoCdn} https: data:; img-src ${cspSource} https: data: blob:; connect-src ${cspSource} ${monacoCdn} https: data: blob:; worker-src ${cspSource} ${monacoCdn} blob:;" />
     <base id="blazor-base" href="/" />
     <script>
     // Set base href to match the webview origin so Blazor's NavigationManager
