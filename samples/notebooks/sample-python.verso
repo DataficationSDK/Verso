@@ -1,11 +1,14 @@
 {
-  "verso": "1.0",
+  "verso": "1.1",
   "metadata": {
     "title": "Python in Verso",
     "created": "2026-03-01T10:00:00+00:00",
     "modified": "2026-03-02T13:27:54.304669+00:00",
     "defaultKernel": "python",
-    "activeLayout": "notebook",
+    "activeLayout": {
+      "extensionId": "verso.layout.notebook",
+      "layoutId": "notebook"
+    },
     "preferredTheme": "verso-light"
   },
   "cells": [
@@ -98,7 +101,7 @@
       "id": "00000003-0001-0001-0001-000000000010",
       "type": "code",
       "language": "python",
-      "source": "#!pip matplotlib\nimport matplotlib.pyplot as plt\n\nnames = [c[\u0022name\u0022] for c in ranked]\ndensities = [c[\u0022population\u0022] / c[\u0022area\u0022] for c in ranked]\n\nplt.figure(figsize=(8, 4))\nplt.barh(names[::-1], densities[::-1], color=\u0027#4a6fa5\u0027)\nplt.xlabel(\u0027Population Density (per km\\u00b2)\u0027)\nplt.title(\u0027City Population Density\u0027)\nplt.tight_layout()\nplt.show()"
+      "source": "import matplotlib.pyplot as plt\n\nnames = [c[\u0022name\u0022] for c in ranked]\ndensities = [c[\u0022population\u0022] / c[\u0022area\u0022] for c in ranked]\n\nplt.figure(figsize=(8, 4))\nplt.barh(names[::-1], densities[::-1], color=\u0027#4a6fa5\u0027)\nplt.xlabel(\u0027Population Density (per km\\u00b2)\u0027)\nplt.title(\u0027City Population Density\u0027)\nplt.tight_layout()\nplt.show()"
     },
     {
       "id": "00000003-0001-0001-0001-000000000011",
@@ -107,7 +110,7 @@
     }
   ],
   "layouts": {
-    "dashboard": {
+    "verso.layout.dashboard:dashboard": {
       "cells": {
         "00000003-0001-0001-0001-000000000001": {
           "row": 0,

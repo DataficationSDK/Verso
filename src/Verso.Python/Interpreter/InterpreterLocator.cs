@@ -55,6 +55,12 @@ internal sealed record InterpreterResolution(
 /// </summary>
 internal sealed class InterpreterLocator
 {
+    /// <summary>How long the launcher is given to name an interpreter before it is abandoned.</summary>
+    private static readonly TimeSpan LauncherTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>How long the launcher's output is collected for after it has already exited.</summary>
+    private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(2);
+
     private readonly IInterpreterValidator _validator;
     private readonly Func<string, string?> _getEnv;
     private readonly Func<IEnumerable<string>> _wellKnown;
@@ -184,23 +190,22 @@ internal sealed class InterpreterLocator
     {
         if (IsWindows)
         {
-            var launcher = ResolvePyLauncher();
-            if (launcher is not null && File.Exists(launcher))
-                yield return launcher;
-        }
+            var launcherPath = SearchDirectories()
+                .Select(dir => Path.Combine(dir, "py.exe"))
+                .FirstOrDefault(File.Exists);
 
-        var pathVar = _getEnv("PATH");
-        if (string.IsNullOrEmpty(pathVar))
-            yield break;
+            if (launcherPath is not null)
+            {
+                var launcher = ResolvePyLauncher(launcherPath);
+                if (launcher is not null && File.Exists(launcher))
+                    yield return launcher;
+            }
+        }
 
         string[] leaves = IsWindows ? new[] { "python3.exe", "python.exe" } : new[] { "python3", "python" };
 
-        foreach (var dir in pathVar!.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var dir in SearchDirectories())
         {
-            // Skip the Windows Store stub that reports itself on PATH even when Python is not installed.
-            if (dir.Contains("WindowsApps", StringComparison.OrdinalIgnoreCase))
-                continue;
-
             foreach (var leaf in leaves)
             {
                 var candidate = Path.Combine(dir, leaf);
@@ -210,13 +215,52 @@ internal sealed class InterpreterLocator
         }
     }
 
-    private static string? ResolvePyLauncher()
+    /// <summary>
+    /// The executable search path, without the Windows Store stubs that report themselves there even
+    /// when Python is not installed. The launcher is looked for here rather than run by bare command
+    /// name, so that a stub cannot answer for it either.
+    /// </summary>
+    private IEnumerable<string> SearchDirectories()
+    {
+        var pathVar = _getEnv("PATH");
+        if (string.IsNullOrEmpty(pathVar))
+            yield break;
+
+        foreach (var dir in pathVar!.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (dir.Contains("WindowsApps", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            yield return dir;
+        }
+    }
+
+    /// <summary>
+    /// Asks the launcher which interpreter it would run for Python 3.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The launcher hands its own standard output to the interpreter it starts, so that pipe reaches
+    /// end of stream only once both processes have let go of it. Reading to the end therefore cannot
+    /// bound this call, and a launcher whose child does not exit would otherwise block the search
+    /// indefinitely. The wait does the bounding, and a launcher that overruns it is killed along with
+    /// the interpreter it started.
+    /// </para>
+    /// <para>
+    /// Standard input is redirected and immediately closed rather than left to be inherited. A tool
+    /// that decides to prompt then reads end of stream and gives up, instead of waiting on a handle
+    /// belonging to whatever started this process.
+    /// </para>
+    /// </remarks>
+    private static string? ResolvePyLauncher(string launcherPath)
     {
         try
         {
-            var psi = new ProcessStartInfo("py")
+            var psi = new ProcessStartInfo(launcherPath)
             {
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
@@ -228,8 +272,24 @@ internal sealed class InterpreterLocator
             if (process is null)
                 return null;
 
-            var output = process.StandardOutput.ReadToEnd().Trim();
-            process.WaitForExit(5000);
+            process.StandardInput.Close();
+
+            // Started before the wait so neither pipe can fill and stall the process we are waiting on.
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            _ = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit((int)LauncherTimeout.TotalMilliseconds))
+            {
+                try { process.Kill(entireProcessTree: true); } catch { /* best effort */ }
+                return null;
+            }
+
+            // The process has exited, so what it wrote is already in the pipe; this is a guard against
+            // a lingering grandchild holding the handle open, not a second budget of any substance.
+            if (!stdout.Wait(DrainTimeout))
+                return null;
+
+            var output = stdout.Result.Trim();
             return process.ExitCode == 0 && output.Length > 0 ? output : null;
         }
         catch

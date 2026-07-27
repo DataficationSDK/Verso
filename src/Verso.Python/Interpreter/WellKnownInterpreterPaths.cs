@@ -82,6 +82,12 @@ internal static class WellKnownInterpreterPaths
             foreach (var exe in VersionedExecutablesUnder(baseDir, "Python3*", ""))
                 yield return exe;
 
+        // Python's own install manager keeps the runtimes it downloads in a layout of its own, named
+        // for the build rather than the version (for example pythoncore-3.14-64), so the patterns
+        // above do not reach them. An interpreter installed that way is often the only one present.
+        foreach (var exe in VersionedExecutablesUnder(Path.Combine(localAppData, "Python"), "pythoncore-*", ""))
+            yield return exe;
+
         // Windows Store builds.
         var storePackages = Path.Combine(localAppData, "Packages");
         foreach (var storeDir in DirectoriesMatching(storePackages, "PythonSoftwareFoundation.Python.3*"))

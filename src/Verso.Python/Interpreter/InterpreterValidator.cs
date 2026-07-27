@@ -92,9 +92,14 @@ internal sealed class InterpreterValidator : IInterpreterValidator
         }
 
         var probe = await RunProbeAsync(executablePath, cancellationToken).ConfigureAwait(false);
-        var result = probe is null ? InterpreterValidation.NotFound : ParseProbeOutput(probe, executablePath);
+        var result = probe.Output is null
+            ? InterpreterValidation.NotFound
+            : ParseProbeOutput(probe.Output, executablePath);
 
-        if (mtime is not null)
+        // A probe that ran out of time or was cancelled says nothing about the interpreter. Caching
+        // that as a negative would outlive the stall that caused it and make every later search skip
+        // a perfectly good interpreter for as long as the process lives.
+        if (mtime is not null && probe.Finished)
             _cache[executablePath] = new CacheEntry(mtime.Value, result);
 
         return result;
@@ -164,10 +169,23 @@ internal sealed class InterpreterValidator : IInterpreterValidator
         return true;
     }
 
-    private static async Task<string?> RunProbeAsync(string executablePath, CancellationToken cancellationToken)
+    /// <summary>
+    /// The outcome of one probe attempt. <paramref name="Finished"/> separates an answer about the
+    /// candidate, which is worth remembering, from a probe that never got to give one.
+    /// </summary>
+    private readonly record struct ProbeOutcome(bool Finished, string? Output)
+    {
+        public static readonly ProbeOutcome NotRunnable = new(true, null);
+        public static readonly ProbeOutcome Abandoned = new(false, null);
+    }
+
+    private static async Task<ProbeOutcome> RunProbeAsync(string executablePath, CancellationToken cancellationToken)
     {
         var psi = new ProcessStartInfo(executablePath)
         {
+            // Redirected and closed below rather than inherited, so a candidate that decides to
+            // prompt reads end of stream instead of waiting on a handle belonging to our own parent.
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -187,14 +205,16 @@ internal sealed class InterpreterValidator : IInterpreterValidator
         }
         catch
         {
-            return null; // nothing runnable at this path
+            return ProbeOutcome.NotRunnable; // nothing runnable at this path
         }
 
         if (process is null)
-            return null;
+            return ProbeOutcome.NotRunnable;
 
         try
         {
+            process.StandardInput.Close();
+
             // Both pipes are drained before waiting. A candidate that writes past the buffer on
             // one of them and is never read blocks there, and the wait below would then sit out
             // the whole probe timeout for every such candidate on the search path.
@@ -204,12 +224,12 @@ internal sealed class InterpreterValidator : IInterpreterValidator
 
             await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
             var stdout = await stdoutTask.ConfigureAwait(false);
-            return process.ExitCode == 0 ? stdout : null;
+            return new ProbeOutcome(true, process.ExitCode == 0 ? stdout : null);
         }
         catch (OperationCanceledException)
         {
             try { process.Kill(entireProcessTree: true); } catch { /* best effort */ }
-            return null;
+            return ProbeOutcome.Abandoned;
         }
         finally
         {
