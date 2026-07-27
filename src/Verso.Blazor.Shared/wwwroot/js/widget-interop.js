@@ -180,6 +180,11 @@
     // clicking a link at it is how all of them do this. It has to replace the method rather than
     // listen for the event: the anchor is generally never added to the document, so its click
     // reaches no listener anywhere.
+    //
+    // Both ways of clicking one are taken. Some libraries call click(); others build the event
+    // themselves and dispatch it, which runs the same download without ever calling the method.
+    // Shadowing dispatchEvent on the anchor prototype catches the second without touching how
+    // events are dispatched at anything else.
     var FRAME_SCRIPT = [
         '<script>',
         '(function () {',
@@ -197,18 +202,18 @@
         '    });',
         '    window.URL = ForgivingUrl;',
         '',
-        '    var nativeAnchorClick = HTMLAnchorElement.prototype.click;',
-        '    HTMLAnchorElement.prototype.click = function () {',
-        '        var name = this.getAttribute && this.getAttribute("download");',
-        '        var href = this.href;',
         // Only what the widget built for itself is taken. A link to somewhere else is left to
         // behave as a link, and could not be read from here in any case.
+        '    function savedByWidget(anchor) {',
+        '        if (!anchor || !anchor.getAttribute) { return null; }',
+        '        var name = anchor.getAttribute("download");',
+        '        var href = anchor.href;',
         '        var local = href && (href.indexOf("blob:") === 0 || href.indexOf("data:") === 0);',
-        '        if (!name || !local) { return nativeAnchorClick.apply(this, arguments); }',
+        '        return (name && local) ? { name: name, href: href } : null;',
+        '    }',
         '',
-        '        var anchor = this;',
-        '        var args = arguments;',
-        '        fetch(href).then(function (response) {',
+        '    function handOut(request, letTheFrameTry) {',
+        '        fetch(request.href).then(function (response) {',
         '            return response.blob();',
         '        }).then(function (blob) {',
         '            return new Promise(function (resolve, reject) {',
@@ -221,7 +226,7 @@
         '            var comma = read.result.indexOf(",");',
         '            parent.postMessage({',
         '                type: "verso/widget-download",',
-        '                fileName: name,',
+        '                fileName: request.name,',
         '                contentType: read.type || "application/octet-stream",',
         '                data: comma >= 0 ? read.result.slice(comma + 1) : read.result',
         '            }, "*");',
@@ -230,8 +235,30 @@
         // will most likely refuse the download, but failing the way it did before this existed
         // beats failing silently in a new way.
         '            try { console.error("verso: could not read a download, letting the frame try it", error); } catch (e) { }',
-        '            try { nativeAnchorClick.apply(anchor, args); } catch (e) { }',
+        '            try { letTheFrameTry(); } catch (e) { }',
         '        });',
+        '    }',
+        '',
+        '    var nativeAnchorClick = HTMLAnchorElement.prototype.click;',
+        '    HTMLAnchorElement.prototype.click = function () {',
+        '        var request = savedByWidget(this);',
+        '        if (!request) { return nativeAnchorClick.apply(this, arguments); }',
+        '',
+        '        var anchor = this;',
+        '        var args = arguments;',
+        '        handOut(request, function () { nativeAnchorClick.apply(anchor, args); });',
+        '    };',
+        '',
+        '    var nativeDispatch = HTMLAnchorElement.prototype.dispatchEvent;',
+        '    HTMLAnchorElement.prototype.dispatchEvent = function (event) {',
+        '        var request = (event && event.type === "click") ? savedByWidget(this) : null;',
+        '        if (!request) { return nativeDispatch.apply(this, arguments); }',
+        '',
+        '        var anchor = this;',
+        '        var args = arguments;',
+        '        handOut(request, function () { nativeDispatch.apply(anchor, args); });',
+        // The event was not cancelled, which is what a dispatch of it would have reported.
+        '        return true;',
         '    };',
         '',
         '    var last = -1;',
