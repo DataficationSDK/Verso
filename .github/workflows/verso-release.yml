@@ -38,6 +38,19 @@ jobs:
             8.0.x
             10.0.x
 
+      # The Python kernel launches a real interpreter, and a large part of its suite treats a
+      # missing one as a failure on a build server rather than a skip. Pinned here for the same
+      # reason as in the CI workflow, so a release cannot be blocked by whatever Python the runner
+      # image happens to carry, nor by reaching a package index while the tests run.
+      - name: Setup Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --upgrade pip jedi
+
       - name: Bundle blazor.web.js for CLI
         run: |
           # blazor.web.js is embedded in Components.Endpoints.dll in .NET 8/9
@@ -67,6 +80,8 @@ jobs:
         run: dotnet build Verso.sln -c Release -p:Version=${{ steps.version.outputs.version }}
 
       - name: Test
+        env:
+          VERSO_PYTHON: ${{ steps.python.outputs.python-path }}
         run: dotnet test Verso.sln -c Release --no-build
 
       - name: Pack NuGet packages

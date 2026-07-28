@@ -48,6 +48,7 @@ jobs:
       # and it is what makes the Windows process launcher covered at all: it is native code that
       # no developer machine here can run.
       - name: Setup Python
+        id: python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -64,6 +65,14 @@ jobs:
         run: dotnet build Verso.sln --configuration Release --no-restore
 
       - name: Test
+        env:
+          # Names the interpreter the two steps above prepared, instead of leaving the kernel to
+          # discover one. First on PATH is not enough: these images carry several Pythons, and on
+          # Windows the launcher is consulted ahead of any path scan, so the kernel can resolve a
+          # different interpreter than the one holding the analysis library. The tests that need it
+          # then have nothing to work with, and the same version has to be pinned in both places
+          # for the tools directory, which is keyed by version, to be the one the kernel reads.
+          VERSO_PYTHON: ${{ steps.python.outputs.python-path }}
         run: >-
           dotnet test Verso.sln
           --configuration Release
