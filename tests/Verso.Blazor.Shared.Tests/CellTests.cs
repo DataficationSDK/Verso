@@ -299,6 +299,56 @@ public sealed class CellTests : BunitTestContext
         Assert.AreEqual(0, cut.FindAll(".verso-cell-editor").Count);
     }
 
+    [TestMethod]
+    public void WidgetOutput_SurvivesTheExecutionCountArriving()
+    {
+        // A widget output is a live frame rather than markup, so rebuilding it reloads the
+        // document and draws the chart a second time, which is the flash this guards against.
+        // Run All delivers a cell's outputs before its execution count, so a render lands with
+        // the frame already up and the count still unset; nothing about the output changed
+        // between the two, and the frame has to survive it.
+        TestContext!.JSInterop.Setup<int?>("versoWidget.mount", _ => true).SetResult(1);
+        TestContext.JSInterop.SetupVoid("versoWidget.detach", _ => true);
+
+        var cell = CreateCodeCell("chart");
+        cell.Outputs.Add(new CellOutput(CellOutput.WidgetMimeType, "<html><body>chart</body></html>"));
+
+        var cut = RenderCell(cell);
+        Assert.AreEqual(1, TestContext.JSInterop.Invocations["versoWidget.mount"].Count);
+
+        cell.ExecutionCount = 1;
+        cut.SetParametersAndRender(p => p.Add(c => c.CellData, cell));
+
+        Assert.AreEqual(
+            1,
+            TestContext.JSInterop.Invocations["versoWidget.mount"].Count,
+            "the widget was mounted a second time, so its document reloaded and redrew");
+    }
+
+    [TestMethod]
+    public void WidgetOutput_IsRebuilt_WhenTheDocumentItselfChanges()
+    {
+        // The other side of the same coin. A frame shows a new document only by being built again,
+        // so a re-run that produced different output must not be suppressed along with the flash.
+        TestContext!.JSInterop.Setup<int?>("versoWidget.mount", _ => true).SetResult(1);
+        TestContext.JSInterop.SetupVoid("versoWidget.detach", _ => true);
+
+        var cell = CreateCodeCell("chart");
+        cell.Outputs.Add(new CellOutput(CellOutput.WidgetMimeType, "<html><body>first</body></html>"));
+
+        var cut = RenderCell(cell);
+        Assert.AreEqual(1, TestContext.JSInterop.Invocations["versoWidget.mount"].Count);
+
+        cell.Outputs[0] = new CellOutput(CellOutput.WidgetMimeType, "<html><body>second</body></html>");
+        cell.ExecutionCount = 2;
+        cut.SetParametersAndRender(p => p.Add(c => c.CellData, cell));
+
+        Assert.AreEqual(
+            2,
+            TestContext.JSInterop.Invocations["versoWidget.mount"].Count,
+            "a re-run's own document never reached the frame");
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private static CellModel CreateCodeCell(string source)

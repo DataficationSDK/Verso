@@ -249,11 +249,20 @@
 
     // OutputView isolates each output in its own per-output ErrorBoundary (the first line of
     // defense); this cell-level boundary is the outer net for failures outside any per-output
-    // scope, so neither tears down the whole notebook renderer. It is keyed by execution count,
-    // so re-running the cell starts a fresh (recovered) boundary; clearing the cell's outputs
-    // removes it entirely, and Retry recovers it in place.
+    // scope, so neither tears down the whole notebook renderer. Keyed by the cell, so a renderer
+    // that reuses one component for a different cell starts a fresh boundary; clearing the cell's
+    // outputs removes it entirely, and Retry recovers it in place.
+    //
+    // Not keyed by execution count. Rotating a key rebuilds everything inside the boundary, and an
+    // output that is a live element rather than markup does not survive that: a widget's frame is a
+    // new iframe, so its document loads and draws again, which reads as a flash. A cell's outputs
+    // and its execution count do not always arrive together (an out-of-process host stamps the
+    // count after the outputs it fetched separately), so a render can land with the outputs already
+    // on screen and the count about to change. A new execution recovers the boundary instead, which
+    // is what keying it on the count was for.
     private ErrorBoundary? _outputErrorBoundary;
-    private string OutputBoundaryKey => $"output-boundary-{CellData.ExecutionCount?.ToString() ?? "0"}";
+    private Guid OutputBoundaryKey => CellData.Id;
+    private (Guid Cell, int? Count)? _lastExecution;
     private void RecoverOutputRender() => _outputErrorBoundary?.Recover();
     private RenderFragment<Exception> RenderOutputError => renderError =>
         @<div class="verso-output verso-output--error">
@@ -366,6 +375,15 @@
     protected override async Task OnParametersSetAsync()
     {
         await RefreshEnabledCellActionsAsync();
+
+        // A run that produced output the boundary could not render leaves it faulted, and the next
+        // run deserves the chance to render its own output. Recovering costs nothing when the
+        // boundary is holding no error, which is the ordinary case. The first execution this
+        // component sees is not treated as a change: there is nothing yet to recover.
+        var execution = (CellData.Id, CellData.ExecutionCount);
+        if (_lastExecution is { } previous && previous != execution)
+            _outputErrorBoundary?.Recover();
+        _lastExecution = execution;
 
         // Auto-render non-editable cells (e.g. the parameters form) once on open when they have no
         // outputs yet. The latch resets as soon as outputs exist, so clearing a cell's outputs re-renders

@@ -537,6 +537,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         if (response.Results?.Any(r => r.Dirty) == true)
             SetDirty(true);
         await RefreshCellListAsync();
+        StampExecutionMetadata(response.Results);
         await RefreshVariablesSafeAsync();
 
         // Per-cell OnCellExecuted notifications arrive via HandleCellExecutionState
@@ -551,16 +552,6 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             if (!Guid.TryParse(r.CellId, out var cellId))
                 continue;
 
-            // Stamp local cached cell with execution metadata — RefreshCellListAsync
-            // above re-mapped the cells and MapCellFromDto doesn't carry these fields.
-            var cached = _cells.FirstOrDefault(c => c.Id == cellId);
-            if (cached is not null)
-            {
-                cached.ExecutionCount = r.ExecutionCount;
-                cached.LastElapsed = TimeSpan.FromMilliseconds(r.ElapsedMs);
-                cached.LastStatus = r.Status;
-            }
-
             dtos.Add(new ExecutionResultDto(
                 cellId,
                 r.Status ?? "completed",
@@ -569,6 +560,36 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         }
 
         return dtos;
+    }
+
+    /// <summary>
+    /// Copies each result's execution metadata onto the cached cell. Needed because
+    /// RefreshCellListAsync re-maps the cells and MapCellFromDto does not carry these fields.
+    /// </summary>
+    /// <remarks>
+    /// Called immediately after that refresh, with nothing awaited in between, so no render sees a
+    /// cell whose new outputs have arrived and whose count has not. A cell shown in that state is
+    /// wrong on its own (the status line reports the previous run), and it also means the outputs
+    /// are rendered once and then again when the count lands, which an output that is a live
+    /// element rather than markup pays for by being rebuilt.
+    /// </remarks>
+    private void StampExecutionMetadata(List<ExecutionRunAllResultDto>? results)
+    {
+        if (results is null) return;
+
+        foreach (var r in results)
+        {
+            if (!Guid.TryParse(r.CellId, out var cellId))
+                continue;
+
+            var cached = _cells.FirstOrDefault(c => c.Id == cellId);
+            if (cached is null)
+                continue;
+
+            cached.ExecutionCount = r.ExecutionCount;
+            cached.LastElapsed = TimeSpan.FromMilliseconds(r.ElapsedMs);
+            cached.LastStatus = r.Status;
+        }
     }
 
     public async Task CancelCellAsync(Guid cellId)
