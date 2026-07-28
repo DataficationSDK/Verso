@@ -6,12 +6,12 @@ Python language kernel extension for [Verso](https://github.com/DataficationSDK/
 
 Runs the Python already installed on the machine as a separate process, so a notebook sees the same interpreter, virtual environment, and packages a terminal would. Nothing is embedded and no Python is bundled. Requires **Python 3.8 or newer**, including 3.13 and 3.14.
 
-The interpreter comes from an explicit setting, the `VERSO_PYTHON` variable, a `#!python` selection, an active virtual environment or conda environment, a `.venv` beside the notebook, `PATH`, or a well-known install location, in that order.
+The interpreter comes from an explicit setting, the `VERSO_PYTHON` variable, a `#!python` selection, an active virtual environment, an active conda environment, a `.venv` or `venv` directory beside the notebook or above it, `PATH`, or a well-known install location, in that order. The first candidate that reports a supported CPython version wins.
 
 ### Features
 
 - **Python execution** with persistent state across cells, output streamed as it is produced, and full traceback formatting
-- **Interrupt and restart** that genuinely work, including a restart that clears imported module state
+- **Interrupt and restart**, including a restart that clears imported module state
 - **Crash isolation**: a native crash takes down the interpreter, reports itself, and the next cell runs in a fresh one
 - **IntelliSense** answered inside the running interpreter, so it sees the packages that are actually installed and the names earlier cells defined. Uses jedi when available, with standard library fallbacks for completions and syntax diagnostics
 - **Bidirectional variable sharing** between Python and every other kernel in the notebook
@@ -23,7 +23,13 @@ The interpreter comes from an explicit setting, the `VERSO_PYTHON` variable, a `
 
 ## Installation
 
-This package ships with Verso and is loaded automatically. It is referenced directly only when embedding the engine in your own application, where it depends on [Verso.Abstractions](https://www.nuget.org/packages/Verso.Abstractions) and nothing else.
+```shell
+dotnet add package Verso.Python
+```
+
+This package ships with Verso and is loaded automatically, so a notebook needs no reference to it. Add it directly when embedding the engine in your own application.
+
+It depends on [Verso.Abstractions](https://www.nuget.org/packages/Verso.Abstractions) and nothing else. No Python is bundled and no interpreter is embedded, so the package carries no native dependency of its own.
 
 ## Quick Start
 

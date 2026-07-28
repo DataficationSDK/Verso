@@ -28,7 +28,7 @@ This package depends on [Verso.Abstractions](https://www.nuget.org/packages/Vers
 
 ## Related Packages
 
-Entries marked bundled ship inside Verso itself and are not published separately.
+The kernels and cell types below ship with the VS Code extension, the Blazor application, and the CLI, so notebooks there load them without a reference. Each is published separately as well, for applications that host the engine themselves.
 
 | Package | Description |
 |---------|-------------|
@@ -36,8 +36,8 @@ Entries marked bundled ship inside Verso itself and are not published separately
 | [Verso.Ado](https://www.nuget.org/packages/Verso.Ado) | SQL database connectivity |
 | [Verso.FSharp](https://www.nuget.org/packages/Verso.FSharp) | F# Interactive kernel |
 | [Verso.PowerShell](https://www.nuget.org/packages/Verso.PowerShell) | PowerShell kernel |
-| Verso.Python (bundled) | Python kernel running the interpreter installed on the machine |
-| Verso.Http (bundled) | HTTP request cell type |
+| [Verso.Python](https://www.nuget.org/packages/Verso.Python) | Python kernel running the interpreter installed on the machine |
+| [Verso.Http](https://www.nuget.org/packages/Verso.Http) | HTTP request cell type |
 | [Verso.JavaScript](https://www.nuget.org/packages/Verso.JavaScript) | JavaScript kernel |
 | [Verso.Cli](https://www.nuget.org/packages/Verso.Cli) | Command-line interface |
 | [Verso.Testing](https://www.nuget.org/packages/Verso.Testing) | Test utilities for extensions |

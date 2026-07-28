@@ -8,7 +8,7 @@ Send REST API requests directly in notebook cells using `.http` file syntax, the
 
 ### Features
 
-- **`.http` file syntax** with support for all HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
+- **`.http` file syntax** with support for every HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, TRACE, and CONNECT)
 - **Variable interpolation** with `@name = value` declarations and `{{name}}` references
 - **Dynamic variables** (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`, `{{$datetime}}`, `{{$localDatetime}}`, `{{$processEnv}}`)
 - **Named request chaining** via `# @name` and response references (`{{name.response.body.$.path}}`, `{{name.response.headers.HeaderName}}`)
@@ -25,7 +25,9 @@ Send REST API requests directly in notebook cells using `.http` file syntax, the
 dotnet add package Verso.Http
 ```
 
-This package depends only on [Verso.Abstractions](https://www.nuget.org/packages/Verso.Abstractions).
+This package ships with Verso and is loaded automatically, so a notebook needs no reference to it. Add it directly when embedding the engine in your own application.
+
+It depends on [Verso.Abstractions](https://www.nuget.org/packages/Verso.Abstractions) and nothing else, using only the `HttpClient` in the .NET base class library.
 
 ## Quick Start
 
