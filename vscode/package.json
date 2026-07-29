@@ -15,6 +15,9 @@
     "url": "https://github.com/DataficationSDK/Verso/issues"
   },
   "qna": "https://github.com/DataficationSDK/Verso/discussions",
+  "sponsor": {
+    "url": "https://github.com/sponsors/TorreyBetts"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/DataficationSDK/Verso"
@@ -85,7 +88,7 @@
       },
       {
         "command": "verso.openInVerso",
-        "title": "Open in Verso",
+        "title": "Open as Verso Notebook",
         "category": "Verso"
       }
     ],
@@ -197,7 +200,7 @@
         "verso.showOpenInVersoMenu": {
           "type": "boolean",
           "default": true,
-          "description": "Show the 'Open in Verso' entry in the Explorer context menu for Markdown (.md) files. Disabling this hides the menu entry only; .md files can still be opened in Verso through the editor's 'Reopen Editor With...' picker."
+          "description": "Show the 'Open as Verso Notebook' entry in the Explorer context menu for Markdown (.md) files. Disabling this hides the menu entry only; .md files can still be opened in Verso through the editor's 'Reopen Editor With...' picker."
         }
       }
     },

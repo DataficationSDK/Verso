@@ -8,7 +8,7 @@ Nothing marks the file as a notebook. There is no front matter to add and no met
 
 | Where | How |
 |-------|-----|
-| VS Code | Right-click the file in the Explorer and choose **Open in Verso**, or use **Reopen Editor With...** and pick **Verso Notebook** |
+| VS Code | Right-click the file in the Explorer and choose **Open as Verso Notebook**, or use **Reopen Editor With...** and pick **Verso Notebook** |
 | Browser | `verso serve article.md` |
 | Command line | `verso run article.md` |
 

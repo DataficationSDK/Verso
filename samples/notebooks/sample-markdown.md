@@ -1,6 +1,6 @@
 # The Birthday Paradox
 
-You are reading a plain Markdown file that is also a Verso notebook. On GitHub it renders as an ordinary article. Opened in Verso (right-click the file in VS Code and choose **Open in Verso**, or run `verso serve sample-markdown.md`), every fenced C# block below becomes an executable cell, so you can run the argument instead of just reading it.
+You are reading a plain Markdown file that is also a Verso notebook. On GitHub it renders as an ordinary article. Opened in Verso (right-click the file in VS Code and choose **Open as Verso Notebook**, or run `verso serve sample-markdown.md`), every fenced C# block below becomes an executable cell, so you can run the argument instead of just reading it.
 
 The question: how many people do you need in a room before it is more likely than not that two of them share a birthday?
 
