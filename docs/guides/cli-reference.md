@@ -28,13 +28,15 @@ verso serve --port 8080           # custom port
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `<notebook>` | none | A `.verso`, `.ipynb`, or `.dib` file to open on launch |
+| `<notebook>` | none | A `.verso`, `.ipynb`, `.md`, or `.dib` file to open on launch |
 | `--port` | 5050 | TCP port for the local server |
 | `--no-browser` | false | Do not open a browser automatically |
 | `--no-https` | false | Serve over HTTP only |
 | `--extensions <dir>` | none | Extra directory to scan for extension assemblies |
 | `--preserve-format` | false | Save a loaded `.ipynb` back to `.ipynb` instead of converting to `.verso` |
 | `--verbose` | false | Detailed startup logging |
+
+A loaded `.md` file saves back to `.md` without `--preserve-format`, since that format is chosen by default when it can be. See [Markdown Notebooks](markdown-notebooks.md).
 
 ## verso run
 
@@ -48,7 +50,7 @@ verso run pipeline.verso --output json --output-file results.json --fail-fast
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `<notebook>` | required | A `.verso`, `.ipynb`, or `.dib` file |
+| `<notebook>` | required | A `.verso`, `.ipynb`, `.md`, or `.dib` file |
 | `--param <name=value>` | none | Set a notebook parameter (repeatable) |
 | `--output <format>` | `text` | `text`, `json`, or `none` |
 | `--output-file <path>` | none | Write output to a file instead of stdout |
@@ -61,8 +63,16 @@ verso run pipeline.verso --output json --output-file results.json --fail-fast
 | `--include-markdown` | false | Include rendered markdown in the output |
 | `--show-parameters` | false | Print resolved parameter values |
 | `--extensions <dir>` | none | Extra directory to scan for extension assemblies |
+| `--python <path>` | discovered | Interpreter to run Python cells in, overriding discovery |
+| `--auto-install` | false | Install Python packages a cell imports but the environment lacks |
 
 See [Notebook Parameters](notebook-parameters.md) for how `--param` values are typed and validated.
+
+### Python cells in a pipeline
+
+`--python` names the interpreter directly, which is worth doing in CI even when discovery would find the right one, because it pins what the run executes rather than leaving it to whatever the build image happens to carry. Without it, the interpreter comes from the usual search described in [Python Interpreters](python-interpreters.md).
+
+Nothing is installed unless you ask. `verso run` uses the `off` install policy, so an import of a package the environment lacks fails the cell rather than reaching for a package index mid-pipeline. `--auto-install` selects the `auto` policy, which installs distributions Verso recognizes and reports, without installing, any name it could only guess at. See [Python Packages](python-packages.md).
 
 ### What counts as a failure
 
@@ -77,16 +87,20 @@ Translates a notebook from one format to another. It does not execute cells.
 ```bash
 verso convert notebook.ipynb --to verso
 verso convert notebook.verso --to ipynb --output exported.ipynb
+verso convert article.md --to verso
+verso convert notebook.verso --to md --output article.md
 verso convert notebook.verso --to verso --strip-outputs
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `<input>` | required | A `.verso`, `.ipynb`, or `.dib` file |
-| `--to <format>` | required | Target format: `verso` or `ipynb` (`.dib` is import-only) |
+| `<input>` | required | A `.verso`, `.ipynb`, `.md`, or `.dib` file |
+| `--to <format>` | required | Target format: `verso`, `ipynb`, or `md` (`.dib` is import-only) |
 | `--output <path>` | sibling file | Output path |
 | `--strip-outputs` | false | Remove all cell outputs before writing |
 | `--extensions <dir>` | none | Extra directory to scan for extension assemblies |
+
+Converting to `md` writes plain Markdown, which carries no cell outputs, so a notebook converted that way keeps its cells and loses its results. See [Markdown Notebooks](markdown-notebooks.md).
 
 ## verso repl
 
@@ -110,7 +124,7 @@ verso repl --list-kernels           # print kernels and exit
 | `--plain` | false | Line-oriented fallback prompt (blank line submits, `;;` force-submits) |
 | `--no-color` | false | Disable ANSI styling |
 | `--list-kernels` / `--list-themes` | false | Print registered kernels or themes and exit |
-| `--preserve-format` | false | `.save` writes a loaded `.ipynb` back in place instead of converting |
+| `--preserve-format` | false | `.save` writes a loaded `.ipynb` back in place instead of converting (a loaded `.md` already does) |
 
 Meta-commands start with a dot. Type `.help` for the full list; common ones include `.kernel` (switch language), `.vars` (list shared variables), `.save` / `.load`, `.export`, and `.rerun`. In the default prompt, a cell submits after a blank line; in `--plain` mode a blank line submits and `;;` force-submits.
 
@@ -128,7 +142,7 @@ verso export --list           # list available export formats
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `<input>` | required | A `.verso`, `.ipynb`, or `.dib` file |
+| `<input>` | required | A `.verso`, `.ipynb`, `.md`, or `.dib` file |
 | `--format`, `-f <name>` | required | Display name of an export action |
 | `--output`, `-o <path>` | action default | Output file path |
 | `--execute`, `-x` | false | Execute the notebook first so outputs are fresh |

@@ -29,5 +29,6 @@ Importing a Jupyter notebook can produce `raw` cells. These come in as inert, no
 ## See also
 
 - [Language Kernels](language-kernels.md)
+- [Markdown Notebooks](markdown-notebooks.md)
 - [Notebook Parameters](notebook-parameters.md)
 - [Database Connectivity](database-connectivity.md), [HTTP Requests](http-requests.md), [Mermaid Diagrams](mermaid-diagrams.md)

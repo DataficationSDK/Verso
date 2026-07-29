@@ -82,6 +82,10 @@ Three built-in themes (Light, Dark, High Contrast) are hot-swappable at runtime.
 
 Open any `.ipynb` or `.dib` file and Verso converts it automatically. Polyglot Notebook patterns like `#!fsharp`, `#!connect`, and `#!sql` are mapped to native Verso cells during import. By default, saving writes to a sibling `.verso` file and leaves the original untouched. To save `.ipynb` notebooks back to `.ipynb` (cell outputs preserved), enable the `verso.preserveOriginalFormat` setting in VS Code, or pass `--preserve-format` to `verso repl` / `verso serve`.
 
+### Markdown Notebooks
+
+A plain `.md` file is a notebook. Fenced code blocks tagged with a language Verso recognizes become executable cells; prose, untagged fences, and code samples in other languages stay as prose. Saving writes plain Markdown back to the same file, preserving your fence style exactly, so the document still renders on GitHub and reviews cleanly in a pull request. Cell outputs are not persisted in this format. See [Markdown Notebooks](docs/guides/markdown-notebooks.md).
+
 ## Languages
 
 | Language | IntelliSense | Variable Sharing |
@@ -199,10 +203,10 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Cell Types** | Code, Markdown, HTML, Mermaid, SQL, HTTP |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid) |
-| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
-| **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Compare, Switch Layout, Switch Theme, Export HTML, Export Markdown |
+| **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!python`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
+| **Toolbar Actions** | Run Cell, Run All, Clear Outputs, Restart, Compare, Switch Layout, Switch Theme, Export HTML, Export Markdown, Export Verso |
 | **Data Formatters** | Primitives, Collections (HTML tables), HTML, Images, SVG, Exceptions, F# types, SQL result sets |
-| **Serializers** | `.verso` (native JSON, read/write), `.ipynb` (read/write, write opt-in), `.dib` (read only) |
+| **Serializers** | `.verso` (native JSON, read/write), `.ipynb` (read/write, write opt-in), `.md` (read/write, plain Markdown, no outputs), `.dib` (read only) |
 
 ## The `.verso` File Format
 

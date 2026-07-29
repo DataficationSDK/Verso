@@ -145,6 +145,6 @@ Kernels initialize lazily the first time you run a cell in that language. If a k
 ## See also
 
 - [Python Interpreters](python-interpreters.md) and [Python Packages](python-packages.md)
-- [Cell Types](cell-types.md)
+- [Cell Types](cell-types.md) and [Markdown Notebooks](markdown-notebooks.md)
 - [HTTP Requests](http-requests.md) and [Database Connectivity](database-connectivity.md)
 - [Notebook Parameters](notebook-parameters.md)
