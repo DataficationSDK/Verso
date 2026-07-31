@@ -32,21 +32,31 @@ function Invoke-ValueBackward {
     )
 
     $topologicalOrder = [System.Collections.Generic.List[Value]]::new()
-    $visited = [System.Collections.Generic.HashSet[Value]]::new()
+    $scheduled = [System.Collections.Generic.HashSet[Value]]::new()
+    $pending = [System.Collections.Generic.Stack[object]]::new()
+    $pending.Push([pscustomobject]@{ Value = $Value; Expanded = $false })
 
-    function Visit-Value([Value]$Current) {
-        if (-not $visited.Add($Current)) {
-            return
+    while ($pending.Count -gt 0) {
+        $frame = $pending.Pop()
+        $current = [Value]$frame.Value
+
+        if ($frame.Expanded) {
+            $topologicalOrder.Add($current)
+            continue
         }
 
-        foreach ($child in $Current.children) {
-            Visit-Value $child
+        if (-not $scheduled.Add($current)) {
+            continue
         }
 
-        $topologicalOrder.Add($Current)
+        $pending.Push([pscustomobject]@{ Value = $current; Expanded = $true })
+        foreach ($child in $current.children) {
+            if (-not $scheduled.Contains($child)) {
+                $pending.Push([pscustomobject]@{ Value = $child; Expanded = $false })
+            }
+        }
     }
 
-    Visit-Value $Value
     $Value.grad = 1.0
 
     for ($i = $topologicalOrder.Count - 1; $i -ge 0; $i--) {
