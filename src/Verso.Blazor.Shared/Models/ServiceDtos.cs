@@ -21,6 +21,42 @@ public sealed record ToolbarActionInfo(
     string? ConfirmationPrompt = null);
 
 /// <summary>
+/// Describes one entry in the notebook's panel list, whether it is drawn by the host
+/// itself or contributed by an extension through <see cref="INotebookPanel"/>.
+/// </summary>
+/// <param name="PanelId">Identifier, unique within the owning extension.</param>
+/// <param name="ExtensionId">Owning extension, or empty for a host panel.</param>
+/// <param name="DisplayName">Title and accessible name.</param>
+/// <param name="IconName">Icon-set name the host maps to a glyph, or <c>null</c>.</param>
+/// <param name="IconMarkup">Host-specific icon markup used when present and understood.</param>
+/// <param name="Order">Sort order among the panel controls, lower first.</param>
+/// <param name="IsHostPanel">
+/// <c>true</c> when the host draws this panel with its own component rather than
+/// rendering content produced by an extension.
+/// </param>
+public sealed record NotebookPanelInfo(
+    string PanelId,
+    string ExtensionId,
+    string DisplayName,
+    string? IconName,
+    string? IconMarkup,
+    int Order,
+    bool IsHostPanel)
+{
+    /// <summary>
+    /// Stable key for a panel across both kinds, since a host panel's id and an
+    /// extension panel's id share a namespace only when the extension id is included.
+    /// </summary>
+    public string Key => IsHostPanel ? PanelId : $"{ExtensionId}::{PanelId}";
+}
+
+/// <summary>
+/// Payload of <c>INotebookService.OnPanelUpdated</c>, raised when a panel's content
+/// has changed and the host should ask for it again.
+/// </summary>
+public sealed record PanelUpdatedEventArgs(string ExtensionId, string PanelId);
+
+/// <summary>
 /// Health of the kernel connection as observed by the host. <see cref="Faulted"/> means the
 /// kernel infrastructure failed (e.g. a restart threw); <see cref="Disconnected"/> means the
 /// host process or transport backing the kernel is gone. Both are recoverable by restarting.

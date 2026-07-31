@@ -12,12 +12,13 @@ If you only want to install and manage existing extensions rather than build one
 
 ## Reference
 
-- **[Extension Interfaces](extension-interfaces.md)** — the thirteen interfaces in `Verso.Abstractions` and the capability surface each exposes.
+- **[Extension Interfaces](extension-interfaces.md)** — every interface in `Verso.Abstractions` and the capability surface each exposes.
 - **[Context Reference](context-reference.md)** — `IVersoContext`, `IExtensionHostContext`, and the services an extension can reach through them.
 
 ## Authoring guides
 
 - **[Layouts](layouts.md)** — write a custom layout extension. Covers both renderer isolation modes: **inline** layouts (`ILayoutEngine`, the `data-cell-slot` slot-mount pattern, data-attribute event routing, the `ILayoutInteractionHandler` capability, the re-render protocol, theming against host CSS variables) and **isolated** iframe layouts (`RendererIsolation`, the renderer package, the `window.verso` bridge, `ILayoutLifecycleHandler` and the frame channel, the message contract, the sandbox/CSP policy, and theme-token propagation).
+- **[Panels](panels.md)** — contribute a panel next to the notebook body. Covers the representation contract (`INotebookPanel`, ordered alternates, why a panel describes content instead of drawing it), the icon set, the interaction round trip (`IPanelInteractionHandler`, `RequestRefresh`), and the CSS class vocabulary the web host provides.
 - **[Theme Authoring](theme-authoring.md)** — define color palettes, typography, and the layout-extension theme tokens that custom layouts inherit through CSS custom properties.
 
 ## Workflow

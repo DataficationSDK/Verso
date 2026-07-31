@@ -33,15 +33,21 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly List<IExtensionSettings> _settableExtensions = new();
     private readonly List<ICellPropertyProvider> _propertyProviders = new();
     private readonly List<ICellInteractionHandler> _interactionHandlers = new();
+    private readonly List<INotebookPanel> _panels = new();
 
     // Layout interaction handlers are looked up by the (ExtensionId, LayoutId)
     // identity pair, never by LayoutId alone.
     private readonly Dictionary<(string ExtensionId, string LayoutId), ILayoutInteractionHandler> _layoutInteractionHandlers =
-        new(LayoutIdentityComparer.Instance);
+        new(ExtensionScopedIdComparer.Instance);
 
     // Layout lifecycle handlers share the same identity pair scheme.
     private readonly Dictionary<(string ExtensionId, string LayoutId), ILayoutLifecycleHandler> _layoutLifecycleHandlers =
-        new(LayoutIdentityComparer.Instance);
+        new(ExtensionScopedIdComparer.Instance);
+
+    // Panel interaction handlers use the same identity pair scheme, keyed on
+    // (ExtensionId, PanelId) so two extensions may share a panel id.
+    private readonly Dictionary<(string ExtensionId, string PanelId), IPanelInteractionHandler> _panelInteractionHandlers =
+        new(ExtensionScopedIdComparer.Instance);
 
     private readonly List<ExtensionLoadContext> _loadContexts = new();
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
@@ -160,6 +166,67 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     public IReadOnlyList<IExtensionSettings> GetSettableExtensions()
     {
         lock (_lock) { return _settableExtensions.Where(s => s is IExtension ext && IsEnabled(ext)).ToList(); }
+    }
+
+    public IReadOnlyList<INotebookPanel> GetPanels()
+    {
+        lock (_lock) { return _panels.Where(p => IsEnabled(p)).ToList(); }
+    }
+
+    /// <summary>
+    /// Looks up an enabled <see cref="INotebookPanel"/> by its
+    /// <c>(ExtensionId, PanelId)</c> identity pair.
+    /// </summary>
+    /// <param name="extensionId">The owning extension's id.</param>
+    /// <param name="panelId">The panel id.</param>
+    /// <param name="panel">The matching panel when found and enabled.</param>
+    /// <returns><c>true</c> when a matching enabled panel exists.</returns>
+    public bool TryGetPanel(
+        string extensionId,
+        string panelId,
+        out INotebookPanel panel)
+    {
+        lock (_lock)
+        {
+            foreach (var candidate in _panels)
+            {
+                if (!IsEnabled(candidate)) continue;
+                if (string.Equals(candidate.ExtensionId, extensionId, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(candidate.PanelId, panelId, StringComparison.OrdinalIgnoreCase))
+                {
+                    panel = candidate;
+                    return true;
+                }
+            }
+            panel = null!;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Looks up an enabled <see cref="IPanelInteractionHandler"/> by its
+    /// <c>(ExtensionId, PanelId)</c> identity pair.
+    /// </summary>
+    /// <param name="extensionId">The owning extension's id.</param>
+    /// <param name="panelId">The panel id the handler services.</param>
+    /// <param name="handler">The matching handler when found and enabled.</param>
+    /// <returns><c>true</c> when a matching enabled handler exists.</returns>
+    public bool TryGetPanelInteractionHandler(
+        string extensionId,
+        string panelId,
+        out IPanelInteractionHandler handler)
+    {
+        lock (_lock)
+        {
+            if (_panelInteractionHandlers.TryGetValue((extensionId, panelId), out var found) &&
+                IsEnabled(found))
+            {
+                handler = found;
+                return true;
+            }
+            handler = null!;
+            return false;
+        }
     }
 
     /// <summary>
@@ -698,6 +765,64 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             }
         }
 
+        // A panel's identity is the pair (ExtensionId, PanelId), on the same terms
+        // as a layout's. Two extensions may declare the same PanelId; one extension
+        // declaring it twice cannot.
+        if (extension is INotebookPanel newPanel && !string.IsNullOrWhiteSpace(id))
+        {
+            lock (_lock)
+            {
+                foreach (var existing in _panels)
+                {
+                    if (string.Equals(existing.ExtensionId, id, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(existing.PanelId, newPanel.PanelId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        errors.Add(new ExtensionValidationError(id, "PANEL_ID_DUPLICATE_IN_EXTENSION",
+                            $"Extension '{id}' already registers a panel with id '{newPanel.PanelId}'. " +
+                            $"PanelId must be unique within an extension."));
+                        break;
+                    }
+                }
+            }
+        }
+
+        // An IPanelInteractionHandler must be owned by an extension that also
+        // registers an INotebookPanel with the same PanelId. Two handlers in the
+        // same extension declaring the same PanelId cannot coexist.
+        if (extension is IPanelInteractionHandler newPanelHandler && !string.IsNullOrWhiteSpace(id))
+        {
+            lock (_lock)
+            {
+                if (_panelInteractionHandlers.ContainsKey((id, newPanelHandler.PanelId)))
+                {
+                    errors.Add(new ExtensionValidationError(id, "PANEL_INTERACTION_DUPLICATE",
+                        $"Extension '{id}' already registers a panel interaction handler for panel " +
+                        $"'{newPanelHandler.PanelId}'. Only one handler per (ExtensionId, PanelId) is permitted."));
+                }
+
+                // Orphan check, matching the layout handler rule: the extension being
+                // loaded must itself implement INotebookPanel with the matching PanelId
+                // (the common single-class case), OR a panel with the same
+                // (ExtensionId, PanelId) must already be registered (the sibling-class
+                // case where the panel loaded first).
+                bool sameClassPanel =
+                    extension is INotebookPanel selfPanel &&
+                    string.Equals(selfPanel.PanelId, newPanelHandler.PanelId, StringComparison.OrdinalIgnoreCase);
+
+                bool registeredPanel = !sameClassPanel && _panels.Any(p =>
+                    string.Equals(p.ExtensionId, id, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(p.PanelId, newPanelHandler.PanelId, StringComparison.OrdinalIgnoreCase));
+
+                if (!sameClassPanel && !registeredPanel)
+                {
+                    errors.Add(new ExtensionValidationError(id, "PANEL_HANDLER_ORPHANED",
+                        $"Extension '{id}' registers an IPanelInteractionHandler for panel " +
+                        $"'{newPanelHandler.PanelId}' but does not also register an INotebookPanel with that id. " +
+                        $"A handler must be owned by the same extension that owns the panel."));
+                }
+            }
+        }
+
         return errors;
     }
 
@@ -742,6 +867,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _interactionHandlers.Clear();
             _layoutInteractionHandlers.Clear();
             _layoutLifecycleHandlers.Clear();
+            _panels.Clear();
+            _panelInteractionHandlers.Clear();
             _approvedExtensionPackages.Clear();
             _loadedExtensionPackages.Clear();
 
@@ -798,6 +925,13 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             _layoutLifecycleHandlers[(extension.ExtensionId, layoutLifecycleHandler.LayoutId)] =
                 layoutLifecycleHandler;
         }
+        if (extension is INotebookPanel panel)
+            _panels.Add(panel);
+        if (extension is IPanelInteractionHandler panelInteractionHandler)
+        {
+            _panelInteractionHandlers[(extension.ExtensionId, panelInteractionHandler.PanelId)] =
+                panelInteractionHandler;
+        }
     }
 
     private static bool HasCapabilityInterface(IExtension extension)
@@ -816,7 +950,9 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             or ICellPropertyProvider
             or ICellInteractionHandler
             or ILayoutInteractionHandler
-            or ILayoutLifecycleHandler;
+            or ILayoutLifecycleHandler
+            or INotebookPanel
+            or IPanelInteractionHandler;
     }
 
     private static IReadOnlyList<string> GetCapabilityList(IExtension extension)
@@ -837,6 +973,8 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         if (extension is ICellInteractionHandler) caps.Add("CellInteractionHandler");
         if (extension is ILayoutInteractionHandler) caps.Add("LayoutInteractionHandler");
         if (extension is ILayoutLifecycleHandler) caps.Add("LayoutLifecycleHandler");
+        if (extension is INotebookPanel) caps.Add("NotebookPanel");
+        if (extension is IPanelInteractionHandler) caps.Add("PanelInteractionHandler");
         return caps;
     }
 
@@ -846,17 +984,19 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
             throw new ObjectDisposedException(nameof(ExtensionHost));
     }
 
-    private sealed class LayoutIdentityComparer : IEqualityComparer<(string ExtensionId, string LayoutId)>
+    // Compares the (ExtensionId, ScopedId) identity pairs used by layouts and panels
+    // alike. Tuple element names are labels only, so the same instance serves both.
+    private sealed class ExtensionScopedIdComparer : IEqualityComparer<(string ExtensionId, string ScopedId)>
     {
-        public static readonly LayoutIdentityComparer Instance = new();
+        public static readonly ExtensionScopedIdComparer Instance = new();
 
-        public bool Equals((string ExtensionId, string LayoutId) x, (string ExtensionId, string LayoutId) y)
+        public bool Equals((string ExtensionId, string ScopedId) x, (string ExtensionId, string ScopedId) y)
             => string.Equals(x.ExtensionId, y.ExtensionId, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(x.LayoutId, y.LayoutId, StringComparison.OrdinalIgnoreCase);
+            && string.Equals(x.ScopedId, y.ScopedId, StringComparison.OrdinalIgnoreCase);
 
-        public int GetHashCode((string ExtensionId, string LayoutId) obj)
+        public int GetHashCode((string ExtensionId, string ScopedId) obj)
             => HashCode.Combine(
                 StringComparer.OrdinalIgnoreCase.GetHashCode(obj.ExtensionId),
-                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LayoutId));
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.ScopedId));
     }
 }

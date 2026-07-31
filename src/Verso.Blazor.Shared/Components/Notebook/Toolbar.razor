@@ -232,52 +232,30 @@
         {
             <span class="verso-toolbar-spacer"></span>
 
+            @* One control per panel, host panels and extension panels alike. Each is
+               icon-only at rest and gains its label when active, which is what keeps
+               five or more of them from crowding the toolbar. *@
             <div class="verso-toolbar-group">
-                <button class="verso-toolbar-toggle @(ActivePanel == "metadata" ? "verso-toolbar-toggle--active" : "")"
-                        @onclick='() => OnTogglePanel.InvokeAsync("metadata")'
-                        aria-pressed="@(ActivePanel == "metadata" ? "true" : "false")" title="Metadata">
-                    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1.5" width="10" height="13" rx="1"/><line x1="5.5" y1="5" x2="10.5" y2="5"/><line x1="5.5" y1="7.5" x2="10.5" y2="7.5"/><line x1="5.5" y1="10" x2="8.5" y2="10"/></svg>
-                    @if (ActivePanel == "metadata")
-                    {
-                        <span>Metadata</span>
-                    }
-                </button>
-                <button class="verso-toolbar-toggle @(ActivePanel == "extensions" ? "verso-toolbar-toggle--active" : "")"
-                        @onclick='() => OnTogglePanel.InvokeAsync("extensions")'
-                        aria-pressed="@(ActivePanel == "extensions" ? "true" : "false")" title="Extensions">
-                    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2.5h3v3h3v3h-3v3h-3v-3h-3v-3h3z"/></svg>
-                    @if (ActivePanel == "extensions")
-                    {
-                        <span>Extensions</span>
-                    }
-                </button>
-                <button class="verso-toolbar-toggle @(ActivePanel == "variables" ? "verso-toolbar-toggle--active" : "")"
-                        @onclick='() => OnTogglePanel.InvokeAsync("variables")'
-                        aria-pressed="@(ActivePanel == "variables" ? "true" : "false")" title="Variables">
-                    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2.5c-1.5 0-2 1-2 2s1 1.5 1 2.5-.5 1-1 1.5c.5.5 1 .5 1 1.5s-1 1.5-1 2.5.5 2 2 2"/><path d="M11.5 2.5c1.5 0 2 1 2 2s-1 1.5-1 2.5.5 1 1 1.5c-.5.5-1 .5-1 1.5s1 1.5 1 2.5-.5 2-2 2"/><line x1="6.5" y1="6" x2="9.5" y2="10"/><line x1="6.5" y1="10" x2="9.5" y2="6"/></svg>
-                    @if (ActivePanel == "variables")
-                    {
-                        <span>Variables</span>
-                    }
-                </button>
-                <button class="verso-toolbar-toggle @(ActivePanel == "settings" ? "verso-toolbar-toggle--active" : "")"
-                        @onclick='() => OnTogglePanel.InvokeAsync("settings")'
-                        aria-pressed="@(ActivePanel == "settings" ? "true" : "false")" title="Settings">
-                    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></svg>
-                    @if (ActivePanel == "settings")
-                    {
-                        <span>Settings</span>
-                    }
-                </button>
-                @if (ShowPropertiesPanel)
+                @foreach (var panel in Panels)
                 {
-                    <button class="verso-toolbar-toggle @(ActivePanel == "properties" ? "verso-toolbar-toggle--active" : "")"
-                            @onclick='() => OnTogglePanel.InvokeAsync("properties")'
-                            aria-pressed="@(ActivePanel == "properties" ? "true" : "false")" title="Properties">
-                        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/><line x1="5" y1="10.5" x2="10" y2="10.5"/></svg>
-                        @if (ActivePanel == "properties")
+                    var p = panel;
+                    var isActive = ActivePanel == p.Key;
+                    var icon = PanelIcons.Resolve(p.IconName, p.IconMarkup);
+                    <button class="verso-toolbar-toggle @(isActive ? "verso-toolbar-toggle--active" : "")"
+                            @key="p.Key"
+                            @onclick="() => OnTogglePanel.InvokeAsync(p.Key)"
+                            aria-pressed="@(isActive ? "true" : "false")" title="@p.DisplayName">
+                        @if (icon is not null)
                         {
-                            <span>Properties</span>
+                            @((MarkupString)icon)
+                        }
+                        else
+                        {
+                            <span class="verso-toolbar-toggle-initial" aria-hidden="true">@PanelIcons.InitialFor(p.DisplayName)</span>
+                        }
+                        @if (isActive)
+                        {
+                            <span>@p.DisplayName</span>
                         }
                     </button>
                 }
@@ -315,17 +293,20 @@
     [Parameter] public Guid? SelectedCellId { get; set; }
 
     /// <summary>
-    /// Id of the side panel currently open, or <c>null</c> when none is. The panel toggles
+    /// Key of the side panel currently open, or <c>null</c> when none is. The panel toggles
     /// are only rendered when <see cref="OnTogglePanel"/> is bound, so a host that does not
     /// own a panel set gets a toolbar without them.
     /// </summary>
     [Parameter] public string? ActivePanel { get; set; }
 
-    /// <summary>Raised with the panel id when a toggle is pressed. Toggling the open panel closes it.</summary>
+    /// <summary>Raised with the panel key when a toggle is pressed. Toggling the open panel closes it.</summary>
     [Parameter] public EventCallback<string> OnTogglePanel { get; set; }
 
-    /// <summary>Whether the active layout has cell properties worth showing a panel for.</summary>
-    [Parameter] public bool ShowPropertiesPanel { get; set; }
+    /// <summary>
+    /// The panels to offer, already ordered and filtered to those currently available.
+    /// The hosting page owns this list because it also renders the panel body.
+    /// </summary>
+    [Parameter] public IReadOnlyList<NotebookPanelInfo> Panels { get; set; } = Array.Empty<NotebookPanelInfo>();
 
     /// <summary>
     /// Set by the hosting page while it has an execution in flight (Run All or a cell run it

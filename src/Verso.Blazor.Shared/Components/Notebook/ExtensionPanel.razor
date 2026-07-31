@@ -251,13 +251,23 @@
         ["LayoutEngine"] = "Layout Engines",
         ["ToolbarAction"] = "Toolbar Actions",
         ["MagicCommand"] = "Magic Commands",
+        ["NotebookPanel"] = "Panels",
+        // Capabilities with no entry here fall back to the raw name, which reads as
+        // one run-together word. Keep this map complete as capabilities are added.
+        ["NotebookPostProcessor"] = "Post-Processors",
+        ["CellPropertyProvider"] = "Cell Property Providers",
+        ["ExtensionSettings"] = "Settings Providers",
+        ["CellInteractionHandler"] = "Cell Interaction Handlers",
+        ["LayoutInteractionHandler"] = "Layout Interaction Handlers",
+        ["LayoutLifecycleHandler"] = "Layout Lifecycle Handlers",
+        ["PanelInteractionHandler"] = "Panel Interaction Handlers",
     };
 
     private static readonly List<string> CategoryOrder = new()
     {
         "LanguageKernel", "Theme", "LayoutEngine", "CellType",
         "CellRenderer", "DataFormatter", "NotebookSerializer",
-        "ToolbarAction", "MagicCommand",
+        "ToolbarAction", "MagicCommand", "NotebookPanel",
     };
 
     private static List<KeyValuePair<string, List<ExtensionInfo>>> GroupByCategory(

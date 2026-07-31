@@ -808,6 +808,9 @@ export class BlazorEditorProvider
     const cellInteractInterop = toUri(
       "_content/Verso.Blazor.Shared/js/cell-interact-interop.js"
     );
+    const panelInteractInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/panel-interact-interop.js"
+    );
     const parametersInterop = toUri(
       "_content/Verso.Blazor.Shared/js/parameters-interop.js"
     );
@@ -1009,6 +1012,7 @@ export class BlazorEditorProvider
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
     <script src="${cellInteractInterop}"></script>
+    <script src="${panelInteractInterop}"></script>
     <script src="${layoutInteractInterop}"></script>
     <script src="${versoInlineLayoutBridge}"></script>
     <script src="${parametersInterop}"></script>

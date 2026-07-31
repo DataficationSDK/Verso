@@ -134,6 +134,18 @@ html, body {
     background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 12%, transparent);
 }
 
+/* Stands in for a panel that resolved to no icon, so its toggle is still a target
+   of the same size rather than a bare word. */
+.verso-toolbar-toggle-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
 /* Primary toolbar action: filled accent button marking the prominent call to
    action (e.g. Run All). */
 .verso-toolbar-btn--primary {
@@ -1840,6 +1852,159 @@ html, body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+/* === Extension-contributed panel content ===
+   The classes below are the vocabulary a panel composes its markup from. They are
+   documented for extension authors and built entirely on the theme tokens, so a
+   panel that uses them follows the active theme without knowing which one it is.
+   A panel is free to write its own CSS instead; it just has to keep up on its own. */
+
+.verso-panel-content-root {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.verso-panel-plain {
+    margin: 0;
+    padding: 4px;
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--verso-fg-muted, #6E6E6E);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.verso-panel-empty {
+    padding: 12px 8px;
+    font-size: 12px;
+    color: var(--verso-fg-subtle, #A0A0A0);
+}
+
+.verso-panel-empty p { margin: 0; }
+
+.verso-panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border-radius: var(--verso-shape-medium, 12px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    box-shadow: var(--verso-elevation-1, none);
+}
+
+.verso-panel-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--verso-fg-subtle, #A0A0A0);
+}
+
+.verso-panel-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 9px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--verso-fg-default, #1E1E1E);
+}
+
+.verso-panel-row--interactive { cursor: pointer; }
+
+.verso-panel-row--interactive:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-panel-row code {
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11.5px;
+}
+
+.verso-panel-secondary {
+    font-size: 11.5px;
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+.verso-panel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-full, 999px);
+    background: transparent;
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+/* Tone variants derive their tint from the status colors, so a theme that changes
+   what "warning" looks like changes these with it. */
+.verso-panel-chip--info {
+    border-color: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 10%, transparent);
+    color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-panel-chip--success {
+    border-color: color-mix(in srgb, var(--verso-status-success, #2EA043) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-status-success, #2EA043) 10%, transparent);
+    color: var(--verso-status-success, #2EA043);
+}
+
+.verso-panel-chip--warning {
+    border-color: color-mix(in srgb, var(--verso-status-warning, #D29922) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-status-warning, #D29922) 10%, transparent);
+    color: var(--verso-status-warning, #D29922);
+}
+
+.verso-panel-chip--error {
+    border-color: color-mix(in srgb, var(--verso-status-error, #D13438) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-status-error, #D13438) 10%, transparent);
+    color: var(--verso-status-error, #D13438);
+}
+
+.verso-panel-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 10px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 6px);
+    background: transparent;
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.verso-panel-action:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-panel-action--primary {
+    border-color: transparent;
+    background: var(--verso-accent-primary, #0078D4);
+    color: var(--verso-accent-foreground, #FFFFFF);
+}
+
+.verso-panel-action--primary:hover {
+    background: var(--verso-accent-secondary, #106EBE);
+}
+
+.verso-panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
 }
 
 /* === Extension Panel === */

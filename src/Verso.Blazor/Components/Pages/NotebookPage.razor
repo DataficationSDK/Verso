@@ -15,7 +15,7 @@
              SelectedCellId="_selectedCellId"
              ActivePanel="@_activePanel"
              OnTogglePanel="TogglePanel"
-             ShowPropertiesPanel="Service.ActiveLayoutSupportsPropertiesPanel"
+             Panels="_panels"
              IsExecuting="_executionInProgress"
              OnNewNotebook="HandleNew"
              OnOpenNotebook="HandleOpen"
@@ -130,29 +130,43 @@
                     <div class="verso-panel-content" @ref="_panelContentEl" style="width:@(_panelWidth)px">
                         <div class="verso-panel-resize-handle" @ref="_resizeHandle"></div>
                         <div class="verso-panel-header">
-                            <span class="verso-panel-title">@PanelDisplayNames.For(_activePanel)</span>
+                            <span class="verso-panel-title">@ActivePanelTitle</span>
                             <button class="verso-panel-minimize" @onclick="CollapsePanel" title="Collapse panel">&#x203A;</button>
                         </div>
                         <div class="verso-panel-body">
-                            @if (_activePanel == "metadata")
+                            @* Host panels are components with direct access to notebook state;
+                               everything else is content an extension produced. One switch, over
+                               the panels this host draws itself. *@
+                            @if (ActivePanelInfo is { IsHostPanel: true } host)
                             {
-                                <MetadataPanel Service="Service" />
+                                @if (host.PanelId == "metadata")
+                                {
+                                    <MetadataPanel Service="Service" />
+                                }
+                                else if (host.PanelId == "extensions")
+                                {
+                                    <ExtensionPanel Service="Service" />
+                                }
+                                else if (host.PanelId == "variables")
+                                {
+                                    <VariableExplorer Service="Service" />
+                                }
+                                else if (host.PanelId == "settings")
+                                {
+                                    <SettingsPanel Service="Service" />
+                                }
+                                else if (host.PanelId == HostPanels.Properties)
+                                {
+                                    <CellPropertiesPanel Service="Service" SelectedCellId="_selectedCellId" />
+                                }
                             }
-                            else if (_activePanel == "extensions")
+                            else if (ActivePanelInfo is { } extensionPanel)
                             {
-                                <ExtensionPanel Service="Service" />
-                            }
-                            else if (_activePanel == "variables")
-                            {
-                                <VariableExplorer Service="Service" />
-                            }
-                            else if (_activePanel == "settings")
-                            {
-                                <SettingsPanel Service="Service" />
-                            }
-                            else if (_activePanel == "properties")
-                            {
-                                <CellPropertiesPanel Service="Service" SelectedCellId="_selectedCellId" />
+                                <ExtensionPanelHost @key="extensionPanel.Key"
+                                                    Service="Service"
+                                                    ExtensionId="@extensionPanel.ExtensionId"
+                                                    PanelId="@extensionPanel.PanelId"
+                                                    SelectedCellId="_selectedCellId" />
                             }
                         </div>
                     </div>
@@ -175,6 +189,7 @@
     private string? _statusMessage;
     private CancellationTokenSource? _statusCts;
     private string? _activePanel;
+    private IReadOnlyList<NotebookPanelInfo> _panels = Array.Empty<NotebookPanelInfo>();
     private int _panelWidth = 300;
     private DotNetObjectReference<NotebookPage>? _panelResizeRef;
     private DotNetObjectReference<NotebookPage>? _cellInteractRef;
@@ -291,6 +306,8 @@
                 _error = $"Session recovery failed: {ex.Message}";
             }
         }
+
+        await RefreshPanelsAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -321,6 +338,7 @@
                 await TryRecoverSessionAsync();
 
             await ApplyUserPreferencesAsync();
+            await RefreshPanelsAsync();
 
             StartAutoSaveTimer();
         }
@@ -463,10 +481,13 @@
 
     private void HandleLayoutChanged()
     {
-        if (_activePanel == "properties" && !Service.ActiveLayoutSupportsPropertiesPanel)
-            _activePanel = null;
-
-        _ = InvokeAsync(StateHasChanged);
+        // A layout switch can change which panels are offered, most visibly the cell
+        // properties panel, which only some layouts have anything to put in.
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshPanelsAsync();
+            StateHasChanged();
+        });
     }
 
     // Theme/extension handlers do real async work before re-rendering. They stay async void
@@ -526,6 +547,8 @@
                 catch (JSDisconnectedException) { }
                 catch (JSException) { }
             }
+            // Enabling or disabling an extension can add or remove its panels.
+            await InvokeAsync(RefreshPanelsAsync);
             await InvokeAsync(StateHasChanged);
         }
         catch (JSDisconnectedException) { }
@@ -621,17 +644,40 @@
         catch (JSException) { }
     }
 
-    private void TogglePanel(string panelId)
+    private void TogglePanel(string panelKey)
     {
-        if (_activePanel == panelId)
+        if (_activePanel == panelKey)
             _activePanel = null;
         else
-            _activePanel = panelId;
+            _activePanel = panelKey;
     }
 
     private void CollapsePanel()
     {
         _activePanel = null;
+    }
+
+    // ── Panels ─────────────────────────────────────────────────────────
+
+    private NotebookPanelInfo? ActivePanelInfo
+        => _activePanel is null ? null : _panels.FirstOrDefault(p => p.Key == _activePanel);
+
+    private string ActivePanelTitle
+        => ActivePanelInfo is { IsHostPanel: false } extensionPanel
+            ? extensionPanel.DisplayName.ToUpperInvariant()
+            : PanelDisplayNames.For(ActivePanelInfo?.PanelId ?? _activePanel ?? "");
+
+    /// <summary>
+    /// Rebuilds the panel list and closes the open panel if it is no longer offered,
+    /// which is how the properties panel disappears under a layout that has no cell
+    /// properties and how an extension panel disappears when its extension unloads.
+    /// </summary>
+    private async Task RefreshPanelsAsync()
+    {
+        _panels = await Service.GetPanelsAsync(_selectedCellId);
+
+        if (_activePanel is not null && !_panels.Any(p => p.Key == _activePanel))
+            _activePanel = null;
     }
 
     // A layout that advertises no CellEdit capability (e.g. Presentation, Dashboard) is a
@@ -694,6 +740,7 @@
             _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await ApplyUserPreferencesAsync();
+            await RefreshPanelsAsync();
         }
         catch (Exception ex)
         {
@@ -714,6 +761,7 @@
             _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await ApplyUserPreferencesAsync();
+            await RefreshPanelsAsync();
         }
         catch (Exception ex)
         {
@@ -744,6 +792,7 @@
             _selectedCellId = InitialCellSelection();
             await SyncMonacoThemeAsync();
             await ApplyUserPreferencesAsync();
+            await RefreshPanelsAsync();
         }
         catch (Exception ex)
         {

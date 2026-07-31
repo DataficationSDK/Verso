@@ -72,6 +72,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
     public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
+
+    public event Action<PanelUpdatedEventArgs>? OnPanelUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
@@ -1232,6 +1234,80 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         OnNotebookChanged?.Invoke();
     }
 
+    // ── Panels ─────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId)
+    {
+        var panels = new List<NotebookPanelInfo>(
+            HostPanels.Available(ActiveLayoutSupportsPropertiesPanel));
+
+        try
+        {
+            var response = await _bridge.RequestAsync<PanelListResponse>(
+                "panel/list",
+                new { selectedCellId = selectedCellId?.ToString() });
+
+            foreach (var p in response.Panels ?? new List<PanelInfoResponse>())
+            {
+                panels.Add(new NotebookPanelInfo(
+                    p.PanelId,
+                    p.ExtensionId,
+                    p.DisplayName,
+                    p.IconName,
+                    p.IconMarkup,
+                    p.Order,
+                    IsHostPanel: false));
+            }
+        }
+        catch
+        {
+            // An older host that does not know panel/list still gets its own panels.
+        }
+
+        return panels.OrderBy(p => p.Order).ThenBy(p => p.DisplayName, StringComparer.Ordinal).ToList();
+    }
+
+    public async Task<IReadOnlyList<RenderResult>> RenderPanelAsync(
+        string extensionId, string panelId, Guid? selectedCellId)
+    {
+        try
+        {
+            var response = await _bridge.RequestAsync<PanelRenderResponse>(
+                "panel/render",
+                new { extensionId, panelId, selectedCellId = selectedCellId?.ToString() });
+
+            if (response.Representations is null or { Count: 0 })
+                return Array.Empty<RenderResult>();
+
+            return response.Representations
+                .Select(r => new RenderResult(r.MimeType, r.Content))
+                .ToList();
+        }
+        catch
+        {
+            return Array.Empty<RenderResult>();
+        }
+    }
+
+    public Task PanelInteractAsync(
+        string extensionId,
+        string panelId,
+        string interactionType,
+        string payload,
+        string? targetId = null,
+        Guid? selectedCellId = null)
+        => _bridge.RequestVoidAsync(
+            "panel/interact",
+            new
+            {
+                extensionId,
+                panelId,
+                interactionType,
+                payload,
+                targetId,
+                selectedCellId = selectedCellId?.ToString()
+            });
+
     public CellVisibilityState ResolveCellVisibility(Guid cellId)
     {
         // Partial implementation: reads user overrides from metadata only (Layer 1).
@@ -1309,6 +1385,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 break;
             case "layout/updated":
                 HandleLayoutUpdated(paramsJson);
+                break;
+            case "panel/updated":
+                HandlePanelUpdated(paramsJson);
                 break;
             case "layout/activeChanged":
                 HandleActiveLayoutChanged(paramsJson);
@@ -1485,6 +1564,28 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             }
         }
         catch (JsonException) { }
+    }
+
+    private void HandlePanelUpdated(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        PanelUpdatedNotification? notif;
+        try
+        {
+            notif = JsonSerializer.Deserialize<PanelUpdatedNotification>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (notif is null || string.IsNullOrEmpty(notif.ExtensionId) || string.IsNullOrEmpty(notif.PanelId))
+            return;
+
+        OnPanelUpdated?.Invoke(new PanelUpdatedEventArgs(notif.ExtensionId, notif.PanelId));
     }
 
     private void HandleLayoutUpdated(string? paramsJson)
@@ -2137,6 +2238,38 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? FrameInstanceId { get; set; }
         public string? Scope { get; set; }
         public string? CellId { get; set; }
+    }
+
+    private sealed class PanelUpdatedNotification
+    {
+        public string ExtensionId { get; set; } = "";
+        public string PanelId { get; set; } = "";
+    }
+
+    private sealed class PanelListResponse
+    {
+        public List<PanelInfoResponse>? Panels { get; set; }
+    }
+
+    private sealed class PanelInfoResponse
+    {
+        public string PanelId { get; set; } = "";
+        public string ExtensionId { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string? IconName { get; set; }
+        public string? IconMarkup { get; set; }
+        public int Order { get; set; }
+    }
+
+    private sealed class PanelRenderResponse
+    {
+        public List<PanelRepresentationResponse>? Representations { get; set; }
+    }
+
+    private sealed class PanelRepresentationResponse
+    {
+        public string MimeType { get; set; } = "";
+        public string Content { get; set; } = "";
     }
 
     private sealed class LayoutActiveChangedNotification
