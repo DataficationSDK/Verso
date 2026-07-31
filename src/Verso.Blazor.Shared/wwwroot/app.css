@@ -94,11 +94,51 @@ html, body {
     padding: 0 7px;
 }
 
+/* Pushes the panel toggles to the far end of the bar. */
+.verso-toolbar-spacer {
+    flex: 1;
+    min-width: 8px;
+}
+
+/* Panel toggles.
+
+   Outlined rather than filled, because these select a view instead of performing an
+   action, and a row of filled buttons beside the real actions would read as five more
+   things to press. The active one fills with a tint of the accent instead of the accent
+   itself, so it stays legible on any theme without needing a foreground pair. */
+.verso-toolbar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: var(--verso-shape-full, 999px);
+    background: transparent;
+    color: var(--verso-fg-muted, #858585);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.verso-toolbar-toggle:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    color: var(--verso-toolbar-foreground, #1E1E1E);
+}
+
+.verso-toolbar-toggle--active,
+.verso-toolbar-toggle--active:hover {
+    color: var(--verso-accent-primary, #0078D4);
+    border-color: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 55%, transparent);
+    background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 12%, transparent);
+}
+
 /* Primary toolbar action: filled accent button marking the prominent call to
    action (e.g. Run All). */
 .verso-toolbar-btn--primary {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     font-weight: 600;
 }
 
@@ -108,7 +148,7 @@ html, body {
 
 .verso-toolbar-btn--primary:disabled {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     opacity: 0.45;
 }
 
@@ -180,7 +220,7 @@ html, body {
     font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-welcome-btn {
@@ -188,7 +228,7 @@ html, body {
     border: none;
     border-radius: var(--verso-button-border-radius, 4px);
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     font-family: inherit;
     font-size: 14px;
     cursor: pointer;
@@ -249,10 +289,10 @@ html, body {
 }
 
 .verso-modal {
-    background: var(--verso-editor-background, #FFFFFF);
+    background: var(--verso-overlay-background, var(--verso-editor-background, #FFFFFF));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 8px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: var(--verso-shape-large, 16px);
+    box-shadow: var(--verso-elevation-3, 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15));
     width: 540px;
     max-width: calc(100vw - 48px);
     animation: verso-modal-enter 0.15s ease-out;
@@ -337,7 +377,7 @@ html, body {
     font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 1px 5px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: 11px;
 }
 
@@ -371,7 +411,7 @@ html, body {
 
 .verso-modal-btn--primary {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     border-color: var(--verso-accent-primary, #0078D4);
 }
 
@@ -557,7 +597,7 @@ html, body {
     border-radius: 1px;
     pointer-events: none;
     z-index: 100;
-    box-shadow: 0 0 4px rgba(0, 120, 212, 0.4);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--verso-accent-primary, #0078D4) 40%, transparent);
 }
 
 /* Cell content */
@@ -594,7 +634,7 @@ html, body {
     gap: 2px;
     padding: 1px 6px;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-line-number, #858585);
     text-transform: uppercase;
@@ -636,10 +676,10 @@ html, body {
     max-width: calc(100vw - 8px);
     max-height: min(60vh, 420px);
     overflow-y: auto;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-radius: var(--verso-shape-medium, 12px);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 10000;
     padding: 2px;
 }
@@ -649,7 +689,7 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-editor-foreground, #1E1E1E);
     font-family: inherit;
@@ -664,7 +704,7 @@ html, body {
 
 .verso-cell-type-option--active {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 .verso-cell-type-option--active:hover {
@@ -685,7 +725,7 @@ html, body {
     gap: 2px;
     padding: 1px 6px;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-accent-primary, #0078D4);
     font-size: 11px;
@@ -720,10 +760,10 @@ html, body {
     max-width: calc(100vw - 8px);
     max-height: min(60vh, 420px);
     overflow-y: auto;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 10000;
     padding: 2px;
 }
@@ -733,7 +773,7 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-editor-foreground, #1E1E1E);
     font-family: inherit;
@@ -748,7 +788,7 @@ html, body {
 
 .verso-cell-lang-option--active {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 .verso-cell-lang-option--active:hover {
@@ -808,7 +848,7 @@ html, body {
 .verso-monaco-editor {
     min-height: 60px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 2px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 /* Mark the active line in the gutter: tint that line's number cell with the
@@ -864,7 +904,7 @@ html, body {
     margin: 0 var(--verso-cell-padding, 12px);
     padding: 10px 12px;
     border: 1px solid var(--verso-cell-border, rgba(127, 127, 127, 0.18));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
     background: color-mix(in srgb, var(--verso-editor-background, #1E1E1E) 94%, var(--verso-editor-line-number, #858585));
 }
 
@@ -882,7 +922,7 @@ html, body {
     margin: 0 var(--verso-cell-padding, 12px) var(--verso-cell-padding, 12px);
     padding: 8px 12px;
     border: 1px dashed var(--verso-cell-border, rgba(127, 127, 127, 0.18));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
     color: var(--verso-editor-line-number, #858585);
     font-size: 12px;
 }
@@ -913,7 +953,7 @@ html, body {
 
 .verso-output {
     margin-top: 4px;
-    border-radius: 2px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 .verso-output--text {
@@ -1021,7 +1061,7 @@ html, body {
     font-size: 85%;
     white-space: break-spaces;
     background: var(--verso-code-inline-background, rgba(175, 184, 193, 0.2));
-    border-radius: 6px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-family: var(--verso-editor-font-family, 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace);
 }
 
@@ -1033,7 +1073,7 @@ html, body {
     font-size: 85%;
     line-height: 1.45;
     background: var(--verso-cell-output-background, #F6F8FA);
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 .verso-output--html pre code {
@@ -1088,7 +1128,7 @@ html, body {
 .verso-output--html img {
     max-width: 100%;
     height: auto;
-    border-radius: 4px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 /* Markdown prose — links */
@@ -1154,7 +1194,7 @@ html, body {
 
 .verso-progress-track {
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-shape-full, 999px);
     overflow: hidden;
     background: var(--verso-border-default, rgba(127, 127, 127, 0.25));
 }
@@ -1341,7 +1381,7 @@ html, body {
 
 ::-webkit-scrollbar-thumb {
     background: var(--verso-scrollbar-thumb, #C1C1C1);
-    border-radius: 5px;
+    border-radius: var(--verso-shape-full, 999px);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -1378,13 +1418,13 @@ html, body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: var(--verso-elevation-1, 0 1px 3px rgba(0, 0, 0, 0.08));
     transition: box-shadow 0.15s, border-color 0.15s;
 }
 
 .verso-dashboard-cell:hover {
     border-color: var(--verso-cell-active-border, #0078D4);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
 }
 
 .verso-dashboard-cell-toolbar {
@@ -1433,7 +1473,7 @@ html, body {
 .verso-dashboard-cell.verso-resizing {
     opacity: 0.7;
     z-index: 10;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    box-shadow: var(--verso-elevation-3, 0 4px 16px rgba(0, 0, 0, 0.2));
 }
 
 .verso-dashboard-cell.verso-dragging {
@@ -1569,7 +1609,7 @@ html, body {
 
 .verso-doc-info-meta {
     font-size: 11px;
-    color: var(--verso-text-muted, #888);
+    color: var(--verso-fg-subtle, #888);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1589,7 +1629,7 @@ html, body {
     gap: 6px;
     padding: 3px 10px;
     min-width: 112px;
-    border-radius: 11px;
+    border-radius: var(--verso-shape-full, 999px);
     font-size: 12px;
     white-space: nowrap;
     flex: none;
@@ -1659,10 +1699,10 @@ html, body {
     display: flex;
     flex-direction: column;
     min-width: 140px;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-radius: var(--verso-shape-medium, 12px);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 100;
     padding: 2px;
 }
@@ -1670,7 +1710,7 @@ html, body {
 .verso-toolbar-dropdown-popup .verso-toolbar-btn {
     justify-content: flex-start;
     width: 100%;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 /* Sectioned "View" menu: header label above each group */
@@ -1681,7 +1721,7 @@ html, body {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--verso-text-muted, #888);
+    color: var(--verso-fg-subtle, #888);
     pointer-events: none;
 }
 
@@ -1726,62 +1766,12 @@ html, body {
     padding: 8px;
 }
 
-/* === Panel Strip & Slide-out Panel === */
+/* === Slide-out Panel === */
 
 .verso-panel-container {
     display: flex;
     flex-direction: row;
     flex-shrink: 0;
-}
-
-.verso-panel-strip {
-    width: 32px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding-top: 8px;
-    background: var(--verso-toolbar-background, #F3F3F3);
-    border-left: 1px solid var(--verso-border-default, #E0E0E0);
-    flex-shrink: 0;
-}
-
-.verso-panel-strip-tab {
-    writing-mode: vertical-rl;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: none;
-    background: transparent;
-    color: var(--verso-toolbar-foreground, #1E1E1E);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 8px 4px;
-    cursor: pointer;
-    border-radius: var(--verso-button-border-radius, 4px);
-    white-space: nowrap;
-}
-
-.verso-panel-strip-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    transform: rotate(90deg);
-}
-
-.verso-panel-strip-tab:hover {
-    background: var(--verso-toolbar-button-hover, #E0E0E0);
-    color: var(--verso-editor-foreground, #1E1E1E);
-}
-
-.verso-panel-strip-tab--active {
-    background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
-}
-
-.verso-panel-strip-tab--active:hover {
-    background: var(--verso-accent-secondary, #005A9E);
-    color: #FFFFFF;
 }
 
 .verso-panel-content {
@@ -1900,7 +1890,7 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 0 6px;
-    border-radius: 8px;
+    border-radius: var(--verso-shape-full, 999px);
 }
 
 .verso-extension-item {
@@ -1938,7 +1928,7 @@ html, body {
     justify-content: center;
     padding: 2px 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 10px;
+    border-radius: var(--verso-shape-full, 999px);
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-line-number, #858585);
     font-size: 10px;
@@ -1972,7 +1962,7 @@ html, body {
 
 .verso-extension-cap-badge {
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-line-number, #858585);
     font-size: 10px;
@@ -2126,7 +2116,7 @@ html, body {
     gap: 2px;
     padding: 1px 6px;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-line-number, #858585);
     font-size: 11px;
@@ -2159,10 +2149,10 @@ html, body {
     min-width: 90px;
     max-height: 220px;
     overflow-y: auto;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-radius: var(--verso-shape-medium, 12px);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 10000;
     padding: 2px;
 }
@@ -2172,7 +2162,7 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-editor-foreground, #1E1E1E);
     font-family: inherit;
@@ -2187,7 +2177,7 @@ html, body {
 
 .verso-marketplace-version-option--active {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 .verso-marketplace-version-option--active:hover {
@@ -2237,7 +2227,7 @@ html, body {
 
 .verso-marketplace-btn--install {
     background: var(--verso-accent, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     border-color: var(--verso-accent, #0078D4);
 }
 
@@ -2298,7 +2288,7 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 1px 5px;
-    border-radius: 8px;
+    border-radius: var(--verso-shape-full, 999px);
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-line-number, #858585);
 }
@@ -2450,7 +2440,7 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 0 6px;
-    border-radius: 8px;
+    border-radius: var(--verso-shape-full, 999px);
 }
 
 .verso-settings-category {
@@ -2786,8 +2776,8 @@ html, body {
     gap: 4px;
     padding: 2px 8px;
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
-    border-radius: 12px;
+    color: var(--verso-accent-foreground, #FFFFFF);
+    border-radius: var(--verso-shape-full, 999px);
     font-size: 11px;
 }
 
@@ -2837,8 +2827,8 @@ html, body {
     gap: 12px;
     padding: 32px 48px;
     background: var(--verso-editor-background, #FFFFFF);
-    border-radius: 8px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    border-radius: var(--verso-shape-large, 16px);
+    box-shadow: var(--verso-elevation-3, 0 4px 24px rgba(0, 0, 0, 0.2));
     text-align: center;
 }
 
@@ -2866,7 +2856,7 @@ html, body {
     border: none;
     border-radius: var(--verso-button-border-radius, 4px);
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     font-family: inherit;
     font-size: 13px;
     cursor: pointer;
@@ -2895,7 +2885,7 @@ html, body {
 }
 
 .verso-parameters-count {
-    color: var(--verso-text-muted, #888);
+    color: var(--verso-fg-subtle, #888);
     font-size: 0.85em;
 }
 
@@ -2922,7 +2912,7 @@ html, body {
 .verso-parameter-type-badge {
     display: inline-block;
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: 11px;
     font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
     background: var(--verso-badge-background, #E8E8E8);
@@ -2941,7 +2931,7 @@ html, body {
     width: 100%;
     padding: 3px 6px;
     border: 1px solid var(--verso-input-border, #CCC);
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: var(--verso-ui-font-size, 13px);
     font-family: inherit;
     background: var(--verso-input-background, #FFF);
@@ -2992,10 +2982,10 @@ html, body {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--verso-foreground-muted, #999);
+    color: var(--verso-fg-subtle, #999);
     font-size: 14px;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-btn-remove:hover {
@@ -3010,7 +3000,7 @@ html, body {
     color: var(--verso-editor-foreground, #1E1E1E);
     font-size: var(--verso-ui-font-size, 13px);
     padding: 4px 12px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-btn-add:hover {
@@ -3028,7 +3018,7 @@ html, body {
     width: 100%;
     padding: 3px 6px;
     border: 1px solid var(--verso-input-border, #CCC);
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: var(--verso-ui-font-size, 13px);
     font-family: inherit;
     background: var(--verso-input-background, #FFF);
@@ -3058,7 +3048,7 @@ html, body {
     cursor: pointer;
     font-size: 14px;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-btn-confirm-add {
@@ -3070,7 +3060,7 @@ html, body {
 }
 
 .verso-btn-cancel-add {
-    color: var(--verso-foreground-muted, #999);
+    color: var(--verso-fg-subtle, #999);
 }
 
 .verso-btn-cancel-add:hover {
@@ -3150,7 +3140,7 @@ html, body {
     font-size: 12px;
     font-weight: 600;
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: var(--verso-shape-full, 999px);
     white-space: nowrap;
     color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
     background: var(--vscode-editorWidget-background, var(--verso-cell-hover-background, #ECECEC));
@@ -3214,7 +3204,7 @@ html, body {
 
 .verso-diff-metadata {
     border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
     padding: 10px 14px;
     background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F8F8F8));
 }
@@ -3270,7 +3260,7 @@ html, body {
 
 .verso-diff-cell {
     border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-medium, 12px);
     overflow: hidden;
 }
 
@@ -3310,7 +3300,7 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 1px 7px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     border: 1px solid currentColor;
     background: color-mix(in srgb, currentColor 12%, transparent);
 }
@@ -3329,7 +3319,7 @@ html, body {
 .verso-diff-cell-lang {
     font-size: 11px;
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
     color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #6E6E6E));
 }
@@ -3344,7 +3334,7 @@ html, body {
 .verso-diff-flag-chip {
     font-size: 11px;
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-shape-full, 999px);
     background: var(--vscode-badge-background, var(--verso-cell-hover-background, #ECECEC));
     color: var(--vscode-badge-foreground, var(--verso-editor-foreground, #1E1E1E));
 }
@@ -3388,7 +3378,7 @@ html, body {
     align-items: center;
     gap: 6px;
     border: 1px dashed var(--vscode-editorWidget-border, var(--verso-border-default, #D0D0D0));
-    border-radius: 4px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     padding: 5px 10px;
     font-size: 12px;
@@ -3433,7 +3423,7 @@ html, body {
     min-width: 0;
     overflow-x: auto;
     border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    border-radius: 4px;
+    border-radius: var(--verso-shape-small, 8px);
     padding: 8px;
 }
 

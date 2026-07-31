@@ -53,9 +53,28 @@ internal static class ThemeCssGenerator
             sb.AppendLine($"  --verso-{cssName}: {value}px;");
         }
 
+        // Elevation tokens
+        var elevation = theme?.Elevation ?? new ThemeElevation();
+        foreach (var prop in typeof(ThemeElevation).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (prop.PropertyType != typeof(string)) continue;
+            var value = (string?)prop.GetValue(elevation);
+            if (value is null) continue;
+            sb.AppendLine($"  --verso-elevation-{ToElevationSuffix(prop.Name)}: {value};");
+        }
+
         sb.AppendLine("}");
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Elevation properties are named <c>Level0</c>..<c>Level3</c>; the prefix is dropped so
+    /// stylesheets read <c>var(--verso-elevation-1)</c>.
+    /// </summary>
+    internal static string ToElevationSuffix(string propertyName) =>
+        ToKebabCase(propertyName.StartsWith("Level", StringComparison.Ordinal)
+            ? propertyName["Level".Length..]
+            : propertyName);
 
     internal static string ToKebabCase(string name)
     {

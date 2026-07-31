@@ -65,6 +65,9 @@ public sealed class VersoHighContrastTheme : ITheme
         // Accent / Highlight
         AccentPrimary = "#FFD700",
         AccentSecondary = "#6FC3DF",
+        // Both accents are pale, so anything filled with them takes black text. White
+        // on this gold is about 1.4:1, which is the worst pairing in the whole theme.
+        AccentForeground = "#000000",
         HighlightBackground = "#3D3D00",
         HighlightForeground = "#FFFFFF",
 
@@ -90,8 +93,12 @@ public sealed class VersoHighContrastTheme : ITheme
         // Layout-extension palette
         BgDefault = "#000000",
         BgElevated = "#1A1A1A",
+        BgSunken = "#0A0A0A",
         FgDefault = "#FFFFFF",
-        FgMuted = "#CCCCCC"
+        // The subtle step deliberately collapses onto the muted one. A third, quieter
+        // text color is exactly the kind of gradation this theme exists to refuse.
+        FgMuted = "#CCCCCC",
+        FgSubtle = "#CCCCCC"
     };
 
     public ThemeTypography Typography { get; } = new ThemeTypography
@@ -105,8 +112,21 @@ public sealed class VersoHighContrastTheme : ITheme
 
     public ThemeSpacing Spacing { get; } = new ThemeSpacing
     {
+        ShapeSmall = 0,
+        ShapeMedium = 0,
+        ShapeLarge = 0,
+        ShapeFull = 0,
         CellBorderRadius = 0,
         ButtonBorderRadius = 0
+    };
+
+    // No elevation anywhere. A shadow is a low-contrast edge by construction, so this
+    // theme separates surfaces with its borders instead and leaves the shadow out.
+    public ThemeElevation Elevation { get; } = new ThemeElevation
+    {
+        Level1 = "none",
+        Level2 = "none",
+        Level3 = "none"
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;

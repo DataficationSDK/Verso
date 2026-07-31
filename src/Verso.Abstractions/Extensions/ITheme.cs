@@ -37,6 +37,17 @@ public interface ITheme : IExtension
     ThemeSpacing Spacing { get; }
 
     /// <summary>
+    /// Elevation tokens controlling how surfaces separate from the ones beneath them.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted so a theme that does not care about elevation stays valid without
+    /// declaring it. Themes whose surfaces are close in lightness should override this,
+    /// because at that point the shadow is the only thing telling one surface from
+    /// another.
+    /// </remarks>
+    ThemeElevation Elevation => new();
+
+    /// <summary>
     /// Returns the value of a custom theme token, allowing extensions to define
     /// and consume additional design tokens beyond the built-in set.
     /// </summary>

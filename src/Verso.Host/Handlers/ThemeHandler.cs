@@ -37,20 +37,24 @@ public static class ThemeHandler
         AddColorToken(colors, "toolbarDisabledForeground", colorTokens.ToolbarDisabledForeground);
         AddColorToken(colors, "accentPrimary", colorTokens.AccentPrimary);
         AddColorToken(colors, "accentSecondary", colorTokens.AccentSecondary);
+        AddColorToken(colors, "accentForeground", colorTokens.AccentForeground);
         AddColorToken(colors, "statusSuccess", colorTokens.StatusSuccess);
         AddColorToken(colors, "statusWarning", colorTokens.StatusWarning);
         AddColorToken(colors, "statusError", colorTokens.StatusError);
         AddColorToken(colors, "statusInfo", colorTokens.StatusInfo);
         AddColorToken(colors, "bgDefault", colorTokens.BgDefault);
         AddColorToken(colors, "bgElevated", colorTokens.BgElevated);
+        AddColorToken(colors, "bgSunken", colorTokens.BgSunken);
         AddColorToken(colors, "fgDefault", colorTokens.FgDefault);
         AddColorToken(colors, "fgMuted", colorTokens.FgMuted);
+        AddColorToken(colors, "fgSubtle", colorTokens.FgSubtle);
 
         var syntaxColors = theme.GetSyntaxColors().GetAll()
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
         var typography = theme.Typography;
         var spacing = theme.Spacing;
+        var elevation = theme.Elevation;
 
         return new ThemeResult
         {
@@ -77,7 +81,18 @@ public static class ThemeHandler
                 CellBorderRadius = spacing.CellBorderRadius,
                 ButtonBorderRadius = spacing.ButtonBorderRadius,
                 OutputPadding = spacing.OutputPadding,
-                ScrollbarWidth = spacing.ScrollbarWidth
+                ScrollbarWidth = spacing.ScrollbarWidth,
+                ShapeSmall = spacing.ShapeSmall,
+                ShapeMedium = spacing.ShapeMedium,
+                ShapeLarge = spacing.ShapeLarge,
+                ShapeFull = spacing.ShapeFull
+            },
+            Elevation = new ThemeElevationDto
+            {
+                Level0 = elevation.Level0,
+                Level1 = elevation.Level1,
+                Level2 = elevation.Level2,
+                Level3 = elevation.Level3
             }
         };
     }

@@ -89,12 +89,24 @@ public sealed class VersoDarkTheme : ITheme
         // Layout-extension palette
         BgDefault = "#1E1E1E",
         BgElevated = "#252526",
+        BgSunken = "#181818",
         FgDefault = "#D4D4D4",
-        FgMuted = "#858585"
+        FgMuted = "#858585",
+        FgSubtle = "#7A7A7A"
     };
 
     public ThemeTypography Typography { get; } = new();
     public ThemeSpacing Spacing { get; } = new();
+
+    // Dark surfaces separate by lightness on their own, so the shadow only has to
+    // confirm the edge rather than create it. These are deliberately tighter and
+    // darker than the light-theme defaults.
+    public ThemeElevation Elevation { get; } = new ThemeElevation
+    {
+        Level1 = "0 1px 2px rgba(0, 0, 0, 0.18), 0 1px 3px 1px rgba(0, 0, 0, 0.10)",
+        Level2 = "0 2px 4px rgba(0, 0, 0, 0.18), 0 4px 8px 3px rgba(0, 0, 0, 0.12)",
+        Level3 = "0 12px 40px rgba(0, 0, 0, 0.30), 0 4px 12px rgba(0, 0, 0, 0.15)"
+    };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

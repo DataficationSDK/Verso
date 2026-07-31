@@ -63,20 +63,27 @@ internal static class NotebookLayoutStyles
             "--md-outline:var(--verso-border-default, var(--verso-cell-border, rgba(0,0,0,0.16)));" +
             "--md-outline-variant:color-mix(in srgb, var(--md-outline) 55%, transparent);" +
             "--md-error:var(--verso-status-error, #b3261e);" +
-            // Elevation (shadow). Two levels: resting card and raised card.
-            "--md-elev-1:0 1px 2px rgba(0,0,0,0.18), 0 1px 3px 1px rgba(0,0,0,0.10);" +
-            "--md-elev-2:0 2px 4px rgba(0,0,0,0.18), 0 4px 8px 3px rgba(0,0,0,0.12);" +
-            // Shape scale.
-            "--md-shape-sm:8px; --md-shape-md:12px; --md-shape-lg:16px; --md-shape-full:999px;" +
+            // Elevation (shadow). Two levels: resting card and raised card. Both come from
+            // the host so a theme that separates its surfaces differently, or refuses shadow
+            // altogether, is obeyed here rather than overruled.
+            "--md-elev-1:var(--verso-elevation-1, 0 1px 2px rgba(0,0,0,0.18), 0 1px 3px 1px rgba(0,0,0,0.10));" +
+            "--md-elev-2:var(--verso-elevation-2, 0 2px 4px rgba(0,0,0,0.18), 0 4px 8px 3px rgba(0,0,0,0.12));" +
+            // Shape scale, likewise from the host. The literals are the standalone shell's
+            // values, so a host that says nothing gets the look this layout was designed at.
+            "--md-shape-sm:var(--verso-shape-small, 8px);" +
+            "--md-shape-md:var(--verso-shape-medium, 12px);" +
+            "--md-shape-lg:var(--verso-shape-large, 16px);" +
+            "--md-shape-full:var(--verso-shape-full, 999px);" +
             // Background tracks the host canvas.
             "background:var(--md-surface);" +
             // --- Token overrides that cascade into the portaled live cell ---
             // The card is the visual surface for each cell, so the cell's own background
             // and border are removed and its shape rounded.
-            // NOTE: do NOT override --verso-button-border-radius here. The cell's language and
-            // cell-type popup menus take their border-radius from that token, so a large (pill)
-            // value distorts the menus into clipped ovals. The trigger badges use a hardcoded
-            // radius, so leaving the token at the host default keeps the menus looking right.
+            // NOTE: do NOT override --verso-button-border-radius here. The cell's type and
+            // language badges take their radius from that token, and a large (pill) value on a
+            // badge wide enough to hold a word reads as a lozenge rather than a control. The
+            // popup menus those badges open size themselves from --verso-shape-medium instead,
+            // so the two are independent and the host default is right for both.
             "--verso-cell-background:transparent;" +
             "--verso-cell-border:transparent;" +
             "--verso-cell-hover-background:transparent;" +

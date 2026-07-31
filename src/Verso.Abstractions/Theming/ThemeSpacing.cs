@@ -13,7 +13,7 @@ public sealed record ThemeSpacing
     public double CellGap { get; init; } = 8;
 
     /// <summary>Height of the main toolbar, in pixels.</summary>
-    public double ToolbarHeight { get; init; } = 40;
+    public double ToolbarHeight { get; init; } = 44;
 
     /// <summary>Width of the sidebar panel, in pixels.</summary>
     public double SidebarWidth { get; init; } = 260;
@@ -24,11 +24,33 @@ public sealed record ThemeSpacing
     /// <summary>Vertical margin around the main content area, in pixels.</summary>
     public double ContentMarginVertical { get; init; } = 16;
 
+    /// <summary>
+    /// Corner radius for small elements: badges, chips, inline code, and the
+    /// editor surface inside a cell. In pixels.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ShapeSmall"/> through <see cref="ShapeFull"/> are a scale, not four
+    /// independent values. Pick by the size of the thing being rounded rather than by
+    /// what it is: small for anything roughly one line tall, medium for grouped
+    /// controls and menus, large for cards and panels, full for pills. A theme that
+    /// wants square corners sets all four to zero.
+    /// </remarks>
+    public double ShapeSmall { get; init; } = 8;
+
+    /// <summary>Corner radius for grouped controls, menus, and popovers, in pixels.</summary>
+    public double ShapeMedium { get; init; } = 12;
+
+    /// <summary>Corner radius for cards, panels, and dialogs, in pixels.</summary>
+    public double ShapeLarge { get; init; } = 16;
+
+    /// <summary>Corner radius that fully rounds an element into a pill, in pixels.</summary>
+    public double ShapeFull { get; init; } = 999;
+
     /// <summary>Corner border radius for notebook cells, in pixels.</summary>
-    public double CellBorderRadius { get; init; } = 4;
+    public double CellBorderRadius { get; init; } = 8;
 
     /// <summary>Corner border radius for buttons, in pixels.</summary>
-    public double ButtonBorderRadius { get; init; } = 4;
+    public double ButtonBorderRadius { get; init; } = 6;
 
     /// <summary>Inner padding within cell output regions, in pixels.</summary>
     public double OutputPadding { get; init; } = 8;

@@ -1815,7 +1815,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 ActiveThemeData = new ThemeData(
                     MapColorsFromDict(theme.Colors),
                     MapTypographyFromDto(theme.Typography),
-                    MapSpacingFromDto(theme.Spacing));
+                    MapSpacingFromDto(theme.Spacing),
+                    MapElevationFromDto(theme.Elevation));
             }
         }
         catch
@@ -2016,10 +2017,13 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             DropdownHover = G(nameof(d.DropdownHover), d.DropdownHover),
             TooltipBackground = G(nameof(d.TooltipBackground), d.TooltipBackground),
             TooltipForeground = G(nameof(d.TooltipForeground), d.TooltipForeground),
+            AccentForeground = G(nameof(d.AccentForeground), d.AccentForeground),
             BgDefault = G(nameof(d.BgDefault), d.BgDefault),
             BgElevated = G(nameof(d.BgElevated), d.BgElevated),
+            BgSunken = G(nameof(d.BgSunken), d.BgSunken),
             FgDefault = G(nameof(d.FgDefault), d.FgDefault),
             FgMuted = G(nameof(d.FgMuted), d.FgMuted),
+            FgSubtle = G(nameof(d.FgSubtle), d.FgSubtle),
             // Accent derives from AccentPrimary (read-only alias), so it is not mapped here.
         };
     }
@@ -2045,6 +2049,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private static ThemeSpacing MapSpacingFromDto(ThemeSpacingResponse? dto)
     {
         if (dto is null) return new ThemeSpacing();
+        var fallback = new ThemeSpacing();
         return new ThemeSpacing
         {
             CellPadding = dto.CellPadding,
@@ -2056,7 +2061,26 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             CellBorderRadius = dto.CellBorderRadius,
             ButtonBorderRadius = dto.ButtonBorderRadius,
             OutputPadding = dto.OutputPadding,
-            ScrollbarWidth = dto.ScrollbarWidth
+            ScrollbarWidth = dto.ScrollbarWidth,
+            // A host that predates the shape scale sends nothing rather than zero, so
+            // fall back to the model defaults instead of squaring every corner.
+            ShapeSmall = dto.ShapeSmall ?? fallback.ShapeSmall,
+            ShapeMedium = dto.ShapeMedium ?? fallback.ShapeMedium,
+            ShapeLarge = dto.ShapeLarge ?? fallback.ShapeLarge,
+            ShapeFull = dto.ShapeFull ?? fallback.ShapeFull
+        };
+    }
+
+    private static ThemeElevation MapElevationFromDto(ThemeElevationResponse? dto)
+    {
+        if (dto is null) return new ThemeElevation();
+        var fallback = new ThemeElevation();
+        return new ThemeElevation
+        {
+            Level0 = dto.Level0 ?? fallback.Level0,
+            Level1 = dto.Level1 ?? fallback.Level1,
+            Level2 = dto.Level2 ?? fallback.Level2,
+            Level3 = dto.Level3 ?? fallback.Level3
         };
     }
 
@@ -2319,6 +2343,15 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public Dictionary<string, string>? SyntaxColors { get; set; }
         public ThemeTypographyResponse? Typography { get; set; }
         public ThemeSpacingResponse? Spacing { get; set; }
+        public ThemeElevationResponse? Elevation { get; set; }
+    }
+
+    private sealed class ThemeElevationResponse
+    {
+        public string? Level0 { get; set; }
+        public string? Level1 { get; set; }
+        public string? Level2 { get; set; }
+        public string? Level3 { get; set; }
     }
 
     private sealed class ThemeTypographyResponse
@@ -2349,6 +2382,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public double ButtonBorderRadius { get; set; }
         public double OutputPadding { get; set; }
         public double ScrollbarWidth { get; set; }
+        public double? ShapeSmall { get; set; }
+        public double? ShapeMedium { get; set; }
+        public double? ShapeLarge { get; set; }
+        public double? ShapeFull { get; set; }
     }
 
     private sealed class HoverResponse

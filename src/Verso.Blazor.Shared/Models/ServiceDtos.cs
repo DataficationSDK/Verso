@@ -125,10 +125,15 @@ public sealed record ThemeInfo(
     ThemeKind ThemeKind);
 
 /// <summary>Full theme data for rendering CSS variables.</summary>
+/// <remarks>
+/// <paramref name="Elevation"/> is optional so a host that predates the elevation scale
+/// still produces valid theme data; consumers coalesce a null to the defaults.
+/// </remarks>
 public sealed record ThemeData(
     ThemeColorTokens Colors,
     ThemeTypography Typography,
-    ThemeSpacing Spacing);
+    ThemeSpacing Spacing,
+    ThemeElevation? Elevation = null);
 
 /// <summary>Resolved theme bundle sent to iframe-isolated layout renderers.</summary>
 public sealed record LayoutThemeBundle(string Kind, IReadOnlyDictionary<string, string> Tokens);
@@ -146,17 +151,32 @@ public static class LayoutThemeBundleBuilder
         if (data is null) return null;
         var c = data.Colors;
         var t = data.Typography;
+        var s = data.Spacing;
+        var e = data.Elevation ?? new ThemeElevation();
         var tokens = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["bg.default"]       = c.BgDefault,
             ["bg.elevated"]      = c.BgElevated,
+            ["bg.sunken"]        = c.BgSunken,
             ["fg.default"]       = c.FgDefault,
             ["fg.muted"]         = c.FgMuted,
+            ["fg.subtle"]        = c.FgSubtle,
             ["border.default"]   = c.BorderDefault,
             ["accent"]           = c.Accent,
+            ["accent.foreground"] = c.AccentForeground,
             ["font.family.mono"] = t.FontFamilyMono,
             ["font.family.sans"] = t.FontFamilySans,
             ["font.size.base"]   = FormatFontSize(t.FontSizeBase),
+            // Shape and elevation travel with the palette so an isolated renderer can
+            // match the host's corners and depth instead of guessing at them.
+            ["shape.small"]      = FormatPx(s.ShapeSmall),
+            ["shape.medium"]     = FormatPx(s.ShapeMedium),
+            ["shape.large"]      = FormatPx(s.ShapeLarge),
+            ["shape.full"]       = FormatPx(s.ShapeFull),
+            ["elevation.0"]      = e.Level0,
+            ["elevation.1"]      = e.Level1,
+            ["elevation.2"]      = e.Level2,
+            ["elevation.3"]      = e.Level3,
         };
         return new LayoutThemeBundle(KindToWire(kind), tokens);
     }
@@ -168,7 +188,9 @@ public static class LayoutThemeBundleBuilder
         _ => "light",
     };
 
-    private static string FormatFontSize(double px) =>
+    private static string FormatFontSize(double px) => FormatPx(px);
+
+    private static string FormatPx(double px) =>
         px.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "px";
 }
 

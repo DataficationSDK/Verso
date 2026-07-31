@@ -903,6 +903,7 @@ export class BlazorEditorProvider
             --verso-border-focused: var(--vscode-focusBorder, #0078D4);
             --verso-accent-primary: var(--vscode-focusBorder, #0078D4);
             --verso-accent-secondary: var(--vscode-button-background, #0078D4);
+            --verso-accent-foreground: var(--vscode-button-foreground, #FFFFFF);
             --verso-highlight-background: var(--vscode-editor-findMatchHighlightBackground, #EA5C0055);
             --verso-highlight-foreground: var(--vscode-editor-foreground);
             --verso-status-success: var(--vscode-testing-iconPassed, #73C991);
@@ -914,6 +915,8 @@ export class BlazorEditorProvider
             --verso-scrollbar-thumb-hover: var(--vscode-scrollbarSlider-hoverBackground);
             --verso-dropdown-background: var(--vscode-dropdown-background);
             --verso-dropdown-hover: var(--vscode-list-hoverBackground);
+            --verso-overlay-background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+            --verso-overlay-border: var(--vscode-editorWidget-border, var(--vscode-panel-border, #E0E0E0));
             --verso-ui-font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
             --verso-ui-font-size: var(--vscode-font-size, 13px);
             --verso-accent: var(--vscode-focusBorder, #0078D4);
@@ -933,9 +936,39 @@ export class BlazorEditorProvider
                active VS Code theme. */
             --verso-bg-default: var(--vscode-editor-background);
             --verso-bg-elevated: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+            --verso-bg-sunken: var(--vscode-textBlockQuote-background, var(--vscode-editor-background));
             --verso-fg-default: var(--vscode-editor-foreground);
             --verso-fg-muted: var(--vscode-disabledForeground, var(--vscode-editorLineNumber-foreground, #858585));
+            --verso-fg-subtle: var(--vscode-editorLineNumber-foreground, #858585);
             --verso-font-family-mono: var(--vscode-editor-font-family, 'Cascadia Mono', Consolas, monospace);
+
+            /* Shape and elevation: the host profile.
+
+               VS Code publishes no radius or shadow variables, so unlike every color
+               above there is nothing to forward here and these values have to be
+               chosen. They are set to read as native inside the workbench rather than
+               to match the standalone shell, which runs a larger 8/12/16 scale and a
+               two-level shadow. That is the whole of the difference between the two
+               shells: same markup, same class names, one profile swapped.
+
+               Kept as a card rather than flattened to zero. A notebook cell has to
+               read as a discrete object you can select, run, and reorder, and at 0px
+               with no shadow adjacent cells fuse into one column of text. */
+            --verso-shape-small: 4px;
+            --verso-shape-medium: 6px;
+            --verso-shape-large: 8px;
+            --verso-shape-full: 999px;
+            --verso-cell-border-radius: 6px;
+            --verso-button-border-radius: 4px;
+
+            /* Flatter than the standalone shell by design: the workbench separates
+               surfaces with borders, so the shadow only has to keep a card from
+               sitting flush, and dialogs keep a real one because they float over
+               everything. */
+            --verso-elevation-0: none;
+            --verso-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.12);
+            --verso-elevation-2: 0 2px 6px rgba(0, 0, 0, 0.18);
+            --verso-elevation-3: 0 4px 12px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
         }
     </style>
 </head>
