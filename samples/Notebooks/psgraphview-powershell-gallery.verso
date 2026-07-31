@@ -12,19 +12,19 @@
     {
       "id": "b8bb92ff-a510-4a55-9e7b-3e53d62f3201",
       "type": "markdown",
-      "source": "# PSGraph and PSGraphView from PowerShell Gallery\n\nThis notebook installs tested prerelease versions of the graph modules, builds a graph with PSGraph, and renders it with PSGraphView.\n\nThe PowerShell Gallery package for the PSGraph graph/algorithm module is \u0060PSQuickGraph\u0060. \u0060PSGraphView\u0060 provides the rendering cmdlets."
+      "source": "# PSGraph and PSGraphView from PowerShell Gallery\n\nThis notebook loads tested prerelease versions of the graph modules, builds a graph with PSGraph, and renders it with PSGraphView.\n\nThe PowerShell Gallery package for the PSGraph graph/algorithm module is \u0060PSQuickGraph\u0060. \u0060PSGraphView\u0060 provides the rendering cmdlets. Install missing modules from a regular PowerShell terminal before starting Verso; the embedded kernel does not provide PowerShellGet package-management commands."
     },
     {
       "id": "d208c1d7-72ce-4e6d-8d9d-0db9be0378f5",
       "type": "code",
       "language": "powershell",
-      "source": "$ErrorActionPreference = \u0027Stop\u0027\n\n$requirements = @{\n    PSQuickGraph = \u00272.6.0-beta1\u0027\n    PSGraphView = \u00270.2.0-beta1\u0027\n}\n\nforeach ($entry in $requirements.GetEnumerator()) {\n    Install-Module $entry.Key \u0060\n        -RequiredVersion $entry.Value \u0060\n        -AllowPrerelease \u0060\n        -Scope CurrentUser \u0060\n        -Repository PSGallery \u0060\n        -Force \u0060\n        -AllowClobber\n}"
+      "source": "$ErrorActionPreference = \u0027Stop\u0027\n\n$requirements = @(\n    [pscustomobject]@{ Name = \u0027PSQuickGraph\u0027; Version = \u00272.6.0-beta1\u0027 }\n    [pscustomobject]@{ Name = \u0027PSGraphView\u0027; Version = \u00270.2.0-beta1\u0027 }\n)\n\n$resolvedModules = foreach ($requirement in $requirements) {\n    $module = Get-Module -ListAvailable -Name $requirement.Name |\n        Where-Object {\n            $version = $_.Version.ToString()\n            $prerelease = $_.PrivateData.PSData.Prerelease\n            if ($prerelease) {\n                $version = \u0022$version-$prerelease\u0022\n            }\n            $version -eq $requirement.Version\n        } |\n        Select-Object -First 1\n\n    if ($module) {\n        [pscustomobject]@{\n            Requirement = $requirement\n            Module = $module\n        }\n    }\n}\n\n$missing = $requirements |\n    Where-Object Name -NotIn $resolvedModules.Requirement.Name\n\nif ($missing) {\n    $installCommands = $missing | ForEach-Object {\n        \u0022Install-Module $($_.Name) -RequiredVersion $($_.Version) -AllowPrerelease -Scope CurrentUser\u0022\n    }\n\n    throw \u0022Install the missing modules in a regular PowerShell terminal, restart Verso, and run this cell again:\u0060n$($installCommands -join \u0022\u0060n\u0022)\u0022\n}\n\n$resolvedModules | ForEach-Object {\n    Import-Module $_.Module.Path -Force\n}"
     },
     {
       "id": "dd69032d-556c-4195-a6b7-3551c61b1c10",
       "type": "code",
       "language": "powershell",
-      "source": "$ErrorActionPreference = \u0027Stop\u0027\n\nImport-Module PSQuickGraph -MinimumVersion 2.6.0 -Force\nImport-Module PSGraphView -MinimumVersion 0.2.0 -Force\n\nGet-Module PSQuickGraph, PSGraphView |\n    Select-Object Name, Version, ModuleBase"
+      "source": "Get-Module PSQuickGraph, PSGraphView |\n    Select-Object Name, Version, ModuleBase"
     },
     {
       "id": "db086baa-97b6-40e6-9a47-c1201143d245",

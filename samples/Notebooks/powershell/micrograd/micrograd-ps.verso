@@ -18,14 +18,14 @@
     {
       "id": "10897b83-f777-43a3-a85c-d5719da8dd1d",
       "type": "markdown",
-      "source": "## Module Setup\n\nInstall the tested prerelease versions from PowerShell Gallery when needed, then load them from the normal PowerShell module path.",
+      "source": "## Module Setup\n\nLoad the tested prerelease modules from the normal PowerShell module path. Install missing modules from a regular PowerShell terminal before starting Verso; the embedded kernel does not provide PowerShellGet package-management commands.",
       "outputs": []
     },
     {
       "id": "92379945-af96-4131-a373-7f8fc66bcc7e",
       "type": "code",
       "language": "powershell",
-      "source": "$requirements = @{\n    PSQuickGraph = '2.6.0-beta1'\n    PSGraphView = '0.2.0-beta1'\n}\n\nforeach ($entry in $requirements.GetEnumerator()) {\n    $available = Get-Module -ListAvailable -Name $entry.Key | Where-Object {\n        $version = $_.Version.ToString()\n        $prerelease = $_.PrivateData.PSData.Prerelease\n        if ($prerelease) { $version = \"$version-$prerelease\" }\n        $version -eq $entry.Value\n    }\n\n    if (-not $available) {\n        Install-Module $entry.Key -RequiredVersion $entry.Value -AllowPrerelease -Scope CurrentUser -Force\n    }\n}\n\nImport-Module PSQuickGraph -MinimumVersion 2.6.0 -Force\nImport-Module PSGraphView -MinimumVersion 0.2.0 -Force",
+      "source": "$requirements = @(\n    [pscustomobject]@{ Name = 'PSQuickGraph'; Version = '2.6.0-beta1' }\n    [pscustomobject]@{ Name = 'PSGraphView'; Version = '0.2.0-beta1' }\n)\n\n$resolvedModules = foreach ($requirement in $requirements) {\n    $module = Get-Module -ListAvailable -Name $requirement.Name |\n        Where-Object {\n            $version = $_.Version.ToString()\n            $prerelease = $_.PrivateData.PSData.Prerelease\n            if ($prerelease) {\n                $version = \"$version-$prerelease\"\n            }\n            $version -eq $requirement.Version\n        } |\n        Select-Object -First 1\n\n    if ($module) {\n        [pscustomobject]@{\n            Requirement = $requirement\n            Module = $module\n        }\n    }\n}\n\n$missing = $requirements |\n    Where-Object Name -NotIn $resolvedModules.Requirement.Name\n\nif ($missing) {\n    $installCommands = $missing | ForEach-Object {\n        \"Install-Module $($_.Name) -RequiredVersion $($_.Version) -AllowPrerelease -Scope CurrentUser\"\n    }\n\n    throw \"Install the missing modules in a regular PowerShell terminal, restart Verso, and run this cell again:`n$($installCommands -join \"`n\")\"\n}\n\n$resolvedModules | ForEach-Object {\n    Import-Module $_.Module.Path -Force\n}",
       "outputs": []
     },
     {
