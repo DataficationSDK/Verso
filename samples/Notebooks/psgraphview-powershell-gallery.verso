@@ -1,0 +1,79 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "PSGraph and PSGraphView from PowerShell Gallery",
+    "created": "2026-05-10T00:00:00+00:00",
+    "modified": "2026-05-10T00:00:00+00:00",
+    "defaultKernel": "powershell",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "b8bb92ff-a510-4a55-9e7b-3e53d62f3201",
+      "type": "markdown",
+      "source": "# PSGraph and PSGraphView from PowerShell Gallery\n\nThis notebook installs tested prerelease versions of the graph modules, builds a graph with PSGraph, and renders it with PSGraphView.\n\nThe PowerShell Gallery package for the PSGraph graph/algorithm module is \u0060PSQuickGraph\u0060. \u0060PSGraphView\u0060 provides the rendering cmdlets."
+    },
+    {
+      "id": "d208c1d7-72ce-4e6d-8d9d-0db9be0378f5",
+      "type": "code",
+      "language": "powershell",
+      "source": "$ErrorActionPreference = \u0027Stop\u0027\n\n$requirements = @{\n    PSQuickGraph = \u00272.6.0-beta1\u0027\n    PSGraphView = \u00270.2.0-beta1\u0027\n}\n\nforeach ($entry in $requirements.GetEnumerator()) {\n    Install-Module $entry.Key \u0060\n        -RequiredVersion $entry.Value \u0060\n        -AllowPrerelease \u0060\n        -Scope CurrentUser \u0060\n        -Repository PSGallery \u0060\n        -Force \u0060\n        -AllowClobber\n}"
+    },
+    {
+      "id": "dd69032d-556c-4195-a6b7-3551c61b1c10",
+      "type": "code",
+      "language": "powershell",
+      "source": "$ErrorActionPreference = \u0027Stop\u0027\n\nImport-Module PSQuickGraph -MinimumVersion 2.6.0 -Force\nImport-Module PSGraphView -MinimumVersion 0.2.0 -Force\n\nGet-Module PSQuickGraph, PSGraphView |\n    Select-Object Name, Version, ModuleBase"
+    },
+    {
+      "id": "db086baa-97b6-40e6-9a47-c1201143d245",
+      "type": "markdown",
+      "source": "## Build a graph with PSGraph\n\nThe graph object is created and queried by PSGraph. This cell also exports the graph to Graphviz DOT text, which stays in the PSGraph module boundary."
+    },
+    {
+      "id": "74a79272-0364-49d0-8309-d5e5941ae45b",
+      "type": "code",
+      "language": "powershell",
+      "source": "$g = New-Graph\n\n$edges = @(\n    @{ From = \u0027Ingest\u0027;    To = \u0027Validate\u0027 }\n    @{ From = \u0027Validate\u0027;  To = \u0027Transform\u0027 }\n    @{ From = \u0027Transform\u0027; To = \u0027Persist\u0027 }\n    @{ From = \u0027Persist\u0027;   To = \u0027Report\u0027 }\n    @{ From = \u0027Validate\u0027;  To = \u0027Reject\u0027 }\n    @{ From = \u0027Reject\u0027;    To = \u0027Report\u0027 }\n)\n\nforeach ($edge in $edges) {\n    Add-Edge -Graph $g -From $edge.From -To $edge.To | Out-Null\n}\n\n[PSCustomObject]@{\n    VertexCount = $g.VertexCount\n    EdgeCount = $g.EdgeCount\n    HasIngestToReportPath = Test-GraphPath -Graph $g -From ([PSGraph.Model.PSVertex]::new(\u0027Ingest\u0027)) -To ([PSGraph.Model.PSVertex]::new(\u0027Report\u0027))\n}\n\n$dot = Export-Graph -Graph $g -Format Graphviz\n$dot"
+    },
+    {
+      "id": "c80905f0-1f06-4a2c-a059-198a5d0d2693",
+      "type": "markdown",
+      "source": "## Render the graph with PSGraphView\n\n\u0060Export-GraphvizView\u0060 uses the Graphviz path in PSGraphView and returns SVG that Verso can display inline."
+    },
+    {
+      "id": "c72c82d1-1dfe-433d-8d41-5b1b2a54a06a",
+      "type": "code",
+      "language": "powershell",
+      "source": "$svg = Export-GraphvizView -InputObject $dot -Renderer Dot -As Svg\nDisplay $svg \u0027image/svg\u002Bxml\u0027"
+    },
+    {
+      "id": "d99adc3d-b615-4b0d-98d8-7ee8475271d3",
+      "type": "markdown",
+      "source": "## Raster output\n\nThis cell renders the same graph as PNG and sends the image bytes to Verso as \u0060image/png\u0060."
+    },
+    {
+      "id": "d1f8332c-a589-465e-abf0-acb448469267",
+      "type": "code",
+      "language": "powershell",
+      "source": "$pngPath = Join-Path ([IO.Path]::GetTempPath()) \u0027psgraphview-gallery-sample.png\u0027\nExport-GraphvizView -InputObject $dot -Renderer Dot -As Png -OutputPath $pngPath\n[Convert]::ToBase64String([IO.File]::ReadAllBytes($pngPath)) | Display -MimeType \u0027image/png\u0027"
+    },
+    {
+      "id": "cdf30ba0-d8ba-42b4-8c2f-3572f697a8d0",
+      "type": "markdown",
+      "source": "## DSM smoke check\n\nPSGraph can wrap the same graph as a design structure matrix. PSGraphView can render that DSM as SVG."
+    },
+    {
+      "id": "d58435c7-f373-4293-960b-61087af10cc0",
+      "type": "code",
+      "language": "powershell",
+      "source": "$dsm = New-DSM -Graph $g\n$dsmSvg = Export-DSMView -Dsm $dsm -Renderer DsmMatrixSvg -As Svg\nDisplay $dsmSvg \u0027image/svg\u002Bxml\u0027"
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {}
+    }
+  }
+}
