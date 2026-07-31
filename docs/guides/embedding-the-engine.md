@@ -58,14 +58,19 @@ var threshold = scaffold.Variables.Get<double>("threshold");
 
 ## Observing execution
 
-Subscribe to Scaffold events to react to execution and kernel state, for example to drive a progress display:
+Subscribe to Scaffold events to react to execution and kernel state, for example to drive a progress display. The cell events carry the cell's id, and by the time `OnCellExecuted` fires the cell's `ExecutionCount`, `LastElapsed`, and `LastStatus` have been stamped, so look the cell up to read them:
 
 ```csharp
-scaffold.OnCellExecuted += result =>
-    Console.WriteLine($"Cell {result.CellId} finished: {result.Status}");
+scaffold.OnCellExecuted += cellId =>
+{
+    var cell = scaffold.GetCell(cellId);
+    Console.WriteLine($"Cell {cellId} finished: {cell?.LastStatus} in {cell?.LastElapsed}");
+};
 ```
 
-`OnCellExecuting`, `OnCellOutputUpdated`, and the kernel-restart events are available alongside it.
+`OnCellExecuting` and `OnCellOutputUpdated` have the same `Action<Guid>` shape. The kernel-restart events (`OnKernelRestarting`, `OnKernelRestarted`, `OnKernelRestartFailed`) carry the kernel's language name instead.
+
+`ExecuteCellAsync` and `ExecuteAllAsync` also return `ExecutionResult` values directly, which is the simpler route when you only need the outcome of a call you made yourself rather than notification of any execution.
 
 ## Cleaning up
 
