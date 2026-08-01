@@ -264,6 +264,113 @@ public sealed class ExtensionPanelTests : BunitTestContext
     }
 
     [TestMethod]
+    public void InstalledPackage_WithAnIcon_PaintsItOverTheTile()
+    {
+        _service.InstalledExtensions = new List<InstalledExtensionDto>
+        {
+            new("Verso.Showcase.Dag", "1.2.0", false, null, null,
+                "data:image/png;base64,iVBORw0KGgo=")
+        };
+
+        var cut = RenderComponent<ExtensionPanel>(p => p
+            .Add(e => e.Service, _service));
+
+        var icon = cut.Find(".verso-marketplace-tile .verso-marketplace-tile-icon");
+        Assert.AreEqual("data:image/png;base64,iVBORw0KGgo=", icon.GetAttribute("src"));
+
+        // The letter stays underneath so a broken icon degrades to it rather than to a blank.
+        StringAssert.Contains(cut.Find(".verso-marketplace-tile").TextContent.Trim(), "D");
+    }
+
+    [TestMethod]
+    public void InstalledPackage_WithNoIcon_KeepsTheLetteredTile()
+    {
+        _service.InstalledExtensions = new List<InstalledExtensionDto>
+        {
+            new("Verso.Showcase.Dag", "1.2.0", false)
+        };
+
+        var cut = RenderComponent<ExtensionPanel>(p => p
+            .Add(e => e.Service, _service));
+
+        Assert.AreEqual(0, cut.FindAll(".verso-marketplace-tile-icon").Count);
+        Assert.AreEqual("D", cut.Find(".verso-marketplace-tile").TextContent.Trim());
+    }
+
+    [TestMethod]
+    public void SearchResult_UsesTheIconTheFeedReported()
+    {
+        _service.SearchResults = new List<PackageSearchResultDto>
+        {
+            new("Newtonsoft.Json", "13.0.4", "JSON framework.", "James Newton-King", 4_900_000_000,
+                "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.4/icon", null, false)
+        };
+
+        var cut = RenderSearch("Newtonsoft");
+
+        var icon = cut.Find(".verso-marketplace-tile-icon");
+        Assert.AreEqual(
+            "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.4/icon",
+            icon.GetAttribute("src"));
+    }
+
+    [TestMethod]
+    public void SearchResult_WithNoIcon_KeepsTheLetteredTile()
+    {
+        _service.SearchResults = new List<PackageSearchResultDto>
+        {
+            new("Verso.Showcase.Dag", "1.2.0", "A layout.", "Datafication", 100, null, null, false)
+        };
+
+        var cut = RenderSearch("Verso.Showcase");
+
+        Assert.AreEqual(0, cut.FindAll(".verso-marketplace-tile-icon").Count);
+        Assert.AreEqual("D", cut.Find(".verso-marketplace-tile").TextContent.Trim());
+    }
+
+    [TestMethod]
+    public void InstalledPackage_PrefersTheLocalCopyOverTheFeedUrl()
+    {
+        // The copy on disk needs no network, so it wins when both are available.
+        _service.InstalledExtensions = new List<InstalledExtensionDto>
+        {
+            new("Newtonsoft.Json", "13.0.4", false, null, null, "data:image/png;base64,iVBORw0KGgo=")
+        };
+        _service.SearchResults = new List<PackageSearchResultDto>
+        {
+            new("Newtonsoft.Json", "13.0.4", "JSON framework.", "James Newton-King", 4_900_000_000,
+                "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.4/icon", null, true)
+        };
+
+        var cut = RenderSearch("Newtonsoft");
+
+        Assert.AreEqual("data:image/png;base64,iVBORw0KGgo=",
+            cut.Find(".verso-marketplace-tile-icon").GetAttribute("src"));
+    }
+
+    [TestMethod]
+    public void InstalledPackage_WithNoLocalCopy_FallsBackToTheFeedUrl()
+    {
+        // Covers a package installed before icons were kept alongside it: the row still shows
+        // artwork as soon as the package turns up in a search.
+        _service.InstalledExtensions = new List<InstalledExtensionDto>
+        {
+            new("Newtonsoft.Json", "13.0.4", false)
+        };
+        _service.SearchResults = new List<PackageSearchResultDto>
+        {
+            new("Newtonsoft.Json", "13.0.4", "JSON framework.", "James Newton-King", 4_900_000_000,
+                "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.4/icon", null, true)
+        };
+
+        var cut = RenderSearch("Newtonsoft");
+
+        Assert.AreEqual(
+            "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.4/icon",
+            cut.Find(".verso-marketplace-tile-icon").GetAttribute("src"));
+    }
+
+    [TestMethod]
     public void SearchResult_NotInstalled_ClaimsNothingAboutWhatItAdds()
     {
         _service.SearchResults = new List<PackageSearchResultDto>

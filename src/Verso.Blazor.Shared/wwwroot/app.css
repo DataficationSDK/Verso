@@ -2582,9 +2582,11 @@ html, body {
 }
 
 .verso-marketplace-tile {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: none;
     width: 30px;
     height: 30px;
     border-radius: 7px;
@@ -2592,6 +2594,33 @@ html, body {
     font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.02em;
+    overflow: hidden;
+}
+
+/*
+ * A package's own icon covers the lettered tile completely. Absolute rather than replacing the
+ * letter so that an icon which fails to decode simply reveals the letter underneath, with no
+ * error handler to wire up. Package art carries its own background, so the hashed tint stops
+ * showing once an icon paints.
+ *
+ * The plate behind the icon stays light in every theme rather than following the surface
+ * tokens. Package icons are drawn for a package gallery, which is light, and a good number are
+ * dark monochrome marks with a transparent background: on a themed dark plate those disappear
+ * entirely. A constant light plate costs a little contrast against a dark panel and guarantees
+ * the artwork is legible, which is the trade every package gallery makes.
+ *
+ * The icon is drawn flush, with no padding and no inset hairline. Both used to be here, and
+ * together they were what made the plate visible as a ring: artwork that carries its own
+ * background out to the edge of its box, which is most of it, covers the plate completely once
+ * nothing is holding it away from the boundary.
+ */
+.verso-marketplace-tile-icon {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #FFFFFF;
 }
 
 .verso-marketplace-row-body {

@@ -376,6 +376,11 @@ internal sealed class NuGetPackageResolver
 
             // Read dependencies for our target framework
             dependencies = await ReadDependenciesAsync(reader, ct).ConfigureAwait(false);
+
+            // Keep the package icon, if it has one. The archive is deleted below, so this is
+            // the only moment it can be captured, and a caller that wants to show a package
+            // identity later has no other local source for it.
+            await ExtractIconAsync(reader, packageDir, ct).ConfigureAwait(false);
         }
 
         // Extract native and runtime-managed libraries after closing the PackageArchiveReader
@@ -450,6 +455,71 @@ internal sealed class NuGetPackageResolver
         }
 
         return assemblyPaths;
+    }
+
+    /// <summary>
+    /// The file name a cached package icon is stored under, without an extension. The original
+    /// extension is preserved so the file stays recognisable on disk.
+    /// </summary>
+    private const string IconFileStem = "icon";
+
+    /// <summary>
+    /// Upper bound on a cached package icon, matching the limit nuget.org enforces on embedded
+    /// icons. Anything larger is treated as absent rather than copied around.
+    /// </summary>
+    internal const long MaxIconBytes = 1024 * 1024;
+
+    /// <summary>
+    /// Extracts the package icon declared by the nuspec into the cache directory. Packages
+    /// without an embedded icon, and packages declaring one that is not actually in the
+    /// archive, are both no-ops: an icon is decoration, so nothing here is allowed to fail an
+    /// install.
+    /// </summary>
+    private static async Task ExtractIconAsync(
+        PackageArchiveReader reader, string packageDir, CancellationToken ct)
+    {
+        try
+        {
+            var iconPath = reader.NuspecReader.GetIcon();
+            if (string.IsNullOrWhiteSpace(iconPath))
+                return;
+
+            // The nuspec records the icon with the separator used when the package was built.
+            var entry = reader.GetEntry(iconPath.Replace('\\', '/'));
+            if (entry is null || entry.Length > MaxIconBytes)
+                return;
+
+            var dest = Path.Combine(packageDir, IconFileStem + Path.GetExtension(iconPath));
+            using var entryStream = entry.Open();
+            using var destStream = File.Create(dest);
+            await entryStream.CopyToAsync(destStream, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            // A missing or unreadable icon must never fail a package install.
+        }
+    }
+
+    /// <summary>
+    /// Returns the path of the cached icon for a package already downloaded into the cache, or
+    /// <c>null</c> when the package has no icon or was cached before icons were kept.
+    /// </summary>
+    internal static string? TryGetCachedIconPath(string packageId, string version)
+    {
+        if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(version))
+            return null;
+
+        try
+        {
+            var dir = Path.Combine(CacheRoot, packageId, version);
+            return Directory.Exists(dir)
+                ? Directory.EnumerateFiles(dir, IconFileStem + ".*").FirstOrDefault()
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

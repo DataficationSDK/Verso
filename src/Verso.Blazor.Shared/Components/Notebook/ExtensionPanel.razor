@@ -89,11 +89,19 @@
                     {
                         var r = row;
                         <div class="verso-marketplace-row @StateClass(r)">
-                            @* IconUrl arrives on the search result but is never fetched: a remote
-                               image is a content-policy problem in an embedded host and a leak in a
-                               private one. A letter on a colour hashed from the id is stable across
-                               renders and reads as identity rather than decoration. *@
-                            <div class="verso-marketplace-tile" style="background: @Tint(r.Id)" aria-hidden="true">@Initial(r.Id)</div>
+                            @* The lettered tile is always drawn and a package's own icon paints on
+                               top, so a package with no icon, one whose art fails to decode, and one
+                               whose icon host is unreachable all degrade to the letter with no error
+                               handling. An installed package uses the copy on disk; anything else
+                               uses the icon the feed reported. *@
+                            <div class="verso-marketplace-tile" style="background: @Tint(r.Id)" aria-hidden="true">
+                                @Initial(r.Id)
+                                @if (r.IconSrc is not null)
+                                {
+                                    <img class="verso-marketplace-tile-icon" src="@r.IconSrc"
+                                         loading="lazy" decoding="async" alt="" />
+                                }
+                            </div>
                             <div class="verso-marketplace-row-body">
                                 <div class="verso-marketplace-row-head">
                                     <span class="verso-marketplace-row-id" data-verso-tip="@r.Id">@r.Id</span>
@@ -433,7 +441,8 @@
         bool IsInstalled,
         bool IsLocal,
         string? UnavailableReason,
-        IReadOnlyList<string>? Capabilities);
+        IReadOnlyList<string>? Capabilities,
+        string? IconSrc);
 
     /// <summary>
     /// Merges what this notebook requires with what the current search returned. The installed
@@ -461,7 +470,11 @@
                 IsInstalled: true,
                 installed.IsLocal,
                 installed.UnavailableReason,
-                installed.Capabilities);
+                installed.Capabilities,
+                // The copy on disk is preferred: it needs no network and is the only source for
+                // a sideloaded package. The feed's URL is the fallback, which also covers a
+                // package installed before icons were kept alongside it.
+                installed.IconDataUri ?? match?.IconUrl);
 
             listed.Add(row.Id);
             if (Matches(row, query))
@@ -484,7 +497,8 @@
                     package.IsInstalled,
                     IsLocal: false,
                     UnavailableReason: null,
-                    Capabilities: null));
+                    Capabilities: null,
+                    IconSrc: package.IconUrl));
             }
         }
 

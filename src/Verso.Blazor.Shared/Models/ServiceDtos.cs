@@ -313,13 +313,16 @@ public sealed record PackageInstallResultDto(
 /// (not on disk, source unreachable, consent denied), carrying a short explanation for the UI.
 /// <paramref name="Capabilities"/> is what the package contributed once loaded, which cannot be known
 /// from a package feed and so is only ever available for an installed package.
+/// <paramref name="IconDataUri"/> is the package's own icon, read from the copy on disk rather than
+/// fetched, so it costs no network request and works for sideloaded packages no feed knows about.
 /// </summary>
 public sealed record InstalledExtensionDto(
     string Id,
     string? Version,
     bool IsLocal,
     string? UnavailableReason = null,
-    IReadOnlyList<string>? Capabilities = null)
+    IReadOnlyList<string>? Capabilities = null,
+    string? IconDataUri = null)
 {
     /// <summary>
     /// True when this required extension did not load and the panel should flag it. See

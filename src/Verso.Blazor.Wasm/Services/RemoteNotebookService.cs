@@ -1901,7 +1901,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             .Select(i => new InstalledExtensionDto(
                 i.Id ?? "", i.Version, i.IsLocal,
                 _unavailableExtensionReasons.GetValueOrDefault(i.Id ?? ""),
-                i.Capabilities))
+                i.Capabilities, i.IconDataUri))
             .Where(i => !string.IsNullOrEmpty(i.Id))
             .ToList() ?? new();
         _marketplaceSources = extsResult.Sources ?? new();
@@ -2482,6 +2482,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         // Null and empty mean different things here: not loaded yet, versus loaded and
         // contributed no extension point. Keep the null rather than defaulting to a list.
         public List<string>? Capabilities { get; set; }
+
+        // The package's own icon, already inlined as a data URI by the host so the client
+        // never reaches the network for it.
+        public string? IconDataUri { get; set; }
     }
 
     private sealed class ThemeDataResponse

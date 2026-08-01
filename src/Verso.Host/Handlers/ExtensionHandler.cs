@@ -198,7 +198,9 @@ public static class ExtensionHandler
                         Id = id,
                         Version = version,
                         IsLocal = source == ExtensionSource.Local,
-                        Capabilities = ns.ExtensionHost.GetPackageCapabilities(id)?.ToList()
+                        Capabilities = ns.ExtensionHost.GetPackageCapabilities(id)?.ToList(),
+                        IconDataUri = NuGetMarketplaceService.TryReadPackageIconDataUri(
+                            id, version, ExtensionDirectoryResolver.GetDefaultManagedDir())
                     };
                 })
                 .Where(e => !string.IsNullOrEmpty(e.Id))

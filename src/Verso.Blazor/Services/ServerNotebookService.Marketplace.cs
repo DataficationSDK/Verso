@@ -163,7 +163,9 @@ public sealed partial class ServerNotebookService
                     var reason = _unavailableExtensionReasons.GetValueOrDefault(id);
                     return new InstalledExtensionDto(
                         id, version, source == ExtensionSource.Local, reason,
-                        _extensionHost?.GetPackageCapabilities(id));
+                        _extensionHost?.GetPackageCapabilities(id),
+                        NuGetMarketplaceService.TryReadPackageIconDataUri(
+                            id, version, ExtensionDirectoryResolver.GetDefaultManagedDir()));
                 })
                 .Where(e => !string.IsNullOrEmpty(e.Id))
                 .ToList();

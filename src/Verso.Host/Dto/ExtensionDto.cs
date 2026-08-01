@@ -26,6 +26,12 @@ public sealed class InstalledExtensionItemDto
     /// different things about those two, so the null must survive the round trip.
     /// </summary>
     public List<string>? Capabilities { get; set; }
+
+    /// <summary>
+    /// The package's own icon as a <c>data:</c> URI, read from the installed copy on disk. Null
+    /// when the package ships no icon, in which case the panel falls back to a lettered tile.
+    /// </summary>
+    public string? IconDataUri { get; set; }
 }
 
 public sealed class ExtensionInfoDto
