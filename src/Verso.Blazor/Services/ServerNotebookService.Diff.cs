@@ -63,7 +63,10 @@ public sealed partial class ServerNotebookService
         if (_scaffold.SettingsManager is { } sm)
             await sm.SaveSettingsAsync(_scaffold.Notebook);
 
-        return NotebookDiffEngine.Compute(baseline, _scaffold.Notebook, label);
+        // The cell-type registry tells the comparison which outputs are derived rather than
+        // authored, so re-rendered markup cells are not reported as edits.
+        return NotebookDiffEngine.Compute(
+            baseline, _scaffold.Notebook, label, _extensionHost?.GetCellTypes());
     }
 
     private async Task<(string Content, string BaselinePath, string Label)> ReadLastSavedBaselineAsync()

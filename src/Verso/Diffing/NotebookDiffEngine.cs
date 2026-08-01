@@ -11,6 +11,13 @@ namespace Verso.Diffing;
 public static class NotebookDiffEngine
 {
     /// <summary>
+    /// Compares <paramref name="baseline"/> against <paramref name="current"/> without a
+    /// cell-type registry, so every cell's outputs take part in the comparison.
+    /// </summary>
+    public static NotebookDiffResult Compute(NotebookModel baseline, NotebookModel current, string baselineLabel)
+        => Compute(baseline, current, baselineLabel, cellTypes: null);
+
+    /// <summary>
     /// Compares <paramref name="baseline"/> against <paramref name="current"/> and returns the
     /// aligned cell entries, notebook-level metadata changes, and summary counts.
     /// </summary>
@@ -21,13 +28,26 @@ public static class NotebookDiffEngine
     /// JSON form (recursively key-sorted), so a baseline holding <see cref="JsonElement"/>
     /// values compares equal to a live model holding CLR values of the same shape. Reported
     /// values are truncated for display; callers must not parse them back.
+    /// <para>
+    /// Outputs are excluded for the same reason, for cell types in <paramref name="cellTypes"/>
+    /// that declare <see cref="ICellType.PersistsOutputs"/> as <c>false</c>. Those outputs are
+    /// derived from the source and never written to disk, but hosts render them when a notebook
+    /// opens, so a baseline read from a file has none where the live notebook has one. Comparing
+    /// them would report every such cell as modified on an untouched notebook. When no registry
+    /// is supplied all outputs take part, which is the safe reading for a caller that cannot say
+    /// which types are transient.
+    /// </para>
     /// </remarks>
-    public static NotebookDiffResult Compute(NotebookModel baseline, NotebookModel current, string baselineLabel)
+    public static NotebookDiffResult Compute(
+        NotebookModel baseline,
+        NotebookModel current,
+        string baselineLabel,
+        IReadOnlyList<ICellType>? cellTypes)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(current);
 
-        var cells = CellAligner.Align(baseline.Cells, current.Cells);
+        var cells = CellAligner.Align(baseline.Cells, current.Cells, TransientOutputTypes(cellTypes));
         var summary = new NotebookDiffSummary();
         foreach (var entry in cells)
         {
@@ -49,6 +69,17 @@ public static class NotebookDiffEngine
             Summary = summary,
         };
     }
+
+    /// <summary>
+    /// Collects the ids of cell types whose outputs are transient. Matching is ordinal-ignore-case
+    /// to agree with how cell types are resolved everywhere else.
+    /// </summary>
+    private static IReadOnlySet<string> TransientOutputTypes(IReadOnlyList<ICellType>? cellTypes)
+        => cellTypes is null
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(
+                cellTypes.Where(t => !t.PersistsOutputs).Select(t => t.CellTypeId),
+                StringComparer.OrdinalIgnoreCase);
 
     private static List<MetadataChange> DiffMetadata(NotebookModel baseline, NotebookModel current)
     {

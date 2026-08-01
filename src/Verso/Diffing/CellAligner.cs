@@ -10,7 +10,15 @@ namespace Verso.Diffing;
 /// </summary>
 internal static class CellAligner
 {
-    public static List<CellDiffEntry> Align(IReadOnlyList<CellModel> baseline, IReadOnlyList<CellModel> current)
+    /// <summary>
+    /// Aligns two cell lists into diff entries. <paramref name="transientOutputTypes"/> names the
+    /// cell types whose outputs are derived from the source rather than authored, and so take no
+    /// part in the comparison; when it is null or empty, all outputs are compared.
+    /// </summary>
+    public static List<CellDiffEntry> Align(
+        IReadOnlyList<CellModel> baseline,
+        IReadOnlyList<CellModel> current,
+        IReadOnlySet<string>? transientOutputTypes = null)
     {
         var baselineConsumed = new bool[baseline.Count];
         var currentConsumed = new bool[current.Count];
@@ -74,7 +82,7 @@ internal static class CellAligner
         for (var k = 0; k < idPairs.Count; k++)
         {
             var (i, j) = idPairs[k];
-            var entry = CreatePairEntry(baseline[i], current[j], i, j, matchedByContent: false);
+            var entry = CreatePairEntry(baseline[i], current[j], i, j, matchedByContent: false, transientOutputTypes);
             if (entry.Kind == CellDiffKind.Unchanged && !inChain[k])
             {
                 entry.Kind = CellDiffKind.Moved;
@@ -86,7 +94,7 @@ internal static class CellAligner
 
         foreach (var (i, j) in contentPairs.Concat(gapPairs))
         {
-            entryByCurrent[j] = CreatePairEntry(baseline[i], current[j], i, j, matchedByContent: true);
+            entryByCurrent[j] = CreatePairEntry(baseline[i], current[j], i, j, matchedByContent: true, transientOutputTypes);
             currentByBaseline[i] = j;
         }
 
@@ -150,7 +158,13 @@ internal static class CellAligner
         return entries;
     }
 
-    private static CellDiffEntry CreatePairEntry(CellModel baselineCell, CellModel currentCell, int baselineIndex, int currentIndex, bool matchedByContent)
+    private static CellDiffEntry CreatePairEntry(
+        CellModel baselineCell,
+        CellModel currentCell,
+        int baselineIndex,
+        int currentIndex,
+        bool matchedByContent,
+        IReadOnlySet<string>? transientOutputTypes)
     {
         var entry = new CellDiffEntry
         {
@@ -160,7 +174,8 @@ internal static class CellAligner
             CurrentCell = currentCell,
             MatchedByContent = matchedByContent,
             SourceChanged = !string.Equals(baselineCell.Source, currentCell.Source, StringComparison.Ordinal),
-            OutputsChanged = !baselineCell.Outputs.SequenceEqual(currentCell.Outputs),
+            OutputsChanged = ComparesOutputs(baselineCell, currentCell, transientOutputTypes)
+                && !baselineCell.Outputs.SequenceEqual(currentCell.Outputs),
             TypeOrLanguageChanged =
                 !string.Equals(baselineCell.Type, currentCell.Type, StringComparison.Ordinal)
                 || !string.Equals(baselineCell.Language, currentCell.Language, StringComparison.Ordinal),
@@ -172,6 +187,17 @@ internal static class CellAligner
             : CellDiffKind.Unchanged;
         return entry;
     }
+
+    /// <summary>
+    /// Whether the two sides' outputs are worth comparing. They are not when both cells are of a
+    /// type whose outputs are derived from the source: those are re-rendered on open and never
+    /// saved, so one side having them and the other not says nothing about what was edited.
+    /// Both sides must qualify, so converting a markup cell into a kernel cell still reports the
+    /// real outputs the new cell gained.
+    /// </summary>
+    private static bool ComparesOutputs(CellModel a, CellModel b, IReadOnlySet<string>? transientOutputTypes)
+        => transientOutputTypes is not { Count: > 0 }
+            || !(transientOutputTypes.Contains(a.Type) && transientOutputTypes.Contains(b.Type));
 
     private static bool ContentEquals(CellModel a, CellModel b)
         => string.Equals(a.Type, b.Type, StringComparison.Ordinal)

@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Diffing;
+using Verso.Extensions.CellTypes;
 
 namespace Verso.Tests.Diffing;
 
@@ -326,6 +327,47 @@ public sealed class NotebookDiffEngineTests
         Assert.AreEqual(0, result.MetadataChanges.Count,
             "Comparing a notebook against its own serialized form must report no metadata changes: " +
             string.Join("; ", result.MetadataChanges.Select(c => c.Field)));
+    }
+
+    [TestMethod]
+    public async Task Compute_SaveRoundTrip_RenderedMarkdownCell_ReportsNoChange()
+    {
+        // What a host actually holds after opening a notebook: markdown rendered into an output
+        // that the save path deliberately never writes to disk.
+        var cellTypes = new ICellType[] { new MarkdownCellType() };
+        var markdown = new CellModel { Id = Guid.NewGuid(), Type = "markdown", Source = "# Heading" };
+        markdown.Outputs.Add(CellOutput.Html("<h1>Heading</h1>"));
+        var code = Cell("print(1)");
+        code.Outputs.Add(CellOutput.Plain("1"));
+        var live = Notebook(markdown, code);
+
+        var serializer = new Verso.Serializers.VersoSerializer(cellTypes);
+        var saved = await serializer.DeserializeAsync(await serializer.SerializeAsync(live));
+
+        var result = NotebookDiffEngine.Compute(saved, live, "Last Saved", cellTypes);
+
+        Assert.AreEqual(0, result.Summary.Modified,
+            "Comparing a notebook against its own saved file must report no cell changes; " +
+            "markdown outputs are rendered on open and never persisted.");
+        Assert.AreEqual(2, result.Summary.Unchanged);
+    }
+
+    [TestMethod]
+    public async Task Compute_SaveRoundTrip_NoCellTypeRegistry_StillComparesAllOutputs()
+    {
+        var cellTypes = new ICellType[] { new MarkdownCellType() };
+        var markdown = new CellModel { Id = Guid.NewGuid(), Type = "markdown", Source = "# Heading" };
+        markdown.Outputs.Add(CellOutput.Html("<h1>Heading</h1>"));
+        var live = Notebook(markdown);
+
+        var serializer = new Verso.Serializers.VersoSerializer(cellTypes);
+        var saved = await serializer.DeserializeAsync(await serializer.SerializeAsync(live));
+
+        var result = NotebookDiffEngine.Compute(saved, live, "Last Saved");
+
+        Assert.AreEqual(1, result.Summary.Modified,
+            "Without a registry the comparison cannot know which outputs are derived, so it " +
+            "must keep comparing them all.");
     }
 
     [TestMethod]

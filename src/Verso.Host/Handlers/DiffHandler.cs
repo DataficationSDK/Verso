@@ -67,6 +67,9 @@ public static class DiffHandler
         if (ns.Scaffold.SettingsManager is { } sm)
             await sm.SaveSettingsAsync(ns.Scaffold.Notebook);
 
-        return NotebookDiffEngine.Compute(baseline, ns.Scaffold.Notebook, p.BaselineLabel);
+        // The cell-type registry tells the comparison which outputs are derived rather than
+        // authored, so re-rendered markup cells are not reported as edits.
+        return NotebookDiffEngine.Compute(
+            baseline, ns.Scaffold.Notebook, p.BaselineLabel, ns.ExtensionHost.GetCellTypes());
     }
 }

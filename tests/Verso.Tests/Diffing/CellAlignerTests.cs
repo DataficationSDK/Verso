@@ -268,6 +268,65 @@ public sealed class CellAlignerTests
         Assert.IsFalse(entries[0].CellMetadataChanged);
     }
 
+    private static IReadOnlySet<string> Transient(params string[] cellTypeIds)
+        => new HashSet<string>(cellTypeIds, StringComparer.OrdinalIgnoreCase);
+
+    [TestMethod]
+    public void Align_TransientOutputType_GainsOutput_StaysUnchanged()
+    {
+        // A saved markup cell carries no outputs; the live notebook renders one when it opens.
+        var saved = Cell("# heading", type: "markdown", language: null);
+        var live = Clone(saved, outputs: new List<CellOutput> { CellOutput.Html("<h1>heading</h1>") });
+
+        var entries = CellAligner.Align(new[] { saved }, new[] { live }, Transient("markdown"));
+
+        Assert.AreEqual(CellDiffKind.Unchanged, entries[0].Kind);
+        Assert.IsFalse(entries[0].OutputsChanged);
+    }
+
+    [TestMethod]
+    public void Align_TransientOutputType_SourceChanged_StillModified()
+    {
+        var saved = Cell("# heading", type: "markdown", language: null);
+        var live = Clone(saved, source: "# other heading",
+            outputs: new List<CellOutput> { CellOutput.Html("<h1>other heading</h1>") });
+
+        var entries = CellAligner.Align(new[] { saved }, new[] { live }, Transient("markdown"));
+
+        Assert.AreEqual(CellDiffKind.Modified, entries[0].Kind);
+        Assert.IsTrue(entries[0].SourceChanged);
+        Assert.IsFalse(entries[0].OutputsChanged);
+    }
+
+    [TestMethod]
+    public void Align_PersistingType_OutputsDiffer_StillModified()
+    {
+        var a = Cell("a");
+        a.Outputs.Add(CellOutput.Plain("old result"));
+        var edited = Clone(a, outputs: new List<CellOutput> { CellOutput.Plain("new result") });
+
+        var entries = CellAligner.Align(new[] { a }, new[] { edited }, Transient("markdown"));
+
+        Assert.AreEqual(CellDiffKind.Modified, entries[0].Kind);
+        Assert.IsTrue(entries[0].OutputsChanged);
+    }
+
+    [TestMethod]
+    public void Align_TransientTypeConvertedToKernelType_ReportsGainedOutputs()
+    {
+        var saved = Cell("# heading", type: "markdown", language: null);
+        var converted = Clone(saved);
+        converted.Type = "code";
+        converted.Language = "csharp";
+        converted.Outputs.Add(CellOutput.Plain("42"));
+
+        var entries = CellAligner.Align(new[] { saved }, new[] { converted }, Transient("markdown"));
+
+        Assert.AreEqual(CellDiffKind.Modified, entries[0].Kind);
+        Assert.IsTrue(entries[0].TypeOrLanguageChanged);
+        Assert.IsTrue(entries[0].OutputsChanged);
+    }
+
     [TestMethod]
     public void Align_CellMetadataChange_FlagsCellMetadataChanged()
     {
