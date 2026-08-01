@@ -173,6 +173,19 @@ window.versoMonaco = (function () {
         }
     }
 
+    // Whether every editor inside a cell has been given its content height. create()
+    // sets that height inline once Monaco can measure a line; until then the host is
+    // zero-high and the cell measures far shorter than it will end up. A cell with no
+    // editor in it, which is what a collapsed or display-only cell looks like, is
+    // sized as soon as it is on screen.
+    function editorsSized(cell) {
+        const hosts = cell.querySelectorAll('.verso-monaco-editor');
+        for (let i = 0; i < hosts.length; i++) {
+            if (!hosts[i].style.height) return false;
+        }
+        return true;
+    }
+
     // Eagerly start loading Monaco at page load so it is fully initialized
     // (and define.amd removed) before any notebook opens.  This prevents
     // <script> tags in saved cell outputs from interfering with the AMD
@@ -527,25 +540,41 @@ window.versoMonaco = (function () {
         },
 
         scrollToSelected: function () {
-            // Poll across animation frames until the selected cell is actually
-            // scrollable, then scroll to it. In the custom portaling layouts every cell
-            // is first rendered inside a hidden pool (display:none, so offsetHeight is 0)
-            // and only moved into a visible slot once the layout HTML regenerates. For a
-            // newly added cell that regeneration is a full round trip on the server host
-            // (over the circuit), so a fixed delay or a bare offsetHeight check can fire
-            // while the cell is still pooled, where scrollIntoView does nothing. We wait
-            // for the cell to leave the pool and become measurable. Non-portaling layouts
-            // have no pool, so the closest() check is null and the cell is ready as soon
-            // as it has height. The cap keeps this bounded if the cell never slots in.
+            // Poll across animation frames until the selected cell is both placed and
+            // sized, then scroll to it. Both halves of that wait are needed.
+            //
+            // Placed: in the custom portaling layouts every cell is first rendered inside
+            // a hidden pool (display:none, so offsetHeight is 0) and only moved into a
+            // visible slot once the layout HTML regenerates. For a newly added cell that
+            // regeneration is a full round trip on the server host (over the circuit), so
+            // a fixed delay or a bare offsetHeight check can fire while the cell is still
+            // pooled, where scrollIntoView does nothing. Non-portaling layouts have no
+            // pool, so the closest() check is null.
+            //
+            // Sized: selecting a cell can swap a short rendered preview for an editor, and
+            // the editor's own height lands later again, once Monaco has been created and
+            // can measure a line. Scrolling in between measures a cell hundreds of pixels
+            // shorter than it ends up, and a smooth scroll fixes its destination at that
+            // moment rather than following the element, so the cell settles with its
+            // bottom below the fold. The last cell shows this worst: there is nothing
+            // after it to scroll up into view.
+            //
+            // The cap bounds both waits. A cell that is at least placed is still worth
+            // scrolling to, so a never-measurable editor costs accuracy rather than the
+            // whole reveal.
             let tries = 0;
             (function retry() {
                 const el = document.querySelector('.verso-cell--selected');
-                const ready = el && !el.closest('.verso-cell-pool') && el.offsetHeight > 0;
-                if (ready) {
+                const placed = el && !el.closest('.verso-cell-pool') && el.offsetHeight > 0;
+                if (placed && editorsSized(el)) {
                     el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                     return;
                 }
-                if (tries++ > 180) return; // ~3s at 60fps; give up rather than scroll a hidden node
+                if (tries++ > 180) { // ~3s at 60fps
+                    // Out of patience: scroll to it anyway, but never to a hidden node.
+                    if (placed) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    return;
+                }
                 requestAnimationFrame(retry);
             })();
         },
