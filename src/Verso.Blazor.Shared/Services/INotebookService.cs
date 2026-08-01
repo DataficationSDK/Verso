@@ -360,6 +360,13 @@ public interface INotebookService
     IReadOnlyList<InstalledExtensionDto> InstalledExtensions => Array.Empty<InstalledExtensionDto>();
 
     /// <summary>
+    /// The package sources searches run against, in search order. The extension panel states
+    /// this so a result is attributable rather than assumed to have come from nuget.org. Hosts
+    /// without marketplace support return an empty list, and the panel says nothing.
+    /// </summary>
+    IReadOnlyList<string> MarketplaceSources => Array.Empty<string>();
+
+    /// <summary>
     /// How this host lets the user pick a local extension file to sideload, or
     /// <see cref="LocalExtensionPickMode.None"/> when sideloading is unavailable. The extension
     /// panel uses this to decide which acquisition path the "load from file" button drives.

@@ -39,6 +39,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private List<ThemeInfo> _themes = new();
     private List<ExtensionInfo> _extensions = new();
     private List<InstalledExtensionDto> _installedExtensions = new();
+    private List<string> _marketplaceSources = new();
     // Required extensions the host reported as failed-to-load, keyed by package id, so installed
     // rows can be flagged. The unavailable notification and the installed list can arrive in either
     // order, so this is applied both when building the list and when the notification lands.
@@ -240,6 +241,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public IReadOnlyList<ThemeInfo> AvailableThemes => _themes;
     public IReadOnlyList<ExtensionInfo> Extensions => _extensions;
     public IReadOnlyList<InstalledExtensionDto> InstalledExtensions => _installedExtensions;
+    public IReadOnlyList<string> MarketplaceSources => _marketplaceSources;
 
     // ── File operations ─────────────────────────────────────────────────
 
@@ -1898,9 +1900,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _installedExtensions = extsResult.Installed?
             .Select(i => new InstalledExtensionDto(
                 i.Id ?? "", i.Version, i.IsLocal,
-                _unavailableExtensionReasons.GetValueOrDefault(i.Id ?? "")))
+                _unavailableExtensionReasons.GetValueOrDefault(i.Id ?? ""),
+                i.Capabilities))
             .Where(i => !string.IsNullOrEmpty(i.Id))
             .ToList() ?? new();
+        _marketplaceSources = extsResult.Sources ?? new();
 
         // Settings
         await RefreshSettingsAsync();
@@ -2466,6 +2470,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         public List<ExtensionInfo>? Extensions { get; set; }
         public List<InstalledExtensionItemResponse>? Installed { get; set; }
+        public List<string>? Sources { get; set; }
     }
 
     private sealed class InstalledExtensionItemResponse
@@ -2473,6 +2478,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? Id { get; set; }
         public string? Version { get; set; }
         public bool IsLocal { get; set; }
+
+        // Null and empty mean different things here: not loaded yet, versus loaded and
+        // contributed no extension point. Keep the null rather than defaulting to a list.
+        public List<string>? Capabilities { get; set; }
     }
 
     private sealed class ThemeDataResponse

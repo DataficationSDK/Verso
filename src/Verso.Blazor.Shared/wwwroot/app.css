@@ -2286,7 +2286,20 @@ html, body {
     margin-left: auto;
 }
 
-/* === Extension Panel === */
+/* === Extension Panel ===
+
+   The pane is one list of packages with install state on the row, followed by the
+   extensions currently loaded. Both halves share the panel vocabulary (surface, shape,
+   elevation and status tokens) so the pane reads as one design rather than two. */
+
+.verso-extension-loaded {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--verso-border-default, #E0E0E0);
+}
 
 .verso-extension-group {
     margin-bottom: 2px;
@@ -2299,9 +2312,10 @@ html, body {
     width: 100%;
     padding: 6px 8px;
     border: none;
-    border-radius: var(--verso-button-border-radius, 4px);
+    border-radius: var(--verso-shape-small, 8px);
     background: transparent;
-    color: var(--verso-editor-foreground, #1E1E1E);
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -2310,13 +2324,14 @@ html, body {
 }
 
 .verso-extension-group-header:hover {
-    background: var(--verso-cell-output-background, #F5F5F5);
+    background: var(--verso-bg-elevated, #FAFAFA);
 }
 
 .verso-extension-group-chevron {
-    font-size: 8px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--verso-fg-subtle, #A0A0A0);
     transition: transform 0.15s ease;
-    color: var(--verso-editor-line-number, #858585);
 }
 
 .verso-extension-group-chevron--open {
@@ -2329,20 +2344,20 @@ html, body {
 }
 
 .verso-extension-group-count {
-    font-size: 10px;
-    font-weight: 400;
-    color: var(--verso-editor-line-number, #858585);
-    background: var(--verso-cell-output-background, #F5F5F5);
     padding: 0 6px;
     border-radius: var(--verso-shape-full, 999px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 10px;
+    font-weight: 400;
 }
 
 .verso-extension-item {
     padding: 8px;
     margin: 0 0 4px 16px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
 }
 
 .verso-extension-header {
@@ -2352,18 +2367,18 @@ html, body {
 }
 
 .verso-extension-name {
-    font-weight: 600;
-    font-size: 12px;
     flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .verso-extension-version {
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
 }
 
 .verso-extension-toggle {
@@ -2373,59 +2388,50 @@ html, body {
     padding: 2px 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: var(--verso-shape-full, 999px);
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-family: inherit;
     font-size: 10px;
     cursor: pointer;
 }
 
 .verso-extension-toggle--enabled {
-    background: var(--verso-status-success, #28A745);
+    border-color: var(--verso-status-success, #2EA043);
+    background: var(--verso-status-success, #2EA043);
     color: #FFFFFF;
-    border-color: var(--verso-status-success, #28A745);
 }
 
 .verso-extension-author {
-    font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
     margin-top: 2px;
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 11px;
 }
 
 .verso-extension-description {
-    font-size: 11px;
-    color: var(--verso-editor-foreground, #1E1E1E);
     margin-top: 4px;
+    color: var(--verso-fg-default, #1E1E1E);
+    font-size: 11px;
 }
 
 .verso-extension-caps {
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
     margin-top: 6px;
-}
-
-.verso-extension-cap-badge {
-    padding: 1px 6px;
-    border-radius: var(--verso-button-border-radius, 6px);
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
-    font-size: 10px;
-    letter-spacing: 0.3px;
 }
 
 /* === Extension Marketplace === */
 
 .verso-marketplace {
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .verso-marketplace-search {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 4px;
 }
 
 .verso-marketplace-search-row {
@@ -2443,16 +2449,16 @@ html, body {
     height: 28px;
     padding: 0;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
-    color: var(--verso-editor-foreground, #1E1E1E);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-fg-default, #1E1E1E);
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
 }
 
 .verso-marketplace-more:hover {
-    border-color: var(--verso-accent, #0078D4);
+    border-color: var(--verso-accent-primary, #0078D4);
 }
 
 .verso-marketplace-more--disabled {
@@ -2477,71 +2483,243 @@ html, body {
     min-width: 0;
     padding: 5px 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
-    color: var(--verso-editor-foreground, #1E1E1E);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
     font-size: 12px;
 }
 
 .verso-marketplace-input:focus {
     outline: none;
-    border-color: var(--verso-accent, #0078D4);
+    border-color: var(--verso-accent-primary, #0078D4);
 }
 
 .verso-marketplace-status {
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 10px;
-    color: var(--verso-editor-line-number, #858585);
     white-space: nowrap;
 }
 
+/* The two facts stated before any row. Each holds one value today, so they are set as
+   plain text rather than as controls that only ever offer one choice. */
+.verso-marketplace-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.verso-marketplace-context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-full, 999px);
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 11px;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.verso-marketplace-context-chip b {
+    color: var(--verso-fg-default, #1E1E1E);
+    font-weight: 600;
+}
+
 .verso-marketplace-error {
-    margin: 4px;
     padding: 6px 8px;
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-output-background, #F5F5F5);
+    border-radius: var(--verso-shape-small, 8px);
+    background: color-mix(in srgb, var(--verso-status-error, #D13438) 10%, transparent);
     color: var(--verso-status-error, #D13438);
     font-size: 11px;
 }
 
-.verso-marketplace-empty {
-    margin: 4px;
+.verso-marketplace-notice {
+    padding: 6px 8px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
+    line-height: 1.45;
 }
 
-.verso-marketplace-results {
+.verso-marketplace-empty {
+    padding: 20px 8px;
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 11.5px;
+    text-align: center;
+}
+
+.verso-marketplace-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-top: 4px;
 }
 
-.verso-marketplace-result {
+/* A row describes a package the same way whatever state it is in. State is a stripe on
+   the leading edge plus a chip in the footer, never a different region. */
+.verso-marketplace-row {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 8px;
     padding: 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
 }
 
-.verso-marketplace-result-header {
+.verso-marketplace-row--installed {
+    border-left: 3px solid var(--verso-status-success, #2EA043);
+    padding-left: 6px;
+}
+
+.verso-marketplace-row--error {
+    border-left: 3px solid var(--verso-status-error, #D13438);
+    padding-left: 6px;
+}
+
+.verso-marketplace-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.verso-marketplace-row-body {
+    min-width: 0;
+}
+
+.verso-marketplace-row-head {
     display: flex;
     align-items: baseline;
     gap: 6px;
+    min-width: 0;
 }
 
-.verso-marketplace-result-id {
-    font-weight: 600;
-    font-size: 12px;
-    flex: 1;
-    min-width: 0;
+.verso-marketplace-row-id {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.verso-marketplace-result-version {
+.verso-marketplace-row-version {
+    flex: 0 0 auto;
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 10.5px;
+}
+
+.verso-marketplace-row-publisher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-row-dot {
+    opacity: 0.5;
+}
+
+.verso-marketplace-row-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 4px;
+    color: var(--verso-fg-default, #1E1E1E);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.verso-marketplace-row-adds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+/* A capability chip sits inside a row inside a narrow rail, so it runs one step smaller
+   than the panel chip it inherits from. */
+.verso-marketplace-add {
+    height: 18px;
+    padding: 0 6px;
+    font-size: 10px;
+}
+
+.verso-marketplace-row-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+}
+
+.verso-marketplace-row-meta {
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 10.5px;
+}
+
+.verso-marketplace-row-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.verso-marketplace-row-state .verso-panel-chip {
+    height: 18px;
+    padding: 0 7px;
+    font-size: 10px;
+}
+
+.verso-marketplace-row-note {
+    margin-top: 7px;
+    padding: 5px 7px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: color-mix(in srgb, var(--verso-status-error, #D13438) 10%, transparent);
+    color: var(--verso-status-error, #D13438);
+    font-size: 10.5px;
+    line-height: 1.45;
+}
+
+.verso-marketplace-btn {
+    padding: 3px 10px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.verso-marketplace-btn:hover:not(:disabled) {
+    border-color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-marketplace-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.verso-marketplace-btn--install {
+    border-color: var(--verso-accent-primary, #0078D4);
+    background: var(--verso-accent-primary, #0078D4);
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 /* Version picker (install-time): a compact dropdown mirroring the cell-type badge.
@@ -2558,18 +2736,18 @@ html, body {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    padding: 1px 6px;
-    border: none;
-    border-radius: var(--verso-button-border-radius, 6px);
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
-    font-size: 11px;
+    padding: 3px 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
     font-family: inherit;
+    font-size: 11px;
     cursor: pointer;
 }
 
 .verso-marketplace-version-badge:hover:not(:disabled) {
-    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    border-color: var(--verso-accent-primary, #0078D4);
 }
 
 .verso-marketplace-version-badge:disabled {
@@ -2578,27 +2756,27 @@ html, body {
 }
 
 .verso-marketplace-version-chevron {
-    font-size: 9px;
-    color: var(--verso-editor-line-number, #858585);
     margin-left: 2px;
+    color: var(--verso-fg-subtle, #A0A0A0);
+    font-size: 9px;
 }
 
 .verso-marketplace-version-popup {
     position: absolute;
     top: 100%;
-    left: 0;
+    right: 0;
     margin-top: 2px;
     display: flex;
     flex-direction: column;
     min-width: 90px;
     max-height: 220px;
     overflow-y: auto;
-    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
+    padding: 2px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: var(--verso-shape-medium, 12px);
+    background: var(--verso-dropdown-background, var(--verso-bg-elevated, #FAFAFA));
     box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 10000;
-    padding: 2px;
 }
 
 .verso-marketplace-version-option {
@@ -2606,9 +2784,9 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: var(--verso-button-border-radius, 6px);
+    border-radius: var(--verso-shape-small, 8px);
     background: transparent;
-    color: var(--verso-editor-foreground, #1E1E1E);
+    color: var(--verso-fg-default, #1E1E1E);
     font-family: inherit;
     font-size: 12px;
     text-align: left;
@@ -2630,119 +2808,8 @@ html, body {
 
 .verso-marketplace-version-status {
     padding: 4px 10px;
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-result-authors {
-    font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
-    margin-top: 2px;
-}
-
-.verso-marketplace-result-desc {
-    font-size: 11px;
-    color: var(--verso-editor-foreground, #1E1E1E);
-    margin-top: 4px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-.verso-marketplace-result-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 6px;
-}
-
-.verso-marketplace-btn {
-    padding: 3px 12px;
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    font-size: 11px;
-    cursor: pointer;
-}
-
-.verso-marketplace-btn:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.verso-marketplace-btn--install {
-    background: var(--verso-accent, #0078D4);
-    color: var(--verso-accent-foreground, #FFFFFF);
-    border-color: var(--verso-accent, #0078D4);
-}
-
-.verso-marketplace-btn--uninstall {
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-foreground, #1E1E1E);
-}
-
-.verso-marketplace-installed {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 4px 0 8px;
-}
-
-.verso-marketplace-installed-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-installed-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 6px;
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
-}
-
-.verso-marketplace-installed-info {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-}
-
-.verso-marketplace-installed-id {
-    font-weight: 600;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.verso-marketplace-installed-version {
-    font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-installed-badge {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 1px 5px;
-    border-radius: var(--verso-shape-full, 999px);
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-installed-warning {
-    flex: 0 0 auto;
-    font-size: 11px;
-    line-height: 1;
-    color: var(--verso-status-warning, #B58900);
-    cursor: help;
 }
 
 /* === Variable Explorer === */

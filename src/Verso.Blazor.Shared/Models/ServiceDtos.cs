@@ -311,18 +311,28 @@ public sealed record PackageInstallResultDto(
 /// is true for files sideloaded from disk, which never appear in NuGet search results.
 /// <paramref name="UnavailableReason"/> is non-null when the package was required but failed to load
 /// (not on disk, source unreachable, consent denied), carrying a short explanation for the UI.
+/// <paramref name="Capabilities"/> is what the package contributed once loaded, which cannot be known
+/// from a package feed and so is only ever available for an installed package.
 /// </summary>
 public sealed record InstalledExtensionDto(
     string Id,
     string? Version,
     bool IsLocal,
-    string? UnavailableReason = null)
+    string? UnavailableReason = null,
+    IReadOnlyList<string>? Capabilities = null)
 {
     /// <summary>
     /// True when this required extension did not load and the panel should flag it. See
     /// <see cref="UnavailableReason"/> for why.
     /// </summary>
     public bool IsUnavailable => UnavailableReason is not null;
+
+    /// <summary>
+    /// True when the package loaded and registered no extension point at all, so installing it
+    /// changed nothing. Distinct from <see cref="Capabilities"/> being null, which only means
+    /// the package has not loaded in this session and nothing is known yet.
+    /// </summary>
+    public bool ContributesNothing => Capabilities is { Count: 0 };
 }
 
 /// <summary>

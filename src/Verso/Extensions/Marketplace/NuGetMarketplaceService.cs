@@ -81,6 +81,17 @@ public sealed class NuGetMarketplaceService
     }
 
     /// <summary>
+    /// The configured package sources, in the order they are searched. Surfaced so the
+    /// extension panel can say where its results came from rather than assuming nuget.org,
+    /// which is wrong for anyone with a private feed in their NuGet configuration.
+    /// </summary>
+    public IReadOnlyList<string> SourceNames => _sources
+        .Select(s => string.IsNullOrWhiteSpace(s.PackageSource.Name)
+            ? s.PackageSource.Source
+            : s.PackageSource.Name)
+        .ToList();
+
+    /// <summary>
     /// Searches the configured sources for packages matching <paramref name="query"/>.
     /// The first source that exposes a search resource is used (local-directory feeds do
     /// not support search; the nuget.org fallback always does).

@@ -6,7 +6,7 @@
                 <div class="verso-marketplace-search-row">
                     <input class="verso-marketplace-input"
                            type="text"
-                           placeholder="Search NuGet for extensions..."
+                           placeholder="Search extensions..."
                            value="@_searchQuery"
                            @oninput="HandleSearchInput" />
                     @if (Service.LocalExtensionPickMode == LocalExtensionPickMode.Upload)
@@ -38,132 +38,189 @@
                 }
             </div>
 
+            @* The two facts the pane states before any row: how far an install reaches, and
+               where the results came from. Each has one value today, so both read as a
+               statement rather than a control. *@
+            <div class="verso-marketplace-context">
+                <span class="verso-marketplace-context-chip"
+                      data-verso-tip="Install scope"
+                      data-verso-tip-desc="Installing records the package in this notebook, not on this machine.">
+                    Installs into <b>this notebook</b>
+                </span>
+                @if (SourceLabel is { Length: > 0 })
+                {
+                    <span class="verso-marketplace-context-chip"
+                          data-verso-tip="Package sources"
+                          data-verso-tip-desc="@string.Join(", ", Service.MarketplaceSources)">
+                        from <b>@SourceLabel</b>
+                    </span>
+                }
+            </div>
+
             @if (_installError is not null)
             {
                 <div class="verso-marketplace-error">@_installError</div>
             }
 
-            @{
-                var installed = Service.InstalledExtensions;
-            }
-            @if (installed.Count > 0)
+            @if (_removedThisSession.Count > 0)
             {
-                <div class="verso-marketplace-installed">
-                    <div class="verso-marketplace-installed-label">Installed</div>
-                    @foreach (var ext in installed)
-                    {
-                        var e = ext;
-                        <div class="verso-marketplace-installed-item">
-                            <div class="verso-marketplace-installed-info">
-                                @if (e.IsUnavailable)
-                                {
-                                    <span class="verso-marketplace-installed-warning"
-                                          role="img"
-                                          aria-label="@($"Not loaded: {e.UnavailableReason}")"
-                                          data-verso-tip="Not loaded"
-                                          data-verso-tip-desc="@e.UnavailableReason">&#9888;</span>
-                                }
-                                <span class="verso-marketplace-installed-id" data-verso-tip="@e.Id">@e.Id</span>
-                                @if (e.Version is not null)
-                                {
-                                    <span class="verso-marketplace-installed-version">@e.Version</span>
-                                }
-                                @if (e.IsLocal)
-                                {
-                                    <span class="verso-marketplace-installed-badge"
-                                          data-verso-tip="Local"
-                                          data-verso-tip-desc="Sideloaded from a local file.">Local</span>
-                                }
-                            </div>
-                            <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
-                                    disabled="@_isBusy"
-                                    @onclick="() => UninstallAsync(e.Id)">Uninstall</button>
-                        </div>
-                    }
+                @* There is no single-extension unload, so removal is only recorded now and
+                   takes effect on the next open. Saying so beats implying it is gone. *@
+                <div class="verso-marketplace-notice">
+                    Removed from this notebook. What it loaded stays active until the notebook is reopened.
                 </div>
             }
 
-            @if (_searchResults is not null)
+            @{
+                var rows = BuildRows();
+            }
+            @if (rows.Count == 0)
             {
-                @if (_searchResults.Count == 0 && !_isSearching && !string.IsNullOrWhiteSpace(_searchQuery))
-                {
-                    <div class="verso-marketplace-empty">No packages found.</div>
-                }
-                else
-                {
-                    <div class="verso-marketplace-results">
-                        @foreach (var pkg in _searchResults)
-                        {
-                            var p = pkg;
-                            <div class="verso-marketplace-result">
-                                <div class="verso-marketplace-result-header">
-                                    <span class="verso-marketplace-result-id" data-verso-tip="@p.Id">@p.Id</span>
-                                    @if (p.Version is not null)
+                <div class="verso-marketplace-empty">
+                    @(string.IsNullOrWhiteSpace(_searchQuery)
+                        ? "No extensions installed. Search to add one."
+                        : "No packages found.")
+                </div>
+            }
+            else
+            {
+                <div class="verso-marketplace-list">
+                    @foreach (var row in rows)
+                    {
+                        var r = row;
+                        <div class="verso-marketplace-row @StateClass(r)">
+                            @* IconUrl arrives on the search result but is never fetched: a remote
+                               image is a content-policy problem in an embedded host and a leak in a
+                               private one. A letter on a colour hashed from the id is stable across
+                               renders and reads as identity rather than decoration. *@
+                            <div class="verso-marketplace-tile" style="background: @Tint(r.Id)" aria-hidden="true">@Initial(r.Id)</div>
+                            <div class="verso-marketplace-row-body">
+                                <div class="verso-marketplace-row-head">
+                                    <span class="verso-marketplace-row-id" data-verso-tip="@r.Id">@r.Id</span>
+                                    @if (r.IsInstalled && r.Version is not null)
                                     {
-                                        @if (p.IsInstalled)
+                                        <span class="verso-marketplace-row-version">@r.Version</span>
+                                    }
+                                </div>
+
+                                @if (r.Authors is not null || r.IsLocal)
+                                {
+                                    <div class="verso-marketplace-row-publisher">
+                                        @if (r.Authors is not null)
                                         {
-                                            <span class="verso-marketplace-result-version">@p.Version</span>
+                                            <span>@r.Authors</span>
+                                        }
+                                        @if (r.IsLocal)
+                                        {
+                                            @if (r.Authors is not null)
+                                            {
+                                                <span class="verso-marketplace-row-dot">&#183;</span>
+                                            }
+                                            <span data-verso-tip="Local"
+                                                  data-verso-tip-desc="Sideloaded from a local file.">local file</span>
+                                        }
+                                    </div>
+                                }
+
+                                @if (r.Description is not null)
+                                {
+                                    <div class="verso-marketplace-row-desc">@r.Description</div>
+                                }
+
+                                @* Only an installed package can say what it adds. A feed cannot
+                                   report contributions, so an available package says nothing
+                                   rather than guessing. *@
+                                @if (r.Capabilities is { Count: > 0 })
+                                {
+                                    <div class="verso-marketplace-row-adds">
+                                        @foreach (var cap in r.Capabilities)
+                                        {
+                                            <span class="verso-panel-chip verso-marketplace-add">
+                                                @CapabilityDisplayNames.GetValueOrDefault(cap, cap)
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                                else if (r.Capabilities is { Count: 0 })
+                                {
+                                    <div class="verso-marketplace-row-adds">
+                                        <span class="verso-panel-chip verso-panel-chip--warning"
+                                              data-verso-tip="Adds nothing"
+                                              data-verso-tip-desc="It loaded but contributed no extension point, so installing it changed nothing.">
+                                            Adds nothing
+                                        </span>
+                                    </div>
+                                }
+
+                                <div class="verso-marketplace-row-foot">
+                                    @if (FormatDownloads(r.DownloadCount) is { } downloads)
+                                    {
+                                        <span class="verso-marketplace-row-meta">@downloads downloads</span>
+                                    }
+                                    <div class="verso-marketplace-row-state">
+                                        @if (r.UnavailableReason is not null)
+                                        {
+                                            <span class="verso-panel-chip verso-panel-chip--error">Not loaded</span>
+                                            <button class="verso-marketplace-btn"
+                                                    disabled="@_isBusy"
+                                                    @onclick="() => UninstallAsync(r.Id)">Remove</button>
+                                        }
+                                        else if (r.IsInstalled)
+                                        {
+                                            <span class="verso-panel-chip verso-panel-chip--success">Installed</span>
+                                            <button class="verso-marketplace-btn"
+                                                    disabled="@_isBusy"
+                                                    @onclick="() => UninstallAsync(r.Id)">Remove</button>
                                         }
                                         else
                                         {
-                                            var selected = SelectedVersion(p);
-                                            <div class="verso-marketplace-version-dropdown" @onfocusout="OnVersionDropdownFocusOut" tabindex="-1">
-                                                <button class="verso-marketplace-version-badge"
-                                                        disabled="@_isBusy"
-                                                        data-verso-tip="Choose a version to install"
-                                                        @onclick="() => ToggleVersionDropdown(p.Id, p.Version)">
-                                                    @selected
-                                                    <span class="verso-marketplace-version-chevron">&#9662;</span>
-                                                </button>
-                                                @if (_openVersionDropdownId == p.Id)
-                                                {
-                                                    <div class="verso-marketplace-version-popup">
-                                                        @if (_loadingVersionsId == p.Id)
-                                                        {
-                                                            <div class="verso-marketplace-version-status">Loading...</div>
-                                                        }
-                                                        else if (_versionCache.TryGetValue(p.Id, out var versions))
-                                                        {
-                                                            @foreach (var ver in versions)
+                                            @if (r.Version is not null)
+                                            {
+                                                var selected = SelectedVersion(r.Id, r.Version);
+                                                <div class="verso-marketplace-version-dropdown" @onfocusout="OnVersionDropdownFocusOut" tabindex="-1">
+                                                    <button class="verso-marketplace-version-badge"
+                                                            disabled="@_isBusy"
+                                                            data-verso-tip="Choose a version to install"
+                                                            @onclick="() => ToggleVersionDropdown(r.Id, r.Version)">
+                                                        @selected
+                                                        <span class="verso-marketplace-version-chevron">&#9662;</span>
+                                                    </button>
+                                                    @if (_openVersionDropdownId == r.Id)
+                                                    {
+                                                        <div class="verso-marketplace-version-popup">
+                                                            @if (_loadingVersionsId == r.Id)
                                                             {
-                                                                var v = ver;
-                                                                var isActive = string.Equals(v, selected, StringComparison.OrdinalIgnoreCase);
-                                                                <button class="verso-marketplace-version-option @(isActive ? "verso-marketplace-version-option--active" : "")"
-                                                                        @onclick="() => SelectVersion(p.Id, v)">@v</button>
+                                                                <div class="verso-marketplace-version-status">Loading...</div>
                                                             }
-                                                        }
-                                                    </div>
-                                                }
-                                            </div>
+                                                            else if (_versionCache.TryGetValue(r.Id, out var versions))
+                                                            {
+                                                                @foreach (var ver in versions)
+                                                                {
+                                                                    var v = ver;
+                                                                    var isActive = string.Equals(v, selected, StringComparison.OrdinalIgnoreCase);
+                                                                    <button class="verso-marketplace-version-option @(isActive ? "verso-marketplace-version-option--active" : "")"
+                                                                            @onclick="() => SelectVersion(r.Id, v)">@v</button>
+                                                                }
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                            <button class="verso-marketplace-btn verso-marketplace-btn--install"
+                                                    disabled="@_isBusy"
+                                                    @onclick="() => InstallAsync(r.Id, SelectedVersion(r.Id, r.Version))">Install</button>
                                         }
-                                    }
+                                    </div>
                                 </div>
-                                @if (p.Authors is not null)
+
+                                @if (r.UnavailableReason is not null)
                                 {
-                                    <div class="verso-marketplace-result-authors">@p.Authors</div>
+                                    <div class="verso-marketplace-row-note">@r.UnavailableReason</div>
                                 }
-                                @if (p.Description is not null)
-                                {
-                                    <div class="verso-marketplace-result-desc">@p.Description</div>
-                                }
-                                <div class="verso-marketplace-result-actions">
-                                    @if (p.IsInstalled)
-                                    {
-                                        <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
-                                                disabled="@_isBusy"
-                                                @onclick="() => UninstallAsync(p.Id)">Uninstall</button>
-                                    }
-                                    else
-                                    {
-                                        <button class="verso-marketplace-btn verso-marketplace-btn--install"
-                                                disabled="@_isBusy"
-                                                @onclick="() => InstallAsync(p.Id, SelectedVersion(p))">Install</button>
-                                    }
-                                </div>
                             </div>
-                        }
-                    </div>
-                }
+                        </div>
+                    }
+                </div>
             }
         </div>
     }
@@ -172,57 +229,64 @@
     {
         var infos = Service.Extensions;
         var grouped = GroupByCategory(infos);
-        @foreach (var group in grouped)
+        @if (grouped.Count > 0)
         {
-            var category = group.Key;
-            var isOpen = _expandedCategories.Contains(category);
-            <div class="verso-extension-group">
-                <button class="verso-extension-group-header" @onclick="() => ToggleCategory(category)">
-                    <span class="verso-extension-group-chevron @(isOpen ? "verso-extension-group-chevron--open" : "")">&#9654;</span>
-                    <span class="verso-extension-group-label">@category</span>
-                    <span class="verso-extension-group-count">@group.Value.Count</span>
-                </button>
-                @if (isOpen)
+            <div class="verso-extension-loaded">
+                <div class="verso-panel-section-title">Loaded</div>
+                @foreach (var group in grouped)
                 {
-                    @foreach (var ext in group.Value)
-                    {
-                        var e = ext;
-                        <div class="verso-extension-item">
-                            <div class="verso-extension-header">
-                                <div class="verso-extension-name">@e.Name</div>
-                                <div class="verso-extension-version">@e.Version</div>
-                                <button class="verso-extension-toggle @(e.Status == ExtensionStatus.Enabled ? "verso-extension-toggle--enabled" : "")"
-                                        aria-label="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
-                                        data-verso-tip="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
-                                        @onclick="() => ToggleExtensionAsync(e.ExtensionId, e.Status)">
-                                    @(e.Status == ExtensionStatus.Enabled ? "On" : "Off")
-                                </button>
-                            </div>
-                            @if (e.Author is not null)
+                    var category = group.Key;
+                    var isOpen = _expandedCategories.Contains(category);
+                    <div class="verso-extension-group">
+                        <button class="verso-extension-group-header" @onclick="() => ToggleCategory(category)">
+                            <span class="verso-extension-group-chevron @(isOpen ? "verso-extension-group-chevron--open" : "")">@Chevron</span>
+                            <span class="verso-extension-group-label">@Plural(category)</span>
+                            <span class="verso-extension-group-count">@group.Value.Count</span>
+                        </button>
+                        @if (isOpen)
+                        {
+                            @foreach (var ext in group.Value)
                             {
-                                <div class="verso-extension-author">@e.Author</div>
-                            }
-                            @if (e.Description is not null)
-                            {
-                                <div class="verso-extension-description">@e.Description</div>
-                            }
-                            @if (e.Capabilities.Count > 1)
-                            {
-                                <div class="verso-extension-caps">
-                                    @foreach (var cap in e.Capabilities)
+                                var e = ext;
+                                <div class="verso-extension-item">
+                                    <div class="verso-extension-header">
+                                        <div class="verso-extension-name">@e.Name</div>
+                                        <div class="verso-extension-version">@e.Version</div>
+                                        <button class="verso-extension-toggle @(e.Status == ExtensionStatus.Enabled ? "verso-extension-toggle--enabled" : "")"
+                                                aria-label="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
+                                                data-verso-tip="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
+                                                @onclick="() => ToggleExtensionAsync(e.ExtensionId, e.Status)">
+                                            @(e.Status == ExtensionStatus.Enabled ? "On" : "Off")
+                                        </button>
+                                    </div>
+                                    @if (e.Author is not null)
                                     {
-                                        <span class="verso-extension-cap-badge">@CategoryDisplayNames.GetValueOrDefault(cap, cap)</span>
+                                        <div class="verso-extension-author">@e.Author</div>
+                                    }
+                                    @if (e.Description is not null)
+                                    {
+                                        <div class="verso-extension-description">@e.Description</div>
+                                    }
+                                    @if (e.Capabilities.Count > 1)
+                                    {
+                                        <div class="verso-extension-caps">
+                                            @foreach (var cap in e.Capabilities)
+                                            {
+                                                <span class="verso-panel-chip verso-marketplace-add">@CapabilityDisplayNames.GetValueOrDefault(cap, cap)</span>
+                                            }
+                                        </div>
                                     }
                                 </div>
                             }
-                        </div>
-                    }
+                        }
+                    </div>
                 }
             </div>
         }
     }
 </div>
 
+@using System.Globalization
 @using Microsoft.AspNetCore.Components.Forms
 @implements IDisposable
 
@@ -240,6 +304,10 @@
     private string? _installError;
     private CancellationTokenSource? _searchCts;
 
+    // Packages removed during this session. Uninstall records the removal but cannot unload
+    // what is already running, so the pane says so for as long as that is true.
+    private readonly HashSet<string> _removedThisSession = new(StringComparer.OrdinalIgnoreCase);
+
     // Per-package version selection, keyed by package id. A package absent from _selectedVersions
     // installs at the latest (the version the search returned). _versionCache holds the lazily
     // fetched version list for each package whose dropdown has been opened.
@@ -248,27 +316,33 @@
     private string? _openVersionDropdownId;
     private string? _loadingVersionsId;
 
-    private static readonly Dictionary<string, string> CategoryDisplayNames = new()
+    private static readonly MarkupString Chevron = new(
+        "<svg viewBox=\"0 0 16 16\" width=\"11\" height=\"11\" fill=\"none\" stroke=\"currentColor\" "
+        + "stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 3.5 10.5 8 6 12.5\"/></svg>");
+
+    // Singular, because a chip names one contribution. Group headers name a set of them and
+    // pluralize on the way out, which keeps one map for both.
+    private static readonly Dictionary<string, string> CapabilityDisplayNames = new()
     {
-        ["LanguageKernel"] = "Language Kernels",
-        ["CellRenderer"] = "Cell Renderers",
-        ["DataFormatter"] = "Data Formatters",
-        ["CellType"] = "Cell Types",
-        ["NotebookSerializer"] = "Serializers",
-        ["Theme"] = "Themes",
-        ["LayoutEngine"] = "Layout Engines",
-        ["ToolbarAction"] = "Toolbar Actions",
-        ["MagicCommand"] = "Magic Commands",
-        ["NotebookPanel"] = "Panels",
+        ["LanguageKernel"] = "Language Kernel",
+        ["CellRenderer"] = "Cell Renderer",
+        ["DataFormatter"] = "Data Formatter",
+        ["CellType"] = "Cell Type",
+        ["NotebookSerializer"] = "Serializer",
+        ["Theme"] = "Theme",
+        ["LayoutEngine"] = "Layout Engine",
+        ["ToolbarAction"] = "Toolbar Action",
+        ["MagicCommand"] = "Magic Command",
+        ["NotebookPanel"] = "Panel",
         // Capabilities with no entry here fall back to the raw name, which reads as
         // one run-together word. Keep this map complete as capabilities are added.
-        ["NotebookPostProcessor"] = "Post-Processors",
-        ["CellPropertyProvider"] = "Cell Property Providers",
-        ["ExtensionSettings"] = "Settings Providers",
-        ["CellInteractionHandler"] = "Cell Interaction Handlers",
-        ["LayoutInteractionHandler"] = "Layout Interaction Handlers",
-        ["LayoutLifecycleHandler"] = "Layout Lifecycle Handlers",
-        ["PanelInteractionHandler"] = "Panel Interaction Handlers",
+        ["NotebookPostProcessor"] = "Post-Processor",
+        ["CellPropertyProvider"] = "Cell Property Provider",
+        ["ExtensionSettings"] = "Settings Provider",
+        ["CellInteractionHandler"] = "Cell Interaction Handler",
+        ["LayoutInteractionHandler"] = "Layout Interaction Handler",
+        ["LayoutLifecycleHandler"] = "Layout Lifecycle Handler",
+        ["PanelInteractionHandler"] = "Panel Interaction Handler",
     };
 
     private static readonly List<string> CategoryOrder = new()
@@ -278,6 +352,13 @@
         "ToolbarAction", "MagicCommand", "NotebookPanel",
     };
 
+    /// <summary>
+    /// Pluralizes a capability's display name for a group header. Everything takes an s except
+    /// a name that already ends in one, which takes es, so no header ever doubles an s.
+    /// </summary>
+    private static string Plural(string label)
+        => label.EndsWith('s') ? label + "es" : label + "s";
+
     private static List<KeyValuePair<string, List<ExtensionInfo>>> GroupByCategory(
         IReadOnlyList<ExtensionInfo> infos)
     {
@@ -286,7 +367,7 @@
         foreach (var ext in infos)
         {
             var primary = ext.Capabilities.Count > 0 ? ext.Capabilities[0] : "Other";
-            var displayName = CategoryDisplayNames.GetValueOrDefault(primary, primary);
+            var displayName = CapabilityDisplayNames.GetValueOrDefault(primary, primary);
 
             if (!groups.TryGetValue(displayName, out var list))
             {
@@ -299,7 +380,7 @@
         return groups
             .OrderBy(g =>
             {
-                var idx = CategoryOrder.FindIndex(c => CategoryDisplayNames.GetValueOrDefault(c, c) == g.Key);
+                var idx = CategoryOrder.FindIndex(c => CapabilityDisplayNames.GetValueOrDefault(c, c) == g.Key);
                 return idx >= 0 ? idx : CategoryOrder.Count;
             })
             .ToList();
@@ -335,6 +416,146 @@
         else
             await Service.EnableExtensionAsync(extensionId);
     }
+
+    // ── Rows ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// One package in the pane's single list. Install state is a property of the row rather
+    /// than the region it sits in, so a package is described the same way whatever state it
+    /// is in.
+    /// </summary>
+    private sealed record MarketplaceRow(
+        string Id,
+        string? Version,
+        string? Description,
+        string? Authors,
+        long? DownloadCount,
+        bool IsInstalled,
+        bool IsLocal,
+        string? UnavailableReason,
+        IReadOnlyList<string>? Capabilities);
+
+    /// <summary>
+    /// Merges what this notebook requires with what the current search returned. The installed
+    /// entry is the only source for sideloaded files, for what failed to load, and for what a
+    /// package contributed; a search result is the only source for description, author, and
+    /// download count. A package in both takes each from whichever knows it.
+    /// </summary>
+    private List<MarketplaceRow> BuildRows()
+    {
+        var query = _searchQuery.Trim();
+        var rows = new List<MarketplaceRow>();
+        var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var installed in Service.InstalledExtensions)
+        {
+            var match = _searchResults?.FirstOrDefault(
+                p => string.Equals(p.Id, installed.Id, StringComparison.OrdinalIgnoreCase));
+
+            var row = new MarketplaceRow(
+                installed.Id,
+                installed.Version ?? match?.Version,
+                match?.Description,
+                match?.Authors,
+                match?.DownloadCount,
+                IsInstalled: true,
+                installed.IsLocal,
+                installed.UnavailableReason,
+                installed.Capabilities);
+
+            listed.Add(row.Id);
+            if (Matches(row, query))
+                rows.Add(row);
+        }
+
+        if (_searchResults is not null)
+        {
+            foreach (var package in _searchResults)
+            {
+                if (listed.Contains(package.Id))
+                    continue;
+
+                rows.Add(new MarketplaceRow(
+                    package.Id,
+                    package.Version,
+                    package.Description,
+                    package.Authors,
+                    package.DownloadCount,
+                    package.IsInstalled,
+                    IsLocal: false,
+                    UnavailableReason: null,
+                    Capabilities: null));
+            }
+        }
+
+        // What is wrong first, then what is already here, then what could be added. OrderBy is
+        // stable, so within each state the source order survives: declaration order for
+        // installed packages, relevance for search results.
+        return rows.OrderBy(StateRank).ToList();
+    }
+
+    private static int StateRank(MarketplaceRow row)
+        => row.UnavailableReason is not null ? 0 : row.IsInstalled ? 1 : 2;
+
+    private static string StateClass(MarketplaceRow row)
+        => row.UnavailableReason is not null ? "verso-marketplace-row--error"
+            : row.IsInstalled ? "verso-marketplace-row--installed"
+            : string.Empty;
+
+    // Installed rows are filtered here because they never went through the feed, so "type to
+    // filter" means the same thing for every row in the list.
+    private static bool Matches(MarketplaceRow row, string query)
+        => query.Length == 0
+            || row.Id.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || (row.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
+
+    /// <summary>Download counts, shortened so a five-digit number does not crowd a 300px rail.</summary>
+    private static string? FormatDownloads(long? count)
+    {
+        if (count is not { } n || n < 0)
+            return null;
+        if (n >= 1_000_000_000)
+            return Short(n / 1_000_000_000d) + "B";
+        if (n >= 1_000_000)
+            return Short(n / 1_000_000d) + "M";
+        if (n >= 1_000)
+            return Short(n / 1_000d) + "k";
+        return n.ToString(CultureInfo.InvariantCulture);
+
+        static string Short(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// A colour for a package's tile, hashed from its id so it is the same on every render and
+    /// in every session. Fixed saturation and lightness keep white text legible in any theme.
+    /// </summary>
+    private static string Tint(string id)
+    {
+        var hash = 0;
+        foreach (var c in id)
+            hash = (hash * 31 + c) % 360;
+        return $"hsl({hash.ToString(CultureInfo.InvariantCulture)} 42% 38%)";
+    }
+
+    /// <summary>
+    /// The letter on a package's tile. Extension ids are heavily prefixed (Company.Product.Thing),
+    /// so the last segment is the part that distinguishes one package from its siblings; taking
+    /// the first letter of the whole id would give a rail full of the same letter.
+    /// </summary>
+    private static string Initial(string id)
+    {
+        var lastDot = id.LastIndexOf('.');
+        var name = lastDot >= 0 && lastDot < id.Length - 1 ? id[(lastDot + 1)..] : id;
+        return name.Length > 0 ? char.ToUpperInvariant(name[0]).ToString() : "?";
+    }
+
+    /// <summary>Where results came from: the source itself when there is one, a count when more.</summary>
+    private string SourceLabel => Service.MarketplaceSources.Count switch
+    {
+        0 => string.Empty,
+        1 => Service.MarketplaceSources[0],
+        var n => $"{n} sources"
+    };
 
     // ── Marketplace ────────────────────────────────────────────────────
 
@@ -387,8 +608,8 @@
 
     // The version that will be installed for a package: the user's pick if they chose one,
     // otherwise the latest version the search returned.
-    private string? SelectedVersion(PackageSearchResultDto p)
-        => _selectedVersions.TryGetValue(p.Id, out var v) ? v : p.Version;
+    private string? SelectedVersion(string packageId, string? latest)
+        => _selectedVersions.TryGetValue(packageId, out var v) ? v : latest;
 
     private async Task ToggleVersionDropdown(string packageId, string? latest)
     {
@@ -458,9 +679,14 @@
         {
             var result = await Service.InstallExtensionAsync(packageId, version, CancellationToken.None);
             if (!result.Success)
+            {
                 _installError = result.ErrorMessage ?? "Installation failed.";
+            }
             else
+            {
+                _removedThisSession.Remove(packageId);
                 await RefreshSearchResultsAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -482,6 +708,7 @@
         try
         {
             await Service.UninstallExtensionAsync(packageId);
+            _removedThisSession.Add(packageId);
             await RefreshSearchResultsAsync();
         }
         catch (Exception ex)

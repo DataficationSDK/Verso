@@ -6,12 +6,12 @@ Verso ships with a set of built-in language kernels, themes, and layouts, and ev
 
 Open the Extensions panel from the sidebar. It has two parts:
 
-- A **marketplace** search box at the top. Type a package name to search, with results appearing as you type. Each result has an Install button and a version picker.
-- A list of **loaded extensions**, grouped by what they provide (kernels, renderers, themes, layouts, and so on), each with an On/Off toggle.
+- A **package list** under the search box. Everything this notebook requires is listed here, and typing filters it while searching your package sources for more. A package is described the same way whether it is installed or not: its publisher, what it is, how many people use it, and, once installed, what it adds to Verso. Install state sits on the row itself rather than in a separate section.
+- A list of **loaded extensions**, grouped by what they provide (kernels, renderers, themes, layouts, and so on), each with an On/Off toggle. Built-in extensions live here too, since they come with Verso rather than from a package.
 
-![The Extensions panel: a NuGet search box above the loaded extensions grouped by capability](managing-extensions.png)
+![The Extensions panel: a package list with install state on each row, above the loaded extensions grouped by capability](managing-extensions.png)
 
-The marketplace searches the NuGet feeds configured on your machine. If you have not customized NuGet, that means [nuget.org](https://www.nuget.org/). There is no separate Verso-only feed: any package that ships a Verso extension is installable, and any private feed in your NuGet configuration is searched too.
+Two chips under the search box state what the list cannot say row by row: installing records the package **in this notebook**, not on your machine, and results come from the package sources configured on your machine. If you have not customized NuGet, that means [nuget.org](https://www.nuget.org/). There is no separate Verso-only feed: any package that ships a Verso extension is installable, and any private feed in your NuGet configuration is searched too.
 
 ## Installing an extension
 
@@ -22,7 +22,11 @@ Installed packages are unpacked into a managed store on disk:
 - macOS and Linux: `~/.verso/extensions/<package-id>/<version>/<target-framework>/`
 - Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\<target-framework>\`
 
-Each version lives in its own folder, so multiple versions can coexist. Inside a version folder, assemblies are grouped by the .NET runtime they were installed for (for example `net8.0`), so notebook hosts running on different .NET versions can share the same store. To remove an extension, use its Uninstall button. Uninstalling also revokes the package's trust, so installing it again asks for consent afresh.
+Each version lives in its own folder, so multiple versions can coexist. Inside a version folder, assemblies are grouped by the .NET runtime they were installed for (for example `net8.0`), so notebook hosts running on different .NET versions can share the same store.
+
+Once a package is installed, its row lists what it added: a kernel, a layout engine, a theme, and so on. A package that loaded but contributed no extension point at all is marked as adding nothing, which is worth knowing since the marketplace searches all of NuGet and will happily install an ordinary library.
+
+To remove a package, use the Remove button on its row. Removal takes the package out of this notebook's requirements and revokes its trust, so installing it again asks for consent afresh. Whatever it already loaded stays active until the notebook is reopened.
 
 ## Trust and consent
 
@@ -61,7 +65,7 @@ Required extensions are resolved and loaded **before the notebook renders**, so 
 
 ## When an extension is unavailable
 
-If a required extension fails to load, Verso surfaces a notice, and the Installed list flags the package with a warning icon describing why. To resolve it, install or approve the extension, then reopen the notebook or run the cell that loads it. If the notebook's chosen layout came from the missing extension, Verso falls back to a built-in layout so the notebook stays usable.
+If a required extension fails to load, Verso surfaces a notice, and its row in the Extensions panel is marked Not loaded with the reason stated underneath. To resolve it, install or approve the extension, then reopen the notebook or run the cell that loads it. If the notebook's chosen layout came from the missing extension, Verso falls back to a built-in layout so the notebook stays usable.
 
 ## Loading during development
 

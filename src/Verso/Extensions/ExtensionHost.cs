@@ -53,6 +53,14 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
     private readonly HashSet<string> _disabledExtensionIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _approvedExtensionPackages = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _loadedExtensionPackages = new(StringComparer.OrdinalIgnoreCase);
+
+    // The extensions each installed package registered, so a marketplace row can say what a
+    // package added. A package missing from this map has not loaded (or failed to); a package
+    // present with an empty list loaded and contributed no extension point at all. Those are
+    // different facts and are reported differently.
+    private readonly Dictionary<string, List<string>> _packageExtensionIds =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private bool _disposed;
 
     /// <summary>Raised when an extension is enabled or disabled.</summary>
@@ -98,6 +106,65 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
 
     public bool IsExtensionPackageLoaded(string packageId) => _loadedExtensionPackages.Contains(packageId);
     public void MarkExtensionPackageLoaded(string packageId) => _loadedExtensionPackages.Add(packageId);
+
+    /// <summary>
+    /// Records the extensions a package registered as its assemblies were loaded. A package's
+    /// assemblies load one at a time, so repeated calls accumulate rather than replace.
+    /// </summary>
+    public void AttributeExtensionsToPackage(string packageId, IReadOnlyList<string> extensionIds)
+    {
+        if (string.IsNullOrWhiteSpace(packageId))
+            return;
+
+        lock (_lock)
+        {
+            if (!_packageExtensionIds.TryGetValue(packageId, out var ids))
+            {
+                ids = new List<string>();
+                _packageExtensionIds[packageId] = ids;
+            }
+
+            foreach (var extensionId in extensionIds)
+            {
+                if (!ids.Contains(extensionId, StringComparer.OrdinalIgnoreCase))
+                    ids.Add(extensionId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The distinct capabilities a package contributed, in the order its extensions declare
+    /// them. Returns <c>null</c> when nothing is recorded for the package, which means it has
+    /// not loaded in this session; an empty list means it loaded and registered no extension
+    /// point at all. A caller that conflates the two would claim a package adds nothing when
+    /// the truth is that nobody has looked yet.
+    /// </summary>
+    public IReadOnlyList<string>? GetPackageCapabilities(string packageId)
+    {
+        if (string.IsNullOrWhiteSpace(packageId))
+            return null;
+
+        lock (_lock)
+        {
+            if (!_packageExtensionIds.TryGetValue(packageId, out var ids))
+                return null;
+
+            var capabilities = new List<string>();
+            foreach (var extension in _extensions)
+            {
+                if (!ids.Contains(extension.ExtensionId, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (var capability in GetCapabilityList(extension))
+                {
+                    if (!capabilities.Contains(capability, StringComparer.Ordinal))
+                        capabilities.Add(capability);
+                }
+            }
+
+            return capabilities;
+        }
+    }
 
     // --- IExtensionHostContext ---
 
