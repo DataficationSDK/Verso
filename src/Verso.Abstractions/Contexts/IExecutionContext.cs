@@ -23,6 +23,16 @@ public interface IExecutionContext : IVersoContext
     Task DisplayAsync(CellOutput output);
 
     /// <summary>
+    /// Attempts to format a runtime value with a registered specialized data formatter.
+    /// Returns <see langword="null"/> when no formatter claims the value so the language
+    /// kernel can preserve its native formatting behavior.
+    /// </summary>
+    /// <param name="value">The runtime value to format.</param>
+    /// <param name="mimeType">Optional preferred MIME type.</param>
+    Task<CellOutput?> TryFormatAsync(object value, string? mimeType = null)
+        => Task.FromResult<CellOutput?>(null);
+
+    /// <summary>
     /// Requests a single line of user input from the current front-end.
     /// </summary>
     /// <param name="prompt">Prompt text shown to the user.</param>

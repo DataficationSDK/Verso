@@ -21,6 +21,7 @@ public sealed class CollectionFormatter : IDataFormatter
 
     public IReadOnlyList<Type> SupportedTypes { get; } = new[] { typeof(IEnumerable) };
     public int Priority => 10;
+    public bool IsFallback => true;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

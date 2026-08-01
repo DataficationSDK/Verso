@@ -60,10 +60,48 @@ public sealed class ExecutionContextTests
         Assert.IsInstanceOfType(context, typeof(Verso.Abstractions.IExecutionContext));
     }
 
+    [TestMethod]
+    public async Task TryFormatAsync_UsesSpecializedFormatter()
+    {
+        var formatter = new TestFormatter(isFallback: false);
+        var host = new StubExtensionHostContext(
+            () => Array.Empty<Verso.Abstractions.ILanguageKernel>(),
+            getFormatters: () => new[] { formatter });
+        var context = CreateContext(
+            Guid.NewGuid(), 1,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            host);
+
+        var output = await context.TryFormatAsync("value");
+
+        Assert.IsNotNull(output);
+        Assert.AreEqual("specialized", output.Content);
+    }
+
+    [TestMethod]
+    public async Task TryFormatAsync_SkipsFallbackFormatter()
+    {
+        var formatter = new TestFormatter(isFallback: true);
+        var host = new StubExtensionHostContext(
+            () => Array.Empty<Verso.Abstractions.ILanguageKernel>(),
+            getFormatters: () => new[] { formatter });
+        var context = CreateContext(
+            Guid.NewGuid(), 1,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            host);
+
+        var output = await context.TryFormatAsync("value");
+
+        Assert.IsNull(output);
+    }
+
     private static ExecutionCtx CreateContext(
         Guid cellId, int executionCount,
         Func<CellOutput, Task> writeOutput,
-        Func<CellOutput, Task> display)
+        Func<CellOutput, Task> display,
+        Verso.Abstractions.IExtensionHostContext? extensionHost = null)
     {
         return new ExecutionCtx(
             cellId, executionCount,
@@ -71,9 +109,28 @@ public sealed class ExecutionContextTests
             CancellationToken.None,
             new StubThemeContext(),
             LayoutCapabilities.None,
-            new StubExtensionHostContext(() => Array.Empty<Verso.Abstractions.ILanguageKernel>()),
+            extensionHost ?? new StubExtensionHostContext(() => Array.Empty<Verso.Abstractions.ILanguageKernel>()),
             new NotebookMetadataContext(new NotebookModel()),
             new StubNotebookOperations(),
             writeOutput, display);
+    }
+
+    private sealed class TestFormatter : Verso.Abstractions.IDataFormatter
+    {
+        public TestFormatter(bool isFallback) => IsFallback = isFallback;
+
+        public string ExtensionId => "com.test.execution-context.formatter";
+        public string Name => "Execution Context Formatter";
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+        public IReadOnlyList<Type> SupportedTypes { get; } = new[] { typeof(string) };
+        public int Priority => 10;
+        public bool IsFallback { get; }
+        public Task OnLoadedAsync(Verso.Abstractions.IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+        public bool CanFormat(object value, Verso.Abstractions.IFormatterContext context) => value is string;
+        public Task<CellOutput> FormatAsync(object value, Verso.Abstractions.IFormatterContext context)
+            => Task.FromResult(CellOutput.Plain("specialized"));
     }
 }

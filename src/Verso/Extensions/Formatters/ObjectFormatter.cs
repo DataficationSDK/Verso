@@ -29,6 +29,7 @@ public sealed class ObjectFormatter : IDataFormatter
 
     public IReadOnlyList<Type> SupportedTypes { get; } = new[] { typeof(object) };
     public int Priority => 5;
+    public bool IsFallback => true;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

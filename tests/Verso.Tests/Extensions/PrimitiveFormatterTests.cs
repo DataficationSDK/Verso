@@ -19,6 +19,10 @@ public sealed class PrimitiveFormatterTests
         => Assert.AreEqual(0, _formatter.Priority);
 
     [TestMethod]
+    public void IsFallback_IsTrue()
+        => Assert.IsTrue(_formatter.IsFallback);
+
+    [TestMethod]
     [DataRow(typeof(string))]
     [DataRow(typeof(int))]
     [DataRow(typeof(long))]

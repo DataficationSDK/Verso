@@ -146,12 +146,17 @@ Formats runtime objects into display outputs. The host selects the best formatte
 |---|---|---|
 | `SupportedTypes` | `IReadOnlyList<Type>` | CLR types this formatter handles. Used for fast pre-filtering. |
 | `Priority` | `int` | Conflict resolution priority. Higher values win. |
+| `IsFallback` | `bool` | Whether this is a generic fallback formatter. Defaults to `false`; kernels may skip fallbacks in favor of native runtime formatting. |
 | `CanFormat(object, IFormatterContext)` | `bool` | Fine-grained check for whether this formatter can handle the value. |
 | `FormatAsync(object, IFormatterContext)` | `Task<CellOutput>` | Produces a `CellOutput` for the given value. |
 
 ### Lifecycle
 
 Formatters are stateless and invoked on-demand. When a kernel produces an object result, the host iterates registered formatters, filters by `SupportedTypes`, sorts by `Priority` (descending), and calls `CanFormat` then `FormatAsync` on the first match.
+
+Generic catch-all formatters should return `true` from `IsFallback`. Explicit display operations
+include them, while language kernels can request only specialized formatters and retain their own
+native formatting when none matches.
 
 ### Example Implementation
 

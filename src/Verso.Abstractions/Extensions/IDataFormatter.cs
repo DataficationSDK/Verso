@@ -20,6 +20,13 @@ public interface IDataFormatter : IExtension
     int Priority { get; }
 
     /// <summary>
+    /// Whether this formatter is a generic fallback rather than a specialized representation.
+    /// Language kernels can skip fallback formatters when they have a richer native formatter
+    /// for values not claimed by an extension.
+    /// </summary>
+    bool IsFallback => false;
+
+    /// <summary>
     /// Returns whether this formatter can produce output for the given value in the current context.
     /// </summary>
     /// <param name="value">The object to format.</param>

@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Display;
 
 namespace Verso.Contexts;
 
@@ -72,6 +73,21 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
     {
         ArgumentNullException.ThrowIfNull(output);
         return _display(output);
+    }
+
+    /// <inheritdoc />
+    public Task<CellOutput?> TryFormatAsync(object value, string? mimeType = null)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        IFormatterContext formatterContext = new DisplayFormatterContext(this);
+        if (mimeType is not null)
+            formatterContext = new HintedFormatterContext(formatterContext, mimeType);
+
+        return FormatterResolver.TryFormatAsync(
+            value,
+            formatterContext,
+            includeFallback: false);
     }
 
     /// <inheritdoc />

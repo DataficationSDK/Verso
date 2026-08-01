@@ -61,6 +61,7 @@ Extends `IVersoContext` with execution-specific state. Passed to `ILanguageKerne
 | `CellId` | `Guid` | Unique identifier of the cell being executed. |
 | `ExecutionCount` | `int` | Monotonically increasing execution counter for the current cell. |
 | `DisplayAsync(CellOutput)` | `Task` | Sends a display output that can be updated in place during execution. |
+| `TryFormatAsync(object, string?)` | `Task<CellOutput?>` | Gives registered specialized data formatters an opportunity to render a runtime value. Returns `null` when the kernel should use its native fallback. |
 | `RequestInputAsync(string, bool, CancellationToken)` | `Task<string?>` | Requests a single input value from the current host. The second argument controls password masking. Returns `null` when the user cancels. Default implementation throws `NotSupportedException` on non-interactive hosts. |
 
 ### When Available
@@ -72,6 +73,21 @@ Only within `ILanguageKernel.ExecuteAsync`. Not available during completions, di
 - `WriteOutputAsync` (from `IVersoContext`) appends output to the cell's output list permanently.
 - `DisplayAsync` sends a live-updating display that can be replaced. Use it for progress indicators, streaming output, or interactive displays.
 - `UpdateOutputAsync` (from `IVersoContext`) replaces the content of a specific output block by ID. Use it for interactive panels that refresh in place (e.g., paginated tables, `ICellInteractionHandler` responses).
+
+### Formatting Runtime Values
+
+Language kernels that receive runtime objects should call `TryFormatAsync` before applying
+their native formatter. Specialized `IDataFormatter` extensions get the first opportunity to
+produce a rich `CellOutput`; generic formatters marked as fallbacks are skipped so a kernel can
+preserve familiar language-specific output when no extension claims the value.
+
+```csharp
+var formatted = await context.TryFormatAsync(runtimeValue);
+if (formatted is not null)
+    return new[] { formatted };
+
+return new[] { FormatWithNativeRuntime(runtimeValue) };
+```
 
 ### Interactive Input
 

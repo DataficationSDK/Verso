@@ -19,6 +19,10 @@ public sealed class CollectionFormatterTests
         => Assert.AreEqual(10, _formatter.Priority);
 
     [TestMethod]
+    public void IsFallback_IsTrue()
+        => Assert.IsTrue(_formatter.IsFallback);
+
+    [TestMethod]
     public void CanFormat_List_ReturnsTrue()
         => Assert.IsTrue(_formatter.CanFormat(new List<int> { 1, 2, 3 }, _context));
 
