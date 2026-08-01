@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -573,6 +574,10 @@ public sealed class NuGetMarketplaceService
             var targetDir = Path.Combine(managedDir, packageId, version);
             Directory.CreateDirectory(targetDir);
             File.Copy(source, Path.Combine(targetDir, Path.GetFileName(source)), overwrite: true);
+
+            // This is the moment the file a lookup would read comes into existence, so it is
+            // also the moment any earlier answer about this package stopped being true.
+            InvalidateIconCache(packageId);
         }
         catch
         {
@@ -610,6 +615,55 @@ public sealed class NuGetMarketplaceService
         if (version is not null && !IsSafePathSegment(version))
             return null;
 
+        // Memoized because callers are on a render path, not a load path: the extension panel
+        // asks for every installed icon each time it draws, which is once per keystroke in its
+        // search box and once per frame of streaming cell output. Reading and base64-encoding
+        // a quarter of a megabyte per package on each of those blocks the render. An entry is
+        // a plain read of a file that only an install writes, so an install is the one thing
+        // that invalidates it.
+        return IconDataUriCache.GetOrAdd(
+            IconCacheKey(packageId, version, managedDir),
+            _ => ReadPackageIconDataUri(packageId, version, managedDir));
+    }
+
+    /// <summary>
+    /// Cached results of <see cref="TryReadPackageIconDataUri"/>, including the misses: a
+    /// package with no icon is the common case and re-walking its directory to rediscover that
+    /// costs the same as reading one. Bounded by the number of installed packages, each entry
+    /// capped by <see cref="MaxEmbeddedIconBytes"/>.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, string?> IconDataUriCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Key for one icon lookup. Both an unpinned reference and each pinned version get their
+    /// own entry, since they can resolve to different files. <see cref="IsSafePathSegment"/>
+    /// has already rejected anything outside the NuGet identifier alphabet, so neither the id
+    /// nor the version can contain the separator and the id is an unambiguous key prefix. Only
+    /// the directory can, and it comes last.
+    /// </summary>
+    private static string IconCacheKey(string packageId, string? version, string managedDir)
+        => $"{packageId} {version} {managedDir}";
+
+    /// <summary>
+    /// Drops every cached icon lookup for a package: the pinned entries and the unpinned one,
+    /// which resolves to the highest installed version and so changes when a newer one lands.
+    /// Called after an install writes an icon, which is the only way the file a lookup would
+    /// have read changes. Without this, a package whose icon was absent when the panel first
+    /// drew it would keep showing its lettered tile for the rest of the session.
+    /// </summary>
+    private static void InvalidateIconCache(string packageId)
+    {
+        var prefix = packageId + " ";
+        foreach (var key in IconDataUriCache.Keys)
+        {
+            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                IconDataUriCache.TryRemove(key, out _);
+        }
+    }
+
+    private static string? ReadPackageIconDataUri(string packageId, string? version, string managedDir)
+    {
         try
         {
             var packageRoot = Path.Combine(managedDir, packageId);

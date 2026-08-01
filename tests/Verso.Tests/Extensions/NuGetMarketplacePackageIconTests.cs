@@ -175,4 +175,59 @@ public class NuGetMarketplacePackageIconTests
 
         Assert.IsNull(result);
     }
+
+    [TestMethod]
+    public void RepeatedReads_DoNotTouchDiskAgain()
+    {
+        // Callers ask on a render path, so a lookup is answered from memory after the first
+        // time. Deleting the file behind it is the cheapest way to prove the second answer
+        // did not come from disk. Installing is what invalidates an entry, and an install is
+        // the only thing that writes the file, so nothing legitimate changes underneath.
+        WriteIcon("Sample.Package", "1.0.0", "icon.png", WithHeader(PngHeader, 1));
+
+        var first = NuGetMarketplaceService.TryReadPackageIconDataUri(
+            "Sample.Package", "1.0.0", _managedDir);
+        Assert.IsNotNull(first);
+
+        Directory.Delete(Path.Combine(_managedDir, "Sample.Package", "1.0.0"), recursive: true);
+
+        var second = NuGetMarketplaceService.TryReadPackageIconDataUri(
+            "Sample.Package", "1.0.0", _managedDir);
+
+        Assert.AreEqual(first, second);
+    }
+
+    [TestMethod]
+    public void RepeatedReads_RememberThatAPackageHadNoIcon()
+    {
+        // The miss is cached too. A package with no icon is the common case, and rediscovering
+        // that costs a directory walk per row per render otherwise.
+        Directory.CreateDirectory(Path.Combine(_managedDir, "Sample.Package", "1.0.0"));
+
+        Assert.IsNull(NuGetMarketplaceService.TryReadPackageIconDataUri(
+            "Sample.Package", "1.0.0", _managedDir));
+
+        WriteIcon("Sample.Package", "1.0.0", "icon.png", WithHeader(PngHeader, 1));
+
+        Assert.IsNull(
+            NuGetMarketplaceService.TryReadPackageIconDataUri("Sample.Package", "1.0.0", _managedDir),
+            "An icon appearing without an install going through is not a case that arises.");
+    }
+
+    [TestMethod]
+    public void PinnedAndUnpinnedLookups_DoNotShareAnEntry()
+    {
+        WriteIcon("Sample.Package", "1.0.0", "icon.png", WithHeader(PngHeader, 1));
+        WriteIcon("Sample.Package", "2.0.0", "icon.jpg", WithHeader(JpegHeader, 2));
+
+        var pinned = NuGetMarketplaceService.TryReadPackageIconDataUri(
+            "Sample.Package", "1.0.0", _managedDir);
+        var unpinned = NuGetMarketplaceService.TryReadPackageIconDataUri(
+            "Sample.Package", version: null, _managedDir);
+
+        StringAssert.StartsWith(pinned, "data:image/png;base64,");
+        StringAssert.StartsWith(unpinned, "data:image/jpeg;base64,",
+            "An unpinned reference resolves to the highest version, not to whatever a pinned "
+            + "lookup for the same package cached.");
+    }
 }
