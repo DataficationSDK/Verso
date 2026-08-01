@@ -1,3 +1,12 @@
+<#
+Adapted from Andrej Karpathy's micrograd:
+https://github.com/karpathy/micrograd
+
+Copyright (c) 2020 Andrej Karpathy
+Licensed under the MIT License:
+https://github.com/karpathy/micrograd/blob/master/LICENSE
+#>
+
 class Value {
     hidden [double]$data
     hidden [string]$label=""
