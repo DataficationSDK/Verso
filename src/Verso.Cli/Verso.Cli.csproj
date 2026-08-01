@@ -97,6 +97,7 @@
     <ProjectReference Include="..\Verso.JavaScript\Verso.JavaScript.csproj" />
     <ProjectReference Include="..\Verso.PowerShell\Verso.PowerShell.csproj" />
     <ProjectReference Include="..\Verso.Ado\Verso.Ado.csproj" />
+    <ProjectReference Include="..\Verso.DataFrame\Verso.DataFrame.csproj" />
     <ProjectReference Include="..\Verso.Http\Verso.Http.csproj" />
   </ItemGroup>
 
