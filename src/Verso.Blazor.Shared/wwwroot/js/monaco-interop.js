@@ -449,6 +449,15 @@ window.versoMonaco = (function () {
             if (el) el.focus();
         },
 
+        // Scrolls an element into view by id, for walking a list of anchors (the diff
+        // view's prev/next change). 'start' rather than 'nearest' so a change already
+        // partly visible still moves to the top, which is what makes stepping feel like
+        // stepping rather than nothing happening.
+        scrollElementIntoView: function (elementId) {
+            const el = document.getElementById(elementId);
+            if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        },
+
         // Re-measure and re-lay-out an editor. Used after a custom layout portals a cell from the
         // hidden pool into a visible slot: the editor may have been created while unmeasurable, so
         // re-running its height updater now that it is on-screen restores the correct size.

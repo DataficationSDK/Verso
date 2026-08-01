@@ -21,14 +21,7 @@
              OnActionExecuted="HandleActionExecuted"
              OnInterceptAction="HandleInterceptAction"
              OnError="HandleError"
-             OnDiffComputed="HandleDiffComputed"
-             OnDiffError="HandleDiffError"
              @ref="_toolbar" />
-
-    @if (_showDiffView && _diffResult is not null)
-    {
-        <NotebookDiffView Diff="_diffResult" OnClose="CloseDiffView" />
-    }
 
     <DiffErrorDialog Message="@_diffErrorMessage" OnDismiss="() => _diffErrorMessage = null" />
 
@@ -66,12 +59,23 @@
     else
     {
         <div class="verso-notebook-body">
-            <div class="verso-notebook-main">
-                <CascadingValue Value="@CellContext" IsFixed="false">
-                    <LayoutRenderer @key="Service.ActiveLayoutKey"
-                                    Service="Service"
-                                    IsolatedRenderer="@RenderIsolatedLayout" />
-                </CascadingValue>
+            @* The editor area is a positioned wrapper so the diff overlay can cover the
+               cells without covering the toolbar or the panel that opened it. It has to
+               be a wrapper rather than the scroller itself: an absolutely positioned
+               child of a scrolling element scrolls away with the content. *@
+            <div class="verso-notebook-editor-area">
+                <div class="verso-notebook-main">
+                    <CascadingValue Value="@CellContext" IsFixed="false">
+                        <LayoutRenderer @key="Service.ActiveLayoutKey"
+                                        Service="Service"
+                                        IsolatedRenderer="@RenderIsolatedLayout" />
+                    </CascadingValue>
+                </div>
+
+                @if (_showDiffView && _comparison.Result is { } diff)
+                {
+                    <NotebookDiffView Diff="diff" OnClose="CloseDiffView" />
+                }
             </div>
 
             <div class="verso-panel-container">
@@ -81,7 +85,7 @@
                         <div class="verso-panel-resize-handle" @ref="_resizeHandle"></div>
                         <div class="verso-panel-header">
                             <span class="verso-panel-title">@ActivePanelTitle</span>
-                            <button class="verso-panel-minimize" @onclick="CollapsePanel" title="Collapse panel">&#x203A;</button>
+                            <button class="verso-panel-minimize" @onclick="CollapsePanel" aria-label="Collapse panel" data-verso-tip="Collapse panel">&#x203A;</button>
                         </div>
                         <div class="verso-panel-body">
                             @* Host panels are components with direct access to notebook state;
@@ -108,6 +112,19 @@
                                 else if (host.PanelId == HostPanels.Properties)
                                 {
                                     <CellPropertiesPanel Service="Service" SelectedCellId="_selectedCellId" />
+                                }
+                                else if (host.PanelId == HostPanels.View)
+                                {
+                                    <ViewPanel Service="Service" OnActionExecuted="HandleActionExecuted" />
+                                }
+                                else if (host.PanelId == HostPanels.Compare)
+                                {
+                                    <ComparePanel Comparison="_comparison"
+                                                  OnRefreshSources="LoadDiffSourcesAsync"
+                                                  OnCompareRequested="HandleCompareRequested"
+                                                  OnNavigate="RevealCellAsync"
+                                                  OnOpenFullDiff="() => _showDiffView = true"
+                                                  OnClear="StopComparingAsync" />
                                 }
                             }
                             else if (ActivePanelInfo is { } extensionPanel)
@@ -160,6 +177,7 @@
         ExecutingCellId = _executingCellId,
         IsRunDisabled = _executingCellId.HasValue,
         CollapsedSections = _collapsedSections,
+        DiffMarks = _comparison.CellMarks,
         OnRunCell = EventCallback.Factory.Create<Guid>(this, HandleRunCell),
         OnCancelCell = EventCallback.Factory.Create<Guid>(this, HandleCancelCell),
         OnDeleteCell = EventCallback.Factory.Create<Guid>(this, HandleDeleteCell),
@@ -191,8 +209,12 @@
     private bool _showExtensionConsent;
     private Toolbar? _toolbar;
     private bool _showDiffView;
-    private NotebookDiffResult? _diffResult;
     private string? _diffErrorMessage;
+
+    // Owned by the page rather than the Compare panel so a comparison survives the panel
+    // being closed, and so the cell marks and the full diff read the same state the panel does.
+    private NotebookComparison _comparison = default!;
+    private bool _pendingReveal;
     private IReadOnlyList<ExtensionConsentInfo>? _pendingConsentExtensions;
     private bool _userPrefsApplied;
     private bool _restoringPrefs;
@@ -211,6 +233,8 @@
 
     protected override void OnInitialized()
     {
+        _comparison = new NotebookComparison(Service);
+
         Service.OnCellExecuted += HandleCellExecutedRefresh;
         Service.OnCellExecuting += HandleCellExecutingEvent;
         Service.OnCellExecutionCompleted += HandleCellExecutedEvent;
@@ -241,9 +265,13 @@
     {
         _ = InvokeAsync(async () =>
         {
-            // A restart replaces the backing session; a diff computed against it is stale.
-            if (_showDiffView)
-                CloseDiffView();
+            // A restart replaces the backing session; a diff computed against it is stale, so
+            // drop it rather than keep marking cells against a baseline that no longer applies.
+            if (_comparison.IsActive)
+            {
+                _comparison.Clear();
+                _showDiffView = false;
+            }
 
             // Persistent banner — cleared explicitly by HandleKernelRestarted rather
             // than the 3-second timeout used by ShowStatusAsync.
@@ -353,6 +381,20 @@
         else if (_activePanel is null)
         {
             _panelResizeInitialized = false;
+        }
+
+        // Revealing a cell has to wait for the render that moves the selection, because the
+        // scroll helper finds the selected cell by class: called any earlier it finds the
+        // cell that was selected before and scrolls to that instead.
+        if (_pendingReveal)
+        {
+            _pendingReveal = false;
+            try
+            {
+                await JS.InvokeVoidAsync("versoMonaco.scrollToSelected");
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
         }
     }
 
@@ -1007,39 +1049,79 @@
         return Task.CompletedTask;
     }
 
-    // ── Notebook diff ───────────────────────────────────────────────────
+    // ── Comparing with a baseline ───────────────────────────────────────
 
-    private void HandleDiffComputed(NotebookDiffResult result)
+    private async Task LoadDiffSourcesAsync()
     {
-        _diffResult = result;
-        _showDiffView = true;
+        try
+        {
+            await _comparison.LoadSourcesAsync();
+        }
+        catch (Exception ex)
+        {
+            _diffErrorMessage = $"could not list comparison sources: {ex.Message}";
+        }
+
+        StateHasChanged();
     }
 
-    private void CloseDiffView()
+    // Every source resolves natively in this shell: the host prompts for a git ref or a file
+    // path inside ComputeDiffAsync rather than through a dialog the notebook UI owns.
+    private Task HandleCompareRequested(DiffSourceInfo source) => CompareAsync(source.Id);
+
+    private async Task CompareAsync(string sourceId)
     {
+        try
+        {
+            await _comparison.CompareAsync(sourceId, null);
+        }
+        catch (Exception ex)
+        {
+            _diffErrorMessage = ex.Message;
+        }
+
+        StateHasChanged();
+    }
+
+    private Task StopComparingAsync()
+    {
+        _comparison.Clear();
         _showDiffView = false;
-        _diffResult = null;
+        return Task.CompletedTask;
     }
 
-    private void HandleDiffError(string message)
+    private void CloseDiffView() => _showDiffView = false;
+
+    /// <summary>
+    /// Brings the cell behind a change into view. Selection is what the scroll helper keys
+    /// off, and in a display layout the cascaded context drops the selection anyway, so the
+    /// cell is revealed there without being selected. The scroll itself happens in
+    /// <c>OnAfterRenderAsync</c>, once the selection has actually moved in the DOM.
+    /// </summary>
+    private Task RevealCellAsync(Guid cellId)
     {
-        _diffErrorMessage = message;
+        _selectedCellId = cellId;
+        _pendingReveal = true;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
+    // The host asked for a comparison (the "Compare Notebook with..." command). Open the panel
+    // either way, so a comparison that arrives from outside lands somewhere the reader can see
+    // and act on rather than straight into a full-screen diff.
     private void HandleDiffRequested(string? sourceId)
     {
         _ = InvokeAsync(async () =>
         {
-            if (_toolbar is null)
-                return;
+            _activePanel = HostPanels.Compare;
 
             if (sourceId is not null)
             {
-                await _toolbar.ComputeDiffAsync(sourceId, null);
+                await CompareAsync(sourceId);
             }
             else
             {
-                await _toolbar.OpenCompareMenuAsync();
+                await LoadDiffSourcesAsync();
             }
 
             StateHasChanged();

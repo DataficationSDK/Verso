@@ -18,7 +18,8 @@ public sealed record ToolbarActionInfo(
     int Order,
     bool IconOnly = false,
     bool IsPrimary = false,
-    string? ConfirmationPrompt = null);
+    string? ConfirmationPrompt = null,
+    string? Description = null);
 
 /// <summary>
 /// Describes one entry in the notebook's panel list, whether it is drawn by the host
@@ -34,6 +35,10 @@ public sealed record ToolbarActionInfo(
 /// <c>true</c> when the host draws this panel with its own component rather than
 /// rendering content produced by an extension.
 /// </param>
+/// <param name="Description">
+/// Optional sentence shown beneath the name in the toggle's tooltip, or <c>null</c>
+/// to show the name alone.
+/// </param>
 public sealed record NotebookPanelInfo(
     string PanelId,
     string ExtensionId,
@@ -41,7 +46,8 @@ public sealed record NotebookPanelInfo(
     string? IconName,
     string? IconMarkup,
     int Order,
-    bool IsHostPanel)
+    bool IsHostPanel,
+    string? Description = null)
 {
     /// <summary>
     /// Stable key for a panel across both kinds, since a host panel's id and an

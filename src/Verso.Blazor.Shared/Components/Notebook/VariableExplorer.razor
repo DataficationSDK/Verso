@@ -1,6 +1,6 @@
 <div class="verso-sidebar-panel">
     <div class="verso-variable-toolbar">
-        <button class="verso-cell-btn" title="Refresh" @onclick="RefreshFromHostAsync">&#8635;</button>
+        <button class="verso-cell-btn" aria-label="Refresh" data-verso-tip="Refresh" @onclick="RefreshFromHostAsync">&#8635;</button>
     </div>
 
     @if (_refreshError is not null)

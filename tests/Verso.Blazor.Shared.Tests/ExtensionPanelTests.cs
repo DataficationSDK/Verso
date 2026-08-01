@@ -137,8 +137,9 @@ public sealed class ExtensionPanelTests : BunitTestContext
             .Add(e => e.Service, _service));
 
         var warning = cut.Find(".verso-marketplace-installed-warning");
-        // The failure reason rides on the title so a hover explains why the row is flagged.
-        Assert.IsTrue(warning.GetAttribute("title")!.Contains("not installed on this machine"));
+        // The reason is the tooltip's second line, so hovering the flag explains it
+        // rather than only saying that something is wrong.
+        Assert.IsTrue(warning.GetAttribute("data-verso-tip-desc")!.Contains("not installed on this machine"));
     }
 
     [TestMethod]

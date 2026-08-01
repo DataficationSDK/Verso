@@ -74,7 +74,7 @@ Notebooks hold more than code. Markdown cells document your work, and dedicated 
 
 You can also arrange a notebook as a dashboard or a presentation instead of a linear document. See [Layouts and Showcase Extensions](layouts.md).
 
-A theme restyles the whole app, cells, outputs, and panels alike. Switch to a dark theme from the View menu:
+A theme restyles the whole app, cells, outputs, and panels alike. Switch to a dark theme from the **View** panel, which you open from the panel toggles at the right of the toolbar:
 
 ![The notebook editor in the Verso Dark theme](dark-theme.png)
 

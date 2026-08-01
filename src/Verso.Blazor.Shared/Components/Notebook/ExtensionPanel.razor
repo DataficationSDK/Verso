@@ -12,7 +12,9 @@
                     @if (Service.LocalExtensionPickMode == LocalExtensionPickMode.Upload)
                     {
                         <label class="verso-marketplace-more @(_isBusy ? "verso-marketplace-more--disabled" : "")"
-                               title="Install from a local .dll or .nupkg file">
+                               aria-label="Install from a file"
+                               data-verso-tip="Install from a file"
+                               data-verso-tip-desc="Sideload a local .dll or .nupkg.">
                             &#8943;
                             <InputFile class="verso-marketplace-file"
                                        OnChange="HandleLocalFileSelectedAsync"
@@ -24,7 +26,9 @@
                         <button class="verso-marketplace-more"
                                 type="button"
                                 disabled="@_isBusy"
-                                title="Install from a local .dll or .nupkg file"
+                                aria-label="Install from a file"
+                                data-verso-tip="Install from a file"
+                                data-verso-tip-desc="Sideload a local .dll or .nupkg."
                                 @onclick="BrowseLocalAsync">&#8943;</button>
                     }
                 </div>
@@ -56,16 +60,19 @@
                                     <span class="verso-marketplace-installed-warning"
                                           role="img"
                                           aria-label="@($"Not loaded: {e.UnavailableReason}")"
-                                          title="@($"Not loaded: {e.UnavailableReason}")">&#9888;</span>
+                                          data-verso-tip="Not loaded"
+                                          data-verso-tip-desc="@e.UnavailableReason">&#9888;</span>
                                 }
-                                <span class="verso-marketplace-installed-id" title="@e.Id">@e.Id</span>
+                                <span class="verso-marketplace-installed-id" data-verso-tip="@e.Id">@e.Id</span>
                                 @if (e.Version is not null)
                                 {
                                     <span class="verso-marketplace-installed-version">@e.Version</span>
                                 }
                                 @if (e.IsLocal)
                                 {
-                                    <span class="verso-marketplace-installed-badge" title="Sideloaded from a local file">Local</span>
+                                    <span class="verso-marketplace-installed-badge"
+                                          data-verso-tip="Local"
+                                          data-verso-tip-desc="Sideloaded from a local file.">Local</span>
                                 }
                             </div>
                             <button class="verso-marketplace-btn verso-marketplace-btn--uninstall"
@@ -90,7 +97,7 @@
                             var p = pkg;
                             <div class="verso-marketplace-result">
                                 <div class="verso-marketplace-result-header">
-                                    <span class="verso-marketplace-result-id" title="@p.Id">@p.Id</span>
+                                    <span class="verso-marketplace-result-id" data-verso-tip="@p.Id">@p.Id</span>
                                     @if (p.Version is not null)
                                     {
                                         @if (p.IsInstalled)
@@ -103,7 +110,7 @@
                                             <div class="verso-marketplace-version-dropdown" @onfocusout="OnVersionDropdownFocusOut" tabindex="-1">
                                                 <button class="verso-marketplace-version-badge"
                                                         disabled="@_isBusy"
-                                                        title="Choose a version to install"
+                                                        data-verso-tip="Choose a version to install"
                                                         @onclick="() => ToggleVersionDropdown(p.Id, p.Version)">
                                                     @selected
                                                     <span class="verso-marketplace-version-chevron">&#9662;</span>
@@ -185,7 +192,8 @@
                                 <div class="verso-extension-name">@e.Name</div>
                                 <div class="verso-extension-version">@e.Version</div>
                                 <button class="verso-extension-toggle @(e.Status == ExtensionStatus.Enabled ? "verso-extension-toggle--enabled" : "")"
-                                        title="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
+                                        aria-label="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
+                                        data-verso-tip="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
                                         @onclick="() => ToggleExtensionAsync(e.ExtensionId, e.Status)">
                                     @(e.Status == ExtensionStatus.Enabled ? "On" : "Off")
                                 </button>

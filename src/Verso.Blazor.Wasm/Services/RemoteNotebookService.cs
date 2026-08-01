@@ -1239,7 +1239,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public async Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId)
     {
         var panels = new List<NotebookPanelInfo>(
-            HostPanels.Available(ActiveLayoutSupportsPropertiesPanel));
+            HostPanels.Available(
+                ActiveLayoutSupportsPropertiesPanel,
+                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded)));
 
         try
         {
@@ -1256,7 +1258,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                     p.IconName,
                     p.IconMarkup,
                     p.Order,
-                    IsHostPanel: false));
+                    IsHostPanel: false,
+                    Description: p.Description));
             }
         }
         catch
@@ -1866,7 +1869,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _toolbarActions = actionsResult.Actions?.Select(a => new ToolbarActionInfo(
             a.ActionId, a.DisplayName, a.Icon,
             Enum.TryParse<ToolbarPlacement>(a.Placement, true, out var p) ? p : ToolbarPlacement.MainToolbar,
-            a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt)).ToList() ?? new();
+            a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt, a.Description)).ToList() ?? new();
 
         // Cell types
         var cellTypesResult = await _bridge.RequestAsync<CellTypesResponse>("notebook/getCellTypes", null);
@@ -2259,6 +2262,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? IconName { get; set; }
         public string? IconMarkup { get; set; }
         public int Order { get; set; }
+        public string? Description { get; set; }
     }
 
     private sealed class PanelRenderResponse
@@ -2363,6 +2367,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public bool IconOnly { get; set; }
         public bool IsPrimary { get; set; }
         public string? ConfirmationPrompt { get; set; }
+        public string? Description { get; set; }
     }
 
     private sealed class EnabledStatesResponse

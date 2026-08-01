@@ -36,6 +36,12 @@ public static class PanelIcons
 
         ["search"] = $"<svg {Attrs}><circle cx=\"7\" cy=\"7\" r=\"4.5\"/><line x1=\"10.4\" y1=\"10.4\" x2=\"14\" y2=\"14\"/></svg>",
 
+        ["layout"] = $"<svg {Attrs}><rect x=\"1.5\" y=\"1.5\" width=\"13\" height=\"13\" rx=\"1\"/>"
+            + "<line x1=\"6\" y1=\"1.5\" x2=\"6\" y2=\"14.5\"/><line x1=\"6\" y1=\"8\" x2=\"14.5\" y2=\"8\"/></svg>",
+
+        ["compare"] = $"<svg {Attrs}><rect x=\"1.5\" y=\"1.5\" width=\"5.5\" height=\"13\" rx=\"1\"/>"
+            + "<rect x=\"9\" y=\"1.5\" width=\"5.5\" height=\"13\" rx=\"1\"/></svg>",
+
         ["info"] = $"<svg {Attrs}><circle cx=\"8\" cy=\"8\" r=\"6.2\"/><line x1=\"8\" y1=\"7.2\" x2=\"8\" y2=\"11.2\"/>"
             + "<line x1=\"8\" y1=\"4.9\" x2=\"8\" y2=\"5\"/></svg>",
 

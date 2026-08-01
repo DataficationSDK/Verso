@@ -29,10 +29,45 @@
                     }
                 </div>
             </div>
-            <button class="verso-diff-close" title="Close (Esc)" @onclick="() => OnClose.InvokeAsync()">&#x2715;</button>
+
+            @* Stepping between changes, because the summary says how many there are and
+               the reader should not have to hunt for them in a long notebook. *@
+            @if (ChangedIndexes.Count > 1)
+            {
+                <div class="verso-diff-nav">
+                    <span class="verso-diff-nav-position">@NavPositionLabel</span>
+                    <button class="verso-diff-nav-btn" aria-label="Previous change"
+                            data-verso-tip="Previous change" data-verso-tip-desc="Alt+Up"
+                            @onclick="() => StepAsync(-1)">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 8 6 12 10"/></svg>
+                    </button>
+                    <button class="verso-diff-nav-btn" aria-label="Next change"
+                            data-verso-tip="Next change" data-verso-tip-desc="Alt+Down"
+                            @onclick="() => StepAsync(1)">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+                    </button>
+                </div>
+            }
+
+            <button class="verso-diff-close" aria-label="Close"
+                    data-verso-tip="Close" data-verso-tip-desc="Esc" @onclick="() => OnClose.InvokeAsync()">
+                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+            </button>
         </div>
 
         <div class="verso-diff-body">
+            @if (!HasChanges)
+            {
+                <div class="verso-diff-empty">
+                    <svg viewBox="0 0 16 16" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.4"/><path d="M5.2 8.2 7.2 10.2 10.9 6.1"/></svg>
+                    <p class="verso-diff-empty-title">Identical to @Diff.BaselineLabel</p>
+                    <p class="verso-diff-empty-detail">
+                        Every cell and every notebook setting matches the baseline, including
+                        unsaved edits.
+                    </p>
+                </div>
+            }
+
             @if (Diff.MetadataChanges.Count > 0)
             {
                 <div class="verso-diff-metadata">
@@ -56,7 +91,7 @@
                     var run = block.UnchangedRun;
                     <div class="verso-diff-unchanged-group">
                         <button class="verso-diff-unchanged-toggle" @onclick="() => ToggleGroup(run.StartIndex)">
-                            <span class="verso-diff-chevron @(IsGroupExpanded(run.StartIndex) ? "verso-diff-chevron--open" : "")">&#x25B6;</span>
+                            <span class="verso-diff-chevron @(IsGroupExpanded(run.StartIndex) ? "verso-diff-chevron--open" : "")">@Chevron</span>
                             @run.Entries.Count unchanged @(run.Entries.Count == 1 ? "cell" : "cells")
                         </button>
                         @if (IsGroupExpanded(run.StartIndex))
@@ -80,7 +115,7 @@
                     @switch (entry.Kind)
                     {
                         case CellDiffKind.Added:
-                            <div class="verso-diff-cell verso-diff-cell--added">
+                            <div class="verso-diff-cell verso-diff-cell--added" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
                                     <span class="verso-diff-kind-badge verso-diff-kind-badge--added">Added</span>
                                     @CellBadges(entry)
@@ -90,7 +125,7 @@
                             break;
 
                         case CellDiffKind.Removed:
-                            <div class="verso-diff-cell verso-diff-cell--removed">
+                            <div class="verso-diff-cell verso-diff-cell--removed" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
                                     <span class="verso-diff-kind-badge verso-diff-kind-badge--removed">Removed</span>
                                     @CellBadges(entry)
@@ -100,7 +135,7 @@
                             break;
 
                         case CellDiffKind.Moved:
-                            <div class="verso-diff-cell verso-diff-cell--moved">
+                            <div class="verso-diff-cell verso-diff-cell--moved" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
                                     <span class="verso-diff-kind-badge verso-diff-kind-badge--moved">Moved</span>
                                     @CellBadges(entry)
@@ -110,7 +145,7 @@
                             break;
 
                         case CellDiffKind.Modified:
-                            <div class="verso-diff-cell verso-diff-cell--modified">
+                            <div class="verso-diff-cell verso-diff-cell--modified" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
                                     <span class="verso-diff-kind-badge verso-diff-kind-badge--modified">Modified</span>
                                     @CellBadges(entry)
@@ -135,7 +170,7 @@
                                 {
                                     <div class="verso-diff-outputs">
                                         <button class="verso-diff-outputs-toggle" @onclick="() => ToggleOutputs(entryIndex)">
-                                            <span class="verso-diff-chevron @(AreOutputsExpanded(entryIndex) ? "verso-diff-chevron--open" : "")">&#x25B6;</span>
+                                            <span class="verso-diff-chevron @(AreOutputsExpanded(entryIndex) ? "verso-diff-chevron--open" : "")">@Chevron</span>
                                             Outputs changed
                                         </button>
                                         @if (AreOutputsExpanded(entryIndex))
@@ -181,14 +216,61 @@
     private readonly HashSet<int> _expandedOutputs = new();
     private readonly HashSet<int> _expandedDiffs = new();
     private bool _eagerDiffEditors;
+    private int _navPosition = -1;
 
     private bool HasChanges
         => Diff.Summary.Added + Diff.Summary.Removed + Diff.Summary.Modified + Diff.Summary.Moved > 0
             || Diff.MetadataChanges.Count > 0;
 
+    /// <summary>Disclosure triangle, matching the one every other collapsible surface draws.</summary>
+    private static readonly MarkupString Chevron = new(
+        "<svg viewBox=\"0 0 16 16\" width=\"11\" height=\"11\" fill=\"none\" stroke=\"currentColor\" "
+        + "stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 3.5 10.5 8 6 12.5\"/></svg>");
+
+    // Indexes into Diff.Cells of everything that is not unchanged, in document order.
+    // Both the anchors and the stepper key off this, so they cannot drift apart.
+    private List<int> ChangedIndexes => Diff.Cells
+        .Select((entry, index) => (entry, index))
+        .Where(x => x.entry.Kind != CellDiffKind.Unchanged)
+        .Select(x => x.index)
+        .ToList();
+
+    private string NavPositionLabel
+    {
+        get
+        {
+            var total = ChangedIndexes.Count;
+            return _navPosition < 0 ? $"{total} changes" : $"{_navPosition + 1} of {total}";
+        }
+    }
+
+    private string AnchorId(int entryIndex) => $"{_overlayId}-change-{entryIndex}";
+
     protected override void OnParametersSet()
     {
         _eagerDiffEditors = Diff.Summary.Modified <= MaxEagerDiffEditors;
+        _navPosition = -1;
+    }
+
+    /// <summary>
+    /// Moves to the next or previous change and scrolls it to the top. Wraps at both ends,
+    /// which is what makes repeated presses a way to sweep the whole diff.
+    /// </summary>
+    private async Task StepAsync(int direction)
+    {
+        var changes = ChangedIndexes;
+        if (changes.Count == 0)
+            return;
+
+        _navPosition = _navPosition < 0
+            ? (direction > 0 ? 0 : changes.Count - 1)
+            : (_navPosition + direction + changes.Count) % changes.Count;
+
+        try
+        {
+            await JS.InvokeVoidAsync("versoMonaco.scrollElementIntoView", AnchorId(changes[_navPosition]));
+        }
+        catch (JSException) { }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -229,6 +311,18 @@
         if (e.Key == "Escape")
         {
             await OnClose.InvokeAsync();
+            return;
+        }
+
+        // Alt rather than a bare arrow, which has to keep scrolling the body, and rather
+        // than F7, which the surrounding editor may already have claimed.
+        if (e.AltKey && e.Key == "ArrowDown")
+        {
+            await StepAsync(1);
+        }
+        else if (e.AltKey && e.Key == "ArrowUp")
+        {
+            await StepAsync(-1);
         }
     }
 
@@ -247,7 +341,9 @@
         }
         @if (entry.MatchedByContent && entry.Kind is CellDiffKind.Modified)
         {
-            <span class="verso-diff-heuristic-hint" title="These files carry no shared cell identity, so this pairing is based on content similarity.">approximate match</span>
+            <span class="verso-diff-heuristic-hint"
+                  data-verso-tip="Approximate match"
+                  data-verso-tip-desc="These files carry no shared cell identity, so this pairing is based on content similarity.">approximate match</span>
         }
     };
 

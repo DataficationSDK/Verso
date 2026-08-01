@@ -69,9 +69,9 @@ public class PanelIconsTests
         // in the interface docs has to resolve here.
         string[] documented =
         {
-            "document", "list", "puzzle", "braces", "gear", "search", "info",
-            "warning", "flag", "check", "clock", "tag", "chart", "table",
-            "folder", "link"
+            "document", "list", "puzzle", "braces", "gear", "search", "layout",
+            "compare", "info", "warning", "flag", "check", "clock", "tag",
+            "chart", "table", "folder", "link"
         };
 
         foreach (var name in documented)

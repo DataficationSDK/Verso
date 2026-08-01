@@ -4,15 +4,15 @@ A layout decides how a notebook's cells are arranged and rendered. The same note
 
 ## Built-in layouts
 
-Verso ships three layouts, chosen from the layout picker in the toolbar:
+Verso ships three layouts, chosen from the **View** panel, which you open from the panel toggles at the right of the toolbar:
 
 - **Notebook** is the default: a linear, top-to-bottom list of editable cells.
 - **Dashboard** is a view-and-arrange grid. Cells become tiles you can move, resize, and run, but you do not edit their code here. It is meant for presenting results, not authoring them.
 - **Presentation** turns the notebook into a read-only, output-focused flow that hides the editing chrome, useful for walking through results.
 
-![The View menu listing the Notebook, Dashboard, and Presentation layouts alongside the theme options](layouts.png)
+![The View panel listing the Notebook, Dashboard, and Presentation layouts alongside the theme options](layouts.png)
 
-Switching layouts does not change your cells or their outputs; it only changes how they are arranged. Each layout remembers its own arrangement in the notebook, so moving tiles around in Dashboard does not disturb the Notebook view.
+The panel stays open while you switch, so you can try each layout and watch the notebook redraw beside the list. Switching layouts does not change your cells or their outputs; it only changes how they are arranged. Each layout remembers its own arrangement in the notebook, so moving tiles around in Dashboard does not disturb the Notebook view.
 
 ![The Dashboard layout showing a cell's output as a movable, resizable tile](dashboard.png)
 

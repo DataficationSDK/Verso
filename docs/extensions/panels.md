@@ -78,7 +78,7 @@ The host calls it when it builds the panel list: on notebook load, and whenever 
 
 `IconName` names an icon rather than supplying one, so hosts that do not draw SVG can still show something. Hosts are expected to recognize:
 
-`document` · `list` · `puzzle` · `braces` · `gear` · `search` · `info` · `warning` · `flag` · `check` · `clock` · `tag` · `chart` · `table` · `folder` · `link`
+`document` · `list` · `puzzle` · `braces` · `gear` · `search` · `layout` · `compare` · `info` · `warning` · `flag` · `check` · `clock` · `tag` · `chart` · `table` · `folder` · `link`
 
 Resolution order is `IconName`, then `IconMarkup`, then the first letter of `DisplayName`. A name a host does not recognize falls back rather than failing, so naming an icon is always safe.
 
@@ -89,6 +89,17 @@ public string? IconName => "flag";
 public string? IconMarkup =>
     "<svg viewBox=\"0 0 16 16\" width=\"15\" height=\"15\" fill=\"currentColor\">...</svg>";
 ```
+
+### Say what the panel contains
+
+A toggle is an icon at rest, so an icon and a one-word name are all a reader has before deciding whether to open the panel. Hosts show `Description` beneath `DisplayName` in the toggle's tooltip, which is the one place to fix that.
+
+```csharp
+public string DisplayName => "Findings";
+public string? Description => "Rule violations found in the current notebook.";
+```
+
+Say what the panel shows. A description that restates the name spends the reader's attention without repaying it.
 
 ## Responding to actions
 

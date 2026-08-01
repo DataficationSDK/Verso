@@ -29,6 +29,13 @@ public interface IExtension
     /// <summary>
     /// Optional short description of what the extension provides.
     /// </summary>
+    /// <remarks>
+    /// One class is one contribution, so for a <see cref="IToolbarAction"/> or an
+    /// <see cref="INotebookPanel"/> this doubles as the description of that button or
+    /// panel: hosts show it beneath the name in the control's tooltip. Since those
+    /// controls are often an icon with no label, a sentence saying what the thing does
+    /// is worth more here than a restatement of its name.
+    /// </remarks>
     string? Description { get; }
 
     /// <summary>

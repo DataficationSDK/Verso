@@ -6,7 +6,7 @@
 @inject INotebookService Service
 @inject IJSRuntime JS
 
-<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "")">
+<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "") @DiffMarkClass">
     <div class="verso-cell-gutter">
         <div class="verso-cell-gutter-actions">
             @if (IsEditable)
@@ -15,7 +15,7 @@
                 {
                     <button class="verso-cell-btn verso-cell-btn--stop verso-cell-gutter-btn"
                             @onclick="() => OnCancelCell.InvokeAsync(CellData.Id)"
-                            title="Stop">
+                            aria-label="Stop" data-verso-tip="Stop">
                         <span>&#x25A0;</span>
                     </button>
                 }
@@ -23,7 +23,9 @@
                 {
                     <button class="verso-cell-btn verso-cell-btn--run verso-cell-gutter-btn"
                             @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
-                            title="@(IsRunDisabled && !IsExecuting ? "Another cell is running" : "Run")"
+                            aria-label="Run"
+                            data-verso-tip="Run"
+                            data-verso-tip-desc="@(IsRunDisabled && !IsExecuting ? "Another cell is running." : null)"
                             disabled="@(IsExecuting || IsRunDisabled)">
                         @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
                     </button>
@@ -33,7 +35,8 @@
             {
                 <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
                         @onclick="() => OnToggleSection.InvokeAsync(CellData.Id)"
-                        title="@(IsSectionCollapsed ? "Expand Section" : "Collapse Section")">
+                        aria-label="@(IsSectionCollapsed ? "Expand Section" : "Collapse Section")"
+                        data-verso-tip="@(IsSectionCollapsed ? "Expand Section" : "Collapse Section")">
                     <span class="verso-cell-collapse-chevron @(IsSectionCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
                 </button>
             }
@@ -41,7 +44,8 @@
             {
                 <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
                         @onclick="ToggleInputCollapseAsync"
-                        title="@(IsInputCollapsed ? "Expand Code" : "Collapse Code")">
+                        aria-label="@(IsInputCollapsed ? "Expand Code" : "Collapse Code")"
+                        data-verso-tip="@(IsInputCollapsed ? "Expand Code" : "Collapse Code")">
                     <span class="verso-cell-collapse-chevron @(IsInputCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
                 </button>
             }
@@ -100,13 +104,22 @@
                     }
                 </div>
             }
+            @if (DiffMark is { } mark && mark != CellDiffKind.Unchanged)
+            {
+                @* Names what the left stripe is saying. The stripe is on the cell itself so it
+                   is visible in every layout; this badge sits with the other badges and follows
+                   whatever rule the active layout has for showing them. *@
+                <span class="verso-cell-diff-badge verso-cell-diff-badge--@DiffMarkName(mark)">@DiffMarkLabel(mark)</span>
+            }
             <div class="verso-cell-toolbar-actions">
                 @foreach (var action in _enabledCellActions)
                 {
                     var act = action;
                     <button class="verso-cell-btn verso-cell-btn--action"
                             @onclick="() => ExecuteCellActionAsync(act)"
-                            title="@act.DisplayName">
+                            aria-label="@act.DisplayName"
+                            data-verso-tip="@act.DisplayName"
+                            data-verso-tip-desc="@act.Description">
                         @if (act.Icon is not null)
                         {
                             @((MarkupString)act.Icon)
@@ -119,13 +132,13 @@
                 }
                 @if (Index > 0)
                 {
-                    <button class="verso-cell-btn" @onclick="() => OnMoveUp.InvokeAsync(CellData.Id)" title="Move Up">&#x25B2;</button>
+                    <button class="verso-cell-btn" @onclick="() => OnMoveUp.InvokeAsync(CellData.Id)" aria-label="Move Up" data-verso-tip="Move Up">&#x25B2;</button>
                 }
                 @if (!IsLast)
                 {
-                    <button class="verso-cell-btn" @onclick="() => OnMoveDown.InvokeAsync(CellData.Id)" title="Move Down">&#x25BC;</button>
+                    <button class="verso-cell-btn" @onclick="() => OnMoveDown.InvokeAsync(CellData.Id)" aria-label="Move Down" data-verso-tip="Move Down">&#x25BC;</button>
                 }
-                <button class="verso-cell-btn verso-cell-btn--delete" @onclick="() => OnDeleteCell.InvokeAsync(CellData.Id)" title="Delete">&#x2715;</button>
+                <button class="verso-cell-btn verso-cell-btn--delete" @onclick="() => OnDeleteCell.InvokeAsync(CellData.Id)" aria-label="Delete" data-verso-tip="Delete">&#x2715;</button>
             </div>
         </div>
 
@@ -242,6 +255,39 @@
     [Parameter] public bool IsSectionCollapsed { get; set; }
     [Parameter] public EventCallback<Guid> OnToggleSection { get; set; }
 
+    /// <summary>
+    /// How this cell differs from the baseline while a comparison is live, or <c>null</c> when
+    /// nothing is being compared.
+    /// </summary>
+    [Parameter] public CellDiffKind? DiffMark { get; set; }
+
+    private string DiffMarkClass => DiffMark switch
+    {
+        CellDiffKind.Added => "verso-cell--diff-added",
+        CellDiffKind.Removed => "verso-cell--diff-removed",
+        CellDiffKind.Modified => "verso-cell--diff-modified",
+        CellDiffKind.Moved => "verso-cell--diff-moved",
+        _ => ""
+    };
+
+    private static string DiffMarkName(CellDiffKind kind) => kind switch
+    {
+        CellDiffKind.Added => "added",
+        CellDiffKind.Removed => "removed",
+        CellDiffKind.Modified => "modified",
+        CellDiffKind.Moved => "moved",
+        _ => "unchanged"
+    };
+
+    private static string DiffMarkLabel(CellDiffKind kind) => kind switch
+    {
+        CellDiffKind.Added => "Added",
+        CellDiffKind.Removed => "Removed",
+        CellDiffKind.Modified => "Modified",
+        CellDiffKind.Moved => "Moved",
+        _ => "Unchanged"
+    };
+
     private List<ToolbarActionInfo> _enabledCellActions = new();
     private string? _enabledActionsSignature;
     private bool _showTypeDropdown;
@@ -268,7 +314,7 @@
         @<div class="verso-output verso-output--error">
             <div class="verso-output-error-name">This output could not be rendered</div>
             <pre class="verso-output-error-content">@renderError.Message</pre>
-            <button class="verso-cell-btn verso-cell-btn--action" @onclick="RecoverOutputRender" title="Retry rendering this output">Retry</button>
+            <button class="verso-cell-btn verso-cell-btn--action" @onclick="RecoverOutputRender" data-verso-tip="Retry rendering this output">Retry</button>
         </div>;
 
     // The type/language menus render in the browser top layer (popover) so they paint above the

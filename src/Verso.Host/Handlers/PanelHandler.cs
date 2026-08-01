@@ -28,7 +28,8 @@ public static class PanelHandler
                     DisplayName = panel.DisplayName,
                     IconName = panel.IconName,
                     IconMarkup = panel.IconMarkup,
-                    Order = panel.Order
+                    Order = panel.Order,
+                    Description = panel.Description
                 });
             }
             catch

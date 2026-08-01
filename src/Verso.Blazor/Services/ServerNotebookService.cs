@@ -710,7 +710,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         return _extensionHost.GetToolbarActions()
             .Where(a => a.Placement == placement)
             .OrderBy(a => a.Order)
-            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt))
+            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt, a.Description))
             .ToList();
     }
 
@@ -1248,7 +1248,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public async Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId)
     {
         var panels = new List<NotebookPanelInfo>(
-            HostPanels.Available(ActiveLayoutSupportsPropertiesPanel));
+            HostPanels.Available(
+                ActiveLayoutSupportsPropertiesPanel,
+                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded)));
 
         if (_scaffold is not null && _extensionHost is not null)
         {
@@ -1265,7 +1267,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
                         panel.IconName,
                         panel.IconMarkup,
                         panel.Order,
-                        IsHostPanel: false));
+                        IsHostPanel: false,
+                        Description: panel.Description));
                 }
                 catch
                 {

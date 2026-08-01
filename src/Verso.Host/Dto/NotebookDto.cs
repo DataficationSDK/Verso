@@ -102,6 +102,7 @@ public sealed class ToolbarActionDto
     public bool IconOnly { get; set; }
     public bool IsPrimary { get; set; }
     public string? ConfirmationPrompt { get; set; }
+    public string? Description { get; set; }
 }
 
 // --- Cell ---

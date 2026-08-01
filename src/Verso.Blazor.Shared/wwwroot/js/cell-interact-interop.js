@@ -71,6 +71,9 @@ window.versoCellInteract = (() => {
  * trigger badge, flipping above the badge when it would overflow the viewport and clamping so it
  * stays on screen. While open it tracks the badge on scroll and resize; the tracking listeners
  * remove themselves once the popover closes or its element leaves the DOM.
+ *
+ * Despite the name, nothing here is specific to cells: it positions any menu at any trigger. The
+ * toolbar's export menu uses it for a different reason, that the toolbar clips its own overflow.
  */
 window.versoCellMenu = (function () {
     // Active scroll/resize trackers keyed by a stable per-menu id, so close(key) can tear a menu's

@@ -18,7 +18,7 @@ The base interface for all extensions. Every extension class must implement this
 | `Name` | `string` | Human-readable display name. |
 | `Version` | `string` | Semantic version string (e.g., `"1.2.0"`). |
 | `Author` | `string?` | Optional author or publisher name. |
-| `Description` | `string?` | Optional short description of the extension. |
+| `Description` | `string?` | Optional short description of the extension. For a toolbar action or a notebook panel this doubles as the description of that button or panel: hosts show it beneath the name in the control's tooltip. |
 | `OnLoadedAsync(IExtensionHostContext)` | `Task` | Called when the host loads the extension. Use for initialization and service registration. |
 | `OnUnloadedAsync()` | `Task` | Called when the host unloads the extension. Use for cleanup. |
 
@@ -189,7 +189,7 @@ Defines an action that appears on the notebook toolbar, cell toolbar, or context
 | `ActionId` | `string` | Unique identifier for this action (e.g., `"dice.action.roll-all"`). |
 | `DisplayName` | `string` | Label shown on the button or menu item. |
 | `Icon` | `string?` | Optional icon name or path. |
-| `IconOnly` | `bool` | When `true`, render only the icon with no text label. Default interface member, defaults to `false`. |
+| `IconOnly` | `bool` | When `true`, render only the icon with no text label. Default interface member, defaults to `false`. Set a `Description` alongside it: the icon is the only thing on screen, and the tooltip is the only place left to explain it. |
 | `IsPrimary` | `bool` | Marks the action as primary so the toolbar can emphasize it. Default interface member, defaults to `false`. |
 | `ConfirmationPrompt` | `string?` | When set, the host confirms with this message before running the action. Default interface member, defaults to `null`. |
 | `Placement` | `ToolbarPlacement` | Where the action appears: `MainToolbar`, `CellToolbar`, `ContextMenu`, or `ExportMenu`. |
@@ -590,7 +590,7 @@ No host is obliged to support any particular media type. A panel that offers onl
 
 ### Icon Names
 
-Hosts are expected to recognize `document`, `list`, `puzzle`, `braces`, `gear`, `search`, `info`, `warning`, `flag`, `check`, `clock`, `tag`, `chart`, `table`, `folder`, and `link`. A name a host does not recognize falls back to `IconMarkup`, then to the first letter of `DisplayName`. An unrecognized name is not an error.
+Hosts are expected to recognize `document`, `list`, `puzzle`, `braces`, `gear`, `search`, `layout`, `compare`, `info`, `warning`, `flag`, `check`, `clock`, `tag`, `chart`, `table`, `folder`, and `link`. A name a host does not recognize falls back to `IconMarkup`, then to the first letter of `DisplayName`. An unrecognized name is not an error.
 
 ### Lifecycle
 

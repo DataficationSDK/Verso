@@ -169,7 +169,7 @@ public sealed class OutputViewTests : BunitTestContext
         // The outputs list is mutated in place (no parameter change reaches the component), so
         // only the Retry button's key rotation can pick up the repaired content.
         outputs[0] = CellOutput.Plain("now fine");
-        cut.Find("button[title='Retry rendering this output']").Click();
+        cut.Find("button[data-verso-tip='Retry rendering this output']").Click();
 
         Assert.IsFalse(cut.Markup.Contains("This output could not be rendered"));
         StringAssert.Contains(cut.Markup, "now fine");

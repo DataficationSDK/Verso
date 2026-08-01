@@ -820,6 +820,7 @@ export class BlazorEditorProvider
     const widgetInterop = toUri(
       "_content/Verso.Blazor.Shared/js/widget-interop.js"
     );
+    const tooltipJs = toUri("_content/Verso.Blazor.Shared/js/tooltip.js");
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -913,6 +914,14 @@ export class BlazorEditorProvider
             --verso-status-warning: var(--vscode-editorWarning-foreground, #CCA700);
             --verso-status-error: var(--vscode-errorForeground, #F48771);
             --verso-status-info: var(--vscode-editorInfo-foreground, #3794FF);
+            /* Comparison colors, used by the compare panel, the cell marks, and the full
+               diff. Kept separate from the status palette so they can point at the colors
+               a reader here already reads as added and removed: the workbench's own git
+               decorations, the same ones the Explorer and the SCM view use. */
+            --verso-diff-added: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success));
+            --verso-diff-removed: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error));
+            --verso-diff-modified: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning));
+            --verso-diff-moved: var(--vscode-textLink-foreground, var(--verso-status-info));
             --verso-scrollbar-thumb: var(--vscode-scrollbarSlider-background);
             --verso-scrollbar-track: transparent;
             --verso-scrollbar-thumb-hover: var(--vscode-scrollbarSlider-hoverBackground);
@@ -1020,6 +1029,7 @@ export class BlazorEditorProvider
     <script src="${cellDragInterop}"></script>
     <script src="${tagInputInterop}"></script>
     <script src="${widgetInterop}"></script>
+    <script src="${tooltipJs}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.

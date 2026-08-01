@@ -26,6 +26,7 @@ public sealed class PanelInfoDto
     public string? IconName { get; set; }
     public string? IconMarkup { get; set; }
     public int Order { get; set; }
+    public string? Description { get; set; }
 }
 
 // panel/render

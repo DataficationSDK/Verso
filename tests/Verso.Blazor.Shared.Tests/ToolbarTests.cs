@@ -81,118 +81,6 @@ public sealed class ToolbarTests : BunitTestContext
         Assert.IsTrue(cut.Markup.Contains("this-file-has-a-very-long-name.verso"));
     }
 
-    // ── View dropdown (Layout + Theme) ─────────────────────────────────
-    //
-    // Layout and theme switching share a single "View" dropdown. The button appears only when
-    // there is something to switch (more than one layout, or more than one theme on a host that
-    // owns its own theming), and each section renders only when its own choices warrant it. The
-    // choices live inside the popup, so the dropdown is opened before asserting on them.
-
-    [TestMethod]
-    public void ViewDropdown_HiddenWhenSingleLayoutAndSingleTheme()
-    {
-        _service.AvailableLayouts = new List<LayoutInfo> { new("notebook", "Notebook", false) };
-        _service.AvailableThemes = new List<ThemeInfo> { new("light", "Light", ThemeKind.Light) };
-
-        var cut = RenderToolbar();
-
-        Assert.IsFalse(HasViewButton(cut));
-    }
-
-    [TestMethod]
-    public void ViewDropdown_ShowsLayouts_WhenMultipleLayouts()
-    {
-        _service.AvailableLayouts = new List<LayoutInfo>
-        {
-            new("notebook", "Notebook", false),
-            new("dashboard", "Dashboard", true)
-        };
-        _service.ActiveLayoutId = "notebook";
-
-        var cut = RenderToolbar();
-        OpenViewDropdown(cut);
-
-        Assert.IsTrue(cut.Markup.Contains("Layout"));      // section header
-        Assert.IsTrue(cut.Markup.Contains("Dashboard"));   // the switchable layout
-    }
-
-    [TestMethod]
-    public void ViewDropdown_OmitsLayoutSection_WhenSingleLayout()
-    {
-        // One layout, but multiple themes force the dropdown open: it offers themes and no
-        // Layout section, since there is nothing to switch to.
-        _service.AvailableLayouts = new List<LayoutInfo> { new("notebook", "Notebook", false) };
-        _service.AvailableThemes = new List<ThemeInfo>
-        {
-            new("light", "Light", ThemeKind.Light),
-            new("dark", "Dark", ThemeKind.Dark)
-        };
-
-        var cut = RenderToolbar();
-        OpenViewDropdown(cut);
-
-        Assert.IsFalse(cut.Markup.Contains("Layout"));
-        Assert.IsTrue(cut.Markup.Contains("Theme"));
-    }
-
-    [TestMethod]
-    public void ViewDropdown_ShowsThemes_WhenMultipleThemes_NotEmbedded()
-    {
-        _service.AvailableThemes = new List<ThemeInfo>
-        {
-            new("light", "Light", ThemeKind.Light),
-            new("dark", "Dark", ThemeKind.Dark)
-        };
-        _service.ActiveThemeId = "light";
-        _service.IsEmbedded = false;
-
-        var cut = RenderToolbar();
-        OpenViewDropdown(cut);
-
-        Assert.IsTrue(cut.Markup.Contains("Theme"));   // section header
-        Assert.IsTrue(cut.Markup.Contains("Dark"));    // the switchable theme
-    }
-
-    [TestMethod]
-    public void ViewDropdown_OmitsThemeSection_WhenSingleTheme()
-    {
-        // Multiple layouts force the dropdown open; one theme means no Theme section.
-        _service.AvailableLayouts = new List<LayoutInfo>
-        {
-            new("notebook", "Notebook", false),
-            new("dashboard", "Dashboard", true)
-        };
-        _service.AvailableThemes = new List<ThemeInfo> { new("light", "Light", ThemeKind.Light) };
-
-        var cut = RenderToolbar();
-        OpenViewDropdown(cut);
-
-        Assert.IsFalse(cut.Markup.Contains("Theme"));
-        Assert.IsTrue(cut.Markup.Contains("Layout"));
-    }
-
-    [TestMethod]
-    public void ViewDropdown_OmitsThemeSection_WhenEmbedded()
-    {
-        // Embedded hosts own theming, so the Theme section never appears even with many themes.
-        _service.AvailableLayouts = new List<LayoutInfo>
-        {
-            new("notebook", "Notebook", false),
-            new("dashboard", "Dashboard", true)
-        };
-        _service.AvailableThemes = new List<ThemeInfo>
-        {
-            new("light", "Light", ThemeKind.Light),
-            new("dark", "Dark", ThemeKind.Dark)
-        };
-        _service.IsEmbedded = true;
-
-        var cut = RenderToolbar();
-        OpenViewDropdown(cut);
-
-        Assert.IsFalse(cut.Markup.Contains("Theme"));
-    }
-
     // ── Not loaded state ───────────────────────────────────────────────
 
     [TestMethod]
@@ -216,7 +104,7 @@ public sealed class ToolbarTests : BunitTestContext
         AddRestartAction();
 
         var cut = RenderToolbar();
-        cut.Find("button[title='Restart Kernel']").Click();
+        cut.Find("button[data-verso-tip='Restart Kernel']").Click();
 
         Assert.IsTrue(cut.Markup.Contains("verso-modal"));
         Assert.IsTrue(cut.Markup.Contains("Restart now?"));
@@ -229,7 +117,7 @@ public sealed class ToolbarTests : BunitTestContext
         AddRestartAction();
 
         var cut = RenderToolbar();
-        cut.Find("button[title='Restart Kernel']").Click();
+        cut.Find("button[data-verso-tip='Restart Kernel']").Click();
         cut.Find(".verso-modal-footer .verso-modal-btn--primary").Click();
 
         CollectionAssert.Contains(_service.ExecutedActionIds, "verso.action.restart-kernel");
@@ -242,7 +130,7 @@ public sealed class ToolbarTests : BunitTestContext
         AddRestartAction();
 
         var cut = RenderToolbar();
-        cut.Find("button[title='Restart Kernel']").Click();
+        cut.Find("button[data-verso-tip='Restart Kernel']").Click();
         cut.Find(".verso-modal-footer .verso-modal-btn--secondary").Click();
 
         Assert.AreEqual(0, _service.ExecutedActionIds.Count);
@@ -255,7 +143,7 @@ public sealed class ToolbarTests : BunitTestContext
         AddRunAllAction();
 
         var cut = RenderToolbar();
-        cut.Find("button[title='Run All']").Click();
+        cut.Find("button[data-verso-tip='Run All']").Click();
 
         CollectionAssert.Contains(_service.ExecutedActionIds, "verso.action.run-all");
         Assert.IsFalse(cut.Markup.Contains("verso-modal"));
@@ -274,7 +162,7 @@ public sealed class ToolbarTests : BunitTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.IsNotNull(cut.Find("button[title='Stop Execution']"));
+            Assert.IsNotNull(cut.Find("button[data-verso-tip='Stop Execution']"));
             Assert.IsFalse(cut.Markup.Contains("Run All"));
         });
     }
@@ -288,7 +176,7 @@ public sealed class ToolbarTests : BunitTestContext
         var cut = RenderToolbar();
         cut.InvokeAsync(() => _service.RaiseCellExecuting(cellId));
 
-        cut.WaitForElement("button[title='Stop Execution']").Click();
+        cut.WaitForElement("button[data-verso-tip='Stop Execution']").Click();
 
         CollectionAssert.Contains(_service.CancelledCellIds, cellId);
     }
@@ -311,7 +199,7 @@ public sealed class ToolbarTests : BunitTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.IsNotNull(cut.Find("button[title='Stop Execution']"));
+            Assert.IsNotNull(cut.Find("button[data-verso-tip='Stop Execution']"));
             Assert.IsFalse(cut.Markup.Contains("Run All"));
             Assert.IsTrue(cut.Markup.Contains("Running…"));
         });
@@ -333,7 +221,7 @@ public sealed class ToolbarTests : BunitTestContext
 
         var cut = RenderToolbar();
         cut.InvokeAsync(() => _service.RaiseCellExecuting(cellId));
-        cut.WaitForElement("button[title='Stop Execution']");
+        cut.WaitForElement("button[data-verso-tip='Stop Execution']");
         cut.InvokeAsync(() => _service.RaiseCellExecutionCompleted(cellId));
 
         cut.WaitForAssertion(() =>
@@ -353,7 +241,7 @@ public sealed class ToolbarTests : BunitTestContext
         var cut = RenderToolbar();
 
         Assert.IsTrue(cut.Markup.Contains("verso-toolbar-dirty-dot"));
-        Assert.IsNotNull(cut.Find("button[title='Save (unsaved changes)']"));
+        Assert.IsNotNull(cut.Find("button[data-verso-tip='Save'][data-verso-tip-desc]"));
     }
 
     [TestMethod]
@@ -426,11 +314,6 @@ public sealed class ToolbarTests : BunitTestContext
         _service.ActionEnabledStates["verso.action.run-all"] = true;
     }
 
-    private static bool HasViewButton(IRenderedComponent<Toolbar> cut)
-        => cut.FindAll("button").Any(b => b.TextContent.Contains("View"));
-
-    private static void OpenViewDropdown(IRenderedComponent<Toolbar> cut)
-        => cut.FindAll("button").First(b => b.TextContent.Contains("View")).Click();
 }
 
 /// <summary>

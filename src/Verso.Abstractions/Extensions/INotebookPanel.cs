@@ -37,6 +37,11 @@ public interface INotebookPanel : IExtension
     /// Human-readable name shown as the panel's title and as the accessible name
     /// of its toggle control.
     /// </summary>
+    /// <remarks>
+    /// A toggle shows an icon at rest, so the name alone may be the first and only
+    /// thing a reader gets. Hosts show <see cref="IExtension.Description"/> beneath
+    /// it in the toggle's tooltip, which is where to say what the panel contains.
+    /// </remarks>
     string DisplayName { get; }
 
     /// <summary>
@@ -47,10 +52,10 @@ public interface INotebookPanel : IExtension
     /// </summary>
     /// <remarks>
     /// The names hosts are expected to recognize are: <c>document</c>, <c>list</c>,
-    /// <c>puzzle</c>, <c>braces</c>, <c>gear</c>, <c>search</c>, <c>info</c>,
-    /// <c>warning</c>, <c>flag</c>, <c>check</c>, <c>clock</c>, <c>tag</c>,
-    /// <c>chart</c>, <c>table</c>, <c>folder</c>, and <c>link</c>. Hosts that
-    /// cannot draw a given name fall back rather than fail.
+    /// <c>puzzle</c>, <c>braces</c>, <c>gear</c>, <c>search</c>, <c>layout</c>,
+    /// <c>compare</c>, <c>info</c>, <c>warning</c>, <c>flag</c>, <c>check</c>,
+    /// <c>clock</c>, <c>tag</c>, <c>chart</c>, <c>table</c>, <c>folder</c>, and
+    /// <c>link</c>. Hosts that cannot draw a given name fall back rather than fail.
     /// </remarks>
     string? IconName { get; }
 
