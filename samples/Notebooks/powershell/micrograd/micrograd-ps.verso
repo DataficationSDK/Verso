@@ -1,0 +1,189 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "Micrograd in PowerShell with PSGraph",
+    "created": "2026-05-10T00:00:00+00:00",
+    "modified": "2026-05-10T00:00:00+00:00",
+    "defaultKernel": "powershell",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "c10006aa-7486-4e47-9a94-dc4762c8982e",
+      "type": "markdown",
+      "source": "# Micrograd in PowerShell with PSGraph\n\nThis notebook builds a small automatic differentiation engine in PowerShell, renders its computation graphs with PSGraph/PSGraphView, and trains a tiny MLP on the classic micrograd toy dataset.",
+      "outputs": []
+    },
+    {
+      "id": "10897b83-f777-43a3-a85c-d5719da8dd1d",
+      "type": "markdown",
+      "source": "## Module Setup\n\nLoad the tested prerelease modules from the normal PowerShell module path. Install missing modules from a regular PowerShell terminal before starting Verso; the embedded kernel does not provide PowerShellGet package-management commands.",
+      "outputs": []
+    },
+    {
+      "id": "92379945-af96-4131-a373-7f8fc66bcc7e",
+      "type": "code",
+      "language": "powershell",
+      "source": "$requirements = @(\n    [pscustomobject]@{ Name = 'PSQuickGraph'; Version = '2.6.0-beta1' }\n    [pscustomobject]@{ Name = 'PSGraphView'; Version = '0.2.0-beta1' }\n)\n\n$resolvedModules = foreach ($requirement in $requirements) {\n    $module = Get-Module -ListAvailable -Name $requirement.Name |\n        Where-Object {\n            $version = $_.Version.ToString()\n            $prerelease = $_.PrivateData.PSData.Prerelease\n            if ($prerelease) {\n                $version = \"$version-$prerelease\"\n            }\n            $version -eq $requirement.Version\n        } |\n        Select-Object -First 1\n\n    if ($module) {\n        [pscustomobject]@{\n            Requirement = $requirement\n            Module = $module\n        }\n    }\n}\n\n$missing = $requirements |\n    Where-Object Name -NotIn $resolvedModules.Requirement.Name\n\nif ($missing) {\n    $installCommands = $missing | ForEach-Object {\n        \"Install-Module $($_.Name) -RequiredVersion $($_.Version) -AllowPrerelease -Scope CurrentUser\"\n    }\n\n    throw \"Install the missing modules in a regular PowerShell terminal, restart Verso, and run this cell again:`n$($installCommands -join \"`n\")\"\n}\n\n$resolvedModules | ForEach-Object {\n    Import-Module $_.Module.Path -Force\n}",
+      "outputs": []
+    },
+    {
+      "id": "bfc628a3-515c-4905-9458-6246caa81b2e",
+      "type": "markdown",
+      "source": "## Helpers\n\nThe implementation is split into small scripts:\n\n- `value.ps1` defines scalar `Value` objects and operator overloads.\n- `graphHelper.ps1` converts `Value` graphs into PSGraph graphs and renders them.\n- `neuronHelper.ps1` defines `Neuron`, `Layer`, and `MLP`.\n- `helpers.ps1` contains small collection helpers such as `Zip` and `Sum-Value`.",
+      "outputs": []
+    },
+    {
+      "id": "afb60472-57bb-4182-9a12-1340020a4070",
+      "type": "code",
+      "language": "powershell",
+      "source": ". ./value.ps1\n. ./graphHelper.ps1\n. ./neuronHelper.ps1\n. ./helpers.ps1",
+      "outputs": []
+    },
+    {
+      "id": "0f742849-64b1-49d9-b4e0-56f96ac103ee",
+      "type": "markdown",
+      "source": "## Scalar Computation Graph\n\nStart with a single scalar expression. `Value` objects remember their children and the operation that produced them, so PSGraph can render the expression tree.",
+      "outputs": []
+    },
+    {
+      "id": "59e70eeb-26b8-445f-9e86-690798dee592",
+      "type": "code",
+      "language": "powershell",
+      "source": "$a = [Value]::new( 2.0, 'a')\n$b = [Value]::new(-3.0, 'b')\n$c = [Value]::new(10.0, 'c')\n$e = $a * $b; $e.label = 'e'\n$d = $e + $c; $d.label = 'd'\n$f = [Value]::new(-2.0, 'f')\n$L = $d * $f; $L.label = 'L'\n\n$L",
+      "outputs": []
+    },
+    {
+      "id": "165cdfec-dfcb-4aa5-82a0-95f6f5a36cf5",
+      "type": "code",
+      "language": "powershell",
+      "source": "$scalarGraph = New-ExpressionGraph -val $L\nShow-ExpressionGraph -Graph $scalarGraph",
+      "outputs": []
+    },
+    {
+      "id": "bf07b38b-5459-4349-afb2-1f1075d28ae4",
+      "type": "markdown",
+      "source": "## Backpropagation Order\n\nFor backpropagation, build a graph directly on the original `Value` objects. A reverse topological order visits the output first and then walks back toward the leaves. After gradients are computed, rebuild the visualization graph because display nodes store a snapshot of `data` and `grad`.",
+      "outputs": []
+    },
+    {
+      "id": "f69fa599-97c7-4854-aed5-759f23a27e42",
+      "type": "code",
+      "language": "powershell",
+      "source": "$bpGraph = New-BackpropagationGraph -val $L\n$L.grad = 1.0\n\nGet-GraphTopologicalSort -Graph $bpGraph -Reverse |\n    ForEach-Object { $_.OriginalObject } |\n    ForEach-Object { & $_.backward }\n\n$scalarGraph = New-ExpressionGraph -val $L\nShow-ExpressionGraph -Graph $scalarGraph",
+      "outputs": []
+    },
+    {
+      "id": "ff725818-b4dc-4a90-9069-f4cdfb97a9cc",
+      "type": "markdown",
+      "source": "## A Single Neuron\n\nThis reproduces the micrograd neuron example: two inputs, two weights, a bias, and a `tanh` activation.",
+      "outputs": []
+    },
+    {
+      "id": "c18a9b52-1521-4b07-b805-14916f55e772",
+      "type": "code",
+      "language": "powershell",
+      "source": "$x1 = [Value]::new(2.0, 'x1')\n$x2 = [Value]::new(0.0, 'x2')\n\n$w1 = [Value]::new(-3.0, 'w1')\n$w2 = [Value]::new(1.0, 'w2')\n$b = [Value]::new(6.8813735870195432, 'b')\n\n$x1w1 = $x1 * $w1; $x1w1.label = 'x1*w1'\n$x2w2 = $x2 * $w2; $x2w2.label = 'x2*w2'\n$x1w1x2w2 = $x1w1 + $x2w2; $x1w1x2w2.label = 'x1*w1 + x2*w2'\n$n = $x1w1x2w2 + $b; $n.label = 'n'\n$o = $n.Tanh(); $o.label = 'o'\n\n$o",
+      "outputs": []
+    },
+    {
+      "id": "77fe7876-a35a-4057-aab9-3754dc02e7ad",
+      "type": "code",
+      "language": "powershell",
+      "source": "$neuronGraph = New-ExpressionGraph -val $o\nShow-ExpressionGraph -Graph $neuronGraph",
+      "outputs": []
+    },
+    {
+      "id": "9b440bcc-ed1f-4ca9-aaa9-cc58c167ef2f",
+      "type": "code",
+      "language": "powershell",
+      "source": "$bpNeuronGraph = New-BackpropagationGraph -val $o\n$o.grad = 1.0\n\nGet-GraphTopologicalSort -Graph $bpNeuronGraph -Reverse |\n    ForEach-Object { $_.OriginalObject } |\n    ForEach-Object { & $_.backward }\n\n$neuronGraph = New-ExpressionGraph -val $o\nShow-ExpressionGraph -Graph $neuronGraph",
+      "outputs": []
+    },
+    {
+      "id": "4ebbd3b8-148d-464d-af32-ba7b042e129d",
+      "type": "markdown",
+      "source": "## Layer and MLP\n\nA `Layer` applies several neurons to the same input vector. An `MLP` chains layers so each layer receives the output vector from the previous layer.",
+      "outputs": []
+    },
+    {
+      "id": "a158633b-33d6-45c0-af8f-46e135c1eff3",
+      "type": "code",
+      "language": "powershell",
+      "source": "$x = @(\n    [Value]::new(2.0, 'x1')\n    [Value]::new(3.0, 'x2')\n    [Value]::new(-1.0, 'x3')\n)\n\n$layer = [Layer]::new(3, 4)\n$layer.Invoke($x)",
+      "outputs": []
+    },
+    {
+      "id": "2f31397a-8ec1-4478-b4f7-a4dd66e93963",
+      "type": "code",
+      "language": "powershell",
+      "source": "$net = [MLP]::new(3, @(4, 4, 1))\n$res = $net.Invoke($x)\n$res",
+      "outputs": []
+    },
+    {
+      "id": "280b150c-e2eb-472d-a2fe-261ceeb41292",
+      "type": "code",
+      "language": "powershell",
+      "source": "$netGraph = New-ExpressionGraph -val $res[0]\nShow-ExpressionGraph -Graph $netGraph -rankdir 'TD' ",
+      "outputs": []
+    },
+    {
+      "id": "64896558-4a50-44b5-8c76-33b6955a7184",
+      "type": "markdown",
+      "source": "## Training Data and Loss\n\nThe training set is the small dataset from the micrograd walkthrough. The loss is the sum of squared errors between target labels and predictions.",
+      "outputs": []
+    },
+    {
+      "id": "a13c19a1-36e5-4ad1-951e-b79f7a5fc259",
+      "type": "code",
+      "language": "powershell",
+      "source": "$xs = @(\n    @([Value]::new(2.0, 'x11'), [Value]::new( 3.0, 'x12'), [Value]::new(-1.0, 'x13')),\n    @([Value]::new(3.0, 'x21'), [Value]::new(-1.0, 'x22'), [Value]::new( 0.5, 'x23')),\n    @([Value]::new(0.5, 'x31'), [Value]::new( 1.0, 'x32'), [Value]::new( 1.0, 'x33')),\n    @([Value]::new(1.0, 'x41'), [Value]::new( 1.0, 'x42'), [Value]::new(-1.0, 'x43'))\n)\n\n$ys = @(\n    [Value]::new( 1.0, 'y1'),\n    [Value]::new(-1.0, 'y2'),\n    [Value]::new(-1.0, 'y3'),\n    [Value]::new( 1.0, 'y4')\n)\n\n$net = [MLP]::new(3, @(4, 4, 1))\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
+      "outputs": []
+    },
+    {
+      "id": "e137ad0d-eaf9-4125-886e-f445d9e0c224",
+      "type": "markdown",
+      "source": "## One Training Step\n\nEach step follows the same pattern as PyTorch: clear gradients, run the forward pass, build the loss, run backpropagation in reverse topological order, then update parameters.",
+      "outputs": []
+    },
+    {
+      "id": "4fddcb91-1fc6-4d1a-af61-d40433ee2418",
+      "type": "code",
+      "language": "powershell",
+      "source": "foreach ($p in $net.parameters()) {\n    $p.grad = 0.0\n}\nforeach ($row in $xs) {\n    foreach ($v in $row) { $v.grad = 0.0 }\n}\nforeach ($y in $ys) {\n    $y.grad = 0.0\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$loss.grad = 1.0\n$bpLossGraph = New-BackpropagationGraph -val $loss\n\nGet-GraphTopologicalSort -Graph $bpLossGraph -Reverse |\n    ForEach-Object { $_.OriginalObject } |\n    ForEach-Object { & $_.backward }\n\nforeach ($p in $net.parameters()) {\n    $p.data += -0.1 * $p.grad\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
+      "outputs": []
+    },
+    {
+      "id": "0d8ebd3a-dd25-4662-ae18-67d8b6751d14",
+      "type": "markdown",
+      "source": "## Training Loop\n\nRepeat the same step to fit the tiny dataset. The final predictions should move toward the target signs, and the loss should shrink.",
+      "outputs": []
+    },
+    {
+      "id": "dd473439-856e-4f2f-96c4-e5cd3debd34b",
+      "type": "code",
+      "language": "powershell",
+      "source": "$ypred = @()\n$loss = [Value]::new(0.0, 'loss')\n\n1..200 | ForEach-Object {\n    foreach ($p in $net.parameters()) { $p.grad = 0.0 }\n    foreach ($row in $xs) { foreach ($v in $row) { $v.grad = 0.0 } }\n    foreach ($y in $ys) { $y.grad = 0.0 }\n\n    $ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n    $loss = Zip -Left $ys -Right $ypred | Sum-Value {\n        $diff = $_.Right - $_.Left\n        $diff * $diff\n    }\n\n    $loss.grad = 1.0\n    $bpLossGraph = New-BackpropagationGraph -val $loss\n\n    Get-GraphTopologicalSort -Graph $bpLossGraph -Reverse |\n        ForEach-Object { $_.OriginalObject } |\n        ForEach-Object { & $_.backward }\n\n    foreach ($p in $net.parameters()) {\n        $p.data += -0.1 * $p.grad\n    }\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
+      "outputs": []
+    },
+    {
+      "id": "a096e010-2ed5-4324-b580-9f61bd58ef8d",
+      "type": "markdown",
+      "source": "## Final Loss Graph\n\nRender the final loss graph after training. This graph is intentionally large because it contains the full computation that produced the scalar loss.",
+      "outputs": []
+    },
+    {
+      "id": "ec5c879c-0de0-4760-a294-a390d5d67f77",
+      "type": "code",
+      "language": "powershell",
+      "source": "$lossGraph = New-ExpressionGraph -val $loss\nShow-ExpressionGraph -Graph $lossGraph -rankdir 'TD' ",
+      "outputs": []
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {}
+    }
+  }
+}
