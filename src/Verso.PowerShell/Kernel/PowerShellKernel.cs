@@ -130,12 +130,38 @@ public sealed class PowerShellKernel : ILanguageKernel
                 AppendHostOutput,
                 RequestHostInput);
 
-            // Output stream (objects)
-            if (result.OutputLines.Count > 0)
+            // Give specialized extension formatters the first opportunity to handle raw
+            // runtime values. Contiguous unhandled objects are flushed together through
+            // PowerShell's native ETS formatter so table shape and output order are preserved.
+            var pendingNativeObjects = new List<System.Management.Automation.PSObject>();
+
+            foreach (var outputObject in result.OutputObjects)
             {
-                var text = string.Join(Environment.NewLine, result.OutputLines);
-                if (!string.IsNullOrEmpty(text))
-                    outputs.Add(new CellOutput(result.OutputMimeType, text));
+                var formatted = await context.TryFormatAsync(outputObject.BaseObject)
+                    .ConfigureAwait(false);
+
+                if (formatted is null)
+                {
+                    pendingNativeObjects.Add(outputObject);
+                    continue;
+                }
+
+                FlushNativeObjects();
+                outputs.Add(formatted);
+            }
+
+            FlushNativeObjects();
+
+            void FlushNativeObjects()
+            {
+                if (pendingNativeObjects.Count == 0)
+                    return;
+
+                var nativeOutput = _runspaceManager.FormatOutput(pendingNativeObjects);
+                if (nativeOutput is not null)
+                    outputs.Add(nativeOutput);
+
+                pendingNativeObjects.Clear();
             }
 
             // Information stream (Write-Information)
