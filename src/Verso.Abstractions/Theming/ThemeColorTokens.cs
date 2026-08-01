@@ -109,6 +109,17 @@ public sealed record ThemeColorTokens
     /// <summary>Secondary accent color for hover states and emphasis.</summary>
     public string AccentSecondary { get; init; } = "#005A9E";
 
+    /// <summary>
+    /// Text and icon color drawn on top of an accent fill: primary buttons, active
+    /// menu items, selected tabs.
+    /// </summary>
+    /// <remarks>
+    /// Set this whenever <see cref="AccentPrimary"/> is light. White is only the right
+    /// answer for a mid-to-dark accent, and a theme that leaves it at the default while
+    /// using a pale accent renders its own primary buttons unreadable.
+    /// </remarks>
+    public string AccentForeground { get; init; } = "#FFFFFF";
+
     /// <summary>Background color for highlighted or marked content.</summary>
     public string HighlightBackground { get; init; } = "#FFF3CD";
 
@@ -169,11 +180,25 @@ public sealed record ThemeColorTokens
     /// <summary>Elevated surface background (toolbars, cards) exposed as <c>--verso-bg-elevated</c>.</summary>
     public string BgElevated { get; init; } = "#F3F3F3";
 
+    /// <summary>
+    /// Recessed surface background exposed as <c>--verso-bg-sunken</c>: the step below
+    /// <see cref="BgDefault"/>, used for wells that content sits inside rather than on
+    /// top of (output regions, fenced code, quoted blocks, empty states).
+    /// </summary>
+    public string BgSunken { get; init; } = "#F5F5F5";
+
     /// <summary>Default foreground color exposed as <c>--verso-fg-default</c>.</summary>
     public string FgDefault { get; init; } = "#1E1E1E";
 
     /// <summary>Muted/secondary foreground color exposed as <c>--verso-fg-muted</c>.</summary>
     public string FgMuted { get; init; } = "#858585";
+
+    /// <summary>
+    /// Tertiary foreground color exposed as <c>--verso-fg-subtle</c>: the quietest
+    /// readable step, for metadata that sits beside content without competing with it
+    /// (timestamps, counts, type annotations, secondary lines under a title).
+    /// </summary>
+    public string FgSubtle { get; init; } = "#A0A0A0";
 
     /// <summary>
     /// Primary accent color exposed to layout extensions as <c>--verso-accent</c>. This

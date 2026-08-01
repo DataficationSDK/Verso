@@ -334,6 +334,7 @@ public sealed class FakeNotebookService : INotebookService
 
     public bool IsMarketplaceSupported { get; set; } = true;
     public IReadOnlyList<InstalledExtensionDto> InstalledExtensions { get; set; } = Array.Empty<InstalledExtensionDto>();
+    public IReadOnlyList<string> MarketplaceSources { get; set; } = new List<string> { "nuget.org" };
     public IReadOnlyList<PackageSearchResultDto> SearchResults { get; set; } = new List<PackageSearchResultDto>();
     public PackageInstallResultDto InstallResult { get; set; } = new(true, "1.0.0", null, 1);
     public List<(string Query, int Skip, int Take, bool IncludePrerelease)> SearchExtensionCalls { get; } = new();
@@ -398,6 +399,34 @@ public sealed class FakeNotebookService : INotebookService
         PropertyChangedCalls.Add((cellId, providerExtensionId, propertyName, value));
         return Task.CompletedTask;
     }
+
+    // ── Panels ─────────────────────────────────────────────────────────
+
+    public event Action<PanelUpdatedEventArgs>? OnPanelUpdated;
+
+    public List<NotebookPanelInfo> Panels { get; set; } = new();
+    public List<RenderResult> PanelRepresentations { get; set; } = new();
+    public List<(string ExtensionId, string PanelId, string InteractionType, string Payload, string? TargetId, Guid? SelectedCellId)> PanelInteractions { get; } = new();
+
+    public Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId)
+        => Task.FromResult<IReadOnlyList<NotebookPanelInfo>>(Panels);
+
+    public Task<IReadOnlyList<RenderResult>> RenderPanelAsync(string extensionId, string panelId, Guid? selectedCellId)
+        => Task.FromResult<IReadOnlyList<RenderResult>>(PanelRepresentations);
+
+    public Task PanelInteractAsync(
+        string extensionId,
+        string panelId,
+        string interactionType,
+        string payload,
+        string? targetId = null,
+        Guid? selectedCellId = null)
+    {
+        PanelInteractions.Add((extensionId, panelId, interactionType, payload, targetId, selectedCellId));
+        return Task.CompletedTask;
+    }
+
+    public void RaisePanelUpdated(PanelUpdatedEventArgs args) => OnPanelUpdated?.Invoke(args);
 
     public Dictionary<Guid, CellVisibilityState> CellVisibilityMap { get; set; } = new();
 

@@ -360,6 +360,13 @@ public interface INotebookService
     IReadOnlyList<InstalledExtensionDto> InstalledExtensions => Array.Empty<InstalledExtensionDto>();
 
     /// <summary>
+    /// The package sources searches run against, in search order. The extension panel states
+    /// this so a result is attributable rather than assumed to have come from nuget.org. Hosts
+    /// without marketplace support return an empty list, and the panel says nothing.
+    /// </summary>
+    IReadOnlyList<string> MarketplaceSources => Array.Empty<string>();
+
+    /// <summary>
     /// How this host lets the user pick a local extension file to sideload, or
     /// <see cref="LocalExtensionPickMode.None"/> when sideloading is unavailable. The extension
     /// panel uses this to decide which acquisition path the "load from file" button drives.
@@ -416,6 +423,38 @@ public interface INotebookService
 
     /// <summary>Notify a property provider that a field value was changed in the panel.</summary>
     Task NotifyPropertyChangedAsync(Guid cellId, string providerExtensionId, string propertyName, object? value);
+
+    // ── Panels ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The ordered panel list, host panels and extension panels together. Extension
+    /// panels that report themselves unavailable are already filtered out.
+    /// </summary>
+    Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId);
+
+    /// <summary>
+    /// Asks an extension panel for its content, as representations ordered richest
+    /// first. Callers render the first entry whose MIME type they support.
+    /// </summary>
+    Task<IReadOnlyList<RenderResult>> RenderPanelAsync(
+        string extensionId, string panelId, Guid? selectedCellId);
+
+    /// <summary>
+    /// Routes a panel-scoped action to the panel's <c>IPanelInteractionHandler</c>.
+    /// </summary>
+    Task PanelInteractAsync(
+        string extensionId,
+        string panelId,
+        string interactionType,
+        string payload,
+        string? targetId = null,
+        Guid? selectedCellId = null);
+
+    /// <summary>
+    /// Raised when a panel reports that its content changed and should be fetched
+    /// again.
+    /// </summary>
+    event Action<PanelUpdatedEventArgs>? OnPanelUpdated;
 
     /// <summary>Resolve the visibility state of a cell for the current active layout.</summary>
     CellVisibilityState ResolveCellVisibility(Guid cellId);

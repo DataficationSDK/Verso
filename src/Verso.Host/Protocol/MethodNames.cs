@@ -122,6 +122,13 @@ public static class MethodNames
     public const string PropertiesUpdateProperty = "properties/updateProperty";
     public const string PropertiesGetSupported = "properties/getSupported";
 
+    // Extension-contributed panels
+    public const string PanelList = "panel/list";
+    public const string PanelRender = "panel/render";
+    public const string PanelInteract = "panel/interact";
+    // Notification (host → client): a panel's content changed and should be re-fetched.
+    public const string PanelUpdated = "panel/updated";
+
     // File operations (notifications from host to extension)
     public const string FileDownload = "file/download";
 }

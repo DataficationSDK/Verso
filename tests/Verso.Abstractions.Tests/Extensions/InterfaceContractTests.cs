@@ -16,6 +16,8 @@ public class InterfaceContractTests
     [DataRow(typeof(ILayoutInteractionHandler))]
     [DataRow(typeof(ICellPropertyProvider))]
     [DataRow(typeof(INotebookPostProcessor))]
+    [DataRow(typeof(INotebookPanel))]
+    [DataRow(typeof(IPanelInteractionHandler))]
     public void ExtensionInterface_InheritsIExtension(Type extensionType)
     {
         Assert.IsTrue(typeof(IExtension).IsAssignableFrom(extensionType),
@@ -34,6 +36,7 @@ public class InterfaceContractTests
     [DataRow(typeof(IToolbarActionContext))]
     [DataRow(typeof(IFormatterContext))]
     [DataRow(typeof(IMagicCommandContext))]
+    [DataRow(typeof(IPanelContext))]
     public void SpecializedContext_InheritsIVersoContext(Type contextType)
     {
         Assert.IsTrue(typeof(IVersoContext).IsAssignableFrom(contextType),
@@ -54,21 +57,23 @@ public class InterfaceContractTests
             .Where(t => t.IsInterface && typeof(IExtension).IsAssignableFrom(t))
             .ToList();
 
-        // IExtension + 13 derived = 14
-        Assert.AreEqual(14, extensionInterfaces.Count,
-            $"Expected 13 derived extension interfaces (plus IExtension itself), found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
+        // IExtension + 15 derived = 16. This count is a tripwire, not a rule: adding a
+        // capability interface is fine, but it has to be a deliberate act that also
+        // updates the DataRow list above and the interface reference docs.
+        Assert.AreEqual(16, extensionInterfaces.Count,
+            $"Expected 15 derived extension interfaces (plus IExtension itself), found: {string.Join(", ", extensionInterfaces.Select(i => i.Name))}");
     }
 
     [TestMethod]
-    public void AllFiveSpecializedContexts_ArePresent()
+    public void AllSpecializedContexts_ArePresent()
     {
         var contextInterfaces = typeof(IVersoContext).Assembly
             .GetTypes()
             .Where(t => t.IsInterface && t != typeof(IVersoContext) && typeof(IVersoContext).IsAssignableFrom(t))
             .ToList();
 
-        Assert.AreEqual(5, contextInterfaces.Count,
-            $"Expected 5 specialized contexts, found: {string.Join(", ", contextInterfaces.Select(i => i.Name))}");
+        Assert.AreEqual(6, contextInterfaces.Count,
+            $"Expected 6 specialized contexts, found: {string.Join(", ", contextInterfaces.Select(i => i.Name))}");
     }
 
     [TestMethod]

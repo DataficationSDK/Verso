@@ -133,6 +133,12 @@ public sealed class Scaffold : IAsyncDisposable
     /// </summary>
     public string? FilePath => _metadata.FilePath;
 
+    /// <summary>
+    /// Notebook metadata in the form extensions see it, for hosts building an
+    /// <see cref="IVersoContext"/> outside the execution pipeline.
+    /// </summary>
+    public INotebookMetadata Metadata => _metadata;
+
     // --- Subsystem initialization ---
 
     /// <summary>

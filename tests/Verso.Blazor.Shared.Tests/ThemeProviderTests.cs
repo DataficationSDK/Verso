@@ -78,6 +78,66 @@ public sealed class ThemeProviderTests : BunitTestContext
     }
 
     [TestMethod]
+    public void ShapeScale_PresentInStyle()
+    {
+        var themeData = CreateDefaultThemeData();
+
+        var cut = RenderComponent<ThemeProvider>(p => p
+            .Add(t => t.Theme, themeData));
+
+        var style = cut.Find("style").TextContent;
+
+        Assert.IsTrue(style.Contains("--verso-shape-small"));
+        Assert.IsTrue(style.Contains("--verso-shape-medium"));
+        Assert.IsTrue(style.Contains("--verso-shape-large"));
+        Assert.IsTrue(style.Contains("--verso-shape-full"));
+    }
+
+    /// <summary>
+    /// Elevation is the one token family whose emitted names are not a straight kebab-case of
+    /// the property name: <c>Level1</c> becomes <c>--verso-elevation-1</c>. Stylesheets are
+    /// written against the short form, so a regression here silently unshadows the whole app.
+    /// </summary>
+    [TestMethod]
+    public void ElevationScale_EmitsNumberedNames()
+    {
+        var themeData = CreateDefaultThemeData();
+
+        var cut = RenderComponent<ThemeProvider>(p => p
+            .Add(t => t.Theme, themeData));
+
+        var style = cut.Find("style").TextContent;
+
+        Assert.IsTrue(style.Contains("--verso-elevation-0:"));
+        Assert.IsTrue(style.Contains("--verso-elevation-1:"));
+        Assert.IsTrue(style.Contains("--verso-elevation-2:"));
+        Assert.IsTrue(style.Contains("--verso-elevation-3:"));
+        Assert.IsFalse(style.Contains("--verso-elevation-level"));
+    }
+
+    /// <summary>
+    /// Theme data arriving from a host that predates the elevation scale carries a null, and
+    /// the provider has to fill it rather than emit an empty shadow.
+    /// </summary>
+    [TestMethod]
+    public void NullElevation_FallsBackToDefaults()
+    {
+        var themeData = new ThemeData(
+            new ThemeColorTokens(),
+            new ThemeTypography(),
+            new ThemeSpacing(),
+            Elevation: null);
+
+        var cut = RenderComponent<ThemeProvider>(p => p
+            .Add(t => t.Theme, themeData));
+
+        var style = cut.Find("style").TextContent;
+
+        Assert.IsTrue(style.Contains("--verso-elevation-1:"));
+        Assert.IsFalse(style.Contains("--verso-elevation-1: ;"));
+    }
+
+    [TestMethod]
     public void NullTheme_RendersEmptyOrDefault()
     {
         var cut = RenderComponent<ThemeProvider>(p => p

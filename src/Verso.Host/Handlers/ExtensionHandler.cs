@@ -83,7 +83,8 @@ public static class ExtensionHandler
             var registered = 0;
             if (!ns.ExtensionHost.IsExtensionPackageLoaded(p.PackageId))
             {
-                registered = await MarketplaceLoader.LoadAssembliesAsync(ns.ExtensionHost, install.AssemblyPaths);
+                registered = await MarketplaceLoader.LoadAssembliesAsync(
+                    ns.ExtensionHost, install.AssemblyPaths, p.PackageId);
                 ns.ExtensionHost.MarkExtensionPackageLoaded(p.PackageId);
             }
 
@@ -196,11 +197,15 @@ public static class ExtensionHandler
                     {
                         Id = id,
                         Version = version,
-                        IsLocal = source == ExtensionSource.Local
+                        IsLocal = source == ExtensionSource.Local,
+                        Capabilities = ns.ExtensionHost.GetPackageCapabilities(id)?.ToList(),
+                        IconDataUri = NuGetMarketplaceService.TryReadPackageIconDataUri(
+                            id, version, ExtensionDirectoryResolver.GetDefaultManagedDir())
                     };
                 })
                 .Where(e => !string.IsNullOrEmpty(e.Id))
-                .ToList()
+                .ToList(),
+            Sources = Marketplace.SourceNames.ToList()
         };
     }
 

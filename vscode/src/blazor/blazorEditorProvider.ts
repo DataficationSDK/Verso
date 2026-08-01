@@ -808,6 +808,9 @@ export class BlazorEditorProvider
     const cellInteractInterop = toUri(
       "_content/Verso.Blazor.Shared/js/cell-interact-interop.js"
     );
+    const panelInteractInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/panel-interact-interop.js"
+    );
     const parametersInterop = toUri(
       "_content/Verso.Blazor.Shared/js/parameters-interop.js"
     );
@@ -817,6 +820,7 @@ export class BlazorEditorProvider
     const widgetInterop = toUri(
       "_content/Verso.Blazor.Shared/js/widget-interop.js"
     );
+    const tooltipJs = toUri("_content/Verso.Blazor.Shared/js/tooltip.js");
 
     // WASM-specific files
     const vscodeBridgeJs = toUri("js/vscode-bridge.js");
@@ -903,17 +907,28 @@ export class BlazorEditorProvider
             --verso-border-focused: var(--vscode-focusBorder, #0078D4);
             --verso-accent-primary: var(--vscode-focusBorder, #0078D4);
             --verso-accent-secondary: var(--vscode-button-background, #0078D4);
+            --verso-accent-foreground: var(--vscode-button-foreground, #FFFFFF);
             --verso-highlight-background: var(--vscode-editor-findMatchHighlightBackground, #EA5C0055);
             --verso-highlight-foreground: var(--vscode-editor-foreground);
             --verso-status-success: var(--vscode-testing-iconPassed, #73C991);
             --verso-status-warning: var(--vscode-editorWarning-foreground, #CCA700);
             --verso-status-error: var(--vscode-errorForeground, #F48771);
             --verso-status-info: var(--vscode-editorInfo-foreground, #3794FF);
+            /* Comparison colors, used by the compare panel, the cell marks, and the full
+               diff. Kept separate from the status palette so they can point at the colors
+               a reader here already reads as added and removed: the workbench's own git
+               decorations, the same ones the Explorer and the SCM view use. */
+            --verso-diff-added: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success));
+            --verso-diff-removed: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error));
+            --verso-diff-modified: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning));
+            --verso-diff-moved: var(--vscode-textLink-foreground, var(--verso-status-info));
             --verso-scrollbar-thumb: var(--vscode-scrollbarSlider-background);
             --verso-scrollbar-track: transparent;
             --verso-scrollbar-thumb-hover: var(--vscode-scrollbarSlider-hoverBackground);
             --verso-dropdown-background: var(--vscode-dropdown-background);
             --verso-dropdown-hover: var(--vscode-list-hoverBackground);
+            --verso-overlay-background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+            --verso-overlay-border: var(--vscode-editorWidget-border, var(--vscode-panel-border, #E0E0E0));
             --verso-ui-font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
             --verso-ui-font-size: var(--vscode-font-size, 13px);
             --verso-accent: var(--vscode-focusBorder, #0078D4);
@@ -933,9 +948,39 @@ export class BlazorEditorProvider
                active VS Code theme. */
             --verso-bg-default: var(--vscode-editor-background);
             --verso-bg-elevated: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+            --verso-bg-sunken: var(--vscode-textBlockQuote-background, var(--vscode-editor-background));
             --verso-fg-default: var(--vscode-editor-foreground);
             --verso-fg-muted: var(--vscode-disabledForeground, var(--vscode-editorLineNumber-foreground, #858585));
+            --verso-fg-subtle: var(--vscode-editorLineNumber-foreground, #858585);
             --verso-font-family-mono: var(--vscode-editor-font-family, 'Cascadia Mono', Consolas, monospace);
+
+            /* Shape and elevation: the host profile.
+
+               VS Code publishes no radius or shadow variables, so unlike every color
+               above there is nothing to forward here and these values have to be
+               chosen. They are set to read as native inside the workbench rather than
+               to match the standalone shell, which runs a larger 8/12/16 scale and a
+               two-level shadow. That is the whole of the difference between the two
+               shells: same markup, same class names, one profile swapped.
+
+               Kept as a card rather than flattened to zero. A notebook cell has to
+               read as a discrete object you can select, run, and reorder, and at 0px
+               with no shadow adjacent cells fuse into one column of text. */
+            --verso-shape-small: 4px;
+            --verso-shape-medium: 6px;
+            --verso-shape-large: 8px;
+            --verso-shape-full: 999px;
+            --verso-cell-border-radius: 6px;
+            --verso-button-border-radius: 4px;
+
+            /* Flatter than the standalone shell by design: the workbench separates
+               surfaces with borders, so the shadow only has to keep a card from
+               sitting flush, and dialogs keep a real one because they float over
+               everything. */
+            --verso-elevation-0: none;
+            --verso-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.12);
+            --verso-elevation-2: 0 2px 6px rgba(0, 0, 0, 0.18);
+            --verso-elevation-3: 0 4px 12px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
         }
     </style>
 </head>
@@ -976,6 +1021,7 @@ export class BlazorEditorProvider
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
     <script src="${cellInteractInterop}"></script>
+    <script src="${panelInteractInterop}"></script>
     <script src="${layoutInteractInterop}"></script>
     <script src="${versoInlineLayoutBridge}"></script>
     <script src="${parametersInterop}"></script>
@@ -983,6 +1029,7 @@ export class BlazorEditorProvider
     <script src="${cellDragInterop}"></script>
     <script src="${tagInputInterop}"></script>
     <script src="${widgetInterop}"></script>
+    <script src="${tooltipJs}"></script>
     <script src="${frameworkJs}" autostart="false"></script>
     <script>
     // Manually start Blazor with error handling.

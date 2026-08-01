@@ -2,7 +2,10 @@
 @inject IJSRuntime JS
 
 @* Filled by the interop, which splices its own script in ahead of the widget before handing
-   the whole document to the frame. *@
+   the whole document to the frame.
+
+   An iframe's title is its accessible name rather than a hover tooltip, so this one stays a
+   title attribute where every other control moved to data-verso-tip. *@
 <iframe @ref="_frame"
         class="verso-widget-frame"
         title="Widget output"

@@ -415,7 +415,8 @@ public static class NotebookHandler
                 Order = a.Order,
                 IconOnly = a.IconOnly,
                 IsPrimary = a.IsPrimary,
-                ConfirmationPrompt = a.ConfirmationPrompt
+                ConfirmationPrompt = a.ConfirmationPrompt,
+                Description = a.Description
             }).ToList()
         };
     }

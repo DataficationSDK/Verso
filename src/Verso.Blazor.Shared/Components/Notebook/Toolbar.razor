@@ -1,16 +1,24 @@
 @implements IDisposable
-<div class="verso-toolbar" @onclick="CloseAllDropdowns">
+@inject IJSRuntime JS
+@* One tooltip group for the whole bar: after the first hover, sweeping across the
+   actions and the panel toggles answers without waiting again. *@
+<div class="verso-toolbar" data-verso-tip-group @onclick="CloseAllDropdowns">
     @if (Service.IsLoaded)
     {
-        <div class="verso-doc-info" title="@KernelTooltip">
+        @* Only worth a tooltip when the cluster is hiding something: a file name
+           too long for the label, or more kernels than the one it names. *@
+        <div class="verso-doc-info" data-verso-tip="@DocInfoTip" data-verso-tip-desc="@DocInfoTipDetail">
             <svg class="verso-doc-info-icon" viewBox="0 0 16 16" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5h5L13 5.5v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z"/><path d="M9 1.5V5.5h4"/></svg>
             <div class="verso-doc-info-text">
-                <span class="verso-doc-info-name" title="@DocNameFull">@DocName</span>
+                <span class="verso-doc-info-name">@DocName</span>
                 <span class="verso-doc-info-meta">@KernelLabel &middot; @CellCount @(CellCount == 1 ? "cell" : "cells")</span>
             </div>
         </div>
 
-        <div class="verso-kernel-status @KernelStatusClass" title="@KernelStatusTooltip">
+        @* The detail is the underlying cause of an error or a disconnect, which
+           used to be concatenated onto the status with a colon. *@
+        <div class="verso-kernel-status @KernelStatusClass"
+             data-verso-tip="@KernelStatusText" data-verso-tip-desc="@KernelStatusDetail">
             <span class="verso-kernel-status-dot"></span>
             <span class="verso-kernel-status-text">@KernelStatusText</span>
         </div>
@@ -21,11 +29,11 @@
     @if (!Service.IsEmbedded)
     {
         <div class="verso-toolbar-group">
-            <button class="verso-toolbar-btn" @onclick="OnNew" title="New Notebook">
+            <button class="verso-toolbar-btn" @onclick="OnNew" data-verso-tip="New Notebook">
                 <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z"/><path d="M9 2v4h4"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="6" y1="11" x2="10" y2="11"/></svg>
                 New
             </button>
-            <button class="verso-toolbar-btn" @onclick="OnOpenClick" title="Open File">
+            <button class="verso-toolbar-btn" @onclick="OnOpenClick" data-verso-tip="Open File">
                 <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H8L6.5 3.5 6 3H3a1 1 0 0 0-1 1z"/></svg>
                 Open
             </button>
@@ -54,7 +62,8 @@
 
         <button class="verso-toolbar-btn"
                 @onclick="OnSave"
-                title="@(Service.IsDirty ? "Save (unsaved changes)" : "Save")">
+                data-verso-tip="Save"
+                data-verso-tip-desc="@(Service.IsDirty ? "You have unsaved changes." : null)">
             <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h8l2 2v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M5 2v3h4V2"/><path d="M5 10h6v4H5z"/></svg>
             Save
             @if (Service.IsDirty)
@@ -75,7 +84,7 @@
                    another. The swap keys off IsPrimary rather than a specific action id so
                    any host- or extension-supplied primary action gets the same treatment. *@
                 <button class="verso-toolbar-btn verso-toolbar-btn--stop"
-                        title="Stop Execution"
+                        data-verso-tip="Stop Execution"
                         aria-label="Stop Execution"
                         @onclick="CancelExecutionAsync">
                     <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>
@@ -88,7 +97,8 @@
                 var iconOnly = a.IconOnly && a.Icon is not null;
                 <button class="verso-toolbar-btn @(iconOnly ? "verso-toolbar-btn--icon" : "") @(a.IsPrimary ? "verso-toolbar-btn--primary" : "")"
                         disabled="@(!isEnabled)"
-                        title="@a.DisplayName"
+                        data-verso-tip="@a.DisplayName"
+                        data-verso-tip-desc="@a.Description"
                         aria-label="@a.DisplayName"
                         @onclick="() => OnActionClicked(a)">
                     @if (a.Icon is not null)
@@ -105,91 +115,6 @@
 
         <div class="verso-toolbar-separator"></div>
 
-        @if (Service.AvailableLayouts.Count > 1 || ShowThemeSection)
-        {
-            <div class="verso-toolbar-dropdown">
-                <button class="verso-toolbar-btn"
-                        title="View Options"
-                        @onclick="ToggleViewDropdown"
-                        @onclick:stopPropagation="true">
-                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="1"/><line x1="6" y1="1.5" x2="6" y2="14.5"/><line x1="6" y1="8" x2="14.5" y2="8"/></svg>
-                    View &#9662;
-                </button>
-                @if (_showViewDropdown)
-                {
-                    <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
-                        @if (Service.AvailableLayouts.Count > 1)
-                        {
-                            <div class="verso-toolbar-menu-header">Layout</div>
-                            @foreach (var layout in Service.AvailableLayouts)
-                            {
-                                var l = layout;
-                                var isActive = string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase);
-                                <button class="verso-toolbar-btn verso-toolbar-menu-item @(isActive ? "verso-toolbar-menu-item--active" : "")"
-                                        @onclick="() => SelectLayout(l.LayoutId)">
-                                    <span>@l.DisplayName</span>
-                                    @if (isActive)
-                                    {
-                                        <span class="verso-toolbar-menu-check">&#10003;</span>
-                                    }
-                                </button>
-                            }
-                        }
-                        @if (ShowThemeSection)
-                        {
-                            <div class="verso-toolbar-menu-header">Theme</div>
-                            @foreach (var theme in Service.AvailableThemes)
-                            {
-                                var t = theme;
-                                var isActive = string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase);
-                                <button class="verso-toolbar-btn verso-toolbar-menu-item @(isActive ? "verso-toolbar-menu-item--active" : "")"
-                                        @onclick="() => SelectTheme(t.ThemeId)">
-                                    <span>@t.DisplayName</span>
-                                    @if (isActive)
-                                    {
-                                        <span class="verso-toolbar-menu-check">&#10003;</span>
-                                    }
-                                </button>
-                            }
-                        }
-                    </div>
-                }
-            </div>
-        }
-
-        <div class="verso-toolbar-dropdown">
-            <button class="verso-toolbar-btn"
-                    title="Compare Notebook"
-                    @onclick="ToggleCompareDropdownAsync"
-                    @onclick:stopPropagation="true">
-                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="5.5" height="13" rx="1"/><rect x="9" y="1.5" width="5.5" height="13" rx="1"/></svg>
-                Compare &#9662;
-            </button>
-            @if (_showCompareDropdown)
-            {
-                <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
-                    <div class="verso-toolbar-menu-header">Compare with</div>
-                    @if (_diffSources is null)
-                    {
-                        <div class="verso-toolbar-menu-loading"><span class="verso-spinner"></span></div>
-                    }
-                    else
-                    {
-                        @foreach (var source in _diffSources)
-                        {
-                            var s = source;
-                            <button class="verso-toolbar-btn verso-toolbar-menu-item"
-                                    disabled="@(!s.Available)"
-                                    title="@(s.Available ? s.Label : s.Description ?? "Not available for this notebook")"
-                                    @onclick="() => SelectDiffSourceAsync(s)">
-                                <span>@s.Label</span>
-                            </button>
-                        }
-                    }
-                </div>
-            }
-        </div>
-
         @* Only surface export actions that are currently enabled. Actions gate themselves through
            IsEnabledAsync (a layout-specific export enables only while its layout is active), so a
            disabled action is hidden outright rather than shown greyed-out, and the Export button
@@ -199,7 +124,11 @@
         {
             <div class="verso-toolbar-dropdown">
                 <button class="verso-toolbar-btn"
-                        title="Export Notebook"
+                        data-verso-tip="Export Notebook"
+                        @ref="_exportBtnRef"
+                        aria-haspopup="true"
+                        aria-expanded="@(_showExportDropdown ? "true" : "false")"
+                        aria-controls="@ExportPopupId"
                         @onclick="ToggleExportDropdown"
                         @onclick:stopPropagation="true">
                     <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3"/><polyline points="5.5 5 8 2.5 10.5 5"/><line x1="8" y1="2.5" x2="8" y2="10"/></svg>
@@ -207,7 +136,15 @@
                 </button>
                 @if (_showExportDropdown)
                 {
-                    <div class="verso-toolbar-dropdown-popup" @onclick:stopPropagation="true">
+                    @* popover="manual" lifts the menu into the browser top layer. The toolbar
+                       clips its own overflow, and scrolls horizontally in a narrow pane, so a menu
+                       drawn inside it is cut off at the toolbar's height. Positioned at the button
+                       by versoCellMenu from OnAfterRenderAsync. *@
+                    <div class="verso-toolbar-dropdown-popup"
+                         id="@ExportPopupId"
+                         popover="manual"
+                         @ref="_exportPopupRef"
+                         @onclick:stopPropagation="true">
                         @foreach (var action in _enabledExportActions)
                         {
                             var a = action;
@@ -217,6 +154,48 @@
                             </button>
                         }
                     </div>
+                }
+            </div>
+        }
+
+        @* Panel toggles.
+
+           These were a rail of rotated labels pinned to the right edge of the notebook,
+           which cost 32px of width permanently and asked the reader to tilt their head.
+           As toggles they cost nothing while closed. Icon-only at rest and labelled only
+           while active, because five labelled pills will not fit beside the actions in a
+           narrow editor pane and the panel that is open is the only one worth naming. *@
+        @if (OnTogglePanel.HasDelegate)
+        {
+            <span class="verso-toolbar-spacer"></span>
+
+            @* One control per panel, host panels and extension panels alike. Each is
+               icon-only at rest and gains its label when active, which is what keeps
+               five or more of them from crowding the toolbar. *@
+            <div class="verso-toolbar-group verso-toolbar-group--panels">
+                @foreach (var panel in Panels)
+                {
+                    var p = panel;
+                    var isActive = ActivePanel == p.Key;
+                    var icon = PanelIcons.Resolve(p.IconName, p.IconMarkup);
+                    <button class="verso-toolbar-toggle @(isActive ? "verso-toolbar-toggle--active" : "")"
+                            @key="p.Key"
+                            @onclick="() => OnTogglePanel.InvokeAsync(p.Key)"
+                            aria-pressed="@(isActive ? "true" : "false")" aria-label="@p.DisplayName"
+                            data-verso-tip="@p.DisplayName" data-verso-tip-desc="@p.Description">
+                        @if (icon is not null)
+                        {
+                            @((MarkupString)icon)
+                        }
+                        else
+                        {
+                            <span class="verso-toolbar-toggle-initial" aria-hidden="true">@PanelIcons.InitialFor(p.DisplayName)</span>
+                        }
+                        @if (isActive)
+                        {
+                            <span>@p.DisplayName</span>
+                        }
+                    </button>
                 }
             </div>
         }
@@ -230,7 +209,7 @@
              @onclick:stopPropagation="true" @onkeydown="HandleConfirmKeyDown">
             <div class="verso-modal-header">
                 <span class="verso-modal-title">@pending.DisplayName</span>
-                <button class="verso-modal-close" @onclick="CancelPendingAction" title="Cancel">
+                <button class="verso-modal-close" @onclick="CancelPendingAction" aria-label="Cancel" data-verso-tip="Cancel">
                     <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
                 </button>
             </div>
@@ -250,6 +229,22 @@
 @code {
     [Parameter] public INotebookService Service { get; set; } = default!;
     [Parameter] public Guid? SelectedCellId { get; set; }
+
+    /// <summary>
+    /// Key of the side panel currently open, or <c>null</c> when none is. The panel toggles
+    /// are only rendered when <see cref="OnTogglePanel"/> is bound, so a host that does not
+    /// own a panel set gets a toolbar without them.
+    /// </summary>
+    [Parameter] public string? ActivePanel { get; set; }
+
+    /// <summary>Raised with the panel key when a toggle is pressed. Toggling the open panel closes it.</summary>
+    [Parameter] public EventCallback<string> OnTogglePanel { get; set; }
+
+    /// <summary>
+    /// The panels to offer, already ordered and filtered to those currently available.
+    /// The hosting page owns this list because it also renders the panel body.
+    /// </summary>
+    [Parameter] public IReadOnlyList<NotebookPanelInfo> Panels { get; set; } = Array.Empty<NotebookPanelInfo>();
 
     /// <summary>
     /// Set by the hosting page while it has an execution in flight (Run All or a cell run it
@@ -274,20 +269,6 @@
     /// </summary>
     [Parameter] public Func<string, Task<bool>>? OnInterceptAction { get; set; }
 
-    /// <summary>Invoked with the computed diff when a Compare source resolves successfully;
-    /// the hosting page shows the diff view.</summary>
-    [Parameter] public EventCallback<NotebookDiffResult> OnDiffComputed { get; set; }
-
-    /// <summary>Invoked with the source id when a source needs extra input collected by the
-    /// hosting page (a git ref or file path) on hosts without a native picker. Embedded hosts
-    /// prompt natively inside <c>ComputeDiffAsync</c> instead.</summary>
-    [Parameter] public EventCallback<string> OnDiffPickerRequested { get; set; }
-
-    /// <summary>Invoked with a user-facing message when a comparison fails. Wired so failed
-    /// comparisons surface as a compact dialog; when unset, failures fall back to
-    /// <see cref="OnError"/> (the page-level banner).</summary>
-    [Parameter] public EventCallback<string> OnDiffError { get; set; }
-
     private List<ToolbarActionInfo> _filteredToolbarActions = new();
     private IReadOnlyList<ToolbarActionInfo> _exportActions = Array.Empty<ToolbarActionInfo>();
     private Dictionary<string, bool> _enabledStates = new();
@@ -295,20 +276,23 @@
     private IReadOnlyList<ToolbarActionInfo> _enabledExportActions = Array.Empty<ToolbarActionInfo>();
     private bool _showOpenInput;
     private string _openFilePath = "";
-    private bool _showViewDropdown;
     private bool _showExportDropdown;
-    private bool _showCompareDropdown;
-    private IReadOnlyList<DiffSourceInfo>? _diffSources;
 
+    // Top-layer menu plumbing: the refs the positioning helper needs, plus the flag
+    // tracking what the DOM currently reflects so the popover is shown or torn down
+    // only on an actual transition.
+    private ElementReference _exportBtnRef;
+    private ElementReference _exportPopupRef;
+    private bool _exportPopupShown;
+    private readonly string ExportPopupId = $"verso-export-menu-{Guid.NewGuid():N}";
+
+    // Layout and theme switching is the View panel's job, so the actions that duplicate it
+    // are kept out of the action row.
     private static readonly HashSet<string> _excludedActionIds = new(StringComparer.OrdinalIgnoreCase)
     {
         "verso.switchLayout",
         "verso.switchTheme"
     };
-
-    // Themes come from the host in the embedded (VS Code) shell, so the theme
-    // section is hidden there and only the layout section is offered.
-    private bool ShowThemeSection => Service.AvailableThemes.Count > 1 && !Service.IsEmbedded;
 
     // --- Document info cluster ---
 
@@ -336,6 +320,17 @@
             return name.Length > DocNameMaxLength ? name[..DocNameMaxLength] + "…" : name;
         }
     }
+
+    // The cluster already shows the file name and the notebook's kernel, so it earns
+    // a tooltip only when it is holding something back: a name the label truncated,
+    // or the other kernels a polyglot notebook is using. Null on both counts means
+    // no tooltip at all rather than one that reads back what is already there.
+    private bool IsPolyglot => DistinctLanguageIds.Count > 1;
+
+    private string? DocInfoTip =>
+        DocNameFull.Length > DocNameMaxLength || IsPolyglot ? DocNameFull : null;
+
+    private string? DocInfoTipDetail => IsPolyglot ? KernelTooltip : null;
 
     private int CellCount => Service.Cells.Count;
 
@@ -418,11 +413,10 @@
     };
 
     // Error and disconnected states carry the underlying cause (exception message,
-    // process exit detail) as the hover tooltip.
-    private string KernelStatusTooltip =>
-        string.IsNullOrWhiteSpace(_kernelStatusDetail)
-            ? KernelStatusText
-            : $"{KernelStatusText}: {_kernelStatusDetail}";
+    // process exit detail), shown beneath the status in the tooltip. Null when there
+    // is nothing to add, which leaves the tooltip as the status alone.
+    private string? KernelStatusDetail =>
+        string.IsNullOrWhiteSpace(_kernelStatusDetail) ? null : _kernelStatusDetail;
 
     private string KernelStatusClass => EffectiveActivity switch
     {
@@ -567,6 +561,33 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await ReconcileExportPopoverAsync();
+    }
+
+    // Shows or tears down the export menu's popover to match component state. On open the
+    // menu has just been rendered, so it is lifted into the top layer and placed at the
+    // button; on close it has already left the DOM, which closes the popover, leaving only
+    // its position tracker to remove. Guarded so a browser without the Popover API just
+    // leaves the menu on its own CSS layer rather than throwing.
+    private async Task ReconcileExportPopoverAsync()
+    {
+        if (_showExportDropdown == _exportPopupShown) return;
+
+        try
+        {
+            if (_showExportDropdown)
+                await JS.InvokeVoidAsync("versoCellMenu.open", _exportPopupRef, _exportBtnRef, ExportPopupId);
+            else
+                await JS.InvokeVoidAsync("versoCellMenu.close", ExportPopupId);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        _exportPopupShown = _showExportDropdown;
+    }
+
     private async Task RefreshEnabledStatesAsync()
     {
         var selectedIds = SelectedCellId.HasValue
@@ -661,115 +682,9 @@
         }
     }
 
-    private async Task SwitchLayout(string layoutId)
-    {
-        await Service.SwitchLayoutAsync(layoutId);
-        await RefreshEnabledStatesAsync();
-        await OnActionExecuted.InvokeAsync("verso.switchLayout");
-    }
-
-    private async Task SwitchTheme(string themeId)
-    {
-        await Service.SwitchThemeAsync(themeId);
-        await RefreshEnabledStatesAsync();
-        await OnActionExecuted.InvokeAsync("verso.switchTheme");
-    }
-
-    private void ToggleViewDropdown()
-    {
-        _showViewDropdown = !_showViewDropdown;
-        _showExportDropdown = false;
-        _showCompareDropdown = false;
-    }
-
     private void ToggleExportDropdown()
     {
         _showExportDropdown = !_showExportDropdown;
-        _showViewDropdown = false;
-        _showCompareDropdown = false;
-    }
-
-    /// <summary>
-    /// Opens the Compare dropdown programmatically, for externally-triggered diff requests
-    /// that arrive without a preselected source.
-    /// </summary>
-    public async Task OpenCompareMenuAsync()
-    {
-        if (!_showCompareDropdown)
-        {
-            await ToggleCompareDropdownAsync();
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task ToggleCompareDropdownAsync()
-    {
-        _showCompareDropdown = !_showCompareDropdown;
-        _showViewDropdown = false;
-        _showExportDropdown = false;
-
-        if (_showCompareDropdown)
-        {
-            _diffSources = null;
-            try
-            {
-                _diffSources = await Service.GetDiffSourcesAsync();
-            }
-            catch (Exception ex)
-            {
-                _showCompareDropdown = false;
-                await ReportDiffErrorAsync($"could not list comparison sources: {ex.Message}");
-            }
-        }
-    }
-
-    private async Task SelectDiffSourceAsync(DiffSourceInfo source)
-    {
-        _showCompareDropdown = false;
-
-        // Sources needing extra input (a ref name or file path) defer to the hosting page's
-        // picker on hosts whose notebook UI owns that prompt; embedded hosts prompt natively
-        // inside ComputeDiffAsync.
-        if (!Service.IsEmbedded && source.Id is "gitRef" or "file")
-        {
-            await OnDiffPickerRequested.InvokeAsync(source.Id);
-            return;
-        }
-
-        await ComputeDiffAsync(source.Id, null);
-    }
-
-    /// <summary>
-    /// Runs the comparison and raises <see cref="OnDiffComputed"/>. Also called by the hosting
-    /// page after its picker collects the input for a "gitRef" or "file" source.
-    /// </summary>
-    public async Task ComputeDiffAsync(string sourceId, string? explicitInput)
-    {
-        try
-        {
-            var result = await Service.ComputeDiffAsync(sourceId, explicitInput);
-            if (result is not null)
-            {
-                await OnDiffComputed.InvokeAsync(result);
-            }
-        }
-        catch (Exception ex)
-        {
-            await ReportDiffErrorAsync(ex.Message);
-        }
-    }
-
-    private async Task ReportDiffErrorAsync(string message)
-    {
-        if (OnDiffError.HasDelegate)
-        {
-            await OnDiffError.InvokeAsync(message);
-        }
-        else
-        {
-            await OnError.InvokeAsync($"Could not compare notebook: {message}");
-        }
     }
 
     private async Task ExecuteExportAsync(ToolbarActionInfo action)
@@ -778,23 +693,9 @@
         await ExecuteActionAsync(action);
     }
 
-    private async Task SelectLayout(string layoutId)
-    {
-        _showViewDropdown = false;
-        await SwitchLayout(layoutId);
-    }
-
-    private async Task SelectTheme(string themeId)
-    {
-        _showViewDropdown = false;
-        await SwitchTheme(themeId);
-    }
-
     private void CloseAllDropdowns()
     {
-        _showViewDropdown = false;
         _showExportDropdown = false;
-        _showCompareDropdown = false;
     }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)

@@ -437,6 +437,78 @@ public class ExtensionHostTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
+    // --- Package attribution ---
+
+    [TestMethod]
+    public async Task GetPackageCapabilities_ReturnsWhatThePackageRegistered()
+    {
+        var kernel = new FakeLanguageKernel(languageId: "pk");
+        await _host.LoadExtensionAsync(kernel);
+        _host.AttributeExtensionsToPackage("Acme.Kernel", new[] { kernel.ExtensionId });
+
+        var capabilities = _host.GetPackageCapabilities("Acme.Kernel");
+
+        Assert.IsNotNull(capabilities);
+        CollectionAssert.Contains(capabilities.ToList(), "LanguageKernel");
+    }
+
+    [TestMethod]
+    public async Task GetPackageCapabilities_IgnoresExtensionsFromOtherPackages()
+    {
+        var kernel = new FakeLanguageKernel(languageId: "pk");
+        var renderer = new FakeCellRenderer();
+        await _host.LoadExtensionAsync(kernel);
+        await _host.LoadExtensionAsync(renderer);
+        _host.AttributeExtensionsToPackage("Acme.Kernel", new[] { kernel.ExtensionId });
+
+        var capabilities = _host.GetPackageCapabilities("Acme.Kernel");
+
+        Assert.IsNotNull(capabilities);
+        Assert.AreEqual(1, capabilities.Count);
+        Assert.AreEqual("LanguageKernel", capabilities[0]);
+    }
+
+    [TestMethod]
+    public void GetPackageCapabilities_UnknownPackage_ReturnsNull()
+    {
+        // Null is not "adds nothing", it is "nobody has looked". A caller that conflated the
+        // two would tell the user a package contributes no extension point when the truth is
+        // that the package has not loaded.
+        Assert.IsNull(_host.GetPackageCapabilities("Acme.NeverLoaded"));
+    }
+
+    [TestMethod]
+    public void GetPackageCapabilities_PackageThatRegisteredNothing_ReturnsEmpty()
+    {
+        _host.AttributeExtensionsToPackage("Acme.PlainLibrary", Array.Empty<string>());
+
+        var capabilities = _host.GetPackageCapabilities("Acme.PlainLibrary");
+
+        Assert.IsNotNull(capabilities);
+        Assert.AreEqual(0, capabilities.Count);
+    }
+
+    [TestMethod]
+    public async Task AttributeExtensionsToPackage_AccumulatesAcrossAssemblies()
+    {
+        // A package's assemblies load one at a time, so attribution has to add rather than
+        // replace or only the last assembly's extensions would be reported.
+        var kernel = new FakeLanguageKernel(languageId: "pk");
+        var renderer = new FakeCellRenderer();
+        await _host.LoadExtensionAsync(kernel);
+        await _host.LoadExtensionAsync(renderer);
+
+        _host.AttributeExtensionsToPackage("Acme.Suite", new[] { kernel.ExtensionId });
+        _host.AttributeExtensionsToPackage("Acme.Suite", new[] { renderer.ExtensionId });
+
+        var capabilities = _host.GetPackageCapabilities("Acme.Suite");
+
+        Assert.IsNotNull(capabilities);
+        Assert.AreEqual(2, capabilities.Count);
+        CollectionAssert.Contains(capabilities.ToList(), "LanguageKernel");
+        CollectionAssert.Contains(capabilities.ToList(), "CellRenderer");
+    }
+
     // --- Helper: fake post-processor ---
 
     private sealed class FakePostProcessor : INotebookPostProcessor

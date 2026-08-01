@@ -1,0 +1,286 @@
+@* Choosing a baseline and walking what changed, with the notebook still on screen.
+
+   This was a toolbar menu that led straight to a full-screen overlay, so reading a
+   change and seeing where it sits were two separate trips. Here the change list is a
+   way to move around the notebook; the full diff is still one click away for the
+   moment you want to read source side by side.
+
+   State lives in the NotebookComparison the page owns, so a comparison survives this
+   panel being closed. Rows raise intents; the page performs them. *@
+
+<div class="verso-sidebar-panel">
+    <div class="verso-panel-content-root">
+
+        @if (ShowSourceList)
+        {
+            <div class="verso-panel-section">
+                <div class="verso-panel-section-title">Compare with</div>
+
+                @if (Comparison.Sources is null)
+                {
+                    <div class="verso-panel-row verso-panel-secondary">
+                        <span class="verso-spinner"></span>
+                        <span>Looking for baselines...</span>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var source in Comparison.Sources)
+                    {
+                        var s = source;
+                        var isCurrent = s.Available
+                            && string.Equals(s.Id, Comparison.BaselineSourceId, StringComparison.Ordinal);
+                        @* No tooltip on the row: an unavailable one already prints its
+                           reason on the second line below. *@
+                        <div class="verso-panel-row @(s.Available ? "verso-panel-row--interactive" : "verso-panel-row--disabled") @(isCurrent ? "verso-panel-row--active" : "")"
+                             role="@(s.Available ? "button" : null)"
+                             tabindex="@(s.Available ? 0 : -1)"
+                             @key="s.Id"
+                             @onclick="() => SelectSourceAsync(s)">
+                            <div class="verso-compare-row-main">
+                                <span>@s.Label</span>
+                                @if (!s.Available && s.Description is not null)
+                                {
+                                    <span class="verso-panel-secondary">@s.Description</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (Comparison.Result is not null)
+            {
+                <div class="verso-panel-actions">
+                    <button class="verso-panel-action" @onclick="() => _showSourceList = false">Back to changes</button>
+                </div>
+            }
+            else
+            {
+                <div class="verso-panel-secondary verso-compare-hint">
+                    Nothing is being compared yet. The notebook is untouched either way.
+                </div>
+            }
+        }
+        else if (Comparison.Result is { } diff)
+        {
+            <div class="verso-panel-section">
+                <div class="verso-panel-section-title">Baseline</div>
+                <div class="verso-panel-row">
+                    <div class="verso-compare-row-main">
+                        <span>@diff.BaselineLabel</span>
+                    </div>
+                </div>
+                <div class="verso-compare-chips">
+                    @if (diff.Summary.Added > 0)
+                    {
+                        <span class="verso-panel-chip verso-panel-chip--success">@diff.Summary.Added added</span>
+                    }
+                    @if (diff.Summary.Removed > 0)
+                    {
+                        <span class="verso-panel-chip verso-panel-chip--error">@diff.Summary.Removed removed</span>
+                    }
+                    @if (diff.Summary.Modified > 0)
+                    {
+                        <span class="verso-panel-chip verso-panel-chip--warning">@diff.Summary.Modified modified</span>
+                    }
+                    @if (diff.Summary.Moved > 0)
+                    {
+                        <span class="verso-panel-chip verso-panel-chip--info">@diff.Summary.Moved moved</span>
+                    }
+                    @if (diff.Summary.Unchanged > 0)
+                    {
+                        <span class="verso-panel-chip">@diff.Summary.Unchanged unchanged</span>
+                    }
+                </div>
+            </div>
+
+            @if (Changes.Count > 0)
+            {
+                <div class="verso-panel-section">
+                    <div class="verso-panel-section-title">Changes</div>
+                    @foreach (var change in Changes)
+                    {
+                        var c = change;
+                        var isSelected = _selectedIndex == c.Index;
+                        <div class="verso-panel-row verso-panel-row--interactive @(isSelected ? "verso-panel-row--active" : "")"
+                             role="button" tabindex="0"
+                             @key="c.Index"
+                             @onclick="() => ActivateAsync(c)">
+                            <div class="verso-compare-row-main">
+                                <div class="verso-compare-row-head">
+                                    <span class="verso-compare-kind verso-compare-kind--@KindClass(c.Entry.Kind)">@KindLabel(c.Entry.Kind)</span>
+                                    <span class="verso-compare-ref">@PositionLabel(c.Entry)</span>
+                                </div>
+                                <div class="verso-compare-src">@FirstLine(c.Entry)</div>
+                                @if (isSelected && c.Entry.CurrentCell is null && c.Entry.BaselineCell is not null)
+                                {
+                                    @* A removed cell is not in this notebook, so there is nowhere to
+                                       scroll to. Show it here instead of pretending the row navigates. *@
+                                    <pre class="verso-compare-removed-source">@c.Entry.BaselineCell.Source</pre>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="verso-panel-section">
+                    <div class="verso-panel-row verso-panel-secondary">
+                        No cell changed against this baseline.
+                    </div>
+                </div>
+            }
+
+            @if (diff.MetadataChanges.Count > 0)
+            {
+                <div class="verso-panel-section">
+                    <div class="verso-panel-section-title">Notebook settings</div>
+                    @foreach (var change in diff.MetadataChanges)
+                    {
+                        <div class="verso-panel-row">
+                            <div class="verso-compare-row-main">
+                                <span>@change.Field</span>
+                                <span class="verso-panel-secondary">
+                                    @(change.BaselineValue ?? "(not set)") &#8594; @(change.CurrentValue ?? "(not set)")
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="verso-panel-actions">
+                <button class="verso-panel-action verso-panel-action--primary"
+                        @onclick="() => OnOpenFullDiff.InvokeAsync()">Open full diff</button>
+                <button class="verso-panel-action" @onclick="ShowSourcesAsync">Change baseline</button>
+                <button class="verso-panel-action" @onclick="StopAsync">Stop</button>
+            </div>
+        }
+
+    </div>
+</div>
+
+@code {
+    /// <summary>The comparison state owned by the hosting page.</summary>
+    [Parameter] public NotebookComparison Comparison { get; set; } = default!;
+
+    /// <summary>Raised when the panel needs the baseline list loaded or refreshed.</summary>
+    [Parameter] public EventCallback OnRefreshSources { get; set; }
+
+    /// <summary>Raised with the chosen baseline. The page runs the comparison and reports failures.</summary>
+    [Parameter] public EventCallback<DiffSourceInfo> OnCompareRequested { get; set; }
+
+    /// <summary>Raised with a cell id when a change is activated, for the page to reveal it.</summary>
+    [Parameter] public EventCallback<Guid> OnNavigate { get; set; }
+
+    /// <summary>Raised when the reader asks for the full side-by-side view.</summary>
+    [Parameter] public EventCallback OnOpenFullDiff { get; set; }
+
+    /// <summary>Raised when the reader stops comparing.</summary>
+    [Parameter] public EventCallback OnClear { get; set; }
+
+    private bool _showSourceList;
+    private int? _selectedIndex;
+
+    private bool ShowSourceList => _showSourceList || Comparison.Result is null;
+
+    private sealed record Change(int Index, CellDiffEntry Entry);
+
+    private List<Change> Changes => Comparison.Result is null
+        ? new List<Change>()
+        : Comparison.Result.Cells
+            .Select((entry, index) => new Change(index, entry))
+            .Where(c => c.Entry.Kind != CellDiffKind.Unchanged)
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Comparison.Sources is null)
+        {
+            await OnRefreshSources.InvokeAsync();
+        }
+    }
+
+    private async Task SelectSourceAsync(DiffSourceInfo source)
+    {
+        if (!source.Available)
+            return;
+
+        _selectedIndex = null;
+        _showSourceList = false;
+        await OnCompareRequested.InvokeAsync(source);
+    }
+
+    private async Task ShowSourcesAsync()
+    {
+        _showSourceList = true;
+        // The set of baselines can have changed since the panel opened: saving the notebook
+        // makes "Last Saved" meaningful, and a new commit moves HEAD.
+        await OnRefreshSources.InvokeAsync();
+    }
+
+    private async Task ActivateAsync(Change change)
+    {
+        _selectedIndex = _selectedIndex == change.Index && change.Entry.CurrentCell is null
+            ? null
+            : change.Index;
+
+        if (change.Entry.CurrentCell is { } cell)
+        {
+            await OnNavigate.InvokeAsync(cell.Id);
+        }
+    }
+
+    private async Task StopAsync()
+    {
+        _selectedIndex = null;
+        _showSourceList = false;
+        await OnClear.InvokeAsync();
+    }
+
+    private static string KindClass(CellDiffKind kind) => kind switch
+    {
+        CellDiffKind.Added => "added",
+        CellDiffKind.Removed => "removed",
+        CellDiffKind.Modified => "modified",
+        CellDiffKind.Moved => "moved",
+        _ => "unchanged"
+    };
+
+    private static string KindLabel(CellDiffKind kind) => kind switch
+    {
+        CellDiffKind.Added => "Added",
+        CellDiffKind.Removed => "Removed",
+        CellDiffKind.Modified => "Modified",
+        CellDiffKind.Moved => "Moved",
+        _ => "Unchanged"
+    };
+
+    private static string PositionLabel(CellDiffEntry entry) => entry.Kind switch
+    {
+        CellDiffKind.Removed => $"was cell {entry.BaselineIndex + 1}",
+        CellDiffKind.Moved => $"cell {entry.BaselineIndex + 1} → {entry.CurrentIndex + 1}",
+        _ => $"cell {entry.CurrentIndex + 1}"
+    };
+
+    // The first line with anything on it, which is what identifies a cell to someone
+    // scanning a list. Long lines are cut here rather than by CSS so the title attribute
+    // is not needed to see that there is more.
+    private const int SourcePreviewLength = 64;
+
+    private static string FirstLine(CellDiffEntry entry)
+    {
+        var source = (entry.CurrentCell ?? entry.BaselineCell)?.Source;
+        if (string.IsNullOrWhiteSpace(source))
+            return "(empty cell)";
+
+        var line = source
+            .Split('\n')
+            .Select(l => l.Trim())
+            .FirstOrDefault(l => l.Length > 0) ?? "";
+
+        return line.Length > SourcePreviewLength ? line[..SourcePreviewLength] + "…" : line;
+    }
+}

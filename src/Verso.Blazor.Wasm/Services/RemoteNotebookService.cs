@@ -39,6 +39,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private List<ThemeInfo> _themes = new();
     private List<ExtensionInfo> _extensions = new();
     private List<InstalledExtensionDto> _installedExtensions = new();
+    private List<string> _marketplaceSources = new();
     // Required extensions the host reported as failed-to-load, keyed by package id, so installed
     // rows can be flagged. The unavailable notification and the installed list can arrive in either
     // order, so this is applied both when building the list and when the notification lands.
@@ -72,6 +73,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
     public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
+
+    public event Action<PanelUpdatedEventArgs>? OnPanelUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
@@ -238,6 +241,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public IReadOnlyList<ThemeInfo> AvailableThemes => _themes;
     public IReadOnlyList<ExtensionInfo> Extensions => _extensions;
     public IReadOnlyList<InstalledExtensionDto> InstalledExtensions => _installedExtensions;
+    public IReadOnlyList<string> MarketplaceSources => _marketplaceSources;
 
     // ── File operations ─────────────────────────────────────────────────
 
@@ -1232,6 +1236,83 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         OnNotebookChanged?.Invoke();
     }
 
+    // ── Panels ─────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId)
+    {
+        var panels = new List<NotebookPanelInfo>(
+            HostPanels.Available(
+                ActiveLayoutSupportsPropertiesPanel,
+                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded)));
+
+        try
+        {
+            var response = await _bridge.RequestAsync<PanelListResponse>(
+                "panel/list",
+                new { selectedCellId = selectedCellId?.ToString() });
+
+            foreach (var p in response.Panels ?? new List<PanelInfoResponse>())
+            {
+                panels.Add(new NotebookPanelInfo(
+                    p.PanelId,
+                    p.ExtensionId,
+                    p.DisplayName,
+                    p.IconName,
+                    p.IconMarkup,
+                    p.Order,
+                    IsHostPanel: false,
+                    Description: p.Description));
+            }
+        }
+        catch
+        {
+            // An older host that does not know panel/list still gets its own panels.
+        }
+
+        return panels.OrderBy(p => p.Order).ThenBy(p => p.DisplayName, StringComparer.Ordinal).ToList();
+    }
+
+    public async Task<IReadOnlyList<RenderResult>> RenderPanelAsync(
+        string extensionId, string panelId, Guid? selectedCellId)
+    {
+        try
+        {
+            var response = await _bridge.RequestAsync<PanelRenderResponse>(
+                "panel/render",
+                new { extensionId, panelId, selectedCellId = selectedCellId?.ToString() });
+
+            if (response.Representations is null or { Count: 0 })
+                return Array.Empty<RenderResult>();
+
+            return response.Representations
+                .Select(r => new RenderResult(r.MimeType, r.Content))
+                .ToList();
+        }
+        catch
+        {
+            return Array.Empty<RenderResult>();
+        }
+    }
+
+    public Task PanelInteractAsync(
+        string extensionId,
+        string panelId,
+        string interactionType,
+        string payload,
+        string? targetId = null,
+        Guid? selectedCellId = null)
+        => _bridge.RequestVoidAsync(
+            "panel/interact",
+            new
+            {
+                extensionId,
+                panelId,
+                interactionType,
+                payload,
+                targetId,
+                selectedCellId = selectedCellId?.ToString()
+            });
+
     public CellVisibilityState ResolveCellVisibility(Guid cellId)
     {
         // Partial implementation: reads user overrides from metadata only (Layer 1).
@@ -1309,6 +1390,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 break;
             case "layout/updated":
                 HandleLayoutUpdated(paramsJson);
+                break;
+            case "panel/updated":
+                HandlePanelUpdated(paramsJson);
                 break;
             case "layout/activeChanged":
                 HandleActiveLayoutChanged(paramsJson);
@@ -1485,6 +1569,28 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             }
         }
         catch (JsonException) { }
+    }
+
+    private void HandlePanelUpdated(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        PanelUpdatedNotification? notif;
+        try
+        {
+            notif = JsonSerializer.Deserialize<PanelUpdatedNotification>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (notif is null || string.IsNullOrEmpty(notif.ExtensionId) || string.IsNullOrEmpty(notif.PanelId))
+            return;
+
+        OnPanelUpdated?.Invoke(new PanelUpdatedEventArgs(notif.ExtensionId, notif.PanelId));
     }
 
     private void HandleLayoutUpdated(string? paramsJson)
@@ -1765,7 +1871,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _toolbarActions = actionsResult.Actions?.Select(a => new ToolbarActionInfo(
             a.ActionId, a.DisplayName, a.Icon,
             Enum.TryParse<ToolbarPlacement>(a.Placement, true, out var p) ? p : ToolbarPlacement.MainToolbar,
-            a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt)).ToList() ?? new();
+            a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt, a.Description)).ToList() ?? new();
 
         // Cell types
         var cellTypesResult = await _bridge.RequestAsync<CellTypesResponse>("notebook/getCellTypes", null);
@@ -1794,9 +1900,11 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _installedExtensions = extsResult.Installed?
             .Select(i => new InstalledExtensionDto(
                 i.Id ?? "", i.Version, i.IsLocal,
-                _unavailableExtensionReasons.GetValueOrDefault(i.Id ?? "")))
+                _unavailableExtensionReasons.GetValueOrDefault(i.Id ?? ""),
+                i.Capabilities, i.IconDataUri))
             .Where(i => !string.IsNullOrEmpty(i.Id))
             .ToList() ?? new();
+        _marketplaceSources = extsResult.Sources ?? new();
 
         // Settings
         await RefreshSettingsAsync();
@@ -1815,7 +1923,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 ActiveThemeData = new ThemeData(
                     MapColorsFromDict(theme.Colors),
                     MapTypographyFromDto(theme.Typography),
-                    MapSpacingFromDto(theme.Spacing));
+                    MapSpacingFromDto(theme.Spacing),
+                    MapElevationFromDto(theme.Elevation));
             }
         }
         catch
@@ -2016,10 +2125,13 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             DropdownHover = G(nameof(d.DropdownHover), d.DropdownHover),
             TooltipBackground = G(nameof(d.TooltipBackground), d.TooltipBackground),
             TooltipForeground = G(nameof(d.TooltipForeground), d.TooltipForeground),
+            AccentForeground = G(nameof(d.AccentForeground), d.AccentForeground),
             BgDefault = G(nameof(d.BgDefault), d.BgDefault),
             BgElevated = G(nameof(d.BgElevated), d.BgElevated),
+            BgSunken = G(nameof(d.BgSunken), d.BgSunken),
             FgDefault = G(nameof(d.FgDefault), d.FgDefault),
             FgMuted = G(nameof(d.FgMuted), d.FgMuted),
+            FgSubtle = G(nameof(d.FgSubtle), d.FgSubtle),
             // Accent derives from AccentPrimary (read-only alias), so it is not mapped here.
         };
     }
@@ -2045,6 +2157,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private static ThemeSpacing MapSpacingFromDto(ThemeSpacingResponse? dto)
     {
         if (dto is null) return new ThemeSpacing();
+        var fallback = new ThemeSpacing();
         return new ThemeSpacing
         {
             CellPadding = dto.CellPadding,
@@ -2056,7 +2169,26 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             CellBorderRadius = dto.CellBorderRadius,
             ButtonBorderRadius = dto.ButtonBorderRadius,
             OutputPadding = dto.OutputPadding,
-            ScrollbarWidth = dto.ScrollbarWidth
+            ScrollbarWidth = dto.ScrollbarWidth,
+            // A host that predates the shape scale sends nothing rather than zero, so
+            // fall back to the model defaults instead of squaring every corner.
+            ShapeSmall = dto.ShapeSmall ?? fallback.ShapeSmall,
+            ShapeMedium = dto.ShapeMedium ?? fallback.ShapeMedium,
+            ShapeLarge = dto.ShapeLarge ?? fallback.ShapeLarge,
+            ShapeFull = dto.ShapeFull ?? fallback.ShapeFull
+        };
+    }
+
+    private static ThemeElevation MapElevationFromDto(ThemeElevationResponse? dto)
+    {
+        if (dto is null) return new ThemeElevation();
+        var fallback = new ThemeElevation();
+        return new ThemeElevation
+        {
+            Level0 = dto.Level0 ?? fallback.Level0,
+            Level1 = dto.Level1 ?? fallback.Level1,
+            Level2 = dto.Level2 ?? fallback.Level2,
+            Level3 = dto.Level3 ?? fallback.Level3
         };
     }
 
@@ -2113,6 +2245,39 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? FrameInstanceId { get; set; }
         public string? Scope { get; set; }
         public string? CellId { get; set; }
+    }
+
+    private sealed class PanelUpdatedNotification
+    {
+        public string ExtensionId { get; set; } = "";
+        public string PanelId { get; set; } = "";
+    }
+
+    private sealed class PanelListResponse
+    {
+        public List<PanelInfoResponse>? Panels { get; set; }
+    }
+
+    private sealed class PanelInfoResponse
+    {
+        public string PanelId { get; set; } = "";
+        public string ExtensionId { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string? IconName { get; set; }
+        public string? IconMarkup { get; set; }
+        public int Order { get; set; }
+        public string? Description { get; set; }
+    }
+
+    private sealed class PanelRenderResponse
+    {
+        public List<PanelRepresentationResponse>? Representations { get; set; }
+    }
+
+    private sealed class PanelRepresentationResponse
+    {
+        public string MimeType { get; set; } = "";
+        public string Content { get; set; } = "";
     }
 
     private sealed class LayoutActiveChangedNotification
@@ -2206,6 +2371,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public bool IconOnly { get; set; }
         public bool IsPrimary { get; set; }
         public string? ConfirmationPrompt { get; set; }
+        public string? Description { get; set; }
     }
 
     private sealed class EnabledStatesResponse
@@ -2304,6 +2470,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     {
         public List<ExtensionInfo>? Extensions { get; set; }
         public List<InstalledExtensionItemResponse>? Installed { get; set; }
+        public List<string>? Sources { get; set; }
     }
 
     private sealed class InstalledExtensionItemResponse
@@ -2311,6 +2478,14 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? Id { get; set; }
         public string? Version { get; set; }
         public bool IsLocal { get; set; }
+
+        // Null and empty mean different things here: not loaded yet, versus loaded and
+        // contributed no extension point. Keep the null rather than defaulting to a list.
+        public List<string>? Capabilities { get; set; }
+
+        // The package's own icon, already inlined as a data URI by the host so the client
+        // never reaches the network for it.
+        public string? IconDataUri { get; set; }
     }
 
     private sealed class ThemeDataResponse
@@ -2319,6 +2494,15 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public Dictionary<string, string>? SyntaxColors { get; set; }
         public ThemeTypographyResponse? Typography { get; set; }
         public ThemeSpacingResponse? Spacing { get; set; }
+        public ThemeElevationResponse? Elevation { get; set; }
+    }
+
+    private sealed class ThemeElevationResponse
+    {
+        public string? Level0 { get; set; }
+        public string? Level1 { get; set; }
+        public string? Level2 { get; set; }
+        public string? Level3 { get; set; }
     }
 
     private sealed class ThemeTypographyResponse
@@ -2349,6 +2533,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public double ButtonBorderRadius { get; set; }
         public double OutputPadding { get; set; }
         public double ScrollbarWidth { get; set; }
+        public double? ShapeSmall { get; set; }
+        public double? ShapeMedium { get; set; }
+        public double? ShapeLarge { get; set; }
+        public double? ShapeFull { get; set; }
     }
 
     private sealed class HoverResponse

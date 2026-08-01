@@ -19,6 +19,9 @@ public sealed partial class ServerNotebookService
     public bool IsMarketplaceSupported => true;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> MarketplaceSources => _marketplace.SourceNames;
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<PackageSearchResultDto>> SearchExtensionsAsync(
         string query, int skip, int take, bool includePrerelease, CancellationToken ct)
     {
@@ -67,7 +70,8 @@ public sealed partial class ServerNotebookService
             var registered = 0;
             if (!_extensionHost.IsExtensionPackageLoaded(packageId))
             {
-                registered = await MarketplaceLoader.LoadAssembliesAsync(_extensionHost, install.AssemblyPaths);
+                registered = await MarketplaceLoader.LoadAssembliesAsync(
+                    _extensionHost, install.AssemblyPaths, packageId);
                 _extensionHost.MarkExtensionPackageLoaded(packageId);
             }
 
@@ -157,7 +161,11 @@ public sealed partial class ServerNotebookService
                 {
                     var (id, version, source) = ExtensionPackageRef.Parse(r);
                     var reason = _unavailableExtensionReasons.GetValueOrDefault(id);
-                    return new InstalledExtensionDto(id, version, source == ExtensionSource.Local, reason);
+                    return new InstalledExtensionDto(
+                        id, version, source == ExtensionSource.Local, reason,
+                        _extensionHost?.GetPackageCapabilities(id),
+                        NuGetMarketplaceService.TryReadPackageIconDataUri(
+                            id, version, ExtensionDirectoryResolver.GetDefaultManagedDir()));
                 })
                 .Where(e => !string.IsNullOrEmpty(e.Id))
                 .ToList();

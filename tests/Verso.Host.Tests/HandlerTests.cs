@@ -505,6 +505,43 @@ public class HandlerTests
     }
 
     [TestMethod]
+    public async Task ExtensionList_ReportsThePackageSources()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        var result = ExtensionHandler.HandleList(ns);
+
+        // The panel says where results came from, so an out-of-process host has to send it.
+        Assert.IsTrue(result.Sources.Count > 0);
+        Assert.IsTrue(result.Sources.All(s => !string.IsNullOrWhiteSpace(s)));
+    }
+
+    [TestMethod]
+    public async Task ExtensionList_InstalledPackage_CarriesWhatItRegistered()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        ns.Scaffold.Notebook.RequiredExtensions.Add("Acme.Layouts@1.0.0");
+        ns.Scaffold.Notebook.RequiredExtensions.Add("Acme.NotLoaded@1.0.0");
+        var loaded = ns.ExtensionHost.GetExtensionInfos()
+            .First(e => e.Capabilities.Contains("LayoutEngine"));
+        ns.ExtensionHost.AttributeExtensionsToPackage("Acme.Layouts", new[] { loaded.ExtensionId });
+
+        var result = ExtensionHandler.HandleList(ns);
+
+        var attributed = result.Installed.First(i => i.Id == "Acme.Layouts");
+        Assert.IsNotNull(attributed.Capabilities);
+        CollectionAssert.Contains(attributed.Capabilities, "LayoutEngine");
+
+        // Null has to survive the round trip: a package nobody has loaded must not be
+        // reported as one that contributed nothing.
+        var unloaded = result.Installed.First(i => i.Id == "Acme.NotLoaded");
+        Assert.IsNull(unloaded.Capabilities);
+    }
+
+    [TestMethod]
     public async Task ExtensionDisable_SetsStatusToDisabled()
     {
         var (session, notebookId) = await CreateOpenSession();

@@ -227,4 +227,54 @@ public sealed class NotebookDiffViewTests : BunitTestContext
 
         StringAssert.Contains(cut.Find(".verso-diff-summary").TextContent, "No changes");
     }
+
+    [TestMethod]
+    public void NoChanges_AnswersInTheBody_NotOnlyInABadge()
+    {
+        // An otherwise empty scroll area reads as a view that failed to load rather than as
+        // a notebook that matches its baseline.
+        var cut = Render(Result(
+            Entry(CellDiffKind.Unchanged, baselineCell: Cell("a"), currentCell: Cell("a"), baselineIndex: 0, currentIndex: 0)));
+
+        var empty = cut.Find(".verso-diff-empty");
+        StringAssert.Contains(empty.TextContent, "Identical to");
+        StringAssert.Contains(empty.TextContent, "Git: HEAD");
+    }
+
+    [TestMethod]
+    public void OneChange_OffersNoStepper()
+    {
+        // Stepping between changes is only worth the header space when there is somewhere
+        // to step to.
+        var cut = Render(Result(
+            Entry(CellDiffKind.Added, currentCell: Cell("new"), currentIndex: 0)));
+
+        Assert.AreEqual(0, cut.FindAll(".verso-diff-nav").Count);
+    }
+
+    [TestMethod]
+    public void SeveralChanges_OfferTheStepperWithACount()
+    {
+        var cut = Render(Result(
+            Entry(CellDiffKind.Added, currentCell: Cell("new"), currentIndex: 0),
+            Entry(CellDiffKind.Unchanged, baselineCell: Cell("a"), currentCell: Cell("a"), baselineIndex: 0, currentIndex: 1),
+            Entry(CellDiffKind.Removed, baselineCell: Cell("gone"), baselineIndex: 1)));
+
+        StringAssert.Contains(cut.Find(".verso-diff-nav-position").TextContent, "2 changes");
+        Assert.AreEqual(2, cut.FindAll(".verso-diff-nav-btn").Count);
+    }
+
+    [TestMethod]
+    public void SteppingForward_ReportsPositionAndAnchorsToAChange()
+    {
+        var cut = Render(Result(
+            Entry(CellDiffKind.Added, currentCell: Cell("new"), currentIndex: 0),
+            Entry(CellDiffKind.Removed, baselineCell: Cell("gone"), baselineIndex: 1)));
+
+        cut.FindAll(".verso-diff-nav-btn")[1].Click();
+
+        StringAssert.Contains(cut.Find(".verso-diff-nav-position").TextContent, "1 of 2");
+        Assert.AreEqual(2, cut.FindAll(".verso-diff-cell[id]").Count,
+            "Every change carries an anchor, which is what the stepper scrolls to.");
+    }
 }

@@ -35,6 +35,7 @@
                       IsEditable="Service.IsCellTypeEditable(cell.Type)"
                       IsHeadingCell="headingLevel is not null"
                       IsSectionCollapsed="Context.CollapsedSections.Contains(cell.Id)"
+                      DiffMark="Context.DiffMarkFor(cell.Id)"
                       OnToggleSection="Context.OnToggleSection"
                       OnRunCell="Context.OnRunCell"
                       OnCancelCell="Context.OnCancelCell"

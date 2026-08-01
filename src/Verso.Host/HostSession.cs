@@ -117,6 +117,12 @@ public sealed class NotebookSession : IAsyncDisposable
     }
 
     /// <summary>
+    /// Tells the client that a panel's content changed and should be fetched again.
+    /// </summary>
+    public void SendPanelUpdated(string extensionId, string panelId)
+        => SendNotification(Protocol.MethodNames.PanelUpdated, new { extensionId, panelId });
+
+    /// <summary>
     /// Sends an extension consent request notification to the client and awaits the response.
     /// </summary>
     public async Task<bool> RequestConsentAsync(
@@ -385,6 +391,9 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.PropertiesGetSections => await PropertiesHandler.HandleGetSectionsAsync(ns, @params),
             MethodNames.PropertiesUpdateProperty => await PropertiesHandler.HandleUpdatePropertyAsync(ns, @params),
             MethodNames.PropertiesGetSupported => PropertiesHandler.HandleGetSupported(ns),
+            MethodNames.PanelList => await PanelHandler.HandleListAsync(ns, @params),
+            MethodNames.PanelRender => await PanelHandler.HandleRenderAsync(ns, @params),
+            MethodNames.PanelInteract => await PanelHandler.HandleInteractAsync(ns, @params),
             MethodNames.ExtensionConsentResponse => HandleConsentResponse(ns, @params),
             _ => throw new InvalidOperationException($"Unknown method: {method}")
         };

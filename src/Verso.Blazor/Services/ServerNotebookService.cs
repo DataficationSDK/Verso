@@ -204,7 +204,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             return new ThemeData(
                 theme.Colors ?? new ThemeColorTokens(),
                 theme.Typography ?? new ThemeTypography(),
-                theme.Spacing ?? new ThemeSpacing());
+                theme.Spacing ?? new ThemeSpacing(),
+                theme.Elevation ?? new ThemeElevation());
         }
     }
 
@@ -330,6 +331,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public event Action? OnNotebookChanged;
     public event Action? OnLayoutChanged;
     public event Action<LayoutUpdatedEventArgs>? OnLayoutUpdated;
+
+    public event Action<PanelUpdatedEventArgs>? OnPanelUpdated;
     public event Action? OnThemeChanged;
     public event Action? OnExtensionStatusChanged;
     public event Action? OnVariablesChanged;
@@ -707,7 +710,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         return _extensionHost.GetToolbarActions()
             .Where(a => a.Placement == placement)
             .OrderBy(a => a.Order)
-            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt))
+            .Select(a => new ToolbarActionInfo(a.ActionId, a.DisplayName, a.Icon, a.Placement, a.Order, a.IconOnly, a.IsPrimary, a.ConfirmationPrompt, a.Description))
             .ToList();
     }
 
@@ -1238,6 +1241,91 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
                 "cell",
                 cellId));
         }
+    }
+
+    // ── Panels ─────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<NotebookPanelInfo>> GetPanelsAsync(Guid? selectedCellId)
+    {
+        var panels = new List<NotebookPanelInfo>(
+            HostPanels.Available(
+                ActiveLayoutSupportsPropertiesPanel,
+                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded)));
+
+        if (_scaffold is not null && _extensionHost is not null)
+        {
+            var context = new PanelContext(_scaffold, selectedCellId);
+            foreach (var panel in _extensionHost.GetPanels())
+            {
+                try
+                {
+                    if (!await panel.IsAvailableAsync(context)) continue;
+                    panels.Add(new NotebookPanelInfo(
+                        panel.PanelId,
+                        panel.ExtensionId,
+                        panel.DisplayName,
+                        panel.IconName,
+                        panel.IconMarkup,
+                        panel.Order,
+                        IsHostPanel: false,
+                        Description: panel.Description));
+                }
+                catch
+                {
+                    // A panel that throws while reporting availability is treated as
+                    // unavailable rather than taking the whole panel list down.
+                }
+            }
+        }
+
+        return panels.OrderBy(p => p.Order).ThenBy(p => p.DisplayName, StringComparer.Ordinal).ToList();
+    }
+
+    public async Task<IReadOnlyList<RenderResult>> RenderPanelAsync(
+        string extensionId, string panelId, Guid? selectedCellId)
+    {
+        if (_scaffold is null || _extensionHost is null)
+            return Array.Empty<RenderResult>();
+
+        if (!_extensionHost.TryGetPanel(extensionId, panelId, out var panel))
+            return Array.Empty<RenderResult>();
+
+        try
+        {
+            return await panel.RenderAsync(new PanelContext(_scaffold, selectedCellId));
+        }
+        catch
+        {
+            // A panel that throws while rendering shows as empty rather than breaking
+            // the page, matching how a failing property provider is skipped.
+            return Array.Empty<RenderResult>();
+        }
+    }
+
+    public async Task PanelInteractAsync(
+        string extensionId,
+        string panelId,
+        string interactionType,
+        string payload,
+        string? targetId = null,
+        Guid? selectedCellId = null)
+    {
+        if (_scaffold is null || _extensionHost is null) return;
+        if (!_extensionHost.TryGetPanelInteractionHandler(extensionId, panelId, out var handler)) return;
+
+        var context = new PanelInteractionContext
+        {
+            ExtensionId = extensionId,
+            PanelId = panelId,
+            InteractionType = interactionType,
+            Payload = payload,
+            TargetId = targetId,
+            SelectedCellId = selectedCellId,
+            Verso = new PanelContext(_scaffold, selectedCellId),
+            RequestRefresh = () => OnPanelUpdated?.Invoke(new PanelUpdatedEventArgs(extensionId, panelId))
+        };
+
+        await handler.OnPanelInteractionAsync(context);
     }
 
     public CellVisibilityState ResolveCellVisibility(Guid cellId)

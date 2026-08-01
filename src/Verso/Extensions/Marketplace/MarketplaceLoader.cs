@@ -12,19 +12,32 @@ public static class MarketplaceLoader
     /// <summary>
     /// Loads every assembly produced by an install into the host, returning the number of
     /// extensions that registered. Dependency assemblies and native libraries register
-    /// nothing and are skipped without error.
+    /// nothing and are skipped without error. When <paramref name="packageId"/> is supplied,
+    /// what registered is attributed to that package so the extension panel can report what
+    /// the package added, including that it added nothing.
     /// </summary>
     public static async Task<int> LoadAssembliesAsync(
-        ExtensionHost extensionHost, IReadOnlyList<string> assemblyPaths)
+        ExtensionHost extensionHost, IReadOnlyList<string> assemblyPaths, string? packageId = null)
     {
         var registered = 0;
+        var registeredIds = packageId is null ? null : new List<string>();
+
         foreach (var dll in assemblyPaths)
         {
             try
             {
-                var before = extensionHost.GetLoadedExtensions().Count;
+                var before = extensionHost.GetLoadedExtensions();
                 await extensionHost.LoadFromAssemblyAsync(dll);
-                registered += extensionHost.GetLoadedExtensions().Count - before;
+                var after = extensionHost.GetLoadedExtensions();
+
+                registered += after.Count - before.Count;
+                if (registeredIds is not null && after.Count > before.Count)
+                {
+                    var known = new HashSet<string>(
+                        before.Select(e => e.ExtensionId), StringComparer.OrdinalIgnoreCase);
+                    registeredIds.AddRange(
+                        after.Where(e => !known.Contains(e.ExtensionId)).Select(e => e.ExtensionId));
+                }
             }
             catch (ExtensionLoadException ex) when (
                 ex.Errors.All(e => e.ErrorCode != "INCOMPATIBLE_VERSION"))
@@ -38,6 +51,12 @@ public static class MarketplaceLoader
                 // Native or non-.NET assembly.
             }
         }
+
+        // Attributed even when the list is empty: "this package registered nothing" is the
+        // fact the panel needs to warn on, and it is only knowable here.
+        if (packageId is not null && registeredIds is not null)
+            extensionHost.AttributeExtensionsToPackage(packageId, registeredIds);
+
         return registered;
     }
 
@@ -191,7 +210,7 @@ public static class MarketplaceLoader
                     }
                 }
 
-                await LoadAssembliesAsync(extensionHost, assemblyPaths);
+                await LoadAssembliesAsync(extensionHost, assemblyPaths, plan.Id);
                 extensionHost.MarkExtensionPackageLoaded(plan.Id);
                 extensionHost.ApprovePackage(plan.Id);
             }
@@ -286,7 +305,7 @@ public static class MarketplaceLoader
         var registered = 0;
         if (!extensionHost.IsExtensionPackageLoaded(install.PackageId))
         {
-            registered = await LoadAssembliesAsync(extensionHost, install.AssemblyPaths);
+            registered = await LoadAssembliesAsync(extensionHost, install.AssemblyPaths, install.PackageId);
             extensionHost.MarkExtensionPackageLoaded(install.PackageId);
         }
 

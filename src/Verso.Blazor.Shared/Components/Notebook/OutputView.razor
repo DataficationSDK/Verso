@@ -119,7 +119,7 @@
             <div class="verso-output verso-output--error">
                 <div class="verso-output-error-name">This output could not be rendered</div>
                 <pre class="verso-output-error-content">@renderError.Message</pre>
-                <button class="verso-cell-btn verso-cell-btn--action" @onclick="RetryOutputRender" title="Retry rendering this output">Retry</button>
+                <button class="verso-cell-btn verso-cell-btn--action" @onclick="RetryOutputRender" data-verso-tip="Retry rendering this output">Retry</button>
             </div>
         </ErrorContent>
     </ErrorBoundary>

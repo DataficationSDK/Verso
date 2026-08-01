@@ -123,8 +123,11 @@ All values are CSS hex color strings (e.g. `#FFFFFF`). The tables below group th
 |-------|-----------------|-------------|
 | `AccentPrimary` | `#0078D4` | Primary accent for links and interactive elements |
 | `AccentSecondary` | `#005A9E` | Secondary accent for hover/emphasis |
+| `AccentForeground` | `#FFFFFF` | Text and icons drawn on top of an accent fill |
 | `HighlightBackground` | `#FFF3CD` | Highlighted content background |
 | `HighlightForeground` | `#664D03` | Text over highlighted background |
+
+Set `AccentForeground` whenever your accent is light. White is only the right answer over a mid-to-dark accent; a theme that keeps the default while using a pale accent renders its own primary buttons, active menu items, and selected toggles unreadable. There is a contrast test for this in the Testing Themes section below.
 
 ### Status Tokens
 
@@ -162,9 +165,13 @@ A coarse semantic palette consumed by layout extensions. Layouts read these thro
 |-------|-------------|-------------|
 | `BgDefault` | `--verso-bg-default` | Default surface background for layout chrome |
 | `BgElevated` | `--verso-bg-elevated` | Raised surface such as cards and panels |
+| `BgSunken` | `--verso-bg-sunken` | Recessed wells: output regions, fenced code, empty states |
 | `FgDefault` | `--verso-fg-default` | Primary text on layout surfaces |
 | `FgMuted` | `--verso-fg-muted` | Secondary or muted text |
+| `FgSubtle` | `--verso-fg-subtle` | Tertiary text: timestamps, counts, type annotations |
 | `Accent` | `--verso-accent` | Accent color; aliases `AccentPrimary` |
+
+The three background tokens are a ramp, not three independent colors: `sunken` sits below `default`, which sits below `elevated`. Most dark themes can separate them by lightness alone. Most light themes cannot, because the top of the ramp runs into white, so borders and elevation have to carry the separation instead.
 
 ## Typography Reference
 
@@ -200,14 +207,44 @@ A coarse semantic palette consumed by layout extensions. Layouts read these thro
 |----------|---------|-------------|
 | `CellPadding` | 12 | Inner padding within cells |
 | `CellGap` | 8 | Vertical gap between cells |
-| `ToolbarHeight` | 40 | Main toolbar height |
+| `ToolbarHeight` | 44 | Main toolbar height |
 | `SidebarWidth` | 260 | Sidebar panel width |
 | `ContentMarginHorizontal` | 24 | Horizontal content margin |
 | `ContentMarginVertical` | 16 | Vertical content margin |
-| `CellBorderRadius` | 4 | Cell corner radius |
-| `ButtonBorderRadius` | 4 | Button corner radius |
+| `ShapeSmall` | 8 | Badges, chips, inline code, the editor surface inside a cell |
+| `ShapeMedium` | 12 | Grouped controls, menus, popovers |
+| `ShapeLarge` | 16 | Cards, panels, dialogs |
+| `ShapeFull` | 999 | Pills: status indicators, toggles, count badges |
+| `CellBorderRadius` | 8 | Cell corner radius |
+| `ButtonBorderRadius` | 6 | Button corner radius |
 | `OutputPadding` | 8 | Output region padding |
 | `ScrollbarWidth` | 10 | Scrollbar track width |
+
+`ShapeSmall` through `ShapeFull` are a scale rather than four independent values. Pick by the size of the thing being rounded, not by what it is: small for anything roughly one line tall, medium for grouped controls and menus, large for cards and panels, full for pills. A theme that wants square corners sets all four to zero, as `VersoHighContrastTheme` does.
+
+## Elevation Reference
+
+`ThemeElevation` is how a surface separates from the one beneath it. Each value is a complete CSS `box-shadow` expression, or `none`. It is a defaulted member on `ITheme`, so a theme that does not declare it stays valid.
+
+| Property | Usage |
+|----------|-------|
+| `Level0` | No elevation; a surface flush with its parent |
+| `Level1` | Resting cards: notebook cells, panels, content surfaces |
+| `Level2` | Raised cards: hover and active states of anything at level 1 |
+| `Level3` | Floating surfaces: dialogs, dropdowns, popovers |
+
+The emitted custom properties drop the `Level` prefix, so stylesheets read `var(--verso-elevation-1)`.
+
+```csharp
+public ThemeElevation Elevation { get; } = new ThemeElevation
+{
+    Level1 = "0 1px 2px rgba(0, 0, 0, 0.18), 0 1px 3px 1px rgba(0, 0, 0, 0.10)",
+    Level2 = "0 2px 4px rgba(0, 0, 0, 0.18), 0 4px 8px 3px rgba(0, 0, 0, 0.12)",
+    Level3 = "0 12px 40px rgba(0, 0, 0, 0.30), 0 4px 12px rgba(0, 0, 0, 0.15)"
+};
+```
+
+How much work the shadow has to do depends on the palette. Dark themes separate surfaces by lightness on their own, so the shadow only confirms an edge and can stay tight. Light themes compress near white and need the shadow to create the edge. High-contrast themes should set every level to `none`: a shadow is a low-contrast edge by construction, and a border does the job without one.
 
 ## Syntax Color Mapping
 

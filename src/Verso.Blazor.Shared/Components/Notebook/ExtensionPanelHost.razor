@@ -1,0 +1,193 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using Verso.Abstractions
+@using Verso.Blazor.Shared.Models
+@using Verso.Blazor.Shared.Services
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* Renders content produced by an extension panel. The panel declares its content as
+   ordered representations and this host picks the first media type it can draw, so a
+   panel that also offers text/plain still shows something useful here. *@
+<div class="verso-sidebar-panel">
+    @if (_loading)
+    {
+        <div class="verso-panel-empty">
+            <p>Loading...</p>
+        </div>
+    }
+    else if (_html is not null)
+    {
+        <div class="verso-panel-content-root" @ref="_rootRef">
+            @((MarkupString)_html)
+        </div>
+    }
+    else if (_text is not null)
+    {
+        <pre class="verso-panel-plain">@_text</pre>
+    }
+    else
+    {
+        <div class="verso-panel-empty">
+            <p>This panel has nothing to show.</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public INotebookService Service { get; set; } = default!;
+    [Parameter, EditorRequired] public string ExtensionId { get; set; } = "";
+    [Parameter, EditorRequired] public string PanelId { get; set; } = "";
+    [Parameter] public Guid? SelectedCellId { get; set; }
+
+    // Media types this host can draw, richest first. A panel's representations are
+    // matched against this in the panel's order, not this one, so the panel decides
+    // what it prefers and the host only says what it is able to render.
+    private static readonly string[] SupportedHtml = { "text/html", "application/xhtml+xml" };
+    private static readonly string[] SupportedText = { "text/plain" };
+
+    private string? _html;
+    private string? _text;
+    private bool _loading;
+    private ElementReference _rootRef;
+    private DotNetObjectReference<ExtensionPanelHost>? _selfRef;
+    private INotebookService? _subscribedService;
+    private string _loadedKey = "";
+    private Guid? _loadedCellId;
+    private bool _attachNeeded;
+    private bool _disposed;
+
+    // Sequences loads so a slow render for a panel the user has already switched away
+    // from cannot overwrite the content of the one now showing.
+    private int _generation;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_subscribedService != Service)
+        {
+            Unsubscribe();
+            _subscribedService = Service;
+            Service.OnPanelUpdated += HandlePanelUpdated;
+        }
+
+        var key = $"{ExtensionId}::{PanelId}";
+        if (key != _loadedKey || SelectedCellId != _loadedCellId)
+        {
+            var isSwitch = key != _loadedKey;
+            _loadedKey = key;
+            _loadedCellId = SelectedCellId;
+            await LoadAsync(showLoading: isSwitch);
+        }
+    }
+
+    private async Task LoadAsync(bool showLoading)
+    {
+        var generation = ++_generation;
+
+        if (showLoading)
+        {
+            _loading = true;
+            _html = null;
+            _text = null;
+            StateHasChanged();
+        }
+
+        IReadOnlyList<RenderResult> representations;
+        try
+        {
+            representations = await Service.RenderPanelAsync(ExtensionId, PanelId, SelectedCellId);
+        }
+        catch
+        {
+            representations = Array.Empty<RenderResult>();
+        }
+
+        // A newer load started while this one awaited; let it win.
+        if (_disposed || generation != _generation) return;
+
+        _html = null;
+        _text = null;
+        foreach (var representation in representations)
+        {
+            if (SupportedHtml.Contains(representation.MimeType, StringComparer.OrdinalIgnoreCase))
+            {
+                _html = representation.Content;
+                break;
+            }
+            if (SupportedText.Contains(representation.MimeType, StringComparer.OrdinalIgnoreCase))
+            {
+                _text = representation.Content;
+                break;
+            }
+        }
+
+        _loading = false;
+        // Markup content needs its delegated listeners rebound after each swap; plain
+        // text has no actions in it.
+        _attachNeeded = _html is not null;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || !_attachNeeded) return;
+        _attachNeeded = false;
+
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("versoPanelInteract.attach", _rootRef, _selfRef);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+
+    [JSInvokable]
+    public async Task OnPanelAction(string interactionType, string? targetId, string payload)
+    {
+        if (_disposed) return;
+        try
+        {
+            await Service.PanelInteractAsync(
+                ExtensionId, PanelId, interactionType, payload, targetId, SelectedCellId);
+        }
+        catch
+        {
+            // A handler that throws must not take the panel down with it. The panel
+            // keeps showing what it last rendered.
+        }
+    }
+
+    private void HandlePanelUpdated(PanelUpdatedEventArgs args)
+    {
+        if (_disposed) return;
+        if (!string.Equals(args.ExtensionId, ExtensionId, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(args.PanelId, PanelId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _ = InvokeAsync(() => LoadAsync(showLoading: false));
+    }
+
+    private void Unsubscribe()
+    {
+        if (_subscribedService is null) return;
+        _subscribedService.OnPanelUpdated -= HandlePanelUpdated;
+        _subscribedService = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Unsubscribe();
+
+        try
+        {
+            await JS.InvokeVoidAsync("versoPanelInteract.detach", _rootRef);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        _selfRef?.Dispose();
+    }
+}

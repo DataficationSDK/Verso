@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -79,6 +80,17 @@ public sealed class NuGetMarketplaceService
         if (_sources.Count == 0)
             _sources.Add(Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json"));
     }
+
+    /// <summary>
+    /// The configured package sources, in the order they are searched. Surfaced so the
+    /// extension panel can say where its results came from rather than assuming nuget.org,
+    /// which is wrong for anyone with a private feed in their NuGet configuration.
+    /// </summary>
+    public IReadOnlyList<string> SourceNames => _sources
+        .Select(s => string.IsNullOrWhiteSpace(s.PackageSource.Name)
+            ? s.PackageSource.Source
+            : s.PackageSource.Name)
+        .ToList();
 
     /// <summary>
     /// Searches the configured sources for packages matching <paramref name="query"/>.
@@ -378,6 +390,7 @@ public sealed class NuGetMarketplaceService
         var targetDir = Path.Combine(
             managedDir, packageId, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
+        CopyIconToManaged(packageId, result.ResolvedVersion, managedDir);
 
         NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
         return new MarketplaceInstallResult(result.ResolvedVersion, targetDir, copied);
@@ -518,6 +531,7 @@ public sealed class NuGetMarketplaceService
         var targetDir = Path.Combine(
             managedDir, id, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
+        CopyIconToManaged(id, result.ResolvedVersion, managedDir);
 
         NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
         return new LocalInstallResult(id, result.ResolvedVersion, targetDir, copied);
@@ -542,6 +556,170 @@ public sealed class NuGetMarketplaceService
 
         NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
         return new LocalInstallResult(id, version, targetDir, new[] { dest });
+    }
+
+    /// <summary>
+    /// Copies the downloaded package icon next to the installed version, one level above the
+    /// runtime-specific assembly directory because an icon does not vary by runtime. The
+    /// managed directory is the durable store: the download cache can be cleared at any time,
+    /// and a sideloaded package can never be fetched again.
+    /// </summary>
+    private static void CopyIconToManaged(string packageId, string version, string managedDir)
+    {
+        try
+        {
+            if (NuGetPackageResolver.TryGetCachedIconPath(packageId, version) is not { } source)
+                return;
+
+            var targetDir = Path.Combine(managedDir, packageId, version);
+            Directory.CreateDirectory(targetDir);
+            File.Copy(source, Path.Combine(targetDir, Path.GetFileName(source)), overwrite: true);
+
+            // This is the moment the file a lookup would read comes into existence, so it is
+            // also the moment any earlier answer about this package stopped being true.
+            InvalidateIconCache(packageId);
+        }
+        catch
+        {
+            // An icon is decoration; failing to place one must not fail an install.
+        }
+    }
+
+    /// <summary>
+    /// Upper bound on an icon inlined into a row. Well above a conventional package icon, which
+    /// is a few tens of kilobytes, but low enough that a pane listing many packages cannot turn
+    /// into megabytes of base64 travelling to the client. A larger icon is treated as absent and
+    /// the row falls back to its lettered tile.
+    /// </summary>
+    private const long MaxEmbeddedIconBytes = 256 * 1024;
+
+    /// <summary>
+    /// Reads the installed icon for a package as a <c>data:</c> URI, or returns <c>null</c> when
+    /// the package has no icon, was installed before icons were kept, or is a loose assembly
+    /// with no package to carry one. Reading locally rather than fetching the feed's icon URL
+    /// means the pane makes no network request, works offline, and shows the icon for sideloaded
+    /// packages that no feed knows about.
+    /// </summary>
+    /// <param name="packageId">The package to read the icon for.</param>
+    /// <param name="version">
+    /// The pinned version, or <c>null</c> for an unpinned reference, in which case the highest
+    /// installed version supplies the icon.
+    /// </param>
+    /// <param name="managedDir">The managed extension directory holding installed packages.</param>
+    public static string? TryReadPackageIconDataUri(string packageId, string? version, string managedDir)
+    {
+        if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(managedDir))
+            return null;
+        if (!IsSafePathSegment(packageId))
+            return null;
+        if (version is not null && !IsSafePathSegment(version))
+            return null;
+
+        // Memoized because callers are on a render path, not a load path: the extension panel
+        // asks for every installed icon each time it draws, which is once per keystroke in its
+        // search box and once per frame of streaming cell output. Reading and base64-encoding
+        // a quarter of a megabyte per package on each of those blocks the render. An entry is
+        // a plain read of a file that only an install writes, so an install is the one thing
+        // that invalidates it.
+        return IconDataUriCache.GetOrAdd(
+            IconCacheKey(packageId, version, managedDir),
+            _ => ReadPackageIconDataUri(packageId, version, managedDir));
+    }
+
+    /// <summary>
+    /// Cached results of <see cref="TryReadPackageIconDataUri"/>, including the misses: a
+    /// package with no icon is the common case and re-walking its directory to rediscover that
+    /// costs the same as reading one. Bounded by the number of installed packages, each entry
+    /// capped by <see cref="MaxEmbeddedIconBytes"/>.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, string?> IconDataUriCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Key for one icon lookup. Both an unpinned reference and each pinned version get their
+    /// own entry, since they can resolve to different files. <see cref="IsSafePathSegment"/>
+    /// has already rejected anything outside the NuGet identifier alphabet, so neither the id
+    /// nor the version can contain the separator and the id is an unambiguous key prefix. Only
+    /// the directory can, and it comes last.
+    /// </summary>
+    private static string IconCacheKey(string packageId, string? version, string managedDir)
+        => $"{packageId} {version} {managedDir}";
+
+    /// <summary>
+    /// Drops every cached icon lookup for a package: the pinned entries and the unpinned one,
+    /// which resolves to the highest installed version and so changes when a newer one lands.
+    /// Called after an install writes an icon, which is the only way the file a lookup would
+    /// have read changes. Without this, a package whose icon was absent when the panel first
+    /// drew it would keep showing its lettered tile for the rest of the session.
+    /// </summary>
+    private static void InvalidateIconCache(string packageId)
+    {
+        var prefix = packageId + " ";
+        foreach (var key in IconDataUriCache.Keys)
+        {
+            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                IconDataUriCache.TryRemove(key, out _);
+        }
+    }
+
+    private static string? ReadPackageIconDataUri(string packageId, string? version, string managedDir)
+    {
+        try
+        {
+            var packageRoot = Path.Combine(managedDir, packageId);
+            if (!Directory.Exists(packageRoot))
+                return null;
+
+            var versionDir = version is not null
+                ? Path.Combine(packageRoot, version)
+                : Directory.GetDirectories(packageRoot)
+                    .Where(d => NuGet.Versioning.NuGetVersion.TryParse(Path.GetFileName(d), out _))
+                    .OrderByDescending(d => NuGet.Versioning.NuGetVersion.Parse(Path.GetFileName(d)))
+                    .FirstOrDefault();
+
+            if (versionDir is null || !Directory.Exists(versionDir))
+                return null;
+
+            var iconPath = Directory.EnumerateFiles(versionDir, "icon.*").FirstOrDefault();
+            if (iconPath is null)
+                return null;
+
+            var info = new FileInfo(iconPath);
+            if (info.Length == 0 || info.Length > MaxEmbeddedIconBytes)
+                return null;
+
+            var bytes = File.ReadAllBytes(iconPath);
+            if (SniffImageMediaType(bytes) is not { } mediaType)
+                return null;
+
+            return $"data:{mediaType};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Identifies an image from its leading bytes. The media type is taken from the content
+    /// rather than the file extension so a package cannot get arbitrary text rendered by naming
+    /// it <c>icon.png</c>, and anything unrecognised is reported as not an image at all.
+    /// </summary>
+    private static string? SniffImageMediaType(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length >= 8 &&
+            bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 &&
+            bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A)
+            return "image/png";
+
+        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+            return "image/jpeg";
+
+        if (bytes.Length >= 6 && bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 &&
+            bytes[3] == 0x38 && (bytes[4] == 0x37 || bytes[4] == 0x39) && bytes[5] == 0x61)
+            return "image/gif";
+
+        return null;
     }
 
     /// <summary>Copies resolved assemblies into a managed package directory, skipping any that fail.</summary>

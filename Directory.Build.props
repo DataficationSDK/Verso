@@ -3,11 +3,12 @@
   <PropertyGroup>
     <Authors>Datafication</Authors>
     <Copyright>2026 Datafication LLC</Copyright>
-    <PackageProjectUrl>https://versonotebooks.com</PackageProjectUrl>
+    <PackageProjectUrl>https://www.versonotebooks.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DataficationSDK/Verso</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>verso-mark.png</PackageIcon>
     <!--
       Fallback version for local builds; release builds override it with -p:Version.
       Keep this on the current release train: the extension host compares its own
@@ -21,6 +22,13 @@
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)LICENSE.md" Pack="true" PackagePath="\" Link="LICENSE.md" />
+    <!--
+      The package icon is deliberately the small transparent mark rather than the 1024px
+      application icon used for the editor extension and the favicon. A package icon is
+      rendered at roughly 32px against a background the gallery chooses, so it needs an
+      alpha channel to sit on both light and dark, and nuget.org rejects icons over 1MB.
+    -->
+    <None Include="$(MSBuildThisFileDirectory)assets/verso-mark.png" Pack="true" PackagePath="\" Link="verso-mark.png" />
   </ItemGroup>
 
 </Project>

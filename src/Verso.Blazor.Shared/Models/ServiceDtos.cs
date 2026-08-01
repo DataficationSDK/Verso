@@ -18,7 +18,49 @@ public sealed record ToolbarActionInfo(
     int Order,
     bool IconOnly = false,
     bool IsPrimary = false,
-    string? ConfirmationPrompt = null);
+    string? ConfirmationPrompt = null,
+    string? Description = null);
+
+/// <summary>
+/// Describes one entry in the notebook's panel list, whether it is drawn by the host
+/// itself or contributed by an extension through <see cref="INotebookPanel"/>.
+/// </summary>
+/// <param name="PanelId">Identifier, unique within the owning extension.</param>
+/// <param name="ExtensionId">Owning extension, or empty for a host panel.</param>
+/// <param name="DisplayName">Title and accessible name.</param>
+/// <param name="IconName">Icon-set name the host maps to a glyph, or <c>null</c>.</param>
+/// <param name="IconMarkup">Host-specific icon markup used when present and understood.</param>
+/// <param name="Order">Sort order among the panel controls, lower first.</param>
+/// <param name="IsHostPanel">
+/// <c>true</c> when the host draws this panel with its own component rather than
+/// rendering content produced by an extension.
+/// </param>
+/// <param name="Description">
+/// Optional sentence shown beneath the name in the toggle's tooltip, or <c>null</c>
+/// to show the name alone.
+/// </param>
+public sealed record NotebookPanelInfo(
+    string PanelId,
+    string ExtensionId,
+    string DisplayName,
+    string? IconName,
+    string? IconMarkup,
+    int Order,
+    bool IsHostPanel,
+    string? Description = null)
+{
+    /// <summary>
+    /// Stable key for a panel across both kinds, since a host panel's id and an
+    /// extension panel's id share a namespace only when the extension id is included.
+    /// </summary>
+    public string Key => IsHostPanel ? PanelId : $"{ExtensionId}::{PanelId}";
+}
+
+/// <summary>
+/// Payload of <c>INotebookService.OnPanelUpdated</c>, raised when a panel's content
+/// has changed and the host should ask for it again.
+/// </summary>
+public sealed record PanelUpdatedEventArgs(string ExtensionId, string PanelId);
 
 /// <summary>
 /// Health of the kernel connection as observed by the host. <see cref="Faulted"/> means the
@@ -125,10 +167,15 @@ public sealed record ThemeInfo(
     ThemeKind ThemeKind);
 
 /// <summary>Full theme data for rendering CSS variables.</summary>
+/// <remarks>
+/// <paramref name="Elevation"/> is optional so a host that predates the elevation scale
+/// still produces valid theme data; consumers coalesce a null to the defaults.
+/// </remarks>
 public sealed record ThemeData(
     ThemeColorTokens Colors,
     ThemeTypography Typography,
-    ThemeSpacing Spacing);
+    ThemeSpacing Spacing,
+    ThemeElevation? Elevation = null);
 
 /// <summary>Resolved theme bundle sent to iframe-isolated layout renderers.</summary>
 public sealed record LayoutThemeBundle(string Kind, IReadOnlyDictionary<string, string> Tokens);
@@ -146,17 +193,32 @@ public static class LayoutThemeBundleBuilder
         if (data is null) return null;
         var c = data.Colors;
         var t = data.Typography;
+        var s = data.Spacing;
+        var e = data.Elevation ?? new ThemeElevation();
         var tokens = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["bg.default"]       = c.BgDefault,
             ["bg.elevated"]      = c.BgElevated,
+            ["bg.sunken"]        = c.BgSunken,
             ["fg.default"]       = c.FgDefault,
             ["fg.muted"]         = c.FgMuted,
+            ["fg.subtle"]        = c.FgSubtle,
             ["border.default"]   = c.BorderDefault,
             ["accent"]           = c.Accent,
+            ["accent.foreground"] = c.AccentForeground,
             ["font.family.mono"] = t.FontFamilyMono,
             ["font.family.sans"] = t.FontFamilySans,
             ["font.size.base"]   = FormatFontSize(t.FontSizeBase),
+            // Shape and elevation travel with the palette so an isolated renderer can
+            // match the host's corners and depth instead of guessing at them.
+            ["shape.small"]      = FormatPx(s.ShapeSmall),
+            ["shape.medium"]     = FormatPx(s.ShapeMedium),
+            ["shape.large"]      = FormatPx(s.ShapeLarge),
+            ["shape.full"]       = FormatPx(s.ShapeFull),
+            ["elevation.0"]      = e.Level0,
+            ["elevation.1"]      = e.Level1,
+            ["elevation.2"]      = e.Level2,
+            ["elevation.3"]      = e.Level3,
         };
         return new LayoutThemeBundle(KindToWire(kind), tokens);
     }
@@ -168,7 +230,9 @@ public static class LayoutThemeBundleBuilder
         _ => "light",
     };
 
-    private static string FormatFontSize(double px) =>
+    private static string FormatFontSize(double px) => FormatPx(px);
+
+    private static string FormatPx(double px) =>
         px.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "px";
 }
 
@@ -247,18 +311,31 @@ public sealed record PackageInstallResultDto(
 /// is true for files sideloaded from disk, which never appear in NuGet search results.
 /// <paramref name="UnavailableReason"/> is non-null when the package was required but failed to load
 /// (not on disk, source unreachable, consent denied), carrying a short explanation for the UI.
+/// <paramref name="Capabilities"/> is what the package contributed once loaded, which cannot be known
+/// from a package feed and so is only ever available for an installed package.
+/// <paramref name="IconDataUri"/> is the package's own icon, read from the copy on disk rather than
+/// fetched, so it costs no network request and works for sideloaded packages no feed knows about.
 /// </summary>
 public sealed record InstalledExtensionDto(
     string Id,
     string? Version,
     bool IsLocal,
-    string? UnavailableReason = null)
+    string? UnavailableReason = null,
+    IReadOnlyList<string>? Capabilities = null,
+    string? IconDataUri = null)
 {
     /// <summary>
     /// True when this required extension did not load and the panel should flag it. See
     /// <see cref="UnavailableReason"/> for why.
     /// </summary>
     public bool IsUnavailable => UnavailableReason is not null;
+
+    /// <summary>
+    /// True when the package loaded and registered no extension point at all, so installing it
+    /// changed nothing. Distinct from <see cref="Capabilities"/> being null, which only means
+    /// the package has not loaded in this session and nothing is known yet.
+    /// </summary>
+    public bool ContributesNothing => Capabilities is { Count: 0 };
 }
 
 /// <summary>

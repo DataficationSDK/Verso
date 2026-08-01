@@ -18,7 +18,7 @@ The base interface for all extensions. Every extension class must implement this
 | `Name` | `string` | Human-readable display name. |
 | `Version` | `string` | Semantic version string (e.g., `"1.2.0"`). |
 | `Author` | `string?` | Optional author or publisher name. |
-| `Description` | `string?` | Optional short description of the extension. |
+| `Description` | `string?` | Optional short description of the extension. For a toolbar action or a notebook panel this doubles as the description of that button or panel: hosts show it beneath the name in the control's tooltip. |
 | `OnLoadedAsync(IExtensionHostContext)` | `Task` | Called when the host loads the extension. Use for initialization and service registration. |
 | `OnUnloadedAsync()` | `Task` | Called when the host unloads the extension. Use for cleanup. |
 
@@ -189,7 +189,7 @@ Defines an action that appears on the notebook toolbar, cell toolbar, or context
 | `ActionId` | `string` | Unique identifier for this action (e.g., `"dice.action.roll-all"`). |
 | `DisplayName` | `string` | Label shown on the button or menu item. |
 | `Icon` | `string?` | Optional icon name or path. |
-| `IconOnly` | `bool` | When `true`, render only the icon with no text label. Default interface member, defaults to `false`. |
+| `IconOnly` | `bool` | When `true`, render only the icon with no text label. Default interface member, defaults to `false`. Set a `Description` alongside it: the icon is the only thing on screen, and the tooltip is the only place left to explain it. |
 | `IsPrimary` | `bool` | Marks the action as primary so the toolbar can emphasize it. Default interface member, defaults to `false`. |
 | `ConfirmationPrompt` | `string?` | When set, the host confirms with this message before running the action. Default interface member, defaults to `null`. |
 | `Placement` | `ToolbarPlacement` | Where the action appears: `MainToolbar`, `CellToolbar`, `ContextMenu`, or `ExportMenu`. |
@@ -547,6 +547,95 @@ public sealed class SqlPropertyProvider : ICellPropertyProvider
     public Task OnUnloadedAsync() => Task.CompletedTask;
 }
 ```
+
+---
+
+## INotebookPanel
+
+Contributes a panel to the notebook UI, shown alongside the notebook body and toggled from the host's panel controls. Use this for information or actions that belong next to the notebook rather than inside a cell.
+
+A panel's identity is the `(ExtensionId, PanelId)` pair, so two extensions may use the same `PanelId` without colliding. One extension declaring the same `PanelId` twice fails to load.
+
+See **[Panels](panels.md)** for the full authoring guide.
+
+### Members (in addition to IExtension)
+
+| Member | Type | Description |
+|---|---|---|
+| `PanelId` | `string` | Identifier, unique within the owning extension. |
+| `DisplayName` | `string` | Panel title and accessible name of its toggle. |
+| `IconName` | `string?` | Name from the host's icon set. Hosts map it to their own glyphs. |
+| `IconMarkup` | `string?` | Optional host-specific markup used in place of `IconName` by hosts that understand it. Defaults to `null`. |
+| `Order` | `int` | Sort order among the panel controls. Lower values first. Built-in panels occupy 100 through 500. |
+| `IsAvailableAsync(IPanelContext)` | `Task<bool>` | Whether the panel should be offered at all. A panel that returns `false` is omitted and closed if open. |
+| `RenderAsync(IPanelContext)` | `Task<IReadOnlyList<RenderResult>>` | The panel's content as representations, richest first. |
+
+### Representations
+
+`RenderAsync` returns the same content in one or more forms, ordered from richest to simplest. Each host renders the first entry whose `MimeType` it supports and ignores the rest.
+
+```csharp
+public Task<IReadOnlyList<RenderResult>> RenderAsync(IPanelContext context)
+{
+    IReadOnlyList<RenderResult> representations = new[]
+    {
+        new RenderResult("text/html", BuildHtml(context)),
+        new RenderResult("text/plain", BuildText(context))
+    };
+    return Task.FromResult(representations);
+}
+```
+
+No host is obliged to support any particular media type. A panel that offers only `text/html` is simply unavailable on a host that does not render HTML, which is why offering a plain-text alternative is worth the few lines.
+
+### Icon Names
+
+Hosts are expected to recognize `document`, `list`, `puzzle`, `braces`, `gear`, `search`, `layout`, `compare`, `info`, `warning`, `flag`, `check`, `clock`, `tag`, `chart`, `table`, `folder`, and `link`. A name a host does not recognize falls back to `IconMarkup`, then to the first letter of `DisplayName`. An unrecognized name is not an error.
+
+### Lifecycle
+
+`IsAvailableAsync` is called when the host builds its panel list, which happens on notebook load and whenever the layout or the set of loaded extensions changes. It is **not** re-evaluated on every cell selection, so a panel whose content depends on the selection should stay available and read `IPanelContext.SelectedCellId` in `RenderAsync`, which the host does call on selection change.
+
+### IPanelContext
+
+Extends `IVersoContext` with the notebook state a panel is most likely to need.
+
+| Member | Type | Description |
+|---|---|---|
+| `SelectedCellId` | `Guid?` | Currently selected cell, or `null` when none is. |
+| `NotebookCells` | `IReadOnlyList<CellModel>` | Ordered cells in the notebook. |
+
+A panel has no cell to write to, so `WriteOutputAsync` and `UpdateOutputAsync` throw. A panel that wants to affect the notebook goes through `IVersoContext.Notebook`, the same route a toolbar action takes.
+
+---
+
+## IPanelInteractionHandler
+
+Handles actions the user triggers in a panel. Implement alongside `INotebookPanel` on the same class (the common case) or as a sibling class sharing the same `PanelId`. Routing is by the `(ExtensionId, PanelId)` pair, and a handler whose extension registers no panel with that id fails to load.
+
+### Members (in addition to IExtension)
+
+| Member | Type | Description |
+|---|---|---|
+| `PanelId` | `string` | The panel this handler services. |
+| `OnPanelInteractionAsync(PanelInteractionContext)` | `Task` | Called when the host reports a triggered action. |
+
+### PanelInteractionContext
+
+| Property | Type | Description |
+|---|---|---|
+| `ExtensionId` | `string` | Owning extension. |
+| `PanelId` | `string` | Panel the action targets. |
+| `InteractionType` | `string` | Application-defined action name (e.g. `"accept"`). |
+| `Payload` | `string` | Free-form payload from the host. |
+| `TargetId` | `string?` | Which item within the panel the action applies to. |
+| `SelectedCellId` | `Guid?` | Cell selected when the action was triggered. |
+| `Verso` | `IVersoContext` | Variables, theme, notebook operations, extension host. |
+| `RequestRefresh` | `Action` | Asks the host to discard the panel's content and request it again. |
+
+Nothing in this context names a rendering technology. How a host detects that an action was triggered is the host's business and varies by host.
+
+Interaction types in the `verso/` namespace are reserved by the host and are intercepted before the handler runs, so using that prefix as an application-defined type will silently never reach your handler.
 
 ---
 

@@ -336,13 +336,26 @@ Layouts inherit the host page's CSS automatically. The host publishes a document
 |---|---|
 | `--verso-bg-default` | Default page background. |
 | `--verso-bg-elevated` | Elevated surface background (toolbars, cards). |
+| `--verso-bg-sunken` | Recessed wells: output regions, fenced code, empty states. |
 | `--verso-fg-default` | Default foreground color. |
 | `--verso-fg-muted` | Muted / secondary foreground. |
+| `--verso-fg-subtle` | Tertiary foreground: timestamps, counts, type annotations. |
 | `--verso-border-default` | Default border color. |
 | `--verso-accent` | Accent / brand color. |
+| `--verso-accent-foreground` | Text and icons drawn on top of an accent fill. |
+| `--verso-shape-small` | Corner radius for badges, chips, and one-line elements. |
+| `--verso-shape-medium` | Corner radius for grouped controls, menus, and popovers. |
+| `--verso-shape-large` | Corner radius for cards, panels, and dialogs. |
+| `--verso-shape-full` | Corner radius that fully rounds an element into a pill. |
+| `--verso-elevation-0` | No shadow. |
+| `--verso-elevation-1` | Resting card shadow. |
+| `--verso-elevation-2` | Raised card shadow, for hover and active states. |
+| `--verso-elevation-3` | Floating surface shadow, for dialogs and popovers. |
 | `--verso-font-family-mono` | Monospace font stack. |
 | `--verso-font-family-sans` | Sans-serif font stack. |
 | `--verso-font-size-base` | Base font size in pixels. |
+
+Read the shape and elevation scales rather than hardcoding a radius or a shadow. They are what lets one layout look right in the standalone shell and native inside VS Code, and they are how a high-contrast theme switches both off.
 
 When the user switches themes, the host updates these variables on `:root` and your HTML re-styles automatically. No interaction handler call is required. Style your layout inline or in a single `<style>` block:
 
@@ -965,10 +978,21 @@ The host resolves the active theme to a small token bundle and applies it to the
 |---|---|
 | `bg.default` | `--verso-bg-default` |
 | `bg.elevated` | `--verso-bg-elevated` |
+| `bg.sunken` | `--verso-bg-sunken` |
 | `fg.default` | `--verso-fg-default` |
 | `fg.muted` | `--verso-fg-muted` |
+| `fg.subtle` | `--verso-fg-subtle` |
 | `border.default` | `--verso-border-default` |
 | `accent` | `--verso-accent` |
+| `accent.foreground` | `--verso-accent-foreground` |
+| `shape.small` | `--verso-shape-small` |
+| `shape.medium` | `--verso-shape-medium` |
+| `shape.large` | `--verso-shape-large` |
+| `shape.full` | `--verso-shape-full` |
+| `elevation.0` | `--verso-elevation-0` |
+| `elevation.1` | `--verso-elevation-1` |
+| `elevation.2` | `--verso-elevation-2` |
+| `elevation.3` | `--verso-elevation-3` |
 | `font.family.mono` | `--verso-font-family-mono` |
 | `font.family.sans` | `--verso-font-family-sans` |
 | `font.size.base` | `--verso-font-size-base` |

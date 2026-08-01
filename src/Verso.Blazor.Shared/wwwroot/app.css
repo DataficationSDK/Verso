@@ -47,6 +47,15 @@ html, body {
     color: var(--verso-toolbar-foreground, #1E1E1E);
     border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
     flex-shrink: 0;
+    /* The notebook scrolls underneath, so the bar needs to read as being on top of the
+       content rather than the content colliding with it. A border alone does that only
+       in high contrast, where the border is strong and elevation is deliberately none. */
+    box-shadow: var(--verso-elevation-1, none);
+    position: relative;
+    z-index: 2;
+    /* Nothing may spill past the edge unreachable. Which element gives way when the bar
+       runs out of room is decided below, deliberately, rather than by DOM order. */
+    overflow: hidden;
 }
 
 .verso-toolbar-group {
@@ -54,6 +63,13 @@ html, body {
     align-items: center;
     gap: 2px;
 }
+
+/* The panel rail is the one cluster that must survive every width: it is the only way to
+   reach the panels at all. Everything else yields before it does. */
+.verso-toolbar-group--panels {
+    flex: none;
+}
+
 
 .verso-toolbar-separator {
     width: 1px;
@@ -94,11 +110,124 @@ html, body {
     padding: 0 7px;
 }
 
+/* Pushes the panel toggles to the far end of the bar. */
+.verso-toolbar-spacer {
+    flex: 1;
+    min-width: 8px;
+}
+
+/* Panel toggles.
+
+   Outlined rather than filled, because these select a view instead of performing an
+   action, and a row of filled buttons beside the real actions would read as five more
+   things to press. The active one fills with a tint of the accent instead of the accent
+   itself, so it stays legible on any theme without needing a foreground pair. */
+.verso-toolbar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: var(--verso-shape-full, 999px);
+    background: transparent;
+    color: var(--verso-fg-muted, #858585);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.verso-toolbar-toggle:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    color: var(--verso-toolbar-foreground, #1E1E1E);
+}
+
+.verso-toolbar-toggle--active,
+.verso-toolbar-toggle--active:hover {
+    color: var(--verso-accent-primary, #0078D4);
+    border-color: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 55%, transparent);
+    background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 12%, transparent);
+}
+
+/* Stands in for a panel that resolved to no icon, so its toggle is still a target
+   of the same size rather than a bare word. */
+.verso-toolbar-toggle-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Tooltip for controls that show an icon instead of a label.
+
+   One element for the whole app, appended to the body and positioned from script
+   (see js/tooltip.js). It cannot be a child of the control it describes: the
+   toolbar clips its overflow, and in a narrow pane it scrolls, so a tooltip drawn
+   inside it would be cut off at the toolbar's own height.
+
+   Above the modal layer, because a dialog's own icon-only buttons need it too. */
+.verso-tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 10050;
+    max-width: 280px;
+    padding: 5px 9px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-overlay-background, var(--verso-bg-elevated, #F3F3F3));
+    color: var(--verso-fg-default, #1E1E1E);
+    box-shadow: var(--verso-elevation-3, 0 12px 32px rgba(16, 18, 32, 0.14), 0 2px 8px rgba(16, 18, 32, 0.10));
+    font-size: 12px;
+    line-height: 1.45;
+    /* The tooltip must never be the thing the pointer is over, or moving toward a
+       control would dismiss the tooltip that just appeared for it. */
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-3px);
+    transition: opacity 90ms ease-out, transform 90ms ease-out;
+}
+
+.verso-tooltip[data-shown="true"] {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* A warm tooltip has already been asked for once, so it appears outright. */
+.verso-tooltip[data-warm="true"] {
+    transition: none;
+}
+
+.verso-tooltip-name {
+    font-weight: 600;
+}
+
+.verso-tooltip-desc {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--verso-fg-muted, #858585);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .verso-tooltip {
+        transition: none;
+        transform: none;
+    }
+
+    .verso-tooltip[data-shown="true"] {
+        transform: none;
+    }
+}
+
 /* Primary toolbar action: filled accent button marking the prominent call to
    action (e.g. Run All). */
 .verso-toolbar-btn--primary {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     font-weight: 600;
 }
 
@@ -108,7 +237,7 @@ html, body {
 
 .verso-toolbar-btn--primary:disabled {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     opacity: 0.45;
 }
 
@@ -180,7 +309,7 @@ html, body {
     font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-welcome-btn {
@@ -188,7 +317,7 @@ html, body {
     border: none;
     border-radius: var(--verso-button-border-radius, 4px);
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     font-family: inherit;
     font-size: 14px;
     cursor: pointer;
@@ -249,10 +378,10 @@ html, body {
 }
 
 .verso-modal {
-    background: var(--verso-editor-background, #FFFFFF);
+    background: var(--verso-overlay-background, var(--verso-editor-background, #FFFFFF));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 8px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: var(--verso-shape-large, 16px);
+    box-shadow: var(--verso-elevation-3, 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15));
     width: 540px;
     max-width: calc(100vw - 48px);
     animation: verso-modal-enter 0.15s ease-out;
@@ -337,7 +466,7 @@ html, body {
     font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 1px 5px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: 11px;
 }
 
@@ -371,7 +500,7 @@ html, body {
 
 .verso-modal-btn--primary {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     border-color: var(--verso-accent-primary, #0078D4);
 }
 
@@ -434,6 +563,60 @@ html, body {
     border-color: var(--verso-cell-running-indicator, #0078D4);
     border-left-color: var(--verso-cell-active-border, #0078D4);
 }
+
+/* Comparison marks.
+
+   The cell already carries a 3px left border reserved for state, so a diff mark reuses
+   it rather than adding furniture. Setting the color directly (not through
+   --verso-cell-border) is deliberate: layouts that neutralize that token to draw their
+   own card still show these, which is what makes one rule work everywhere.
+
+   Every state that sets border-color wholesale has to be answered here, or the stripe
+   drops out the moment the cell is hovered, selected, or running. */
+.verso-cell--diff-added,
+.verso-cell--diff-added:hover,
+.verso-cell--diff-added.verso-cell--selected,
+.verso-cell--diff-added.verso-cell--executing {
+    border-left-color: var(--verso-diff-added, var(--verso-status-success, #2E7D32));
+}
+
+.verso-cell--diff-removed,
+.verso-cell--diff-removed:hover,
+.verso-cell--diff-removed.verso-cell--selected,
+.verso-cell--diff-removed.verso-cell--executing {
+    border-left-color: var(--verso-diff-removed, var(--verso-status-error, #C62828));
+}
+
+.verso-cell--diff-modified,
+.verso-cell--diff-modified:hover,
+.verso-cell--diff-modified.verso-cell--selected,
+.verso-cell--diff-modified.verso-cell--executing {
+    border-left-color: var(--verso-diff-modified, var(--verso-status-warning, #B26A00));
+}
+
+.verso-cell--diff-moved,
+.verso-cell--diff-moved:hover,
+.verso-cell--diff-moved.verso-cell--selected,
+.verso-cell--diff-moved.verso-cell--executing {
+    border-left-color: var(--verso-diff-moved, var(--verso-status-info, #0B5FA5));
+}
+
+.verso-cell-diff-badge {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: var(--verso-shape-full, 999px);
+    border: 1px solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.verso-cell-diff-badge--added { color: var(--verso-diff-added, var(--verso-status-success, #2E7D32)); }
+.verso-cell-diff-badge--removed { color: var(--verso-diff-removed, var(--verso-status-error, #C62828)); }
+.verso-cell-diff-badge--modified { color: var(--verso-diff-modified, var(--verso-status-warning, #B26A00)); }
+.verso-cell-diff-badge--moved { color: var(--verso-diff-moved, var(--verso-status-info, #0B5FA5)); }
 
 /* Preview mode: chromeless rendered content */
 
@@ -557,7 +740,7 @@ html, body {
     border-radius: 1px;
     pointer-events: none;
     z-index: 100;
-    box-shadow: 0 0 4px rgba(0, 120, 212, 0.4);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--verso-accent-primary, #0078D4) 40%, transparent);
 }
 
 /* Cell content */
@@ -594,7 +777,7 @@ html, body {
     gap: 2px;
     padding: 1px 6px;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: var(--verso-cell-output-background, #F5F5F5);
     color: var(--verso-editor-line-number, #858585);
     text-transform: uppercase;
@@ -636,10 +819,10 @@ html, body {
     max-width: calc(100vw - 8px);
     max-height: min(60vh, 420px);
     overflow-y: auto;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-radius: var(--verso-shape-medium, 12px);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 10000;
     padding: 2px;
 }
@@ -649,7 +832,7 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-editor-foreground, #1E1E1E);
     font-family: inherit;
@@ -664,7 +847,7 @@ html, body {
 
 .verso-cell-type-option--active {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 .verso-cell-type-option--active:hover {
@@ -685,7 +868,7 @@ html, body {
     gap: 2px;
     padding: 1px 6px;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-accent-primary, #0078D4);
     font-size: 11px;
@@ -720,10 +903,10 @@ html, body {
     max-width: calc(100vw - 8px);
     max-height: min(60vh, 420px);
     overflow-y: auto;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
     border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
     z-index: 10000;
     padding: 2px;
 }
@@ -733,7 +916,7 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
     background: transparent;
     color: var(--verso-editor-foreground, #1E1E1E);
     font-family: inherit;
@@ -748,7 +931,7 @@ html, body {
 
 .verso-cell-lang-option--active {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 .verso-cell-lang-option--active:hover {
@@ -808,7 +991,7 @@ html, body {
 .verso-monaco-editor {
     min-height: 60px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 2px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 /* Mark the active line in the gutter: tint that line's number cell with the
@@ -864,7 +1047,7 @@ html, body {
     margin: 0 var(--verso-cell-padding, 12px);
     padding: 10px 12px;
     border: 1px solid var(--verso-cell-border, rgba(127, 127, 127, 0.18));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
     background: color-mix(in srgb, var(--verso-editor-background, #1E1E1E) 94%, var(--verso-editor-line-number, #858585));
 }
 
@@ -882,7 +1065,7 @@ html, body {
     margin: 0 var(--verso-cell-padding, 12px) var(--verso-cell-padding, 12px);
     padding: 8px 12px;
     border: 1px dashed var(--verso-cell-border, rgba(127, 127, 127, 0.18));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
     color: var(--verso-editor-line-number, #858585);
     font-size: 12px;
 }
@@ -913,7 +1096,7 @@ html, body {
 
 .verso-output {
     margin-top: 4px;
-    border-radius: 2px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 .verso-output--text {
@@ -1021,7 +1204,7 @@ html, body {
     font-size: 85%;
     white-space: break-spaces;
     background: var(--verso-code-inline-background, rgba(175, 184, 193, 0.2));
-    border-radius: 6px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-family: var(--verso-editor-font-family, 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace);
 }
 
@@ -1033,7 +1216,7 @@ html, body {
     font-size: 85%;
     line-height: 1.45;
     background: var(--verso-cell-output-background, #F6F8FA);
-    border-radius: 6px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 .verso-output--html pre code {
@@ -1088,7 +1271,7 @@ html, body {
 .verso-output--html img {
     max-width: 100%;
     height: auto;
-    border-radius: 4px;
+    border-radius: var(--verso-shape-small, 8px);
 }
 
 /* Markdown prose — links */
@@ -1154,7 +1337,7 @@ html, body {
 
 .verso-progress-track {
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-shape-full, 999px);
     overflow: hidden;
     background: var(--verso-border-default, rgba(127, 127, 127, 0.25));
 }
@@ -1341,7 +1524,7 @@ html, body {
 
 ::-webkit-scrollbar-thumb {
     background: var(--verso-scrollbar-thumb, #C1C1C1);
-    border-radius: 5px;
+    border-radius: var(--verso-shape-full, 999px);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -1378,13 +1561,13 @@ html, body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: var(--verso-elevation-1, 0 1px 3px rgba(0, 0, 0, 0.08));
     transition: box-shadow 0.15s, border-color 0.15s;
 }
 
 .verso-dashboard-cell:hover {
     border-color: var(--verso-cell-active-border, #0078D4);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
 }
 
 .verso-dashboard-cell-toolbar {
@@ -1433,7 +1616,7 @@ html, body {
 .verso-dashboard-cell.verso-resizing {
     opacity: 0.7;
     z-index: 10;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    box-shadow: var(--verso-elevation-3, 0 4px 16px rgba(0, 0, 0, 0.2));
 }
 
 .verso-dashboard-cell.verso-dragging {
@@ -1541,7 +1724,10 @@ html, body {
     align-items: center;
     gap: 8px;
     padding: 0 8px;
-    min-width: 0;
+    /* Deliberately not min-width: 0. The floor on the text below is what keeps the name
+       readable as the bar narrows, and a zero minimum here would let the cluster shrink
+       past it, leaving the icon alone with the name overflowing across the pill next to
+       it. The automatic minimum picks up the child's floor instead. */
     max-width: 320px;
 }
 
@@ -1550,12 +1736,16 @@ html, body {
     color: var(--verso-accent-primary, #0078D4);
 }
 
+/* The name and meta lines truncate, which is where most of the toolbar's give comes
+   from when the bar runs out of room. The floor matters: at min-width 0 the cluster
+   shrinks to nothing well before the width where it would be deliberately hidden, and
+   a document cluster showing no document name is worse than no cluster at all. */
 .verso-doc-info-text {
     display: flex;
     flex-direction: column;
     justify-content: center;
     line-height: 1.25;
-    min-width: 0;
+    min-width: 96px;
 }
 
 .verso-doc-info-name {
@@ -1569,7 +1759,7 @@ html, body {
 
 .verso-doc-info-meta {
     font-size: 11px;
-    color: var(--verso-text-muted, #888);
+    color: var(--verso-fg-subtle, #888);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1589,7 +1779,7 @@ html, body {
     gap: 6px;
     padding: 3px 10px;
     min-width: 112px;
-    border-radius: 11px;
+    border-radius: var(--verso-shape-full, 999px);
     font-size: 12px;
     white-space: nowrap;
     flex: none;
@@ -1652,25 +1842,32 @@ html, body {
 }
 
 .verso-toolbar-dropdown-popup {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 2px;
+    /* Rendered in the browser top layer via the Popover API, because the toolbar clips
+       its own overflow and scrolls horizontally in a narrow pane: a menu laid out inside
+       it is cut off at the toolbar's height whatever its z-index. versoCellMenu sets
+       fixed top/left at the button; inset:auto and margin:0 override the UA popover
+       defaults (inset:0; margin:auto) that would otherwise center it. */
+    position: fixed;
+    inset: auto;
+    margin: 0;
     display: flex;
     flex-direction: column;
     min-width: 140px;
-    background: var(--verso-toolbar-background, #F3F3F3);
+    max-width: calc(100vw - 8px);
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+    background: var(--verso-dropdown-background, var(--verso-toolbar-background, #F3F3F3));
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    z-index: 100;
+    border-radius: var(--verso-shape-medium, 12px);
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
+    z-index: 10000;
     padding: 2px;
 }
 
 .verso-toolbar-dropdown-popup .verso-toolbar-btn {
     justify-content: flex-start;
     width: 100%;
-    border-radius: 2px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 /* Sectioned "View" menu: header label above each group */
@@ -1681,7 +1878,7 @@ html, body {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--verso-text-muted, #888);
+    color: var(--verso-fg-subtle, #888);
     pointer-events: none;
 }
 
@@ -1713,6 +1910,18 @@ html, body {
     overflow: hidden;
 }
 
+/* Holds the cells and anything that covers them. Separate from .verso-notebook-main
+   because that element is the scroller, and an absolutely positioned child of a
+   scroller travels with the content instead of staying put over it. */
+.verso-notebook-editor-area {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
 .verso-notebook-main {
     flex: 1;
     overflow: auto;
@@ -1726,62 +1935,12 @@ html, body {
     padding: 8px;
 }
 
-/* === Panel Strip & Slide-out Panel === */
+/* === Slide-out Panel === */
 
 .verso-panel-container {
     display: flex;
     flex-direction: row;
     flex-shrink: 0;
-}
-
-.verso-panel-strip {
-    width: 32px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding-top: 8px;
-    background: var(--verso-toolbar-background, #F3F3F3);
-    border-left: 1px solid var(--verso-border-default, #E0E0E0);
-    flex-shrink: 0;
-}
-
-.verso-panel-strip-tab {
-    writing-mode: vertical-rl;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: none;
-    background: transparent;
-    color: var(--verso-toolbar-foreground, #1E1E1E);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 8px 4px;
-    cursor: pointer;
-    border-radius: var(--verso-button-border-radius, 4px);
-    white-space: nowrap;
-}
-
-.verso-panel-strip-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    transform: rotate(90deg);
-}
-
-.verso-panel-strip-tab:hover {
-    background: var(--verso-toolbar-button-hover, #E0E0E0);
-    color: var(--verso-editor-foreground, #1E1E1E);
-}
-
-.verso-panel-strip-tab--active {
-    background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
-}
-
-.verso-panel-strip-tab--active:hover {
-    background: var(--verso-accent-secondary, #005A9E);
-    color: #FFFFFF;
 }
 
 .verso-panel-content {
@@ -1852,7 +2011,295 @@ html, body {
     overflow: hidden;
 }
 
-/* === Extension Panel === */
+/* === Extension-contributed panel content ===
+   The classes below are the vocabulary a panel composes its markup from. They are
+   documented for extension authors and built entirely on the theme tokens, so a
+   panel that uses them follows the active theme without knowing which one it is.
+   A panel is free to write its own CSS instead; it just has to keep up on its own. */
+
+.verso-panel-content-root {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.verso-panel-plain {
+    margin: 0;
+    padding: 4px;
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--verso-fg-muted, #6E6E6E);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.verso-panel-empty {
+    padding: 12px 8px;
+    font-size: 12px;
+    color: var(--verso-fg-subtle, #A0A0A0);
+}
+
+.verso-panel-empty p { margin: 0; }
+
+.verso-panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border-radius: var(--verso-shape-medium, 12px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    box-shadow: var(--verso-elevation-1, none);
+}
+
+.verso-panel-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--verso-fg-subtle, #A0A0A0);
+}
+
+.verso-panel-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 9px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--verso-fg-default, #1E1E1E);
+}
+
+.verso-panel-row--interactive { cursor: pointer; }
+
+.verso-panel-row--interactive:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+/* The selected row in a list the panel offers a choice from (a layout, a theme, the
+   change you are standing on). Deliberately identical to the active toolbar toggle:
+   "this one is on" should read the same wherever it appears. Uses an inset ring
+   rather than a border so the row does not change size when it becomes active. */
+.verso-panel-row--active,
+.verso-panel-row--active:hover {
+    color: var(--verso-accent-primary, #0078D4);
+    background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--verso-accent-primary, #0078D4) 55%, transparent);
+}
+
+/* Secondary text inside an active row would otherwise keep its muted grey and read as
+   disabled against the tint. */
+.verso-panel-row--active .verso-panel-secondary {
+    color: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 75%, var(--verso-fg-default, #1E1E1E));
+}
+
+/* Disabled row: a choice that exists but cannot be taken right now (a git baseline in a
+   folder that is not a repository). Shown rather than hidden so the reason can be told. */
+.verso-panel-row--disabled,
+.verso-panel-row--disabled:hover {
+    cursor: default;
+    opacity: 0.55;
+    background: var(--verso-bg-default, #FFFFFF);
+}
+
+/* === View panel === */
+
+.verso-view-row-name {
+    flex: 1;
+    min-width: 0;
+}
+
+.verso-view-row-check {
+    flex: none;
+    font-size: 12px;
+}
+
+/* === Compare panel ===
+
+   Diff colors are read as --verso-diff-* with the status palette behind them. The
+   alias exists so a host can point them somewhere better without disturbing the
+   status colors: the VS Code webview maps them to its git decoration colors, which
+   are what a reader there already associates with added and removed. The fallback
+   chain is written out at each use site rather than declared in a :root block here,
+   because the host declares its own :root and the two would fight on order. */
+
+.verso-compare-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.verso-compare-row-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.verso-compare-kind {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: var(--verso-shape-full, 999px);
+    border: 1px solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.verso-compare-kind--added { color: var(--verso-diff-added, var(--verso-status-success, #2E7D32)); }
+.verso-compare-kind--removed { color: var(--verso-diff-removed, var(--verso-status-error, #C62828)); }
+.verso-compare-kind--modified { color: var(--verso-diff-modified, var(--verso-status-warning, #B26A00)); }
+.verso-compare-kind--moved { color: var(--verso-diff-moved, var(--verso-status-info, #0B5FA5)); }
+
+.verso-compare-ref {
+    margin-left: auto;
+    flex: none;
+    font-size: 11px;
+    color: var(--verso-fg-subtle, #A0A0A0);
+}
+
+.verso-compare-src {
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11px;
+    color: var(--verso-fg-muted, #6E6E6E);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The whole source of a removed cell, shown in the row because there is no cell left
+   in the notebook to navigate to. */
+.verso-compare-removed-source {
+    margin: 4px 0 0;
+    padding: 7px 9px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: color-mix(in srgb, var(--verso-diff-removed, var(--verso-status-error, #C62828)) 8%, transparent);
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.verso-compare-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 2px 1px 0;
+}
+
+.verso-compare-hint {
+    padding: 0 2px;
+}
+
+.verso-panel-row code {
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11.5px;
+}
+
+.verso-panel-secondary {
+    font-size: 11.5px;
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+.verso-panel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-full, 999px);
+    background: transparent;
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+/* Tone variants derive their tint from the status colors, so a theme that changes
+   what "warning" looks like changes these with it. */
+.verso-panel-chip--info {
+    border-color: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 10%, transparent);
+    color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-panel-chip--success {
+    border-color: color-mix(in srgb, var(--verso-status-success, #2EA043) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-status-success, #2EA043) 10%, transparent);
+    color: var(--verso-status-success, #2EA043);
+}
+
+.verso-panel-chip--warning {
+    border-color: color-mix(in srgb, var(--verso-status-warning, #D29922) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-status-warning, #D29922) 10%, transparent);
+    color: var(--verso-status-warning, #D29922);
+}
+
+.verso-panel-chip--error {
+    border-color: color-mix(in srgb, var(--verso-status-error, #D13438) 45%, transparent);
+    background: color-mix(in srgb, var(--verso-status-error, #D13438) 10%, transparent);
+    color: var(--verso-status-error, #D13438);
+}
+
+.verso-panel-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 10px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 6px);
+    background: transparent;
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.verso-panel-action:hover {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-panel-action--primary {
+    border-color: transparent;
+    background: var(--verso-accent-primary, #0078D4);
+    color: var(--verso-accent-foreground, #FFFFFF);
+}
+
+.verso-panel-action--primary:hover {
+    background: var(--verso-accent-secondary, #106EBE);
+}
+
+.verso-panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* === Extension Panel ===
+
+   The pane is one list of packages with install state on the row, followed by the
+   extensions currently loaded. Both halves share the panel vocabulary (surface, shape,
+   elevation and status tokens) so the pane reads as one design rather than two. */
+
+.verso-extension-loaded {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--verso-border-default, #E0E0E0);
+}
 
 .verso-extension-group {
     margin-bottom: 2px;
@@ -1865,9 +2312,10 @@ html, body {
     width: 100%;
     padding: 6px 8px;
     border: none;
-    border-radius: var(--verso-button-border-radius, 4px);
+    border-radius: var(--verso-shape-small, 8px);
     background: transparent;
-    color: var(--verso-editor-foreground, #1E1E1E);
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -1876,13 +2324,14 @@ html, body {
 }
 
 .verso-extension-group-header:hover {
-    background: var(--verso-cell-output-background, #F5F5F5);
+    background: var(--verso-bg-elevated, #FAFAFA);
 }
 
 .verso-extension-group-chevron {
-    font-size: 8px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--verso-fg-subtle, #A0A0A0);
     transition: transform 0.15s ease;
-    color: var(--verso-editor-line-number, #858585);
 }
 
 .verso-extension-group-chevron--open {
@@ -1895,20 +2344,20 @@ html, body {
 }
 
 .verso-extension-group-count {
+    padding: 0 6px;
+    border-radius: var(--verso-shape-full, 999px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 10px;
     font-weight: 400;
-    color: var(--verso-editor-line-number, #858585);
-    background: var(--verso-cell-output-background, #F5F5F5);
-    padding: 0 6px;
-    border-radius: 8px;
 }
 
 .verso-extension-item {
     padding: 8px;
     margin: 0 0 4px 16px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
 }
 
 .verso-extension-header {
@@ -1918,18 +2367,18 @@ html, body {
 }
 
 .verso-extension-name {
-    font-weight: 600;
-    font-size: 12px;
     flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .verso-extension-version {
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
 }
 
 .verso-extension-toggle {
@@ -1938,60 +2387,51 @@ html, body {
     justify-content: center;
     padding: 2px 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: 10px;
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
+    border-radius: var(--verso-shape-full, 999px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-family: inherit;
     font-size: 10px;
     cursor: pointer;
 }
 
 .verso-extension-toggle--enabled {
-    background: var(--verso-status-success, #28A745);
+    border-color: var(--verso-status-success, #2EA043);
+    background: var(--verso-status-success, #2EA043);
     color: #FFFFFF;
-    border-color: var(--verso-status-success, #28A745);
 }
 
 .verso-extension-author {
-    font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
     margin-top: 2px;
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 11px;
 }
 
 .verso-extension-description {
-    font-size: 11px;
-    color: var(--verso-editor-foreground, #1E1E1E);
     margin-top: 4px;
+    color: var(--verso-fg-default, #1E1E1E);
+    font-size: 11px;
 }
 
 .verso-extension-caps {
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
     margin-top: 6px;
-}
-
-.verso-extension-cap-badge {
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
-    font-size: 10px;
-    letter-spacing: 0.3px;
 }
 
 /* === Extension Marketplace === */
 
 .verso-marketplace {
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .verso-marketplace-search {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 4px;
 }
 
 .verso-marketplace-search-row {
@@ -2009,16 +2449,16 @@ html, body {
     height: 28px;
     padding: 0;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
-    color: var(--verso-editor-foreground, #1E1E1E);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-fg-default, #1E1E1E);
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
 }
 
 .verso-marketplace-more:hover {
-    border-color: var(--verso-accent, #0078D4);
+    border-color: var(--verso-accent-primary, #0078D4);
 }
 
 .verso-marketplace-more--disabled {
@@ -2043,71 +2483,272 @@ html, body {
     min-width: 0;
     padding: 5px 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
-    color: var(--verso-editor-foreground, #1E1E1E);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
     font-size: 12px;
 }
 
 .verso-marketplace-input:focus {
     outline: none;
-    border-color: var(--verso-accent, #0078D4);
+    border-color: var(--verso-accent-primary, #0078D4);
 }
 
 .verso-marketplace-status {
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 10px;
-    color: var(--verso-editor-line-number, #858585);
     white-space: nowrap;
 }
 
+/* The two facts stated before any row. Each holds one value today, so they are set as
+   plain text rather than as controls that only ever offer one choice. */
+.verso-marketplace-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.verso-marketplace-context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-full, 999px);
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 11px;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.verso-marketplace-context-chip b {
+    color: var(--verso-fg-default, #1E1E1E);
+    font-weight: 600;
+}
+
 .verso-marketplace-error {
-    margin: 4px;
     padding: 6px 8px;
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-output-background, #F5F5F5);
+    border-radius: var(--verso-shape-small, 8px);
+    background: color-mix(in srgb, var(--verso-status-error, #D13438) 10%, transparent);
     color: var(--verso-status-error, #D13438);
     font-size: 11px;
 }
 
-.verso-marketplace-empty {
-    margin: 4px;
+.verso-marketplace-notice {
+    padding: 6px 8px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
+    line-height: 1.45;
 }
 
-.verso-marketplace-results {
+.verso-marketplace-empty {
+    padding: 20px 8px;
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 11.5px;
+    text-align: center;
+}
+
+.verso-marketplace-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-top: 4px;
 }
 
-.verso-marketplace-result {
+/* A row describes a package the same way whatever state it is in. State is a stripe on
+   the leading edge plus a chip in the footer, never a different region. */
+.verso-marketplace-row {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 8px;
     padding: 8px;
     border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
 }
 
-.verso-marketplace-result-header {
+.verso-marketplace-row--installed {
+    border-left: 3px solid var(--verso-status-success, #2EA043);
+    padding-left: 6px;
+}
+
+.verso-marketplace-row--error {
+    border-left: 3px solid var(--verso-status-error, #D13438);
+    padding-left: 6px;
+}
+
+.verso-marketplace-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow: hidden;
+}
+
+/*
+ * A package's own icon covers the lettered tile completely. Absolute rather than replacing the
+ * letter so that an icon which fails to decode simply reveals the letter underneath, with no
+ * error handler to wire up. Package art carries its own background, so the hashed tint stops
+ * showing once an icon paints.
+ *
+ * The plate behind the icon stays light in every theme rather than following the surface
+ * tokens. Package icons are drawn for a package gallery, which is light, and a good number are
+ * dark monochrome marks with a transparent background: on a themed dark plate those disappear
+ * entirely. A constant light plate costs a little contrast against a dark panel and guarantees
+ * the artwork is legible, which is the trade every package gallery makes.
+ *
+ * The icon is drawn flush, with no padding and no inset hairline. Both used to be here, and
+ * together they were what made the plate visible as a ring: artwork that carries its own
+ * background out to the edge of its box, which is most of it, covers the plate completely once
+ * nothing is holding it away from the boundary.
+ */
+.verso-marketplace-tile-icon {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #FFFFFF;
+}
+
+.verso-marketplace-row-body {
+    min-width: 0;
+}
+
+.verso-marketplace-row-head {
     display: flex;
     align-items: baseline;
     gap: 6px;
+    min-width: 0;
 }
 
-.verso-marketplace-result-id {
-    font-weight: 600;
-    font-size: 12px;
-    flex: 1;
-    min-width: 0;
+.verso-marketplace-row-id {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.verso-marketplace-result-version {
+.verso-marketplace-row-version {
+    flex: 0 0 auto;
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 10.5px;
+}
+
+.verso-marketplace-row-publisher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
+}
+
+.verso-marketplace-row-dot {
+    opacity: 0.5;
+}
+
+.verso-marketplace-row-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 4px;
+    color: var(--verso-fg-default, #1E1E1E);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.verso-marketplace-row-adds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+/* A capability chip sits inside a row inside a narrow rail, so it runs one step smaller
+   than the panel chip it inherits from. */
+.verso-marketplace-add {
+    height: 18px;
+    padding: 0 6px;
+    font-size: 10px;
+}
+
+.verso-marketplace-row-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+}
+
+.verso-marketplace-row-meta {
+    color: var(--verso-fg-muted, #6E6E6E);
+    font-size: 10.5px;
+}
+
+.verso-marketplace-row-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.verso-marketplace-row-state .verso-panel-chip {
+    height: 18px;
+    padding: 0 7px;
+    font-size: 10px;
+}
+
+.verso-marketplace-row-note {
+    margin-top: 7px;
+    padding: 5px 7px;
+    border-radius: var(--verso-shape-small, 8px);
+    background: color-mix(in srgb, var(--verso-status-error, #D13438) 10%, transparent);
+    color: var(--verso-status-error, #D13438);
+    font-size: 10.5px;
+    line-height: 1.45;
+}
+
+.verso-marketplace-btn {
+    padding: 3px 10px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-fg-default, #1E1E1E);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.verso-marketplace-btn:hover:not(:disabled) {
+    border-color: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-marketplace-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.verso-marketplace-btn--install {
+    border-color: var(--verso-accent-primary, #0078D4);
+    background: var(--verso-accent-primary, #0078D4);
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 /* Version picker (install-time): a compact dropdown mirroring the cell-type badge.
@@ -2124,18 +2765,18 @@ html, body {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    padding: 1px 6px;
-    border: none;
-    border-radius: 3px;
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
-    font-size: 11px;
+    padding: 3px 8px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-small, 8px);
+    background: var(--verso-bg-elevated, #FAFAFA);
+    color: var(--verso-fg-muted, #6E6E6E);
     font-family: inherit;
+    font-size: 11px;
     cursor: pointer;
 }
 
 .verso-marketplace-version-badge:hover:not(:disabled) {
-    background: var(--verso-toolbar-button-hover, #E0E0E0);
+    border-color: var(--verso-accent-primary, #0078D4);
 }
 
 .verso-marketplace-version-badge:disabled {
@@ -2144,27 +2785,27 @@ html, body {
 }
 
 .verso-marketplace-version-chevron {
-    font-size: 9px;
-    color: var(--verso-editor-line-number, #858585);
     margin-left: 2px;
+    color: var(--verso-fg-subtle, #A0A0A0);
+    font-size: 9px;
 }
 
 .verso-marketplace-version-popup {
     position: absolute;
     top: 100%;
-    left: 0;
+    right: 0;
     margin-top: 2px;
     display: flex;
     flex-direction: column;
     min-width: 90px;
     max-height: 220px;
     overflow-y: auto;
-    background: var(--verso-toolbar-background, #F3F3F3);
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    z-index: 10000;
     padding: 2px;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-shape-medium, 12px);
+    background: var(--verso-dropdown-background, var(--verso-bg-elevated, #FAFAFA));
+    box-shadow: var(--verso-elevation-2, 0 2px 8px rgba(0, 0, 0, 0.12));
+    z-index: 10000;
 }
 
 .verso-marketplace-version-option {
@@ -2172,9 +2813,9 @@ html, body {
     width: 100%;
     padding: 4px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--verso-shape-small, 8px);
     background: transparent;
-    color: var(--verso-editor-foreground, #1E1E1E);
+    color: var(--verso-fg-default, #1E1E1E);
     font-family: inherit;
     font-size: 12px;
     text-align: left;
@@ -2187,7 +2828,7 @@ html, body {
 
 .verso-marketplace-version-option--active {
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
 }
 
 .verso-marketplace-version-option--active:hover {
@@ -2196,119 +2837,8 @@ html, body {
 
 .verso-marketplace-version-status {
     padding: 4px 10px;
+    color: var(--verso-fg-muted, #6E6E6E);
     font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-result-authors {
-    font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
-    margin-top: 2px;
-}
-
-.verso-marketplace-result-desc {
-    font-size: 11px;
-    color: var(--verso-editor-foreground, #1E1E1E);
-    margin-top: 4px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-.verso-marketplace-result-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 6px;
-}
-
-.verso-marketplace-btn {
-    padding: 3px 12px;
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    font-size: 11px;
-    cursor: pointer;
-}
-
-.verso-marketplace-btn:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.verso-marketplace-btn--install {
-    background: var(--verso-accent, #0078D4);
-    color: #FFFFFF;
-    border-color: var(--verso-accent, #0078D4);
-}
-
-.verso-marketplace-btn--uninstall {
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-foreground, #1E1E1E);
-}
-
-.verso-marketplace-installed {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 4px 0 8px;
-}
-
-.verso-marketplace-installed-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-installed-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 6px;
-    border: 1px solid var(--verso-border-default, #E0E0E0);
-    border-radius: var(--verso-button-border-radius, 4px);
-    background: var(--verso-cell-background, #FFFFFF);
-}
-
-.verso-marketplace-installed-info {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-}
-
-.verso-marketplace-installed-id {
-    font-weight: 600;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.verso-marketplace-installed-version {
-    font-size: 11px;
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-installed-badge {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 1px 5px;
-    border-radius: 8px;
-    background: var(--verso-cell-output-background, #F5F5F5);
-    color: var(--verso-editor-line-number, #858585);
-}
-
-.verso-marketplace-installed-warning {
-    flex: 0 0 auto;
-    font-size: 11px;
-    line-height: 1;
-    color: var(--verso-status-warning, #B58900);
-    cursor: help;
 }
 
 /* === Variable Explorer === */
@@ -2450,7 +2980,7 @@ html, body {
     color: var(--verso-editor-line-number, #858585);
     background: var(--verso-cell-output-background, #F5F5F5);
     padding: 0 6px;
-    border-radius: 8px;
+    border-radius: var(--verso-shape-full, 999px);
 }
 
 .verso-settings-category {
@@ -2786,8 +3316,8 @@ html, body {
     gap: 4px;
     padding: 2px 8px;
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
-    border-radius: 12px;
+    color: var(--verso-accent-foreground, #FFFFFF);
+    border-radius: var(--verso-shape-full, 999px);
     font-size: 11px;
 }
 
@@ -2837,8 +3367,8 @@ html, body {
     gap: 12px;
     padding: 32px 48px;
     background: var(--verso-editor-background, #FFFFFF);
-    border-radius: 8px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    border-radius: var(--verso-shape-large, 16px);
+    box-shadow: var(--verso-elevation-3, 0 4px 24px rgba(0, 0, 0, 0.2));
     text-align: center;
 }
 
@@ -2866,7 +3396,7 @@ html, body {
     border: none;
     border-radius: var(--verso-button-border-radius, 4px);
     background: var(--verso-accent-primary, #0078D4);
-    color: #FFFFFF;
+    color: var(--verso-accent-foreground, #FFFFFF);
     font-family: inherit;
     font-size: 13px;
     cursor: pointer;
@@ -2895,7 +3425,7 @@ html, body {
 }
 
 .verso-parameters-count {
-    color: var(--verso-text-muted, #888);
+    color: var(--verso-fg-subtle, #888);
     font-size: 0.85em;
 }
 
@@ -2922,7 +3452,7 @@ html, body {
 .verso-parameter-type-badge {
     display: inline-block;
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: 11px;
     font-family: var(--verso-editor-font-family, 'Cascadia Code', monospace);
     background: var(--verso-badge-background, #E8E8E8);
@@ -2941,7 +3471,7 @@ html, body {
     width: 100%;
     padding: 3px 6px;
     border: 1px solid var(--verso-input-border, #CCC);
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: var(--verso-ui-font-size, 13px);
     font-family: inherit;
     background: var(--verso-input-background, #FFF);
@@ -2992,10 +3522,10 @@ html, body {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--verso-foreground-muted, #999);
+    color: var(--verso-fg-subtle, #999);
     font-size: 14px;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-btn-remove:hover {
@@ -3010,7 +3540,7 @@ html, body {
     color: var(--verso-editor-foreground, #1E1E1E);
     font-size: var(--verso-ui-font-size, 13px);
     padding: 4px 12px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-btn-add:hover {
@@ -3028,7 +3558,7 @@ html, body {
     width: 100%;
     padding: 3px 6px;
     border: 1px solid var(--verso-input-border, #CCC);
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
     font-size: var(--verso-ui-font-size, 13px);
     font-family: inherit;
     background: var(--verso-input-background, #FFF);
@@ -3058,7 +3588,7 @@ html, body {
     cursor: pointer;
     font-size: 14px;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--verso-button-border-radius, 6px);
 }
 
 .verso-btn-confirm-add {
@@ -3070,7 +3600,7 @@ html, body {
 }
 
 .verso-btn-cancel-add {
-    color: var(--verso-foreground-muted, #999);
+    color: var(--verso-fg-subtle, #999);
 }
 
 .verso-btn-cancel-add:hover {
@@ -3080,28 +3610,91 @@ html, body {
 
 /* === Responsive === */
 
+/* Toolbar under pressure.
+
+   The bar holds a document cluster, a row of actions, and the panel rail, and past a
+   certain width they do not all fit. Most of the give comes from the document name
+   truncating (see .verso-doc-info above), which costs nothing and needs no breakpoint.
+   These steps take over once that is exhausted, dropping the least useful thing first
+   rather than letting the rail fall off the end where it cannot be reached at all. */
+
+@media (max-width: 1040px) {
+    .verso-toolbar {
+        padding: 0 12px;
+    }
+
+    /* The pill keeps its dot, which is the part that carries state at a glance, and the
+       full text stays in its tooltip. Its min-width has to go with the text: that width
+       exists to stop the buttons shifting as the status string changes, and with no
+       string it is just an empty capsule taking the room this rule is trying to free. */
+    .verso-kernel-status-text {
+        display: none;
+    }
+
+    .verso-kernel-status {
+        padding: 3px 6px;
+        min-width: 0;
+    }
+
+    /* Enough for a short name plus the ellipsis, which still tells you which notebook
+       this is when several are open. */
+    .verso-doc-info-text {
+        min-width: 64px;
+    }
+}
+
+@media (max-width: 880px) {
+    /* Past here the buttons themselves have nowhere left to go, and a horizontally
+       scrolling bar is the honest answer: everything stays reachable, at the cost of a
+       scroll. The rail is pinned to the right edge so the scroll never takes away the
+       one cluster that is the only route to the panels. */
+    .verso-toolbar {
+        overflow-x: auto;
+        overflow-y: hidden;
+        /* The bar is 40px tall; a full-weight scrollbar across it reads as a second
+           border rather than as a control. */
+        scrollbar-width: thin;
+    }
+
+    .verso-toolbar-group--panels {
+        position: sticky;
+        right: 0;
+        padding-left: 8px;
+        background: var(--verso-toolbar-background, #F3F3F3);
+    }
+}
+
+@media (max-width: 780px) {
+    /* The kernel and the cell count are both also on the Metadata panel; the file name
+       is not, so it is the line that stays. */
+    .verso-doc-info-meta {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .verso-cell-list {
         padding: 8px 12px;
     }
-
-    .verso-toolbar {
-        padding: 0 12px;
-        overflow-x: auto;
-    }
 }
-
 /* ============================================================
    Notebook diff view
+
+   Colors read as --verso-diff-* with the status palette behind them, the same
+   chain the compare panel and the cell marks use, so one surface cannot drift
+   from the other two. Everything else here is the shared shape, elevation, and
+   surface scale: this view used to reach for --vscode-* first and so ignored
+   the host's own profile, which is why it looked like a different application
+   inside the workbench.
    ============================================================ */
 
 .verso-diff-overlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    background: var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF));
-    z-index: 10001;
+    z-index: 5;
     display: flex;
     flex-direction: column;
+    background: var(--verso-editor-background, #FFFFFF);
     outline: none;
 }
 
@@ -3112,15 +3705,18 @@ html, body {
     min-height: 0;
 }
 
+/* Pinned above the scrolling body. Carries an elevation rather than only a border so
+   content passing underneath reads as passing underneath. */
 .verso-diff-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     padding: 10px 20px;
-    border-bottom: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F5F5F5));
+    border-bottom: 1px solid var(--verso-border-default, #E0E0E0);
+    background: var(--verso-bg-elevated, #F5F5F5);
+    box-shadow: var(--verso-elevation-1, none);
     flex: none;
+    z-index: 1;
 }
 
 .verso-diff-title {
@@ -3128,12 +3724,13 @@ html, body {
     align-items: center;
     gap: 14px;
     min-width: 0;
+    flex: 1;
 }
 
 .verso-diff-title-text {
     font-size: 14px;
     font-weight: 600;
-    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+    color: var(--verso-fg-default, #1E1E1E);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3149,50 +3746,75 @@ html, body {
 .verso-diff-summary-badge {
     font-size: 12px;
     font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 2px 9px;
+    border-radius: var(--verso-shape-full, 999px);
     white-space: nowrap;
-    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
-    background: var(--vscode-editorWidget-background, var(--verso-cell-hover-background, #ECECEC));
-    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
+    color: var(--verso-fg-muted, #6E6E6E);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    background: transparent;
 }
 
+/* Tone variants tint from their own color, so a badge stays legible whatever the
+   theme makes "added" mean. */
 .verso-diff-summary-badge--added {
-    color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32));
-    border-color: currentColor;
+    color: var(--verso-diff-added, var(--verso-status-success, #2E7D32));
 }
 
 .verso-diff-summary-badge--removed {
-    color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
-    border-color: currentColor;
+    color: var(--verso-diff-removed, var(--verso-status-error, #C62828));
 }
 
 .verso-diff-summary-badge--modified {
-    color: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning, #B26A00));
-    border-color: currentColor;
+    color: var(--verso-diff-modified, var(--verso-status-warning, #B26A00));
 }
 
 .verso-diff-summary-badge--moved {
-    color: var(--vscode-textLink-foreground, var(--verso-status-info, #0B5FA5));
-    border-color: currentColor;
+    color: var(--verso-diff-moved, var(--verso-status-info, #0B5FA5));
 }
 
+.verso-diff-summary-badge--added,
+.verso-diff-summary-badge--removed,
+.verso-diff-summary-badge--modified,
+.verso-diff-summary-badge--moved {
+    border-color: color-mix(in srgb, currentColor 50%, transparent);
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* === Stepping between changes === */
+
+.verso-diff-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+}
+
+.verso-diff-nav-position {
+    font-size: 11.5px;
+    color: var(--verso-fg-subtle, #A0A0A0);
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.verso-diff-nav-btn,
 .verso-diff-close {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border: none;
     border-radius: var(--verso-button-border-radius, 4px);
     background: transparent;
-    color: var(--vscode-editor-foreground, var(--verso-editor-line-number, #858585));
+    color: var(--verso-fg-muted, #858585);
     cursor: pointer;
     flex: none;
 }
 
+.verso-diff-nav-btn:hover,
 .verso-diff-close:hover {
-    background: var(--vscode-toolbar-hoverBackground, var(--verso-cell-hover-background, #ECECEC));
+    background: var(--verso-toolbar-button-hover, #ECECEC);
+    color: var(--verso-fg-default, #1E1E1E);
 }
 
 .verso-diff-body {
@@ -3212,20 +3834,53 @@ html, body {
     flex-shrink: 0;
 }
 
+/* Nothing changed. Worth a real answer: an empty scroll area reads as a view that
+   failed to load rather than as a notebook that matches its baseline. */
+.verso-diff-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 56px 24px;
+    text-align: center;
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+.verso-diff-empty svg {
+    color: var(--verso-diff-added, var(--verso-status-success, #2E7D32));
+    margin-bottom: 4px;
+}
+
+.verso-diff-empty-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--verso-fg-default, #1E1E1E);
+}
+
+.verso-diff-empty-detail {
+    margin: 0;
+    font-size: 12.5px;
+    max-width: 44ch;
+    color: var(--verso-fg-subtle, #A0A0A0);
+}
+
+/* === Notebook-level settings === */
+
 .verso-diff-metadata {
-    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    border-radius: 6px;
-    padding: 10px 14px;
-    background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F8F8F8));
+    border-radius: var(--verso-shape-medium, 12px);
+    padding: 12px 14px;
+    background: var(--verso-bg-elevated, #F8F8F8);
+    box-shadow: var(--verso-elevation-1, none);
 }
 
 .verso-diff-metadata-title {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 6px;
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    margin-bottom: 8px;
+    color: var(--verso-fg-subtle, #A0A0A0);
 }
 
 .verso-diff-metadata-row {
@@ -3234,7 +3889,7 @@ html, body {
     gap: 8px;
     font-size: 13px;
     padding: 2px 0;
-    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+    color: var(--verso-fg-default, #1E1E1E);
 }
 
 /* Field names can embed layout or setting keys ("Layout state 'ext:key'"). Cap the column
@@ -3256,124 +3911,132 @@ html, body {
 }
 
 .verso-diff-metadata-value--baseline {
-    color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
+    color: var(--verso-diff-removed, var(--verso-status-error, #C62828));
     text-decoration: line-through;
 }
 
 .verso-diff-metadata-value--current {
-    color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32));
+    color: var(--verso-diff-added, var(--verso-status-success, #2E7D32));
 }
 
 .verso-diff-metadata-arrow {
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    color: var(--verso-fg-subtle, #A0A0A0);
 }
+
+/* === Per-cell cards ===
+
+   Kind is a left stripe rather than a ring around the whole card. A colored rectangle
+   drawn around every card competes with the notebook's own card language and, on a
+   long diff, turns the page into a grid of boxes; a stripe puts the color where the
+   eye scans and matches how the cells themselves are marked while comparing. */
 
 .verso-diff-cell {
-    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    border-radius: 6px;
+    border-radius: var(--verso-shape-large, 16px);
+    border-left: 3px solid transparent;
+    background: var(--verso-bg-elevated, #F8F8F8);
+    box-shadow: var(--verso-elevation-1, none);
     overflow: hidden;
+    scroll-margin-top: 12px;
 }
 
-.verso-diff-cell--added {
-    border-color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32));
-}
+.verso-diff-cell--added { border-left-color: var(--verso-diff-added, var(--verso-status-success, #2E7D32)); }
+.verso-diff-cell--removed { border-left-color: var(--verso-diff-removed, var(--verso-status-error, #C62828)); }
+.verso-diff-cell--modified { border-left-color: var(--verso-diff-modified, var(--verso-status-warning, #B26A00)); }
+.verso-diff-cell--moved { border-left-color: var(--verso-diff-moved, var(--verso-status-info, #0B5FA5)); }
 
-.verso-diff-cell--removed {
-    border-color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828));
-}
-
-.verso-diff-cell--modified {
-    border-color: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning, #B26A00));
-}
-
-.verso-diff-cell--moved,
+/* An unchanged cell is context rather than a finding, so it keeps no stripe and sits
+   flat against the body. */
 .verso-diff-cell--unchanged {
-    border-style: dashed;
+    background: transparent;
+    box-shadow: none;
+    border: 1px dashed var(--verso-border-default, #E0E0E0);
+    border-left-width: 1px;
 }
 
 .verso-diff-cell-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
     font-size: 12px;
-    background: var(--vscode-editorWidget-background, var(--verso-cell-background, #F8F8F8));
-    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
+    color: var(--verso-fg-default, #1E1E1E);
 }
 
-/* The gitDecoration-* theme tokens are foreground colors, so they become the chip's TEXT
-   color with a translucent tint of the same color behind it. A solid token background with
-   fixed white text goes unreadable in dark themes, where these tokens are light pastels. */
+/* The kind chip takes its text color from the diff palette and tints from it, so a
+   theme that changes what "removed" looks like changes both together. */
 .verso-diff-kind-badge {
-    font-weight: 700;
-    font-size: 11px;
+    font-weight: 600;
+    font-size: 10.5px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 1px 7px;
-    border-radius: 3px;
+    letter-spacing: 0.04em;
+    padding: 1px 8px;
+    border-radius: var(--verso-shape-full, 999px);
     border: 1px solid currentColor;
     background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
-.verso-diff-kind-badge--added { color: var(--vscode-gitDecoration-addedResourceForeground, var(--verso-status-success, #2E7D32)); }
-.verso-diff-kind-badge--removed { color: var(--vscode-gitDecoration-deletedResourceForeground, var(--verso-status-error, #C62828)); }
-.verso-diff-kind-badge--modified { color: var(--vscode-gitDecoration-modifiedResourceForeground, var(--verso-status-warning, #B26A00)); }
-.verso-diff-kind-badge--moved { color: var(--vscode-textLink-foreground, var(--verso-status-info, #0B5FA5)); }
+.verso-diff-kind-badge--added { color: var(--verso-diff-added, var(--verso-status-success, #2E7D32)); }
+.verso-diff-kind-badge--removed { color: var(--verso-diff-removed, var(--verso-status-error, #C62828)); }
+.verso-diff-kind-badge--modified { color: var(--verso-diff-modified, var(--verso-status-warning, #B26A00)); }
+.verso-diff-kind-badge--moved { color: var(--verso-diff-moved, var(--verso-status-info, #0B5FA5)); }
 
 .verso-diff-cell-position {
-    font-family: var(--verso-code-output-font-family, monospace);
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    font-family: var(--verso-font-family-mono, monospace);
+    color: var(--verso-fg-subtle, #A0A0A0);
 }
 
 .verso-diff-cell-type,
 .verso-diff-cell-lang {
     font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #6E6E6E));
+    padding: 1px 7px;
+    border-radius: var(--verso-shape-full, 999px);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    color: var(--verso-fg-muted, #6E6E6E);
 }
 
 .verso-diff-heuristic-hint {
     font-size: 11px;
     font-style: italic;
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    color: var(--verso-fg-subtle, #A0A0A0);
     cursor: help;
 }
 
 .verso-diff-flag-chip {
     font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--vscode-badge-background, var(--verso-cell-hover-background, #ECECEC));
-    color: var(--vscode-badge-foreground, var(--verso-editor-foreground, #1E1E1E));
+    padding: 1px 7px;
+    border-radius: var(--verso-shape-full, 999px);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    color: var(--verso-fg-muted, #6E6E6E);
 }
 
 .verso-diff-move-detail {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    color: var(--verso-fg-muted, #6E6E6E);
 }
 
 .verso-diff-source-block {
     margin: 0;
-    padding: 10px 14px;
-    font-family: var(--verso-code-output-font-family, monospace);
+    padding: 12px 14px;
+    font-family: var(--verso-font-family-mono, monospace);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
     overflow-x: auto;
     white-space: pre;
-    color: var(--vscode-editor-foreground, var(--verso-editor-foreground, #1E1E1E));
-    background: var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF));
+    color: var(--verso-fg-default, #1E1E1E);
+    background: var(--verso-bg-default, #FFFFFF);
 }
 
 .verso-diff-source-block--added {
-    background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #2E7D32) 8%, var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF)));
+    background: color-mix(in srgb, var(--verso-diff-added, var(--verso-status-success, #2E7D32)) 8%, var(--verso-bg-default, #FFFFFF));
 }
 
 .verso-diff-source-block--removed {
-    background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #C62828) 8%, var(--vscode-editor-background, var(--verso-editor-background, #FFFFFF)));
+    background: color-mix(in srgb, var(--verso-diff-removed, var(--verso-status-error, #C62828)) 8%, var(--verso-bg-default, #FFFFFF));
     text-decoration: none;
 }
+
+/* === Disclosures === */
 
 .verso-diff-unchanged-group {
     display: flex;
@@ -3386,13 +4049,14 @@ html, body {
 .verso-diff-expand-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    border: 1px dashed var(--vscode-editorWidget-border, var(--verso-border-default, #D0D0D0));
-    border-radius: 4px;
+    gap: 7px;
+    border: 1px solid var(--verso-border-default, #D0D0D0);
+    border-radius: var(--verso-shape-medium, 12px);
     background: transparent;
-    padding: 5px 10px;
+    padding: 7px 12px;
+    font-family: inherit;
     font-size: 12px;
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    color: var(--verso-fg-muted, #6E6E6E);
     cursor: pointer;
     width: 100%;
     text-align: left;
@@ -3401,13 +4065,14 @@ html, body {
 .verso-diff-unchanged-toggle:hover,
 .verso-diff-outputs-toggle:hover,
 .verso-diff-expand-btn:hover {
-    background: var(--vscode-list-hoverBackground, var(--verso-cell-hover-background, #F0F0F0));
+    background: var(--verso-toolbar-button-hover, #F0F0F0);
+    color: var(--verso-fg-default, #1E1E1E);
 }
 
 .verso-diff-chevron {
-    display: inline-block;
-    font-size: 9px;
-    transition: transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.12s ease;
 }
 
 .verso-diff-chevron--open {
@@ -3415,26 +4080,24 @@ html, body {
 }
 
 .verso-diff-outputs {
-    border-top: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    border-top: 1px solid color-mix(in srgb, var(--verso-border-default, #E0E0E0) 70%, transparent);
+    padding: 10px 14px;
+    background: var(--verso-bg-default, #FFFFFF);
 }
 
 .verso-diff-outputs-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    min-width: 0;
+    gap: 10px;
+    margin-top: 10px;
 }
 
 .verso-diff-outputs-column {
     min-width: 0;
+    border-radius: var(--verso-shape-small, 8px);
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    padding: 10px;
     overflow-x: auto;
-    border: 1px solid var(--vscode-editorWidget-border, var(--verso-border-default, #E0E0E0));
-    border-radius: 4px;
-    padding: 8px;
 }
 
 .verso-diff-outputs-column-title {
@@ -3443,7 +4106,7 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 6px;
-    color: var(--vscode-descriptionForeground, var(--verso-editor-line-number, #858585));
+    color: var(--verso-fg-subtle, #A0A0A0);
 }
 
 .verso-monaco-diff-editor {

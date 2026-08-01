@@ -102,6 +102,7 @@ public sealed class ToolbarActionDto
     public bool IconOnly { get; set; }
     public bool IsPrimary { get; set; }
     public string? ConfirmationPrompt { get; set; }
+    public string? Description { get; set; }
 }
 
 // --- Cell ---
@@ -514,6 +515,20 @@ public sealed class ThemeResult
     public Dictionary<string, string> SyntaxColors { get; set; } = new();
     public ThemeTypographyDto Typography { get; set; } = new();
     public ThemeSpacingDto Spacing { get; set; } = new();
+    public ThemeElevationDto Elevation { get; set; } = new();
+}
+
+/// <summary>
+/// Drop-shadow scale. Each value is a complete CSS <c>box-shadow</c> expression, or
+/// <c>none</c>. Nullable so an older client that never reads them stays unaffected and a
+/// newer client can tell "not sent" from "deliberately none".
+/// </summary>
+public sealed class ThemeElevationDto
+{
+    public string? Level0 { get; set; }
+    public string? Level1 { get; set; }
+    public string? Level2 { get; set; }
+    public string? Level3 { get; set; }
 }
 
 public sealed class ThemeTypographyDto
@@ -544,6 +559,13 @@ public sealed class ThemeSpacingDto
     public double ButtonBorderRadius { get; set; }
     public double OutputPadding { get; set; }
     public double ScrollbarWidth { get; set; }
+
+    // Shape scale. Nullable so a client can distinguish "this host does not send a shape
+    // scale" from "this theme wants square corners", which is a real theme choice.
+    public double? ShapeSmall { get; set; }
+    public double? ShapeMedium { get; set; }
+    public double? ShapeLarge { get; set; }
+    public double? ShapeFull { get; set; }
 }
 
 public sealed class ThemesResult

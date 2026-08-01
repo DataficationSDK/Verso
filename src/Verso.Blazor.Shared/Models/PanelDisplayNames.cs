@@ -1,14 +1,17 @@
 namespace Verso.Blazor.Shared.Models;
 
+/// <summary>
+/// Panel header titles. Extension panels supply their own display name, so this
+/// covers the host panels and falls back to the raw id for anything else.
+/// </summary>
 public static class PanelDisplayNames
 {
+    // The properties panel header reads "CELL PROPERTIES" even though its toggle is
+    // labelled "Properties", so that one entry keeps its own wording rather than
+    // deriving from HostPanels.
     public static string For(string panelId) => panelId switch
     {
-        "metadata" => "METADATA",
-        "extensions" => "EXTENSIONS",
-        "variables" => "VARIABLES",
-        "settings" => "SETTINGS",
-        "properties" => "CELL PROPERTIES",
-        _ => panelId.ToUpperInvariant()
+        HostPanels.Properties => "CELL PROPERTIES",
+        _ => (HostPanels.Find(panelId)?.DisplayName ?? panelId).ToUpperInvariant()
     };
 }

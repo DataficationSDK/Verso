@@ -47,6 +47,38 @@ public sealed class VersoHighContrastThemeTests
         }
     }
 
+    /// <summary>
+    /// Anything filled with an accent draws its label in <c>AccentForeground</c>. This theme's
+    /// accents are a gold and a pale cyan, so the default white would land near 1.4:1 and make
+    /// every primary button, active menu item, and selected tab unreadable.
+    /// </summary>
+    [TestMethod]
+    public void AccentForeground_IsReadableOnBothAccents()
+    {
+        AssertContrastRatio(_hc.Colors.AccentForeground, _hc.Colors.AccentPrimary, 4.5,
+            "AccentForeground on AccentPrimary");
+        AssertContrastRatio(_hc.Colors.AccentForeground, _hc.Colors.AccentSecondary, 4.5,
+            "AccentForeground on AccentSecondary");
+    }
+
+    /// <summary>
+    /// A drop shadow is a low-contrast edge by construction, and a square corner keeps a
+    /// border reading as a full rectangle. This theme separates surfaces with its borders,
+    /// so both scales are deliberately switched off rather than merely reduced.
+    /// </summary>
+    [TestMethod]
+    public void ShapeAndElevation_AreBothOff()
+    {
+        Assert.AreEqual(0, _hc.Spacing.ShapeSmall);
+        Assert.AreEqual(0, _hc.Spacing.ShapeMedium);
+        Assert.AreEqual(0, _hc.Spacing.ShapeLarge);
+        Assert.AreEqual(0, _hc.Spacing.ShapeFull);
+
+        Assert.AreEqual("none", _hc.Elevation.Level1);
+        Assert.AreEqual("none", _hc.Elevation.Level2);
+        Assert.AreEqual("none", _hc.Elevation.Level3);
+    }
+
     [TestMethod]
     public void Colors_DifferFromDark()
     {

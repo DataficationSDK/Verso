@@ -59,7 +59,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell, index: 0);
 
-        var moveUpBtns = cut.FindAll("button[title='Move Up']");
+        var moveUpBtns = cut.FindAll("button[data-verso-tip='Move Up']");
         Assert.AreEqual(0, moveUpBtns.Count);
     }
 
@@ -70,7 +70,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell, index: 1);
 
-        var moveUpBtns = cut.FindAll("button[title='Move Up']");
+        var moveUpBtns = cut.FindAll("button[data-verso-tip='Move Up']");
         Assert.IsTrue(moveUpBtns.Count > 0);
     }
 
@@ -81,7 +81,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell, index: 0, isLast: true);
 
-        var moveDownBtns = cut.FindAll("button[title='Move Down']");
+        var moveDownBtns = cut.FindAll("button[data-verso-tip='Move Down']");
         Assert.AreEqual(0, moveDownBtns.Count);
     }
 
@@ -92,7 +92,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell, index: 0, isLast: false);
 
-        var moveDownBtns = cut.FindAll("button[title='Move Down']");
+        var moveDownBtns = cut.FindAll("button[data-verso-tip='Move Down']");
         Assert.IsTrue(moveDownBtns.Count > 0);
     }
 
@@ -106,14 +106,14 @@ public sealed class CellTests : BunitTestContext
         // For kernels that support cancellation (csharp does), the Run button
         // is replaced by a Stop button while executing. Otherwise it remains
         // visible but disabled.
-        var stopBtn = cut.FindAll("button[title='Stop']");
+        var stopBtn = cut.FindAll("button[data-verso-tip='Stop']");
         if (stopBtn.Count > 0)
         {
             Assert.IsFalse(stopBtn[0].HasAttribute("disabled"));
         }
         else
         {
-            var runBtn = cut.FindAll("button[title='Run']");
+            var runBtn = cut.FindAll("button[data-verso-tip='Run']");
             Assert.IsTrue(runBtn.Count > 0);
             Assert.IsTrue(runBtn[0].HasAttribute("disabled"));
         }
@@ -126,7 +126,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell, isExecuting: false);
 
-        var runBtn = cut.FindAll("button[title='Run']");
+        var runBtn = cut.FindAll("button[data-verso-tip='Run']");
         Assert.IsTrue(runBtn.Count > 0);
         Assert.IsFalse(runBtn[0].HasAttribute("disabled"));
     }
@@ -203,7 +203,7 @@ public sealed class CellTests : BunitTestContext
 
         var cut = RenderCell(cell);
 
-        var deleteBtns = cut.FindAll("button[title='Delete']");
+        var deleteBtns = cut.FindAll("button[data-verso-tip='Delete']");
         Assert.IsTrue(deleteBtns.Count > 0);
     }
 

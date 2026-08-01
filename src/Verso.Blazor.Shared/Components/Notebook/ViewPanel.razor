@@ -1,0 +1,98 @@
+@* Layout and theme, the two lists that decide how one notebook is looked at.
+
+   These were a toolbar dropdown, which dismissed on every selection. Comparing two
+   layouts meant opening the menu twice and comparing from memory. As a panel the list
+   stays put while the notebook repaints beside it, which is the whole reason a picker
+   for this belongs here rather than in a menu. *@
+
+<div class="verso-sidebar-panel">
+    <div class="verso-panel-content-root">
+
+        @if (Service.AvailableLayouts.Count > 1)
+        {
+            <div class="verso-panel-section">
+                <div class="verso-panel-section-title">Layout</div>
+                @foreach (var layout in Service.AvailableLayouts)
+                {
+                    var l = layout;
+                    var isActive = string.Equals(l.LayoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase);
+                    <div class="verso-panel-row verso-panel-row--interactive @(isActive ? "verso-panel-row--active" : "")"
+                         role="button" tabindex="0"
+                         aria-pressed="@(isActive ? "true" : "false")"
+                         @key="l.LayoutId"
+                         @onclick="() => SelectLayoutAsync(l.LayoutId)">
+                        <span class="verso-view-row-name">@l.DisplayName</span>
+                        @if (!l.Capabilities.HasFlag(LayoutCapabilities.CellEdit))
+                        {
+                            @* Worth saying outright: these layouts show the notebook rather than
+                               letting you work in it, and that surprises people who switch to one
+                               and find they cannot type. *@
+                            <span class="verso-panel-chip">Read only</span>
+                        }
+                        @if (isActive)
+                        {
+                            <span class="verso-view-row-check" aria-hidden="true">&#10003;</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (ShowThemeSection)
+        {
+            <div class="verso-panel-section">
+                <div class="verso-panel-section-title">Theme</div>
+                @foreach (var theme in Service.AvailableThemes)
+                {
+                    var t = theme;
+                    var isActive = string.Equals(t.ThemeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase);
+                    <div class="verso-panel-row verso-panel-row--interactive @(isActive ? "verso-panel-row--active" : "")"
+                         role="button" tabindex="0"
+                         aria-pressed="@(isActive ? "true" : "false")"
+                         @key="t.ThemeId"
+                         @onclick="() => SelectThemeAsync(t.ThemeId)">
+                        <span class="verso-view-row-name">@t.DisplayName</span>
+                        @if (isActive)
+                        {
+                            <span class="verso-view-row-check" aria-hidden="true">&#10003;</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+</div>
+
+@code {
+    [Parameter] public INotebookService Service { get; set; } = default!;
+
+    /// <summary>
+    /// Raised with the pseudo-action id after a switch, so the hosting page re-renders and
+    /// the toolbar recomputes its layout-gated actions (an export that only some layouts
+    /// offer enables and disables with the layout).
+    /// </summary>
+    [Parameter] public EventCallback<string> OnActionExecuted { get; set; }
+
+    // Themes come from the host in the embedded (VS Code) shell, so only the layout
+    // section is offered there.
+    private bool ShowThemeSection => Service.AvailableThemes.Count > 1 && !Service.IsEmbedded;
+
+    private async Task SelectLayoutAsync(string layoutId)
+    {
+        if (string.Equals(layoutId, Service.ActiveLayoutId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await Service.SwitchLayoutAsync(layoutId);
+        await OnActionExecuted.InvokeAsync("verso.switchLayout");
+    }
+
+    private async Task SelectThemeAsync(string themeId)
+    {
+        if (string.Equals(themeId, Service.ActiveThemeId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await Service.SwitchThemeAsync(themeId);
+        await OnActionExecuted.InvokeAsync("verso.switchTheme");
+    }
+}

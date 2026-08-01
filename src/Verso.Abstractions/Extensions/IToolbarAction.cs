@@ -27,6 +27,11 @@ public interface IToolbarAction : IExtension
     /// Hosts ignore this for actions without an <see cref="Icon"/>. Defaults to
     /// <c>false</c> so the label is shown.
     /// </summary>
+    /// <remarks>
+    /// An icon-only button is worth explaining. Hosts show
+    /// <see cref="IExtension.Description"/> beneath the name in the button's tooltip,
+    /// which is the only chance to say what the icon means.
+    /// </remarks>
     bool IconOnly => false;
 
     /// <summary>

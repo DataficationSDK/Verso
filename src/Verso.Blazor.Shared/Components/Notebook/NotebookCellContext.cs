@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Verso.Abstractions;
 
 namespace Verso.Blazor.Shared.Components.Notebook;
 
@@ -21,6 +22,14 @@ public sealed class NotebookCellContext
 
     public IReadOnlySet<Guid> CollapsedSections { get; init; } = new HashSet<Guid>();
 
+    /// <summary>
+    /// How each cell differs from the baseline while a comparison is live, keyed by cell id.
+    /// Empty when nothing is being compared. Cells removed since the baseline are absent
+    /// because there is no cell left to mark.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, CellDiffKind> DiffMarks { get; init; }
+        = new Dictionary<Guid, CellDiffKind>();
+
     public EventCallback<Guid> OnRunCell { get; init; }
     public EventCallback<Guid> OnCancelCell { get; init; }
     public EventCallback<Guid> OnDeleteCell { get; init; }
@@ -35,4 +44,8 @@ public sealed class NotebookCellContext
     public EventCallback<(int Index, string Type)> OnInsertCell { get; init; }
     public EventCallback<string> OnAddCell { get; init; }
     public EventCallback OnCellListClick { get; init; }
+
+    /// <summary>How the given cell differs from the baseline, or <c>null</c> when it does not.</summary>
+    public CellDiffKind? DiffMarkFor(Guid cellId)
+        => DiffMarks.TryGetValue(cellId, out var kind) ? kind : null;
 }

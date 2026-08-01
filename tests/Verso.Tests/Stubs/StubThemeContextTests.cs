@@ -98,6 +98,6 @@ public sealed class StubThemeContextTests
     [TestMethod]
     public void GetSpacing_ToolbarHeight_ReturnsExpected()
     {
-        Assert.AreEqual(40, _stub.GetSpacing("ToolbarHeight"));
+        Assert.AreEqual(44, _stub.GetSpacing("ToolbarHeight"));
     }
 }

@@ -8,6 +8,10 @@ public sealed class ExtensionListResult
 
     /// <summary>Packages the notebook requires, for the panel's installed list and uninstall affordance.</summary>
     public List<InstalledExtensionItemDto> Installed { get; set; } = new();
+
+    /// <summary>The configured package sources, in search order, so the panel can say where
+    /// results came from.</summary>
+    public List<string> Sources { get; set; } = new();
 }
 
 public sealed class InstalledExtensionItemDto
@@ -15,6 +19,19 @@ public sealed class InstalledExtensionItemDto
     public string Id { get; set; } = "";
     public string? Version { get; set; }
     public bool IsLocal { get; set; }
+
+    /// <summary>
+    /// What the package contributed once loaded. Null when the package has not loaded in this
+    /// session, empty when it loaded and registered no extension point. The panel says
+    /// different things about those two, so the null must survive the round trip.
+    /// </summary>
+    public List<string>? Capabilities { get; set; }
+
+    /// <summary>
+    /// The package's own icon as a <c>data:</c> URI, read from the installed copy on disk. Null
+    /// when the package ships no icon, in which case the panel falls back to a lettered tile.
+    /// </summary>
+    public string? IconDataUri { get; set; }
 }
 
 public sealed class ExtensionInfoDto
