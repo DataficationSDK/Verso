@@ -116,6 +116,10 @@
     private bool _setHtmlNeeded;
     private bool _portalPendingNeeded;
     private bool _disposed;
+    // True once a render has completed, which is the point from which JavaScript interop is
+    // legal. A prerendering pass builds and disposes the component without ever rendering to a
+    // browser, and interop from that pass throws rather than being a no-op.
+    private bool _rendered;
     // Monotonic token that sequences full re-renders. Each full render captures the value
     // before its first await and bails if a later render bumped it across the await, so two
     // rapid layout switches can't leave the earlier layout's HTML under the newer identity.
@@ -163,6 +167,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_disposed) return;
+        _rendered = true;
 
         // Push the current layout HTML into the (Blazor-owned but JS-managed) root and re-portal
         // the live cells in one synchronous frame. Runs on first render once _html is populated
@@ -459,7 +464,9 @@
         // Move any cells that were portaled into layout slots back to the page-level pool
         // before Blazor strips this component's subtree. Without this, the cell DOM nodes
         // ride along into the removed subtree and are orphaned from their owning <Cell>
-        // components.
-        await UnmountSlotsAsync();
+        // components. A component that never rendered has nothing portaled, and calling into
+        // JavaScript from that state throws instead of doing nothing.
+        if (_rendered)
+            await UnmountSlotsAsync();
     }
 }

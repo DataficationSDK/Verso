@@ -56,6 +56,9 @@
     private Guid? _loadedCellId;
     private bool _attachNeeded;
     private bool _disposed;
+    // True once the interaction handler is attached in the browser, so teardown only detaches
+    // what a real render actually set up.
+    private bool _attached;
 
     // Sequences loads so a slow render for a panel the user has already switched away
     // from cannot overwrite the content of the one now showing.
@@ -137,6 +140,7 @@
         try
         {
             await JS.InvokeVoidAsync("versoPanelInteract.attach", _rootRef, _selfRef);
+            _attached = true;
         }
         catch (JSDisconnectedException) { }
         catch (JSException) { }
@@ -181,12 +185,17 @@
         _disposed = true;
         Unsubscribe();
 
-        try
+        // Only detach what was attached. A prerendering pass builds and disposes the panel
+        // without ever reaching a browser, and interop from that state throws.
+        if (_attached)
         {
-            await JS.InvokeVoidAsync("versoPanelInteract.detach", _rootRef);
+            try
+            {
+                await JS.InvokeVoidAsync("versoPanelInteract.detach", _rootRef);
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
         }
-        catch (JSDisconnectedException) { }
-        catch (JSException) { }
 
         _selfRef?.Dispose();
     }
