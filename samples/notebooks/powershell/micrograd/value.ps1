@@ -8,11 +8,14 @@ https://github.com/karpathy/micrograd/blob/master/LICENSE
 #>
 
 class Value {
-    hidden [double]$data
-    hidden [string]$label=""
+    # data, label, and grad are the three things worth seeing when a cell prints a Value,
+    # so they stay visible and the default table formatting shows them. children and
+    # backward are hidden because printing them would expand the whole expression graph.
+    [double]$data
+    [string]$label=""
+    [double]$grad = 0.0
     hidden [array]$children = @()
     hidden [string]$operation = ""
-    hidden [double]$grad = 0.0
     hidden $backward = {}
 
     Value([double] $data){
@@ -88,5 +91,3 @@ class Value {
 
     }
 }
-
-Update-FormatData -path (Join-Path $PSScriptRoot 'Value.format.ps1xml')

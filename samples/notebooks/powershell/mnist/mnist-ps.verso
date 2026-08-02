@@ -1,0 +1,122 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "MNIST with Micrograd in PowerShell",
+    "created": "2026-07-30T00:00:00+00:00",
+    "modified": "2026-07-30T00:00:00+00:00",
+    "defaultKernel": "powershell",
+    "activeLayout": "notebook",
+    "preferredTheme": "verso-light"
+  },
+  "cells": [
+    {
+      "id": "3f21c88a-60e0-4c3a-b3b1-59b79ff348f1",
+      "type": "markdown",
+      "source": "# MNIST with Micrograd in PowerShell\n\nThis notebook uses `PSMnist` to prepare handwritten-digit examples and trains the scalar Micrograd implementation from the neighboring sample. It favors readable computation over performance.",
+      "outputs": []
+    },
+    {
+      "id": "c85daae7-542e-4c28-84c6-67012fa91913",
+      "type": "markdown",
+      "source": "## Module Setup\n\nLoad the tested prerelease module from the normal PowerShell module path. Install it from a regular PowerShell terminal before starting Verso; the embedded kernel does not provide PowerShellGet package-management commands.",
+      "outputs": []
+    },
+    {
+      "id": "97045bd5-4e9a-4b9c-9104-93acf3d08387",
+      "type": "code",
+      "language": "powershell",
+      "source": "$requirements = @(\n    [pscustomobject]@{ Name = 'PSMnist'; Version = '0.1.0-beta1' }\n)\n\n$resolvedModules = foreach ($requirement in $requirements) {\n    $module = Get-Module -ListAvailable -Name $requirement.Name |\n        Where-Object {\n            $version = $_.Version.ToString()\n            $prerelease = $_.PrivateData.PSData.Prerelease\n            if ($prerelease) {\n                $version = \"$version-$prerelease\"\n            }\n            $version -eq $requirement.Version\n        } |\n        Select-Object -First 1\n\n    if ($module) {\n        [pscustomobject]@{\n            Requirement = $requirement\n            Module = $module\n        }\n    }\n}\n\n$missing = $requirements |\n    Where-Object Name -NotIn $resolvedModules.Requirement.Name\n\nif ($missing) {\n    $installCommands = $missing | ForEach-Object {\n        \"Install-Module $($_.Name) -RequiredVersion $($_.Version) -AllowPrerelease -Scope CurrentUser\"\n    }\n\n    throw \"Install the missing modules in a regular PowerShell terminal, restart Verso, and run this cell again:`n$($installCommands -join \"`n\")\"\n}\n\n$resolvedModules | ForEach-Object {\n    Import-Module $_.Module.Path -Force\n}",
+      "outputs": []
+    },
+    {
+      "id": "398c571c-1a98-42b6-af28-59861cc77c27",
+      "type": "markdown",
+      "source": "## Micrograd Helpers\n\nLoad the scalar automatic-differentiation engine and MLP classes used by the Micrograd sample.\n\n`#!import` resolves each path against this notebook's own location, so the neighboring scripts load no matter which directory Verso was started from. The helper function that follows needs its own cell, because a cell that runs magic commands does not also run code.",
+      "outputs": []
+    },
+    {
+      "id": "2e0577de-d4ea-40d4-9195-84e20811dddf",
+      "type": "code",
+      "language": "powershell",
+      "source": "#!import ../micrograd/value.ps1\n#!import ../micrograd/neuronHelper.ps1\n#!import ../micrograd/helpers.ps1",
+      "outputs": []
+    },
+    {
+      "id": "676b4271-ccfa-45e4-82e6-5e60603287d0",
+      "type": "code",
+      "language": "powershell",
+      "source": "function Get-HighestScoreIndex {\n    [CmdletBinding()]\n    param(\n        [Parameter(Mandatory, ValueFromPipeline)]\n        [Value]$Value\n    )\n\n    begin {\n        $index = 0\n        $scores = @()\n    }\n\n    process {\n        $scores += [pscustomobject]@{\n            Index = $index\n            Score = $Value.data\n        }\n        $index++\n    }\n\n    end {\n        $scores |\n            Sort-Object Score -Descending |\n            Select-Object -First 1 -ExpandProperty Index\n    }\n}",
+      "outputs": []
+    },
+    {
+      "id": "7536cc79-3bba-4464-bb3a-a62b56f5cd27",
+      "type": "markdown",
+      "source": "## Download And Inspect MNIST\n\nStore the dataset under the current user's application-data directory. The download runs only when the expanded training files are absent.",
+      "outputs": []
+    },
+    {
+      "id": "7f57aa47-b80c-401e-bb5d-d2b59d060dc2",
+      "type": "code",
+      "language": "powershell",
+      "source": "$dataPath = Join-Path $HOME '.psmnist/mnist'\n$imageFile = Join-Path $dataPath 'train-images-idx3-ubyte'\n\nif (-not (Test-Path -LiteralPath $imageFile)) {\n    Save-MnistDataset -DestinationPath $dataPath | Out-Null\n    Expand-MnistDataset -Path $dataPath | Out-Null\n}\n\n$sample = Get-MnistDataset -Path $dataPath -Set Train -First 1\n$sample.Image |\n    ConvertTo-MnistSvg -Scale 8 |\n    ForEach-Object { Display $_ 'image/svg+xml' }\n\n[pscustomobject]@{\n    Label = $sample.Label.Value\n    Width = $sample.Image.Width\n    Height = $sample.Image.Height\n}",
+      "outputs": []
+    },
+    {
+      "id": "06c3f921-851e-4c0c-94d8-edc7fdbe82d4",
+      "type": "markdown",
+      "source": "## Prepare Training Samples\n\nNormalize each 28 by 28 image to a 784-element `0..1` vector and convert its label to a ten-element one-hot target.",
+      "outputs": []
+    },
+    {
+      "id": "064979d3-52e4-43a0-acf0-9b00cd663968",
+      "type": "code",
+      "language": "powershell",
+      "source": "$sampleCount = 10\n$trainingSamples = @(\n    Get-MnistDataset -Path $dataPath -Set Train -First $sampleCount |\n        ConvertTo-MnistTrainingSample -Range ZeroToOne\n)\n\n$first = $trainingSamples | Select-Object -First 1\n[pscustomobject]@{\n    SampleCount = $trainingSamples.Count\n    InputLength = $first.X.Count\n    TargetLength = $first.Y.Count\n    Label = $first.Label.Value\n}",
+      "outputs": []
+    },
+    {
+      "id": "c643618a-eb0c-4818-b834-f8b45bcf9bad",
+      "type": "markdown",
+      "source": "## Train A Small Classifier\n\nTrain on the prepared examples for three epochs so the scalar graph remains practical in an educational notebook. Raise `$sampleCount` in the cell above to train on more. The final layer is linear; hidden neurons retain `tanh` activation.",
+      "outputs": []
+    },
+    {
+      "id": "dc076e8f-c102-43ba-a096-6931d951bb7a",
+      "type": "code",
+      "language": "powershell",
+      "source": "$model = [MLP]::new(784, @(16, 10), $false)\n$train = $trainingSamples\n$parameters = @($model.parameters())\n$learningRate = 0.001\n$epochs = 3\n\n$history = for ($epoch = 1; $epoch -le $epochs; $epoch++) {\n    $totalLoss = 0.0\n    $correct = 0\n    $trainThisEpoch = Get-Random -InputObject $train -Count $train.Count\n\n    foreach ($example in $trainThisEpoch) {\n        foreach ($parameter in $parameters) {\n            $parameter.grad = 0.0\n        }\n\n        $output = $model.Invoke($example.X)\n        $predicted = $output | Get-HighestScoreIndex\n        if ($predicted -eq $example.Label.Value) {\n            $correct++\n        }\n\n        $loss = Zip $output $example.Y | Sum-Value {\n            [Value]$prediction = $_.Left\n            $target = [Value]::new([double]$_.Right)\n            $difference = $prediction - $target\n            $difference * $difference\n        }\n\n        $totalLoss += $loss.data\n        Invoke-ValueBackward $loss\n\n        foreach ($parameter in $parameters) {\n            $parameter.data += -$learningRate * $parameter.grad\n        }\n    }\n\n    [pscustomobject]@{\n        Epoch = $epoch\n        AverageLoss = $totalLoss / $train.Count\n        Accuracy = $correct / $train.Count\n    }\n}\n\n$history",
+      "outputs": []
+    },
+    {
+      "id": "a830caa6-c034-4d66-81ac-1160f4cae0da",
+      "type": "markdown",
+      "source": "## Evaluate The Training Subset\n\nRun a fresh forward pass and compare the largest output score with each label.",
+      "outputs": []
+    },
+    {
+      "id": "a2a05e70-13af-41c2-bfab-84c7a87f8557",
+      "type": "code",
+      "language": "powershell",
+      "source": "$evaluation = $train | ForEach-Object {\n    $example = $_\n    $output = $model.Invoke($example.X)\n    $predicted = $output | Get-HighestScoreIndex\n\n    [pscustomobject]@{\n        Index = $example.Index\n        Label = $example.Label.Value\n        Predicted = $predicted\n        Correct = $predicted -eq $example.Label.Value\n    }\n}\n\n$evaluation",
+      "outputs": []
+    },
+    {
+      "id": "47a19146-9a8b-46f2-860e-ded53a237420",
+      "type": "code",
+      "language": "powershell",
+      "source": "$correct = ($evaluation | Where-Object Correct | Measure-Object).Count\n\n[pscustomobject]@{\n    Count = $evaluation.Count\n    Correct = $correct\n    Accuracy = $correct / $evaluation.Count\n}",
+      "outputs": []
+    },
+    {
+      "id": "0b3f3da4-a04a-4668-85dc-4279821ac877",
+      "type": "markdown",
+      "source": "The scalar implementation makes every arithmetic operation a graph node. It is useful for examining automatic differentiation, but larger datasets should use vectorized tensor operations and a production ML runtime.",
+      "outputs": []
+    }
+  ],
+  "layouts": {
+    "dashboard": {
+      "cells": {}
+    }
+  }
+}

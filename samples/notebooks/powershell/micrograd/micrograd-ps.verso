@@ -31,14 +31,14 @@
     {
       "id": "bfc628a3-515c-4905-9458-6246caa81b2e",
       "type": "markdown",
-      "source": "## Helpers\n\nThe implementation is split into small scripts:\n\n- `value.ps1` defines scalar `Value` objects and operator overloads.\n- `graphHelper.ps1` converts `Value` graphs into PSGraph graphs and renders them.\n- `neuronHelper.ps1` defines `Neuron`, `Layer`, and `MLP`.\n- `helpers.ps1` contains small collection helpers such as `Zip` and `Sum-Value`.",
+      "source": "## Helpers\n\nThe implementation is split into small scripts:\n\n- `value.ps1` defines scalar `Value` objects and operator overloads.\n- `graphHelper.ps1` converts `Value` graphs into PSGraph graphs and renders them.\n- `neuronHelper.ps1` defines `Neuron`, `Layer`, and `MLP`.\n- `helpers.ps1` contains the `Zip` and `Sum-Value` collection helpers plus `Invoke-ValueBackward`, which runs backpropagation without building a graph.\n\n`#!import` resolves each path against this notebook's own location, so the scripts load no matter which directory Verso was started from. Order matters, because later scripts reference the classes defined by earlier ones.",
       "outputs": []
     },
     {
       "id": "afb60472-57bb-4182-9a12-1340020a4070",
       "type": "code",
       "language": "powershell",
-      "source": ". ./value.ps1\n. ./graphHelper.ps1\n. ./neuronHelper.ps1\n. ./helpers.ps1",
+      "source": "#!import ./value.ps1\n#!import ./graphHelper.ps1\n#!import ./neuronHelper.ps1\n#!import ./helpers.ps1",
       "outputs": []
     },
     {
@@ -144,14 +144,14 @@
     {
       "id": "e137ad0d-eaf9-4125-886e-f445d9e0c224",
       "type": "markdown",
-      "source": "## One Training Step\n\nEach step follows the same pattern as PyTorch: clear gradients, run the forward pass, build the loss, run backpropagation in reverse topological order, then update parameters.",
+      "source": "## One Training Step\n\nEach step follows the same pattern as PyTorch: clear gradients, run the forward pass, build the loss, run backpropagation in reverse topological order, then update parameters.\n\n`Invoke-ValueBackward` walks that reverse topological order directly over the `Value` objects. The cells above built a PSGraph graph to obtain the same order, which reads well for a single small expression but is far more work than a training step needs.",
       "outputs": []
     },
     {
       "id": "4fddcb91-1fc6-4d1a-af61-d40433ee2418",
       "type": "code",
       "language": "powershell",
-      "source": "foreach ($p in $net.parameters()) {\n    $p.grad = 0.0\n}\nforeach ($row in $xs) {\n    foreach ($v in $row) { $v.grad = 0.0 }\n}\nforeach ($y in $ys) {\n    $y.grad = 0.0\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$loss.grad = 1.0\n$bpLossGraph = New-BackpropagationGraph -val $loss\n\nGet-GraphTopologicalSort -Graph $bpLossGraph -Reverse |\n    ForEach-Object { $_.OriginalObject } |\n    ForEach-Object { & $_.backward }\n\nforeach ($p in $net.parameters()) {\n    $p.data += -0.1 * $p.grad\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
+      "source": "foreach ($p in $net.parameters()) {\n    $p.grad = 0.0\n}\nforeach ($row in $xs) {\n    foreach ($v in $row) { $v.grad = 0.0 }\n}\nforeach ($y in $ys) {\n    $y.grad = 0.0\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\nInvoke-ValueBackward $loss\n\nforeach ($p in $net.parameters()) {\n    $p.data += -0.1 * $p.grad\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
       "outputs": []
     },
     {
@@ -164,7 +164,7 @@
       "id": "dd473439-856e-4f2f-96c4-e5cd3debd34b",
       "type": "code",
       "language": "powershell",
-      "source": "$ypred = @()\n$loss = [Value]::new(0.0, 'loss')\n\n1..200 | ForEach-Object {\n    foreach ($p in $net.parameters()) { $p.grad = 0.0 }\n    foreach ($row in $xs) { foreach ($v in $row) { $v.grad = 0.0 } }\n    foreach ($y in $ys) { $y.grad = 0.0 }\n\n    $ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n    $loss = Zip -Left $ys -Right $ypred | Sum-Value {\n        $diff = $_.Right - $_.Left\n        $diff * $diff\n    }\n\n    $loss.grad = 1.0\n    $bpLossGraph = New-BackpropagationGraph -val $loss\n\n    Get-GraphTopologicalSort -Graph $bpLossGraph -Reverse |\n        ForEach-Object { $_.OriginalObject } |\n        ForEach-Object { & $_.backward }\n\n    foreach ($p in $net.parameters()) {\n        $p.data += -0.1 * $p.grad\n    }\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
+      "source": "$ypred = @()\n$loss = [Value]::new(0.0, 'loss')\n\n1..200 | ForEach-Object {\n    foreach ($p in $net.parameters()) { $p.grad = 0.0 }\n    foreach ($row in $xs) { foreach ($v in $row) { $v.grad = 0.0 } }\n    foreach ($y in $ys) { $y.grad = 0.0 }\n\n    $ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n    $loss = Zip -Left $ys -Right $ypred | Sum-Value {\n        $diff = $_.Right - $_.Left\n        $diff * $diff\n    }\n\n    Invoke-ValueBackward $loss\n\n    foreach ($p in $net.parameters()) {\n        $p.data += -0.1 * $p.grad\n    }\n}\n\n$ypred = $xs | ForEach-Object { $net.Invoke($_)[0] }\n$loss = Zip -Left $ys -Right $ypred | Sum-Value {\n    $diff = $_.Right - $_.Left\n    $diff * $diff\n}\n\n$ypred\n$loss",
       "outputs": []
     },
     {

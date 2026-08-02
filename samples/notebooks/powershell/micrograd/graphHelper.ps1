@@ -43,36 +43,32 @@ function New-ExpressionGraph {
         $operationVertices = @{}
     }
 
-    if (-not $valueVertices.ContainsKey($val)) {
-        $valueVertices[$val] = Add-Vertex -Graph $graph -Vertex (New-ValueNode $val) -PassThru
+    # A Value is reachable from every parent that consumed it, so this is a DAG rather than
+    # a tree. Without this guard a shared node picks up one duplicate edge per parent and
+    # has its whole subtree walked again each time it is reached.
+    if ($valueVertices.ContainsKey($val)) {
+        return $graph
     }
 
-    $valueVertex = $valueVertices[$val]
+    $valueVertex = Add-Vertex -Graph $graph -Vertex (New-ValueNode $val) -PassThru
+    $valueVertices[$val] = $valueVertex
 
     if ($val.operation) {
-        if (-not $operationVertices.ContainsKey($val)) {
-            $operationVertices[$val] = Add-Vertex -Graph $graph -Vertex (New-OperationNode $val) -PassThru
-        }
-
-        $operationVertex = $operationVertices[$val]
+        $operationVertex = Add-Vertex -Graph $graph -Vertex (New-OperationNode $val) -PassThru
+        $operationVertices[$val] = $operationVertex
 
         Add-Edge -From $operationVertex -To $valueVertex -Graph $graph | Out-Null
     }
 
+    foreach ($child in $val.children) {
+        New-ExpressionGraph `
+            -val $child `
+            -graph $graph `
+            -valueVertices $valueVertices `
+            -operationVertices $operationVertices | Out-Null
 
-    if ($val.children) {
-        foreach ($child in $val.children) {
-            New-ExpressionGraph `
-                -val $child `
-                -graph $graph `
-                -valueVertices $valueVertices `
-                -operationVertices $operationVertices | Out-Null
-
-            $childVertex = $valueVertices[$child]
-
-            if ($val.operation) {
-                Add-Edge -From $childVertex -To $operationVertex -Graph $graph | Out-Null
-            }
+        if ($val.operation) {
+            Add-Edge -From $valueVertices[$child] -To $operationVertex -Graph $graph | Out-Null
         }
     }
 
@@ -125,39 +121,28 @@ function Show-ExpressionGraph {
         $rankdir = "LR"
     )
 
-    begin {
-        # node formatting lambda
+    # node formatting lambda
+    $vs = {
+        $node = $_
 
-        $vs = {
-            $node = $_
-
-            if ($node.kind -eq 'op') {
-                @{
-                    shape = 'Ellipse'
-                    label = $node.label
-                }
-            }
-            else {
-                $name = if ($node.label) { $node.label } else { '' }
-
-                @{
-                    shape = 'Record'
-                    label = "{ $name | data $($node.data) | grad $($node.grad) }"
-                }
+        if ($node.kind -eq 'op') {
+            @{
+                shape = 'Ellipse'
+                label = $node.label
             }
         }
+        else {
+            $name = if ($node.label) { $node.label } else { '' }
 
-        $dot = Export-Graph -Graph $graph -Format Graphviz -GraphScript { @{ rankdir = $rankdir; label = 'Micrograd' } } -VertexScript $vs
-
-        $svg = Export-GraphvizView -InputObject $dot -Renderer Dot -As Svg
-        Display $svg 'image/svg+xml'
+            @{
+                shape = 'Record'
+                label = "{ $name | data $($node.data) | grad $($node.grad) }"
+            }
+        }
     }
 
-    process {
+    $dot = Export-Graph -Graph $graph -Format Graphviz -GraphScript { @{ rankdir = $rankdir; label = 'Micrograd' } } -VertexScript $vs
 
-    }
-
-    end {
-
-    }
+    $svg = Export-GraphvizView -InputObject $dot -Renderer Dot -As Svg
+    Display $svg 'image/svg+xml'
 }
