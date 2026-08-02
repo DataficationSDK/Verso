@@ -55,6 +55,24 @@ public sealed class FormatterResolverTests
         Assert.AreEqual("healthy", output.Content);
     }
 
+    [TestMethod]
+    public async Task TryFormatAsync_ContinuesWhenOutputHasDifferentRequiredMimeType()
+    {
+        var context = CreateContext(
+            new TestFormatter("wrong", priority: 20, mimeType: "text/html"),
+            new TestFormatter("svg", priority: 10, mimeType: "image/svg+xml"));
+
+        var output = await FormatterResolver.TryFormatAsync(
+            "value",
+            context,
+            includeFallback: true,
+            requiredMimeType: "image/svg+xml");
+
+        Assert.IsNotNull(output);
+        Assert.AreEqual("image/svg+xml", output.MimeType);
+        Assert.AreEqual("svg", output.Content);
+    }
+
     private static StubFormatterContext CreateContext(params IDataFormatter[] formatters)
     {
         return new StubFormatterContext
@@ -69,17 +87,20 @@ public sealed class FormatterResolverTests
     {
         private readonly string _content;
         private readonly bool _throwFromCanFormat;
+        private readonly string _mimeType;
 
         public TestFormatter(
             string content,
             int priority = 10,
             bool isFallback = false,
-            bool throwFromCanFormat = false)
+            bool throwFromCanFormat = false,
+            string mimeType = "text/plain")
         {
             _content = content;
             Priority = priority;
             IsFallback = isFallback;
             _throwFromCanFormat = throwFromCanFormat;
+            _mimeType = mimeType;
         }
 
         public string ExtensionId => $"com.test.formatter.{_content}";
@@ -102,6 +123,6 @@ public sealed class FormatterResolverTests
         }
 
         public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
-            => Task.FromResult(CellOutput.Plain(_content));
+            => Task.FromResult(new CellOutput(_mimeType, _content));
     }
 }

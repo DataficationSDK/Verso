@@ -28,8 +28,12 @@ public interface IExecutionContext : IVersoContext
     /// kernel can preserve its native formatting behavior.
     /// </summary>
     /// <param name="value">The runtime value to format.</param>
-    /// <param name="mimeType">Optional preferred MIME type.</param>
-    Task<CellOutput?> TryFormatAsync(object value, string? mimeType = null)
+    /// <param name="acceptableMimeTypes">
+    /// Optional MIME types the host can render, in descending order of preference.
+    /// </param>
+    Task<CellOutput?> TryFormatAsync(
+        object value,
+        IReadOnlyList<string>? acceptableMimeTypes = null)
         => Task.FromResult<CellOutput?>(null);
 
     /// <summary>

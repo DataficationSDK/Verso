@@ -61,7 +61,7 @@ Extends `IVersoContext` with execution-specific state. Passed to `ILanguageKerne
 | `CellId` | `Guid` | Unique identifier of the cell being executed. |
 | `ExecutionCount` | `int` | Monotonically increasing execution counter for the current cell. |
 | `DisplayAsync(CellOutput)` | `Task` | Sends a display output that can be updated in place during execution. |
-| `TryFormatAsync(object, string?)` | `Task<CellOutput?>` | Gives registered specialized data formatters an opportunity to render a runtime value. Returns `null` when the kernel should use its native fallback. |
+| `TryFormatAsync(object, IReadOnlyList<string>?)` | `Task<CellOutput?>` | Gives registered specialized data formatters an opportunity to render a runtime value. Optional MIME types are tried in order. Returns `null` when the kernel should use its native fallback. |
 | `RequestInputAsync(string, bool, CancellationToken)` | `Task<string?>` | Requests a single input value from the current host. The second argument controls password masking. Returns `null` when the user cancels. Default implementation throws `NotSupportedException` on non-interactive hosts. |
 
 ### When Available
@@ -88,6 +88,20 @@ if (formatted is not null)
 
 return new[] { FormatWithNativeRuntime(runtimeValue) };
 ```
+
+Hosts that support multiple representations can pass their acceptable MIME types in descending
+order of preference. Formatter priority resolves conflicts within each MIME type; MIME type order
+takes precedence across representations. The first representation a specialized formatter can
+produce is returned:
+
+```csharp
+var formatted = await context.TryFormatAsync(
+    runtimeValue,
+    new[] { "image/svg+xml", "image/png", "text/plain" });
+```
+
+Passing `null` uses the host's default formatter context. An empty list accepts no representation
+and returns `null`, allowing the language kernel to preserve its native fallback.
 
 ### Interactive Input
 

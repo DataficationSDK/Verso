@@ -10,7 +10,8 @@ internal static class FormatterResolver
     public static async Task<CellOutput?> TryFormatAsync(
         object value,
         IFormatterContext context,
-        bool includeFallback)
+        bool includeFallback,
+        string? requiredMimeType = null)
     {
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(context);
@@ -38,7 +39,14 @@ internal static class FormatterResolver
             }
 
             if (canFormat)
-                return await formatter.FormatAsync(value, context).ConfigureAwait(false);
+            {
+                var formattedOutput = await formatter.FormatAsync(value, context).ConfigureAwait(false);
+                if (requiredMimeType is null ||
+                    string.Equals(formattedOutput.MimeType, requiredMimeType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return formattedOutput;
+                }
+            }
         }
 
         return null;

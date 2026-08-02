@@ -76,18 +76,36 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
     }
 
     /// <inheritdoc />
-    public Task<CellOutput?> TryFormatAsync(object value, string? mimeType = null)
+    public async Task<CellOutput?> TryFormatAsync(
+        object value,
+        IReadOnlyList<string>? acceptableMimeTypes = null)
     {
         ArgumentNullException.ThrowIfNull(value);
 
         IFormatterContext formatterContext = new DisplayFormatterContext(this);
-        if (mimeType is not null)
-            formatterContext = new HintedFormatterContext(formatterContext, mimeType);
+        if (acceptableMimeTypes is null)
+        {
+            return await FormatterResolver.TryFormatAsync(
+                value,
+                formatterContext,
+                includeFallback: false).ConfigureAwait(false);
+        }
 
-        return FormatterResolver.TryFormatAsync(
-            value,
-            formatterContext,
-            includeFallback: false);
+        foreach (var mimeType in acceptableMimeTypes)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(mimeType);
+
+            var output = await FormatterResolver.TryFormatAsync(
+                value,
+                new HintedFormatterContext(formatterContext, mimeType),
+                includeFallback: false,
+                requiredMimeType: mimeType).ConfigureAwait(false);
+
+            if (output is not null)
+                return output;
+        }
+
+        return null;
     }
 
     /// <inheritdoc />
