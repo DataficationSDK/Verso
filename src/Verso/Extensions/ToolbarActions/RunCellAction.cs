@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.ToolbarActions;
 
@@ -11,10 +12,10 @@ public sealed class RunCellAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.action.run-cell";
-    public string Name => "Run Cell";
+    public string Name => Strings.Action_RunCell;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Executes the selected cell(s).";
+    public string? Description => Strings.Action_RunCell_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -22,7 +23,7 @@ public sealed class RunCellAction : IToolbarAction
     // --- IToolbarAction ---
 
     public string ActionId => "verso.action.run-cell";
-    public string DisplayName => "Run Cell";
+    public string DisplayName => Strings.Action_RunCell;
     public string? Icon => null;
     public ToolbarPlacement Placement => ToolbarPlacement.CellToolbar;
     public int Order => 20;

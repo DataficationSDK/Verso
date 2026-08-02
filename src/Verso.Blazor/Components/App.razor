@@ -1,7 +1,10 @@
 @using System.Reflection
+@using System.Globalization
+@using System.Text.Json
+@using Verso.Blazor.Shared.Resources
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@CultureInfo.CurrentUICulture.Name">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,9 +51,9 @@
     <div id="verso-reconnect-overlay" style="display:none">
         <div class="verso-reconnect-box">
             <div class="verso-spinner verso-spinner--large"></div>
-            <h3 id="verso-reconnect-title">Reconnecting...</h3>
-            <p id="verso-reconnect-message">Your session is still active. Attempting to reconnect.</p>
-            <button id="verso-reconnect-reload" style="display:none" onclick="location.reload()">Reload page</button>
+            <h3 id="verso-reconnect-title">@UI.Reconnect_Title</h3>
+            <p id="verso-reconnect-message">@UI.Reconnect_Message</p>
+            <button id="verso-reconnect-reload" style="display:none" onclick="location.reload()">@UI.Reconnect_Reload</button>
         </div>
     </div>
 
@@ -66,8 +69,8 @@
             let disconnectTimer = null;
 
             function recoverAndReload() {
-                title.textContent = 'Recovering your session...';
-                message.textContent = 'Reloading to restore your notebook.';
+                title.textContent = @Js(UI.Reconnect_RecoveringTitle);
+                message.textContent = @Js(UI.Reconnect_RecoveringMessage);
                 reloadBtn.style.display = 'none';
                 overlay.style.display = 'flex';
 
@@ -100,8 +103,8 @@
                             if (Date.now() - pageLoadTime < 10000) return;
 
                             overlay.style.display = 'flex';
-                            title.textContent = 'Reconnecting...';
-                            message.textContent = 'Your session is still active. Attempting to reconnect.';
+                            title.textContent = @Js(UI.Reconnect_Title);
+                            message.textContent = @Js(UI.Reconnect_Message);
                             reloadBtn.style.display = 'none';
 
                             // Foreground fallback: if the tab stays visible, reload after 2 min
@@ -136,6 +139,11 @@
 </html>
 
 @code {
+    // The overlay is written twice: once as markup for the first paint, and once by the
+    // script that rewrites it when the connection drops. Both read the same resources, so
+    // the script needs its text as a quoted JavaScript string rather than as page content.
+    private static MarkupString Js(string value) => new(JsonSerializer.Serialize(value));
+
     private static readonly string CacheBuster = GetCacheBuster();
 
     private static string GetCacheBuster()

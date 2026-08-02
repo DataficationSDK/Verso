@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Kernels;
@@ -16,10 +17,10 @@ public sealed class MermaidKernel : ILanguageKernel
     // --- IExtension ---
 
     public string ExtensionId => "verso.kernel.mermaid";
-    public string Name => "Mermaid Kernel";
+    public string Name => Strings.Kernel_Mermaid;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Executes Mermaid diagram cells with @variable substitution.";
+    public string? Description => Strings.Kernel_Mermaid_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -27,6 +28,7 @@ public sealed class MermaidKernel : ILanguageKernel
     // --- ILanguageKernel ---
 
     public string LanguageId => "mermaid";
+    // Format and product names read the same in every language.
     public string DisplayName => "Mermaid";
     public IReadOnlyList<string> FileExtensions { get; } = new[] { ".mmd", ".mermaid" };
 

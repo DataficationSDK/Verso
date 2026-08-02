@@ -1,3 +1,5 @@
+using Verso.Blazor.Shared.Resources;
+
 namespace Verso.Blazor.Shared.Models;
 
 /// <summary>
@@ -30,23 +32,28 @@ public static class HostPanels
     /// icon at rest, so this is usually the only chance to explain a panel before
     /// someone decides whether to open it. Each one says what the panel shows rather
     /// than restating its name, which a tooltip on a one-word control cannot do.
+    /// <para>
+    /// Built on each access rather than held in a field. A list built once would keep
+    /// whichever language happened to be current the first time anything touched it,
+    /// and on the server that is whoever opened a notebook first.
+    /// </para>
     /// </remarks>
-    public static readonly IReadOnlyList<NotebookPanelInfo> All = new List<NotebookPanelInfo>
+    public static IReadOnlyList<NotebookPanelInfo> All => new List<NotebookPanelInfo>
     {
-        new("metadata",   "", "Metadata",   "document", null, 100, IsHostPanel: true,
-            Description: "Title, kernel, and file details for this notebook."),
-        new("extensions", "", "Extensions", "puzzle",   null, 200, IsHostPanel: true,
-            Description: "Extensions loaded here, and more you can install."),
-        new("variables",  "", "Variables",  "braces",   null, 300, IsHostPanel: true,
-            Description: "Everything the kernel is currently holding."),
-        new("settings",   "", "Settings",   "gear",     null, 400, IsHostPanel: true,
-            Description: "Settings contributed by the enabled extensions."),
-        new(Properties,   "", "Properties", "list",     null, 500, IsHostPanel: true,
-            Description: "Settings for the selected cell."),
-        new(View,         "", "View",       "layout",   null, 600, IsHostPanel: true,
-            Description: "Switch layout or theme without closing the panel."),
-        new(Compare,      "", "Compare",    "compare",  null, 700, IsHostPanel: true,
-            Description: "Measure this notebook against a saved baseline."),
+        new("metadata",   "", UI.Panel_Metadata,   "document", null, 100, IsHostPanel: true,
+            Description: UI.Panel_Metadata_Description),
+        new("extensions", "", UI.Panel_Extensions, "puzzle",   null, 200, IsHostPanel: true,
+            Description: UI.Panel_Extensions_Description),
+        new("variables",  "", UI.Panel_Variables,  "braces",   null, 300, IsHostPanel: true,
+            Description: UI.Panel_Variables_Description),
+        new("settings",   "", UI.Panel_Settings,   "gear",     null, 400, IsHostPanel: true,
+            Description: UI.Panel_Settings_Description),
+        new(Properties,   "", UI.Panel_Properties, "list",     null, 500, IsHostPanel: true,
+            Description: UI.Panel_Properties_Description),
+        new(View,         "", UI.Panel_View,       "layout",   null, 600, IsHostPanel: true,
+            Description: UI.Panel_View_Description),
+        new(Compare,      "", UI.Panel_Compare,    "compare",  null, 700, IsHostPanel: true,
+            Description: UI.Panel_Compare_Description),
     };
 
     /// <summary>

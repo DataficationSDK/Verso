@@ -3,11 +3,17 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Verso.Host;
 using Verso.Host.Protocol;
+using Verso.Localization;
 
 // Force UTF-8 for stdin/stdout — Windows defaults to the OEM code page (e.g. CP437)
 // which corrupts non-ASCII characters in JSON-RPC messages.
 Console.InputEncoding = Encoding.UTF8;
 Console.OutputEncoding = Encoding.UTF8;
+
+// Before any kernel loads, so a message produced while an extension is being discovered is
+// already in the caller's language. Only the interface language moves: this process runs the
+// kernels, and a cell's own results are data rather than chrome.
+VersoCultures.ApplyUiCulture(VersoCultures.Resolve(VersoCultures.FromArguments(args)));
 
 // Bind the protocol writer to the real underlying stdout stream, not Console.Out.
 // Kernels (CSharpKernel, FsiSessionManager) call Console.SetOut to a StringWriter

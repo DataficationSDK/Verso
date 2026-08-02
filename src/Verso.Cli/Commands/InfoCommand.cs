@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Reflection;
+using Verso.Cli.Utilities;
 using Verso.Extensions;
 
 namespace Verso.Cli.Commands;

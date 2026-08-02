@@ -156,7 +156,7 @@ export async function showHostStartError(
   }
 
   vscode.window.showErrorMessage(
-    `Verso: Failed to start host process: ${describeError(err)}`
+    vscode.l10n.t("Verso: Failed to start host process: {0}", describeError(err))
   );
 }
 
@@ -171,19 +171,28 @@ async function showDotnetSetupError(
   lastSetupPromptAt = now;
 
   const version = getRequiredRuntimeVersion(hostDllPath);
-  const message =
-    `Verso needs the .NET runtime (version ${version} or later) to run ` +
-    `notebooks, but a compatible installation was not found.`;
+  const message = vscode.l10n.t(
+    "Verso needs the .NET runtime (version {0} or later) to run notebooks, but a compatible installation was not found.",
+    version
+  );
 
-  const install = "Install .NET Runtime";
-  const help = "Setup Help";
+  const install = vscode.l10n.t({
+    message: "Install .NET Runtime",
+    comment: ["A button. .NET is a product name and stays as written."],
+  });
+  const help = vscode.l10n.t({
+    message: "Setup Help",
+    comment: ["A button. It opens the page describing how to set Verso up."],
+  });
   const choice = await vscode.window.showErrorMessage(message, install, help);
 
   if (choice === install) {
     const installed = await attemptRuntimeAcquisition(context, hostDllPath);
     if (installed) {
       vscode.window.showInformationMessage(
-        "Verso: the .NET runtime is installed. Reopen the notebook to continue."
+        vscode.l10n.t(
+          "Verso: the .NET runtime is installed. Reopen the notebook to continue."
+        )
       );
     } else {
       // On-demand install did not complete (offline, blocked, or declined);
@@ -223,7 +232,7 @@ async function attemptRuntimeAcquisition(
     const acquired = await vscode.window.withProgress<AcquireResult>(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "Verso: installing the .NET runtime...",
+        title: vscode.l10n.t("Verso: installing the .NET runtime..."),
       },
       () =>
         vscode.commands.executeCommand<AcquireResult>(INSTALL_TOOL_ACQUIRE, {

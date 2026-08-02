@@ -18,7 +18,7 @@
             @if (output.IsError)
             {
                 <div class="verso-output verso-output--error">
-                    <div class="verso-output-error-name">@(output.ErrorName ?? "Error")</div>
+                    <div class="verso-output-error-name">@(output.ErrorName ?? UI.Output_Error)</div>
                     <pre class="verso-output-error-content">@output.Content</pre>
                     @if (ExtendedMimeTypes && output.ErrorStackTrace is not null)
                     {
@@ -103,7 +103,7 @@
                    not a failure: progress bars, logging, and warnings all arrive here from
                    programs that are working correctly. The label carries the meaning on its own,
                    because colour is dropped when a notebook is printed. *@
-                <div class="verso-output verso-output--stderr" role="note" aria-label="Standard error output">
+                <div class="verso-output verso-output--stderr" role="note" aria-label="@UI.Output_StandardError">
                     <div class="verso-output-stderr-label">stderr</div>
                     <pre>@output.Content</pre>
                 </div>
@@ -117,9 +117,9 @@
         </ChildContent>
         <ErrorContent Context="renderError">
             <div class="verso-output verso-output--error">
-                <div class="verso-output-error-name">This output could not be rendered</div>
+                <div class="verso-output-error-name">@UI.Output_RenderFailed</div>
                 <pre class="verso-output-error-content">@renderError.Message</pre>
-                <button class="verso-cell-btn verso-cell-btn--action" @onclick="RetryOutputRender" data-verso-tip="Retry rendering this output">Retry</button>
+                <button class="verso-cell-btn verso-cell-btn--action" @onclick="RetryOutputRender" data-verso-tip="@UI.Output_RetryRender">@UI.Common_Retry</button>
             </div>
         </ErrorContent>
     </ErrorBoundary>
@@ -156,8 +156,8 @@
             var root = doc.RootElement;
 
             var activity = root.TryGetProperty("activity", out var a) && a.ValueKind == JsonValueKind.String
-                ? a.GetString() ?? "Working"
-                : "Working";
+                ? a.GetString() ?? UI.Output_Working
+                : UI.Output_Working;
             var status = root.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.String
                 ? s.GetString()
                 : null;
@@ -202,7 +202,7 @@
         sb.Append("</style>");
 
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        if (lines.Length == 0) return "<span>Empty CSV</span>";
+        if (lines.Length == 0) return $"<span>{WebUtility.HtmlEncode(UI.Output_EmptyCsv)}</span>";
 
         sb.Append("<div style='max-height:400px;overflow:auto;border:1px solid var(--vscode-editorWidget-border,#e0e0e0);border-radius:4px'>");
         sb.Append("<table class='verso-csv'>");
@@ -265,6 +265,17 @@
         return fields;
     }
 
+    /// <summary>
+    /// The count summarising a collapsed JSON object or list, escaped for the markup it goes into.
+    /// </summary>
+    /// <remarks>
+    /// A translation of "{0} keys" can hold characters that mean something in HTML, and this
+    /// output is built as a string rather than as markup, so it is encoded here rather than
+    /// trusted.
+    /// </remarks>
+    private static string JsonCount(int count, string one, string other)
+        => WebUtility.HtmlEncode(string.Format(Plural.Of(count, one, other), count));
+
     private static string RenderJsonTree(string content)
     {
         try
@@ -314,7 +325,7 @@
                 else
                 {
                     sb.Append($"<details{(depth < 2 ? " open" : "")}>");
-                    sb.Append($"<summary>{keyHtml}<span class='jbrace'>{{</span> <span class='jcount'>{objProps.Count} {(objProps.Count == 1 ? "key" : "keys")}</span></summary>");
+                    sb.Append($"<summary>{keyHtml}<span class='jbrace'>{{</span> <span class='jcount'>{JsonCount(objProps.Count, UI.Output_JsonKeys_One, UI.Output_JsonKeys_Other)}</span></summary>");
                     foreach (var prop in objProps)
                         RenderJsonElement(sb, prop.Value, prop.Name, depth + 1);
                     sb.Append($"<div><span class='jbrace'>}}</span></div></details>");
@@ -330,7 +341,7 @@
                 else
                 {
                     sb.Append($"<details{(depth < 2 ? " open" : "")}>");
-                    sb.Append($"<summary>{keyHtml}<span class='jbrace'>[</span> <span class='jcount'>{items.Count} {(items.Count == 1 ? "item" : "items")}</span></summary>");
+                    sb.Append($"<summary>{keyHtml}<span class='jbrace'>[</span> <span class='jcount'>{JsonCount(items.Count, UI.Output_JsonItems_One, UI.Output_JsonItems_Other)}</span></summary>");
                     foreach (var item in items)
                         RenderJsonElement(sb, item, null, depth + 1);
                     sb.Append($"<div><span class='jbrace'>]</span></div></details>");

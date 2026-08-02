@@ -5,27 +5,29 @@
     <div class="verso-diff-panel">
         <div class="verso-diff-header">
             <div class="verso-diff-title">
-                <span class="verso-diff-title-text">Comparing with @Diff.BaselineLabel</span>
+                <span class="verso-diff-title-text">@string.Format(UI.DiffView_ComparingWith, Diff.BaselineLabel)</span>
                 <div class="verso-diff-summary">
+                    @* The sign travels with the count rather than sitting in the resource, so a
+                       language that puts the number elsewhere in the phrase keeps them together. *@
                     @if (Diff.Summary.Added > 0)
                     {
-                        <span class="verso-diff-summary-badge verso-diff-summary-badge--added">+@Diff.Summary.Added added</span>
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--added">@string.Format(UI.Compare_SummaryAdded, $"+{Diff.Summary.Added}")</span>
                     }
                     @if (Diff.Summary.Removed > 0)
                     {
-                        <span class="verso-diff-summary-badge verso-diff-summary-badge--removed">&#8722;@Diff.Summary.Removed removed</span>
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--removed">@string.Format(UI.Compare_SummaryRemoved, $"−{Diff.Summary.Removed}")</span>
                     }
                     @if (Diff.Summary.Modified > 0)
                     {
-                        <span class="verso-diff-summary-badge verso-diff-summary-badge--modified">@Diff.Summary.Modified modified</span>
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--modified">@string.Format(UI.Compare_SummaryModified, Diff.Summary.Modified)</span>
                     }
                     @if (Diff.Summary.Moved > 0)
                     {
-                        <span class="verso-diff-summary-badge verso-diff-summary-badge--moved">@Diff.Summary.Moved moved</span>
+                        <span class="verso-diff-summary-badge verso-diff-summary-badge--moved">@string.Format(UI.Compare_SummaryMoved, Diff.Summary.Moved)</span>
                     }
                     @if (!HasChanges)
                     {
-                        <span class="verso-diff-summary-badge">No changes</span>
+                        <span class="verso-diff-summary-badge">@UI.DiffView_NoChanges</span>
                     }
                 </div>
             </div>
@@ -36,21 +38,21 @@
             {
                 <div class="verso-diff-nav">
                     <span class="verso-diff-nav-position">@NavPositionLabel</span>
-                    <button class="verso-diff-nav-btn" aria-label="Previous change"
-                            data-verso-tip="Previous change" data-verso-tip-desc="Alt+Up"
+                    <button class="verso-diff-nav-btn" aria-label="@UI.DiffView_PreviousChange"
+                            data-verso-tip="@UI.DiffView_PreviousChange" data-verso-tip-desc="@UI.Key_AltUp"
                             @onclick="() => StepAsync(-1)">
                         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 8 6 12 10"/></svg>
                     </button>
-                    <button class="verso-diff-nav-btn" aria-label="Next change"
-                            data-verso-tip="Next change" data-verso-tip-desc="Alt+Down"
+                    <button class="verso-diff-nav-btn" aria-label="@UI.DiffView_NextChange"
+                            data-verso-tip="@UI.DiffView_NextChange" data-verso-tip-desc="@UI.Key_AltDown"
                             @onclick="() => StepAsync(1)">
                         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
                     </button>
                 </div>
             }
 
-            <button class="verso-diff-close" aria-label="Close"
-                    data-verso-tip="Close" data-verso-tip-desc="Esc" @onclick="() => OnClose.InvokeAsync()">
+            <button class="verso-diff-close" aria-label="@UI.Common_Close"
+                    data-verso-tip="@UI.Common_Close" data-verso-tip-desc="@UI.Key_Escape" @onclick="() => OnClose.InvokeAsync()">
                 <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
             </button>
         </div>
@@ -60,25 +62,22 @@
             {
                 <div class="verso-diff-empty">
                     <svg viewBox="0 0 16 16" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.4"/><path d="M5.2 8.2 7.2 10.2 10.9 6.1"/></svg>
-                    <p class="verso-diff-empty-title">Identical to @Diff.BaselineLabel</p>
-                    <p class="verso-diff-empty-detail">
-                        Every cell and every notebook setting matches the baseline, including
-                        unsaved edits.
-                    </p>
+                    <p class="verso-diff-empty-title">@string.Format(UI.DiffView_IdenticalTo, Diff.BaselineLabel)</p>
+                    <p class="verso-diff-empty-detail">@UI.DiffView_IdenticalDetail</p>
                 </div>
             }
 
             @if (Diff.MetadataChanges.Count > 0)
             {
                 <div class="verso-diff-metadata">
-                    <div class="verso-diff-metadata-title">Notebook settings</div>
+                    <div class="verso-diff-metadata-title">@UI.Compare_NotebookSettings</div>
                     @foreach (var change in Diff.MetadataChanges)
                     {
                         <div class="verso-diff-metadata-row">
                             <span class="verso-diff-metadata-field">@change.Field</span>
-                            <span class="verso-diff-metadata-value verso-diff-metadata-value--baseline">@(change.BaselineValue ?? "(not set)")</span>
+                            <span class="verso-diff-metadata-value verso-diff-metadata-value--baseline">@(change.BaselineValue ?? UI.Compare_NotSet)</span>
                             <span class="verso-diff-metadata-arrow">&#8594;</span>
-                            <span class="verso-diff-metadata-value verso-diff-metadata-value--current">@(change.CurrentValue ?? "(not set)")</span>
+                            <span class="verso-diff-metadata-value verso-diff-metadata-value--current">@(change.CurrentValue ?? UI.Compare_NotSet)</span>
                         </div>
                     }
                 </div>
@@ -92,7 +91,7 @@
                     <div class="verso-diff-unchanged-group">
                         <button class="verso-diff-unchanged-toggle" @onclick="() => ToggleGroup(run.StartIndex)">
                             <span class="verso-diff-chevron @(IsGroupExpanded(run.StartIndex) ? "verso-diff-chevron--open" : "")">@Chevron</span>
-                            @run.Entries.Count unchanged @(run.Entries.Count == 1 ? "cell" : "cells")
+                            @string.Format(Plural.Of(run.Entries.Count, UI.DiffView_UnchangedCells_One, UI.DiffView_UnchangedCells_Other), run.Entries.Count)
                         </button>
                         @if (IsGroupExpanded(run.StartIndex))
                         {
@@ -117,7 +116,7 @@
                         case CellDiffKind.Added:
                             <div class="verso-diff-cell verso-diff-cell--added" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
-                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--added">Added</span>
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--added">@UI.Diff_Added</span>
                                     @CellBadges(entry)
                                 </div>
                                 <pre class="verso-diff-source-block verso-diff-source-block--added">@entry.CurrentCell!.Source</pre>
@@ -127,7 +126,7 @@
                         case CellDiffKind.Removed:
                             <div class="verso-diff-cell verso-diff-cell--removed" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
-                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--removed">Removed</span>
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--removed">@UI.Diff_Removed</span>
                                     @CellBadges(entry)
                                 </div>
                                 <pre class="verso-diff-source-block verso-diff-source-block--removed">@entry.BaselineCell!.Source</pre>
@@ -137,9 +136,9 @@
                         case CellDiffKind.Moved:
                             <div class="verso-diff-cell verso-diff-cell--moved" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
-                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--moved">Moved</span>
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--moved">@UI.Diff_Moved</span>
                                     @CellBadges(entry)
-                                    <span class="verso-diff-move-detail">position @(entry.BaselineIndex + 1) &#8594; @(entry.CurrentIndex + 1)</span>
+                                    <span class="verso-diff-move-detail">@string.Format(UI.DiffView_PositionChange, entry.BaselineIndex + 1, entry.CurrentIndex + 1)</span>
                                 </div>
                             </div>
                             break;
@@ -147,7 +146,7 @@
                         case CellDiffKind.Modified:
                             <div class="verso-diff-cell verso-diff-cell--modified" id="@AnchorId(entryIndex)">
                                 <div class="verso-diff-cell-header">
-                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--modified">Modified</span>
+                                    <span class="verso-diff-kind-badge verso-diff-kind-badge--modified">@UI.Diff_Modified</span>
                                     @CellBadges(entry)
                                     @ChangeFlagChips(entry)
                                 </div>
@@ -162,7 +161,7 @@
                                     else
                                     {
                                         <button class="verso-diff-expand-btn" @onclick="() => ExpandDiff(entryIndex)">
-                                            Show source changes
+                                            @UI.DiffView_ShowSourceChanges
                                         </button>
                                     }
                                 }
@@ -171,7 +170,7 @@
                                     <div class="verso-diff-outputs">
                                         <button class="verso-diff-outputs-toggle" @onclick="() => ToggleOutputs(entryIndex)">
                                             <span class="verso-diff-chevron @(AreOutputsExpanded(entryIndex) ? "verso-diff-chevron--open" : "")">@Chevron</span>
-                                            Outputs changed
+                                            @UI.DiffView_OutputsChanged
                                         </button>
                                         @if (AreOutputsExpanded(entryIndex))
                                         {
@@ -181,7 +180,7 @@
                                                     <OutputView Outputs="entry.BaselineCell!.Outputs" />
                                                 </div>
                                                 <div class="verso-diff-outputs-column">
-                                                    <div class="verso-diff-outputs-column-title">Current</div>
+                                                    <div class="verso-diff-outputs-column-title">@UI.DiffView_Current</div>
                                                     <OutputView Outputs="entry.CurrentCell!.Outputs" />
                                                 </div>
                                             </div>
@@ -240,7 +239,9 @@
         get
         {
             var total = ChangedIndexes.Count;
-            return _navPosition < 0 ? $"{total} changes" : $"{_navPosition + 1} of {total}";
+            return _navPosition < 0
+                ? string.Format(Plural.Of(total, UI.DiffView_ChangeCount_One, UI.DiffView_ChangeCount_Other), total)
+                : string.Format(UI.DiffView_NavPosition, _navPosition + 1, total);
         }
     }
 
@@ -342,8 +343,8 @@
         @if (entry.MatchedByContent && entry.Kind is CellDiffKind.Modified)
         {
             <span class="verso-diff-heuristic-hint"
-                  data-verso-tip="Approximate match"
-                  data-verso-tip-desc="These files carry no shared cell identity, so this pairing is based on content similarity.">approximate match</span>
+                  data-verso-tip="@UI.DiffView_ApproximateMatch"
+                  data-verso-tip-desc="@UI.DiffView_ApproximateMatchDesc">@UI.DiffView_ApproximateMatchChip</span>
         }
     };
 
@@ -355,7 +356,7 @@
         }
         @if (entry.CellMetadataChanged)
         {
-            <span class="verso-diff-flag-chip">metadata</span>
+            <span class="verso-diff-flag-chip">@UI.DiffView_MetadataChip</span>
         }
     };
 
@@ -363,7 +364,7 @@
     {
         var from = DescribeCellKind(entry.BaselineCell!);
         var to = DescribeCellKind(entry.CurrentCell!);
-        return $"{from} → {to}";
+        return string.Format(UI.DiffView_TypeChange, from, to);
     }
 
     private static string DescribeCellKind(CellModel cell)

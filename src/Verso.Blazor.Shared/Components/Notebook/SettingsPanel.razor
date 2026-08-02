@@ -12,7 +12,7 @@
         @if (visibleDefinitions.Count == 0)
         {
             <div class="verso-settings-empty">
-                <p>No enabled extensions with configurable settings.</p>
+                <p>@UI.Settings_NoConfigurableExtensions</p>
             </div>
         }
         else
@@ -34,7 +34,7 @@
                     </button>
                     @if (isOpen)
                     {
-                        var grouped = definitions.OrderBy(d => d.Order).GroupBy(d => d.Category ?? "General");
+                        var grouped = definitions.OrderBy(d => d.Order).GroupBy(d => d.Category ?? UI.Settings_CategoryGeneral);
                         @foreach (var category in grouped)
                         {
                             <div class="verso-settings-category">
@@ -89,7 +89,7 @@
                                                 case SettingType.StringList:
                                                     <input type="text"
                                                            value="@FormatList(currentValue)"
-                                                           placeholder="comma separated"
+                                                           placeholder="@UI.Settings_ListPlaceholder"
                                                            @onchange="e => HandleListChange(extId, d.Name, e.Value, d.Constraints?.MaxItems)" />
                                                     break;
 
@@ -113,7 +113,7 @@
     else
     {
         <div class="verso-settings-empty">
-            <p>No notebook is open.</p>
+            <p>@UI.Common_NoNotebookOpen</p>
         </div>
     }
 </div>

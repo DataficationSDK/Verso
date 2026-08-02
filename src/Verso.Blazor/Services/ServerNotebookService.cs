@@ -279,7 +279,9 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         get
         {
-            var types = new List<CellTypeInfo> { new("code", "Code") };
+            // Code has no ICellType of its own: it is what a cell is when nothing else claims
+            // it, so the name comes from the engine's resources rather than a registration.
+            var types = new List<CellTypeInfo> { new("code", Verso.Resources.Strings.CellType_Code) };
             if (_extensionHost is null) return types;
 
             var hasMarkdown = _extensionHost.GetCellTypes()

@@ -1,0 +1,301 @@
+{
+  "Verso: Could not find Verso.Host.dll. Set \"verso.hostPath\" in settings to the path of your built Verso.Host.dll.": "Verso: Could not find Verso.Host.dll. Set \"verso.hostPath\" in settings to the path of your built Verso.Host.dll.",
+  "Verso: Open a notebook to compare it with a baseline.": "Verso: Open a notebook to compare it with a baseline.",
+  "unavailable/Said of a baseline that cannot be compared against, for a reason nothing here knows.": {
+    "message": "unavailable",
+    "comment": [
+      "Said of a baseline that cannot be compared against, for a reason nothing here knows."
+    ]
+  },
+  "Compare notebook with...": "Compare notebook with...",
+  "This comparison source is not available.": "This comparison source is not available.",
+  "Verso host process exited ({0})": "Verso host process exited ({0})",
+  "Verso: Failed to start host process: {0}": "Verso: Failed to start host process: {0}",
+  "Verso needs the .NET runtime (version {0} or later) to run notebooks, but a compatible installation was not found.": "Verso needs the .NET runtime (version {0} or later) to run notebooks, but a compatible installation was not found.",
+  "Install .NET Runtime/A button. .NET is a product name and stays as written.": {
+    "message": "Install .NET Runtime",
+    "comment": [
+      "A button. .NET is a product name and stays as written."
+    ]
+  },
+  "Setup Help/A button. It opens the page describing how to set Verso up.": {
+    "message": "Setup Help",
+    "comment": [
+      "A button. It opens the page describing how to set Verso up."
+    ]
+  },
+  "Verso: the .NET runtime is installed. Reopen the notebook to continue.": "Verso: the .NET runtime is installed. Reopen the notebook to continue.",
+  "Verso: installing the .NET runtime...": "Verso: installing the .NET runtime...",
+  "This notebook is not inside a git repository.": "This notebook is not inside a git repository.",
+  "(unnamed)/Stands in for a branch or tag that has no name to show.": {
+    "message": "(unnamed)",
+    "comment": [
+      "Stands in for a branch or tag that has no name to show."
+    ]
+  },
+  "branch/Says what kind of thing is listed, shown beside its name. A line of work in version control.": {
+    "message": "branch",
+    "comment": [
+      "Says what kind of thing is listed, shown beside its name. A line of work in version control."
+    ]
+  },
+  "remote branch/A branch that lives on the server rather than on this machine.": {
+    "message": "remote branch",
+    "comment": [
+      "A branch that lives on the server rather than on this machine."
+    ]
+  },
+  "tag/A name pinned to one point in a project's history.": {
+    "message": "tag",
+    "comment": [
+      "A name pinned to one point in a project's history."
+    ]
+  },
+  "'{0}' is not tracked at '{1}'. Commit the file first, or pick a different ref.": "'{0}' is not tracked at '{1}'. Commit the file first, or pick a different ref.",
+  "'{0}' is not a known branch, tag, or commit.": "'{0}' is not a known branch, tag, or commit.",
+  "git could not read '{0}' at '{1}': {2}": "git could not read '{0}' at '{1}': {2}",
+  "Select a notebook for @verso/@verso is typed to address the assistant and stays as written.": {
+    "message": "Select a notebook for @verso",
+    "comment": [
+      "@verso is typed to address the assistant and stays as written."
+    ]
+  },
+  "{0} line/Used when {0} is 1. Paired with the entry below.": {
+    "message": "{0} line",
+    "comment": [
+      "Used when {0} is 1. Paired with the entry below."
+    ]
+  },
+  "{0} lines/Used for every count other than 1. A language with one form for both translates this the same as the entry above.": {
+    "message": "{0} lines",
+    "comment": [
+      "Used for every count other than 1. A language with one form for both translates this the same as the entry above."
+    ]
+  },
+  "Adding {0} cell ({1})": "Adding {0} cell ({1})",
+  "Updating cell {0}": "Updating cell {0}",
+  "Removing cell {0}": "Removing cell {0}",
+  "Remove cell": "Remove cell",
+  "Remove cell **{0}** from the notebook?": "Remove cell **{0}** from the notebook?",
+  "Running cell {0}": "Running cell {0}",
+  "Running all cells": "Running all cells",
+  "Adding parameter \"{0}\" ({1})": "Adding parameter \"{0}\" ({1})",
+  "Updating parameter \"{0}\"": "Updating parameter \"{0}\"",
+  "Removing parameter \"{0}\"": "Removing parameter \"{0}\"",
+  "Remove parameter": "Remove parameter",
+  "Remove parameter **{0}** from the notebook?": "Remove parameter **{0}** from the notebook?",
+  "Setting \"{0}\" on cell {1}": "Setting \"{0}\" on cell {1}",
+  "Switching layout to \"{0}\"": "Switching layout to \"{0}\"",
+  "Moving cell {0} to position {1}": "Moving cell {0} to position {1}",
+  "Changing cell {0} to type \"{1}\"": "Changing cell {0} to type \"{1}\"",
+  "Changing cell {0} language to \"{1}\"": "Changing cell {0} language to \"{1}\"",
+  "No Verso notebook is currently open.": "No Verso notebook is currently open.",
+  "{0} cell/Used when {0} is 1. Paired with the entry below.": {
+    "message": "{0} cell",
+    "comment": [
+      "Used when {0} is 1. Paired with the entry below."
+    ]
+  },
+  "{0} cells/Used for every count other than 1. A language with one form for both translates this the same as the entry above.": {
+    "message": "{0} cells",
+    "comment": [
+      "Used for every count other than 1. A language with one form for both translates this the same as the entry above."
+    ]
+  },
+  "Cell {0} not found. The notebook has {1}.": "Cell {0} not found. The notebook has {1}.",
+  "The notebook is empty.": "The notebook is empty.",
+  "Cell {0}/A heading over one cell's code. {0} counts from 1.": {
+    "message": "Cell {0}",
+    "comment": [
+      "A heading over one cell's code. {0} counts from 1."
+    ]
+  },
+  "Running all cells...": "Running all cells...",
+  "Cell ({0}ms)/{0} is a number of milliseconds; ms is the unit and stays as written.": {
+    "message": "Cell ({0}ms)",
+    "comment": [
+      "{0} is a number of milliseconds; ms is the unit and stays as written."
+    ]
+  },
+  "Error: {0}/{0} is what the cell reported, in the language the kernel reported it.": {
+    "message": "Error: {0}",
+    "comment": [
+      "{0} is what the cell reported, in the language the kernel reported it."
+    ]
+  },
+  "No variables in scope. Run some cells first.": "No variables in scope. Run some cells first.",
+  "Name/A table heading: what a variable is called.": {
+    "message": "Name",
+    "comment": [
+      "A table heading: what a variable is called."
+    ]
+  },
+  "Type/A table heading: what kind of value a variable holds.": {
+    "message": "Type",
+    "comment": [
+      "A table heading: what kind of value a variable holds."
+    ]
+  },
+  "Value/A table heading: what a variable currently holds.": {
+    "message": "Value",
+    "comment": [
+      "A table heading: what a variable currently holds."
+    ]
+  },
+  "Usage: `/props <cell number>` (1-based). Example: `/props 2`/Shown when /props was typed without a cell number. Everything in backticks is typed and stays as written.": {
+    "message": "Usage: `/props <cell number>` (1-based). Example: `/props 2`",
+    "comment": [
+      "Shown when /props was typed without a cell number. Everything in backticks is typed and stays as written."
+    ]
+  },
+  "Cell {0} has no configurable properties.": "Cell {0} has no configurable properties.",
+  "**Cell {0}** [{1}] properties:": "**Cell {0}** [{1}] properties:",
+  "Property/A table heading: the name of one setting on a cell.": {
+    "message": "Property",
+    "comment": [
+      "A table heading: the name of one setting on a cell."
+    ]
+  },
+  "Type/A table heading: what kind of value a setting takes.": {
+    "message": "Type",
+    "comment": [
+      "A table heading: what kind of value a setting takes."
+    ]
+  },
+  "Value/A table heading: what a setting is currently set to.": {
+    "message": "Value",
+    "comment": [
+      "A table heading: what a setting is currently set to."
+    ]
+  },
+  "Read-only/A table heading: whether a setting can be changed.": {
+    "message": "Read-only",
+    "comment": [
+      "A table heading: whether a setting can be changed."
+    ]
+  },
+  "(not set)/Stands in a table cell for a setting that has no value yet.": {
+    "message": "(not set)",
+    "comment": [
+      "Stands in a table cell for a setting that has no value yet."
+    ]
+  },
+  "Yes/A table cell answering whether a setting is read-only.": {
+    "message": "Yes",
+    "comment": [
+      "A table cell answering whether a setting is read-only."
+    ]
+  },
+  "No/A table cell answering whether a setting is read-only. The answer to a question, not the word for a number.": {
+    "message": "No",
+    "comment": [
+      "A table cell answering whether a setting is read-only. The answer to a question, not the word for a number."
+    ]
+  },
+  "Provider: {0}/Names the extension a group of settings came from. {0} is its id.": {
+    "message": "Provider: {0}",
+    "comment": [
+      "Names the extension a group of settings came from. {0} is its id."
+    ]
+  },
+  "No Verso notebook is currently open. Open a `.verso`, `.ipynb`, `.md`, or `.dib` file first.": "No Verso notebook is currently open. Open a `.verso`, `.ipynb`, `.md`, or `.dib` file first.",
+  "Model error: {0}": "Model error: {0}",
+  "Verso: the notebooks already open keep their current language. Reopen them to read them in the new one.": "Verso: the notebooks already open keep their current language. Reopen them to read them in the new one.",
+  "Verso: Could not create a scratch notebook: {0}": "Verso: Could not create a scratch notebook: {0}",
+  "Verso: Failed to open notebook: {0}": "Verso: Failed to open notebook: {0}",
+  "Restart aborted: the notebook snapshot could not be captured ({0}).": "Restart aborted: the notebook snapshot could not be captured ({0}).",
+  "Verso: kernel restart aborted because the notebook snapshot could not be captured. Save and reopen the file.": "Verso: kernel restart aborted because the notebook snapshot could not be captured. Save and reopen the file.",
+  "Kernel restart failed: the host process did not start ({0}). Close and reopen the notebook.": "Kernel restart failed: the host process did not start ({0}). Close and reopen the notebook.",
+  "Kernel restart failed: the notebook did not reopen ({0}).": "Kernel restart failed: the notebook did not reopen ({0}).",
+  "Verso: kernel restart failed (notebook did not reopen): {0}. Close and reopen the notebook.": "Verso: kernel restart failed (notebook did not reopen): {0}. Close and reopen the notebook.",
+  "Export failed: {0}": "Export failed: {0}",
+  "Input request failed: {0}": "Input request failed: {0}",
+  "Install Extension/The button that accepts the chosen file, in place of \"Open\".": {
+    "message": "Install Extension",
+    "comment": [
+      "The button that accepts the chosen file, in place of \"Open\"."
+    ]
+  },
+  "Extensions/Names the kind of file the box will accept.": {
+    "message": "Extensions",
+    "comment": [
+      "Names the kind of file the box will accept."
+    ]
+  },
+  "Exported to {0}": "Exported to {0}",
+  "Notebook input/Asked when a running cell wants something typed and did not say what.": {
+    "message": "Notebook input",
+    "comment": [
+      "Asked when a running cell wants something typed and did not say what."
+    ]
+  },
+  "{0} Files/Names the kind of file a save box will accept. {0} is a format name such as CSV or HTML and is the same word in every language.": {
+    "message": "{0} Files",
+    "comment": [
+      "Names the kind of file a save box will accept. {0} is a format name such as CSV or HTML and is the same word in every language."
+    ]
+  },
+  "Images/Names the kind of file a save box will accept: pictures.": {
+    "message": "Images",
+    "comment": [
+      "Names the kind of file a save box will accept: pictures."
+    ]
+  },
+  "All Files/The entry in a save box that accepts any file at all.": {
+    "message": "All Files",
+    "comment": [
+      "The entry in a save box that accepts any file at all."
+    ]
+  },
+  "The notebook file is not inside a git repository.": "The notebook file is not inside a git repository.",
+  "Last Saved/One of the things a notebook can be compared against: the copy currently on disk.": {
+    "message": "Last Saved",
+    "comment": [
+      "One of the things a notebook can be compared against: the copy currently on disk."
+    ]
+  },
+  "The notebook has no file on disk yet.": "The notebook has no file on disk yet.",
+  "Git: HEAD/One of the things a notebook can be compared against. Git and HEAD are version control terms and are not translated.": {
+    "message": "Git: HEAD",
+    "comment": [
+      "One of the things a notebook can be compared against. Git and HEAD are version control terms and are not translated."
+    ]
+  },
+  "Git: Compare with Ref.../Opens a box for choosing a branch, tag, or commit. Git and Ref are version control terms and are not translated. Keep the three dots, which mean a question follows.": {
+    "message": "Git: Compare with Ref...",
+    "comment": [
+      "Opens a box for choosing a branch, tag, or commit. Git and Ref are version control terms and are not translated. Keep the three dots, which mean a question follows."
+    ]
+  },
+  "Choose File.../Opens a box for picking another notebook to compare against. Keep the three dots, which mean a question follows.": {
+    "message": "Choose File...",
+    "comment": [
+      "Opens a box for picking another notebook to compare against. Keep the three dots, which mean a question follows."
+    ]
+  },
+  "Type a ref or commit.../The last entry in a list of branches and tags, for naming one that is not listed. Ref and commit are version control terms.": {
+    "message": "Type a ref or commit...",
+    "comment": [
+      "The last entry in a list of branches and tags, for naming one that is not listed. Ref and commit are version control terms."
+    ]
+  },
+  "Git branch, tag, or commit SHA/Says what may be typed. Every term here is a version control term and stays as written.": {
+    "message": "Git branch, tag, or commit SHA",
+    "comment": [
+      "Says what may be typed. Every term here is a version control term and stays as written."
+    ]
+  },
+  "Compare/The button that accepts the chosen file, in place of \"Open\".": {
+    "message": "Compare",
+    "comment": [
+      "The button that accepts the chosen file, in place of \"Open\"."
+    ]
+  },
+  "Notebook Files/Names the kind of file the box will accept.": {
+    "message": "Notebook Files",
+    "comment": [
+      "Names the kind of file the box will accept."
+    ]
+  },
+  "Unknown comparison source '{0}'.": "Unknown comparison source '{0}'."
+}

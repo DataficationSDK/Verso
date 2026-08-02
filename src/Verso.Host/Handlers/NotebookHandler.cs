@@ -380,7 +380,12 @@ public static class NotebookHandler
 
     public static CellTypesResult HandleGetCellTypes(NotebookSession ns)
     {
-        var types = new List<CellTypeDto> { new() { Id = "code", DisplayName = "Code" } };
+        // Code has no ICellType of its own: it is what a cell is when nothing else claims it,
+        // so the name comes from the engine's resources rather than a registration.
+        var types = new List<CellTypeDto>
+        {
+            new() { Id = "code", DisplayName = Verso.Resources.Strings.CellType_Code }
+        };
 
         var extHost = ns.ExtensionHost;
 

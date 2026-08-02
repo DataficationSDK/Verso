@@ -4,25 +4,25 @@
     @if (!Service.IsLoaded)
     {
         <div class="verso-properties-empty">
-            <p>No notebook is open.</p>
+            <p>@UI.Common_NoNotebookOpen</p>
         </div>
     }
     else if (SelectedCellId is null)
     {
         <div class="verso-properties-empty">
-            <p>Select a cell to view its properties.</p>
+            <p>@UI.Properties_SelectACell</p>
         </div>
     }
     else if (_loading)
     {
         <div class="verso-properties-empty">
-            <p>Loading...</p>
+            <p>@UI.Common_Loading</p>
         </div>
     }
     else if (_sections.Count == 0)
     {
         <div class="verso-properties-empty">
-            <p>No properties available for this cell.</p>
+            <p>@UI.Properties_None</p>
         </div>
     }
     else

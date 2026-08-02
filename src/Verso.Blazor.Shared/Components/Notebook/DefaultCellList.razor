@@ -83,7 +83,7 @@
             {
                 var typeId = ct.Id;
                 <button class="verso-add-cell-btn"
-                        @onclick="() => Context.OnAddCell.InvokeAsync(typeId)">+ @ct.DisplayName Cell</button>
+                        @onclick="() => Context.OnAddCell.InvokeAsync(typeId)">@(string.Format(UI.CellList_AddCellType, ct.DisplayName))</button>
             }
         </div>
     }

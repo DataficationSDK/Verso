@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text;
+using Verso.Blazor.Shared.Models;
+using Verso.Blazor.Shared.Resources;
 
 namespace Verso.Blazor.Services;
 
@@ -40,12 +42,12 @@ internal static class GitCliHelper
         var directory = Path.GetDirectoryName(fullPath);
         if (directory is null)
         {
-            throw new InvalidOperationException($"Could not resolve the directory of '{filePath}'.");
+            throw new InvalidOperationException(string.Format(UI.Compare_DirectoryUnresolved, filePath));
         }
 
         if (FindRepoRoot(directory) is null)
         {
-            throw new InvalidOperationException("This notebook is not inside a git repository.");
+            throw new InvalidOperationException(UI.Compare_NotInGitRepo);
         }
 
         // The "ref:./name" form makes git resolve the repo-relative path itself, from the
@@ -58,15 +60,15 @@ internal static class GitCliHelper
         {
             var detail = stderr.Contains("exists on disk, but not in", StringComparison.OrdinalIgnoreCase)
                 || stderr.Contains("does not exist in", StringComparison.OrdinalIgnoreCase)
-                ? $"'{fileName}' is not tracked at '{refName}'. Commit the file first, or pick a different ref."
+                ? string.Format(UI.Compare_FileNotTracked, fileName, refName)
                 : stderr.Contains("unknown revision", StringComparison.OrdinalIgnoreCase)
                     || stderr.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
-                    ? $"'{refName}' is not a known branch, tag, or commit."
-                    : $"git could not read '{fileName}' at '{refName}'.";
+                    ? string.Format(UI.Compare_UnknownRef, refName)
+                    : string.Format(UI.Compare_GitReadFailed, fileName, refName);
             throw new InvalidOperationException(detail);
         }
 
-        return (stdout, $"Git: {refName}");
+        return (stdout, DiffSources.ResolvedName(DiffSources.GitRef, refName));
     }
 
     private static (int ExitCode, string Stdout, string Stderr) Run(string workingDirectory, params string[] arguments)

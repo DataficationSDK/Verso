@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Renderers;
 
@@ -11,14 +12,15 @@ public sealed class MermaidCellRenderer : ICellRenderer
     // --- IExtension ---
 
     public string ExtensionId => "verso.renderer.mermaid";
-    public string Name => "Mermaid Renderer";
+    public string Name => Strings.Renderer_Mermaid;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Renders Mermaid diagram cells with input collapse on execute.";
+    public string? Description => Strings.Renderer_Mermaid_Description;
 
     // --- ICellRenderer ---
 
     public string CellTypeId => "mermaid";
+    // Format and product names read the same in every language.
     public string DisplayName => "Mermaid";
     public bool CollapsesInputOnExecute => true;
 

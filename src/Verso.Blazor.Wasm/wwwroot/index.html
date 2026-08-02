@@ -33,6 +33,19 @@
     <script src="_content/Verso.Blazor.Shared/js/tag-input-interop.js"></script>
     <script src="_content/Verso.Blazor.Shared/js/widget-interop.js"></script>
     <script src="_content/Verso.Blazor.Shared/js/tooltip.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <!--
+        The language has to be settled before the runtime boots, because that is when
+        WebAssembly fetches satellite assemblies and picks its globalization data. Passing it
+        to Blazor.start is the supported way to do that; assigning a culture afterwards is
+        rejected unless the app downloads the entire ICU dataset. The VS Code webview builds
+        its own host page and sets window.versoLocale from the extension setting. Served
+        directly, the browser's own language is the best guess available.
+    -->
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script>
+        Blazor.start({
+            applicationCulture: window.versoLocale || navigator.language || undefined
+        });
+    </script>
 </body>
 </html>

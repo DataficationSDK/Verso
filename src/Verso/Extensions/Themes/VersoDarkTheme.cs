@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Themes;
 
@@ -11,15 +12,15 @@ public sealed class VersoDarkTheme : ITheme
     // --- IExtension ---
 
     public string ExtensionId => "verso.theme.dark";
-    public string Name => "Verso Dark";
+    public string Name => Strings.Theme_Dark;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Default dark theme for Verso notebooks.";
+    public string? Description => Strings.Theme_Dark_Description;
 
     // --- ITheme ---
 
     public string ThemeId => "verso-dark";
-    public string DisplayName => "Verso Dark";
+    public string DisplayName => Strings.Theme_Dark;
     public ThemeKind ThemeKind => ThemeKind.Dark;
 
     public ThemeColorTokens Colors { get; } = new ThemeColorTokens

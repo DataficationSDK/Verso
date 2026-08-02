@@ -17,8 +17,31 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!--
+    Strings the built-in extensions show are reached through the generated Strings class, so a
+    renamed or deleted key breaks the build instead of silently falling back to the key name.
+    Each property reads its resource on access rather than holding the value, which is what lets
+    a running host answer in whatever language the reader asked for.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator>MSBuild:Compile</Generator>
+      <StronglyTypedFileName>$(IntermediateOutputPath)Strings.Designer.cs</StronglyTypedFileName>
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedNamespace>Verso.Resources</StronglyTypedNamespace>
+      <StronglyTypedClassName>Strings</StronglyTypedClassName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!--
+    The generator emits an internal class. Both hosts build the same lists of cell types the
+    engine cannot name for itself, so they read the same entries rather than keeping a second
+    English copy that would drift. Neither ships as a NuGet package.
+  -->
   <ItemGroup>
     <InternalsVisibleTo Include="Verso.Tests" />
+    <InternalsVisibleTo Include="Verso.Blazor" />
+    <InternalsVisibleTo Include="Verso.Host" />
   </ItemGroup>
 
   <ItemGroup>

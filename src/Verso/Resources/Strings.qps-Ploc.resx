@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ClearCellOutput" xml:space="preserve">
+    <value>[!!Çléàr Çéll Òùtpùt···!!]</value>
+  </data>
+  <data name="Action_ClearCellOutput_Description" xml:space="preserve">
+    <value>[!!Çléàrš thé òùtpùt òf thé šéléçtéd çéll.···!!]</value>
+  </data>
+  <data name="Action_ClearCellOutput_Label" xml:space="preserve">
+    <value>[!!Çléàr Òùtpùt···!!]</value>
+  </data>
+  <data name="Action_ClearOutputs" xml:space="preserve">
+    <value>[!!Çléàr Òùtpùtš···!!]</value>
+  </data>
+  <data name="Action_ClearOutputs_Description" xml:space="preserve">
+    <value>[!!Çléàrš àll çéll òùtpùtš ïñ thé ñòtébòòk.···!!]</value>
+  </data>
+  <data name="Action_ExportHtml" xml:space="preserve">
+    <value>[!!Éxpòrt HTML···!!]</value>
+  </data>
+  <data name="Action_ExportHtml_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš thé ñòtébòòk àš à šélf-çòñtàïñéd HTML dòçùméñt.···!!]</value>
+  </data>
+  <data name="Action_ExportMarkdown" xml:space="preserve">
+    <value>[!!Éxpòrt Màrkdòwñ···!!]</value>
+  </data>
+  <data name="Action_ExportMarkdown_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš thé ñòtébòòk àš à Màrkdòwñ dòçùméñt.···!!]</value>
+  </data>
+  <data name="Action_ExportVerso" xml:space="preserve">
+    <value>[!!Éxpòrt Véršò···!!]</value>
+  </data>
+  <data name="Action_ExportVerso_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš à Màrkdòwñ-bàçkéd ñòtébòòk àš à ñàtïvé .véršò fïlé.···!!]</value>
+  </data>
+  <data name="Action_RestartKernel" xml:space="preserve">
+    <value>[!!Réštàrt Kérñél···!!]</value>
+  </data>
+  <data name="Action_RestartKernel_Confirm" xml:space="preserve">
+    <value>[!!Réštàrtïñg thé kérñél dïšçàrdš àll vàrïàbléš àñd éxéçùtïòñ štàté. Réštàrt ñòw?···!!]</value>
+  </data>
+  <data name="Action_RestartKernel_Description" xml:space="preserve">
+    <value>[!!Réštàrtš thé àçtïvé làñgùàgé kérñél.···!!]</value>
+  </data>
+  <data name="Action_RunAll" xml:space="preserve">
+    <value>[!!Rùñ Àll···!!]</value>
+  </data>
+  <data name="Action_RunAll_Description" xml:space="preserve">
+    <value>[!!Éxéçùtéš àll çéllš ïñ thé ñòtébòòk.···!!]</value>
+  </data>
+  <data name="Action_RunCell" xml:space="preserve">
+    <value>[!!Rùñ Çéll···!!]</value>
+  </data>
+  <data name="Action_RunCell_Description" xml:space="preserve">
+    <value>[!!Éxéçùtéš thé šéléçtéd çéllš.···!!]</value>
+  </data>
+  <data name="Action_SwitchLayout" xml:space="preserve">
+    <value>[!!Šwïtçh Làÿòùt···!!]</value>
+  </data>
+  <data name="Action_SwitchLayout_Description" xml:space="preserve">
+    <value>[!!Çÿçléš bétwééñ àvàïlàblé làÿòùt éñgïñéš.···!!]</value>
+  </data>
+  <data name="Action_SwitchTheme" xml:space="preserve">
+    <value>[!!Šwïtçh Thémé···!!]</value>
+  </data>
+  <data name="Action_SwitchTheme_Description" xml:space="preserve">
+    <value>[!!Çÿçléš bétwééñ àvàïlàblé théméš.···!!]</value>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>[!!Çòdé···!!]</value>
+  </data>
+  <data name="CellType_Html" xml:space="preserve">
+    <value>[!!HTML Çéll Tÿpé···!!]</value>
+  </data>
+  <data name="CellType_Html_Description" xml:space="preserve">
+    <value>[!!HTML çéll tÿpé fòr àùthòrïñg ràw HTML wïth @vàrïàblé šùbštïtùtïòñ.···!!]</value>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>[!!Màrkdòwñ Çéll Tÿpé···!!]</value>
+  </data>
+  <data name="CellType_Markdown_Description" xml:space="preserve">
+    <value>[!!Màrkdòwñ pròšé çéllš réñdéréd tò HTML wïth Màrkdïg.···!!]</value>
+  </data>
+  <data name="CellType_Mermaid" xml:space="preserve">
+    <value>[!!Mérmàïd Çéll Tÿpé···!!]</value>
+  </data>
+  <data name="CellType_Mermaid_Description" xml:space="preserve">
+    <value>[!!Mérmàïd çéll tÿpé fòr çréàtïñg dïàgràmš wïth mérmàïd.jš šÿñtàx.···!!]</value>
+  </data>
+  <data name="CellType_Parameters" xml:space="preserve">
+    <value>[!!Pàràmétérš Çéll Tÿpé···!!]</value>
+  </data>
+  <data name="CellType_Parameters_Description" xml:space="preserve">
+    <value>[!!Dïšplàÿš àñd màñàgéš ñòtébòòk pàràmétér défïñïtïòñš àš àñ ïñtéràçtïvé fòrm.···!!]</value>
+  </data>
+  <data name="CellType_Parameters_Label" xml:space="preserve">
+    <value>[!!Pàràmétérš···!!]</value>
+  </data>
+  <data name="Kernel_Html" xml:space="preserve">
+    <value>[!!HTML Kérñél···!!]</value>
+  </data>
+  <data name="Kernel_Html_Description" xml:space="preserve">
+    <value>[!!Éxéçùtéš HTML çéllš wïth @vàrïàblé šùbštïtùtïòñ.···!!]</value>
+  </data>
+  <data name="Kernel_Mermaid" xml:space="preserve">
+    <value>[!!Mérmàïd Kérñél···!!]</value>
+  </data>
+  <data name="Kernel_Mermaid_Description" xml:space="preserve">
+    <value>[!!Éxéçùtéš Mérmàïd dïàgràm çéllš wïth @vàrïàblé šùbštïtùtïòñ.···!!]</value>
+  </data>
+  <data name="Layout_AddCell" xml:space="preserve">
+    <value>[!!{0} Çéll···!!]</value>
+  </data>
+  <data name="Layout_Dashboard" xml:space="preserve">
+    <value>[!!Dàšhbòàrd Làÿòùt···!!]</value>
+  </data>
+  <data name="Layout_Dashboard_Description" xml:space="preserve">
+    <value>[!!Grïd-bàšéd dàšhbòàrd làÿòùt šhòwïñg òùtpùt-òñlÿ çéllš.···!!]</value>
+  </data>
+  <data name="Layout_Dashboard_Label" xml:space="preserve">
+    <value>[!!Dàšhbòàrd···!!]</value>
+  </data>
+  <data name="Layout_DragToMove" xml:space="preserve">
+    <value>[!!Dràg tò mòvé···!!]</value>
+  </data>
+  <data name="Layout_EmptySubtitle" xml:space="preserve">
+    <value>[!!Àdd ÿòùr fïršt çéll bélòw.···!!]</value>
+  </data>
+  <data name="Layout_EmptyTitle" xml:space="preserve">
+    <value>[!!Thïš ñòtébòòk ïš émptÿ···!!]</value>
+  </data>
+  <data name="Layout_InsertCellHere" xml:space="preserve">
+    <value>[!!Ïñšért à {0} çéll héré···!!]</value>
+  </data>
+  <data name="Layout_Notebook" xml:space="preserve">
+    <value>[!!Ñòtébòòk Làÿòùt···!!]</value>
+  </data>
+  <data name="Layout_Notebook_Description" xml:space="preserve">
+    <value>[!!Lïñéàr tòp-tò-bòttòm ñòtébòòk làÿòùt wïth lïvé, édïtàblé çéllš ïñ élévàtéd çàrdš.···!!]</value>
+  </data>
+  <data name="Layout_Notebook_Label" xml:space="preserve">
+    <value>[!!Ñòtébòòk···!!]</value>
+  </data>
+  <data name="Layout_Presentation" xml:space="preserve">
+    <value>[!!Préšéñtàtïòñ Làÿòùt···!!]</value>
+  </data>
+  <data name="Layout_Presentation_Description" xml:space="preserve">
+    <value>[!!Òùtpùt-òñlÿ préšéñtàtïòñ làÿòùt fòr çòñšùmïñg ïñtéràçtïvé ñòtébòòkš.···!!]</value>
+  </data>
+  <data name="Layout_Presentation_Label" xml:space="preserve">
+    <value>[!!Préšéñtàtïòñ···!!]</value>
+  </data>
+  <data name="Layout_RunCell" xml:space="preserve">
+    <value>[!!Rùñ···!!]</value>
+  </data>
+  <data name="Parameters_Add" xml:space="preserve">
+    <value>[!!Àdd Pàràmétér···!!]</value>
+  </data>
+  <data name="Parameters_Applied" xml:space="preserve">
+    <value>[!!Pàràmétérš àpplïéd šùççéššfùllÿ.···!!]</value>
+  </data>
+  <data name="Parameters_CancelAdd" xml:space="preserve">
+    <value>[!!Çàñçél···!!]</value>
+  </data>
+  <data name="Parameters_ColumnDefault" xml:space="preserve">
+    <value>[!!Défàùlt···!!]</value>
+  </data>
+  <data name="Parameters_ColumnDescription" xml:space="preserve">
+    <value>[!!Déšçrïptïòñ···!!]</value>
+  </data>
+  <data name="Parameters_ColumnName" xml:space="preserve">
+    <value>[!!Ñàmé···!!]</value>
+  </data>
+  <data name="Parameters_ColumnRequired" xml:space="preserve">
+    <value>[!!Réqùïréd···!!]</value>
+  </data>
+  <data name="Parameters_ColumnType" xml:space="preserve">
+    <value>[!!Tÿpé···!!]</value>
+  </data>
+  <data name="Parameters_ConfirmAdd" xml:space="preserve">
+    <value>[!!Àdd···!!]</value>
+  </data>
+  <data name="Parameters_DefaultPlaceholder" xml:space="preserve">
+    <value>[!!défàùlt vàlùé···!!]</value>
+  </data>
+  <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
+    <value>[!!déšçrïptïòñ···!!]</value>
+  </data>
+  <data name="Parameters_InvalidValue" xml:space="preserve">
+    <value>[!!Ïñvàlïd vàlùé.···!!]</value>
+  </data>
+  <data name="Parameters_NamePlaceholder" xml:space="preserve">
+    <value>[!!ñàmé···!!]</value>
+  </data>
+  <data name="Parameters_None" xml:space="preserve">
+    <value>[!!Ñò pàràmétérš défïñéd.···!!]</value>
+  </data>
+  <data name="Parameters_NotFound" xml:space="preserve">
+    <value>[!!Pàràmétér '{0}' ñòt fòùñd.···!!]</value>
+  </data>
+  <data name="Parameters_Remove" xml:space="preserve">
+    <value>[!!Rémòvé pàràmétér···!!]</value>
+  </data>
+  <data name="Parameters_Required" xml:space="preserve">
+    <value>[!!réqùïréd···!!]</value>
+  </data>
+  <data name="Parameters_Title" xml:space="preserve">
+    <value>[!!Pàràmétérš···!!]</value>
+  </data>
+  <data name="Properties_CollapseInput" xml:space="preserve">
+    <value>[!!Çòllàpšé ïñpùt···!!]</value>
+  </data>
+  <data name="Properties_DefaultIs" xml:space="preserve">
+    <value>[!!Défàùlt: {0}···!!]</value>
+  </data>
+  <data name="Properties_DisplaySection" xml:space="preserve">
+    <value>[!!Dïšplàÿ···!!]</value>
+  </data>
+  <data name="Properties_InputPreviewLines" xml:space="preserve">
+    <value>[!!Ïñpùt prévïéw lïñéš···!!]</value>
+  </data>
+  <data name="Properties_Output" xml:space="preserve">
+    <value>[!!Òùtpùt···!!]</value>
+  </data>
+  <data name="Properties_OutputFull" xml:space="preserve">
+    <value>[!!Fùll···!!]</value>
+  </data>
+  <data name="Properties_OutputHidden" xml:space="preserve">
+    <value>[!!Hïddéñ···!!]</value>
+  </data>
+  <data name="Properties_OutputPreview" xml:space="preserve">
+    <value>[!!Prévïéw···!!]</value>
+  </data>
+  <data name="Properties_OutputPreviewLines" xml:space="preserve">
+    <value>[!!Òùtpùt prévïéw lïñéš···!!]</value>
+  </data>
+  <data name="Properties_PreviewStyle" xml:space="preserve">
+    <value>[!!Prévïéw štÿlé···!!]</value>
+  </data>
+  <data name="Properties_PreviewStyleLines" xml:space="preserve">
+    <value>[!!Lïñéš···!!]</value>
+  </data>
+  <data name="Properties_VisibilitySection" xml:space="preserve">
+    <value>[!!Vïšïbïlïtÿ···!!]</value>
+  </data>
+  <data name="PropertyProvider_Display" xml:space="preserve">
+    <value>[!!Çéll Dïšplàÿ Pròpértïéš···!!]</value>
+  </data>
+  <data name="PropertyProvider_Display_Description" xml:space="preserve">
+    <value>[!!Pròvïdéš pér-çéll ïñpùt àñd òùtpùt dïšplàÿ šéttïñgš.···!!]</value>
+  </data>
+  <data name="PropertyProvider_Visibility" xml:space="preserve">
+    <value>[!!Çéll Vïšïbïlïtÿ Pròpértïéš···!!]</value>
+  </data>
+  <data name="PropertyProvider_Visibility_Description" xml:space="preserve">
+    <value>[!!Pròvïdéš pér-làÿòùt çéll vïšïbïlïtÿ òvérrïdéš ïñ thé pròpértïéš pàñél.···!!]</value>
+  </data>
+  <data name="Renderer_Fallback" xml:space="preserve">
+    <value>[!!Fàllbàçk Réñdérér···!!]</value>
+  </data>
+  <data name="Renderer_Fallback_Label" xml:space="preserve">
+    <value>[!!Fàllbàçk···!!]</value>
+  </data>
+  <data name="Renderer_Html" xml:space="preserve">
+    <value>[!!HTML Réñdérér···!!]</value>
+  </data>
+  <data name="Renderer_Html_Description" xml:space="preserve">
+    <value>[!!Réñdérš HTML çéllš wïth ïñpùt çòllàpšé òñ éxéçùté.···!!]</value>
+  </data>
+  <data name="Renderer_Markdown" xml:space="preserve">
+    <value>[!!Màrkdòwñ Réñdérér···!!]</value>
+  </data>
+  <data name="Renderer_Markdown_Description" xml:space="preserve">
+    <value>[!!Réñdérš Màrkdòwñ çéllš ùšïñg Màrkdïg.···!!]</value>
+  </data>
+  <data name="Renderer_Mermaid" xml:space="preserve">
+    <value>[!!Mérmàïd Réñdérér···!!]</value>
+  </data>
+  <data name="Renderer_Mermaid_Description" xml:space="preserve">
+    <value>[!!Réñdérš Mérmàïd dïàgràm çéllš wïth ïñpùt çòllàpšé òñ éxéçùté.···!!]</value>
+  </data>
+  <data name="Renderer_Parameters" xml:space="preserve">
+    <value>[!!Pàràmétérš Réñdérér···!!]</value>
+  </data>
+  <data name="Renderer_Parameters_Description" xml:space="preserve">
+    <value>[!!Réñdérš pàràmétér défïñïtïòñš àš àñ ïñtéràçtïvé fòrm wïth tÿpé-àwàré ïñpùtš.···!!]</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>[!!Véršò Dàrk···!!]</value>
+  </data>
+  <data name="Theme_Dark_Description" xml:space="preserve">
+    <value>[!!Défàùlt dàrk thémé fòr Véršò ñòtébòòkš.···!!]</value>
+  </data>
+  <data name="Theme_HighContrast" xml:space="preserve">
+    <value>[!!Véršò Hïgh Çòñtràšt···!!]</value>
+  </data>
+  <data name="Theme_HighContrast_Description" xml:space="preserve">
+    <value>[!!Hïgh-çòñtràšt àççéššïbïlïtÿ thémé wïth WÇÀG 2.1 ÀÀ çòmplïàñt çòlòr tòkéñš.···!!]</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>[!!Véršò Lïght···!!]</value>
+  </data>
+  <data name="Theme_Light_Description" xml:space="preserve">
+    <value>[!!Défàùlt lïght thémé fòr Véršò ñòtébòòkš.···!!]</value>
+  </data>
+  <data name="Visibility_Collapsed" xml:space="preserve">
+    <value>[!!Çòllàpšéd···!!]</value>
+  </data>
+  <data name="Visibility_Hidden" xml:space="preserve">
+    <value>[!!Hïddéñ···!!]</value>
+  </data>
+  <data name="Visibility_OutputOnly" xml:space="preserve">
+    <value>[!!Òùtpùt Òñlÿ···!!]</value>
+  </data>
+  <data name="Visibility_Visible" xml:space="preserve">
+    <value>[!!Vïšïblé···!!]</value>
+  </data>
+</root>

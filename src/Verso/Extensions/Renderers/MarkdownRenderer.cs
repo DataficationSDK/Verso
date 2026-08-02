@@ -1,5 +1,6 @@
 using Markdig;
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Renderers;
@@ -17,14 +18,15 @@ public sealed class MarkdownRenderer : ICellRenderer
     // --- IExtension ---
 
     public string ExtensionId => "verso.renderer.markdown";
-    public string Name => "Markdown Renderer";
+    public string Name => Strings.Renderer_Markdown;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Renders Markdown cells using Markdig.";
+    public string? Description => Strings.Renderer_Markdown_Description;
 
     // --- ICellRenderer ---
 
     public string CellTypeId => "markdown";
+    // Format and product names read the same in every language.
     public string DisplayName => "Markdown";
     public bool CollapsesInputOnExecute => true;
 

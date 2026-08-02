@@ -1,0 +1,1209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Capability_CellInteractionHandler" xml:space="preserve">
+    <value>Cell Interaction Handler</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_CellInteractionHandler_Plural" xml:space="preserve">
+    <value>Cell Interaction Handlers</value>
+    <comment>Plural of “Cell Interaction Handler”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_CellPropertyProvider" xml:space="preserve">
+    <value>Cell Property Provider</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_CellPropertyProvider_Plural" xml:space="preserve">
+    <value>Cell Property Providers</value>
+    <comment>Plural of “Cell Property Provider”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_CellRenderer" xml:space="preserve">
+    <value>Cell Renderer</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_CellRenderer_Plural" xml:space="preserve">
+    <value>Cell Renderers</value>
+    <comment>Plural of “Cell Renderer”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_CellType" xml:space="preserve">
+    <value>Cell Type</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_CellType_Plural" xml:space="preserve">
+    <value>Cell Types</value>
+    <comment>Plural of “Cell Type”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_DataFormatter" xml:space="preserve">
+    <value>Data Formatter</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_DataFormatter_Plural" xml:space="preserve">
+    <value>Data Formatters</value>
+    <comment>Plural of “Data Formatter”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_ExtensionSettings" xml:space="preserve">
+    <value>Settings Provider</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_ExtensionSettings_Plural" xml:space="preserve">
+    <value>Settings Providers</value>
+    <comment>Plural of “Settings Provider”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_LanguageKernel" xml:space="preserve">
+    <value>Language Kernel</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_LanguageKernel_Plural" xml:space="preserve">
+    <value>Language Kernels</value>
+    <comment>Plural of “Language Kernel”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_LayoutEngine" xml:space="preserve">
+    <value>Layout Engine</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_LayoutEngine_Plural" xml:space="preserve">
+    <value>Layout Engines</value>
+    <comment>Plural of “Layout Engine”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_LayoutInteractionHandler" xml:space="preserve">
+    <value>Layout Interaction Handler</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_LayoutInteractionHandler_Plural" xml:space="preserve">
+    <value>Layout Interaction Handlers</value>
+    <comment>Plural of “Layout Interaction Handler”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler" xml:space="preserve">
+    <value>Layout Lifecycle Handler</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler_Plural" xml:space="preserve">
+    <value>Layout Lifecycle Handlers</value>
+    <comment>Plural of “Layout Lifecycle Handler”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_MagicCommand" xml:space="preserve">
+    <value>Magic Command</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_MagicCommand_Plural" xml:space="preserve">
+    <value>Magic Commands</value>
+    <comment>Plural of “Magic Command”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_NotebookPanel" xml:space="preserve">
+    <value>Panel</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_NotebookPanel_Plural" xml:space="preserve">
+    <value>Panels</value>
+    <comment>Plural of “Panel”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_NotebookPostProcessor" xml:space="preserve">
+    <value>Post-Processor</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_NotebookPostProcessor_Plural" xml:space="preserve">
+    <value>Post-Processors</value>
+    <comment>Plural of “Post-Processor”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_NotebookSerializer" xml:space="preserve">
+    <value>Serializer</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_NotebookSerializer_Plural" xml:space="preserve">
+    <value>Serializers</value>
+    <comment>Plural of “Serializer”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_Other" xml:space="preserve">
+    <value>Other</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_Other_Plural" xml:space="preserve">
+    <value>Other</value>
+    <comment>Plural of “Other”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_PanelInteractionHandler" xml:space="preserve">
+    <value>Panel Interaction Handler</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_PanelInteractionHandler_Plural" xml:space="preserve">
+    <value>Panel Interaction Handlers</value>
+    <comment>Plural of “Panel Interaction Handler”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_Theme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_Theme_Plural" xml:space="preserve">
+    <value>Themes</value>
+    <comment>Plural of “Theme”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="Capability_ToolbarAction" xml:space="preserve">
+    <value>Toolbar Action</value>
+    <comment>Names one thing an extension adds to a notebook. Shown as a small chip on a package, so keep it to a couple of words.</comment>
+  </data>
+  <data name="Capability_ToolbarAction_Plural" xml:space="preserve">
+    <value>Toolbar Actions</value>
+    <comment>Plural of “Toolbar Action”. Heads a group of extensions in the extensions panel, with a count beside it.</comment>
+  </data>
+  <data name="CellList_AddCellType" xml:space="preserve">
+    <value>+ {0} Cell</value>
+    <comment>Button at the end of the notebook that adds a cell. {0} is the cell type, such as C# or Markdown. Keep the leading plus.</comment>
+  </data>
+  <data name="Cell_AnotherCellRunning" xml:space="preserve">
+    <value>Another cell is running.</value>
+    <comment>Second tooltip line on a Run button that is disabled because the kernel is busy elsewhere.</comment>
+  </data>
+  <data name="Cell_CollapseCode" xml:space="preserve">
+    <value>Collapse Code</value>
+    <comment>Tooltip on a cell. Clicking hides the editor and leaves the output.</comment>
+  </data>
+  <data name="Cell_CollapseSection" xml:space="preserve">
+    <value>Collapse Section</value>
+    <comment>Tooltip on a heading cell. Clicking hides every cell under it until the next heading.</comment>
+  </data>
+  <data name="Cell_Delete" xml:space="preserve">
+    <value>Delete</value>
+    <comment>Tooltip on the button that removes this cell from the notebook.</comment>
+  </data>
+  <data name="Cell_ExpandCode" xml:space="preserve">
+    <value>Expand Code</value>
+    <comment>Tooltip on a cell whose code is folded away. Clicking shows the editor again.</comment>
+  </data>
+  <data name="Cell_ExpandSection" xml:space="preserve">
+    <value>Expand Section</value>
+    <comment>Tooltip on a heading cell whose section is folded away. Clicking shows the cells under it.</comment>
+  </data>
+  <data name="Cell_MoveDown" xml:space="preserve">
+    <value>Move Down</value>
+    <comment>Tooltip on the button that swaps this cell with the one below it.</comment>
+  </data>
+  <data name="Cell_MoveUp" xml:space="preserve">
+    <value>Move Up</value>
+    <comment>Tooltip on the button that swaps this cell with the one above it.</comment>
+  </data>
+  <data name="Cell_OutputsHidden_One" xml:space="preserve">
+    <value>{0} output hidden</value>
+    <comment>Stands in for a cell's output while it is hidden. {0} is the number, always 1 here.</comment>
+  </data>
+  <data name="Cell_OutputsHidden_Other" xml:space="preserve">
+    <value>{0} outputs hidden</value>
+    <comment>Stands in for a cell's outputs while they are hidden. {0} is how many.</comment>
+  </data>
+  <data name="Cell_Run" xml:space="preserve">
+    <value>Run</value>
+    <comment>Tooltip on the button that executes one cell. Keep short.</comment>
+  </data>
+  <data name="Common_AppTitle" xml:space="preserve">
+    <value>Verso Notebook</value>
+    <comment>The browser tab's title and the heading on the welcome screen. “Verso” is the product's name and is never translated.</comment>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Button that abandons what was being asked. Nothing happens.</comment>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Close</value>
+    <comment>Tooltip on the close button of a dialog or panel.</comment>
+  </data>
+  <data name="Common_Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+    <comment>Button that clears an error banner. Keep it to one word if the language allows.</comment>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>Loading...</value>
+    <comment>Shown while a panel waits for something. Keep the three dots.</comment>
+  </data>
+  <data name="Common_NoNotebookOpen" xml:space="preserve">
+    <value>No notebook is open.</value>
+    <comment>Shown in a side panel when there is nothing for it to describe yet.</comment>
+  </data>
+  <data name="Common_Ok" xml:space="preserve">
+    <value>OK</value>
+    <comment>Button that dismisses a message. The reader has nothing to decide.</comment>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>Retry</value>
+    <comment>Button that tries the same thing again after a failure.</comment>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Save</value>
+    <comment>Confirming button in a dialog that writes the notebook to a file.</comment>
+  </data>
+  <data name="Common_Stop" xml:space="preserve">
+    <value>Stop</value>
+    <comment>Stops whatever is currently running. Keep short, it sits next to an icon.</comment>
+  </data>
+  <data name="Common_Submit" xml:space="preserve">
+    <value>Submit</value>
+    <comment>Confirming button in a dialog that sends a typed answer back to a running cell.</comment>
+  </data>
+  <data name="Common_Untitled" xml:space="preserve">
+    <value>Untitled</value>
+    <comment>Stands in for the name of a notebook that has never been given one.</comment>
+  </data>
+  <data name="Compare_BackToChanges" xml:space="preserve">
+    <value>Back to changes</value>
+    <comment>Button that leaves the baseline list and returns to the list of what changed.</comment>
+  </data>
+  <data name="Compare_Baseline" xml:space="preserve">
+    <value>Baseline</value>
+    <comment>Section heading naming the version currently being compared against.</comment>
+  </data>
+  <data name="Compare_CellAt" xml:space="preserve">
+    <value>cell {0}</value>
+    <comment>Position of a cell in the notebook. {0} is its number.</comment>
+  </data>
+  <data name="Compare_CellMoved" xml:space="preserve">
+    <value>cell {0} → {1}</value>
+    <comment>Position of a moved cell. {0} is where it was, {1} is where it is now. Keep the arrow.</comment>
+  </data>
+  <data name="Compare_ChangeBaseline" xml:space="preserve">
+    <value>Change baseline</value>
+    <comment>Button that returns to the list of versions to compare against.</comment>
+  </data>
+  <data name="Compare_Changes" xml:space="preserve">
+    <value>Changes</value>
+    <comment>Section heading over the list of cells that differ.</comment>
+  </data>
+  <data name="Compare_CompareWith" xml:space="preserve">
+    <value>Compare with</value>
+    <comment>Section heading over the list of versions the notebook can be compared against.</comment>
+  </data>
+  <data name="Compare_CouldNotRun" xml:space="preserve">
+    <value>The comparison could not run: {0}</value>
+    <comment>Body of that dialog. {0} is the reason, such as a missing baseline or a git error.</comment>
+  </data>
+  <data name="Compare_DialogTitle" xml:space="preserve">
+    <value>Compare Notebook</value>
+    <comment>Title of the dialog shown when a comparison against another version of the notebook fails.</comment>
+  </data>
+  <data name="Compare_DirectoryUnresolved" xml:space="preserve">
+    <value>Could not work out which folder '{0}' is in.</value>
+    <comment>Shown when a notebook's path could not be resolved before comparing. {0} is a path.</comment>
+  </data>
+  <data name="Compare_EmptyCell" xml:space="preserve">
+    <value>(empty cell)</value>
+    <comment>Stands in for the first line of a cell that has nothing in it. Keep the brackets, which mark it as a description rather than content.</comment>
+  </data>
+  <data name="Compare_FileMissing" xml:space="preserve">
+    <value>'{0}' does not exist.</value>
+    <comment>Shown when the file chosen as a baseline is not there. {0} is a path.</comment>
+  </data>
+  <data name="Compare_FileNotTracked" xml:space="preserve">
+    <value>'{0}' is not tracked at '{1}'. Commit the file first, or pick a different ref.</value>
+    <comment>Shown when version control has no copy of the notebook at the chosen point. {0} is a file name and {1} is a branch, tag, or commit.</comment>
+  </data>
+  <data name="Compare_GitReadFailed" xml:space="preserve">
+    <value>git could not read '{0}' at '{1}'.</value>
+    <comment>Shown when version control failed for a reason Verso does not recognise. {0} is a file name, {1} is a branch, tag, or commit, and “git” is a product name.</comment>
+  </data>
+  <data name="Compare_GitRefLabel" xml:space="preserve">
+    <value>Git: {0}</value>
+    <comment>Names the baseline in a comparison against version control. {0} is a branch, tag, or commit.</comment>
+  </data>
+  <data name="Compare_LookingForBaselines" xml:space="preserve">
+    <value>Looking for baselines...</value>
+    <comment>Shown while Verso works out which earlier versions it can offer. Keep the three dots.</comment>
+  </data>
+  <data name="Compare_NoCellChanged" xml:space="preserve">
+    <value>No cell changed against this baseline.</value>
+    <comment>Shown when the two versions hold the same cells.</comment>
+  </data>
+  <data name="Compare_NotInGitRepo" xml:space="preserve">
+    <value>The notebook file is not inside a git repository.</value>
+    <comment>Why a comparison against version control is not available. “git” is a product name and is not translated.</comment>
+  </data>
+  <data name="Compare_NotSavedYet" xml:space="preserve">
+    <value>The notebook has not been saved to a file yet.</value>
+    <comment>Why a comparison against the saved copy is not available.</comment>
+  </data>
+  <data name="Compare_NotSet" xml:space="preserve">
+    <value>(not set)</value>
+    <comment>Stands in for a notebook property that had no value on one side of the comparison. Keep the brackets.</comment>
+  </data>
+  <data name="Compare_NotebookSettings" xml:space="preserve">
+    <value>Notebook settings</value>
+    <comment>Section heading over the notebook's own properties that differ, such as its title or default kernel.</comment>
+  </data>
+  <data name="Compare_NothingYet" xml:space="preserve">
+    <value>Nothing is being compared yet. The notebook is untouched either way.</value>
+    <comment>Reassurance under an empty baseline list. Comparing never modifies the notebook.</comment>
+  </data>
+  <data name="Compare_OpenFullDiff" xml:space="preserve">
+    <value>Open full diff</value>
+    <comment>Button that opens the side-by-side view of both versions.</comment>
+  </data>
+  <data name="Compare_ParseFailed" xml:space="preserve">
+    <value>Could not read '{0}' as a notebook: {1}</value>
+    <comment>Shown when a baseline file is not a notebook Verso understands. {0} is a file name and {1} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Compare_SourceChooseFile" xml:space="preserve">
+    <value>Choose File...</value>
+    <comment>Opens a box for typing the path of another notebook. Keep the three dots, which mean a question follows.</comment>
+  </data>
+  <data name="Compare_SourceGitHead" xml:space="preserve">
+    <value>Git: HEAD</value>
+    <comment>One of the things a notebook can be compared against. “Git” and “HEAD” are version control terms and are not translated.</comment>
+  </data>
+  <data name="Compare_SourceGitRef" xml:space="preserve">
+    <value>Git: Compare with Ref...</value>
+    <comment>Opens a box for typing a branch, tag, or commit. “Git” and “Ref” are version control terms and are not translated. Keep the three dots, which mean a question follows.</comment>
+  </data>
+  <data name="Compare_SourceLastSaved" xml:space="preserve">
+    <value>Last Saved</value>
+    <comment>One of the things a notebook can be compared against: the copy currently on disk.</comment>
+  </data>
+  <data name="Compare_SummaryAdded" xml:space="preserve">
+    <value>{0} added</value>
+    <comment>Chip summarising a comparison. {0} is how many cells are new.</comment>
+  </data>
+  <data name="Compare_SummaryModified" xml:space="preserve">
+    <value>{0} modified</value>
+    <comment>Chip summarising a comparison. {0} is how many cells differ.</comment>
+  </data>
+  <data name="Compare_SummaryMoved" xml:space="preserve">
+    <value>{0} moved</value>
+    <comment>Chip summarising a comparison. {0} is how many cells changed position.</comment>
+  </data>
+  <data name="Compare_SummaryRemoved" xml:space="preserve">
+    <value>{0} removed</value>
+    <comment>Chip summarising a comparison. {0} is how many cells are gone.</comment>
+  </data>
+  <data name="Compare_SummaryUnchanged" xml:space="preserve">
+    <value>{0} unchanged</value>
+    <comment>Chip summarising a comparison. {0} is how many cells are the same.</comment>
+  </data>
+  <data name="Compare_UnknownRef" xml:space="preserve">
+    <value>'{0}' is not a known branch, tag, or commit.</value>
+    <comment>Shown when what was typed does not name anything in version control. {0} is what was typed.</comment>
+  </data>
+  <data name="Compare_WasCell" xml:space="preserve">
+    <value>was cell {0}</value>
+    <comment>Position of a removed cell, which no longer exists here. {0} is its number in the baseline.</comment>
+  </data>
+  <data name="Consent_ApproveAll" xml:space="preserve">
+    <value>Approve All</value>
+    <comment>Button that approves loading every listed extension at once.</comment>
+  </data>
+  <data name="Consent_ApproveInstall" xml:space="preserve">
+    <value>Install</value>
+    <comment>Button that approves installing the listed Python packages.</comment>
+  </data>
+  <data name="Consent_Deny" xml:space="preserve">
+    <value>Deny</value>
+    <comment>Button and close-button label on the consent dialog. Refuses the request and the notebook carries on without whatever was asked for.</comment>
+  </data>
+  <data name="Consent_IntroExtension_One" xml:space="preserve">
+    <value>This notebook wants to load the following extension package:</value>
+    <comment>Opens the consent dialog when exactly one extension is listed. A list of package names follows.</comment>
+  </data>
+  <data name="Consent_IntroExtension_Other" xml:space="preserve">
+    <value>This notebook wants to load the following extension packages:</value>
+    <comment>Opens the consent dialog when two or more extensions are listed. A list of package names follows.</comment>
+  </data>
+  <data name="Consent_IntroPackage_One" xml:space="preserve">
+    <value>This notebook needs the following Python package installed:</value>
+    <comment>Opens the consent dialog when exactly one package is listed. A list of package names follows.</comment>
+  </data>
+  <data name="Consent_IntroPackage_Other" xml:space="preserve">
+    <value>This notebook needs the following Python packages installed:</value>
+    <comment>Opens the consent dialog when two or more packages are listed. A list of package names follows.</comment>
+  </data>
+  <data name="Consent_Target" xml:space="preserve">
+    <value>Into {0}</value>
+    <comment>Shown under the package list. {0} is where the packages go, such as a virtual environment path.</comment>
+  </data>
+  <data name="Consent_TitleExtension" xml:space="preserve">
+    <value>Extension Consent Required</value>
+    <comment>Title of the dialog asking permission to load Verso extensions.</comment>
+  </data>
+  <data name="Consent_TitlePackage" xml:space="preserve">
+    <value>Package Install Required</value>
+    <comment>Title of the dialog asking permission to install Python packages.</comment>
+  </data>
+  <data name="Consent_WarningExtension" xml:space="preserve">
+    <value>Extensions run code on your machine. Only approve packages you trust.</value>
+    <comment>Warning above the buttons of the extension consent dialog.</comment>
+  </data>
+  <data name="Consent_WarningPackage" xml:space="preserve">
+    <value>Packages run code on your machine. Only install packages you trust.</value>
+    <comment>Warning above the buttons of the package consent dialog.</comment>
+  </data>
+  <data name="DiffPicker_Compare" xml:space="preserve">
+    <value>Compare</value>
+    <comment>The confirming button in both comparison dialogs. Keep it to one word if the language allows.</comment>
+  </data>
+  <data name="DiffPicker_PlaceholderFile" xml:space="preserve">
+    <value>/path/to/notebook.verso</value>
+    <comment>Greyed-out example in the box. Translate the words in the folder names if that reads better, and keep the .verso extension.</comment>
+  </data>
+  <data name="DiffPicker_PlaceholderGitRef" xml:space="preserve">
+    <value>main</value>
+    <comment>Greyed-out example in the box. It is the usual name of a version control branch, so leave it as it is.</comment>
+  </data>
+  <data name="DiffPicker_PromptFile" xml:space="preserve">
+    <value>Path to a notebook file (.verso, .ipynb, .md, .dib)</value>
+    <comment>Label above the box in the file comparison dialog. The four file extensions are literal and must not be translated.</comment>
+  </data>
+  <data name="DiffPicker_PromptGitRef" xml:space="preserve">
+    <value>Branch, tag, or commit</value>
+    <comment>Label above the box in the version control comparison dialog.</comment>
+  </data>
+  <data name="DiffPicker_TitleFile" xml:space="preserve">
+    <value>Compare with File</value>
+    <comment>Title of the dialog that asks which file to compare against.</comment>
+  </data>
+  <data name="DiffPicker_TitleGitRef" xml:space="preserve">
+    <value>Compare with Git Ref</value>
+    <comment>Title of the dialog that asks which version control reference to compare against. “Git” is a product name and is not translated.</comment>
+  </data>
+  <data name="DiffView_ApproximateMatch" xml:space="preserve">
+    <value>Approximate match</value>
+    <comment>Tooltip title on a cell that was paired by similarity rather than identity.</comment>
+  </data>
+  <data name="DiffView_ApproximateMatchChip" xml:space="preserve">
+    <value>approximate match</value>
+    <comment>The marker itself, sitting inline among a cell's other details. Lower case for that reason.</comment>
+  </data>
+  <data name="DiffView_ApproximateMatchDesc" xml:space="preserve">
+    <value>These files carry no shared cell identity, so this pairing is based on content similarity.</value>
+    <comment>Tooltip body under “Approximate match”.</comment>
+  </data>
+  <data name="DiffView_ChangeCount_One" xml:space="preserve">
+    <value>{0} change</value>
+    <comment>Shown in place of a position before any stepping has happened. {0} is 1.</comment>
+  </data>
+  <data name="DiffView_ChangeCount_Other" xml:space="preserve">
+    <value>{0} changes</value>
+    <comment>Shown in place of a position before any stepping has happened. {0} is zero or more than one.</comment>
+  </data>
+  <data name="DiffView_ComparingWith" xml:space="preserve">
+    <value>Comparing with {0}</value>
+    <comment>Title of the full-screen comparison. {0} is what the notebook is being compared against, such as a file name or “Last save”.</comment>
+  </data>
+  <data name="DiffView_Current" xml:space="preserve">
+    <value>Current</value>
+    <comment>Heads the right-hand column of results: the notebook as it is now, against the baseline on the left.</comment>
+  </data>
+  <data name="DiffView_IdenticalDetail" xml:space="preserve">
+    <value>Every cell and every notebook setting matches the baseline, including unsaved edits.</value>
+    <comment>Explains the “Identical to” heading.</comment>
+  </data>
+  <data name="DiffView_IdenticalTo" xml:space="preserve">
+    <value>Identical to {0}</value>
+    <comment>Heading shown when a comparison found nothing. {0} is what was compared against.</comment>
+  </data>
+  <data name="DiffView_MetadataChip" xml:space="preserve">
+    <value>metadata</value>
+    <comment>Marker on a cell whose settings changed while its code did not. Lower case; it sits inline among other markers.</comment>
+  </data>
+  <data name="DiffView_NavPosition" xml:space="preserve">
+    <value>{0} of {1}</value>
+    <comment>Position within the changes while stepping through them, as in “3 of 12”.</comment>
+  </data>
+  <data name="DiffView_NextChange" xml:space="preserve">
+    <value>Next change</value>
+    <comment>Button that jumps forward to the change after this one. Also its label for screen readers.</comment>
+  </data>
+  <data name="DiffView_NoChanges" xml:space="preserve">
+    <value>No changes</value>
+    <comment>Badge in the comparison title when nothing differs. Keep it short.</comment>
+  </data>
+  <data name="DiffView_OutputsChanged" xml:space="preserve">
+    <value>Outputs changed</value>
+    <comment>Expands a cell's before and after results. Names what changed rather than what pressing it does.</comment>
+  </data>
+  <data name="DiffView_PositionChange" xml:space="preserve">
+    <value>position {0} → {1}</value>
+    <comment>Beside a moved cell, giving where it was and where it is now. Both are cell numbers. Keep the arrow.</comment>
+  </data>
+  <data name="DiffView_PreviousChange" xml:space="preserve">
+    <value>Previous change</value>
+    <comment>Button that jumps back to the change before this one. Also its label for screen readers.</comment>
+  </data>
+  <data name="DiffView_ShowSourceChanges" xml:space="preserve">
+    <value>Show source changes</value>
+    <comment>Button that opens the side-by-side source comparison for one cell.</comment>
+  </data>
+  <data name="DiffView_TypeChange" xml:space="preserve">
+    <value>{0} → {1}</value>
+    <comment>Marker on a cell that changed kind or language, as in “code (csharp) → markdown”. Keep the arrow.</comment>
+  </data>
+  <data name="DiffView_UnchangedCells_One" xml:space="preserve">
+    <value>{0} unchanged cell</value>
+    <comment>Button that expands a run of cells that did not change. {0} is 1.</comment>
+  </data>
+  <data name="DiffView_UnchangedCells_Other" xml:space="preserve">
+    <value>{0} unchanged cells</value>
+    <comment>Button that expands a run of cells that did not change. {0} is more than one.</comment>
+  </data>
+  <data name="Diff_Added" xml:space="preserve">
+    <value>Added</value>
+    <comment>Badge on a cell that is in this version of the notebook and not in the one it is compared against.</comment>
+  </data>
+  <data name="Diff_Modified" xml:space="preserve">
+    <value>Modified</value>
+    <comment>Badge on a cell whose contents differ between the two versions.</comment>
+  </data>
+  <data name="Diff_Moved" xml:space="preserve">
+    <value>Moved</value>
+    <comment>Badge on a cell that is in both versions but in a different position.</comment>
+  </data>
+  <data name="Diff_Removed" xml:space="preserve">
+    <value>Removed</value>
+    <comment>Badge on a cell that is in the compared version and not in this one.</comment>
+  </data>
+  <data name="Diff_Unchanged" xml:space="preserve">
+    <value>Unchanged</value>
+    <comment>Badge on a cell that is the same in both versions.</comment>
+  </data>
+  <data name="Error_Cancel" xml:space="preserve">
+    <value>Could not stop the cell: {0}</value>
+    <comment>Error banner. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_CreateNotebook" xml:space="preserve">
+    <value>Could not create the notebook: {0}</value>
+    <comment>Error banner. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_Execution" xml:space="preserve">
+    <value>Could not run the cell: {0}</value>
+    <comment>Error banner. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_ListComparisonSources" xml:space="preserve">
+    <value>the comparison sources could not be listed: {0}</value>
+    <comment>Dropped into “The comparison could not run: ...”, so it starts in lower case and is not a sentence on its own. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_OpenFile" xml:space="preserve">
+    <value>Could not open the file: {0}</value>
+    <comment>Error banner. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_SaveFailed" xml:space="preserve">
+    <value>Could not save: {0}</value>
+    <comment>Error banner. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_SessionRecovery" xml:space="preserve">
+    <value>Could not recover the session: {0}</value>
+    <comment>Error banner shown when reopening a notebook after a disconnection failed. {0} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>unknown error</value>
+    <comment>Stands in for a reason when none was given. It is dropped into a longer sentence, so it starts in lower case.</comment>
+  </data>
+  <data name="Extensions_Disable" xml:space="preserve">
+    <value>Disable</value>
+    <comment>Label and tooltip for the switch on an enabled extension. Naming what pressing it does.</comment>
+  </data>
+  <data name="Extensions_Enable" xml:space="preserve">
+    <value>Enable</value>
+    <comment>Label and tooltip for the switch on a disabled extension. Naming what pressing it does.</comment>
+  </data>
+  <data name="Extensions_Loaded" xml:space="preserve">
+    <value>Loaded</value>
+    <comment>Heads the list of extensions this notebook has actually loaded, below the package list.</comment>
+  </data>
+  <data name="Extensions_Off" xml:space="preserve">
+    <value>Off</value>
+    <comment>The switch's own text while an extension is disabled. Very tight space, two or three characters.</comment>
+  </data>
+  <data name="Extensions_On" xml:space="preserve">
+    <value>On</value>
+    <comment>The switch's own text while an extension is enabled. Very tight space, two or three characters.</comment>
+  </data>
+  <data name="InputDialog_DefaultPrompt" xml:space="preserve">
+    <value>Input</value>
+    <comment>Label above the box when a running cell asked a question without wording it.</comment>
+  </data>
+  <data name="InputDialog_Title" xml:space="preserve">
+    <value>Notebook Input</value>
+    <comment>Title of the dialog a running cell uses to ask the reader a question.</comment>
+  </data>
+  <data name="Kernel_HostExited" xml:space="preserve">
+    <value>The process running the kernels has stopped.</value>
+    <comment>Shown when the separate process Verso runs code in has gone away, and no reason was given.</comment>
+  </data>
+  <data name="Key_AltDown" xml:space="preserve">
+    <value>Alt+Down</value>
+    <comment>The keys that step forward a change, shown under a tooltip. Change this only if keyboards for your language print different names on those keys.</comment>
+  </data>
+  <data name="Key_AltUp" xml:space="preserve">
+    <value>Alt+Up</value>
+    <comment>The keys that step back a change, shown under a tooltip. Change this only if keyboards for your language print different names on those keys.</comment>
+  </data>
+  <data name="Key_Escape" xml:space="preserve">
+    <value>Esc</value>
+    <comment>The key that closes, shown under a tooltip. Change this only if keyboards for your language print a different name on it.</comment>
+  </data>
+  <data name="Layout_ErrorAllocateFrame" xml:space="preserve">
+    <value>The layout could not load: a frame could not be allocated. {0}</value>
+    <comment>Shown in place of a custom layout. {0} is the underlying error, which stays in English.</comment>
+  </data>
+  <data name="Layout_ErrorBridgeScript" xml:space="preserve">
+    <value>The layout could not load: the script that connects it to Verso is unavailable. {0}</value>
+    <comment>Shown in place of a custom layout. {0} is the underlying error, which stays in English.</comment>
+  </data>
+  <data name="Layout_ErrorDisallowedSource" xml:space="preserve">
+    <value>The layout could not load: it asks to connect to a source that is not allowed ({0}).</value>
+    <comment>Shown in place of a custom layout. {0} is the address it asked for, and is not translated.</comment>
+  </data>
+  <data name="Layout_ErrorNoActive" xml:space="preserve">
+    <value>The layout could not load: no layout is active.</value>
+    <comment>Shown in place of a custom layout, above a Retry button.</comment>
+  </data>
+  <data name="Layout_ErrorNotReady" xml:space="preserve">
+    <value>The layout could not load: it did not report that it was ready within {0} seconds.</value>
+    <comment>Shown in place of a custom layout that started but never finished. {0} is a whole number of seconds.</comment>
+  </data>
+  <data name="Layout_ErrorPackageEmpty" xml:space="preserve">
+    <value>The layout could not load: its renderer is empty.</value>
+    <comment>Shown in place of a custom layout, above a Retry button.</comment>
+  </data>
+  <data name="Layout_ErrorPackageFetch" xml:space="preserve">
+    <value>The layout could not load: its renderer could not be fetched. {0}</value>
+    <comment>Shown in place of a custom layout. {0} is the underlying error, which stays in English.</comment>
+  </data>
+  <data name="Marketplace_AddsNothing" xml:space="preserve">
+    <value>Adds nothing</value>
+    <comment>Chip on a package that loaded without contributing anything. Also the tooltip title. Keep it short.</comment>
+  </data>
+  <data name="Marketplace_AddsNothingDesc" xml:space="preserve">
+    <value>It loaded but contributed no extension point, so installing it changed nothing.</value>
+    <comment>Tooltip body under “Adds nothing”.</comment>
+  </data>
+  <data name="Marketplace_ChooseVersion" xml:space="preserve">
+    <value>Choose a version to install</value>
+    <comment>Tooltip on the version number beside a package's Install button.</comment>
+  </data>
+  <data name="Marketplace_Downloads" xml:space="preserve">
+    <value>{0} downloads</value>
+    <comment>Under a package in the list. {0} is an already shortened count such as 1.2k or 340.</comment>
+  </data>
+  <data name="Marketplace_Install" xml:space="preserve">
+    <value>Install</value>
+    <comment>Button on a package that is not installed yet. Keep it to one word if the language allows.</comment>
+  </data>
+  <data name="Marketplace_InstallFailed" xml:space="preserve">
+    <value>Installation failed.</value>
+    <comment>Shown when an install failed and reported no reason of its own.</comment>
+  </data>
+  <data name="Marketplace_InstallFromFile" xml:space="preserve">
+    <value>Install from a file</value>
+    <comment>Button beside the search box, shown as its label for screen readers and as its tooltip title.</comment>
+  </data>
+  <data name="Marketplace_InstallFromFileDesc" xml:space="preserve">
+    <value>Sideload a local .dll or .nupkg.</value>
+    <comment>Tooltip body under “Install from a file”. The two file extensions are literal and must not be translated.</comment>
+  </data>
+  <data name="Marketplace_InstallNotApproved" xml:space="preserve">
+    <value>Installation was not approved.</value>
+    <comment>Shown after the reader declines the dialog asking whether to install a package.</comment>
+  </data>
+  <data name="Marketplace_InstallScope" xml:space="preserve">
+    <value>Install scope</value>
+    <comment>Tooltip title on the chip that says where an installed package is recorded.</comment>
+  </data>
+  <data name="Marketplace_InstallScopeDesc" xml:space="preserve">
+    <value>Installing records the package in this notebook, not on this machine.</value>
+    <comment>Tooltip body under “Install scope”.</comment>
+  </data>
+  <data name="Marketplace_Installed" xml:space="preserve">
+    <value>Installed</value>
+    <comment>Chip on a package that is already installed. Keep it short.</comment>
+  </data>
+  <data name="Marketplace_InstallsInto" xml:space="preserve">
+    <value>Installs into {0}</value>
+    <comment>Chip above the package list. {0} is “this notebook”, drawn in bold. Keep it short; the chip sits on one line.</comment>
+  </data>
+  <data name="Marketplace_Local" xml:space="preserve">
+    <value>Local</value>
+    <comment>Tooltip title on the marker for a package installed from a file rather than a feed.</comment>
+  </data>
+  <data name="Marketplace_LocalDesc" xml:space="preserve">
+    <value>Sideloaded from a local file.</value>
+    <comment>Tooltip body under “Local”.</comment>
+  </data>
+  <data name="Marketplace_LocalFile" xml:space="preserve">
+    <value>local file</value>
+    <comment>Appears beside a package's author to say it came from a file. Lower case; it sits inside a line of details.</comment>
+  </data>
+  <data name="Marketplace_NoResults" xml:space="preserve">
+    <value>No packages found.</value>
+    <comment>Shown in place of the package list when a search returned nothing.</comment>
+  </data>
+  <data name="Marketplace_NoneInstalled" xml:space="preserve">
+    <value>No extensions installed. Search to add one.</value>
+    <comment>Shown in place of the package list when nothing is installed and nothing has been searched for.</comment>
+  </data>
+  <data name="Marketplace_NotLoaded" xml:space="preserve">
+    <value>Not loaded</value>
+    <comment>Chip on an installed package that failed to load. The reason is shown underneath. Keep it short.</comment>
+  </data>
+  <data name="Marketplace_PackageSources" xml:space="preserve">
+    <value>Package sources</value>
+    <comment>Tooltip title on the chip naming where search results came from.</comment>
+  </data>
+  <data name="Marketplace_Remove" xml:space="preserve">
+    <value>Remove</value>
+    <comment>Button on an installed package. Keep it to one word if the language allows.</comment>
+  </data>
+  <data name="Marketplace_RemovedNotice" xml:space="preserve">
+    <value>Removed from this notebook. What it loaded stays active until the notebook is reopened.</value>
+    <comment>Notice shown after removing an extension, explaining that removal is recorded now and takes effect later.</comment>
+  </data>
+  <data name="Marketplace_ResultsFrom" xml:space="preserve">
+    <value>from {0}</value>
+    <comment>Chip above the package list. {0} is a package source name or a count, drawn in bold. Lower case; it reads as a fragment, not a sentence.</comment>
+  </data>
+  <data name="Marketplace_SearchPlaceholder" xml:space="preserve">
+    <value>Search extensions...</value>
+    <comment>Placeholder in the extensions search box. Typing also filters what is already installed.</comment>
+  </data>
+  <data name="Marketplace_Searching" xml:space="preserve">
+    <value>Searching...</value>
+    <comment>Shown under the search box while a search is running.</comment>
+  </data>
+  <data name="Marketplace_SourceCount" xml:space="preserve">
+    <value>{0} sources</value>
+    <comment>Stands in for the source name when there is more than one. {0} is always two or more.</comment>
+  </data>
+  <data name="Marketplace_ThisNotebook" xml:space="preserve">
+    <value>this notebook</value>
+    <comment>The bold part of “Installs into this notebook”. Lower case because it continues that sentence.</comment>
+  </data>
+  <data name="Metadata_Created" xml:space="preserve">
+    <value>Created</value>
+    <comment>Field label. When the notebook was first written.</comment>
+  </data>
+  <data name="Metadata_DefaultKernel" xml:space="preserve">
+    <value>Default Kernel</value>
+    <comment>Field label. Which language new cells use unless a cell says otherwise.</comment>
+  </data>
+  <data name="Metadata_FilePath" xml:space="preserve">
+    <value>File Path</value>
+    <comment>Field label. Where the notebook is saved.</comment>
+  </data>
+  <data name="Metadata_FormatVersion" xml:space="preserve">
+    <value>Format Version</value>
+    <comment>Field label. Which version of the notebook file format this file uses.</comment>
+  </data>
+  <data name="Metadata_Modified" xml:space="preserve">
+    <value>Modified</value>
+    <comment>Field label. When the notebook was last written.</comment>
+  </data>
+  <data name="Metadata_Title" xml:space="preserve">
+    <value>Title</value>
+    <comment>Field label in the notebook properties panel. The notebook's own title.</comment>
+  </data>
+  <data name="Metadata_Unsaved" xml:space="preserve">
+    <value>(unsaved)</value>
+    <comment>Shown in place of a file path when the notebook has never been saved. Keep the brackets.</comment>
+  </data>
+  <data name="NotFound_Message" xml:space="preserve">
+    <value>Sorry, there's nothing at this address.</value>
+    <comment>The whole content of the page shown for an address Verso does not serve.</comment>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <value>Not found</value>
+    <comment>Browser tab title for an address Verso does not serve.</comment>
+  </data>
+  <data name="Output_EmptyCsv" xml:space="preserve">
+    <value>Empty CSV</value>
+    <comment>Shown in place of a table when a cell returned comma-separated data with nothing in it.</comment>
+  </data>
+  <data name="Output_Error" xml:space="preserve">
+    <value>Error</value>
+    <comment>Heading over a cell's error output when the error carried no name of its own.</comment>
+  </data>
+  <data name="Output_JsonItems_One" xml:space="preserve">
+    <value>{0} item</value>
+    <comment>Summary of a collapsed JSON list holding exactly one entry. {0} is the number.</comment>
+  </data>
+  <data name="Output_JsonItems_Other" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>Summary of a collapsed JSON list. {0} is how many entries it holds.</comment>
+  </data>
+  <data name="Output_JsonKeys_One" xml:space="preserve">
+    <value>{0} key</value>
+    <comment>Summary of a collapsed JSON object holding exactly one entry. {0} is the number.</comment>
+  </data>
+  <data name="Output_JsonKeys_Other" xml:space="preserve">
+    <value>{0} keys</value>
+    <comment>Summary of a collapsed JSON object. {0} is how many entries it holds.</comment>
+  </data>
+  <data name="Output_RenderFailed" xml:space="preserve">
+    <value>This output could not be rendered</value>
+    <comment>Heading of the notice that replaces an output the interface could not draw.</comment>
+  </data>
+  <data name="Output_RetryRender" xml:space="preserve">
+    <value>Retry rendering this output</value>
+    <comment>Tooltip on the button that tries to draw that output again.</comment>
+  </data>
+  <data name="Output_StandardError" xml:space="preserve">
+    <value>Standard error output</value>
+    <comment>Accessible name of the block holding what a cell wrote to standard error. Read aloud by a screen reader.</comment>
+  </data>
+  <data name="Output_Working" xml:space="preserve">
+    <value>Working</value>
+    <comment>Label on a progress bar whose sender gave it no wording of its own.</comment>
+  </data>
+  <data name="Panel_Collapse" xml:space="preserve">
+    <value>Collapse panel</value>
+    <comment>Button that closes the open side panel. Also its label for screen readers and its tooltip.</comment>
+  </data>
+  <data name="Panel_Compare" xml:space="preserve">
+    <value>Compare</value>
+    <comment>Toggle and heading of the panel for measuring the notebook against a baseline.</comment>
+  </data>
+  <data name="Panel_Compare_Description" xml:space="preserve">
+    <value>Measure this notebook against a saved baseline.</value>
+    <comment>Second line of the Compare toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_Extensions" xml:space="preserve">
+    <value>Extensions</value>
+    <comment>Toggle and heading of the panel listing extensions.</comment>
+  </data>
+  <data name="Panel_Extensions_Description" xml:space="preserve">
+    <value>Extensions loaded here, and more you can install.</value>
+    <comment>Second line of the Extensions toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_Metadata" xml:space="preserve">
+    <value>Metadata</value>
+    <comment>Toggle and heading of the panel holding the notebook's own details.</comment>
+  </data>
+  <data name="Panel_Metadata_Description" xml:space="preserve">
+    <value>Title, kernel, and file details for this notebook.</value>
+    <comment>Second line of the Metadata toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_NothingToShow" xml:space="preserve">
+    <value>This panel has nothing to show.</value>
+    <comment>Shown in a panel contributed by an extension when it rendered nothing.</comment>
+  </data>
+  <data name="Panel_Properties" xml:space="preserve">
+    <value>Properties</value>
+    <comment>Toggle of the panel holding the selected cell's settings. Its heading is longer; see Panel_PropertiesHeading.</comment>
+  </data>
+  <data name="Panel_PropertiesHeading" xml:space="preserve">
+    <value>Cell Properties</value>
+    <comment>Heading over the open properties panel. Longer than the toggle beside it, which has no room to say which properties.</comment>
+  </data>
+  <data name="Panel_Properties_Description" xml:space="preserve">
+    <value>Settings for the selected cell.</value>
+    <comment>Second line of the Properties toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_Settings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Toggle and heading of the panel holding extension settings.</comment>
+  </data>
+  <data name="Panel_Settings_Description" xml:space="preserve">
+    <value>Settings contributed by the enabled extensions.</value>
+    <comment>Second line of the Settings toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_Variables" xml:space="preserve">
+    <value>Variables</value>
+    <comment>Toggle and heading of the panel listing what the kernel is holding.</comment>
+  </data>
+  <data name="Panel_Variables_Description" xml:space="preserve">
+    <value>Everything the kernel is currently holding.</value>
+    <comment>Second line of the Variables toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_View" xml:space="preserve">
+    <value>View</value>
+    <comment>Toggle and heading of the panel for switching layout or theme.</comment>
+  </data>
+  <data name="Panel_View_Description" xml:space="preserve">
+    <value>Switch layout or theme without closing the panel.</value>
+    <comment>Second line of the View toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Properties_AddTagPlaceholder" xml:space="preserve">
+    <value>Add tag...</value>
+    <comment>Placeholder in the field that adds a tag to a cell. Keep the three dots.</comment>
+  </data>
+  <data name="Properties_None" xml:space="preserve">
+    <value>No properties available for this cell.</value>
+    <comment>Shown in the Properties panel when the selected cell has nothing to configure.</comment>
+  </data>
+  <data name="Properties_RemoveTag" xml:space="preserve">
+    <value>Remove tag</value>
+    <comment>Tooltip on the small cross beside a tag in the Properties panel.</comment>
+  </data>
+  <data name="Properties_SelectACell" xml:space="preserve">
+    <value>Select a cell to view its properties.</value>
+    <comment>Shown in the Properties panel when no cell is selected.</comment>
+  </data>
+  <data name="Reconnect_Message" xml:space="preserve">
+    <value>Your session is still active. Attempting to reconnect.</value>
+    <comment>Under the “Reconnecting” heading, reassuring the reader that nothing has been lost.</comment>
+  </data>
+  <data name="Reconnect_RecoveringMessage" xml:space="preserve">
+    <value>Reloading to restore your notebook.</value>
+    <comment>Under the “Recovering your session” heading.</comment>
+  </data>
+  <data name="Reconnect_RecoveringTitle" xml:space="preserve">
+    <value>Recovering your session...</value>
+    <comment>Heading on the overlay once reconnection has been given up on and the page is about to reload. Keep the three dots.</comment>
+  </data>
+  <data name="Reconnect_Reload" xml:space="preserve">
+    <value>Reload page</value>
+    <comment>Button on the reconnection overlay that loads the page again.</comment>
+  </data>
+  <data name="Reconnect_Title" xml:space="preserve">
+    <value>Reconnecting...</value>
+    <comment>Heading on the overlay shown when the browser loses its connection to Verso. Keep the three dots.</comment>
+  </data>
+  <data name="SaveDialog_PathHint" xml:space="preserve">
+    <value>Enter the full file path. The {0} extension will be added if missing.</value>
+    <comment>Under the file path box. {0} is the literal text “.verso”, drawn in a code style and not translated.</comment>
+  </data>
+  <data name="SaveDialog_PathLabel" xml:space="preserve">
+    <value>Save to:</value>
+    <comment>Label above the box where a file path is typed. Keep the colon if your language uses one.</comment>
+  </data>
+  <data name="SaveDialog_Title" xml:space="preserve">
+    <value>Save Notebook As</value>
+    <comment>Title of the dialog that asks where to write the notebook.</comment>
+  </data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve">
+    <value>General</value>
+    <comment>Heading over settings an extension did not file under any category of its own.</comment>
+  </data>
+  <data name="Settings_ListPlaceholder" xml:space="preserve">
+    <value>comma separated</value>
+    <comment>Placeholder in a setting that takes several values. Tells the reader how to separate them. Lower case, it sits inside the field.</comment>
+  </data>
+  <data name="Settings_NoConfigurableExtensions" xml:space="preserve">
+    <value>No enabled extensions with configurable settings.</value>
+    <comment>Shown in the Settings panel when nothing that is switched on has anything to configure.</comment>
+  </data>
+  <data name="Status_KernelRestarted" xml:space="preserve">
+    <value>Kernel restarted</value>
+    <comment>Brief confirmation after the language kernel was restarted.</comment>
+  </data>
+  <data name="Status_KernelRestartedReload" xml:space="preserve">
+    <value>Kernel restarted. Re-run cells with #!nuget or #!extension to reload.</value>
+    <comment>Shown after a restart when the notebook has cells that load packages. The two commands are literal and must not be translated.</comment>
+  </data>
+  <data name="Status_LayoutNotLoaded" xml:space="preserve">
+    <value>Layout '{0}' is not loaded. Run the cell containing #!extension or #!nuget to load it.</value>
+    <comment>Shown when a notebook asks for a layout its extension has not loaded. {0} is the layout's identifier. The two commands are literal and must not be translated.</comment>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_One" xml:space="preserve">
+    <value>Required extension {0} could not be loaded. Some layouts or cells may not work until it is available.</value>
+    <comment>Shown when the one extension a notebook requires is missing. {0} is a package name.</comment>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_Other" xml:space="preserve">
+    <value>{0} required extensions could not be loaded: {1}. Some layouts or cells may not work until they are available.</value>
+    <comment>Shown when several extensions a notebook requires are missing. {0} is how many, {1} is their names.</comment>
+  </data>
+  <data name="Status_RestartingKernel" xml:space="preserve">
+    <value>Restarting kernel...</value>
+    <comment>Shown for as long as the language kernel is restarting. Keep the three dots.</comment>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>Saved</value>
+    <comment>Brief confirmation after writing the notebook, shown for a few seconds.</comment>
+  </data>
+  <data name="Status_SavedTo" xml:space="preserve">
+    <value>Saved to {0}</value>
+    <comment>Brief confirmation after writing the notebook. {0} is a file name.</comment>
+  </data>
+  <data name="Toolbar_ActionFailed" xml:space="preserve">
+    <value>{0} failed: {1}</value>
+    <comment>Error banner after a toolbar button did not work. {0} is the button's name and {1} is the underlying reason, which stays in English.</comment>
+  </data>
+  <data name="Toolbar_Browse" xml:space="preserve">
+    <value>Browse</value>
+    <comment>Button that opens the system file picker instead of typing a path.</comment>
+  </data>
+  <data name="Toolbar_CellCount_One" xml:space="preserve">
+    <value>{0} cell</value>
+    <comment>Beside the notebook name when it holds exactly one cell. {0} is the number.</comment>
+  </data>
+  <data name="Toolbar_CellCount_Other" xml:space="preserve">
+    <value>{0} cells</value>
+    <comment>Beside the notebook name. {0} is how many cells it holds.</comment>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>Export</value>
+    <comment>Label on the Export menu button. Keep short, a menu arrow follows it.</comment>
+  </data>
+  <data name="Toolbar_ExportNotebook" xml:space="preserve">
+    <value>Export Notebook</value>
+    <comment>Tooltip on the Export menu.</comment>
+  </data>
+  <data name="Toolbar_Go" xml:space="preserve">
+    <value>Go</value>
+    <comment>Button that opens whatever was typed in the path field. Keep very short.</comment>
+  </data>
+  <data name="Toolbar_KernelDisconnected" xml:space="preserve">
+    <value>Disconnected</value>
+    <comment>Kernel status. The kernel process is gone and nothing can run.</comment>
+  </data>
+  <data name="Toolbar_KernelError" xml:space="preserve">
+    <value>Kernel error</value>
+    <comment>Kernel status. Something went wrong in the kernel itself, not in a cell.</comment>
+  </data>
+  <data name="Toolbar_KernelIdle" xml:space="preserve">
+    <value>Kernel idle</value>
+    <comment>Kernel status. Ready and waiting, nothing running.</comment>
+  </data>
+  <data name="Toolbar_KernelList" xml:space="preserve">
+    <value>Kernels: {0}</value>
+    <comment>Tooltip on a notebook using several languages. {0} is their names, separated by commas.</comment>
+  </data>
+  <data name="Toolbar_KernelRestarting" xml:space="preserve">
+    <value>Restarting…</value>
+    <comment>Kernel status. The kernel is starting again and will lose its variables.</comment>
+  </data>
+  <data name="Toolbar_KernelRunning" xml:space="preserve">
+    <value>Running…</value>
+    <comment>Kernel status. A cell is executing. Keep the single ellipsis character.</comment>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>New</value>
+    <comment>Toolbar button label. Creates a new notebook. Keep short, it sits next to an icon.</comment>
+  </data>
+  <data name="Toolbar_NewNotebook" xml:space="preserve">
+    <value>New Notebook</value>
+    <comment>Tooltip for the New toolbar button.</comment>
+  </data>
+  <data name="Toolbar_NoKernel" xml:space="preserve">
+    <value>No kernel</value>
+    <comment>Shown where the kernel name goes when the notebook names no language to run.</comment>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>Open</value>
+    <comment>Toolbar button label. Opens an existing notebook. Keep short, it sits next to an icon.</comment>
+  </data>
+  <data name="Toolbar_OpenFile" xml:space="preserve">
+    <value>Open File</value>
+    <comment>Tooltip for the Open toolbar button.</comment>
+  </data>
+  <data name="Toolbar_OpenPathPlaceholder" xml:space="preserve">
+    <value>File path or URL...</value>
+    <comment>Placeholder in the field that opens a notebook. It takes either. Keep the three dots.</comment>
+  </data>
+  <data name="Toolbar_ReadFileFailed" xml:space="preserve">
+    <value>Failed to read file: {0}</value>
+    <comment>Error shown when a chosen file could not be read. {0} is the reason.</comment>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>Save</value>
+    <comment>Toolbar button label and its tooltip. Keep short, it sits next to an icon.</comment>
+  </data>
+  <data name="Toolbar_SaveUnsavedChanges" xml:space="preserve">
+    <value>You have unsaved changes.</value>
+    <comment>Second tooltip line on the Save button, shown only when the notebook is dirty.</comment>
+  </data>
+  <data name="Toolbar_StopExecution" xml:space="preserve">
+    <value>Stop Execution</value>
+    <comment>Tooltip on the button that appears in place of Run while a cell is running.</comment>
+  </data>
+  <data name="Toolbar_StopFailed" xml:space="preserve">
+    <value>Stop failed: {0}</value>
+    <comment>Error shown when cancelling a running cell did not work. {0} is the reason.</comment>
+  </data>
+  <data name="Variables_ColumnName" xml:space="preserve">
+    <value>Name</value>
+    <comment>Column heading in the Variables panel. What the variable is called.</comment>
+  </data>
+  <data name="Variables_ColumnType" xml:space="preserve">
+    <value>Type</value>
+    <comment>Column heading in the Variables panel. The variable's data type.</comment>
+  </data>
+  <data name="Variables_ColumnValue" xml:space="preserve">
+    <value>Value</value>
+    <comment>Column heading in the Variables panel. A short preview of what the variable holds.</comment>
+  </data>
+  <data name="Variables_Empty" xml:space="preserve">
+    <value>No variables defined.</value>
+    <comment>Shown in the Variables panel when the kernel is holding nothing yet.</comment>
+  </data>
+  <data name="Variables_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+    <comment>Tooltip on the button that asks the kernel for the current variables rather than reading what was last seen.</comment>
+  </data>
+  <data name="Variables_RefreshFailed" xml:space="preserve">
+    <value>Refresh failed: {0}</value>
+    <comment>Shown in the Variables panel when the kernel could not be asked. {0} is the reason.</comment>
+  </data>
+  <data name="View_Layout" xml:space="preserve">
+    <value>Layout</value>
+    <comment>Section heading in the View panel, over the list of ways the notebook can be arranged.</comment>
+  </data>
+  <data name="View_ReadOnly" xml:space="preserve">
+    <value>Read only</value>
+    <comment>Small chip beside a layout that shows the notebook without letting anyone edit it. Keep very short.</comment>
+  </data>
+  <data name="View_Theme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Section heading in the View panel, over the list of colour schemes.</comment>
+  </data>
+  <data name="Welcome_Intro" xml:space="preserve">
+    <value>Create a new notebook or open an existing {0}, {1}, or {2} file to get started.</value>
+    <comment>The welcome screen's one line of guidance. {0}, {1}, and {2} are file extensions drawn in a code style and not translated.</comment>
+  </data>
+  <data name="Welcome_WaitingForContent" xml:space="preserve">
+    <value>Waiting for notebook content...</value>
+    <comment>Shown beside a spinner while the editor waits for a notebook to arrive. Keep the three dots.</comment>
+  </data>
+  <data name="Widget_FrameTitle" xml:space="preserve">
+    <value>Widget output</value>
+    <comment>Accessible name of the frame a widget draws itself in. Read aloud by a screen reader.</comment>
+  </data>
+</root>

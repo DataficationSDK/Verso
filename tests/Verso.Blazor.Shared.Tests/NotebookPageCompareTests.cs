@@ -106,7 +106,11 @@ public sealed class NotebookPageCompareTests : BunitTestContext
         cut.Render();
 
         Assert.AreEqual("gitHead", service.LastDiffSourceId);
-        Assert.AreEqual("COMPARE", cut.Find(".verso-panel-title").TextContent);
+        // The header is drawn in capitals by the stylesheet, so the markup holds the word
+        // as written rather than a copy the code has already changed the case of.
+        Assert.AreEqual(
+            Verso.Blazor.Shared.Resources.UI.Panel_Compare,
+            cut.Find(".verso-panel-title").TextContent);
         Assert.AreEqual(0, cut.FindAll(".verso-diff-overlay").Count,
             "A comparison from outside lands in the panel, not over the notebook.");
     }

@@ -36,7 +36,7 @@
     {
         <div class="verso-error-banner">
             <span>@_error</span>
-            <button @onclick="() => _error = null">Dismiss</button>
+            <button @onclick="() => _error = null">@UI.Common_Dismiss</button>
         </div>
     }
 
@@ -52,7 +52,7 @@
         <div class="verso-welcome">
             <div style="display:flex;align-items:center;gap:8px;">
                 <div class="verso-spinner"></div>
-                <span>Waiting for notebook content...</span>
+                <span>@UI.Welcome_WaitingForContent</span>
             </div>
         </div>
     }
@@ -85,7 +85,7 @@
                         <div class="verso-panel-resize-handle" @ref="_resizeHandle"></div>
                         <div class="verso-panel-header">
                             <span class="verso-panel-title">@ActivePanelTitle</span>
-                            <button class="verso-panel-minimize" @onclick="CollapsePanel" aria-label="Collapse panel" data-verso-tip="Collapse panel">&#x203A;</button>
+                            <button class="verso-panel-minimize" @onclick="CollapsePanel" aria-label="@UI.Panel_Collapse" data-verso-tip="@UI.Panel_Collapse">&#x203A;</button>
                         </div>
                         <div class="verso-panel-body">
                             @* Host panels are components with direct access to notebook state;
@@ -276,7 +276,7 @@
             // Persistent banner — cleared explicitly by HandleKernelRestarted rather
             // than the 3-second timeout used by ShowStatusAsync.
             _statusCts?.Cancel();
-            _statusMessage = "Restarting kernel...";
+            _statusMessage = UI.Status_RestartingKernel;
             StateHasChanged();
             await Task.CompletedTask;
         });
@@ -295,8 +295,8 @@
                  || c.Source.Contains("#r \"nuget:", StringComparison.Ordinal)));
 
             var message = hasExtensionCells
-                ? "Kernel restarted. Re-run cells with #!nuget or #!extension to reload."
-                : "Kernel restarted";
+                ? UI.Status_KernelRestartedReload
+                : UI.Status_KernelRestarted;
 
             await ShowStatusAsync(message);
         });
@@ -306,8 +306,7 @@
     {
         _ = InvokeAsync(async () =>
         {
-            await ShowStatusAsync(
-                $"Layout '{layoutId}' not loaded. Run the cell containing #!extension or #!nuget to load it.");
+            await ShowStatusAsync(string.Format(UI.Status_LayoutNotLoaded, layoutId));
         });
     }
 
@@ -555,9 +554,11 @@
     private NotebookPanelInfo? ActivePanelInfo
         => _activePanel is null ? null : _panels.FirstOrDefault(p => p.Key == _activePanel);
 
+    // Drawn in capitals by the stylesheet, not here: which letters have a capital form,
+    // and what they turn into, depends on the language the header is written in.
     private string ActivePanelTitle
         => ActivePanelInfo is { IsHostPanel: false } extensionPanel
-            ? extensionPanel.DisplayName.ToUpperInvariant()
+            ? extensionPanel.DisplayName
             : PanelDisplayNames.For(ActivePanelInfo?.PanelId ?? _activePanel ?? "");
 
     /// <summary>
@@ -586,11 +587,11 @@
         {
             _error = null;
             await Service.SaveAsync(Service.FilePath ?? "notebook.verso");
-            await ShowStatusAsync("Saved");
+            await ShowStatusAsync(UI.Status_Saved);
         }
         catch (Exception ex)
         {
-            _error = $"Failed to save: {ex.Message}";
+            _error = string.Format(UI.Error_SaveFailed, ex.Message);
         }
     }
 
@@ -643,13 +644,13 @@
         {
             await Service.ExecuteCellAsync(cellId);
         }
-        catch (Exception ex) when (ex is OperationCanceledException || ex.Message.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (IsCancellation(ex))
         {
             // User-initiated cancellation is not an error; the cell's status badge already shows it.
         }
         catch (Exception ex)
         {
-            _error = $"Execution error: {ex.Message}";
+            _error = string.Format(UI.Error_Execution, ex.Message);
         }
         finally
         {
@@ -665,7 +666,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Cancel error: {ex.Message}";
+            _error = string.Format(UI.Error_Cancel, ex.Message);
         }
     }
 
@@ -869,13 +870,13 @@
         {
             await Service.ExecuteAllAsync();
         }
-        catch (Exception ex) when (ex is OperationCanceledException || ex.Message.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (IsCancellation(ex))
         {
             // User-initiated cancellation is not an error.
         }
         catch (Exception ex)
         {
-            _error = $"Execution error: {ex.Message}";
+            _error = string.Format(UI.Error_Execution, ex.Message);
         }
         finally
         {
@@ -1059,7 +1060,7 @@
         }
         catch (Exception ex)
         {
-            _diffErrorMessage = $"could not list comparison sources: {ex.Message}";
+            _diffErrorMessage = string.Format(UI.Error_ListComparisonSources, ex.Message);
         }
 
         StateHasChanged();
@@ -1157,6 +1158,20 @@
         }
     }
 
+    /// <summary>
+    /// Whether an exception is a cancellation the reader asked for, rather than a fault.
+    /// </summary>
+    /// <remarks>
+    /// Cancellation reaches here wrapped in other exception types as well as on its own, so
+    /// the inner exception is checked too. The message is the last resort and not the first,
+    /// because the runtime writes it in the interface language: matching English text would
+    /// stop recognising a cancellation the moment somebody reads Verso in German.
+    /// </remarks>
+    private static bool IsCancellation(Exception ex)
+        => ex is OperationCanceledException
+            || ex.InnerException is OperationCanceledException
+            || ex.Message.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase);
+
     private void HandleExtensionsUnavailable(IReadOnlyList<UnavailableExtensionInfo> unavailable)
     {
         _ = InvokeAsync(async () => await ShowStatusAsync(FormatUnavailableExtensions(unavailable)));
@@ -1165,9 +1180,10 @@
     private static string FormatUnavailableExtensions(IReadOnlyList<UnavailableExtensionInfo> unavailable)
     {
         var names = string.Join(", ", unavailable.Select(u => u.PackageId));
-        var lead = unavailable.Count == 1
-            ? $"Required extension {names} could not be loaded"
-            : $"{unavailable.Count} required extensions could not be loaded: {names}";
-        return $"{lead}. Some layouts or cells may not work until it is available.";
+        // Two whole sentences rather than a shared tail, so the pronoun at the end can
+        // agree with the number at the start.
+        return unavailable.Count == 1
+            ? string.Format(UI.Status_RequiredExtensionUnavailable_One, names)
+            : string.Format(UI.Status_RequiredExtensionUnavailable_Other, unavailable.Count, names);
     }
 }

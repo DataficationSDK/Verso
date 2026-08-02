@@ -53,7 +53,11 @@ export async function resolveNotebook(): Promise<NotebookContext | undefined> {
       };
     });
     const picked = await vscode.window.showQuickPick(items, {
-      placeHolder: "Select a notebook for @verso",
+      // @verso is how the participant is addressed, so it is typed, not translated.
+      placeHolder: vscode.l10n.t({
+        message: "Select a notebook for @verso",
+        comment: ["@verso is typed to address the assistant and stays as written."],
+      }),
     });
     if (!picked) {
       return undefined;
@@ -136,6 +140,15 @@ function resolveCell(
   return cells[cellNumber - 1];
 }
 
+/**
+ * Wraps a tool's answer for the model.
+ *
+ * What goes through here is read by the model, not by anyone, and it stays in English.
+ * The model reasons over these answers and quotes them back in whatever language the
+ * conversation is in, so translating them would leave one turn of a conversation written
+ * in two languages while gaining nothing a reader would ever see. What a reader does see
+ * while a tool runs, its name and the line describing the call, is translated.
+ */
 function textResult(text: string): vscode.LanguageModelToolResult {
   return new vscode.LanguageModelToolResult([
     new vscode.LanguageModelTextPart(text),
@@ -188,8 +201,25 @@ export class AddCellTool
   ) {
     const lang = options.input.language;
     const lines = options.input.source.split("\n").length;
+    // Two entries rather than a "line(s)" no other language can copy. See the note on
+    // cellCount in participant.ts for why the choice is made here and not by the
+    // translation.
+    const counted =
+      lines === 1
+        ? vscode.l10n.t({
+            message: "{0} line",
+            args: [lines],
+            comment: ["Used when {0} is 1. Paired with the entry below."],
+          })
+        : vscode.l10n.t({
+            message: "{0} lines",
+            args: [lines],
+            comment: [
+              "Used for every count other than 1. A language with one form for both translates this the same as the entry above.",
+            ],
+          });
     return {
-      invocationMessage: `Adding ${lang} cell (${lines} line${lines === 1 ? "" : "s"})`,
+      invocationMessage: vscode.l10n.t("Adding {0} cell ({1})", lang, counted),
     };
   }
 
@@ -249,7 +279,10 @@ export class UpdateCellTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Updating cell ${options.input.cellNumber}`,
+      invocationMessage: vscode.l10n.t(
+        "Updating cell {0}",
+        options.input.cellNumber
+      ),
     };
   }
 
@@ -295,11 +328,17 @@ export class RemoveCellTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Removing cell ${options.input.cellNumber}`,
+      invocationMessage: vscode.l10n.t(
+        "Removing cell {0}",
+        options.input.cellNumber
+      ),
       confirmationMessages: {
-        title: "Remove cell",
+        title: vscode.l10n.t("Remove cell"),
         message: new vscode.MarkdownString(
-          `Remove cell **${options.input.cellNumber}** from the notebook?`
+          vscode.l10n.t(
+            "Remove cell **{0}** from the notebook?",
+            options.input.cellNumber
+          )
         ),
       },
     };
@@ -345,7 +384,10 @@ export class RunCellTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Running cell ${options.input.cellNumber}`,
+      invocationMessage: vscode.l10n.t(
+        "Running cell {0}",
+        options.input.cellNumber
+      ),
     };
   }
 
@@ -401,7 +443,7 @@ export class RunAllTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: "Running all cells",
+      invocationMessage: vscode.l10n.t("Running all cells"),
     };
   }
 
@@ -584,7 +626,11 @@ export class AddParameterTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Adding parameter "${options.input.name}" (${options.input.type})`,
+      invocationMessage: vscode.l10n.t(
+        'Adding parameter "{0}" ({1})',
+        options.input.name,
+        options.input.type
+      ),
     };
   }
 
@@ -643,7 +689,10 @@ export class UpdateParameterTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Updating parameter "${options.input.name}"`,
+      invocationMessage: vscode.l10n.t(
+        'Updating parameter "{0}"',
+        options.input.name
+      ),
     };
   }
 
@@ -697,11 +746,17 @@ export class RemoveParameterTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Removing parameter "${options.input.name}"`,
+      invocationMessage: vscode.l10n.t(
+        'Removing parameter "{0}"',
+        options.input.name
+      ),
       confirmationMessages: {
-        title: "Remove parameter",
+        title: vscode.l10n.t("Remove parameter"),
         message: new vscode.MarkdownString(
-          `Remove parameter **${options.input.name}** from the notebook?`
+          vscode.l10n.t(
+            "Remove parameter **{0}** from the notebook?",
+            options.input.name
+          )
         ),
       },
     };
@@ -809,7 +864,11 @@ export class UpdateCellPropertyTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Setting "${options.input.propertyName}" on cell ${options.input.cellNumber}`,
+      invocationMessage: vscode.l10n.t(
+        'Setting "{0}" on cell {1}',
+        options.input.propertyName,
+        options.input.cellNumber
+      ),
     };
   }
 
@@ -898,7 +957,10 @@ export class SwitchLayoutTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Switching layout to "${options.input.layoutId}"`,
+      invocationMessage: vscode.l10n.t(
+        'Switching layout to "{0}"',
+        options.input.layoutId
+      ),
     };
   }
 
@@ -972,7 +1034,11 @@ export class MoveCellTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Moving cell ${options.input.cellNumber} to position ${options.input.toPosition}`,
+      invocationMessage: vscode.l10n.t(
+        "Moving cell {0} to position {1}",
+        options.input.cellNumber,
+        options.input.toPosition
+      ),
     };
   }
 
@@ -1024,7 +1090,11 @@ export class ChangeCellTypeTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Changing cell ${options.input.cellNumber} to type "${options.input.type}"`,
+      invocationMessage: vscode.l10n.t(
+        'Changing cell {0} to type "{1}"',
+        options.input.cellNumber,
+        options.input.type
+      ),
     };
   }
 
@@ -1082,7 +1152,11 @@ export class ChangeCellLanguageTool
     _token: vscode.CancellationToken
   ) {
     return {
-      invocationMessage: `Changing cell ${options.input.cellNumber} language to "${options.input.language}"`,
+      invocationMessage: vscode.l10n.t(
+        'Changing cell {0} language to "{1}"',
+        options.input.cellNumber,
+        options.input.language
+      ),
     };
   }
 

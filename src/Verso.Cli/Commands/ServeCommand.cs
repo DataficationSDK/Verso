@@ -58,6 +58,7 @@ public static class ServeCommand
             var extensions = context.ParseResult.GetValueForOption(extensionsOption);
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
             var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
+            var language = context.ParseResult.GetValueForOption(LanguageOption.Instance);
 
             PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
 
@@ -82,7 +83,8 @@ public static class ServeCommand
                     NoHttps = noHttps,
                     Verbose = verbose,
                     ExtensionsDirectory = extensions?.FullName,
-                    PreserveFormat = preserveFormat
+                    PreserveFormat = preserveFormat,
+                    Language = language
                 };
 
                 var app = BlazorHostBuilder.Build(options);

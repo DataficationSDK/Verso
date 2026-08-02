@@ -13,7 +13,7 @@
     @if (_loading)
     {
         <div class="verso-panel-empty">
-            <p>Loading...</p>
+            <p>@UI.Common_Loading</p>
         </div>
     }
     else if (_html is not null)
@@ -29,7 +29,7 @@
     else
     {
         <div class="verso-panel-empty">
-            <p>This panel has nothing to show.</p>
+            <p>@UI.Panel_NothingToShow</p>
         </div>
     }
 </div>

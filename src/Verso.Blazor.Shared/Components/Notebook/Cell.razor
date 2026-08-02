@@ -15,7 +15,7 @@
                 {
                     <button class="verso-cell-btn verso-cell-btn--stop verso-cell-gutter-btn"
                             @onclick="() => OnCancelCell.InvokeAsync(CellData.Id)"
-                            aria-label="Stop" data-verso-tip="Stop">
+                            aria-label="@UI.Common_Stop" data-verso-tip="@UI.Common_Stop">
                         <span>&#x25A0;</span>
                     </button>
                 }
@@ -23,9 +23,9 @@
                 {
                     <button class="verso-cell-btn verso-cell-btn--run verso-cell-gutter-btn"
                             @onclick="() => OnRunCell.InvokeAsync(CellData.Id)"
-                            aria-label="Run"
-                            data-verso-tip="Run"
-                            data-verso-tip-desc="@(IsRunDisabled && !IsExecuting ? "Another cell is running." : null)"
+                            aria-label="@UI.Cell_Run"
+                            data-verso-tip="@UI.Cell_Run"
+                            data-verso-tip-desc="@(IsRunDisabled && !IsExecuting ? UI.Cell_AnotherCellRunning : null)"
                             disabled="@(IsExecuting || IsRunDisabled)">
                         @if (IsExecuting) { <span class="verso-spinner"></span> } else { <span>&#x25B6;</span> }
                     </button>
@@ -35,8 +35,8 @@
             {
                 <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
                         @onclick="() => OnToggleSection.InvokeAsync(CellData.Id)"
-                        aria-label="@(IsSectionCollapsed ? "Expand Section" : "Collapse Section")"
-                        data-verso-tip="@(IsSectionCollapsed ? "Expand Section" : "Collapse Section")">
+                        aria-label="@SectionToggleLabel"
+                        data-verso-tip="@SectionToggleLabel">
                     <span class="verso-cell-collapse-chevron @(IsSectionCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
                 </button>
             }
@@ -44,8 +44,8 @@
             {
                 <button class="verso-cell-btn verso-cell-gutter-btn verso-cell-gutter-btn--collapse"
                         @onclick="ToggleInputCollapseAsync"
-                        aria-label="@(IsInputCollapsed ? "Expand Code" : "Collapse Code")"
-                        data-verso-tip="@(IsInputCollapsed ? "Expand Code" : "Collapse Code")">
+                        aria-label="@InputToggleLabel"
+                        data-verso-tip="@InputToggleLabel">
                     <span class="verso-cell-collapse-chevron @(IsInputCollapsed ? "verso-cell-collapse-chevron--collapsed" : "")">&#x25BC;</span>
                 </button>
             }
@@ -132,13 +132,13 @@
                 }
                 @if (Index > 0)
                 {
-                    <button class="verso-cell-btn" @onclick="() => OnMoveUp.InvokeAsync(CellData.Id)" aria-label="Move Up" data-verso-tip="Move Up">&#x25B2;</button>
+                    <button class="verso-cell-btn" @onclick="() => OnMoveUp.InvokeAsync(CellData.Id)" aria-label="@UI.Cell_MoveUp" data-verso-tip="@UI.Cell_MoveUp">&#x25B2;</button>
                 }
                 @if (!IsLast)
                 {
-                    <button class="verso-cell-btn" @onclick="() => OnMoveDown.InvokeAsync(CellData.Id)" aria-label="Move Down" data-verso-tip="Move Down">&#x25BC;</button>
+                    <button class="verso-cell-btn" @onclick="() => OnMoveDown.InvokeAsync(CellData.Id)" aria-label="@UI.Cell_MoveDown" data-verso-tip="@UI.Cell_MoveDown">&#x25BC;</button>
                 }
-                <button class="verso-cell-btn verso-cell-btn--delete" @onclick="() => OnDeleteCell.InvokeAsync(CellData.Id)" aria-label="Delete" data-verso-tip="Delete">&#x2715;</button>
+                <button class="verso-cell-btn verso-cell-btn--delete" @onclick="() => OnDeleteCell.InvokeAsync(CellData.Id)" aria-label="@UI.Cell_Delete" data-verso-tip="@UI.Cell_Delete">&#x2715;</button>
             </div>
         </div>
 
@@ -281,11 +281,11 @@
 
     private static string DiffMarkLabel(CellDiffKind kind) => kind switch
     {
-        CellDiffKind.Added => "Added",
-        CellDiffKind.Removed => "Removed",
-        CellDiffKind.Modified => "Modified",
-        CellDiffKind.Moved => "Moved",
-        _ => "Unchanged"
+        CellDiffKind.Added => UI.Diff_Added,
+        CellDiffKind.Removed => UI.Diff_Removed,
+        CellDiffKind.Modified => UI.Diff_Modified,
+        CellDiffKind.Moved => UI.Diff_Moved,
+        _ => UI.Diff_Unchanged
     };
 
     private List<ToolbarActionInfo> _enabledCellActions = new();
@@ -312,9 +312,9 @@
     private void RecoverOutputRender() => _outputErrorBoundary?.Recover();
     private RenderFragment<Exception> RenderOutputError => renderError =>
         @<div class="verso-output verso-output--error">
-            <div class="verso-output-error-name">This output could not be rendered</div>
+            <div class="verso-output-error-name">@UI.Output_RenderFailed</div>
             <pre class="verso-output-error-content">@renderError.Message</pre>
-            <button class="verso-cell-btn verso-cell-btn--action" @onclick="RecoverOutputRender" data-verso-tip="Retry rendering this output">Retry</button>
+            <button class="verso-cell-btn verso-cell-btn--action" @onclick="RecoverOutputRender" data-verso-tip="@UI.Output_RetryRender">@UI.Common_Retry</button>
         </div>;
 
     // The type/language menus render in the browser top layer (popover) so they paint above the
@@ -367,7 +367,13 @@
         ? $"--verso-output-preview-lines: {OutputPreviewLineCount};"
         : "";
 
-    private string OutputSummaryText => $"{CellData.Outputs.Count} output(s) hidden";
+    private string OutputSummaryText => string.Format(
+        Plural.Of(CellData.Outputs.Count, UI.Cell_OutputsHidden_One, UI.Cell_OutputsHidden_Other),
+        CellData.Outputs.Count);
+
+    private string SectionToggleLabel => IsSectionCollapsed ? UI.Cell_ExpandSection : UI.Cell_CollapseSection;
+
+    private string InputToggleLabel => IsInputCollapsed ? UI.Cell_ExpandCode : UI.Cell_CollapseCode;
 
     private string CollapsedSourcePreview => BuildCollapsedSourcePreview(CellData.Source, InputPreviewLineCount);
 

@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Kernels;
 using Verso.Extensions.Renderers;
 
@@ -14,10 +15,10 @@ public sealed class MermaidCellType : ICellType
     // --- IExtension ---
 
     public string ExtensionId => "verso.celltype.mermaid";
-    public string Name => "Mermaid Cell Type";
+    public string Name => Strings.CellType_Mermaid;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Mermaid cell type for creating diagrams with mermaid.js syntax.";
+    public string? Description => Strings.CellType_Mermaid_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -25,6 +26,7 @@ public sealed class MermaidCellType : ICellType
     // --- ICellType ---
 
     public string CellTypeId => "mermaid";
+    // Format and product names read the same in every language.
     public string DisplayName => "Mermaid";
 
     public string? Icon => "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"currentColor\">"
@@ -35,5 +37,8 @@ public sealed class MermaidCellType : ICellType
     public ILanguageKernel? Kernel { get; } = new MermaidKernel();
     public bool IsEditable => true;
 
+    // Starter text, not interface text. What this returns is written into the cell and
+    // saved with the notebook, so it stays as one language rather than depending on who
+    // happened to add the cell.
     public string GetDefaultContent() => "graph TD\n    A[Start] --> B[End]";
 }

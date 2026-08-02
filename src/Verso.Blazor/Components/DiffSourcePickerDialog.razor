@@ -4,7 +4,7 @@
         <div class="verso-modal" role="dialog" aria-modal="true" aria-label="@Title" @onclick:stopPropagation="true">
             <div class="verso-modal-header">
                 <span class="verso-modal-title">@Title</span>
-                <button type="button" class="verso-modal-close" @onclick="HandleCancel" aria-label="Cancel" data-verso-tip="Cancel">
+                <button type="button" class="verso-modal-close" @onclick="HandleCancel" aria-label="@UI.Common_Cancel" data-verso-tip="@UI.Common_Cancel">
                     <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
                 </button>
             </div>
@@ -23,11 +23,11 @@
             <div class="verso-modal-footer">
                 <button type="button"
                         class="verso-modal-btn verso-modal-btn--secondary"
-                        @onclick="HandleCancel">Cancel</button>
+                        @onclick="HandleCancel">@UI.Common_Cancel</button>
                 <button type="button"
                         class="verso-modal-btn verso-modal-btn--primary"
                         disabled="@string.IsNullOrWhiteSpace(_value)"
-                        @onclick="HandleSubmit">Compare</button>
+                        @onclick="HandleSubmit">@UI.DiffPicker_Compare</button>
             </div>
         </div>
     </div>
@@ -47,13 +47,11 @@
 
     private bool IsGitRef => Kind == "gitRef";
 
-    private string Title => IsGitRef ? "Compare with Git Ref" : "Compare with File";
+    private string Title => IsGitRef ? UI.DiffPicker_TitleGitRef : UI.DiffPicker_TitleFile;
 
-    private string Prompt => IsGitRef
-        ? "Branch, tag, or commit"
-        : "Path to a notebook file (.verso, .ipynb, .md, .dib)";
+    private string Prompt => IsGitRef ? UI.DiffPicker_PromptGitRef : UI.DiffPicker_PromptFile;
 
-    private string Placeholder => IsGitRef ? "main" : "/path/to/notebook.verso";
+    private string Placeholder => IsGitRef ? UI.DiffPicker_PlaceholderGitRef : UI.DiffPicker_PlaceholderFile;
 
     protected override void OnParametersSet()
     {

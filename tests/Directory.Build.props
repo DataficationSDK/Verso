@@ -1,0 +1,13 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <ItemGroup>
+    <!--
+      Compiled into every test assembly rather than written out eleven times. The hook it
+      carries runs once per assembly, so a shared copy in one project would not reach the rest.
+    -->
+    <Compile Include="$(MSBuildThisFileDirectory)EnglishTestCulture.cs" Link="EnglishTestCulture.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Verso.Abstractions;
 using Verso.Blazor.Services;
+using Verso.Blazor.Shared.Resources;
 
 namespace Verso.Blazor.Shared.Tests;
 
@@ -169,7 +170,9 @@ public sealed class ServerNotebookServiceDiffTests
 
         var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             () => service.ComputeDiffAsync("file", badPath));
-        StringAssert.Contains(ex.Message, "Could not parse");
+        // Against the resource rather than the English, so rewording the message does not
+        // break the test and translating it does not make the test pass by accident.
+        StringAssert.Contains(ex.Message, string.Format(UI.Compare_ParseFailed, "broken.verso", "").TrimEnd());
     }
 
     private static ServerNotebookService NewService()

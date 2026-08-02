@@ -86,6 +86,25 @@ suite("BlazorBridge diff endpoints", () => {
     assert.strictEqual(byId.get("file")?.available, true);
   });
 
+  test("diff source ids are the same in every language", () => {
+    const { webview } = createFakeWebview();
+    const bridge = new BlazorBridge(webview, createFakeHost());
+
+    // Labels are written in the editor's display language and the notebook writes its
+    // own from these ids, so an id that moved with the language would break both: the
+    // notebook could not name the source, and diff/baseline could not resolve it.
+    assert.deepStrictEqual(
+      bridge.listDiffSources().sources.map((s) => s.id),
+      ["lastSaved", "gitHead", "gitRef", "file"]
+    );
+    for (const source of bridge.listDiffSources().sources) {
+      assert.ok(
+        source.label.length > 0,
+        `${source.id} reached the picker with no label`
+      );
+    }
+  });
+
   test("diff/sources and diff/baseline never mark the document dirty", async () => {
     const { webview, emit } = createFakeWebview();
     const bridge = new BlazorBridge(webview, createFakeHost());
@@ -171,11 +190,16 @@ suite("BlazorBridge diff endpoints", () => {
       const baseline = result as {
         content: string;
         filePath?: string;
-        label: string;
+        labelKind: string;
+        labelArg?: string;
       };
       assert.strictEqual(baseline.content, payload);
-      assert.strictEqual(baseline.label, "Last Saved");
       assert.strictEqual(baseline.filePath, tempFile.fsPath);
+      // Says which baseline this is rather than what to call it. The notebook writes
+      // the name itself, in the notebook interface language, which the reader may have
+      // set differently from the editor's.
+      assert.strictEqual(baseline.labelKind, "lastSaved");
+      assert.strictEqual(baseline.labelArg, undefined);
     } finally {
       await vscode.workspace.fs.delete(tempFile);
     }

@@ -12,6 +12,29 @@
     <SupportedPlatform Include="browser" />
   </ItemGroup>
 
+  <!--
+    UI strings live in Resources/UI.resx and are reached through the generated UI class, so a
+    renamed or deleted key breaks the build instead of silently falling back to the key name.
+    The generator emits an internal class, hence the InternalsVisibleTo entries below: the two
+    host projects draw their own page shells and need the same strings. None of the three ship
+    as NuGet packages, so nothing about that leaks to consumers.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\UI.resx">
+      <Generator>MSBuild:Compile</Generator>
+      <StronglyTypedFileName>$(IntermediateOutputPath)UI.Designer.cs</StronglyTypedFileName>
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedNamespace>Verso.Blazor.Shared.Resources</StronglyTypedNamespace>
+      <StronglyTypedClassName>UI</StronglyTypedClassName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Verso.Blazor" />
+    <InternalsVisibleTo Include="Verso.Blazor.Wasm" />
+    <InternalsVisibleTo Include="Verso.Blazor.Shared.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Verso.Abstractions\Verso.Abstractions.csproj" />
   </ItemGroup>

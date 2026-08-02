@@ -4,7 +4,14 @@ using System.CommandLine.Parsing;
 using Verso.Cli.Commands;
 using Verso.Cli.Utilities;
 
+// Ahead of the command tree, because building it reads every description.
+LanguageOption.ApplyFromArguments(args);
+
 var rootCommand = new RootCommand("Verso CLI — execute, serve, and convert Verso notebooks.");
+
+// Global rather than per-command: it has to be accepted before a subcommand name so that
+// "verso --language de --help" works, and every subcommand reads the same instance.
+rootCommand.AddGlobalOption(LanguageOption.Instance);
 
 // Subcommands
 rootCommand.AddCommand(RunCommand.Create());

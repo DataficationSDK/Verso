@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Renderers;
 
@@ -11,14 +12,15 @@ public sealed class HtmlCellRenderer : ICellRenderer
     // --- IExtension ---
 
     public string ExtensionId => "verso.renderer.html";
-    public string Name => "HTML Renderer";
+    public string Name => Strings.Renderer_Html;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Renders HTML cells with input collapse on execute.";
+    public string? Description => Strings.Renderer_Html_Description;
 
     // --- ICellRenderer ---
 
     public string CellTypeId => "html";
+    // Format and product names read the same in every language.
     public string DisplayName => "HTML";
     public bool CollapsesInputOnExecute => true;
 

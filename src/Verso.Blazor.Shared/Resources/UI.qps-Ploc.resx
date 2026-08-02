@@ -1,0 +1,922 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Capability_CellInteractionHandler" xml:space="preserve">
+    <value>[!!Çéll Ïñtéràçtïòñ Hàñdlér···!!]</value>
+  </data>
+  <data name="Capability_CellInteractionHandler_Plural" xml:space="preserve">
+    <value>[!!Çéll Ïñtéràçtïòñ Hàñdlérš···!!]</value>
+  </data>
+  <data name="Capability_CellPropertyProvider" xml:space="preserve">
+    <value>[!!Çéll Pròpértÿ Pròvïdér···!!]</value>
+  </data>
+  <data name="Capability_CellPropertyProvider_Plural" xml:space="preserve">
+    <value>[!!Çéll Pròpértÿ Pròvïdérš···!!]</value>
+  </data>
+  <data name="Capability_CellRenderer" xml:space="preserve">
+    <value>[!!Çéll Réñdérér···!!]</value>
+  </data>
+  <data name="Capability_CellRenderer_Plural" xml:space="preserve">
+    <value>[!!Çéll Réñdérérš···!!]</value>
+  </data>
+  <data name="Capability_CellType" xml:space="preserve">
+    <value>[!!Çéll Tÿpé···!!]</value>
+  </data>
+  <data name="Capability_CellType_Plural" xml:space="preserve">
+    <value>[!!Çéll Tÿpéš···!!]</value>
+  </data>
+  <data name="Capability_DataFormatter" xml:space="preserve">
+    <value>[!!Dàtà Fòrmàttér···!!]</value>
+  </data>
+  <data name="Capability_DataFormatter_Plural" xml:space="preserve">
+    <value>[!!Dàtà Fòrmàttérš···!!]</value>
+  </data>
+  <data name="Capability_ExtensionSettings" xml:space="preserve">
+    <value>[!!Šéttïñgš Pròvïdér···!!]</value>
+  </data>
+  <data name="Capability_ExtensionSettings_Plural" xml:space="preserve">
+    <value>[!!Šéttïñgš Pròvïdérš···!!]</value>
+  </data>
+  <data name="Capability_LanguageKernel" xml:space="preserve">
+    <value>[!!Làñgùàgé Kérñél···!!]</value>
+  </data>
+  <data name="Capability_LanguageKernel_Plural" xml:space="preserve">
+    <value>[!!Làñgùàgé Kérñélš···!!]</value>
+  </data>
+  <data name="Capability_LayoutEngine" xml:space="preserve">
+    <value>[!!Làÿòùt Éñgïñé···!!]</value>
+  </data>
+  <data name="Capability_LayoutEngine_Plural" xml:space="preserve">
+    <value>[!!Làÿòùt Éñgïñéš···!!]</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler" xml:space="preserve">
+    <value>[!!Làÿòùt Ïñtéràçtïòñ Hàñdlér···!!]</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler_Plural" xml:space="preserve">
+    <value>[!!Làÿòùt Ïñtéràçtïòñ Hàñdlérš···!!]</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler" xml:space="preserve">
+    <value>[!!Làÿòùt Lïféçÿçlé Hàñdlér···!!]</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler_Plural" xml:space="preserve">
+    <value>[!!Làÿòùt Lïféçÿçlé Hàñdlérš···!!]</value>
+  </data>
+  <data name="Capability_MagicCommand" xml:space="preserve">
+    <value>[!!Màgïç Çòmmàñd···!!]</value>
+  </data>
+  <data name="Capability_MagicCommand_Plural" xml:space="preserve">
+    <value>[!!Màgïç Çòmmàñdš···!!]</value>
+  </data>
+  <data name="Capability_NotebookPanel" xml:space="preserve">
+    <value>[!!Pàñél···!!]</value>
+  </data>
+  <data name="Capability_NotebookPanel_Plural" xml:space="preserve">
+    <value>[!!Pàñélš···!!]</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor" xml:space="preserve">
+    <value>[!!Pòšt-Pròçéššòr···!!]</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor_Plural" xml:space="preserve">
+    <value>[!!Pòšt-Pròçéššòrš···!!]</value>
+  </data>
+  <data name="Capability_NotebookSerializer" xml:space="preserve">
+    <value>[!!Šérïàlïzér···!!]</value>
+  </data>
+  <data name="Capability_NotebookSerializer_Plural" xml:space="preserve">
+    <value>[!!Šérïàlïzérš···!!]</value>
+  </data>
+  <data name="Capability_Other" xml:space="preserve">
+    <value>[!!Òthér···!!]</value>
+  </data>
+  <data name="Capability_Other_Plural" xml:space="preserve">
+    <value>[!!Òthér···!!]</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler" xml:space="preserve">
+    <value>[!!Pàñél Ïñtéràçtïòñ Hàñdlér···!!]</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler_Plural" xml:space="preserve">
+    <value>[!!Pàñél Ïñtéràçtïòñ Hàñdlérš···!!]</value>
+  </data>
+  <data name="Capability_Theme" xml:space="preserve">
+    <value>[!!Thémé···!!]</value>
+  </data>
+  <data name="Capability_Theme_Plural" xml:space="preserve">
+    <value>[!!Théméš···!!]</value>
+  </data>
+  <data name="Capability_ToolbarAction" xml:space="preserve">
+    <value>[!!Tòòlbàr Àçtïòñ···!!]</value>
+  </data>
+  <data name="Capability_ToolbarAction_Plural" xml:space="preserve">
+    <value>[!!Tòòlbàr Àçtïòñš···!!]</value>
+  </data>
+  <data name="CellList_AddCellType" xml:space="preserve">
+    <value>[!!+ {0} Çéll···!!]</value>
+  </data>
+  <data name="Cell_AnotherCellRunning" xml:space="preserve">
+    <value>[!!Àñòthér çéll ïš rùññïñg.···!!]</value>
+  </data>
+  <data name="Cell_CollapseCode" xml:space="preserve">
+    <value>[!!Çòllàpšé Çòdé···!!]</value>
+  </data>
+  <data name="Cell_CollapseSection" xml:space="preserve">
+    <value>[!!Çòllàpšé Šéçtïòñ···!!]</value>
+  </data>
+  <data name="Cell_Delete" xml:space="preserve">
+    <value>[!!Délété···!!]</value>
+  </data>
+  <data name="Cell_ExpandCode" xml:space="preserve">
+    <value>[!!Éxpàñd Çòdé···!!]</value>
+  </data>
+  <data name="Cell_ExpandSection" xml:space="preserve">
+    <value>[!!Éxpàñd Šéçtïòñ···!!]</value>
+  </data>
+  <data name="Cell_MoveDown" xml:space="preserve">
+    <value>[!!Mòvé Dòwñ···!!]</value>
+  </data>
+  <data name="Cell_MoveUp" xml:space="preserve">
+    <value>[!!Mòvé Ùp···!!]</value>
+  </data>
+  <data name="Cell_OutputsHidden_One" xml:space="preserve">
+    <value>[!!{0} òùtpùt hïddéñ···!!]</value>
+  </data>
+  <data name="Cell_OutputsHidden_Other" xml:space="preserve">
+    <value>[!!{0} òùtpùtš hïddéñ···!!]</value>
+  </data>
+  <data name="Cell_Run" xml:space="preserve">
+    <value>[!!Rùñ···!!]</value>
+  </data>
+  <data name="Common_AppTitle" xml:space="preserve">
+    <value>[!!Véršò Ñòtébòòk···!!]</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>[!!Çàñçél···!!]</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>[!!Çlòšé···!!]</value>
+  </data>
+  <data name="Common_Dismiss" xml:space="preserve">
+    <value>[!!Dïšmïšš···!!]</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>[!!Lòàdïñg...···!!]</value>
+  </data>
+  <data name="Common_NoNotebookOpen" xml:space="preserve">
+    <value>[!!Ñò ñòtébòòk ïš òpéñ.···!!]</value>
+  </data>
+  <data name="Common_Ok" xml:space="preserve">
+    <value>[!!ÒK···!!]</value>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>[!!Rétrÿ···!!]</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>[!!Šàvé···!!]</value>
+  </data>
+  <data name="Common_Stop" xml:space="preserve">
+    <value>[!!Štòp···!!]</value>
+  </data>
+  <data name="Common_Submit" xml:space="preserve">
+    <value>[!!Šùbmït···!!]</value>
+  </data>
+  <data name="Common_Untitled" xml:space="preserve">
+    <value>[!!Ùñtïtléd···!!]</value>
+  </data>
+  <data name="Compare_BackToChanges" xml:space="preserve">
+    <value>[!!Bàçk tò çhàñgéš···!!]</value>
+  </data>
+  <data name="Compare_Baseline" xml:space="preserve">
+    <value>[!!Bàšélïñé···!!]</value>
+  </data>
+  <data name="Compare_CellAt" xml:space="preserve">
+    <value>[!!çéll {0}···!!]</value>
+  </data>
+  <data name="Compare_CellMoved" xml:space="preserve">
+    <value>[!!çéll {0} → {1}···!!]</value>
+  </data>
+  <data name="Compare_ChangeBaseline" xml:space="preserve">
+    <value>[!!Çhàñgé bàšélïñé···!!]</value>
+  </data>
+  <data name="Compare_Changes" xml:space="preserve">
+    <value>[!!Çhàñgéš···!!]</value>
+  </data>
+  <data name="Compare_CompareWith" xml:space="preserve">
+    <value>[!!Çòmpàré wïth···!!]</value>
+  </data>
+  <data name="Compare_CouldNotRun" xml:space="preserve">
+    <value>[!!Thé çòmpàrïšòñ çòùld ñòt rùñ: {0}···!!]</value>
+  </data>
+  <data name="Compare_DialogTitle" xml:space="preserve">
+    <value>[!!Çòmpàré Ñòtébòòk···!!]</value>
+  </data>
+  <data name="Compare_DirectoryUnresolved" xml:space="preserve">
+    <value>[!!Çòùld ñòt wòrk òùt whïçh fòldér '{0}' ïš ïñ.···!!]</value>
+  </data>
+  <data name="Compare_EmptyCell" xml:space="preserve">
+    <value>[!!(émptÿ çéll)···!!]</value>
+  </data>
+  <data name="Compare_FileMissing" xml:space="preserve">
+    <value>[!!'{0}' dòéš ñòt éxïšt.···!!]</value>
+  </data>
+  <data name="Compare_FileNotTracked" xml:space="preserve">
+    <value>[!!'{0}' ïš ñòt tràçkéd àt '{1}'. Çòmmït thé fïlé fïršt, òr pïçk à dïfféréñt réf.···!!]</value>
+  </data>
+  <data name="Compare_GitReadFailed" xml:space="preserve">
+    <value>[!!gït çòùld ñòt réàd '{0}' àt '{1}'.···!!]</value>
+  </data>
+  <data name="Compare_GitRefLabel" xml:space="preserve">
+    <value>[!!Gït: {0}···!!]</value>
+  </data>
+  <data name="Compare_LookingForBaselines" xml:space="preserve">
+    <value>[!!Lòòkïñg fòr bàšélïñéš...···!!]</value>
+  </data>
+  <data name="Compare_NoCellChanged" xml:space="preserve">
+    <value>[!!Ñò çéll çhàñgéd àgàïñšt thïš bàšélïñé.···!!]</value>
+  </data>
+  <data name="Compare_NotInGitRepo" xml:space="preserve">
+    <value>[!!Thé ñòtébòòk fïlé ïš ñòt ïñšïdé à gït répòšïtòrÿ.···!!]</value>
+  </data>
+  <data name="Compare_NotSavedYet" xml:space="preserve">
+    <value>[!!Thé ñòtébòòk hàš ñòt bééñ šàvéd tò à fïlé ÿét.···!!]</value>
+  </data>
+  <data name="Compare_NotSet" xml:space="preserve">
+    <value>[!!(ñòt šét)···!!]</value>
+  </data>
+  <data name="Compare_NotebookSettings" xml:space="preserve">
+    <value>[!!Ñòtébòòk šéttïñgš···!!]</value>
+  </data>
+  <data name="Compare_NothingYet" xml:space="preserve">
+    <value>[!!Ñòthïñg ïš béïñg çòmpàréd ÿét. Thé ñòtébòòk ïš ùñtòùçhéd éïthér wàÿ.···!!]</value>
+  </data>
+  <data name="Compare_OpenFullDiff" xml:space="preserve">
+    <value>[!!Òpéñ fùll dïff···!!]</value>
+  </data>
+  <data name="Compare_ParseFailed" xml:space="preserve">
+    <value>[!!Çòùld ñòt réàd '{0}' àš à ñòtébòòk: {1}···!!]</value>
+  </data>
+  <data name="Compare_SourceChooseFile" xml:space="preserve">
+    <value>[!!Çhòòšé Fïlé...···!!]</value>
+  </data>
+  <data name="Compare_SourceGitHead" xml:space="preserve">
+    <value>[!!Gït: HÉÀD···!!]</value>
+  </data>
+  <data name="Compare_SourceGitRef" xml:space="preserve">
+    <value>[!!Gït: Çòmpàré wïth Réf...···!!]</value>
+  </data>
+  <data name="Compare_SourceLastSaved" xml:space="preserve">
+    <value>[!!Làšt Šàvéd···!!]</value>
+  </data>
+  <data name="Compare_SummaryAdded" xml:space="preserve">
+    <value>[!!{0} àddéd···!!]</value>
+  </data>
+  <data name="Compare_SummaryModified" xml:space="preserve">
+    <value>[!!{0} mòdïfïéd···!!]</value>
+  </data>
+  <data name="Compare_SummaryMoved" xml:space="preserve">
+    <value>[!!{0} mòvéd···!!]</value>
+  </data>
+  <data name="Compare_SummaryRemoved" xml:space="preserve">
+    <value>[!!{0} rémòvéd···!!]</value>
+  </data>
+  <data name="Compare_SummaryUnchanged" xml:space="preserve">
+    <value>[!!{0} ùñçhàñgéd···!!]</value>
+  </data>
+  <data name="Compare_UnknownRef" xml:space="preserve">
+    <value>[!!'{0}' ïš ñòt à kñòwñ bràñçh, tàg, òr çòmmït.···!!]</value>
+  </data>
+  <data name="Compare_WasCell" xml:space="preserve">
+    <value>[!!wàš çéll {0}···!!]</value>
+  </data>
+  <data name="Consent_ApproveAll" xml:space="preserve">
+    <value>[!!Àppròvé Àll···!!]</value>
+  </data>
+  <data name="Consent_ApproveInstall" xml:space="preserve">
+    <value>[!!Ïñštàll···!!]</value>
+  </data>
+  <data name="Consent_Deny" xml:space="preserve">
+    <value>[!!Déñÿ···!!]</value>
+  </data>
+  <data name="Consent_IntroExtension_One" xml:space="preserve">
+    <value>[!!Thïš ñòtébòòk wàñtš tò lòàd thé fòllòwïñg éxtéñšïòñ pàçkàgé:···!!]</value>
+  </data>
+  <data name="Consent_IntroExtension_Other" xml:space="preserve">
+    <value>[!!Thïš ñòtébòòk wàñtš tò lòàd thé fòllòwïñg éxtéñšïòñ pàçkàgéš:···!!]</value>
+  </data>
+  <data name="Consent_IntroPackage_One" xml:space="preserve">
+    <value>[!!Thïš ñòtébòòk ñéédš thé fòllòwïñg Pÿthòñ pàçkàgé ïñštàlléd:···!!]</value>
+  </data>
+  <data name="Consent_IntroPackage_Other" xml:space="preserve">
+    <value>[!!Thïš ñòtébòòk ñéédš thé fòllòwïñg Pÿthòñ pàçkàgéš ïñštàlléd:···!!]</value>
+  </data>
+  <data name="Consent_Target" xml:space="preserve">
+    <value>[!!Ïñtò {0}···!!]</value>
+  </data>
+  <data name="Consent_TitleExtension" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ Çòñšéñt Réqùïréd···!!]</value>
+  </data>
+  <data name="Consent_TitlePackage" xml:space="preserve">
+    <value>[!!Pàçkàgé Ïñštàll Réqùïréd···!!]</value>
+  </data>
+  <data name="Consent_WarningExtension" xml:space="preserve">
+    <value>[!!Éxtéñšïòñš rùñ çòdé òñ ÿòùr màçhïñé. Òñlÿ àppròvé pàçkàgéš ÿòù trùšt.···!!]</value>
+  </data>
+  <data name="Consent_WarningPackage" xml:space="preserve">
+    <value>[!!Pàçkàgéš rùñ çòdé òñ ÿòùr màçhïñé. Òñlÿ ïñštàll pàçkàgéš ÿòù trùšt.···!!]</value>
+  </data>
+  <data name="DiffPicker_Compare" xml:space="preserve">
+    <value>[!!Çòmpàré···!!]</value>
+  </data>
+  <data name="DiffPicker_PlaceholderFile" xml:space="preserve">
+    <value>[!!/pàth/tò/ñòtébòòk.véršò···!!]</value>
+  </data>
+  <data name="DiffPicker_PlaceholderGitRef" xml:space="preserve">
+    <value>[!!màïñ···!!]</value>
+  </data>
+  <data name="DiffPicker_PromptFile" xml:space="preserve">
+    <value>[!!Pàth tò à ñòtébòòk fïlé (.véršò, .ïpÿñb, .md, .dïb)···!!]</value>
+  </data>
+  <data name="DiffPicker_PromptGitRef" xml:space="preserve">
+    <value>[!!Bràñçh, tàg, òr çòmmït···!!]</value>
+  </data>
+  <data name="DiffPicker_TitleFile" xml:space="preserve">
+    <value>[!!Çòmpàré wïth Fïlé···!!]</value>
+  </data>
+  <data name="DiffPicker_TitleGitRef" xml:space="preserve">
+    <value>[!!Çòmpàré wïth Gït Réf···!!]</value>
+  </data>
+  <data name="DiffView_ApproximateMatch" xml:space="preserve">
+    <value>[!!Àppròxïmàté màtçh···!!]</value>
+  </data>
+  <data name="DiffView_ApproximateMatchChip" xml:space="preserve">
+    <value>[!!àppròxïmàté màtçh···!!]</value>
+  </data>
+  <data name="DiffView_ApproximateMatchDesc" xml:space="preserve">
+    <value>[!!Théšé fïléš çàrrÿ ñò šhàréd çéll ïdéñtïtÿ, šò thïš pàïrïñg ïš bàšéd òñ çòñtéñt šïmïlàrïtÿ.···!!]</value>
+  </data>
+  <data name="DiffView_ChangeCount_One" xml:space="preserve">
+    <value>[!!{0} çhàñgé···!!]</value>
+  </data>
+  <data name="DiffView_ChangeCount_Other" xml:space="preserve">
+    <value>[!!{0} çhàñgéš···!!]</value>
+  </data>
+  <data name="DiffView_ComparingWith" xml:space="preserve">
+    <value>[!!Çòmpàrïñg wïth {0}···!!]</value>
+  </data>
+  <data name="DiffView_Current" xml:space="preserve">
+    <value>[!!Çùrréñt···!!]</value>
+  </data>
+  <data name="DiffView_IdenticalDetail" xml:space="preserve">
+    <value>[!!Évérÿ çéll àñd évérÿ ñòtébòòk šéttïñg màtçhéš thé bàšélïñé, ïñçlùdïñg ùñšàvéd édïtš.···!!]</value>
+  </data>
+  <data name="DiffView_IdenticalTo" xml:space="preserve">
+    <value>[!!Ïdéñtïçàl tò {0}···!!]</value>
+  </data>
+  <data name="DiffView_MetadataChip" xml:space="preserve">
+    <value>[!!métàdàtà···!!]</value>
+  </data>
+  <data name="DiffView_NavPosition" xml:space="preserve">
+    <value>[!!{0} òf {1}···!!]</value>
+  </data>
+  <data name="DiffView_NextChange" xml:space="preserve">
+    <value>[!!Ñéxt çhàñgé···!!]</value>
+  </data>
+  <data name="DiffView_NoChanges" xml:space="preserve">
+    <value>[!!Ñò çhàñgéš···!!]</value>
+  </data>
+  <data name="DiffView_OutputsChanged" xml:space="preserve">
+    <value>[!!Òùtpùtš çhàñgéd···!!]</value>
+  </data>
+  <data name="DiffView_PositionChange" xml:space="preserve">
+    <value>[!!pòšïtïòñ {0} → {1}···!!]</value>
+  </data>
+  <data name="DiffView_PreviousChange" xml:space="preserve">
+    <value>[!!Prévïòùš çhàñgé···!!]</value>
+  </data>
+  <data name="DiffView_ShowSourceChanges" xml:space="preserve">
+    <value>[!!Šhòw šòùrçé çhàñgéš···!!]</value>
+  </data>
+  <data name="DiffView_TypeChange" xml:space="preserve">
+    <value>[!!{0} → {1}···!!]</value>
+  </data>
+  <data name="DiffView_UnchangedCells_One" xml:space="preserve">
+    <value>[!!{0} ùñçhàñgéd çéll···!!]</value>
+  </data>
+  <data name="DiffView_UnchangedCells_Other" xml:space="preserve">
+    <value>[!!{0} ùñçhàñgéd çéllš···!!]</value>
+  </data>
+  <data name="Diff_Added" xml:space="preserve">
+    <value>[!!Àddéd···!!]</value>
+  </data>
+  <data name="Diff_Modified" xml:space="preserve">
+    <value>[!!Mòdïfïéd···!!]</value>
+  </data>
+  <data name="Diff_Moved" xml:space="preserve">
+    <value>[!!Mòvéd···!!]</value>
+  </data>
+  <data name="Diff_Removed" xml:space="preserve">
+    <value>[!!Rémòvéd···!!]</value>
+  </data>
+  <data name="Diff_Unchanged" xml:space="preserve">
+    <value>[!!Ùñçhàñgéd···!!]</value>
+  </data>
+  <data name="Error_Cancel" xml:space="preserve">
+    <value>[!!Çòùld ñòt štòp thé çéll: {0}···!!]</value>
+  </data>
+  <data name="Error_CreateNotebook" xml:space="preserve">
+    <value>[!!Çòùld ñòt çréàté thé ñòtébòòk: {0}···!!]</value>
+  </data>
+  <data name="Error_Execution" xml:space="preserve">
+    <value>[!!Çòùld ñòt rùñ thé çéll: {0}···!!]</value>
+  </data>
+  <data name="Error_ListComparisonSources" xml:space="preserve">
+    <value>[!!thé çòmpàrïšòñ šòùrçéš çòùld ñòt bé lïštéd: {0}···!!]</value>
+  </data>
+  <data name="Error_OpenFile" xml:space="preserve">
+    <value>[!!Çòùld ñòt òpéñ thé fïlé: {0}···!!]</value>
+  </data>
+  <data name="Error_SaveFailed" xml:space="preserve">
+    <value>[!!Çòùld ñòt šàvé: {0}···!!]</value>
+  </data>
+  <data name="Error_SessionRecovery" xml:space="preserve">
+    <value>[!!Çòùld ñòt réçòvér thé šéššïòñ: {0}···!!]</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>[!!ùñkñòwñ érròr···!!]</value>
+  </data>
+  <data name="Extensions_Disable" xml:space="preserve">
+    <value>[!!Dïšàblé···!!]</value>
+  </data>
+  <data name="Extensions_Enable" xml:space="preserve">
+    <value>[!!Éñàblé···!!]</value>
+  </data>
+  <data name="Extensions_Loaded" xml:space="preserve">
+    <value>[!!Lòàdéd···!!]</value>
+  </data>
+  <data name="Extensions_Off" xml:space="preserve">
+    <value>[!!Òff···!!]</value>
+  </data>
+  <data name="Extensions_On" xml:space="preserve">
+    <value>[!!Òñ···!!]</value>
+  </data>
+  <data name="InputDialog_DefaultPrompt" xml:space="preserve">
+    <value>[!!Ïñpùt···!!]</value>
+  </data>
+  <data name="InputDialog_Title" xml:space="preserve">
+    <value>[!!Ñòtébòòk Ïñpùt···!!]</value>
+  </data>
+  <data name="Kernel_HostExited" xml:space="preserve">
+    <value>[!!Thé pròçéšš rùññïñg thé kérñélš hàš štòppéd.···!!]</value>
+  </data>
+  <data name="Key_AltDown" xml:space="preserve">
+    <value>[!!Àlt+Dòwñ···!!]</value>
+  </data>
+  <data name="Key_AltUp" xml:space="preserve">
+    <value>[!!Àlt+Ùp···!!]</value>
+  </data>
+  <data name="Key_Escape" xml:space="preserve">
+    <value>[!!Éšç···!!]</value>
+  </data>
+  <data name="Layout_ErrorAllocateFrame" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: à fràmé çòùld ñòt bé àllòçàtéd. {0}···!!]</value>
+  </data>
+  <data name="Layout_ErrorBridgeScript" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: thé šçrïpt thàt çòññéçtš ït tò Véršò ïš ùñàvàïlàblé. {0}···!!]</value>
+  </data>
+  <data name="Layout_ErrorDisallowedSource" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: ït àškš tò çòññéçt tò à šòùrçé thàt ïš ñòt àllòwéd ({0}).···!!]</value>
+  </data>
+  <data name="Layout_ErrorNoActive" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: ñò làÿòùt ïš àçtïvé.···!!]</value>
+  </data>
+  <data name="Layout_ErrorNotReady" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: ït dïd ñòt répòrt thàt ït wàš réàdÿ wïthïñ {0} šéçòñdš.···!!]</value>
+  </data>
+  <data name="Layout_ErrorPackageEmpty" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: ïtš réñdérér ïš émptÿ.···!!]</value>
+  </data>
+  <data name="Layout_ErrorPackageFetch" xml:space="preserve">
+    <value>[!!Thé làÿòùt çòùld ñòt lòàd: ïtš réñdérér çòùld ñòt bé fétçhéd. {0}···!!]</value>
+  </data>
+  <data name="Marketplace_AddsNothing" xml:space="preserve">
+    <value>[!!Àddš ñòthïñg···!!]</value>
+  </data>
+  <data name="Marketplace_AddsNothingDesc" xml:space="preserve">
+    <value>[!!Ït lòàdéd bùt çòñtrïbùtéd ñò éxtéñšïòñ pòïñt, šò ïñštàllïñg ït çhàñgéd ñòthïñg.···!!]</value>
+  </data>
+  <data name="Marketplace_ChooseVersion" xml:space="preserve">
+    <value>[!!Çhòòšé à véršïòñ tò ïñštàll···!!]</value>
+  </data>
+  <data name="Marketplace_Downloads" xml:space="preserve">
+    <value>[!!{0} dòwñlòàdš···!!]</value>
+  </data>
+  <data name="Marketplace_Install" xml:space="preserve">
+    <value>[!!Ïñštàll···!!]</value>
+  </data>
+  <data name="Marketplace_InstallFailed" xml:space="preserve">
+    <value>[!!Ïñštàllàtïòñ fàïléd.···!!]</value>
+  </data>
+  <data name="Marketplace_InstallFromFile" xml:space="preserve">
+    <value>[!!Ïñštàll fròm à fïlé···!!]</value>
+  </data>
+  <data name="Marketplace_InstallFromFileDesc" xml:space="preserve">
+    <value>[!!Šïdélòàd à lòçàl .dll òr .ñùpkg.···!!]</value>
+  </data>
+  <data name="Marketplace_InstallNotApproved" xml:space="preserve">
+    <value>[!!Ïñštàllàtïòñ wàš ñòt àppròvéd.···!!]</value>
+  </data>
+  <data name="Marketplace_InstallScope" xml:space="preserve">
+    <value>[!!Ïñštàll šçòpé···!!]</value>
+  </data>
+  <data name="Marketplace_InstallScopeDesc" xml:space="preserve">
+    <value>[!!Ïñštàllïñg réçòrdš thé pàçkàgé ïñ thïš ñòtébòòk, ñòt òñ thïš màçhïñé.···!!]</value>
+  </data>
+  <data name="Marketplace_Installed" xml:space="preserve">
+    <value>[!!Ïñštàlléd···!!]</value>
+  </data>
+  <data name="Marketplace_InstallsInto" xml:space="preserve">
+    <value>[!!Ïñštàllš ïñtò {0}···!!]</value>
+  </data>
+  <data name="Marketplace_Local" xml:space="preserve">
+    <value>[!!Lòçàl···!!]</value>
+  </data>
+  <data name="Marketplace_LocalDesc" xml:space="preserve">
+    <value>[!!Šïdélòàdéd fròm à lòçàl fïlé.···!!]</value>
+  </data>
+  <data name="Marketplace_LocalFile" xml:space="preserve">
+    <value>[!!lòçàl fïlé···!!]</value>
+  </data>
+  <data name="Marketplace_NoResults" xml:space="preserve">
+    <value>[!!Ñò pàçkàgéš fòùñd.···!!]</value>
+  </data>
+  <data name="Marketplace_NoneInstalled" xml:space="preserve">
+    <value>[!!Ñò éxtéñšïòñš ïñštàlléd. Šéàrçh tò àdd òñé.···!!]</value>
+  </data>
+  <data name="Marketplace_NotLoaded" xml:space="preserve">
+    <value>[!!Ñòt lòàdéd···!!]</value>
+  </data>
+  <data name="Marketplace_PackageSources" xml:space="preserve">
+    <value>[!!Pàçkàgé šòùrçéš···!!]</value>
+  </data>
+  <data name="Marketplace_Remove" xml:space="preserve">
+    <value>[!!Rémòvé···!!]</value>
+  </data>
+  <data name="Marketplace_RemovedNotice" xml:space="preserve">
+    <value>[!!Rémòvéd fròm thïš ñòtébòòk. Whàt ït lòàdéd štàÿš àçtïvé ùñtïl thé ñòtébòòk ïš réòpéñéd.···!!]</value>
+  </data>
+  <data name="Marketplace_ResultsFrom" xml:space="preserve">
+    <value>[!!fròm {0}···!!]</value>
+  </data>
+  <data name="Marketplace_SearchPlaceholder" xml:space="preserve">
+    <value>[!!Šéàrçh éxtéñšïòñš...···!!]</value>
+  </data>
+  <data name="Marketplace_Searching" xml:space="preserve">
+    <value>[!!Šéàrçhïñg...···!!]</value>
+  </data>
+  <data name="Marketplace_SourceCount" xml:space="preserve">
+    <value>[!!{0} šòùrçéš···!!]</value>
+  </data>
+  <data name="Marketplace_ThisNotebook" xml:space="preserve">
+    <value>[!!thïš ñòtébòòk···!!]</value>
+  </data>
+  <data name="Metadata_Created" xml:space="preserve">
+    <value>[!!Çréàtéd···!!]</value>
+  </data>
+  <data name="Metadata_DefaultKernel" xml:space="preserve">
+    <value>[!!Défàùlt Kérñél···!!]</value>
+  </data>
+  <data name="Metadata_FilePath" xml:space="preserve">
+    <value>[!!Fïlé Pàth···!!]</value>
+  </data>
+  <data name="Metadata_FormatVersion" xml:space="preserve">
+    <value>[!!Fòrmàt Véršïòñ···!!]</value>
+  </data>
+  <data name="Metadata_Modified" xml:space="preserve">
+    <value>[!!Mòdïfïéd···!!]</value>
+  </data>
+  <data name="Metadata_Title" xml:space="preserve">
+    <value>[!!Tïtlé···!!]</value>
+  </data>
+  <data name="Metadata_Unsaved" xml:space="preserve">
+    <value>[!!(ùñšàvéd)···!!]</value>
+  </data>
+  <data name="NotFound_Message" xml:space="preserve">
+    <value>[!!Šòrrÿ, théré'š ñòthïñg àt thïš àddréšš.···!!]</value>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <value>[!!Ñòt fòùñd···!!]</value>
+  </data>
+  <data name="Output_EmptyCsv" xml:space="preserve">
+    <value>[!!Émptÿ ÇŠV···!!]</value>
+  </data>
+  <data name="Output_Error" xml:space="preserve">
+    <value>[!!Érròr···!!]</value>
+  </data>
+  <data name="Output_JsonItems_One" xml:space="preserve">
+    <value>[!!{0} ïtém···!!]</value>
+  </data>
+  <data name="Output_JsonItems_Other" xml:space="preserve">
+    <value>[!!{0} ïtémš···!!]</value>
+  </data>
+  <data name="Output_JsonKeys_One" xml:space="preserve">
+    <value>[!!{0} kéÿ···!!]</value>
+  </data>
+  <data name="Output_JsonKeys_Other" xml:space="preserve">
+    <value>[!!{0} kéÿš···!!]</value>
+  </data>
+  <data name="Output_RenderFailed" xml:space="preserve">
+    <value>[!!Thïš òùtpùt çòùld ñòt bé réñdéréd···!!]</value>
+  </data>
+  <data name="Output_RetryRender" xml:space="preserve">
+    <value>[!!Rétrÿ réñdérïñg thïš òùtpùt···!!]</value>
+  </data>
+  <data name="Output_StandardError" xml:space="preserve">
+    <value>[!!Štàñdàrd érròr òùtpùt···!!]</value>
+  </data>
+  <data name="Output_Working" xml:space="preserve">
+    <value>[!!Wòrkïñg···!!]</value>
+  </data>
+  <data name="Panel_Collapse" xml:space="preserve">
+    <value>[!!Çòllàpšé pàñél···!!]</value>
+  </data>
+  <data name="Panel_Compare" xml:space="preserve">
+    <value>[!!Çòmpàré···!!]</value>
+  </data>
+  <data name="Panel_Compare_Description" xml:space="preserve">
+    <value>[!!Méàšùré thïš ñòtébòòk àgàïñšt à šàvéd bàšélïñé.···!!]</value>
+  </data>
+  <data name="Panel_Extensions" xml:space="preserve">
+    <value>[!!Éxtéñšïòñš···!!]</value>
+  </data>
+  <data name="Panel_Extensions_Description" xml:space="preserve">
+    <value>[!!Éxtéñšïòñš lòàdéd héré, àñd mòré ÿòù çàñ ïñštàll.···!!]</value>
+  </data>
+  <data name="Panel_Metadata" xml:space="preserve">
+    <value>[!!Métàdàtà···!!]</value>
+  </data>
+  <data name="Panel_Metadata_Description" xml:space="preserve">
+    <value>[!!Tïtlé, kérñél, àñd fïlé détàïlš fòr thïš ñòtébòòk.···!!]</value>
+  </data>
+  <data name="Panel_NothingToShow" xml:space="preserve">
+    <value>[!!Thïš pàñél hàš ñòthïñg tò šhòw.···!!]</value>
+  </data>
+  <data name="Panel_Properties" xml:space="preserve">
+    <value>[!!Pròpértïéš···!!]</value>
+  </data>
+  <data name="Panel_PropertiesHeading" xml:space="preserve">
+    <value>[!!Çéll Pròpértïéš···!!]</value>
+  </data>
+  <data name="Panel_Properties_Description" xml:space="preserve">
+    <value>[!!Šéttïñgš fòr thé šéléçtéd çéll.···!!]</value>
+  </data>
+  <data name="Panel_Settings" xml:space="preserve">
+    <value>[!!Šéttïñgš···!!]</value>
+  </data>
+  <data name="Panel_Settings_Description" xml:space="preserve">
+    <value>[!!Šéttïñgš çòñtrïbùtéd bÿ thé éñàbléd éxtéñšïòñš.···!!]</value>
+  </data>
+  <data name="Panel_Variables" xml:space="preserve">
+    <value>[!!Vàrïàbléš···!!]</value>
+  </data>
+  <data name="Panel_Variables_Description" xml:space="preserve">
+    <value>[!!Évérÿthïñg thé kérñél ïš çùrréñtlÿ hòldïñg.···!!]</value>
+  </data>
+  <data name="Panel_View" xml:space="preserve">
+    <value>[!!Vïéw···!!]</value>
+  </data>
+  <data name="Panel_View_Description" xml:space="preserve">
+    <value>[!!Šwïtçh làÿòùt òr thémé wïthòùt çlòšïñg thé pàñél.···!!]</value>
+  </data>
+  <data name="Properties_AddTagPlaceholder" xml:space="preserve">
+    <value>[!!Àdd tàg...···!!]</value>
+  </data>
+  <data name="Properties_None" xml:space="preserve">
+    <value>[!!Ñò pròpértïéš àvàïlàblé fòr thïš çéll.···!!]</value>
+  </data>
+  <data name="Properties_RemoveTag" xml:space="preserve">
+    <value>[!!Rémòvé tàg···!!]</value>
+  </data>
+  <data name="Properties_SelectACell" xml:space="preserve">
+    <value>[!!Šéléçt à çéll tò vïéw ïtš pròpértïéš.···!!]</value>
+  </data>
+  <data name="Reconnect_Message" xml:space="preserve">
+    <value>[!!Ýòùr šéššïòñ ïš štïll àçtïvé. Àttémptïñg tò réçòññéçt.···!!]</value>
+  </data>
+  <data name="Reconnect_RecoveringMessage" xml:space="preserve">
+    <value>[!!Rélòàdïñg tò réštòré ÿòùr ñòtébòòk.···!!]</value>
+  </data>
+  <data name="Reconnect_RecoveringTitle" xml:space="preserve">
+    <value>[!!Réçòvérïñg ÿòùr šéššïòñ...···!!]</value>
+  </data>
+  <data name="Reconnect_Reload" xml:space="preserve">
+    <value>[!!Rélòàd pàgé···!!]</value>
+  </data>
+  <data name="Reconnect_Title" xml:space="preserve">
+    <value>[!!Réçòññéçtïñg...···!!]</value>
+  </data>
+  <data name="SaveDialog_PathHint" xml:space="preserve">
+    <value>[!!Éñtér thé fùll fïlé pàth. Thé {0} éxtéñšïòñ wïll bé àddéd ïf mïššïñg.···!!]</value>
+  </data>
+  <data name="SaveDialog_PathLabel" xml:space="preserve">
+    <value>[!!Šàvé tò:···!!]</value>
+  </data>
+  <data name="SaveDialog_Title" xml:space="preserve">
+    <value>[!!Šàvé Ñòtébòòk Àš···!!]</value>
+  </data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve">
+    <value>[!!Géñéràl···!!]</value>
+  </data>
+  <data name="Settings_ListPlaceholder" xml:space="preserve">
+    <value>[!!çòmmà šépàràtéd···!!]</value>
+  </data>
+  <data name="Settings_NoConfigurableExtensions" xml:space="preserve">
+    <value>[!!Ñò éñàbléd éxtéñšïòñš wïth çòñfïgùràblé šéttïñgš.···!!]</value>
+  </data>
+  <data name="Status_KernelRestarted" xml:space="preserve">
+    <value>[!!Kérñél réštàrtéd···!!]</value>
+  </data>
+  <data name="Status_KernelRestartedReload" xml:space="preserve">
+    <value>[!!Kérñél réštàrtéd. Ré-rùñ çéllš wïth #!ñùgét òr #!éxtéñšïòñ tò rélòàd.···!!]</value>
+  </data>
+  <data name="Status_LayoutNotLoaded" xml:space="preserve">
+    <value>[!!Làÿòùt '{0}' ïš ñòt lòàdéd. Rùñ thé çéll çòñtàïñïñg #!éxtéñšïòñ òr #!ñùgét tò lòàd ït.···!!]</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_One" xml:space="preserve">
+    <value>[!!Réqùïréd éxtéñšïòñ {0} çòùld ñòt bé lòàdéd. Šòmé làÿòùtš òr çéllš màÿ ñòt wòrk ùñtïl ït ïš àvàïlàblé.···!!]</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_Other" xml:space="preserve">
+    <value>[!!{0} réqùïréd éxtéñšïòñš çòùld ñòt bé lòàdéd: {1}. Šòmé làÿòùtš òr çéllš màÿ ñòt wòrk ùñtïl théÿ àré àvàïlàblé.···!!]</value>
+  </data>
+  <data name="Status_RestartingKernel" xml:space="preserve">
+    <value>[!!Réštàrtïñg kérñél...···!!]</value>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>[!!Šàvéd···!!]</value>
+  </data>
+  <data name="Status_SavedTo" xml:space="preserve">
+    <value>[!!Šàvéd tò {0}···!!]</value>
+  </data>
+  <data name="Toolbar_ActionFailed" xml:space="preserve">
+    <value>[!!{0} fàïléd: {1}···!!]</value>
+  </data>
+  <data name="Toolbar_Browse" xml:space="preserve">
+    <value>[!!Bròwšé···!!]</value>
+  </data>
+  <data name="Toolbar_CellCount_One" xml:space="preserve">
+    <value>[!!{0} çéll···!!]</value>
+  </data>
+  <data name="Toolbar_CellCount_Other" xml:space="preserve">
+    <value>[!!{0} çéllš···!!]</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>[!!Éxpòrt···!!]</value>
+  </data>
+  <data name="Toolbar_ExportNotebook" xml:space="preserve">
+    <value>[!!Éxpòrt Ñòtébòòk···!!]</value>
+  </data>
+  <data name="Toolbar_Go" xml:space="preserve">
+    <value>[!!Gò···!!]</value>
+  </data>
+  <data name="Toolbar_KernelDisconnected" xml:space="preserve">
+    <value>[!!Dïšçòññéçtéd···!!]</value>
+  </data>
+  <data name="Toolbar_KernelError" xml:space="preserve">
+    <value>[!!Kérñél érròr···!!]</value>
+  </data>
+  <data name="Toolbar_KernelIdle" xml:space="preserve">
+    <value>[!!Kérñél ïdlé···!!]</value>
+  </data>
+  <data name="Toolbar_KernelList" xml:space="preserve">
+    <value>[!!Kérñélš: {0}···!!]</value>
+  </data>
+  <data name="Toolbar_KernelRestarting" xml:space="preserve">
+    <value>[!!Réštàrtïñg…···!!]</value>
+  </data>
+  <data name="Toolbar_KernelRunning" xml:space="preserve">
+    <value>[!!Rùññïñg…···!!]</value>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>[!!Ñéw···!!]</value>
+  </data>
+  <data name="Toolbar_NewNotebook" xml:space="preserve">
+    <value>[!!Ñéw Ñòtébòòk···!!]</value>
+  </data>
+  <data name="Toolbar_NoKernel" xml:space="preserve">
+    <value>[!!Ñò kérñél···!!]</value>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>[!!Òpéñ···!!]</value>
+  </data>
+  <data name="Toolbar_OpenFile" xml:space="preserve">
+    <value>[!!Òpéñ Fïlé···!!]</value>
+  </data>
+  <data name="Toolbar_OpenPathPlaceholder" xml:space="preserve">
+    <value>[!!Fïlé pàth òr ÙRL...···!!]</value>
+  </data>
+  <data name="Toolbar_ReadFileFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò réàd fïlé: {0}···!!]</value>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>[!!Šàvé···!!]</value>
+  </data>
+  <data name="Toolbar_SaveUnsavedChanges" xml:space="preserve">
+    <value>[!!Ýòù hàvé ùñšàvéd çhàñgéš.···!!]</value>
+  </data>
+  <data name="Toolbar_StopExecution" xml:space="preserve">
+    <value>[!!Štòp Éxéçùtïòñ···!!]</value>
+  </data>
+  <data name="Toolbar_StopFailed" xml:space="preserve">
+    <value>[!!Štòp fàïléd: {0}···!!]</value>
+  </data>
+  <data name="Variables_ColumnName" xml:space="preserve">
+    <value>[!!Ñàmé···!!]</value>
+  </data>
+  <data name="Variables_ColumnType" xml:space="preserve">
+    <value>[!!Tÿpé···!!]</value>
+  </data>
+  <data name="Variables_ColumnValue" xml:space="preserve">
+    <value>[!!Vàlùé···!!]</value>
+  </data>
+  <data name="Variables_Empty" xml:space="preserve">
+    <value>[!!Ñò vàrïàbléš défïñéd.···!!]</value>
+  </data>
+  <data name="Variables_Refresh" xml:space="preserve">
+    <value>[!!Réfréšh···!!]</value>
+  </data>
+  <data name="Variables_RefreshFailed" xml:space="preserve">
+    <value>[!!Réfréšh fàïléd: {0}···!!]</value>
+  </data>
+  <data name="View_Layout" xml:space="preserve">
+    <value>[!!Làÿòùt···!!]</value>
+  </data>
+  <data name="View_ReadOnly" xml:space="preserve">
+    <value>[!!Réàd òñlÿ···!!]</value>
+  </data>
+  <data name="View_Theme" xml:space="preserve">
+    <value>[!!Thémé···!!]</value>
+  </data>
+  <data name="Welcome_Intro" xml:space="preserve">
+    <value>[!!Çréàté à ñéw ñòtébòòk òr òpéñ àñ éxïštïñg {0}, {1}, òr {2} fïlé tò gét štàrtéd.···!!]</value>
+  </data>
+  <data name="Welcome_WaitingForContent" xml:space="preserve">
+    <value>[!!Wàïtïñg fòr ñòtébòòk çòñtéñt...···!!]</value>
+  </data>
+  <data name="Widget_FrameTitle" xml:space="preserve">
+    <value>[!!Wïdgét òùtpùt···!!]</value>
+  </data>
+</root>

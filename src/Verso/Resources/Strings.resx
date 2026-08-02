@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ClearCellOutput" xml:space="preserve">
+    <value>Clear Cell Output</value>
+    <comment>Name of the built-in extension that clears one cell's output, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ClearCellOutput_Description" xml:space="preserve">
+    <value>Clears the output of the selected cell.</value>
+    <comment>Second line of the Clear Output entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ClearCellOutput_Label" xml:space="preserve">
+    <value>Clear Output</value>
+    <comment>Cell toolbar button. Shorter than the extension's name because it sits on a cell, where the word 'cell' is already implied.</comment>
+  </data>
+  <data name="Action_ClearOutputs" xml:space="preserve">
+    <value>Clear Outputs</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ClearOutputs_Description" xml:space="preserve">
+    <value>Clears all cell outputs in the notebook.</value>
+    <comment>Second line of the Clear Outputs entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ExportHtml" xml:space="preserve">
+    <value>Export HTML</value>
+    <comment>Name of the built-in HTML export, as listed in the Extensions panel. Its menu entry reads only 'HTML' and is not translated.</comment>
+  </data>
+  <data name="Action_ExportHtml_Description" xml:space="preserve">
+    <value>Exports the notebook as a self-contained HTML document.</value>
+    <comment>Second line of the Export HTML entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ExportMarkdown" xml:space="preserve">
+    <value>Export Markdown</value>
+    <comment>Name of the built-in Markdown export, as listed in the Extensions panel. Its menu entry reads only 'Markdown' and is not translated.</comment>
+  </data>
+  <data name="Action_ExportMarkdown_Description" xml:space="preserve">
+    <value>Exports the notebook as a Markdown document.</value>
+    <comment>Second line of the Export Markdown entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ExportVerso" xml:space="preserve">
+    <value>Export Verso</value>
+    <comment>Name of the built-in .verso export, as listed in the Extensions panel. Verso is a product name.</comment>
+  </data>
+  <data name="Action_ExportVerso_Description" xml:space="preserve">
+    <value>Exports a Markdown-backed notebook as a native .verso file.</value>
+    <comment>Second line of the Export Verso entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RestartKernel" xml:space="preserve">
+    <value>Restart Kernel</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RestartKernel_Confirm" xml:space="preserve">
+    <value>Restarting the kernel discards all variables and execution state. Restart now?</value>
+    <comment>Confirmation dialog shown before the kernel restarts, because the effect cannot be undone.</comment>
+  </data>
+  <data name="Action_RestartKernel_Description" xml:space="preserve">
+    <value>Restarts the active language kernel.</value>
+    <comment>Second line of the Restart Kernel entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RunAll" xml:space="preserve">
+    <value>Run All</value>
+    <comment>The toolbar's primary button, and the name of the same built-in extension in the Extensions panel. Keep it short: it sits next to the kernel status.</comment>
+  </data>
+  <data name="Action_RunAll_Description" xml:space="preserve">
+    <value>Executes all cells in the notebook.</value>
+    <comment>Second line of the Run All entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RunCell" xml:space="preserve">
+    <value>Run Cell</value>
+    <comment>Cell toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RunCell_Description" xml:space="preserve">
+    <value>Executes the selected cells.</value>
+    <comment>Second line of the Run Cell entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchLayout" xml:space="preserve">
+    <value>Switch Layout</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchLayout_Description" xml:space="preserve">
+    <value>Cycles between available layout engines.</value>
+    <comment>Second line of the Switch Layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchTheme" xml:space="preserve">
+    <value>Switch Theme</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchTheme_Description" xml:space="preserve">
+    <value>Cycles between available themes.</value>
+    <comment>Second line of the Switch Theme entry in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>Code</value>
+    <comment>The kind of cell that holds code. Offered wherever a new cell can be added.</comment>
+  </data>
+  <data name="CellType_Html" xml:space="preserve">
+    <value>HTML Cell Type</value>
+    <comment>Name of the built-in HTML cell type, as listed in the Extensions panel. Its entry in the new-cell list reads only 'HTML' and is not translated.</comment>
+  </data>
+  <data name="CellType_Html_Description" xml:space="preserve">
+    <value>HTML cell type for authoring raw HTML with @variable substitution.</value>
+    <comment>Second line of the HTML cell type entry in the Extensions panel. '@variable' is typed by the reader and stays as written.</comment>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown Cell Type</value>
+    <comment>Name of the built-in Markdown cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Markdown_Description" xml:space="preserve">
+    <value>Markdown prose cells rendered to HTML with Markdig.</value>
+    <comment>Second line of the Markdown cell type entry in the Extensions panel. Markdig is a library name.</comment>
+  </data>
+  <data name="CellType_Mermaid" xml:space="preserve">
+    <value>Mermaid Cell Type</value>
+    <comment>Name of the built-in Mermaid cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Mermaid_Description" xml:space="preserve">
+    <value>Mermaid cell type for creating diagrams with mermaid.js syntax.</value>
+    <comment>Second line of the Mermaid cell type entry in the Extensions panel. mermaid.js is a library name.</comment>
+  </data>
+  <data name="CellType_Parameters" xml:space="preserve">
+    <value>Parameters Cell Type</value>
+    <comment>Name of the built-in parameters cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Parameters_Description" xml:space="preserve">
+    <value>Displays and manages notebook parameter definitions as an interactive form.</value>
+    <comment>Second line of the parameters cell type entry in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Parameters_Label" xml:space="preserve">
+    <value>Parameters</value>
+    <comment>The parameters cell as offered in the new-cell list.</comment>
+  </data>
+  <data name="Kernel_Html" xml:space="preserve">
+    <value>HTML Kernel</value>
+    <comment>Name of the built-in HTML kernel, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Kernel_Html_Description" xml:space="preserve">
+    <value>Executes HTML cells with @variable substitution.</value>
+    <comment>Second line of the HTML kernel entry in the Extensions panel. '@variable' is typed by the reader and stays as written.</comment>
+  </data>
+  <data name="Kernel_Mermaid" xml:space="preserve">
+    <value>Mermaid Kernel</value>
+    <comment>Name of the built-in Mermaid kernel, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Kernel_Mermaid_Description" xml:space="preserve">
+    <value>Executes Mermaid diagram cells with @variable substitution.</value>
+    <comment>Second line of the Mermaid kernel entry in the Extensions panel. '@variable' is typed by the reader and stays as written.</comment>
+  </data>
+  <data name="Layout_AddCell" xml:space="preserve">
+    <value>{0} Cell</value>
+    <comment>Button under the last cell that appends a new one. {0} is the kind of cell, such as Code or Markdown.</comment>
+  </data>
+  <data name="Layout_Dashboard" xml:space="preserve">
+    <value>Dashboard Layout</value>
+    <comment>Name of the built-in dashboard layout, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Dashboard_Description" xml:space="preserve">
+    <value>Grid-based dashboard layout showing output-only cells.</value>
+    <comment>Second line of the dashboard layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Dashboard_Label" xml:space="preserve">
+    <value>Dashboard</value>
+    <comment>The dashboard layout as offered in the layout picker.</comment>
+  </data>
+  <data name="Layout_DragToMove" xml:space="preserve">
+    <value>Drag to move</value>
+    <comment>Tooltip on the handle that repositions a cell on the dashboard.</comment>
+  </data>
+  <data name="Layout_EmptySubtitle" xml:space="preserve">
+    <value>Add your first cell below.</value>
+    <comment>Second line of the empty-notebook message, pointing at the row of buttons under it.</comment>
+  </data>
+  <data name="Layout_EmptyTitle" xml:space="preserve">
+    <value>This notebook is empty</value>
+    <comment>Shown in place of the cells when a notebook has none yet.</comment>
+  </data>
+  <data name="Layout_InsertCellHere" xml:space="preserve">
+    <value>Insert a {0} cell here</value>
+    <comment>Tooltip on a button that adds a cell between two others. {0} is the kind of cell, such as Code or Markdown.</comment>
+  </data>
+  <data name="Layout_Notebook" xml:space="preserve">
+    <value>Notebook Layout</value>
+    <comment>Name of the built-in notebook layout, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Notebook_Description" xml:space="preserve">
+    <value>Linear top-to-bottom notebook layout with live, editable cells in elevated cards.</value>
+    <comment>Second line of the notebook layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Notebook_Label" xml:space="preserve">
+    <value>Notebook</value>
+    <comment>The notebook layout as offered in the layout picker.</comment>
+  </data>
+  <data name="Layout_Presentation" xml:space="preserve">
+    <value>Presentation Layout</value>
+    <comment>Name of the built-in presentation layout, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Presentation_Description" xml:space="preserve">
+    <value>Output-only presentation layout for consuming interactive notebooks.</value>
+    <comment>Second line of the presentation layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Presentation_Label" xml:space="preserve">
+    <value>Presentation</value>
+    <comment>The presentation layout as offered in the layout picker.</comment>
+  </data>
+  <data name="Layout_RunCell" xml:space="preserve">
+    <value>Run</value>
+    <comment>Tooltip on the button that runs one cell on the dashboard. Keep it to a word: the button holds only an icon.</comment>
+  </data>
+  <data name="Parameters_Add" xml:space="preserve">
+    <value>Add Parameter</value>
+    <comment>Button that opens the row for entering a new parameter.</comment>
+  </data>
+  <data name="Parameters_Applied" xml:space="preserve">
+    <value>Parameters applied successfully.</value>
+    <comment>Shown after the values in a parameters cell have been handed to the kernel.</comment>
+  </data>
+  <data name="Parameters_CancelAdd" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Tooltip on the cross that abandons the new parameter.</comment>
+  </data>
+  <data name="Parameters_ColumnDefault" xml:space="preserve">
+    <value>Default</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnDescription" xml:space="preserve">
+    <value>Description</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnName" xml:space="preserve">
+    <value>Name</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnRequired" xml:space="preserve">
+    <value>Required</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnType" xml:space="preserve">
+    <value>Type</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ConfirmAdd" xml:space="preserve">
+    <value>Add</value>
+    <comment>Tooltip on the tick that saves the new parameter.</comment>
+  </data>
+  <data name="Parameters_DefaultPlaceholder" xml:space="preserve">
+    <value>default value</value>
+    <comment>Grey prompt inside the empty default-value box. Lower case, matching the other prompts in the row.</comment>
+  </data>
+  <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
+    <value>description</value>
+    <comment>Grey prompt inside the empty description box. Lower case, matching the other prompts in the row.</comment>
+  </data>
+  <data name="Parameters_InvalidValue" xml:space="preserve">
+    <value>Invalid value.</value>
+    <comment>Shown beside a parameter whose value does not fit its type.</comment>
+  </data>
+  <data name="Parameters_NamePlaceholder" xml:space="preserve">
+    <value>name</value>
+    <comment>Grey prompt inside the empty name box. Lower case, matching the other prompts in the row.</comment>
+  </data>
+  <data name="Parameters_None" xml:space="preserve">
+    <value>No parameters defined.</value>
+    <comment>Shown in a parameters cell that has nothing in it yet.</comment>
+  </data>
+  <data name="Parameters_NotFound" xml:space="preserve">
+    <value>Parameter '{0}' not found.</value>
+    <comment>Shown when a parameter has been removed under the reader's feet. {0} is the parameter's name.</comment>
+  </data>
+  <data name="Parameters_Remove" xml:space="preserve">
+    <value>Remove parameter</value>
+    <comment>Tooltip on the cross that deletes a parameter.</comment>
+  </data>
+  <data name="Parameters_Required" xml:space="preserve">
+    <value>required</value>
+    <comment>Checkbox beside a new parameter, marking it as one the notebook cannot run without. Lower case, matching the prompts in the same row.</comment>
+  </data>
+  <data name="Parameters_Title" xml:space="preserve">
+    <value>Parameters</value>
+    <comment>Heading of the parameters cell.</comment>
+  </data>
+  <data name="Properties_CollapseInput" xml:space="preserve">
+    <value>Collapse input</value>
+    <comment>Switch that hides a cell's source and leaves its output showing.</comment>
+  </data>
+  <data name="Properties_DefaultIs" xml:space="preserve">
+    <value>Default: {0}</value>
+    <comment>Note under a cell visibility setting saying what it falls back to. {0} is one of the visibility states.</comment>
+  </data>
+  <data name="Properties_DisplaySection" xml:space="preserve">
+    <value>Display</value>
+    <comment>Heading over the settings that control how a cell is drawn.</comment>
+  </data>
+  <data name="Properties_InputPreviewLines" xml:space="preserve">
+    <value>Input preview lines</value>
+    <comment>How many lines of source a collapsed cell shows.</comment>
+  </data>
+  <data name="Properties_Output" xml:space="preserve">
+    <value>Output</value>
+    <comment>Label on the control choosing how much of a cell's output is shown.</comment>
+  </data>
+  <data name="Properties_OutputFull" xml:space="preserve">
+    <value>Full</value>
+    <comment>Output setting: show all of it.</comment>
+  </data>
+  <data name="Properties_OutputHidden" xml:space="preserve">
+    <value>Hidden</value>
+    <comment>Output setting: show none of it.</comment>
+  </data>
+  <data name="Properties_OutputPreview" xml:space="preserve">
+    <value>Preview</value>
+    <comment>Output setting: show the first few lines.</comment>
+  </data>
+  <data name="Properties_OutputPreviewLines" xml:space="preserve">
+    <value>Output preview lines</value>
+    <comment>How many lines of output a previewed cell shows.</comment>
+  </data>
+  <data name="Properties_PreviewStyle" xml:space="preserve">
+    <value>Preview style</value>
+    <comment>Label on the control choosing how a preview is drawn.</comment>
+  </data>
+  <data name="Properties_PreviewStyleLines" xml:space="preserve">
+    <value>Lines</value>
+    <comment>Preview style: the first few lines, as written.</comment>
+  </data>
+  <data name="Properties_VisibilitySection" xml:space="preserve">
+    <value>Visibility</value>
+    <comment>Heading over the settings that control which layouts a cell appears in.</comment>
+  </data>
+  <data name="PropertyProvider_Display" xml:space="preserve">
+    <value>Cell Display Properties</value>
+    <comment>Name of the built-in provider of the Display settings, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="PropertyProvider_Display_Description" xml:space="preserve">
+    <value>Provides per-cell input and output display settings.</value>
+    <comment>Second line of the Cell Display Properties entry in the Extensions panel.</comment>
+  </data>
+  <data name="PropertyProvider_Visibility" xml:space="preserve">
+    <value>Cell Visibility Properties</value>
+    <comment>Name of the built-in provider of the Visibility settings, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="PropertyProvider_Visibility_Description" xml:space="preserve">
+    <value>Provides per-layout cell visibility overrides in the properties panel.</value>
+    <comment>Second line of the Cell Visibility Properties entry in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Fallback" xml:space="preserve">
+    <value>Fallback Renderer</value>
+    <comment>Name of the renderer used when a cell type has no renderer of its own, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Fallback_Label" xml:space="preserve">
+    <value>Fallback</value>
+    <comment>Short name of the fallback renderer.</comment>
+  </data>
+  <data name="Renderer_Html" xml:space="preserve">
+    <value>HTML Renderer</value>
+    <comment>Name of the built-in HTML renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Html_Description" xml:space="preserve">
+    <value>Renders HTML cells with input collapse on execute.</value>
+    <comment>Second line of the HTML renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Markdown" xml:space="preserve">
+    <value>Markdown Renderer</value>
+    <comment>Name of the built-in Markdown renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Markdown_Description" xml:space="preserve">
+    <value>Renders Markdown cells using Markdig.</value>
+    <comment>Second line of the Markdown renderer entry in the Extensions panel. Markdig is a library name.</comment>
+  </data>
+  <data name="Renderer_Mermaid" xml:space="preserve">
+    <value>Mermaid Renderer</value>
+    <comment>Name of the built-in Mermaid renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Mermaid_Description" xml:space="preserve">
+    <value>Renders Mermaid diagram cells with input collapse on execute.</value>
+    <comment>Second line of the Mermaid renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Parameters" xml:space="preserve">
+    <value>Parameters Renderer</value>
+    <comment>Name of the built-in parameters renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Parameters_Description" xml:space="preserve">
+    <value>Renders parameter definitions as an interactive form with type-aware inputs.</value>
+    <comment>Second line of the parameters renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Verso Dark</value>
+    <comment>The built-in dark theme. Verso is a product name and stays as written; the word describing the theme is translated.</comment>
+  </data>
+  <data name="Theme_Dark_Description" xml:space="preserve">
+    <value>Default dark theme for Verso notebooks.</value>
+    <comment>Second line of the dark theme entry in the Extensions panel.</comment>
+  </data>
+  <data name="Theme_HighContrast" xml:space="preserve">
+    <value>Verso High Contrast</value>
+    <comment>The built-in high-contrast theme. Verso is a product name and stays as written; the words describing the theme are translated.</comment>
+  </data>
+  <data name="Theme_HighContrast_Description" xml:space="preserve">
+    <value>High-contrast accessibility theme with WCAG 2.1 AA compliant color tokens.</value>
+    <comment>Second line of the high-contrast theme entry in the Extensions panel. WCAG 2.1 AA is the name of a standard.</comment>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Verso Light</value>
+    <comment>The built-in light theme. Verso is a product name and stays as written; the word describing the theme is translated.</comment>
+  </data>
+  <data name="Theme_Light_Description" xml:space="preserve">
+    <value>Default light theme for Verso notebooks.</value>
+    <comment>Second line of the light theme entry in the Extensions panel.</comment>
+  </data>
+  <data name="Visibility_Collapsed" xml:space="preserve">
+    <value>Collapsed</value>
+    <comment>Cell visibility state: the cell is drawn folded shut.</comment>
+  </data>
+  <data name="Visibility_Hidden" xml:space="preserve">
+    <value>Hidden</value>
+    <comment>Cell visibility state: the cell is not drawn at all.</comment>
+  </data>
+  <data name="Visibility_OutputOnly" xml:space="preserve">
+    <value>Output Only</value>
+    <comment>Cell visibility state: the output is drawn and the source is not.</comment>
+  </data>
+  <data name="Visibility_Visible" xml:space="preserve">
+    <value>Visible</value>
+    <comment>Cell visibility state: the whole cell is drawn.</comment>
+  </data>
+</root>

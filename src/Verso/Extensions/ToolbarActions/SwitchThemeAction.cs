@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.ToolbarActions;
 
@@ -11,10 +12,10 @@ public sealed class SwitchThemeAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.action.switch-theme";
-    public string Name => "Switch Theme";
+    public string Name => Strings.Action_SwitchTheme;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Cycles between available themes.";
+    public string? Description => Strings.Action_SwitchTheme_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -22,7 +23,7 @@ public sealed class SwitchThemeAction : IToolbarAction
     // --- IToolbarAction ---
 
     public string ActionId => "verso.switchTheme";
-    public string DisplayName => "Switch Theme";
+    public string DisplayName => Strings.Action_SwitchTheme;
     public string? Icon => null;
     public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;
     public int Order => 55;

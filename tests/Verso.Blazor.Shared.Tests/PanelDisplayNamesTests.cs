@@ -1,26 +1,38 @@
+using Verso.Blazor.Shared.Resources;
+
 namespace Verso.Blazor.Shared.Tests;
 
 [TestClass]
 public sealed class PanelDisplayNamesTests
 {
     [TestMethod]
-    public void For_Properties_ReturnsCellProperties()
+    public void For_Properties_SaysWhichProperties()
     {
-        Assert.AreEqual("CELL PROPERTIES", PanelDisplayNames.For("properties"));
+        // The toggle reads "Properties"; the header it opens has room to say more.
+        Assert.AreEqual(UI.Panel_PropertiesHeading, PanelDisplayNames.For("properties"));
+        Assert.AreNotEqual(UI.Panel_Properties, PanelDisplayNames.For("properties"));
     }
 
     [TestMethod]
-    public void For_KnownPanels_ReturnsUppercaseLabels()
+    public void For_KnownPanels_ReturnsTheirNames()
     {
-        Assert.AreEqual("METADATA", PanelDisplayNames.For("metadata"));
-        Assert.AreEqual("EXTENSIONS", PanelDisplayNames.For("extensions"));
-        Assert.AreEqual("VARIABLES", PanelDisplayNames.For("variables"));
-        Assert.AreEqual("SETTINGS", PanelDisplayNames.For("settings"));
+        Assert.AreEqual(UI.Panel_Metadata, PanelDisplayNames.For("metadata"));
+        Assert.AreEqual(UI.Panel_Extensions, PanelDisplayNames.For("extensions"));
+        Assert.AreEqual(UI.Panel_Variables, PanelDisplayNames.For("variables"));
+        Assert.AreEqual(UI.Panel_Settings, PanelDisplayNames.For("settings"));
     }
 
     [TestMethod]
-    public void For_UnknownPanel_FallsBackToUppercase()
+    public void For_UnknownPanel_FallsBackToTheId()
     {
-        Assert.AreEqual("CUSTOM-PANEL", PanelDisplayNames.For("custom-panel"));
+        Assert.AreEqual("custom-panel", PanelDisplayNames.For("custom-panel"));
+    }
+
+    [TestMethod]
+    public void For_LeavesCaseAlone()
+    {
+        // Headers are drawn in capitals by the stylesheet. Doing it here would apply one
+        // language's case rules to every language's words.
+        Assert.AreEqual("Metadata", PanelDisplayNames.For("metadata"));
     }
 }
