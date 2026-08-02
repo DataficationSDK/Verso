@@ -1,3 +1,4 @@
+@using System.Globalization
 <div class="verso-sidebar-panel">
     @if (Service.IsLoaded)
     {
@@ -134,15 +135,26 @@
         await Service.UpdateSettingAsync(extensionId, settingName, value);
     }
 
+    // A number field hands back what HTML calls a valid floating-point number, written with a
+    // full stop whatever language the page is in, and the value is stored rather than shown. So
+    // both of these read it the way it was written and not the way the reader writes numbers.
     private async Task HandleIntChange(string extensionId, string settingName, object? value)
     {
-        if (int.TryParse(value?.ToString(), out var intVal))
+        if (int.TryParse(
+                value?.ToString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var intVal))
             await Service.UpdateSettingAsync(extensionId, settingName, intVal);
     }
 
     private async Task HandleDoubleChange(string extensionId, string settingName, object? value)
     {
-        if (double.TryParse(value?.ToString(), out var dblVal))
+        if (double.TryParse(
+                value?.ToString(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var dblVal))
             await Service.UpdateSettingAsync(extensionId, settingName, dblVal);
     }
 

@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,18 +8,25 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class SetMeta : IMetaCommand
 {
     public string Name => "set";
-    public string Summary => "Sets a runtime REPL setting (preview.rows, preview.lines, preview.elapsedThresholdMs).";
-    public string DetailedHelp =>
-        ".set <key> <value>\n" +
-        "  Updates one of the runtime REPL settings.\n" +
-        "  Known keys: preview.rows, preview.lines, preview.elapsedThresholdMs, confirmOnExit.";
+    public string Summary => Strings.Meta_Set_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => Usage + "\n" + Strings.Meta_Set_Details;
+
+    /// <summary>The shape a .set takes. Typed at a keyboard, so the same in every language.</summary>
+    private const string Usage = ".set <key> <value>";
+
+    /// <summary>The settings .set understands. Identifiers, so the same in every language.</summary>
+    private const string Keys = "preview.rows, preview.lines, preview.elapsedThresholdMs, confirmOnExit";
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var parts = argumentText.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length != 2)
         {
-            context.Console.MarkupLine("[red]Usage: .set <key> <value>[/] — try [bold].help set[/] for key list.");
+            context.Console.MarkupLine(
+                Messages.In("red", Messages.Typed(Strings.Repl_Usage, Usage))
+                + " " + Messages.Typed(Strings.Meta_Set_HelpHint, ".help set"));
             return Task.FromResult(true);
         }
 
@@ -34,7 +43,8 @@ public sealed class SetMeta : IMetaCommand
                     context.Console.MarkupLine($"preview.rows = [bold]{rows}[/]");
                 }
                 else
-                    context.Console.MarkupLine($"[red]Invalid integer for preview.rows: '{Markup.Escape(value)}'[/]");
+                    context.Console.MarkupLine(Messages.In("red",
+                        Messages.Typed(Strings.Meta_Set_InvalidInteger, "preview.rows", value)));
                 break;
 
             case "preview.lines":
@@ -44,7 +54,8 @@ public sealed class SetMeta : IMetaCommand
                     context.Console.MarkupLine($"preview.lines = [bold]{lines}[/]");
                 }
                 else
-                    context.Console.MarkupLine($"[red]Invalid integer for preview.lines: '{Markup.Escape(value)}'[/]");
+                    context.Console.MarkupLine(Messages.In("red",
+                        Messages.Typed(Strings.Meta_Set_InvalidInteger, "preview.lines", value)));
                 break;
 
             case "preview.elapsedthresholdms":
@@ -54,7 +65,8 @@ public sealed class SetMeta : IMetaCommand
                     context.Console.MarkupLine($"preview.elapsedThresholdMs = [bold]{ms}[/]");
                 }
                 else
-                    context.Console.MarkupLine($"[red]Invalid non-negative integer for preview.elapsedThresholdMs: '{Markup.Escape(value)}'[/]");
+                    context.Console.MarkupLine(Messages.In("red",
+                        Messages.Typed(Strings.Meta_Set_InvalidNonNegative, "preview.elapsedThresholdMs", value)));
                 break;
 
             case "confirmonexit":
@@ -64,11 +76,14 @@ public sealed class SetMeta : IMetaCommand
                     context.Console.MarkupLine($"confirmOnExit = [bold]{confirm}[/]");
                 }
                 else
-                    context.Console.MarkupLine($"[red]Invalid boolean for confirmOnExit: '{Markup.Escape(value)}'[/]");
+                    context.Console.MarkupLine(Messages.In("red",
+                        Messages.Typed(Strings.Meta_Set_InvalidBoolean, "confirmOnExit", value)));
                 break;
 
             default:
-                context.Console.MarkupLine($"[red]Unknown setting key '{Markup.Escape(key)}'.[/] Known: preview.rows, preview.lines, preview.elapsedThresholdMs, confirmOnExit.");
+                context.Console.MarkupLine(
+                    Messages.In("red", Messages.Say(Strings.Meta_Set_UnknownKey, key))
+                    + " " + Messages.Typed(Strings.Meta_Set_KnownKeys, Keys));
                 break;
         }
 

@@ -5,8 +5,8 @@ JSON bundles the editor extension uses. They differ enough in shape that the scr
 around them would each grow two code paths, so both are wrapped here and everything else
 in this directory works in terms of keys, values, and translator notes.
 
-Run nothing here directly. `pseudo.py`, `translate.py`, and `check.py` are the entry
-points.
+Run nothing here directly. `export.py`, `merge.py`, `translate.py`, `pseudo.py`, and
+`check.py` are the entry points.
 """
 
 from __future__ import annotations
@@ -146,6 +146,16 @@ class ResourceSet:
     def __init__(self, neutral: Path):
         self.neutral = neutral
 
+    @property
+    def name(self) -> str:
+        """A short, stable way to name this set in a report or a handoff file.
+
+        The full path is unwieldy to type and to read, and the file name alone is
+        ambiguous: ten assemblies each have a `Strings.resx`. So a set is named by what
+        distinguishes it, which is the assembly it belongs to.
+        """
+        raise NotImplementedError
+
     def path_for(self, locale: str) -> Path:
         raise NotImplementedError
 
@@ -166,6 +176,12 @@ class ResourceSet:
 
 class ResxSet(ResourceSet):
     """A .NET resource file, which compiles into one satellite assembly per language."""
+
+    @property
+    def name(self) -> str:
+        # `src/Verso.Ado/Resources/Strings.resx` is named `Verso.Ado/Strings`, which is the
+        # assembly whose satellite it becomes and the file within it.
+        return f"{self.neutral.parents[1].name}/{self.neutral.stem}"
 
     def path_for(self, locale: str) -> Path:
         return self.neutral.with_name(f"{self.neutral.stem}.{locale}.resx")
@@ -210,6 +226,11 @@ class JsonSet(ResourceSet):
     `vscode.l10n.t`. They share a format: a key maps either to the string itself or to an
     object carrying the string plus notes for whoever translates it.
     """
+
+    @property
+    def name(self) -> str:
+        # Already unique and already short, so the path is the name, less the extension.
+        return display(self.neutral)[: -len(".json")]
 
     def path_for(self, locale: str) -> Path:
         stem = self.neutral.name[: -len(".json")]

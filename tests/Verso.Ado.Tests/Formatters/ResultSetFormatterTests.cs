@@ -157,7 +157,11 @@ public sealed class ResultSetFormatterTests
     public void FormatNonQueryHtml_ShowsRowsAffected()
     {
         var html = ResultSetFormatter.FormatNonQueryHtml(5, 42, null);
-        Assert.IsTrue(html.Contains("5 row(s) affected"));
+        Assert.IsTrue(html.Contains("5 rows affected"));
         Assert.IsTrue(html.Contains("42 ms"));
+
+        // One row takes the singular. The count is written from two entries rather than with
+        // a bracketed s, which is a shape no other language can copy.
+        Assert.IsTrue(ResultSetFormatter.FormatNonQueryHtml(1, 42, null).Contains("1 row affected"));
     }
 }

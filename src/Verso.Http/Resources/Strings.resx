@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>HTTP request cell type for sending REST API requests.</value>
+    <comment>What an HTTP cell is, shown when choosing a cell type.</comment>
+  </data>
+  <data name="Completion_Header_Accept" xml:space="preserve">
+    <value>Accept — Media types the client can handle in the response.</value>
+    <comment>What the Accept header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_AcceptEncoding" xml:space="preserve">
+    <value>Accept-Encoding — Acceptable content encoding (e.g., gzip, deflate).</value>
+    <comment>What the Accept-Encoding header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_AcceptLanguage" xml:space="preserve">
+    <value>Accept-Language — Preferred natural languages for the response.</value>
+    <comment>What the Accept-Language header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_Authorization" xml:space="preserve">
+    <value>Authorization — Credentials for authenticating the request (e.g., Bearer token).</value>
+    <comment>What the Authorization header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_CacheControl" xml:space="preserve">
+    <value>Cache-Control — Directives for caching mechanisms.</value>
+    <comment>What the Cache-Control header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_ContentType" xml:space="preserve">
+    <value>Content-Type — The media type of the request body (e.g., application/json).</value>
+    <comment>What the Content-Type header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_Cookie" xml:space="preserve">
+    <value>Cookie — HTTP cookies previously sent by the server.</value>
+    <comment>What the Cookie header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_IfModifiedSince" xml:space="preserve">
+    <value>If-Modified-Since — Conditional request based on last modification date.</value>
+    <comment>What the If-Modified-Since header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_IfNoneMatch" xml:space="preserve">
+    <value>If-None-Match — Conditional request using ETag values.</value>
+    <comment>What the If-None-Match header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_UserAgent" xml:space="preserve">
+    <value>User-Agent — Identifies the client software making the request.</value>
+    <comment>What the User-Agent header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Header_XRequestId" xml:space="preserve">
+    <value>X-Request-Id — Custom header for request tracing.</value>
+    <comment>What the X-Request-Id header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Delete" xml:space="preserve">
+    <value>DELETE — Remove a resource.</value>
+    <comment>What DELETE means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Get" xml:space="preserve">
+    <value>GET — Retrieve a resource. Should not have side effects.</value>
+    <comment>What GET means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Head" xml:space="preserve">
+    <value>HEAD — Like GET but returns only headers, no body.</value>
+    <comment>What HEAD means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Options" xml:space="preserve">
+    <value>OPTIONS — Describe communication options for the target resource.</value>
+    <comment>What OPTIONS means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Patch" xml:space="preserve">
+    <value>PATCH — Partially update a resource.</value>
+    <comment>What PATCH means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Post" xml:space="preserve">
+    <value>POST — Submit data to create or process a resource.</value>
+    <comment>What POST means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Method_Put" xml:space="preserve">
+    <value>PUT — Replace a resource entirely.</value>
+    <comment>What PUT means, offered while typing and shown on hover. The method name at the start is part of the standard and stays as written.</comment>
+  </data>
+  <data name="Completion_Variable_Datetime" xml:space="preserve">
+    <value>Current UTC datetime. Usage: $datetime [format] [offset unit]</value>
+    <comment>What $datetime puts in a request, offered while typing. Anything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Completion_Variable_Guid" xml:space="preserve">
+    <value>Generate a new UUID/GUID.</value>
+    <comment>What $guid puts in a request, offered while typing. Anything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Completion_Variable_LocalDatetime" xml:space="preserve">
+    <value>Current local datetime. Usage: $localDatetime [format] [offset unit]</value>
+    <comment>What $localDatetime puts in a request, offered while typing. Anything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Completion_Variable_ProcessEnv" xml:space="preserve">
+    <value>Read an environment variable. Usage: $processEnv NAME</value>
+    <comment>What $processEnv puts in a request, offered while typing. Anything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Completion_Variable_RandomInt" xml:space="preserve">
+    <value>Generate a random integer. Usage: $randomInt [min max]</value>
+    <comment>What $randomInt puts in a request, offered while typing. Anything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Completion_Variable_Timestamp" xml:space="preserve">
+    <value>Current Unix timestamp in seconds. Usage: $timestamp [offset unit]</value>
+    <comment>What $timestamp puts in a request, offered while typing. Anything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Diagnostic_MissingUrl" xml:space="preserve">
+    <value>Missing URL.</value>
+    <comment>Marked against a request line with a method and nothing after it.</comment>
+  </data>
+  <data name="Diagnostic_NoRequest" xml:space="preserve">
+    <value>No valid HTTP request found. Start with a method (GET, POST, etc.) followed by a URL.</value>
+    <comment>Marked against a cell that holds text but no request. The method names stay as written.</comment>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Executes HTTP requests using .http file syntax.</value>
+    <comment>What the HTTP kernel is, shown wherever kernels are listed. .http is a file extension and stays as written.</comment>
+  </data>
+  <data name="Magic_SetBase_Description" xml:space="preserve">
+    <value>Sets the base URL for relative HTTP request URLs.</value>
+    <comment>What #!http-set-base does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_SetBase_Done" xml:space="preserve">
+    <value>HTTP base URL set to: {0}</value>
+    <comment>{0} is the address that was set.</comment>
+  </data>
+  <data name="Magic_SetBase_Param_Url" xml:space="preserve">
+    <value>The base URL to prepend to relative request URLs.</value>
+    <comment>What the argument to #!http-set-base is.</comment>
+  </data>
+  <data name="Magic_SetBase_UrlRequired" xml:space="preserve">
+    <value>URL is required. Usage: #!http-set-base &lt;url&gt;</value>
+    <comment>Shown when #!http-set-base is given nothing. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_SetHeader_BothRequired" xml:space="preserve">
+    <value>Both header name and value are required. Usage: #!http-set-header &lt;name&gt; &lt;value&gt;</value>
+    <comment>Shown when #!http-set-header is given too little. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_SetHeader_Description" xml:space="preserve">
+    <value>Adds or updates a default HTTP header for all requests.</value>
+    <comment>What #!http-set-header does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_SetHeader_Done" xml:space="preserve">
+    <value>Default header set: {0}: {1}</value>
+    <comment>{0} is the header name and {1} its value, both as typed.</comment>
+  </data>
+  <data name="Magic_SetHeader_Param_Name" xml:space="preserve">
+    <value>The header name.</value>
+    <comment>What the first argument to #!http-set-header is.</comment>
+  </data>
+  <data name="Magic_SetHeader_Param_Value" xml:space="preserve">
+    <value>The header value.</value>
+    <comment>What the second argument to #!http-set-header is.</comment>
+  </data>
+  <data name="Magic_SetHeader_ValueRequired" xml:space="preserve">
+    <value>Header value cannot be empty. Usage: #!http-set-header &lt;name&gt; &lt;value&gt;</value>
+    <comment>Shown when the header was named but given no value.</comment>
+  </data>
+  <data name="Magic_SetTimeout_Description" xml:space="preserve">
+    <value>Sets the default timeout (in seconds) for HTTP requests.</value>
+    <comment>What #!http-set-timeout does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_SetTimeout_Done" xml:space="preserve">
+    <value>HTTP timeout set to {0} seconds.</value>
+    <comment>{0} is the number of seconds that was set.</comment>
+  </data>
+  <data name="Magic_SetTimeout_Invalid" xml:space="preserve">
+    <value>A positive integer is required. Usage: #!http-set-timeout &lt;seconds&gt;</value>
+    <comment>Shown when #!http-set-timeout is given something that is not a whole number above zero.</comment>
+  </data>
+  <data name="Magic_SetTimeout_Param_Seconds" xml:space="preserve">
+    <value>The timeout in seconds.</value>
+    <comment>What the argument to #!http-set-timeout is.</comment>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Error: {0}</value>
+    <comment>Written in front of a message a cell could not carry out. {0} is the message.</comment>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>Renders HTTP request cells.</value>
+    <comment>What this renderer does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Response_Headers" xml:space="preserve">
+    <value>Response Headers ({0})</value>
+    <comment>A heading the reader can open to see what the server sent back. {0} is how many there are.</comment>
+  </data>
+  <data name="Response_Truncated" xml:space="preserve">
+    <value>Response truncated at 100 KB (total: {0} KB)</value>
+    <comment>Shown under a body too long to show whole. {0} is the full size in kilobytes.</comment>
+  </data>
+  <data name="Run_Cancelled" xml:space="preserve">
+    <value>Request cancelled.</value>
+    <comment>The reader stopped the cell before the answer came back.</comment>
+  </data>
+  <data name="Run_NoRequest" xml:space="preserve">
+    <value>No HTTP request found.</value>
+    <comment>The cell holds nothing that reads as a request.</comment>
+  </data>
+  <data name="Run_RelativeUrlNeedsBase" xml:space="preserve">
+    <value>Relative URL '{0}' requires a base URL. Use #!http-set-base.</value>
+    <comment>The cell asks for a path with no address to hang it on. {0} is the path as written.</comment>
+  </data>
+  <data name="Run_RequestFailed" xml:space="preserve">
+    <value>Request failed with status {0} {1}.</value>
+    <comment>The server answered, and said no. {0} is the status number and {1} the reason the server gave, which arrives in whatever language the server chose.</comment>
+  </data>
+  <data name="Run_Sending" xml:space="preserve">
+    <value>Sending {0} {1}...</value>
+    <comment>Printed before the request goes out. {0} is the method, such as GET, and {1} the address; both stay as written.</comment>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>Request timed out after {0}s.</value>
+    <comment>No answer came back in time. {0} is the number of seconds waited; the 's' after it is the unit and stays as written.</comment>
+  </data>
+</root>

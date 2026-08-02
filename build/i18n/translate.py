@@ -1,9 +1,13 @@
-"""Fills in the translations that are missing from the shipped languages.
+"""Fills in the translations that are missing from the shipped languages, against the API.
 
 Reads every neutral resource file, works out which keys a language has not been given yet,
 and asks Claude for those and only those. Existing translations are left alone, so adding a
 handful of English strings costs a handful of translations rather than a retranslation of
 the interface.
+
+This is one of two routes, and the one that costs an API key. `export.py` and `merge.py`
+are the other: they do the same reading and the same writing, and hand the part in between
+to whoever is translating. See `README.md`.
 
     pip install anthropic
     export ANTHROPIC_API_KEY=...

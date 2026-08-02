@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,20 +8,18 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class ThemeMeta : IMetaCommand
 {
     public string Name => "theme";
-    public string Summary => "Prints or switches the active theme.";
-    public string DetailedHelp =>
-        ".theme [<name>]\n" +
-        "  With no argument, prints the active theme.\n" +
-        "  With a name, changes the active theme. Matched by DisplayName case-insensitively,\n" +
-        "  with ThemeId as a fallback.";
+    public string Summary => Strings.Meta_Theme_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".theme [<name>]\n" + Strings.Meta_Theme_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var arg = argumentText.Trim();
         if (string.IsNullOrEmpty(arg))
         {
-            var current = context.Session.ActiveTheme?.DisplayName ?? "<default>";
-            context.Console.MarkupLine($"Active theme: [bold]{Markup.Escape(current)}[/]");
+            var current = context.Session.ActiveTheme?.DisplayName ?? Strings.Repl_MarkerDefault;
+            context.Console.MarkupLine(Messages.Typed(Strings.Meta_Theme_Active, current));
             return Task.FromResult(true);
         }
 
@@ -30,12 +30,14 @@ public sealed class ThemeMeta : IMetaCommand
         if (match is null)
         {
             var known = string.Join(", ", themes.Select(t => t.DisplayName));
-            context.Console.MarkupLine($"[red]Theme '{Markup.Escape(arg)}' is not registered.[/] Available: {Markup.Escape(known)}");
+            context.Console.MarkupLine(
+                Messages.In("red", Messages.Say(Strings.Error_ThemeNotRegistered, arg))
+                + " " + Messages.Say(Strings.Error_AvailableThemes, known));
             return Task.FromResult(true);
         }
 
         context.Session.ActiveTheme = match;
-        context.Console.MarkupLine($"Switched to theme: [bold]{Markup.Escape(match.DisplayName)}[/]");
+        context.Console.MarkupLine(Messages.Typed(Strings.Meta_Theme_Switched, match.DisplayName));
         return Task.FromResult(true);
     }
 }

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.FSharp.Resources;
 
 namespace Verso.FSharp.Import;
 
@@ -28,7 +29,7 @@ public sealed class JupyterFSharpPostProcessor : INotebookPostProcessor
     string IExtension.Name => "Jupyter F# Import Hook";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Converts Polyglot Notebooks F# patterns to Verso F# cells on Jupyter import.";
+    public string? Description => Strings.Import_Description;
 
     // --- INotebookPostProcessor ---
 

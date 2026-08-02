@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Cli.Parameters;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 using Verso.Execution;
 using Verso.Extensions;
@@ -44,6 +45,12 @@ public sealed class RunResult
 public sealed class HeadlessRunner
 {
     /// <summary>
+    /// Stands in for a cell's language when it declares none. A language name is an identifier
+    /// rather than a word, so the absence of one is written the same way in every language.
+    /// </summary>
+    internal const string UnknownLanguage = "unknown";
+
+    /// <summary>
     /// Executes a notebook with the given options.
     /// </summary>
     public async Task<RunResult> ExecuteAsync(RunOptions options, CancellationToken externalCt = default)
@@ -71,9 +78,8 @@ public sealed class HeadlessRunner
                 {
                     if (ext.Source == "session-generated local assembly")
                     {
-                        Console.Error.WriteLine(
-                            $"Warning: Refusing session-generated extension '{ext.PackageId}'. " +
-                            "Use --trust-local-assemblies to allow.");
+                        Console.Error.WriteLine(Messages.Warning(
+                            string.Format(Strings.Run_RefusingSessionExtension, ext.PackageId)));
                         return Task.FromResult(false);
                     }
                 }
@@ -87,7 +93,8 @@ public sealed class HeadlessRunner
 
             if (options.ExtensionsDirectory is not null)
             {
-                Console.Error.WriteLine($"Warning: Loading third-party extensions from '{options.ExtensionsDirectory}'. These extensions are auto-approved for headless execution.");
+                Console.Error.WriteLine(Messages.Warning(
+                    string.Format(Strings.Run_LoadingThirdParty, options.ExtensionsDirectory)));
                 await extensionHost.LoadFromDirectoryAsync(options.ExtensionsDirectory);
             }
 
@@ -185,10 +192,10 @@ public sealed class HeadlessRunner
                         ct.ThrowIfCancellationRequested();
                         var cellId = cellsToExecute[i];
                         var cell = notebook.Cells.FirstOrDefault(c => c.Id == cellId);
-                        var lang = cell?.Language ?? "unknown";
+                        var lang = cell?.Language ?? UnknownLanguage;
 
                         if (options.Verbose)
-                            Console.Error.WriteLine($"[{i}/{total}] Executing cell {i} ({lang})...");
+                            Console.Error.WriteLine(string.Format(Strings.Run_ExecutingCell, i, total, lang));
 
                         var cellSw = System.Diagnostics.Stopwatch.StartNew();
                         var result = await scaffold.ExecuteCellAsync(cellId, ct);
@@ -196,7 +203,8 @@ public sealed class HeadlessRunner
                         results.Add(result);
 
                         if (options.Verbose)
-                            Console.Error.WriteLine($"[{i}/{total}] Cell {i} completed in {cellSw.Elapsed.TotalSeconds:F1}s ({result.Status})");
+                            Console.Error.WriteLine(string.Format(
+                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"), result.Status));
 
                         if (options.FailFast && CellHasErrors(cellId, notebook, result))
                             break;
@@ -212,7 +220,8 @@ public sealed class HeadlessRunner
                         var cell = notebook.Cells[i];
 
                         if (options.Verbose)
-                            Console.Error.WriteLine($"[{i}/{total}] Executing cell {i} ({cell.Language ?? "unknown"})...");
+                            Console.Error.WriteLine(string.Format(
+                                Strings.Run_ExecutingCell, i, total, cell.Language ?? UnknownLanguage));
 
                         var cellSw = System.Diagnostics.Stopwatch.StartNew();
                         var result = await scaffold.ExecuteCellAsync(cell.Id, ct);
@@ -220,7 +229,8 @@ public sealed class HeadlessRunner
                         results.Add(result);
 
                         if (options.Verbose)
-                            Console.Error.WriteLine($"[{i}/{total}] Cell {i} completed in {cellSw.Elapsed.TotalSeconds:F1}s ({result.Status})");
+                            Console.Error.WriteLine(string.Format(
+                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"), result.Status));
 
                         if (CellHasErrors(cell.Id, notebook, result))
                             break;
@@ -238,14 +248,16 @@ public sealed class HeadlessRunner
                             ct.ThrowIfCancellationRequested();
                             var cell = notebook.Cells[i];
 
-                            Console.Error.WriteLine($"[{i}/{total}] Executing cell {i} ({cell.Language ?? "unknown"})...");
+                            Console.Error.WriteLine(string.Format(
+                                Strings.Run_ExecutingCell, i, total, cell.Language ?? UnknownLanguage));
 
                             var cellSw = System.Diagnostics.Stopwatch.StartNew();
                             var result = await scaffold.ExecuteCellAsync(cell.Id, ct);
                             cellSw.Stop();
                             results.Add(result);
 
-                            Console.Error.WriteLine($"[{i}/{total}] Cell {i} completed in {cellSw.Elapsed.TotalSeconds:F1}s ({result.Status})");
+                            Console.Error.WriteLine(string.Format(
+                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"), result.Status));
                         }
                     }
                     else
@@ -333,7 +345,7 @@ public sealed class HeadlessRunner
             }
             else
             {
-                throw new ArgumentException($"Invalid cell selector '{selector}'. Use a 0-based index or a cell GUID.");
+                throw new ArgumentException(string.Format(Strings.Run_InvalidCellSelector, selector));
             }
         }
         return resolved;

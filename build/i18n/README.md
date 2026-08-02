@@ -2,12 +2,17 @@
 
 Verso's interface is written in English and translated into German, Spanish, Japanese, and
 Simplified Chinese. The translations are committed files, so building Verso and checking
-the translations need no API key and no network. Only regenerating them does.
+the translations need no API key and no network.
 
 Strings live in two places. .NET code reads `.resx` files under `src/<Project>/Resources`,
 one set per assembly, which the build turns into a satellite assembly per language. The
 editor extension reads `vscode/package.nls.json` for anything named in its manifest and
 `vscode/l10n/bundle.l10n.json` for the strings its own code shows.
+
+One set per assembly is not a choice: a satellite assembly carries one assembly's resources, so a
+kernel that ships as its own package needs its own. Each kernel therefore has a `Resources` folder
+and a block in its `.csproj` that generates the accessor. `Plural` lives in `Verso.Abstractions`,
+which every one of them already references.
 
 ## Which file a string belongs in
 
@@ -23,14 +28,25 @@ JSON bundles; if it is drawn inside a notebook, it belongs in a `.resx`. Where t
 sends something a notebook will draw, it sends an identifier and the notebook chooses the
 words, which is what `DiffSources` does for the comparison baselines.
 
-Two kinds of string stay in English wherever they appear, and both are marked with a comment
+Four kinds of string stay in English wherever they appear, and each is marked with a comment
 in the code saying so:
 
 - **Anything read by a model rather than a person.** The chat participant's system prompt,
   the tool descriptions in the manifest, and everything the tools hand back. Translating
   them changes how well tools are chosen without changing anything a reader sees.
+- **Anything read by a script rather than a person.** The `[stderr]` and `[error]` tags a run
+  writes, and the status values in the document `--output json` produces. A pipeline that reads
+  those would break the moment the machine running it was set to another language.
 - **Text that only a fault produces.** Log lines and guards against programmer error stay
   searchable, so a stack trace and an issue report still match.
+- **The shape of the protocol.** The host answers the editor over a small JSON-RPC surface, and a
+  request missing a field it declares is a fault in the caller rather than something the reader
+  did. A log from one machine has to match a search made on another.
+
+The line between the last two and everything else is who can act on the message. A package that
+would not download, a value that does not fit the type its parameter declares, a connection that
+has since closed: the reader can do something about each of those, so each is translated. A cell
+id that does not exist, or a request without the field it said it had, is a fault in code.
 
 ## Adding a string
 
@@ -53,19 +69,65 @@ After editing extension code, re-export the bundle so the new strings reach a tr
 cd vscode && npx @vscode/l10n-dev export --outDir ./l10n ./src
 ```
 
-Then, from the repository root:
+Then translate it, as below, and regenerate the pseudo-locale so the coverage sweep keeps
+working.
+
+## Translating
+
+Two routes fill in a language, and they write the same files. Both ask only for the keys a
+language does not already have, so adding a handful of English strings costs a handful of
+translations rather than a retranslation of the interface.
+
+Read `glossary.md` before either. It is what keeps `kernel` from becoming three different
+words in three files, and it lists what must not be translated at all.
+
+### Handing the strings to a translator
+
+`export.py` writes out what a language is missing, each string with its English and whatever
+note the developer left beside it. Nothing about that file is particular to Verso, so it can
+go to a person, to a translation service, or to an assistant in a session.
 
 ```
-python3 build/i18n/translate.py    # fills in the four languages
+python3 build/i18n/export.py de --limit 100
+python3 build/i18n/export.py de --set Verso.Ado/Strings
+```
+
+The answer comes back through `merge.py`, in the shape its docstring gives:
+
+```
+python3 build/i18n/merge.py build/i18n/pending/de.answer.json
+```
+
+A translation that dropped a `{0}`, or came back empty, or answers a key English does not
+have, is refused and named rather than written. Everything sound in the same run still lands,
+so a rerun only has to cover what was named.
+
+Export, translate, merge, export again. The second export asks for what is still outstanding
+and nothing else, which is what makes a language safe to do over several sittings without
+anyone keeping track of where it got to. `pending/` is working files and is not committed.
+
+### Against the API
+
+`translate.py` does the whole of that in one command, which is the better route for somebody
+outside the project who would rather spend an API key than an afternoon.
+
+```
+python3 build/i18n/translate.py --locale de
+```
+
+It needs `pip install anthropic` and `ANTHROPIC_API_KEY`. Nothing in the build or in
+continuous integration runs it, so neither building Verso nor checking the translations
+needs a key.
+
+### Either way, afterwards
+
+```
 python3 build/i18n/pseudo.py       # regenerates the pseudo-locale
-python3 build/i18n/check.py        # confirms the four agree with the English
+python3 build/i18n/check.py        # confirms the languages agree with the English
 ```
 
-`translate.py` only asks for keys a language does not already have, so this is cheap for a
-handful of strings. It needs `pip install anthropic` and `ANTHROPIC_API_KEY`.
-
-A machine translation is a draft. Have somebody who reads the language look over anything
-user-facing before it ships.
+A translation nobody has read is a draft, whichever route produced it. Have somebody who
+reads the language look over anything user-facing before it ships.
 
 ## Counting things
 
@@ -81,6 +143,68 @@ form and translate both entries the same way. A language with more forms than tw
 Russian or Polish, would need a real plural selector, and that is worth knowing before
 adding one. What must not happen is `cell(s)`, which no other language can copy.
 
+In .NET the pair is chosen through `Plural.Of`. Where the count is dropped into a longer
+sentence, write the count out on its own and pass the phrase in as an argument, so the
+sentence needs one entry rather than a singular and a plural of the whole thing:
+
+```csharp
+string.Format(Strings.Meta_Save_Done, CellCount.Describe(cells.Count), path)
+```
+
+## Words and styling
+
+The CLI writes coloured output through Spectre.Console, whose markup is written in square
+brackets. None of it reaches a translator: `Messages` in `src/Verso.Cli/Utilities` fills a
+translated sentence in and adds the styling around it, and everything substituted in is
+escaped, because a file path can contain a bracket too.
+
+Where a sentence names something typed at a keyboard, that part is a placeholder rather than
+part of the words, so it survives the sentence being rewritten:
+
+```csharp
+Messages.Typed(Strings.Repl_UnsavedHint, ".save", ".load")
+```
+
+Colour goes on a whole line rather than on a word inside it. English puts the verb first, so
+`Saved` could be picked out where it stood; a language that ends with its verb would leave
+the colour on whatever happened to come first instead.
+
+## Sentences built from pieces
+
+A message that reports a count is the usual place a sentence gets assembled out of fragments, and
+the usual place translation breaks. `"Installed " + list + " and " + n + " dependencies."` cannot
+be translated at all: every join is a decision about word order that only English made.
+
+Write the whole sentence as one entry with numbered placeholders, and write any count out on its
+own so it goes in as a single argument:
+
+```csharp
+var dependencies = string.Format(
+    Plural.Of(rest.Count, Strings.Npm_DependencyCount_One, Strings.Npm_DependencyCount_Other),
+    rest.Count);
+
+return string.Format(Strings.Npm_InstalledAnd, Describe(named), dependencies);
+```
+
+Where a message continues on the same line or the next one, each part is still a whole entry
+rather than a phrase glued on, and the entry carries its own leading space or line break. Where
+something wraps an assembled sentence rather than following it, the wrapper takes the sentence as
+its placeholder: `"{0} (execution failed)"` rather than `+ " (execution failed)"`.
+
+## Text a browser rewrites
+
+The table a SQL query comes back as repaints its own footer as the reader pages through it, so the
+sentence goes into the page as a template with its placeholders intact and the script fills them
+in. Assembling it there out of words and numbers would put it beyond a translator's reach, and the
+static footer and the moving one would drift apart.
+
+## Things that line up
+
+A column heading, a padded label, and a rule drawn to a fixed width are all measured from the
+string itself, never from a count written into the code. A translated heading is not the
+length the English one was, and a table whose columns no longer line up reads as a fault
+rather than as a translation.
+
 ## Adding a language
 
 1. Add the tag to `VersoCultures.Supported` in `src/Verso/Localization/VersoCultures.cs`.
@@ -88,7 +212,7 @@ adding one. What must not happen is `cell(s)`, which no other language can copy.
    editor spells it differently, as it does for Chinese.
 3. Add it to the `verso.language` setting's `enum` and `enumItemLabels` in
    `vscode/package.json`, and to `SHIPPED` in `vscode/src/localization.ts`.
-4. Run `translate.py`, then `check.py`.
+4. Translate it by either route above, then run `pseudo.py` and `check.py`.
 
 ## Checking the work
 

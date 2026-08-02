@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ExportCsv_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš ŠQL réšùlt šétš àš ÇŠV fïléš.···!!]</value>
+  </data>
+  <data name="Action_ExportJson_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš ŠQL réšùlt šétš àš JŠÒÑ fïléš.···!!]</value>
+  </data>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>[!!ŠQL çéll tÿpé fòr qùérÿïñg dàtàbàšéš vïà ÀDÒ.ÑÉT.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Alter" xml:space="preserve">
+    <value>[!!ÀLTÉR — Mòdïfïéš àñ éxïštïñg dàtàbàšé òbjéçt.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_And" xml:space="preserve">
+    <value>[!!ÀÑD — Lògïçàl ÀÑD òpéràtòr; bòth çòñdïtïòñš mùšt bé trùé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Avg" xml:space="preserve">
+    <value>[!!ÀVG — Àggrégàté fùñçtïòñ thàt rétùrñš thé àvéràgé òf à ñùmérïç çòlùmñ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Between" xml:space="preserve">
+    <value>[!!BÉTWÉÉÑ — Téštš whéthér à vàlùé ïš wïthïñ à ràñgé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Case" xml:space="preserve">
+    <value>[!!ÇÀŠÉ — Çòñdïtïòñàl éxpréššïòñ; rétùrñš à vàlùé bàšéd òñ çòñdïtïòñš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Count" xml:space="preserve">
+    <value>[!!ÇÒÙÑT — Àggrégàté fùñçtïòñ thàt rétùrñš thé ñùmbér òf ròwš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Create" xml:space="preserve">
+    <value>[!!ÇRÉÀTÉ — Çréàtéš à ñéw dàtàbàšé òbjéçt (tàblé, vïéw, ïñdéx, étç.).···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Delete" xml:space="preserve">
+    <value>[!!DÉLÉTÉ — Rémòvéš ròwš fròm à tàblé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Distinct" xml:space="preserve">
+    <value>[!!DÏŠTÏÑÇT — Rémòvéš dùplïçàté ròwš fròm thé réšùlt šét.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Drop" xml:space="preserve">
+    <value>[!!DRÒP — Rémòvéš à dàtàbàšé òbjéçt.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Exists" xml:space="preserve">
+    <value>[!!ÉXÏŠTŠ — Téštš fòr thé éxïštéñçé òf ròwš ïñ à šùbqùérÿ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_From" xml:space="preserve">
+    <value>[!!FRÒM — Špéçïfïéš thé šòùrçé tàbléš òr vïéwš fòr à qùérÿ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Group" xml:space="preserve">
+    <value>[!!GRÒÙP BÝ — Gròùpš ròwš šhàrïñg à pròpértÿ fòr àggrégàté fùñçtïòñš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Having" xml:space="preserve">
+    <value>[!!HÀVÏÑG — Fïltérš gròùpš çréàtéd bÿ GRÒÙP BÝ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_In" xml:space="preserve">
+    <value>[!!ÏÑ — Téštš whéthér à vàlùé màtçhéš àñÿ vàlùé ïñ à lïšt òr šùbqùérÿ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Inner" xml:space="preserve">
+    <value>[!!ÏÑÑÉR — Rétùrñš ròwš thàt hàvé màtçhïñg vàlùéš ïñ bòth tàbléš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Insert" xml:space="preserve">
+    <value>[!!ÏÑŠÉRT — Àddš ñéw ròwš tò à tàblé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Into" xml:space="preserve">
+    <value>[!!ÏÑTÒ — Špéçïfïéš thé tàrgét tàblé fòr ÏÑŠÉRT.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Join" xml:space="preserve">
+    <value>[!!JÒÏÑ — Çòmbïñéš ròwš fròm twò òr mòré tàbléš bàšéd òñ à rélàtéd çòlùmñ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Left" xml:space="preserve">
+    <value>[!!LÉFT — Rétùrñš àll ròwš fròm thé léft tàblé àñd màtçhïñg ròwš fròm thé rïght.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Like" xml:space="preserve">
+    <value>[!!LÏKÉ — Pàttérñ màtçhïñg wïth wïldçàrdš (% àñd _).···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Max" xml:space="preserve">
+    <value>[!!MÀX — Àggrégàté fùñçtïòñ thàt rétùrñš thé màxïmùm vàlùé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Min" xml:space="preserve">
+    <value>[!!MÏÑ — Àggrégàté fùñçtïòñ thàt rétùrñš thé mïñïmùm vàlùé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Not" xml:space="preserve">
+    <value>[!!ÑÒT — Lògïçàl ÑÒT òpéràtòr; ñégàtéš à çòñdïtïòñ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Null" xml:space="preserve">
+    <value>[!!ÑÙLL — Répréšéñtš à mïššïñg òr ùñkñòwñ vàlùé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Or" xml:space="preserve">
+    <value>[!!ÒR — Lògïçàl ÒR òpéràtòr; éïthér çòñdïtïòñ mùšt bé trùé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Order" xml:space="preserve">
+    <value>[!!ÒRDÉR BÝ — Šòrtš thé réšùlt šét bÿ òñé òr mòré çòlùmñš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Right" xml:space="preserve">
+    <value>[!!RÏGHT — Rétùrñš àll ròwš fròm thé rïght tàblé àñd màtçhïñg ròwš fròm thé léft.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Select" xml:space="preserve">
+    <value>[!!ŠÉLÉÇT — Rétrïévéš ròwš fròm òñé òr mòré tàbléš òr vïéwš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Set" xml:space="preserve">
+    <value>[!!ŠÉT — Špéçïfïéš çòlùmñš àñd vàlùéš fòr ÙPDÀTÉ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Sum" xml:space="preserve">
+    <value>[!!ŠÙM — Àggrégàté fùñçtïòñ thàt rétùrñš thé tòtàl òf à ñùmérïç çòlùmñ.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Table" xml:space="preserve">
+    <value>[!!TÀBLÉ — Référš tò à dàtàbàšé tàblé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Union" xml:space="preserve">
+    <value>[!!ÙÑÏÒÑ — Çòmbïñéš réšùlt šétš òf twò òr mòré ŠÉLÉÇT štàtéméñtš.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Update" xml:space="preserve">
+    <value>[!!ÙPDÀTÉ — Mòdïfïéš éxïštïñg ròwš ïñ à tàblé.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Values" xml:space="preserve">
+    <value>[!!VÀLÙÉŠ — Špéçïfïéš lïtéràl vàlùéš fòr ÏÑŠÉRT.···!!]</value>
+  </data>
+  <data name="Completion_Keyword_Where" xml:space="preserve">
+    <value>[!!WHÉRÉ — Fïltérš ròwš bàšéd òñ à çòñdïtïòñ.···!!]</value>
+  </data>
+  <data name="Directive_SpacedHint" xml:space="preserve">
+    <value>[!!Hïñt: '--{0}' mùšt hàvé ñò špàçé àftér '--'. Thïš lïñé wàš réàd àš à ŠQL çòmméñt àñd ïgñòréd, šò thé çéll ùšéd thé défàùlt çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>[!!ŠQL dàtàbàšé çòññéçtïvïtÿ éxtéñšïòñ fòr Véršò ñòtébòòkš.···!!]</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš ŠQL réšùlt šétš àñd DàtàTàbléš àš pàgïñàtéd HTML tàbléš.···!!]</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>[!!Çòñvértš Pòlÿglòt Ñòtébòòkš ŠQL pàttérñš tò Véršò ŠQL çéllš òñ Jùpÿtér ïmpòrt.···!!]</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>[!!Éxéçùtéš ŠQL qùérïéš àgàïñšt ÀDÒ.ÑÉT dàtàbàšé çòññéçtïòñš.···!!]</value>
+  </data>
+  <data name="Magic_Connect_Connected" xml:space="preserve">
+    <value>[!!Çòññéçtéd '{0}'{1} ùšïñg {2}···!!]</value>
+  </data>
+  <data name="Magic_Connect_ConnectionString" xml:space="preserve">
+    <value>[!!
+  Çòññéçtïòñ štrïñg: {0}···!!]</value>
+  </data>
+  <data name="Magic_Connect_ConnectionStringRequired" xml:space="preserve">
+    <value>[!!--çòññéçtïòñ-štrïñg ïš réqùïréd. Ùšàgé: #!šql-çòññéçt --ñàmé &lt;ñàmé&gt; --çòññéçtïòñ-štrïñg &lt;çš&gt;···!!]</value>
+  </data>
+  <data name="Magic_Connect_CredentialFailed" xml:space="preserve">
+    <value>[!!Érròr réšòlvïñg çòññéçtïòñ štrïñg: {0}···!!]</value>
+  </data>
+  <data name="Magic_Connect_Database" xml:space="preserve">
+    <value>[!! — dàtàbàšé: {0}···!!]</value>
+  </data>
+  <data name="Magic_Connect_DefaultLabel" xml:space="preserve">
+    <value>[!! (défàùlt)···!!]</value>
+  </data>
+  <data name="Magic_Connect_Description" xml:space="preserve">
+    <value>[!!Éštàblïšhéš à dàtàbàšé çòññéçtïòñ fòr ŠQL çéllš.···!!]</value>
+  </data>
+  <data name="Magic_Connect_NameRequired" xml:space="preserve">
+    <value>[!!--ñàmé ïš réqùïréd. Ùšàgé: #!šql-çòññéçt --ñàmé &lt;ñàmé&gt; --çòññéçtïòñ-štrïñg &lt;çš&gt;···!!]</value>
+  </data>
+  <data name="Magic_Connect_OpenFailed" xml:space="preserve">
+    <value>[!!Érròr òpéñïñg çòññéçtïòñ: {0}···!!]</value>
+  </data>
+  <data name="Magic_Connect_Param_CommandTimeout" xml:space="preserve">
+    <value>[!!Défàùlt çòmmàñd tïméòùt ïñ šéçòñdš fòr ŠQL çéllš òñ thïš çòññéçtïòñ (0 = ñò lïmït).···!!]</value>
+  </data>
+  <data name="Magic_Connect_Param_ConnectionString" xml:space="preserve">
+    <value>[!!Thé ÀDÒ.ÑÉT çòññéçtïòñ štrïñg.···!!]</value>
+  </data>
+  <data name="Magic_Connect_Param_Default" xml:space="preserve">
+    <value>[!!Šét thïš çòññéçtïòñ àš thé défàùlt.···!!]</value>
+  </data>
+  <data name="Magic_Connect_Param_Name" xml:space="preserve">
+    <value>[!!À frïéñdlÿ ñàmé fòr thïš çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Connect_Param_Provider" xml:space="preserve">
+    <value>[!!Thé DbPròvïdérFàçtòrÿ ïñvàrïàñt ñàmé.···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
+    <value>[!!Érròr réšòlvïñg pròvïdér: {0}···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnknown" xml:space="preserve">
+    <value>[!!ùñkñòwñ···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnresolved" xml:space="preserve">
+    <value>[!!Pròvïdér çòùld ñòt bé réšòlvéd.···!!]</value>
+  </data>
+  <data name="Magic_Connect_Timeout" xml:space="preserve">
+    <value>[!!
+  Çòmmàñd tïméòùt: {0}š···!!]</value>
+  </data>
+  <data name="Magic_Connect_TimeoutInvalid" xml:space="preserve">
+    <value>[!!--çòmmàñd-tïméòùt mùšt bé à ñòñ-ñégàtïvé ïñtégér (šéçòñdš; 0 = ñò lïmït).···!!]</value>
+  </data>
+  <data name="Magic_Connect_TimeoutNoLimit" xml:space="preserve">
+    <value>[!!
+  Çòmmàñd tïméòùt: ñò lïmït···!!]</value>
+  </data>
+  <data name="Magic_Disconnect_Description" xml:space="preserve">
+    <value>[!!Çlòšéš àñd rémòvéš à dàtàbàšé çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Disconnect_Done" xml:space="preserve">
+    <value>[!!Dïšçòññéçtéd '{0}'.···!!]</value>
+  </data>
+  <data name="Magic_Disconnect_NoName" xml:space="preserve">
+    <value>[!!Ñò çòññéçtïòñ ñàmé špéçïfïéd àñd ñò défàùlt çòññéçtïòñ ïš šét.···!!]</value>
+  </data>
+  <data name="Magic_Disconnect_NotFound" xml:space="preserve">
+    <value>[!!Çòññéçtïòñ '{0}' ñòt fòùñd.···!!]</value>
+  </data>
+  <data name="Magic_Disconnect_Param_Name" xml:space="preserve">
+    <value>[!!Thé çòññéçtïòñ ñàmé tò dïšçòññéçt. Défàùltš tò thé défàùlt çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionClosed" xml:space="preserve">
+    <value>[!!Çòññéçtïòñ '{0}' ïš ñòt òpéñ.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionRequired" xml:space="preserve">
+    <value>[!!--çòññéçtïòñ ïš réqùïréd. Ùšàgé: #!šql-šçàffòld --çòññéçtïòñ &lt;ñàmé&gt; [--tàbléš "Tàblé1,Tàblé2"]···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_Description" xml:space="preserve">
+    <value>[!!Géñéràtéš ÉF Çòré DbÇòñtéxt àñd éñtïtÿ çlàššéš fròm à dàtàbàšé šçhémà.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_EfCoreHint" xml:space="preserve">
+    <value>[!!Hïñt: éñšùré ÉF Çòré pàçkàgéš àré ïñštàlléd ïñ à prïòr Ç# çéll:
+
+{0}···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_One" xml:space="preserve">
+    <value>[!!{0} éñtïtÿ···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_Other" xml:space="preserve">
+    <value>[!!{0} éñtïtïéš···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
+    <value>[!!Géñéràtéd Ç# çòdé···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
+    <value>[!!Ç# kérñél ñòt fòùñd. Çàññòt éxéçùté šçàffòldéd çòdé.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_NoTables" xml:space="preserve">
+    <value>[!!Ñò tàbléš fòùñd màtçhïñg thé špéçïfïéd çrïtérïà.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_NotFound" xml:space="preserve">
+    <value>[!!Çòññéçtïòñ '{0}' ñòt fòùñd. Ùšé #!šql-çòññéçt fïršt.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Connection" xml:space="preserve">
+    <value>[!!Thé ñàméd çòññéçtïòñ tò šçàffòld fròm.···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Schema" xml:space="preserve">
+    <value>[!!Dàtàbàšé šçhémà tò fïltér bÿ (é.g. dbò).···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Tables" xml:space="preserve">
+    <value>[!!Çòmmà-šépàràtéd lïšt òf tàbléš tò ïñçlùdé (défàùlt: àll).···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_One" xml:space="preserve">
+    <value>[!! ({0} rélàtïòñšhïp)···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_Other" xml:space="preserve">
+    <value>[!! ({0} rélàtïòñšhïpš)···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_Summary" xml:space="preserve">
+    <value>[!!Šçàffòldéd {0}{1} ïñtò {2}
+
+Éñtïtïéš: {3}
+Çòñtéxt vàrïàblé: {4}
+
+Ùšàgé ïñ Ç# çéllš:
+  vàr ïtémš = {4}.{5}.TòLïšt();
+···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnCount" xml:space="preserve">
+    <value>[!!({0} çòlùmñš)···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnDefault" xml:space="preserve">
+    <value>[!!Défàùlt···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnKey" xml:space="preserve">
+    <value>[!!Kéÿ···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnName" xml:space="preserve">
+    <value>[!!Ñàmé···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnNullable" xml:space="preserve">
+    <value>[!!Ñùllàblé···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnSchema" xml:space="preserve">
+    <value>[!!Šçhémà···!!]</value>
+  </data>
+  <data name="Magic_Schema_ColumnType" xml:space="preserve">
+    <value>[!!Tÿpé···!!]</value>
+  </data>
+  <data name="Magic_Schema_ConnectionClosed" xml:space="preserve">
+    <value>[!!Çòññéçtïòñ '{0}' ïš ñòt òpéñ. Réçòññéçt wïth #!šql-çòññéçt.···!!]</value>
+  </data>
+  <data name="Magic_Schema_Description" xml:space="preserve">
+    <value>[!!Dïšplàÿš dàtàbàšé šçhémà ïñfòrmàtïòñ (tàbléš, vïéwš, çòlùmñš).···!!]</value>
+  </data>
+  <data name="Magic_Schema_Heading" xml:space="preserve">
+    <value>[!!Šçhémà fòr çòññéçtïòñ: {0}···!!]</value>
+  </data>
+  <data name="Magic_Schema_LoadFailed" xml:space="preserve">
+    <value>[!!Érròr lòàdïñg šçhémà: {0}···!!]</value>
+  </data>
+  <data name="Magic_Schema_NoConnection" xml:space="preserve">
+    <value>[!!Ñò dàtàbàšé çòññéçtïòñ. Ùšé #!šql-çòññéçt tò éštàblïšh à çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Schema_NotFound" xml:space="preserve">
+    <value>[!!Çòññéçtïòñ '{0}' ñòt fòùñd. Ùšé #!šql-çòññéçt tò éštàblïšh à çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Schema_Param_Connection" xml:space="preserve">
+    <value>[!!Ñàmé òf thé çòññéçtïòñ tò ïñšpéçt.···!!]</value>
+  </data>
+  <data name="Magic_Schema_Param_Refresh" xml:space="preserve">
+    <value>[!!Fòrçé réfréšh òf thé šçhémà çàçhé.···!!]</value>
+  </data>
+  <data name="Magic_Schema_Param_Table" xml:space="preserve">
+    <value>[!!Šhòw çòlùmñ détàïlš fòr à špéçïfïç tàblé.···!!]</value>
+  </data>
+  <data name="Magic_Schema_TableCount" xml:space="preserve">
+    <value>[!!({0} tàbléš/vïéwš)···!!]</value>
+  </data>
+  <data name="Magic_Schema_TableNotFound" xml:space="preserve">
+    <value>[!!Tàblé '{0}' ñòt fòùñd ïñ šçhémà.···!!]</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>[!!Érròr: {0}···!!]</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>[!!Wàrñïñg: {0}···!!]</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>[!!Réñdérš ŠQL çéllš wïth çòññéçtïòñ ïñdïçàtòr bàdgéš.···!!]</value>
+  </data>
+  <data name="Run_ConnectionClosed" xml:space="preserve">
+    <value>[!!Çòññéçtïòñ '{0}' ïš ñòt òpéñ. Réçòññéçt wïth `#!šql-çòññéçt`.···!!]</value>
+  </data>
+  <data name="Run_Failed" xml:space="preserve">
+    <value>[!!ŠQL érròr: {0}···!!]</value>
+  </data>
+  <data name="Run_NoConnection" xml:space="preserve">
+    <value>[!!Ñò dàtàbàšé çòññéçtïòñ. Ùšé `#!šql-çòññéçt` tò éštàblïšh à çòññéçtïòñ.···!!]</value>
+  </data>
+  <data name="Run_NoSql" xml:space="preserve">
+    <value>[!!Ñò ŠQL tò éxéçùté.···!!]</value>
+  </data>
+  <data name="Run_UnsupportedParameterType" xml:space="preserve">
+    <value>[!!Tÿpé '{0}' fòr '{1}' ïš ñòt à šùppòrtéd DbTÿpé. Pàššïñg àš-ïš.···!!]</value>
+  </data>
+  <data name="Table_Elapsed" xml:space="preserve">
+    <value>[!!{0} mš···!!]</value>
+  </data>
+  <data name="Table_Next" xml:space="preserve">
+    <value>[!!Ñéxt···!!]</value>
+  </data>
+  <data name="Table_Previous" xml:space="preserve">
+    <value>[!!Prévïòùš···!!]</value>
+  </data>
+  <data name="Table_RowsAffected_One" xml:space="preserve">
+    <value>[!!{0} ròw àfféçtéd···!!]</value>
+  </data>
+  <data name="Table_RowsAffected_Other" xml:space="preserve">
+    <value>[!!{0} ròwš àfféçtéd···!!]</value>
+  </data>
+  <data name="Table_ShowingRows" xml:space="preserve">
+    <value>[!!Šhòwïñg {0}-{1} òf {2} ròwš···!!]</value>
+  </data>
+  <data name="Table_Statements" xml:space="preserve">
+    <value>[!!{0} ({1} štàtéméñtš)···!!]</value>
+  </data>
+  <data name="Table_Truncated" xml:space="preserve">
+    <value>[!!Réšùltš trùñçàtéd àt {0} òf {1} tòtàl ròwš. Ùšé WHÉRÉ òr LÏMÏT tò ñàrròw ÿòùr qùérÿ.···!!]</value>
+  </data>
+</root>

@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,18 +8,17 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class ViewMeta : IMetaCommand
 {
     public string Name => "view";
-    public string Summary => "Prints the last cell's output without truncation.";
-    public string DetailedHelp =>
-        ".view [<n>]\n" +
-        "  Prints the outputs of the last cell (or cell n if supplied) in full, bypassing\n" +
-        "  the row/line caps applied during normal rendering.";
+    public string Summary => Strings.Meta_View_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".view [<n>]\n" + Strings.Meta_View_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var cells = context.Session.Notebook.Cells;
         if (cells.Count == 0)
         {
-            context.Console.MarkupLine("[dim]No cells to view.[/]");
+            context.Console.MarkupLine(Messages.In("dim", Messages.Say(Strings.Meta_View_Nothing)));
             return Task.FromResult(true);
         }
 
@@ -27,7 +28,8 @@ public sealed class ViewMeta : IMetaCommand
         {
             if (!int.TryParse(arg, out var parsed) || parsed <= 0 || parsed > cells.Count)
             {
-                context.Console.MarkupLine($"[red]Invalid or out-of-range cell index '{Markup.Escape(arg)}'.[/]");
+                context.Console.MarkupLine(Messages.In("red",
+                    Messages.Say(Strings.Meta_View_InvalidIndex, arg)));
                 return Task.FromResult(true);
             }
             index = parsed - 1;
@@ -36,7 +38,8 @@ public sealed class ViewMeta : IMetaCommand
         var cell = cells[index];
         if (cell.Outputs.Count == 0)
         {
-            context.Console.MarkupLine($"[dim]Cell [[{index + 1}]] has no outputs.[/]");
+            context.Console.MarkupLine(Messages.In("dim",
+                Messages.Say(Strings.Meta_View_NoOutputs, index + 1)));
             return Task.FromResult(true);
         }
 

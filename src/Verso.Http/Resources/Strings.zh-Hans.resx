@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>用于发送 REST API 请求的 HTTP 请求单元格类型。</value>
+  </data>
+  <data name="Completion_Header_Accept" xml:space="preserve">
+    <value>Accept — 客户端在响应中可以处理的媒体类型。</value>
+  </data>
+  <data name="Completion_Header_AcceptEncoding" xml:space="preserve">
+    <value>Accept-Encoding — 可接受的内容编码（例如 gzip、deflate）。</value>
+  </data>
+  <data name="Completion_Header_AcceptLanguage" xml:space="preserve">
+    <value>Accept-Language — 响应首选的自然语言。</value>
+  </data>
+  <data name="Completion_Header_Authorization" xml:space="preserve">
+    <value>Authorization — 用于验证请求的凭据（例如 Bearer 令牌）。</value>
+  </data>
+  <data name="Completion_Header_CacheControl" xml:space="preserve">
+    <value>Cache-Control — 缓存机制的指令。</value>
+  </data>
+  <data name="Completion_Header_ContentType" xml:space="preserve">
+    <value>Content-Type — 请求正文的媒体类型（例如 application/json）。</value>
+  </data>
+  <data name="Completion_Header_Cookie" xml:space="preserve">
+    <value>Cookie — 服务器先前发送的 HTTP cookie。</value>
+  </data>
+  <data name="Completion_Header_IfModifiedSince" xml:space="preserve">
+    <value>If-Modified-Since — 基于上次修改日期的条件请求。</value>
+  </data>
+  <data name="Completion_Header_IfNoneMatch" xml:space="preserve">
+    <value>If-None-Match — 使用 ETag 值的条件请求。</value>
+  </data>
+  <data name="Completion_Header_UserAgent" xml:space="preserve">
+    <value>User-Agent — 标识发出请求的客户端软件。</value>
+  </data>
+  <data name="Completion_Header_XRequestId" xml:space="preserve">
+    <value>X-Request-Id — 用于请求跟踪的自定义标头。</value>
+  </data>
+  <data name="Completion_Method_Delete" xml:space="preserve">
+    <value>DELETE — 删除资源。</value>
+  </data>
+  <data name="Completion_Method_Get" xml:space="preserve">
+    <value>GET — 检索资源。不应有副作用。</value>
+  </data>
+  <data name="Completion_Method_Head" xml:space="preserve">
+    <value>HEAD — 与 GET 类似，但只返回标头，不返回正文。</value>
+  </data>
+  <data name="Completion_Method_Options" xml:space="preserve">
+    <value>OPTIONS — 描述目标资源的通信选项。</value>
+  </data>
+  <data name="Completion_Method_Patch" xml:space="preserve">
+    <value>PATCH — 部分更新资源。</value>
+  </data>
+  <data name="Completion_Method_Post" xml:space="preserve">
+    <value>POST — 提交数据以创建或处理资源。</value>
+  </data>
+  <data name="Completion_Method_Put" xml:space="preserve">
+    <value>PUT — 完全替换资源。</value>
+  </data>
+  <data name="Completion_Variable_Datetime" xml:space="preserve">
+    <value>当前的 UTC 日期时间。用法：$datetime [format] [offset unit]</value>
+  </data>
+  <data name="Completion_Variable_Guid" xml:space="preserve">
+    <value>生成新的 UUID/GUID。</value>
+  </data>
+  <data name="Completion_Variable_LocalDatetime" xml:space="preserve">
+    <value>当前的本地日期时间。用法：$localDatetime [format] [offset unit]</value>
+  </data>
+  <data name="Completion_Variable_ProcessEnv" xml:space="preserve">
+    <value>读取环境变量。用法：$processEnv NAME</value>
+  </data>
+  <data name="Completion_Variable_RandomInt" xml:space="preserve">
+    <value>生成随机整数。用法：$randomInt [min max]</value>
+  </data>
+  <data name="Completion_Variable_Timestamp" xml:space="preserve">
+    <value>当前的 Unix 时间戳，以秒为单位。用法：$timestamp [offset unit]</value>
+  </data>
+  <data name="Diagnostic_MissingUrl" xml:space="preserve">
+    <value>缺少 URL。</value>
+  </data>
+  <data name="Diagnostic_NoRequest" xml:space="preserve">
+    <value>找不到有效的 HTTP 请求。请以方法（GET、POST 等）开头，后跟 URL。</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>使用 .http 文件语法执行 HTTP 请求。</value>
+  </data>
+  <data name="Magic_SetBase_Description" xml:space="preserve">
+    <value>为相对的 HTTP 请求 URL 设置基址。</value>
+  </data>
+  <data name="Magic_SetBase_Done" xml:space="preserve">
+    <value>HTTP 基址已设置为：{0}</value>
+  </data>
+  <data name="Magic_SetBase_Param_Url" xml:space="preserve">
+    <value>要添加到相对请求 URL 前面的基址。</value>
+  </data>
+  <data name="Magic_SetBase_UrlRequired" xml:space="preserve">
+    <value>必须提供 URL。用法：#!http-set-base &lt;url&gt;</value>
+  </data>
+  <data name="Magic_SetHeader_BothRequired" xml:space="preserve">
+    <value>标头名称和值都必须提供。用法：#!http-set-header &lt;name&gt; &lt;value&gt;</value>
+  </data>
+  <data name="Magic_SetHeader_Description" xml:space="preserve">
+    <value>为所有请求添加或更新默认的 HTTP 标头。</value>
+  </data>
+  <data name="Magic_SetHeader_Done" xml:space="preserve">
+    <value>已设置默认标头：{0}: {1}</value>
+  </data>
+  <data name="Magic_SetHeader_Param_Name" xml:space="preserve">
+    <value>标头名称。</value>
+  </data>
+  <data name="Magic_SetHeader_Param_Value" xml:space="preserve">
+    <value>标头值。</value>
+  </data>
+  <data name="Magic_SetHeader_ValueRequired" xml:space="preserve">
+    <value>标头值不能为空。用法：#!http-set-header &lt;name&gt; &lt;value&gt;</value>
+  </data>
+  <data name="Magic_SetTimeout_Description" xml:space="preserve">
+    <value>设置 HTTP 请求的默认超时（以秒为单位）。</value>
+  </data>
+  <data name="Magic_SetTimeout_Done" xml:space="preserve">
+    <value>HTTP 超时已设置为 {0} 秒。</value>
+  </data>
+  <data name="Magic_SetTimeout_Invalid" xml:space="preserve">
+    <value>必须提供正整数。用法：#!http-set-timeout &lt;seconds&gt;</value>
+  </data>
+  <data name="Magic_SetTimeout_Param_Seconds" xml:space="preserve">
+    <value>超时秒数。</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>错误：{0}</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>渲染 HTTP 请求单元格。</value>
+  </data>
+  <data name="Response_Headers" xml:space="preserve">
+    <value>响应标头（{0}）</value>
+  </data>
+  <data name="Response_Truncated" xml:space="preserve">
+    <value>响应已在 100 KB 处截断（总计：{0} KB）</value>
+  </data>
+  <data name="Run_Cancelled" xml:space="preserve">
+    <value>请求已取消。</value>
+  </data>
+  <data name="Run_NoRequest" xml:space="preserve">
+    <value>找不到 HTTP 请求。</value>
+  </data>
+  <data name="Run_RelativeUrlNeedsBase" xml:space="preserve">
+    <value>相对 URL“{0}”需要基址。请使用 #!http-set-base。</value>
+  </data>
+  <data name="Run_RequestFailed" xml:space="preserve">
+    <value>请求失败，状态为 {0} {1}。</value>
+  </data>
+  <data name="Run_Sending" xml:space="preserve">
+    <value>正在发送 {0} {1}...</value>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>请求在 {0}s 后超时。</value>
+  </data>
+</root>

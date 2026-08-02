@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Auto_Installing" xml:space="preserve">
+    <value>{0} wird nach {1} installiert.</value>
+  </data>
+  <data name="Auto_RefusedOptions" xml:space="preserve">
+    <value>Nicht installiert: {0}. Eine Abhängigkeit muss ein Paket benennen; dies sind Installationsoptionen, die ein Notebook nicht übergeben darf. Entfernen Sie sie, oder führen Sie die Installation mit #!pip selbst aus, wenn Sie sie beabsichtigt haben.</value>
+  </data>
+  <data name="Auto_RefusedSources" xml:space="preserve">
+    <value>Nicht installiert: {0}. Eine Abhängigkeit muss ein Paket benennen; dies benennt einen Ort, von dem installiert wird, wodurch Code von einem vom Notebook gewählten Ort statt aus dem konfigurierten Index geholt worden wäre. Benennen Sie stattdessen das Paket, oder führen Sie die Installation mit #!pip selbst aus, wenn Sie sie beabsichtigt haben.</value>
+  </data>
+  <data name="Auto_UnknownDistribution" xml:space="preserve">
+    <value>'{0}' ist nicht installiert und Verso weiß nicht, welche Distribution es bereitstellt. Automatische Installationen erfassen nur bekannte Pakete; installieren Sie es mit #!pip {0}, falls das der richtige Name ist.</value>
+  </data>
+  <data name="Install_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} ist bereits installiert.</value>
+  </data>
+  <data name="Install_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} sind bereits installiert.</value>
+  </data>
+  <data name="Install_AlreadyPresent" xml:space="preserve">
+    <value>Bereits vorhanden: {0}.</value>
+  </data>
+  <data name="Install_Completed" xml:space="preserve">
+    <value>Die Installation ist abgeschlossen.</value>
+  </data>
+  <data name="Install_Dependencies" xml:space="preserve">
+    <value>Abhängigkeiten: {0}.</value>
+  </data>
+  <data name="Install_DependencyCount_One" xml:space="preserve">
+    <value>{0} Abhängigkeit</value>
+  </data>
+  <data name="Install_DependencyCount_Other" xml:space="preserve">
+    <value>{0} Abhängigkeiten</value>
+  </data>
+  <data name="Install_ExitedWithCode" xml:space="preserve">
+    <value>Die Paketinstallation ist fehlgeschlagen (Exitcode {0}).</value>
+  </data>
+  <data name="Install_Installed" xml:space="preserve">
+    <value>{0} installiert.</value>
+  </data>
+  <data name="Install_InstalledAnd" xml:space="preserve">
+    <value>{0} und {1} installiert.</value>
+  </data>
+  <data name="Install_NothingToDo" xml:space="preserve">
+    <value>Alles Angeforderte ist bereits installiert.</value>
+  </data>
+  <data name="Install_PackageCount_One" xml:space="preserve">
+    <value>{0} Paket</value>
+  </data>
+  <data name="Install_PackageCount_Other" xml:space="preserve">
+    <value>{0} Pakete</value>
+  </data>
+  <data name="Install_Packages" xml:space="preserve">
+    <value>Pakete: {0}.</value>
+  </data>
+  <data name="Install_RunFailed" xml:space="preserve">
+    <value>Das Installationsprogramm konnte nicht ausgeführt werden: {0}</value>
+  </data>
+  <data name="Install_StartFailed" xml:space="preserve">
+    <value>Das Installationsprogramm konnte nicht gestartet werden.</value>
+  </data>
+  <data name="InterpreterSource_CondaPrefix" xml:space="preserve">
+    <value>conda</value>
+  </data>
+  <data name="InterpreterSource_DerivedEnvironment" xml:space="preserve">
+    <value>verwaltete Umgebung</value>
+  </data>
+  <data name="InterpreterSource_Explicit" xml:space="preserve">
+    <value>konfiguriert</value>
+  </data>
+  <data name="InterpreterSource_Path" xml:space="preserve">
+    <value>Suchpfad</value>
+  </data>
+  <data name="InterpreterSource_SessionSelection" xml:space="preserve">
+    <value>Sitzung</value>
+  </data>
+  <data name="InterpreterSource_VirtualEnv" xml:space="preserve">
+    <value>virtuelle Umgebung</value>
+  </data>
+  <data name="InterpreterSource_WellKnown" xml:space="preserve">
+    <value>üblicher Ort</value>
+  </data>
+  <data name="InterpreterSource_WorkspaceVenv" xml:space="preserve">
+    <value>venv im Arbeitsordner</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Python-Sprachkernel, der den auf diesem Rechner installierten Interpreter verwendet.</value>
+  </data>
+  <data name="Magic_Pip_Description" xml:space="preserve">
+    <value>Installiert Python-Pakete über pip zur Verwendung in nachfolgendem Code.</value>
+  </data>
+  <data name="Magic_Pip_Installing" xml:space="preserve">
+    <value>{0} wird installiert...</value>
+  </data>
+  <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
+    <value>Es ist kein Python-Interpreter verfügbar, daher gibt es kein Ziel für die Installation. Installieren Sie Python 3.8 oder neuer, oder wählen Sie mit #!python einen Interpreter aus.</value>
+  </data>
+  <data name="Magic_Pip_Param_Options" xml:space="preserve">
+    <value>Zusätzliche pip-Optionen, die an den Installationsbefehl weitergereicht werden.</value>
+  </data>
+  <data name="Magic_Pip_Param_Packages" xml:space="preserve">
+    <value>Ein oder mehrere Paketangaben (z. B. pandas==2.0 numpy).</value>
+  </data>
+  <data name="Magic_Pip_Usage" xml:space="preserve">
+    <value>Verwendung: #!pip &lt;package&gt; [package2 ...] [--options]</value>
+  </data>
+  <data name="Magic_Python_Active" xml:space="preserve">
+    <value>Aktiver Interpreter: {0}
+Python {1} ({2}, {3})</value>
+  </data>
+  <data name="Magic_Python_Description" xml:space="preserve">
+    <value>Zeigt den Python-Interpreter der aktuellen Sitzung an oder wählt ihn aus.</value>
+  </data>
+  <data name="Magic_Python_DiscoveredHeading" xml:space="preserve">
+    <value>Gefundene Interpreter:</value>
+  </data>
+  <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
+    <value>
+Dieser Interpreter wird extern verwaltet; Installationen verwenden eine von Verso verwaltete Umgebung.</value>
+  </data>
+  <data name="Magic_Python_NoneFound" xml:space="preserve">
+    <value>Es wurden keine Python-Interpreter gefunden.</value>
+  </data>
+  <data name="Magic_Python_NotFoundFor" xml:space="preserve">
+    <value>Für '{0}' wurde kein Python-Interpreter gefunden.</value>
+  </data>
+  <data name="Magic_Python_Param_Target" xml:space="preserve">
+    <value>Ein Pfad oder Name zur Auswahl, oder --list, um die gefundenen Interpreter anzuzeigen. Ohne Angabe wird der aktive Interpreter angezeigt.</value>
+  </data>
+  <data name="Magic_Python_RestartFailed" xml:space="preserve">
+    <value>Der Kernel konnte nicht automatisch neu gestartet werden ({0}). Führen Sie #!restart aus, um die Auswahl zu übernehmen.</value>
+  </data>
+  <data name="Magic_Python_Selected" xml:space="preserve">
+    <value>{0} ausgewählt (Python {1}). </value>
+  </data>
+  <data name="Magic_Python_SelectedAppliesLater" xml:space="preserve">
+    <value>Sie wird beim nächsten Start des Python-Kernels wirksam.</value>
+  </data>
+  <data name="Magic_Python_SelectedRestarting" xml:space="preserve">
+    <value>Der Kernel wird neu gestartet, um sie zu übernehmen.</value>
+  </data>
+  <data name="Setting_Dependencies_Description" xml:space="preserve">
+    <value>Requirement-Zeichenfolgen, die vor dem Ausführen der ersten Zelle in die Python-Umgebung des Notebooks installiert werden, unter derselben Zustimmungsregel wie ein Import. Ein Eintrag je Zeile, in der Form, die pip akzeptiert (zum Beispiel "pandas&gt;=2"). Ein Eintrag muss ein Paket benennen: Installationsoptionen und Orte wie eine URL, ein Verweis auf eine Versionsverwaltung oder ein Pfad werden abgelehnt, denn ein Notebook bestimmt nicht, woher Pakete kommen.</value>
+  </data>
+  <data name="Setting_Dependencies_Label" xml:space="preserve">
+    <value>Abhängigkeiten</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>Eine Installation als die hinzugefügten Pakete und deren Versionen melden, statt alles weiterzureichen, was das Installationsprogramm dabei ausgegeben hat. Die Installation eines Pakets zieht dessen Abhängigkeiten nach sich, und der so entstehende Bildschirm voller Text wird zusammen mit der Ausgabe, für die die Zelle eigentlich ausgeführt wurde, im Notebook gespeichert. Eine fehlgeschlagene Installation wird immer vollständig gemeldet.</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>Installationsausgabe ausblenden</value>
+  </data>
+</root>

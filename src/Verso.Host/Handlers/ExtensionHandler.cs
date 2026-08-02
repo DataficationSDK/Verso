@@ -4,6 +4,7 @@ using Verso.Extensions;
 using Verso.Extensions.Marketplace;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
+using Verso.Host.Resources;
 
 namespace Verso.Host.Handlers;
 
@@ -70,7 +71,7 @@ public static class ExtensionHandler
                 var consent = new[] { new ExtensionConsentInfo(p.PackageId, p.Version, "marketplace") };
                 var approved = await ns.ExtensionHost.RequestExtensionConsentAsync(consent, CancellationToken.None);
                 if (!approved)
-                    return new ExtensionInstallResult { Success = false, ErrorMessage = "Installation was not approved." };
+                    return new ExtensionInstallResult { Success = false, ErrorMessage = Strings.Extension_NotApproved };
 
                 TrustStore.Approve(p.PackageId, p.Version);
                 TrustStore.Save();
@@ -115,7 +116,7 @@ public static class ExtensionHandler
             ?? throw new JsonException("Missing params for extension/installLocal");
 
         if (string.IsNullOrWhiteSpace(p.Path))
-            return new ExtensionInstallResult { Success = false, ErrorMessage = "No file path was provided." };
+            return new ExtensionInstallResult { Success = false, ErrorMessage = Strings.Extension_NoFilePath };
 
         try
         {

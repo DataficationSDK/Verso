@@ -1,0 +1,666 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ClearCellOutput" xml:space="preserve">
+    <value>Zellenausgabe löschen</value>
+  </data>
+  <data name="Action_ClearCellOutput_Description" xml:space="preserve">
+    <value>Löscht die Ausgabe der ausgewählten Zelle.</value>
+  </data>
+  <data name="Action_ClearCellOutput_Label" xml:space="preserve">
+    <value>Ausgabe löschen</value>
+  </data>
+  <data name="Action_ClearOutputs" xml:space="preserve">
+    <value>Ausgaben löschen</value>
+  </data>
+  <data name="Action_ClearOutputs_Description" xml:space="preserve">
+    <value>Löscht alle Zellenausgaben im Notebook.</value>
+  </data>
+  <data name="Action_ExportHtml" xml:space="preserve">
+    <value>HTML exportieren</value>
+  </data>
+  <data name="Action_ExportHtml_Description" xml:space="preserve">
+    <value>Exportiert das Notebook als eigenständiges HTML-Dokument.</value>
+  </data>
+  <data name="Action_ExportMarkdown" xml:space="preserve">
+    <value>Markdown exportieren</value>
+  </data>
+  <data name="Action_ExportMarkdown_Description" xml:space="preserve">
+    <value>Exportiert das Notebook als Markdown-Dokument.</value>
+  </data>
+  <data name="Action_ExportVerso" xml:space="preserve">
+    <value>Verso exportieren</value>
+  </data>
+  <data name="Action_ExportVerso_Description" xml:space="preserve">
+    <value>Exportiert ein auf Markdown basierendes Notebook als native .verso-Datei.</value>
+  </data>
+  <data name="Action_RestartKernel" xml:space="preserve">
+    <value>Kernel neu starten</value>
+  </data>
+  <data name="Action_RestartKernel_Confirm" xml:space="preserve">
+    <value>Beim Neustart des Kernels gehen alle Variablen und der Ausführungszustand verloren. Jetzt neu starten?</value>
+  </data>
+  <data name="Action_RestartKernel_Description" xml:space="preserve">
+    <value>Startet den aktiven Sprachkernel neu.</value>
+  </data>
+  <data name="Action_RunAll" xml:space="preserve">
+    <value>Alle ausführen</value>
+  </data>
+  <data name="Action_RunAll_Description" xml:space="preserve">
+    <value>Führt alle Zellen im Notebook aus.</value>
+  </data>
+  <data name="Action_RunCell" xml:space="preserve">
+    <value>Zelle ausführen</value>
+  </data>
+  <data name="Action_RunCell_Description" xml:space="preserve">
+    <value>Führt die ausgewählten Zellen aus.</value>
+  </data>
+  <data name="Action_SwitchLayout" xml:space="preserve">
+    <value>Layout wechseln</value>
+  </data>
+  <data name="Action_SwitchLayout_Description" xml:space="preserve">
+    <value>Wechselt der Reihe nach zwischen den verfügbaren Layout-Engines.</value>
+  </data>
+  <data name="Action_SwitchTheme" xml:space="preserve">
+    <value>Design wechseln</value>
+  </data>
+  <data name="Action_SwitchTheme_Description" xml:space="preserve">
+    <value>Wechselt der Reihe nach zwischen den verfügbaren Designs.</value>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="CellType_Html" xml:space="preserve">
+    <value>HTML-Zellentyp</value>
+  </data>
+  <data name="CellType_Html_Description" xml:space="preserve">
+    <value>HTML-Zellentyp zum Schreiben von reinem HTML mit @variable-Ersetzung.</value>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown-Zellentyp</value>
+  </data>
+  <data name="CellType_Markdown_Description" xml:space="preserve">
+    <value>Markdown-Textzellen, die mit Markdig als HTML dargestellt werden.</value>
+  </data>
+  <data name="CellType_Mermaid" xml:space="preserve">
+    <value>Mermaid-Zellentyp</value>
+  </data>
+  <data name="CellType_Mermaid_Description" xml:space="preserve">
+    <value>Mermaid-Zellentyp zum Erstellen von Diagrammen mit der Syntax von mermaid.js.</value>
+  </data>
+  <data name="CellType_Parameters" xml:space="preserve">
+    <value>Parameter-Zellentyp</value>
+  </data>
+  <data name="CellType_Parameters_Description" xml:space="preserve">
+    <value>Zeigt und verwaltet die Parameterdefinitionen des Notebooks als interaktives Formular.</value>
+  </data>
+  <data name="CellType_Parameters_Label" xml:space="preserve">
+    <value>Parameter</value>
+  </data>
+  <data name="Error_DibExportUnsupported" xml:space="preserve">
+    <value>Der Export als Polyglot-Notebook (.dib) wird nicht unterstützt. Verwenden Sie das native Verso-Format.</value>
+  </data>
+  <data name="Error_ExtensionAssemblyNotFound" xml:space="preserve">
+    <value>Erweiterungsassembly nicht gefunden: {0}</value>
+  </data>
+  <data name="Error_ExtensionDirectoryNotFound" xml:space="preserve">
+    <value>Erweiterungsverzeichnis nicht gefunden: {0}</value>
+  </data>
+  <data name="Error_InteractiveInputUnsupported" xml:space="preserve">
+    <value>Interaktive Eingaben werden in dieser Umgebung nicht unterstützt.</value>
+  </data>
+  <data name="Error_JupyterParseFailed" xml:space="preserve">
+    <value>Das Jupyter-Notebook konnte nicht gelesen werden.</value>
+  </data>
+  <data name="Error_LayoutNotFound" xml:space="preserve">
+    <value>Das Layout '{0}' wurde nicht gefunden.</value>
+  </data>
+  <data name="Error_NoKernelConfigured" xml:space="preserve">
+    <value>Es wurde keine Kernel-ID angegeben und es ist kein Standardkernel konfiguriert.</value>
+  </data>
+  <data name="Error_NoKernelForLanguage" xml:space="preserve">
+    <value>Für die Sprache '{0}' ist kein Kernel registriert.</value>
+  </data>
+  <data name="Error_PackageDownloadFailed" xml:space="preserve">
+    <value>Das Paket '{0}' v{1} konnte nicht heruntergeladen werden.</value>
+  </data>
+  <data name="Error_ThemeNotFound" xml:space="preserve">
+    <value>Das Design '{0}' wurde nicht gefunden.</value>
+  </data>
+  <data name="Error_VersoParseFailed" xml:space="preserve">
+    <value>Das .verso-Dokument konnte nicht deserialisiert werden.</value>
+  </data>
+  <data name="Export_MoreLines_One" xml:space="preserve">
+    <value>... ({0} weitere Zeile)</value>
+  </data>
+  <data name="Export_MoreLines_Other" xml:space="preserve">
+    <value>... ({0} weitere Zeilen)</value>
+  </data>
+  <data name="Formatter_Collection_Description" xml:space="preserve">
+    <value>Formatiert Auflistungen als HTML-Tabellen.</value>
+  </data>
+  <data name="Formatter_Exception_Description" xml:space="preserve">
+    <value>Formatiert Ausnahmen als strukturiertes HTML.</value>
+  </data>
+  <data name="Formatter_Html_Description" xml:space="preserve">
+    <value>Formatiert Objekte mit einer ToHtml()-Methode als HTML.</value>
+  </data>
+  <data name="Formatter_Image_Description" xml:space="preserve">
+    <value>Formatiert Bytearrays als eingebettete Base64-Bilder.</value>
+  </data>
+  <data name="Formatter_Object_Description" xml:space="preserve">
+    <value>Formatiert Objekte als HTML-Tabellen mit ihren öffentlichen Eigenschaften und Feldern.</value>
+  </data>
+  <data name="Formatter_Primitive_Description" xml:space="preserve">
+    <value>Formatiert primitive und gängige Werttypen als reinen Text.</value>
+  </data>
+  <data name="Formatter_Svg_Description" xml:space="preserve">
+    <value>Formatiert SVG-Zeichenfolgen als eingebettetes HTML.</value>
+  </data>
+  <data name="Kernel_CSharp_Description" xml:space="preserve">
+    <value>C#-Sprachkernel auf Basis von Roslyn-Scripting.</value>
+  </data>
+  <data name="Kernel_Html" xml:space="preserve">
+    <value>HTML-Kernel</value>
+  </data>
+  <data name="Kernel_Html_Description" xml:space="preserve">
+    <value>Führt HTML-Zellen mit @variable-Ersetzung aus.</value>
+  </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>Installierte Pakete</value>
+  </data>
+  <data name="Kernel_Mermaid" xml:space="preserve">
+    <value>Mermaid-Kernel</value>
+  </data>
+  <data name="Kernel_Mermaid_Description" xml:space="preserve">
+    <value>Führt Mermaid-Diagrammzellen mit @variable-Ersetzung aus.</value>
+  </data>
+  <data name="Kernel_UnresolvedVariable" xml:space="preserve">
+    <value>Nicht aufgelöste Variable '@{0}'. Im Variablenspeicher wurde keine passende Variable gefunden.</value>
+  </data>
+  <data name="Layout_AddCell" xml:space="preserve">
+    <value>{0}-Zelle</value>
+  </data>
+  <data name="Layout_Dashboard" xml:space="preserve">
+    <value>Dashboard-Layout</value>
+  </data>
+  <data name="Layout_Dashboard_Description" xml:space="preserve">
+    <value>Rasterbasiertes Dashboard-Layout, das nur die Ausgaben der Zellen zeigt.</value>
+  </data>
+  <data name="Layout_Dashboard_Label" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Layout_DragToMove" xml:space="preserve">
+    <value>Zum Verschieben ziehen</value>
+  </data>
+  <data name="Layout_EmptySubtitle" xml:space="preserve">
+    <value>Fügen Sie unten Ihre erste Zelle hinzu.</value>
+  </data>
+  <data name="Layout_EmptyTitle" xml:space="preserve">
+    <value>Dieses Notebook ist leer</value>
+  </data>
+  <data name="Layout_InsertCellHere" xml:space="preserve">
+    <value>Hier eine {0}-Zelle einfügen</value>
+  </data>
+  <data name="Layout_Notebook" xml:space="preserve">
+    <value>Notebook-Layout</value>
+  </data>
+  <data name="Layout_Notebook_Description" xml:space="preserve">
+    <value>Lineares Notebook-Layout von oben nach unten mit aktiven, bearbeitbaren Zellen in hervorgehobenen Karten.</value>
+  </data>
+  <data name="Layout_Notebook_Label" xml:space="preserve">
+    <value>Notebook</value>
+  </data>
+  <data name="Layout_Presentation" xml:space="preserve">
+    <value>Präsentationslayout</value>
+  </data>
+  <data name="Layout_Presentation_Description" xml:space="preserve">
+    <value>Präsentationslayout, das nur Ausgaben zeigt, zum Betrachten interaktiver Notebooks.</value>
+  </data>
+  <data name="Layout_Presentation_Label" xml:space="preserve">
+    <value>Präsentation</value>
+  </data>
+  <data name="Layout_RunCell" xml:space="preserve">
+    <value>Ausführen</value>
+  </data>
+  <data name="Magic_About_Description" xml:space="preserve">
+    <value>Zeigt die Verso-Version, Angaben zur Laufzeitumgebung und die geladenen Erweiterungen.</value>
+  </data>
+  <data name="Magic_About_LoadedExtensions" xml:space="preserve">
+    <value>Geladene Erweiterungen:</value>
+  </data>
+  <data name="Magic_About_NoExtensions" xml:space="preserve">
+    <value>Keine Erweiterungen geladen.</value>
+  </data>
+  <data name="Magic_About_Os" xml:space="preserve">
+    <value>Betriebssystem: {0}</value>
+  </data>
+  <data name="Magic_About_Runtime" xml:space="preserve">
+    <value>Laufzeit: {0}</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
+    <value>Die Erweiterungsassembly '{0}' ist bereits geladen.</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedPackage" xml:space="preserve">
+    <value>Das Erweiterungspaket '{0}' ist bereits geladen.</value>
+  </data>
+  <data name="Magic_Extension_AssemblyNotFound" xml:space="preserve">
+    <value>Erweiterungsassembly nicht gefunden: {0}</value>
+  </data>
+  <data name="Magic_Extension_ConsentReason_SessionGenerated" xml:space="preserve">
+    <value>in der Sitzung erzeugte lokale Assembly</value>
+  </data>
+  <data name="Magic_Extension_Description" xml:space="preserve">
+    <value>Installiert ein NuGet-Paket oder lädt eine lokale Assembly mit Verso-Erweiterungen.</value>
+  </data>
+  <data name="Magic_Extension_Installed_One" xml:space="preserve">
+    <value>'{0}' {1} installiert ({2} Erweiterung registriert)</value>
+  </data>
+  <data name="Magic_Extension_Installed_Other" xml:space="preserve">
+    <value>'{0}' {1} installiert ({2} Erweiterungen registriert)</value>
+  </data>
+  <data name="Magic_Extension_LoadFailed" xml:space="preserve">
+    <value>Fehler beim Laden der Erweiterungen aus '{0}': {1}</value>
+  </data>
+  <data name="Magic_Extension_LoadFailedGeneric" xml:space="preserve">
+    <value>Fehler beim Laden von '{0}': {1}</value>
+  </data>
+  <data name="Magic_Extension_Loaded_One" xml:space="preserve">
+    <value>'{0}' geladen ({1} Erweiterung registriert)</value>
+  </data>
+  <data name="Magic_Extension_Loaded_Other" xml:space="preserve">
+    <value>'{0}' geladen ({1} Erweiterungen registriert)</value>
+  </data>
+  <data name="Magic_Extension_Loading" xml:space="preserve">
+    <value>Erweiterung wird aus '{0}' geladen...</value>
+  </data>
+  <data name="Magic_Extension_NoTypes" xml:space="preserve">
+    <value>'{0}' wurde geladen, enthält aber keine [VersoExtension]-Typen. Die Assembly steht weiterhin als Verweis zur Verfügung.</value>
+  </data>
+  <data name="Magic_Extension_NotAnAssembly" xml:space="preserve">
+    <value>'{0}' ist keine gültige .NET-Assembly.</value>
+  </data>
+  <data name="Magic_Extension_NotApproved" xml:space="preserve">
+    <value>Die Erweiterung '{0}' wurde nicht bestätigt. Sie wird übersprungen.</value>
+  </data>
+  <data name="Magic_Extension_Param_PackageIdOrPath" xml:space="preserve">
+    <value>Eine NuGet-Paket-ID oder ein Pfad zu einer lokalen .dll-Datei.</value>
+  </data>
+  <data name="Magic_Extension_Param_Version" xml:space="preserve">
+    <value>Optionale Paketversion (nur NuGet).</value>
+  </data>
+  <data name="Magic_Extension_ResolveFailed" xml:space="preserve">
+    <value>Das Erweiterungspaket '{0}' konnte nicht aufgelöst werden: {1}</value>
+  </data>
+  <data name="Magic_Extension_Resolving" xml:space="preserve">
+    <value>Erweiterungspaket '{0}' wird aufgelöst...</value>
+  </data>
+  <data name="Magic_Extension_ResolvingVersion" xml:space="preserve">
+    <value>Erweiterungspaket '{0}' Version '{1}' wird aufgelöst...</value>
+  </data>
+  <data name="Magic_Extension_Usage" xml:space="preserve">
+    <value>Verwendung: #!extension &lt;PackageId&gt; [Version]  oder  #!extension &lt;path/to/assembly.dll&gt;</value>
+  </data>
+  <data name="Magic_Import_CellCount_One" xml:space="preserve">
+    <value>{0} Zelle</value>
+  </data>
+  <data name="Magic_Import_CellCount_Other" xml:space="preserve">
+    <value>{0} Zellen</value>
+  </data>
+  <data name="Magic_Import_ConsentReason" xml:space="preserve">
+    <value>importiert aus {0}</value>
+  </data>
+  <data name="Magic_Import_Description" xml:space="preserve">
+    <value>Importiert eine andere Notebook-Datei und führt deren Zellen aus (jeden Zellentyp außer markdown und raw), mit optionalen Parameterüberschreibungen. Mit --show-output wird die Ausgabe der importierten Zellen angezeigt.</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_One" xml:space="preserve">
+    <value>{0} Direktive extrahiert</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_Other" xml:space="preserve">
+    <value>{0} Direktiven extrahiert</value>
+  </data>
+  <data name="Magic_Import_ExecutionFailed" xml:space="preserve">
+    <value>{0} (Ausführung fehlgeschlagen)</value>
+  </data>
+  <data name="Magic_Import_Failed" xml:space="preserve">
+    <value>Fehler beim Importieren des Notebooks: {0}</value>
+  </data>
+  <data name="Magic_Import_FileNotFound" xml:space="preserve">
+    <value>Datei nicht gefunden: {0}</value>
+  </data>
+  <data name="Magic_Import_InvalidParameter" xml:space="preserve">
+    <value>Ungültiger Wert für den Parameter '{0}' ({1}): {2}</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_One" xml:space="preserve">
+    <value>Fehlender erforderlicher Parameter für das importierte Notebook:
+{0}</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_Other" xml:space="preserve">
+    <value>Fehlende erforderliche Parameter für das importierte Notebook:
+{0}</value>
+  </data>
+  <data name="Magic_Import_NoSerializer" xml:space="preserve">
+    <value>Für '{0}' wurde kein Serialisierer und kein Kernel gefunden. Unterstützte Formate: {1}</value>
+  </data>
+  <data name="Magic_Import_Param_Param" xml:space="preserve">
+    <value>Parameterüberschreibung im Format name=value. Mehrfach angebbar.</value>
+  </data>
+  <data name="Magic_Import_Param_Path" xml:space="preserve">
+    <value>Pfad zur zu importierenden Notebook-Datei.</value>
+  </data>
+  <data name="Magic_Import_Param_ShowOutput" xml:space="preserve">
+    <value>Die von den importierten Zellen erzeugte Ausgabe anzeigen. Standardmäßig aus.</value>
+  </data>
+  <data name="Magic_Import_SourceSummary" xml:space="preserve">
+    <value>{0} importiert</value>
+  </data>
+  <data name="Magic_Import_SourceSummaryDirectives" xml:space="preserve">
+    <value>{0} importiert ({1})</value>
+  </data>
+  <data name="Magic_Import_Summary" xml:space="preserve">
+    <value>{0} aus {1} importiert</value>
+  </data>
+  <data name="Magic_Import_SummaryWithFailures" xml:space="preserve">
+    <value>{0} aus {1} importiert ({2} fehlgeschlagen)</value>
+  </data>
+  <data name="Magic_Import_Usage" xml:space="preserve">
+    <value>#!import benötigt einen Dateipfad. Verwendung: #!import &lt;path&gt; [--param name=value ...]</value>
+  </data>
+  <data name="Magic_NuGet_Description" xml:space="preserve">
+    <value>Lädt ein NuGet-Paket herunter und verweist darauf, damit nachfolgender Code es verwenden kann.</value>
+  </data>
+  <data name="Magic_NuGet_Installed" xml:space="preserve">
+    <value>'{0}' installiert, {1}</value>
+  </data>
+  <data name="Magic_NuGet_Param_PackageId" xml:space="preserve">
+    <value>Die NuGet-Paket-ID.</value>
+  </data>
+  <data name="Magic_NuGet_Param_Version" xml:space="preserve">
+    <value>Optionale Paketversion.</value>
+  </data>
+  <data name="Magic_NuGet_ResolveFailed" xml:space="preserve">
+    <value>Das NuGet-Paket '{0}' konnte nicht aufgelöst werden: {1}</value>
+  </data>
+  <data name="Magic_NuGet_Resolving" xml:space="preserve">
+    <value>NuGet-Paket '{0}' wird aufgelöst...</value>
+  </data>
+  <data name="Magic_NuGet_ResolvingVersion" xml:space="preserve">
+    <value>NuGet-Paket '{0}' Version '{1}' wird aufgelöst...</value>
+  </data>
+  <data name="Magic_NuGet_Usage" xml:space="preserve">
+    <value>Verwendung: #!nuget &lt;PackageId&gt; [Version]</value>
+  </data>
+  <data name="Magic_Restart_Description" xml:space="preserve">
+    <value>Startet den angegebenen Kernel neu, oder den Standardkernel, wenn kein Argument angegeben wird.</value>
+  </data>
+  <data name="Magic_Restart_Done" xml:space="preserve">
+    <value>Der Kernel '{0}' wurde neu gestartet.</value>
+  </data>
+  <data name="Magic_Restart_DoneDefault" xml:space="preserve">
+    <value>Der Standardkernel wurde neu gestartet.</value>
+  </data>
+  <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
+    <value>Die Sprach-ID des neu zu startenden Kernels.</value>
+  </data>
+  <data name="Magic_Time_Description" xml:space="preserve">
+    <value>Meldet die verstrichene Zeit nach der Ausführung einer Zelle.</value>
+  </data>
+  <data name="ObjectTree_EmptyCollection" xml:space="preserve">
+    <value>Leere Auflistung</value>
+  </data>
+  <data name="ObjectTree_ItemCount" xml:space="preserve">
+    <value>({0} Elemente)</value>
+  </data>
+  <data name="ObjectTree_MemberCount_One" xml:space="preserve">
+    <value>({0} Member)</value>
+  </data>
+  <data name="ObjectTree_MemberCount_Other" xml:space="preserve">
+    <value>({0} Member)</value>
+  </data>
+  <data name="ObjectTree_ShowingMore" xml:space="preserve">
+    <value>{0} von weiteren Elementen werden angezeigt</value>
+  </data>
+  <data name="Parameters_Add" xml:space="preserve">
+    <value>Parameter hinzufügen</value>
+  </data>
+  <data name="Parameters_Applied" xml:space="preserve">
+    <value>Die Parameter wurden übernommen.</value>
+  </data>
+  <data name="Parameters_CancelAdd" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="Parameters_ColumnDefault" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Parameters_ColumnDescription" xml:space="preserve">
+    <value>Beschreibung</value>
+  </data>
+  <data name="Parameters_ColumnName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Parameters_ColumnRequired" xml:space="preserve">
+    <value>Erforderlich</value>
+  </data>
+  <data name="Parameters_ColumnType" xml:space="preserve">
+    <value>Typ</value>
+  </data>
+  <data name="Parameters_ConfirmAdd" xml:space="preserve">
+    <value>Hinzufügen</value>
+  </data>
+  <data name="Parameters_DefaultPlaceholder" xml:space="preserve">
+    <value>Standardwert</value>
+  </data>
+  <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
+    <value>Beschreibung</value>
+  </data>
+  <data name="Parameters_ExpectedBoolean" xml:space="preserve">
+    <value>Erwartet wurde true/false, yes/no oder 1/0, erhalten wurde '{0}'.</value>
+  </data>
+  <data name="Parameters_ExpectedDate" xml:space="preserve">
+    <value>Erwartet wurde ein Datum im Format yyyy-MM-dd, erhalten wurde '{0}'.</value>
+  </data>
+  <data name="Parameters_ExpectedDateTime" xml:space="preserve">
+    <value>Erwartet wurde ein Datums-/Zeitwert nach ISO 8601, erhalten wurde '{0}'.</value>
+  </data>
+  <data name="Parameters_ExpectedInteger" xml:space="preserve">
+    <value>Erwartet wurde eine ganze Zahl, erhalten wurde '{0}'.</value>
+  </data>
+  <data name="Parameters_ExpectedNumber" xml:space="preserve">
+    <value>Erwartet wurde ein numerischer Wert, erhalten wurde '{0}'.</value>
+  </data>
+  <data name="Parameters_InvalidValue" xml:space="preserve">
+    <value>Ungültiger Wert.</value>
+  </data>
+  <data name="Parameters_NamePlaceholder" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Parameters_None" xml:space="preserve">
+    <value>Keine Parameter definiert.</value>
+  </data>
+  <data name="Parameters_NotFound" xml:space="preserve">
+    <value>Der Parameter '{0}' wurde nicht gefunden.</value>
+  </data>
+  <data name="Parameters_Remove" xml:space="preserve">
+    <value>Parameter entfernen</value>
+  </data>
+  <data name="Parameters_Required" xml:space="preserve">
+    <value>erforderlich</value>
+  </data>
+  <data name="Parameters_Title" xml:space="preserve">
+    <value>Parameter</value>
+  </data>
+  <data name="Parameters_UnknownType" xml:space="preserve">
+    <value>Unbekannter Parametertyp '{0}'.</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Fehler: {0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>Warnung: {0}</value>
+  </data>
+  <data name="Properties_CollapseInput" xml:space="preserve">
+    <value>Eingabe ausblenden</value>
+  </data>
+  <data name="Properties_DefaultIs" xml:space="preserve">
+    <value>Standard: {0}</value>
+  </data>
+  <data name="Properties_DisplaySection" xml:space="preserve">
+    <value>Darstellung</value>
+  </data>
+  <data name="Properties_InputPreviewLines" xml:space="preserve">
+    <value>Vorschauzeilen der Eingabe</value>
+  </data>
+  <data name="Properties_Output" xml:space="preserve">
+    <value>Ausgabe</value>
+  </data>
+  <data name="Properties_OutputFull" xml:space="preserve">
+    <value>Vollständig</value>
+  </data>
+  <data name="Properties_OutputHidden" xml:space="preserve">
+    <value>Ausgeblendet</value>
+  </data>
+  <data name="Properties_OutputPreview" xml:space="preserve">
+    <value>Vorschau</value>
+  </data>
+  <data name="Properties_OutputPreviewLines" xml:space="preserve">
+    <value>Vorschauzeilen der Ausgabe</value>
+  </data>
+  <data name="Properties_PreviewStyle" xml:space="preserve">
+    <value>Vorschaustil</value>
+  </data>
+  <data name="Properties_PreviewStyleLines" xml:space="preserve">
+    <value>Zeilen</value>
+  </data>
+  <data name="Properties_VisibilitySection" xml:space="preserve">
+    <value>Sichtbarkeit</value>
+  </data>
+  <data name="PropertyProvider_Display" xml:space="preserve">
+    <value>Eigenschaften der Zellendarstellung</value>
+  </data>
+  <data name="PropertyProvider_Display_Description" xml:space="preserve">
+    <value>Stellt Einstellungen zur Darstellung von Ein- und Ausgabe je Zelle bereit.</value>
+  </data>
+  <data name="PropertyProvider_Visibility" xml:space="preserve">
+    <value>Eigenschaften der Zellensichtbarkeit</value>
+  </data>
+  <data name="PropertyProvider_Visibility_Description" xml:space="preserve">
+    <value>Stellt im Eigenschaften-Panel layoutbezogene Überschreibungen der Zellensichtbarkeit bereit.</value>
+  </data>
+  <data name="Renderer_Fallback" xml:space="preserve">
+    <value>Ersatz-Renderer</value>
+  </data>
+  <data name="Renderer_Fallback_Label" xml:space="preserve">
+    <value>Ersatz</value>
+  </data>
+  <data name="Renderer_Html" xml:space="preserve">
+    <value>HTML-Renderer</value>
+  </data>
+  <data name="Renderer_Html_Description" xml:space="preserve">
+    <value>Stellt HTML-Zellen dar und blendet die Eingabe beim Ausführen aus.</value>
+  </data>
+  <data name="Renderer_Markdown" xml:space="preserve">
+    <value>Markdown-Renderer</value>
+  </data>
+  <data name="Renderer_Markdown_Description" xml:space="preserve">
+    <value>Stellt Markdown-Zellen mit Markdig dar.</value>
+  </data>
+  <data name="Renderer_Mermaid" xml:space="preserve">
+    <value>Mermaid-Renderer</value>
+  </data>
+  <data name="Renderer_Mermaid_Description" xml:space="preserve">
+    <value>Stellt Mermaid-Diagrammzellen dar und blendet die Eingabe beim Ausführen aus.</value>
+  </data>
+  <data name="Renderer_Parameters" xml:space="preserve">
+    <value>Parameter-Renderer</value>
+  </data>
+  <data name="Renderer_Parameters_Description" xml:space="preserve">
+    <value>Stellt Parameterdefinitionen als interaktives Formular mit typgerechten Eingabefeldern dar.</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Verso Dunkel</value>
+  </data>
+  <data name="Theme_Dark_Description" xml:space="preserve">
+    <value>Standardmäßiges dunkles Design für Verso-Notebooks.</value>
+  </data>
+  <data name="Theme_HighContrast" xml:space="preserve">
+    <value>Verso Hoher Kontrast</value>
+  </data>
+  <data name="Theme_HighContrast_Description" xml:space="preserve">
+    <value>Barrierefreies Design mit hohem Kontrast und Farbwerten nach WCAG 2.1 AA.</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Verso Hell</value>
+  </data>
+  <data name="Theme_Light_Description" xml:space="preserve">
+    <value>Standardmäßiges helles Design für Verso-Notebooks.</value>
+  </data>
+  <data name="Visibility_Collapsed" xml:space="preserve">
+    <value>Eingeklappt</value>
+  </data>
+  <data name="Visibility_Hidden" xml:space="preserve">
+    <value>Ausgeblendet</value>
+  </data>
+  <data name="Visibility_OutputOnly" xml:space="preserve">
+    <value>Nur Ausgabe</value>
+  </data>
+  <data name="Visibility_Visible" xml:space="preserve">
+    <value>Sichtbar</value>
+  </data>
+</root>

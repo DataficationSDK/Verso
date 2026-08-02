@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -63,7 +64,7 @@ public sealed class JupyterSerializer : INotebookSerializer
         ArgumentNullException.ThrowIfNull(content);
 
         var jupyterDoc = JsonSerializer.Deserialize<JupyterNotebook>(content, ReadOptions)
-            ?? throw new JsonException("Failed to parse Jupyter notebook.");
+            ?? throw new JsonException(Strings.Error_JupyterParseFailed);
 
         if (jupyterDoc.NbFormat < 4)
             throw new NotSupportedException(

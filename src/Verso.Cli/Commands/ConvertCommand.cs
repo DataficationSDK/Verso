@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 using Verso.Extensions;
 
@@ -11,9 +12,9 @@ public static class ConvertCommand
 {
     public static Command Create()
     {
-        var inputArg = new Argument<FileInfo>("input", "Path to the source notebook file.");
+        var inputArg = new Argument<FileInfo>("input", Strings.Arg_InputNotebook);
 
-        var toOption = new Option<string>("--to", "Target format: verso, ipynb, md, or dib.")
+        var toOption = new Option<string>("--to", Strings.Convert_OptTo)
         {
             IsRequired = true
         };
@@ -21,19 +22,17 @@ public static class ConvertCommand
         {
             var value = result.GetValueForOption(toOption);
             if (value is not ("verso" or "ipynb" or "md" or "dib"))
-                result.ErrorMessage = $"Unsupported format '{value}'. Supported: verso, ipynb, md, dib";
+                result.ErrorMessage = string.Format(
+                    Strings.Convert_InvalidTarget, value, "verso, ipynb, md, dib");
         });
 
-        var outputOption = new Option<FileInfo?>("--output",
-            "Output file path. Defaults to input filename with the new extension.");
+        var outputOption = new Option<FileInfo?>("--output", Strings.Convert_OptOutput);
 
-        var stripOutputsOption = new Option<bool>("--strip-outputs", () => false,
-            "Remove all cell outputs from the converted notebook.");
+        var stripOutputsOption = new Option<bool>("--strip-outputs", () => false, Strings.Convert_OptStripOutputs);
 
-        var extensionsOption = new Option<DirectoryInfo?>("--extensions",
-            "Directory to scan for additional extension assemblies.");
+        var extensionsOption = new Option<DirectoryInfo?>("--extensions", Strings.Option_Extensions);
 
-        var command = new Command("convert", "Convert between notebook formats.")
+        var command = new Command("convert", Strings.Convert_Description)
         {
             inputArg,
             toOption,
@@ -53,7 +52,8 @@ public static class ConvertCommand
             var inputPath = Path.GetFullPath(input.FullName);
             if (!File.Exists(inputPath))
             {
-                Console.Error.WriteLine($"Error: Input file not found: {inputPath}");
+                Console.Error.WriteLine(Messages.Error(
+                    string.Format(Strings.Error_InputNotFound, inputPath)));
                 context.ExitCode = ExitCodes.FileNotFound;
                 return;
             }
@@ -76,7 +76,7 @@ public static class ConvertCommand
                 }
                 catch (SerializerNotFoundException ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(ex.Message));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -89,7 +89,7 @@ public static class ConvertCommand
                 }
                 catch (SerializerNotFoundException ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(ex.Message));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -103,7 +103,8 @@ public static class ConvertCommand
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: Failed to deserialize '{inputPath}': {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Error_DeserializeFailed, inputPath, ex.Message)));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -122,7 +123,8 @@ public static class ConvertCommand
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: Post-processing failed: {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Convert_PostProcessingFailed, ex.Message)));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -142,13 +144,15 @@ public static class ConvertCommand
                 }
                 catch (NotSupportedException)
                 {
-                    Console.Error.WriteLine($"Error: Converting to '{to}' format is not yet supported.");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Convert_NotSupported, to)));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: Serialization failed: {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Convert_SerializationFailed, ex.Message)));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -159,12 +163,12 @@ public static class ConvertCommand
                     : Path.ChangeExtension(inputPath, outputSerializer.FileExtensions[0]);
 
                 await File.WriteAllTextAsync(outputPath, serialized);
-                Console.WriteLine($"Converted '{inputPath}' -> '{outputPath}'");
+                Console.WriteLine(string.Format(Strings.Convert_Done, inputPath, outputPath));
                 context.ExitCode = ExitCodes.Success;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error: {ex.Message}");
+                Console.Error.WriteLine(Messages.Error(ex.Message));
                 context.ExitCode = ExitCodes.CellFailure;
             }
             finally

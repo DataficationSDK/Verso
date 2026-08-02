@@ -5,6 +5,7 @@ using Verso.Abstractions;
 using Verso.MagicCommands;
 
 using VersoDiagnostic = Verso.Abstractions.Diagnostic;
+using Verso.Resources;
 
 namespace Verso.Kernels;
 
@@ -68,7 +69,7 @@ public sealed class CSharpKernel : ILanguageKernel
     public string Name => "C# (Roslyn)";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "C# language kernel powered by Roslyn scripting.";
+    public string? Description => Strings.Kernel_CSharp_Description;
 
     // --- ILanguageKernel ---
 
@@ -594,7 +595,7 @@ public sealed class CSharpKernel : ILanguageKernel
         var topItems = string.Join("",
             packages.Select(p => $"<li><span>{p.PackageId}, {p.ResolvedVersion}</span></li>"));
 
-        var html = $"<div><b>Installed Packages</b><ul>{topItems}</ul>";
+        var html = $"<div><b>{Strings.Kernel_InstalledPackages}</b><ul>{topItems}</ul>";
 
         if (transitive.Count > 0)
         {

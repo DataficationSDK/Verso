@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.JavaScript.MagicCommands;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.Kernel;
 
@@ -32,7 +33,7 @@ public sealed class TypeScriptKernel : ILanguageKernel
     public string Name => "TypeScript";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "TypeScript language kernel via Node.js with automatic transpilation.";
+    public string? Description => Strings.Kernel_TypeScript_Description;
 
     // ILanguageKernel
     public string LanguageId => "typescript";
@@ -50,7 +51,7 @@ public sealed class TypeScriptKernel : ILanguageKernel
         var nodeExe = _options.NodeExecutablePath ?? JavaScriptEngineManager.NodeExecutablePath;
         if (nodeExe is null)
             throw new InvalidOperationException(
-                "TypeScript kernel requires Node.js. Node.js was not found on PATH or in well-known locations.");
+                Strings.Node_Required);
 
         _runner = new NodeProcessRunner(nodeExe, _options);
         await _runner.InitializeAsync(CancellationToken.None);
@@ -161,13 +162,13 @@ public sealed class TypeScriptKernel : ILanguageKernel
         }
         catch (Exception ex)
         {
-            return [new CellOutput("text/plain", $"Transpilation failed: {ex.Message}",
+            return [new CellOutput("text/plain", string.Format(Strings.Run_TranspileFailed, ex.Message),
                 IsError: true, ErrorName: "TypeScriptError")];
         }
 
         if (!transpileResult.Success)
         {
-            return [new CellOutput("text/plain", transpileResult.Error ?? "Unknown transpilation error",
+            return [new CellOutput("text/plain", transpileResult.Error ?? Strings.Run_UnknownTranspileError,
                 IsError: true, ErrorName: "TypeScriptError")];
         }
 
@@ -199,7 +200,7 @@ public sealed class TypeScriptKernel : ILanguageKernel
         {
             outputs.Add(new CellOutput(
                 "text/plain",
-                result.ErrorMessage ?? "Unknown JavaScript error",
+                result.ErrorMessage ?? Strings.Run_UnknownError,
                 IsError: true,
                 ErrorName: "TypeScriptError",
                 ErrorStackTrace: result.ErrorStack));
@@ -243,7 +244,8 @@ public sealed class TypeScriptKernel : ILanguageKernel
             await NpmManager.EnsureInitializedAsync(ct);
             var success = await NpmManager.InstallSilentAsync(TypeScriptInstallSpec, ct);
             if (!success)
-                throw new InvalidOperationException($"Failed to install the {TypeScriptInstallSpec} npm package.");
+                throw new InvalidOperationException(
+                    string.Format(Strings.TypeScript_InstallFailed, TypeScriptInstallSpec));
         }
 
         // Update NODE_PATH so the bridge can find the module
@@ -270,7 +272,8 @@ public sealed class TypeScriptKernel : ILanguageKernel
         {
             var installed = NpmManager.GetInstalledPackageVersion("typescript");
             throw new InvalidOperationException(
-                $"TypeScript compiler not working after install (typescript {installed ?? "version unknown"}): {verify.Error}");
+                string.Format(Strings.TypeScript_VerifyFailed,
+                    installed ?? Strings.TypeScript_VersionUnknown, verify.Error));
         }
     }
 

@@ -154,17 +154,86 @@
   <data name="CellType_Parameters_Label" xml:space="preserve">
     <value>[!!Pàràmétérš···!!]</value>
   </data>
+  <data name="Error_DibExportUnsupported" xml:space="preserve">
+    <value>[!!Pòlÿglòt Ñòtébòòk .dïb éxpòrt ïš ñòt šùppòrtéd. Ùšé thé Véršò ñàtïvé fòrmàt.···!!]</value>
+  </data>
+  <data name="Error_ExtensionAssemblyNotFound" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ àššémblÿ ñòt fòùñd: {0}···!!]</value>
+  </data>
+  <data name="Error_ExtensionDirectoryNotFound" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ dïréçtòrÿ ñòt fòùñd: {0}···!!]</value>
+  </data>
+  <data name="Error_InteractiveInputUnsupported" xml:space="preserve">
+    <value>[!!Ïñtéràçtïvé ïñpùt ïš ñòt šùppòrtéd bÿ thïš hòšt.···!!]</value>
+  </data>
+  <data name="Error_JupyterParseFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò pàršé Jùpÿtér ñòtébòòk.···!!]</value>
+  </data>
+  <data name="Error_LayoutNotFound" xml:space="preserve">
+    <value>[!!Làÿòùt '{0}' ñòt fòùñd.···!!]</value>
+  </data>
+  <data name="Error_NoKernelConfigured" xml:space="preserve">
+    <value>[!!Ñò kérñél ÏD špéçïfïéd àñd ñò défàùlt kérñél ïš çòñfïgùréd.···!!]</value>
+  </data>
+  <data name="Error_NoKernelForLanguage" xml:space="preserve">
+    <value>[!!Ñò kérñél régïštéréd fòr làñgùàgé '{0}'.···!!]</value>
+  </data>
+  <data name="Error_PackageDownloadFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò dòwñlòàd pàçkàgé '{0}' v{1}.···!!]</value>
+  </data>
+  <data name="Error_ThemeNotFound" xml:space="preserve">
+    <value>[!!Thémé '{0}' ñòt fòùñd.···!!]</value>
+  </data>
+  <data name="Error_VersoParseFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò déšérïàlïzé .véršò dòçùméñt.···!!]</value>
+  </data>
+  <data name="Export_MoreLines_One" xml:space="preserve">
+    <value>[!!... ({0} mòré lïñé)···!!]</value>
+  </data>
+  <data name="Export_MoreLines_Other" xml:space="preserve">
+    <value>[!!... ({0} mòré lïñéš)···!!]</value>
+  </data>
+  <data name="Formatter_Collection_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš çòlléçtïòñš àš HTML tàbléš.···!!]</value>
+  </data>
+  <data name="Formatter_Exception_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš éxçéptïòñš àš štrùçtùréd HTML.···!!]</value>
+  </data>
+  <data name="Formatter_Html_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš òbjéçtš wïth à TòHtml() méthòd àš HTML.···!!]</value>
+  </data>
+  <data name="Formatter_Image_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš bÿté àrràÿš àš ïñlïñé bàšé64 ïmàgéš.···!!]</value>
+  </data>
+  <data name="Formatter_Object_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš òbjéçtš àš HTML tàbléš šhòwïñg pùblïç pròpértïéš àñd fïéldš.···!!]</value>
+  </data>
+  <data name="Formatter_Primitive_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš prïmïtïvé àñd çòmmòñ vàlùé tÿpéš àš plàïñ téxt.···!!]</value>
+  </data>
+  <data name="Formatter_Svg_Description" xml:space="preserve">
+    <value>[!!Fòrmàtš ŠVG štrïñgš àš ïñlïñé HTML.···!!]</value>
+  </data>
+  <data name="Kernel_CSharp_Description" xml:space="preserve">
+    <value>[!!Ç# làñgùàgé kérñél pòwéréd bÿ Ròšlÿñ šçrïptïñg.···!!]</value>
+  </data>
   <data name="Kernel_Html" xml:space="preserve">
     <value>[!!HTML Kérñél···!!]</value>
   </data>
   <data name="Kernel_Html_Description" xml:space="preserve">
     <value>[!!Éxéçùtéš HTML çéllš wïth @vàrïàblé šùbštïtùtïòñ.···!!]</value>
   </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>[!!Ïñštàlléd Pàçkàgéš···!!]</value>
+  </data>
   <data name="Kernel_Mermaid" xml:space="preserve">
     <value>[!!Mérmàïd Kérñél···!!]</value>
   </data>
   <data name="Kernel_Mermaid_Description" xml:space="preserve">
     <value>[!!Éxéçùtéš Mérmàïd dïàgràm çéllš wïth @vàrïàblé šùbštïtùtïòñ.···!!]</value>
+  </data>
+  <data name="Kernel_UnresolvedVariable" xml:space="preserve">
+    <value>[!!Ùñréšòlvéd vàrïàblé '@{0}'. Ñò màtçhïñg vàrïàblé fòùñd ïñ thé vàrïàblé štòré.···!!]</value>
   </data>
   <data name="Layout_AddCell" xml:space="preserve">
     <value>[!!{0} Çéll···!!]</value>
@@ -211,6 +280,203 @@
   <data name="Layout_RunCell" xml:space="preserve">
     <value>[!!Rùñ···!!]</value>
   </data>
+  <data name="Magic_About_Description" xml:space="preserve">
+    <value>[!!Dïšplàÿš Véršò véršïòñ, rùñtïmé ïñfòrmàtïòñ, àñd lòàdéd éxtéñšïòñš.···!!]</value>
+  </data>
+  <data name="Magic_About_LoadedExtensions" xml:space="preserve">
+    <value>[!!Lòàdéd éxtéñšïòñš:···!!]</value>
+  </data>
+  <data name="Magic_About_NoExtensions" xml:space="preserve">
+    <value>[!!Ñò éxtéñšïòñš lòàdéd.···!!]</value>
+  </data>
+  <data name="Magic_About_Os" xml:space="preserve">
+    <value>[!!ÒŠ: {0}···!!]</value>
+  </data>
+  <data name="Magic_About_Runtime" xml:space="preserve">
+    <value>[!!Rùñtïmé: {0}···!!]</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ àššémblÿ '{0}' ïš àlréàdÿ lòàdéd.···!!]</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedPackage" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ pàçkàgé '{0}' ïš àlréàdÿ lòàdéd.···!!]</value>
+  </data>
+  <data name="Magic_Extension_AssemblyNotFound" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ àššémblÿ ñòt fòùñd: {0}···!!]</value>
+  </data>
+  <data name="Magic_Extension_ConsentReason_SessionGenerated" xml:space="preserve">
+    <value>[!!šéššïòñ-géñéràtéd lòçàl àššémblÿ···!!]</value>
+  </data>
+  <data name="Magic_Extension_Description" xml:space="preserve">
+    <value>[!!Ïñštàllš à ÑùGét pàçkàgé òr lòàdš à lòçàl àššémblÿ çòñtàïñïñg Véršò éxtéñšïòñš.···!!]</value>
+  </data>
+  <data name="Magic_Extension_Installed_One" xml:space="preserve">
+    <value>[!!Ïñštàlléd '{0}' {1} ({2} éxtéñšïòñ régïštéréd)···!!]</value>
+  </data>
+  <data name="Magic_Extension_Installed_Other" xml:space="preserve">
+    <value>[!!Ïñštàlléd '{0}' {1} ({2} éxtéñšïòñš régïštéréd)···!!]</value>
+  </data>
+  <data name="Magic_Extension_LoadFailed" xml:space="preserve">
+    <value>[!!Érròr lòàdïñg éxtéñšïòñš fròm '{0}': {1}···!!]</value>
+  </data>
+  <data name="Magic_Extension_LoadFailedGeneric" xml:space="preserve">
+    <value>[!!Érròr lòàdïñg '{0}': {1}···!!]</value>
+  </data>
+  <data name="Magic_Extension_Loaded_One" xml:space="preserve">
+    <value>[!!Lòàdéd '{0}' ({1} éxtéñšïòñ régïštéréd)···!!]</value>
+  </data>
+  <data name="Magic_Extension_Loaded_Other" xml:space="preserve">
+    <value>[!!Lòàdéd '{0}' ({1} éxtéñšïòñš régïštéréd)···!!]</value>
+  </data>
+  <data name="Magic_Extension_Loading" xml:space="preserve">
+    <value>[!!Lòàdïñg éxtéñšïòñ fròm '{0}'...···!!]</value>
+  </data>
+  <data name="Magic_Extension_NoTypes" xml:space="preserve">
+    <value>[!!'{0}' lòàdéd bùt çòñtàïñš ñò [VéršòÉxtéñšïòñ] tÿpéš. Thé àššémblÿ ïš štïll àvàïlàblé àš à référéñçé.···!!]</value>
+  </data>
+  <data name="Magic_Extension_NotAnAssembly" xml:space="preserve">
+    <value>[!!'{0}' ïš ñòt à vàlïd .ÑÉT àššémblÿ.···!!]</value>
+  </data>
+  <data name="Magic_Extension_NotApproved" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ '{0}' wàš ñòt àppròvéd. Škïppïñg.···!!]</value>
+  </data>
+  <data name="Magic_Extension_Param_PackageIdOrPath" xml:space="preserve">
+    <value>[!!À ÑùGét pàçkàgé ÏD òr pàth tò à lòçàl .dll fïlé.···!!]</value>
+  </data>
+  <data name="Magic_Extension_Param_Version" xml:space="preserve">
+    <value>[!!Òptïòñàl pàçkàgé véršïòñ (ÑùGét òñlÿ).···!!]</value>
+  </data>
+  <data name="Magic_Extension_ResolveFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò réšòlvé éxtéñšïòñ pàçkàgé '{0}': {1}···!!]</value>
+  </data>
+  <data name="Magic_Extension_Resolving" xml:space="preserve">
+    <value>[!!Réšòlvïñg éxtéñšïòñ pàçkàgé '{0}'...···!!]</value>
+  </data>
+  <data name="Magic_Extension_ResolvingVersion" xml:space="preserve">
+    <value>[!!Réšòlvïñg éxtéñšïòñ pàçkàgé '{0}' véršïòñ '{1}'...···!!]</value>
+  </data>
+  <data name="Magic_Extension_Usage" xml:space="preserve">
+    <value>[!!Ùšàgé: #!éxtéñšïòñ &lt;PàçkàgéÏd&gt; [Véršïòñ]  òr  #!éxtéñšïòñ &lt;pàth/tò/àššémblÿ.dll&gt;···!!]</value>
+  </data>
+  <data name="Magic_Import_CellCount_One" xml:space="preserve">
+    <value>[!!{0} çéll···!!]</value>
+  </data>
+  <data name="Magic_Import_CellCount_Other" xml:space="preserve">
+    <value>[!!{0} çéllš···!!]</value>
+  </data>
+  <data name="Magic_Import_ConsentReason" xml:space="preserve">
+    <value>[!!ïmpòrtéd fròm {0}···!!]</value>
+  </data>
+  <data name="Magic_Import_Description" xml:space="preserve">
+    <value>[!!Ïmpòrtš àñòthér ñòtébòòk fïlé àñd éxéçùtéš ïtš çéllš (àñÿ çéll tÿpé òthér thàñ màrkdòwñ òr ràw), wïth òptïòñàl pàràmétér òvérrïdéš. Pàšš --šhòw-òùtpùt tò dïšplàÿ thé ïmpòrtéd çéllš' òùtpùt.···!!]</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_One" xml:space="preserve">
+    <value>[!!{0} dïréçtïvé éxtràçtéd···!!]</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_Other" xml:space="preserve">
+    <value>[!!{0} dïréçtïvéš éxtràçtéd···!!]</value>
+  </data>
+  <data name="Magic_Import_ExecutionFailed" xml:space="preserve">
+    <value>[!!{0} (éxéçùtïòñ fàïléd)···!!]</value>
+  </data>
+  <data name="Magic_Import_Failed" xml:space="preserve">
+    <value>[!!Érròr ïmpòrtïñg ñòtébòòk: {0}···!!]</value>
+  </data>
+  <data name="Magic_Import_FileNotFound" xml:space="preserve">
+    <value>[!!Fïlé ñòt fòùñd: {0}···!!]</value>
+  </data>
+  <data name="Magic_Import_InvalidParameter" xml:space="preserve">
+    <value>[!!Ïñvàlïd vàlùé fòr pàràmétér '{0}' ({1}): {2}···!!]</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_One" xml:space="preserve">
+    <value>[!!Mïššïñg réqùïréd pàràmétér fòr ïmpòrtéd ñòtébòòk:
+{0}···!!]</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_Other" xml:space="preserve">
+    <value>[!!Mïššïñg réqùïréd pàràmétérš fòr ïmpòrtéd ñòtébòòk:
+{0}···!!]</value>
+  </data>
+  <data name="Magic_Import_NoSerializer" xml:space="preserve">
+    <value>[!!Ñò šérïàlïzér òr kérñél fòùñd fòr '{0}'. Šùppòrtéd fòrmàtš: {1}···!!]</value>
+  </data>
+  <data name="Magic_Import_Param_Param" xml:space="preserve">
+    <value>[!!Pàràmétér òvérrïdé ïñ ñàmé=vàlùé fòrmàt. Màÿ bé répéàtéd.···!!]</value>
+  </data>
+  <data name="Magic_Import_Param_Path" xml:space="preserve">
+    <value>[!!Pàth tò thé ñòtébòòk fïlé tò ïmpòrt.···!!]</value>
+  </data>
+  <data name="Magic_Import_Param_ShowOutput" xml:space="preserve">
+    <value>[!!Dïšplàÿ thé òùtpùt pròdùçéd bÿ thé ïmpòrtéd çéllš. Òff bÿ défàùlt.···!!]</value>
+  </data>
+  <data name="Magic_Import_SourceSummary" xml:space="preserve">
+    <value>[!!Ïmpòrtéd {0}···!!]</value>
+  </data>
+  <data name="Magic_Import_SourceSummaryDirectives" xml:space="preserve">
+    <value>[!!Ïmpòrtéd {0} ({1})···!!]</value>
+  </data>
+  <data name="Magic_Import_Summary" xml:space="preserve">
+    <value>[!!Ïmpòrtéd {0} fròm {1}···!!]</value>
+  </data>
+  <data name="Magic_Import_SummaryWithFailures" xml:space="preserve">
+    <value>[!!Ïmpòrtéd {0} fròm {1} ({2} fàïléd)···!!]</value>
+  </data>
+  <data name="Magic_Import_Usage" xml:space="preserve">
+    <value>[!!#!ïmpòrt réqùïréš à fïlé pàth. Ùšàgé: #!ïmpòrt &lt;pàth&gt; [--pàràm ñàmé=vàlùé ...]···!!]</value>
+  </data>
+  <data name="Magic_NuGet_Description" xml:space="preserve">
+    <value>[!!Dòwñlòàdš àñd référéñçéš à ÑùGét pàçkàgé fòr ùšé ïñ šùbšéqùéñt çòdé.···!!]</value>
+  </data>
+  <data name="Magic_NuGet_Installed" xml:space="preserve">
+    <value>[!!Ïñštàlléd '{0}', {1}···!!]</value>
+  </data>
+  <data name="Magic_NuGet_Param_PackageId" xml:space="preserve">
+    <value>[!!Thé ÑùGét pàçkàgé ÏD.···!!]</value>
+  </data>
+  <data name="Magic_NuGet_Param_Version" xml:space="preserve">
+    <value>[!!Òptïòñàl pàçkàgé véršïòñ.···!!]</value>
+  </data>
+  <data name="Magic_NuGet_ResolveFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò réšòlvé ÑùGét pàçkàgé '{0}': {1}···!!]</value>
+  </data>
+  <data name="Magic_NuGet_Resolving" xml:space="preserve">
+    <value>[!!Réšòlvïñg ÑùGét pàçkàgé '{0}'...···!!]</value>
+  </data>
+  <data name="Magic_NuGet_ResolvingVersion" xml:space="preserve">
+    <value>[!!Réšòlvïñg ÑùGét pàçkàgé '{0}' véršïòñ '{1}'...···!!]</value>
+  </data>
+  <data name="Magic_NuGet_Usage" xml:space="preserve">
+    <value>[!!Ùšàgé: #!ñùgét &lt;PàçkàgéÏd&gt; [Véršïòñ]···!!]</value>
+  </data>
+  <data name="Magic_Restart_Description" xml:space="preserve">
+    <value>[!!Réštàrtš thé špéçïfïéd kérñél, òr thé défàùlt kérñél ïf ñò àrgùméñt ïš gïvéñ.···!!]</value>
+  </data>
+  <data name="Magic_Restart_Done" xml:space="preserve">
+    <value>[!!Kérñél '{0}' réštàrtéd.···!!]</value>
+  </data>
+  <data name="Magic_Restart_DoneDefault" xml:space="preserve">
+    <value>[!!Défàùlt kérñél réštàrtéd.···!!]</value>
+  </data>
+  <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
+    <value>[!!Thé làñgùàgé ÏD òf thé kérñél tò réštàrt.···!!]</value>
+  </data>
+  <data name="Magic_Time_Description" xml:space="preserve">
+    <value>[!!Répòrtš élàpšéd wàll-çlòçk tïmé àftér çéll éxéçùtïòñ.···!!]</value>
+  </data>
+  <data name="ObjectTree_EmptyCollection" xml:space="preserve">
+    <value>[!!Émptÿ çòlléçtïòñ···!!]</value>
+  </data>
+  <data name="ObjectTree_ItemCount" xml:space="preserve">
+    <value>[!!({0} ïtémš)···!!]</value>
+  </data>
+  <data name="ObjectTree_MemberCount_One" xml:space="preserve">
+    <value>[!!({0} mémbér)···!!]</value>
+  </data>
+  <data name="ObjectTree_MemberCount_Other" xml:space="preserve">
+    <value>[!!({0} mémbérš)···!!]</value>
+  </data>
+  <data name="ObjectTree_ShowingMore" xml:space="preserve">
+    <value>[!!Šhòwïñg {0} òf mòré ïtémš···!!]</value>
+  </data>
   <data name="Parameters_Add" xml:space="preserve">
     <value>[!!Àdd Pàràmétér···!!]</value>
   </data>
@@ -244,6 +510,21 @@
   <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
     <value>[!!déšçrïptïòñ···!!]</value>
   </data>
+  <data name="Parameters_ExpectedBoolean" xml:space="preserve">
+    <value>[!!Éxpéçtéd trùé/fàlšé, ÿéš/ñò, òr 1/0, gòt '{0}'.···!!]</value>
+  </data>
+  <data name="Parameters_ExpectedDate" xml:space="preserve">
+    <value>[!!Éxpéçtéd à dàté ïñ ÿÿÿÿ-MM-dd fòrmàt, gòt '{0}'.···!!]</value>
+  </data>
+  <data name="Parameters_ExpectedDateTime" xml:space="preserve">
+    <value>[!!Éxpéçtéd àñ ÏŠÒ 8601 dàtétïmé vàlùé, gòt '{0}'.···!!]</value>
+  </data>
+  <data name="Parameters_ExpectedInteger" xml:space="preserve">
+    <value>[!!Éxpéçtéd àñ ïñtégér vàlùé, gòt '{0}'.···!!]</value>
+  </data>
+  <data name="Parameters_ExpectedNumber" xml:space="preserve">
+    <value>[!!Éxpéçtéd à ñùmérïç vàlùé, gòt '{0}'.···!!]</value>
+  </data>
   <data name="Parameters_InvalidValue" xml:space="preserve">
     <value>[!!Ïñvàlïd vàlùé.···!!]</value>
   </data>
@@ -264,6 +545,15 @@
   </data>
   <data name="Parameters_Title" xml:space="preserve">
     <value>[!!Pàràmétérš···!!]</value>
+  </data>
+  <data name="Parameters_UnknownType" xml:space="preserve">
+    <value>[!!Ùñkñòwñ pàràmétér tÿpé '{0}'.···!!]</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>[!!Érròr: {0}···!!]</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>[!!Wàrñïñg: {0}···!!]</value>
   </data>
   <data name="Properties_CollapseInput" xml:space="preserve">
     <value>[!!Çòllàpšé ïñpùt···!!]</value>

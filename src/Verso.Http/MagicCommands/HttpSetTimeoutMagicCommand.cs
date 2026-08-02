@@ -1,5 +1,7 @@
 using Verso.Abstractions;
 using Verso.Http.Kernel;
+using Verso.Http.Localization;
+using Verso.Http.Resources;
 
 namespace Verso.Http.MagicCommands;
 
@@ -14,14 +16,14 @@ public sealed class HttpSetTimeoutMagicCommand : IMagicCommand
     string IExtension.Name => "HTTP Set Timeout Magic Command";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Sets the default timeout (in seconds) for HTTP requests.";
+    public string Description => Strings.Magic_SetTimeout_Description;
 
     // --- IMagicCommand ---
     public string Name => "http-set-timeout";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("seconds", "The timeout in seconds.", typeof(int), IsRequired: true),
+        new ParameterDefinition("seconds", Strings.Magic_SetTimeout_Param_Seconds, typeof(int), IsRequired: true),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -35,7 +37,7 @@ public sealed class HttpSetTimeoutMagicCommand : IMagicCommand
         if (!int.TryParse(trimmed, out var seconds) || seconds <= 0)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: A positive integer is required. Usage: #!http-set-timeout <seconds>",
+                "text/plain", CellText.Error(Strings.Magic_SetTimeout_Invalid),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -43,6 +45,6 @@ public sealed class HttpSetTimeoutMagicCommand : IMagicCommand
         context.Variables.Set(HttpKernel.TimeoutStoreKey, seconds);
 
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"HTTP timeout set to {seconds} seconds.")).ConfigureAwait(false);
+            "text/plain", string.Format(Strings.Magic_SetTimeout_Done, seconds))).ConfigureAwait(false);
     }
 }

@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Auto_Installing" xml:space="preserve">
+    <value>正在将 {0} 安装到 {1}。</value>
+  </data>
+  <data name="Auto_RefusedOptions" xml:space="preserve">
+    <value>未安装：{0}。依赖项必须指定包名；这些是安装程序选项，笔记本不允许传递。请将它们移除；如果确实需要，请使用 #!pip 自行安装。</value>
+  </data>
+  <data name="Auto_RefusedSources" xml:space="preserve">
+    <value>未安装：{0}。依赖项必须指定包名；这些指定的是安装来源，会从笔记本自行选择的位置获取代码，而不是从已配置的索引获取。请改为指定包名；如果确实需要，请使用 #!pip 自行安装。</value>
+  </data>
+  <data name="Auto_UnknownDistribution" xml:space="preserve">
+    <value>“{0}”未安装，且 Verso 不知道哪个分发包提供它。自动安装仅涵盖已知的包；如果这就是正确的名称，请使用 #!pip {0} 安装它。</value>
+  </data>
+  <data name="Install_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} 已安装。</value>
+  </data>
+  <data name="Install_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} 已安装。</value>
+  </data>
+  <data name="Install_AlreadyPresent" xml:space="preserve">
+    <value>已存在：{0}。</value>
+  </data>
+  <data name="Install_Completed" xml:space="preserve">
+    <value>安装完成。</value>
+  </data>
+  <data name="Install_Dependencies" xml:space="preserve">
+    <value>依赖项：{0}。</value>
+  </data>
+  <data name="Install_DependencyCount_One" xml:space="preserve">
+    <value>{0} 个依赖项</value>
+  </data>
+  <data name="Install_DependencyCount_Other" xml:space="preserve">
+    <value>{0} 个依赖项</value>
+  </data>
+  <data name="Install_ExitedWithCode" xml:space="preserve">
+    <value>包安装失败（退出代码 {0}）。</value>
+  </data>
+  <data name="Install_Installed" xml:space="preserve">
+    <value>已安装 {0}。</value>
+  </data>
+  <data name="Install_InstalledAnd" xml:space="preserve">
+    <value>已安装 {0} 和 {1}。</value>
+  </data>
+  <data name="Install_NothingToDo" xml:space="preserve">
+    <value>请求的内容均已安装。</value>
+  </data>
+  <data name="Install_PackageCount_One" xml:space="preserve">
+    <value>{0} 个包</value>
+  </data>
+  <data name="Install_PackageCount_Other" xml:space="preserve">
+    <value>{0} 个包</value>
+  </data>
+  <data name="Install_Packages" xml:space="preserve">
+    <value>包：{0}。</value>
+  </data>
+  <data name="Install_RunFailed" xml:space="preserve">
+    <value>无法运行包安装程序：{0}</value>
+  </data>
+  <data name="Install_StartFailed" xml:space="preserve">
+    <value>无法启动包安装程序。</value>
+  </data>
+  <data name="InterpreterSource_CondaPrefix" xml:space="preserve">
+    <value>conda</value>
+  </data>
+  <data name="InterpreterSource_DerivedEnvironment" xml:space="preserve">
+    <value>托管环境</value>
+  </data>
+  <data name="InterpreterSource_Explicit" xml:space="preserve">
+    <value>已配置</value>
+  </data>
+  <data name="InterpreterSource_Path" xml:space="preserve">
+    <value>搜索路径</value>
+  </data>
+  <data name="InterpreterSource_SessionSelection" xml:space="preserve">
+    <value>会话</value>
+  </data>
+  <data name="InterpreterSource_VirtualEnv" xml:space="preserve">
+    <value>虚拟环境</value>
+  </data>
+  <data name="InterpreterSource_WellKnown" xml:space="preserve">
+    <value>常见位置</value>
+  </data>
+  <data name="InterpreterSource_WorkspaceVenv" xml:space="preserve">
+    <value>工作区 venv</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>运行本机所安装解释器的 Python 语言内核。</value>
+  </data>
+  <data name="Magic_Pip_Description" xml:space="preserve">
+    <value>通过 pip 安装 Python 包，以供后续代码使用。</value>
+  </data>
+  <data name="Magic_Pip_Installing" xml:space="preserve">
+    <value>正在安装 {0}...</value>
+  </data>
+  <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
+    <value>没有可用的 Python 解释器，因此无处可安装。请安装 Python 3.8 或更高版本，或使用 #!python 选择一个解释器。</value>
+  </data>
+  <data name="Magic_Pip_Param_Options" xml:space="preserve">
+    <value>传递给安装命令的其他 pip 选项。</value>
+  </data>
+  <data name="Magic_Pip_Param_Packages" xml:space="preserve">
+    <value>一个或多个包说明符（例如 pandas==2.0 numpy）。</value>
+  </data>
+  <data name="Magic_Pip_Usage" xml:space="preserve">
+    <value>用法：#!pip &lt;package&gt; [package2 ...] [--options]</value>
+  </data>
+  <data name="Magic_Python_Active" xml:space="preserve">
+    <value>活动解释器：{0}
+Python {1}（{2}，{3}）</value>
+  </data>
+  <data name="Magic_Python_Description" xml:space="preserve">
+    <value>检查或选择当前会话的 Python 解释器。</value>
+  </data>
+  <data name="Magic_Python_DiscoveredHeading" xml:space="preserve">
+    <value>已发现的解释器：</value>
+  </data>
+  <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
+    <value>
+此解释器由外部管理；安装将使用 Verso 托管的环境。</value>
+  </data>
+  <data name="Magic_Python_NoneFound" xml:space="preserve">
+    <value>未发现任何 Python 解释器。</value>
+  </data>
+  <data name="Magic_Python_NotFoundFor" xml:space="preserve">
+    <value>找不到与“{0}”对应的 Python 解释器。</value>
+  </data>
+  <data name="Magic_Python_Param_Target" xml:space="preserve">
+    <value>要选择的路径或名称，或使用 --list 显示已发现的解释器。省略则显示活动解释器。</value>
+  </data>
+  <data name="Magic_Python_RestartFailed" xml:space="preserve">
+    <value>无法自动重启内核（{0}）。请运行 #!restart 以应用所选内容。</value>
+  </data>
+  <data name="Magic_Python_Selected" xml:space="preserve">
+    <value>已选择 {0}（Python {1}）。 </value>
+  </data>
+  <data name="Magic_Python_SelectedAppliesLater" xml:space="preserve">
+    <value>它将在 Python 内核下次启动时生效。</value>
+  </data>
+  <data name="Magic_Python_SelectedRestarting" xml:space="preserve">
+    <value>正在重启内核以应用它。</value>
+  </data>
+  <data name="Setting_Dependencies_Description" xml:space="preserve">
+    <value>在第一个单元格运行前安装到笔记本 Python 环境中的需求字符串，遵循与导入相同的许可策略。每项一条，采用 pip 接受的格式（例如 "pandas&gt;=2"）。每一项必须指定包名：安装程序选项以及 URL、版本控制引用或路径等位置会被拒绝，因为笔记本不能选择包的来源。</value>
+  </data>
+  <data name="Setting_Dependencies_Label" xml:space="preserve">
+    <value>依赖项</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>以安装了哪些包及其版本来报告安装结果，而不是转述安装程序一路打印的全部内容。安装一个包会带入它的依赖项，而由此产生的整屏文本会与该单元格实际运行所得的输出一起保存进笔记本。安装失败时始终完整报告。</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>隐藏安装输出</value>
+  </data>
+</root>

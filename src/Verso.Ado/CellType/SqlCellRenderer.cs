@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Verso.Abstractions;
 using Verso.Ado.MagicCommands;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.CellType;
 
@@ -17,7 +18,7 @@ public sealed class SqlCellRenderer : ICellRenderer
     public string Name => "SQL Renderer";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Renders SQL cells with connection indicator badges.";
+    public string? Description => Strings.Renderer_Description;
 
     // --- ICellRenderer ---
 

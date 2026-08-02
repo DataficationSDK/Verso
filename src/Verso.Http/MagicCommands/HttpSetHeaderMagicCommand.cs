@@ -1,5 +1,7 @@
 using Verso.Abstractions;
 using Verso.Http.Kernel;
+using Verso.Http.Localization;
+using Verso.Http.Resources;
 
 namespace Verso.Http.MagicCommands;
 
@@ -14,15 +16,15 @@ public sealed class HttpSetHeaderMagicCommand : IMagicCommand
     string IExtension.Name => "HTTP Set Header Magic Command";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Adds or updates a default HTTP header for all requests.";
+    public string Description => Strings.Magic_SetHeader_Description;
 
     // --- IMagicCommand ---
     public string Name => "http-set-header";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("name", "The header name.", typeof(string), IsRequired: true),
-        new ParameterDefinition("value", "The header value.", typeof(string), IsRequired: true),
+        new ParameterDefinition("name", Strings.Magic_SetHeader_Param_Name, typeof(string), IsRequired: true),
+        new ParameterDefinition("value", Strings.Magic_SetHeader_Param_Value, typeof(string), IsRequired: true),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -37,7 +39,7 @@ public sealed class HttpSetHeaderMagicCommand : IMagicCommand
         if (spaceIndex < 0)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: Both header name and value are required. Usage: #!http-set-header <name> <value>",
+                "text/plain", CellText.Error(Strings.Magic_SetHeader_BothRequired),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -48,7 +50,7 @@ public sealed class HttpSetHeaderMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(headerValue))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: Header value cannot be empty. Usage: #!http-set-header <name> <value>",
+                "text/plain", CellText.Error(Strings.Magic_SetHeader_ValueRequired),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -60,6 +62,6 @@ public sealed class HttpSetHeaderMagicCommand : IMagicCommand
         context.Variables.Set(HttpKernel.DefaultHeadersStoreKey, headers);
 
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"Default header set: {headerName}: {headerValue}")).ConfigureAwait(false);
+            "text/plain", string.Format(Strings.Magic_SetHeader_Done, headerName, headerValue))).ConfigureAwait(false);
     }
 }

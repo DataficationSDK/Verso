@@ -6,6 +6,8 @@ using Verso.Abstractions;
 using Verso.Http.Formatting;
 using Verso.Http.Models;
 using Verso.Http.Parsing;
+using Verso.Http.Localization;
+using Verso.Http.Resources;
 
 namespace Verso.Http.Kernel;
 
@@ -46,7 +48,7 @@ public sealed class HttpKernel : ILanguageKernel
     string IExtension.Name => "HTTP Kernel";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Executes HTTP requests using .http file syntax.";
+    public string? Description => Strings.Kernel_Description;
 
     // --- ILanguageKernel ---
     public string LanguageId => "http";
@@ -66,7 +68,7 @@ public sealed class HttpKernel : ILanguageKernel
 
         if (requests.Count == 0)
         {
-            outputs.Add(new CellOutput("text/plain", "No HTTP request found.", IsError: true));
+            outputs.Add(new CellOutput("text/plain", Strings.Run_NoRequest, IsError: true));
             return outputs;
         }
 
@@ -108,7 +110,8 @@ public sealed class HttpKernel : ILanguageKernel
                 else
                 {
                     outputs.Add(new CellOutput("text/plain",
-                        $"Error: Relative URL '{url}' requires a base URL. Use #!http-set-base.", IsError: true));
+                        CellText.Error(string.Format(Strings.Run_RelativeUrlNeedsBase, url)),
+                        IsError: true));
                     continue;
                 }
             }
@@ -135,7 +138,7 @@ public sealed class HttpKernel : ILanguageKernel
 
             // Stream status message
             await context.WriteOutputAsync(new CellOutput("text/plain",
-                $"Sending {request.Method} {url}...")).ConfigureAwait(false);
+                string.Format(Strings.Run_Sending, request.Method, url))).ConfigureAwait(false);
 
             // Send request
             var client = request.NoRedirect ? NoRedirectClient : SharedClient;
@@ -193,7 +196,7 @@ public sealed class HttpKernel : ILanguageKernel
                 {
                     outputs.Add(new CellOutput(
                         "text/plain",
-                        $"Request failed with status {(int)response.StatusCode} {response.ReasonPhrase}.",
+                        string.Format(Strings.Run_RequestFailed, (int)response.StatusCode, response.ReasonPhrase),
                         IsError: true,
                         ErrorName: "HttpRequestFailed"));
                 }
@@ -202,20 +205,20 @@ public sealed class HttpKernel : ILanguageKernel
             {
                 sw.Stop();
                 outputs.Add(new CellOutput("text/plain",
-                    $"Error: Request timed out after {timeoutSeconds}s.", IsError: true));
+                    CellText.Error(string.Format(Strings.Run_TimedOut, timeoutSeconds)), IsError: true));
             }
             catch (TaskCanceledException)
             {
                 sw.Stop();
                 // The user stopped the cell. Cancellation is its own status everywhere else in
                 // Verso rather than a failure, so this says what happened without claiming one.
-                outputs.Add(CellOutput.Plain("Request cancelled."));
+                outputs.Add(CellOutput.Plain(Strings.Run_Cancelled));
             }
             catch (HttpRequestException ex)
             {
                 sw.Stop();
                 outputs.Add(new CellOutput("text/plain",
-                    $"Error: {ex.Message}", IsError: true));
+                    CellText.Error(ex.Message), IsError: true));
             }
         }
 
@@ -252,7 +255,8 @@ public sealed class HttpKernel : ILanguageKernel
             }
 
             // Dynamic variable completions
-            foreach (var (name, desc) in DynamicVariables)
+            var dynamicVariables = DynamicVariables;
+            foreach (var (name, desc) in dynamicVariables)
             {
                 var varPartial = ExtractPartialAfterDoubleBrace(beforeCursor);
                 if (MatchesPrefix(name, varPartial))
@@ -269,8 +273,7 @@ public sealed class HttpKernel : ILanguageKernel
         {
             if (MatchesPrefix(method, partial))
                 completions.Add(new Completion(method, method, "Keyword",
-                    HttpMethodDescriptions.TryGetValue(method, out var d) ? d : null,
-                    $"0_{method}"));
+                    DescribeMethod(method), $"0_{method}"));
         }
 
         // Common headers
@@ -278,8 +281,7 @@ public sealed class HttpKernel : ILanguageKernel
         {
             if (MatchesPrefix(header, partial))
                 completions.Add(new Completion(header + ": ", header + ": ", "Property",
-                    HeaderDescriptions.TryGetValue(header, out var d) ? d : null,
-                    $"1_{header}"));
+                    DescribeHeader(header), $"1_{header}"));
         }
 
         return Task.FromResult<IReadOnlyList<Completion>>(completions);
@@ -296,7 +298,7 @@ public sealed class HttpKernel : ILanguageKernel
         {
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Error,
-                "No valid HTTP request found. Start with a method (GET, POST, etc.) followed by a URL.",
+                Strings.Diagnostic_NoRequest,
                 0, 0, 0, 0));
         }
 
@@ -305,7 +307,7 @@ public sealed class HttpKernel : ILanguageKernel
             if (string.IsNullOrWhiteSpace(request.Url))
             {
                 diagnostics.Add(new Diagnostic(
-                    DiagnosticSeverity.Error, "Missing URL.", 0, 0, 0, 0));
+                    DiagnosticSeverity.Error, Strings.Diagnostic_MissingUrl, 0, 0, 0, 0));
             }
 
             // Warn about unrecognized methods
@@ -370,10 +372,10 @@ public sealed class HttpKernel : ILanguageKernel
         var (endLine, endCol) = OffsetToLineCol(code, wordEnd);
         var range = (startLine, startCol, endLine, endCol);
 
-        if (HttpMethodDescriptions.TryGetValue(word.ToUpperInvariant(), out var methodDesc))
+        if (DescribeMethod(word) is { } methodDesc)
             return Task.FromResult<HoverInfo?>(new HoverInfo(methodDesc, "text/plain", range));
 
-        if (HeaderDescriptions.TryGetValue(word, out var headerDesc))
+        if (DescribeHeader(word) is { } headerDesc)
             return Task.FromResult<HoverInfo?>(new HoverInfo(headerDesc, "text/plain", range));
 
         // Variable hover
@@ -472,15 +474,21 @@ public sealed class HttpKernel : ILanguageKernel
         "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"
     };
 
-    private static readonly Dictionary<string, string> HttpMethodDescriptions = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>What a request method means, or <c>null</c> for a word that is not one.</summary>
+    /// <remarks>
+    /// Looked up rather than held in a table, because a table built once would answer in
+    /// whichever language happened to be set when the kernel first loaded.
+    /// </remarks>
+    private static string? DescribeMethod(string word) => word.ToUpperInvariant() switch
     {
-        ["GET"] = "GET — Retrieve a resource. Should not have side effects.",
-        ["POST"] = "POST — Submit data to create or process a resource.",
-        ["PUT"] = "PUT — Replace a resource entirely.",
-        ["PATCH"] = "PATCH — Partially update a resource.",
-        ["DELETE"] = "DELETE — Remove a resource.",
-        ["HEAD"] = "HEAD — Like GET but returns only headers, no body.",
-        ["OPTIONS"] = "OPTIONS — Describe communication options for the target resource.",
+        "GET" => Strings.Completion_Method_Get,
+        "POST" => Strings.Completion_Method_Post,
+        "PUT" => Strings.Completion_Method_Put,
+        "PATCH" => Strings.Completion_Method_Patch,
+        "DELETE" => Strings.Completion_Method_Delete,
+        "HEAD" => Strings.Completion_Method_Head,
+        "OPTIONS" => Strings.Completion_Method_Options,
+        _ => null,
     };
 
     private static readonly string[] CommonHeaders =
@@ -490,28 +498,32 @@ public sealed class HttpKernel : ILanguageKernel
         "If-Modified-Since", "Accept-Encoding", "Accept-Language"
     };
 
-    private static readonly Dictionary<string, string> HeaderDescriptions = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>What a header is for, or <c>null</c> for a word that is not one.</summary>
+    private static string? DescribeHeader(string word) => word.ToLowerInvariant() switch
     {
-        ["Content-Type"] = "Content-Type — The media type of the request body (e.g., application/json).",
-        ["Authorization"] = "Authorization — Credentials for authenticating the request (e.g., Bearer token).",
-        ["Accept"] = "Accept — Media types the client can handle in the response.",
-        ["Cache-Control"] = "Cache-Control — Directives for caching mechanisms.",
-        ["User-Agent"] = "User-Agent — Identifies the client software making the request.",
-        ["Cookie"] = "Cookie — HTTP cookies previously sent by the server.",
-        ["X-Request-Id"] = "X-Request-Id — Custom header for request tracing.",
-        ["If-None-Match"] = "If-None-Match — Conditional request using ETag values.",
-        ["If-Modified-Since"] = "If-Modified-Since — Conditional request based on last modification date.",
-        ["Accept-Encoding"] = "Accept-Encoding — Acceptable content encoding (e.g., gzip, deflate).",
-        ["Accept-Language"] = "Accept-Language — Preferred natural languages for the response.",
+        "content-type" => Strings.Completion_Header_ContentType,
+        "authorization" => Strings.Completion_Header_Authorization,
+        "accept" => Strings.Completion_Header_Accept,
+        "cache-control" => Strings.Completion_Header_CacheControl,
+        "user-agent" => Strings.Completion_Header_UserAgent,
+        "cookie" => Strings.Completion_Header_Cookie,
+        "x-request-id" => Strings.Completion_Header_XRequestId,
+        "if-none-match" => Strings.Completion_Header_IfNoneMatch,
+        "if-modified-since" => Strings.Completion_Header_IfModifiedSince,
+        "accept-encoding" => Strings.Completion_Header_AcceptEncoding,
+        "accept-language" => Strings.Completion_Header_AcceptLanguage,
+        _ => null,
     };
 
-    private static readonly (string Name, string Description)[] DynamicVariables =
+    /// <summary>The values a request can ask for by name, with what each one puts in.</summary>
+    /// <remarks>Built on each call for the same reason the two lookups above are.</remarks>
+    private static (string Name, string Description)[] DynamicVariables => new[]
     {
-        ("$guid", "Generate a new UUID/GUID."),
-        ("$randomInt", "Generate a random integer. Usage: $randomInt [min max]"),
-        ("$timestamp", "Current Unix timestamp in seconds. Usage: $timestamp [offset unit]"),
-        ("$datetime", "Current UTC datetime. Usage: $datetime [format] [offset unit]"),
-        ("$localDatetime", "Current local datetime. Usage: $localDatetime [format] [offset unit]"),
-        ("$processEnv", "Read an environment variable. Usage: $processEnv NAME"),
+        ("$guid", Strings.Completion_Variable_Guid),
+        ("$randomInt", Strings.Completion_Variable_RandomInt),
+        ("$timestamp", Strings.Completion_Variable_Timestamp),
+        ("$datetime", Strings.Completion_Variable_Datetime),
+        ("$localDatetime", Strings.Completion_Variable_LocalDatetime),
+        ("$processEnv", Strings.Completion_Variable_ProcessEnv),
     };
 }

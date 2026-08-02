@@ -1,4 +1,5 @@
 using System.Globalization;
+using Verso.Resources;
 
 namespace Verso.Parameters;
 
@@ -33,7 +34,7 @@ public static class ParameterValueParser
                     result = longVal;
                     return true;
                 }
-                error = $"Expected an integer value, got '{value}'.";
+                error = string.Format(Strings.Parameters_ExpectedInteger, value);
                 return false;
 
             case "float":
@@ -42,7 +43,7 @@ public static class ParameterValueParser
                     result = doubleVal;
                     return true;
                 }
-                error = $"Expected a numeric value, got '{value}'.";
+                error = string.Format(Strings.Parameters_ExpectedNumber, value);
                 return false;
 
             case "bool":
@@ -55,7 +56,7 @@ public static class ParameterValueParser
                         result = false;
                         return true;
                     default:
-                        error = $"Expected true/false, yes/no, or 1/0, got '{value}'.";
+                        error = string.Format(Strings.Parameters_ExpectedBoolean, value);
                         return false;
                 }
 
@@ -65,7 +66,7 @@ public static class ParameterValueParser
                     result = dateVal;
                     return true;
                 }
-                error = $"Expected a date in yyyy-MM-dd format, got '{value}'.";
+                error = string.Format(Strings.Parameters_ExpectedDate, value);
                 return false;
 
             case "datetime":
@@ -79,11 +80,11 @@ public static class ParameterValueParser
                     result = dtoVal;
                     return true;
                 }
-                error = $"Expected an ISO 8601 datetime value, got '{value}'.";
+                error = string.Format(Strings.Parameters_ExpectedDateTime, value);
                 return false;
 
             default:
-                error = $"Unknown parameter type '{typeId}'.";
+                error = string.Format(Strings.Parameters_UnknownType, typeId);
                 return false;
         }
     }

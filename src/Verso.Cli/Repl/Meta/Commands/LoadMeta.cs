@@ -1,5 +1,6 @@
 using Spectre.Console;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
@@ -11,32 +12,33 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class LoadMeta : IMetaCommand
 {
     public string Name => "load";
-    public string Summary => "Loads a notebook from disk, replacing the session notebook.";
-    public string DetailedHelp =>
-        ".load <path>\n" +
-        "  Deserializes the file at <path> through the matching serializer and installs it\n" +
-        "  as the session notebook. Prompts to save unsaved changes first. Kernel state\n" +
-        "  (variables) is preserved — run .reset first for a clean start.";
+    public string Summary => Strings.Meta_Load_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".load <path>\n" + Strings.Meta_Load_Details;
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var arg = argumentText.Trim();
         if (string.IsNullOrEmpty(arg))
         {
-            context.Console.MarkupLine("[red]Usage: .load <path>[/]");
+            context.Console.MarkupLine(Messages.In("red", Messages.Typed(Strings.Repl_Usage, ".load <path>")));
             return true;
         }
 
         if (!context.Session.ConfirmDiscardUnsavedChanges())
         {
-            context.Console.MarkupLine("[yellow]Session has unsaved cells.[/] Run [bold].save[/] first, or [bold].load[/] again to discard.");
+            context.Console.MarkupLine(
+                Messages.In("yellow", Messages.Say(Strings.Repl_UnsavedCells))
+                + " " + Messages.Typed(Strings.Repl_UnsavedHint, ".save", ".load"));
             return true;
         }
 
         var fullPath = Path.GetFullPath(arg);
         if (!File.Exists(fullPath))
         {
-            context.Console.MarkupLine($"[red]File not found: {Markup.Escape(fullPath)}[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Meta_Load_FileNotFound, fullPath)));
             return true;
         }
 
@@ -47,7 +49,7 @@ public sealed class LoadMeta : IMetaCommand
         }
         catch (SerializerNotFoundException ex)
         {
-            context.Console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red", Markup.Escape(ex.Message)));
             return true;
         }
 
@@ -59,7 +61,8 @@ public sealed class LoadMeta : IMetaCommand
         }
         catch (Exception ex)
         {
-            context.Console.MarkupLine($"[red]Failed to load: {Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Meta_Load_Failed, ex.Message)));
             return true;
         }
 
@@ -81,7 +84,8 @@ public sealed class LoadMeta : IMetaCommand
         context.Session.ActiveKernelId = current.DefaultKernelId ?? context.Session.ActiveKernelId;
         context.Session.MarkClean();
 
-        context.Console.MarkupLine($"[green]Loaded[/] {current.Cells.Count} cell(s) from {Markup.Escape(fullPath)}");
+        context.Console.MarkupLine(Messages.In("green", Messages.Say(
+            Strings.Meta_Load_Done, CellCount.Describe(current.Cells.Count), fullPath)));
         return true;
     }
 }

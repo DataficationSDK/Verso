@@ -1081,7 +1081,17 @@ export class BlazorEditorProvider
                     // Remap all framework resource URIs to real webview URIs
                     // since <base href> is a synthetic localhost URI.
                     // Append version query param to bust stale caches on extension update.
-                    return frameworkBase + name + '?v=' + wasmVersion;
+                    //
+                    // The path comes from defaultUri rather than from name, because name is
+                    // only ever a file name and some resources sit in a subdirectory. A
+                    // satellite assembly is the case that matters: it lives under its culture,
+                    // at _framework/de/Verso.Blazor.Shared.resources.wasm, and rebuilding the
+                    // URI from name alone asks for it at the root, where it is not. That fetch
+                    // fails, and with it the only reason the app had to load a language.
+                    var marker = '_framework/';
+                    var at = defaultUri ? defaultUri.lastIndexOf(marker) : -1;
+                    var path = at >= 0 ? defaultUri.substring(at + marker.length) : name;
+                    return frameworkBase + path + '?v=' + wasmVersion;
                 }
             }).then(function() {
                 if (status) status.textContent = 'Blazor started.';

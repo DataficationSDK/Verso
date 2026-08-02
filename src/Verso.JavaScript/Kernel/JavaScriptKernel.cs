@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.JavaScript.MagicCommands;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.Kernel;
 
@@ -30,7 +31,7 @@ public sealed class JavaScriptKernel : ILanguageKernel, IExtensionSettings
     public string Name => "JavaScript";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "JavaScript language kernel via Node.js or Jint.";
+    public string? Description => Strings.Kernel_JavaScript_Description;
 
     // ILanguageKernel
     public string LanguageId => "javascript";
@@ -42,14 +43,15 @@ public sealed class JavaScriptKernel : ILanguageKernel, IExtensionSettings
 
     // IExtensionSettings
 
-    public IReadOnlyList<SettingDefinition> SettingDefinitions { get; } =
+    /// <remarks>
+    /// Built on each read rather than held, so the settings panel shows the words in the
+    /// language the reader asked for rather than the one the kernel first loaded in.
+    /// </remarks>
+    public IReadOnlyList<SettingDefinition> SettingDefinitions =>
     [
-        new SettingDefinition(HideInstallOutputSetting, "Hide Installation Output",
-            "Report an npm install as the packages it added and the versions they came in at, " +
-            "rather than relaying npm's own narration and its funding and audit footers. " +
-            "Installing one package brings in its dependencies, and that block is saved into the " +
-            "notebook alongside the output the cell was actually run for. An install that fails " +
-            "is always reported in full, as is anything npm's audit found.",
+        new SettingDefinition(HideInstallOutputSetting,
+            Strings.Setting_HideInstallOutput_Label,
+            Strings.Setting_HideInstallOutput_Description,
             SettingType.Boolean, true, "Packages"),
     ];
 
@@ -188,7 +190,7 @@ public sealed class JavaScriptKernel : ILanguageKernel, IExtensionSettings
         // Crash recovery
         if (!_runner!.IsAlive && _usingNode && _options.AutoRestartOnCrash)
         {
-            outputs.Add(new CellOutput("text/plain", "Node.js process crashed. Restarting..."));
+            outputs.Add(new CellOutput("text/plain", Strings.Run_NodeCrashed));
             await context.WriteOutputAsync(outputs[0]);
 
             await _runner.DisposeAsync();
@@ -253,7 +255,7 @@ public sealed class JavaScriptKernel : ILanguageKernel, IExtensionSettings
         {
             outputs.Add(new CellOutput(
                 "text/plain",
-                result.ErrorMessage ?? "Unknown JavaScript error",
+                result.ErrorMessage ?? Strings.Run_UnknownError,
                 IsError: true,
                 ErrorName: "JavaScriptError",
                 ErrorStackTrace: result.ErrorStack));

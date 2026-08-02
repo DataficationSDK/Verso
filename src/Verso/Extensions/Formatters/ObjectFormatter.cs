@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Formatters;
 
@@ -23,7 +24,7 @@ public sealed class ObjectFormatter : IDataFormatter
     public string Name => "Object Formatter";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Formats objects as HTML tables showing public properties and fields.";
+    public string? Description => Strings.Formatter_Object_Description;
 
     // --- IDataFormatter ---
 

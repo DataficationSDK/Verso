@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Verso.Cli.Resources;
 
 namespace Verso.Cli.Utilities;
 
@@ -12,9 +13,7 @@ public static class PythonInterpreterOption
     /// <summary>Environment variable the Python kernel consults as its highest-precedence choice.</summary>
     private const string InterpreterVariable = "VERSO_PYTHON";
 
-    public static Option<string?> Create() => new(
-        "--python",
-        "Path to the Python interpreter used by Python cells. Overrides automatic discovery.");
+    public static Option<string?> Create() => new("--python", Strings.Option_Python);
 
     /// <summary>
     /// Publish the selection to the current process so the kernel picks it up when it starts.

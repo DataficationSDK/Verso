@@ -10,6 +10,7 @@ using Verso.FSharp.Helpers;
 using Verso.FSharp.NuGet;
 
 using FcsDiagnostic = FSharp.Compiler.Diagnostics.FSharpDiagnostic;
+using Verso.FSharp.Resources;
 
 namespace Verso.FSharp.Kernel;
 
@@ -53,7 +54,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
     public string Name => "F# (Interactive)";
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "F# language kernel powered by FSharp.Compiler.Service.";
+    public string? Description => Strings.Kernel_Description;
 
     // --- ILanguageKernel ---
 
@@ -66,21 +67,25 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
 
     // --- IExtensionSettings ---
 
-    public IReadOnlyList<SettingDefinition> SettingDefinitions { get; } = new[]
+    /// <remarks>
+    /// Built on each read rather than held, so the settings panel shows the words in the
+    /// language the reader asked for rather than the one the kernel first loaded in.
+    /// </remarks>
+    public IReadOnlyList<SettingDefinition> SettingDefinitions => new[]
     {
-        new SettingDefinition("warningLevel", "Warning Level",
-            "F# compiler warning level (0\u20135).",
+        new SettingDefinition("warningLevel", Strings.Setting_WarningLevel_Label,
+            Strings.Setting_WarningLevel_Description,
             SettingType.Integer, 3, "Compiler",
             new SettingConstraints(MinValue: 0, MaxValue: 5)),
-        new SettingDefinition("langVersion", "Language Version",
-            "F# language version for the session.",
+        new SettingDefinition("langVersion", Strings.Setting_LangVersion_Label,
+            Strings.Setting_LangVersion_Description,
             SettingType.StringChoice, "preview", "Compiler",
             new SettingConstraints(Choices: new[] { "default", "latest", "latestmajor", "preview", "5.0", "6.0", "7.0", "8.0", "9.0" })),
-        new SettingDefinition("publishPrivateBindings", "Publish Private Bindings",
-            "Whether to publish underscore-prefixed bindings to the variable store.",
+        new SettingDefinition("publishPrivateBindings", Strings.Setting_PublishPrivateBindings_Label,
+            Strings.Setting_PublishPrivateBindings_Description,
             SettingType.Boolean, false, "Variables"),
-        new SettingDefinition("maxCollectionDisplay", "Max Collection Display",
-            "Maximum number of collection elements to display in formatted output.",
+        new SettingDefinition("maxCollectionDisplay", Strings.Setting_MaxCollectionDisplay_Label,
+            Strings.Setting_MaxCollectionDisplay_Description,
             SettingType.Integer, 100, "Display",
             new SettingConstraints(MinValue: 10, MaxValue: 10000)),
     };
@@ -323,7 +328,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             {
                 var errorOutput = new CellOutput(
                     "text/plain",
-                    result.CompilationErrorText ?? "Compilation error",
+                    result.CompilationErrorText ?? Strings.Run_CompilationError,
                     IsError: true,
                     ErrorName: "CompilationError");
                 outputs.Add(errorOutput);
@@ -784,7 +789,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         {
             return new CellOutput(
                 "text/plain",
-                "Stack overflow. The computation exceeded the stack size limit. Consider restarting the kernel.",
+                Strings.Run_StackOverflow,
                 IsError: true,
                 ErrorName: "StackOverflowException");
         }
@@ -793,7 +798,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         {
             return new CellOutput(
                 "text/plain",
-                "Out of memory. The computation exceeded available memory. Consider restarting the kernel.",
+                Strings.Run_OutOfMemory,
                 IsError: true,
                 ErrorName: "OutOfMemoryException");
         }
@@ -831,7 +836,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
     {
         var items = string.Join("",
             packages.Select(p => $"<li><span>{p.PackageId}, {p.ResolvedVersion}</span></li>"));
-        return $"<div><b>Installed Packages</b><ul>{items}</ul></div>";
+        return $"<div><b>{Strings.Kernel_InstalledPackages}</b><ul>{items}</ul></div>";
     }
 
     private async Task<CellOutput?> TryFormatAsync(object value, IExecutionContext context)

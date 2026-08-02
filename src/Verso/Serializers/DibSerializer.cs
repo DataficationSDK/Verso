@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -38,7 +39,7 @@ public sealed class DibSerializer : INotebookSerializer
 
     public Task<string> SerializeAsync(NotebookModel notebook)
     {
-        throw new NotSupportedException("Polyglot Notebook .dib export is not supported. Use the Verso native format.");
+        throw new NotSupportedException(Strings.Error_DibExportUnsupported);
     }
 
     public Task<NotebookModel> DeserializeAsync(string content)

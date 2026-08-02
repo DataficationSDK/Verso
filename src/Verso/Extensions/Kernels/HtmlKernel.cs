@@ -93,7 +93,7 @@ public sealed class HtmlKernel : ILanguageKernel
 
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Warning,
-                $"Unresolved variable '@{name}'. No matching variable found in the variable store.",
+                string.Format(Strings.Kernel_UnresolvedVariable, name),
                 startLine, startCol, endLine, endCol));
         }
 

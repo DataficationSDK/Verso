@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Verso.Abstractions;
 using Verso.Serializers.Migrations;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -155,7 +156,7 @@ public sealed class VersoSerializer : INotebookSerializer
         ArgumentNullException.ThrowIfNull(content);
 
         var doc = JsonSerializer.Deserialize<VersoDocument>(content, ReadOptions)
-            ?? throw new JsonException("Failed to deserialize .verso document.");
+            ?? throw new JsonException(Strings.Error_VersoParseFailed);
 
         var (activeLayout, requiresLegacyResolution) = DeserializeActiveLayout(doc.Metadata?.ActiveLayout);
 

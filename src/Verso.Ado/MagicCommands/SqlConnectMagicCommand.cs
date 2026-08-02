@@ -2,6 +2,8 @@ using System.Data.Common;
 using Verso.Abstractions;
 using Verso.Ado.Helpers;
 using Verso.Ado.Models;
+using Verso.Ado.Localization;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.MagicCommands;
 
@@ -20,18 +22,18 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
     string IExtension.Name => "SQL Connect Magic Command";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Establishes a database connection for SQL cells.";
+    public string Description => Strings.Magic_Connect_Description;
 
     // --- IMagicCommand ---
     public string Name => "sql-connect";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("name", "A friendly name for this connection.", typeof(string), IsRequired: true),
-        new ParameterDefinition("connection-string", "The ADO.NET connection string.", typeof(string), IsRequired: true),
-        new ParameterDefinition("provider", "The DbProviderFactory invariant name.", typeof(string)),
-        new ParameterDefinition("default", "Set this connection as the default.", typeof(bool)),
-        new ParameterDefinition("command-timeout", "Default command timeout in seconds for SQL cells on this connection (0 = no limit).", typeof(int)),
+        new ParameterDefinition("name", Strings.Magic_Connect_Param_Name, typeof(string), IsRequired: true),
+        new ParameterDefinition("connection-string", Strings.Magic_Connect_Param_ConnectionString, typeof(string), IsRequired: true),
+        new ParameterDefinition("provider", Strings.Magic_Connect_Param_Provider, typeof(string)),
+        new ParameterDefinition("default", Strings.Magic_Connect_Param_Default, typeof(bool)),
+        new ParameterDefinition("command-timeout", Strings.Magic_Connect_Param_CommandTimeout, typeof(int)),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -47,7 +49,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         if (!args.TryGetValue("name", out var name) || string.IsNullOrWhiteSpace(name))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: --name is required. Usage: #!sql-connect --name <name> --connection-string <cs>",
+                "text/plain", CellText.Error(Strings.Magic_Connect_NameRequired),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -55,7 +57,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         if (!args.TryGetValue("connection-string", out var rawCs) || string.IsNullOrWhiteSpace(rawCs))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: --connection-string is required. Usage: #!sql-connect --name <name> --connection-string <cs>",
+                "text/plain", CellText.Error(Strings.Magic_Connect_ConnectionStringRequired),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -67,7 +69,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
             if (!int.TryParse(rawTimeout, out var timeoutValue) || timeoutValue < 0)
             {
                 await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", "Error: --command-timeout must be a non-negative integer (seconds; 0 = no limit).",
+                    "text/plain", CellText.Error(Strings.Magic_Connect_TimeoutInvalid),
                     IsError: true)).ConfigureAwait(false);
                 return;
             }
@@ -80,7 +82,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         if (credError is not null)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Error resolving connection string: {credError}", IsError: true))
+                "text/plain", string.Format(Strings.Magic_Connect_CredentialFailed, credError), IsError: true))
                 .ConfigureAwait(false);
             return;
         }
@@ -98,7 +100,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
             if (providerResolveError is not null)
             {
                 await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", $"Error resolving provider: {providerResolveError}", IsError: true))
+                    "text/plain", string.Format(Strings.Magic_Connect_ProviderResolveFailed, providerResolveError), IsError: true))
                     .ConfigureAwait(false);
                 return;
             }
@@ -153,7 +155,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         if (providerError is not null || factory is null)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Error: {providerError ?? "Provider could not be resolved."}", IsError: true)).ConfigureAwait(false);
+                "text/plain", CellText.Error(providerError ?? Strings.Magic_Connect_ProviderUnresolved), IsError: true)).ConfigureAwait(false);
             return;
         }
 
@@ -168,7 +170,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
         catch (Exception ex)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Error opening connection: {FormatExceptionChain(ex)}", IsError: true))
+                "text/plain", string.Format(Strings.Magic_Connect_OpenFailed, FormatExceptionChain(ex)), IsError: true))
                 .ConfigureAwait(false);
             return;
         }
@@ -191,19 +193,22 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
 
         var redacted = PlaceholderResolver.RedactConnectionString(resolvedCs!);
         var dbName = connection.Database;
-        var defaultLabel = isDefault ? " (default)" : "";
+        var defaultLabel = isDefault ? Strings.Magic_Connect_DefaultLabel : "";
         var timeoutLabel = commandTimeout switch
         {
             null => "",
-            0 => "\n  Command timeout: no limit",
-            _ => $"\n  Command timeout: {commandTimeout}s",
+            0 => Strings.Magic_Connect_TimeoutNoLimit,
+            _ => string.Format(Strings.Magic_Connect_Timeout, commandTimeout),
         };
 
+        // Each line is a whole entry rather than a phrase glued to the one before it, so a
+        // language that orders them differently still reads as one report.
         await context.WriteOutputAsync(new CellOutput(
             "text/plain",
-            $"Connected '{name}'{defaultLabel} using {providerName ?? "unknown"}" +
-            (!string.IsNullOrEmpty(dbName) ? $" — database: {dbName}" : "") +
-            $"\n  Connection string: {redacted}" +
+            string.Format(Strings.Magic_Connect_Connected,
+                name, defaultLabel, providerName ?? Strings.Magic_Connect_ProviderUnknown) +
+            (!string.IsNullOrEmpty(dbName) ? string.Format(Strings.Magic_Connect_Database, dbName) : "") +
+            string.Format(Strings.Magic_Connect_ConnectionString, redacted) +
             timeoutLabel))
             .ConfigureAwait(false);
     }

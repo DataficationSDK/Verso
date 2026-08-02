@@ -7,6 +7,8 @@ using Verso.Ado.Formatters;
 using Verso.Ado.Helpers;
 using Verso.Ado.MagicCommands;
 using Verso.Ado.Models;
+using Verso.Ado.Localization;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.Kernel;
 
@@ -30,7 +32,7 @@ public sealed class SqlKernel : ILanguageKernel
     string IExtension.Name => "SQL Kernel";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Executes SQL queries against ADO.NET database connections.";
+    public string? Description => Strings.Kernel_Description;
 
     // --- ILanguageKernel ---
     public string LanguageId => "sql";
@@ -59,7 +61,7 @@ public sealed class SqlKernel : ILanguageKernel
 
         if (string.IsNullOrWhiteSpace(sqlCode))
         {
-            outputs.Add(new CellOutput("text/plain", "No SQL to execute.", IsError: true));
+            outputs.Add(new CellOutput("text/plain", Strings.Run_NoSql, IsError: true));
             return outputs;
         }
 
@@ -68,14 +70,14 @@ public sealed class SqlKernel : ILanguageKernel
         if (connInfo is null)
         {
             outputs.Add(new CellOutput("text/plain",
-                "No database connection. Use `#!sql-connect` to establish a connection.", IsError: true));
+                Strings.Run_NoConnection, IsError: true));
             return outputs;
         }
 
         if (connInfo.Connection is null || connInfo.Connection.State != ConnectionState.Open)
         {
             outputs.Add(new CellOutput("text/plain",
-                $"Connection '{connInfo.Name}' is not open. Reconnect with `#!sql-connect`.", IsError: true));
+                string.Format(Strings.Run_ConnectionClosed, connInfo.Name), IsError: true));
             return outputs;
         }
 
@@ -204,7 +206,7 @@ public sealed class SqlKernel : ILanguageKernel
         }
         catch (Exception ex)
         {
-            outputs.Add(new CellOutput("text/plain", $"SQL error: {ex.Message}", IsError: true));
+            outputs.Add(new CellOutput("text/plain", string.Format(Strings.Run_Failed, ex.Message), IsError: true));
         }
         finally
         {
@@ -467,7 +469,7 @@ public sealed class SqlKernel : ILanguageKernel
         var lookup = word.StartsWith('@') ? word.Substring(1) : word;
 
         // Check keyword
-        if (KeywordDescriptions.TryGetValue(lookup.ToUpperInvariant(), out var kwDescription))
+        if (DescribeKeyword(lookup) is { } kwDescription)
         {
             return Task.FromResult<HoverInfo?>(new HoverInfo(kwDescription, "text/plain", range));
         }
@@ -679,7 +681,8 @@ public sealed class SqlKernel : ILanguageKernel
             else
             {
                 outputs.Add(new CellOutput("text/plain",
-                    $"Warning: Type '{descriptor.Type.Name}' for '{prefix}{reference.Name}' is not a supported DbType. Passing as-is.",
+                    CellText.Warning(string.Format(Strings.Run_UnsupportedParameterType,
+                        descriptor.Type.Name, $"{prefix}{reference.Name}")),
                     IsError: false));
                 param.Value = descriptor.Value;
             }
@@ -804,43 +807,49 @@ public sealed class SqlKernel : ILanguageKernel
         "WITH", "RECURSIVE", "OVER", "PARTITION", "ROW_NUMBER", "RANK"
     };
 
-    internal static readonly Dictionary<string, string> KeywordDescriptions = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>What a SQL keyword does, or <c>null</c> for a word that is not one.</summary>
+    /// <remarks>
+    /// Looked up rather than held in a table, because a table built once would answer in
+    /// whichever language happened to be set when the kernel first loaded.
+    /// </remarks>
+    internal static string? DescribeKeyword(string word) => word.ToUpperInvariant() switch
     {
-        ["SELECT"] = "SELECT — Retrieves rows from one or more tables or views.",
-        ["FROM"] = "FROM — Specifies the source tables or views for a query.",
-        ["WHERE"] = "WHERE — Filters rows based on a condition.",
-        ["INSERT"] = "INSERT — Adds new rows to a table.",
-        ["INTO"] = "INTO — Specifies the target table for INSERT.",
-        ["VALUES"] = "VALUES — Specifies literal values for INSERT.",
-        ["UPDATE"] = "UPDATE — Modifies existing rows in a table.",
-        ["SET"] = "SET — Specifies columns and values for UPDATE.",
-        ["DELETE"] = "DELETE — Removes rows from a table.",
-        ["CREATE"] = "CREATE — Creates a new database object (table, view, index, etc.).",
-        ["ALTER"] = "ALTER — Modifies an existing database object.",
-        ["DROP"] = "DROP — Removes a database object.",
-        ["TABLE"] = "TABLE — Refers to a database table.",
-        ["JOIN"] = "JOIN — Combines rows from two or more tables based on a related column.",
-        ["INNER"] = "INNER — Returns rows that have matching values in both tables.",
-        ["LEFT"] = "LEFT — Returns all rows from the left table and matching rows from the right.",
-        ["RIGHT"] = "RIGHT — Returns all rows from the right table and matching rows from the left.",
-        ["GROUP"] = "GROUP BY — Groups rows sharing a property for aggregate functions.",
-        ["ORDER"] = "ORDER BY — Sorts the result set by one or more columns.",
-        ["HAVING"] = "HAVING — Filters groups created by GROUP BY.",
-        ["AND"] = "AND — Logical AND operator; both conditions must be true.",
-        ["OR"] = "OR — Logical OR operator; either condition must be true.",
-        ["NOT"] = "NOT — Logical NOT operator; negates a condition.",
-        ["IN"] = "IN — Tests whether a value matches any value in a list or subquery.",
-        ["EXISTS"] = "EXISTS — Tests for the existence of rows in a subquery.",
-        ["BETWEEN"] = "BETWEEN — Tests whether a value is within a range.",
-        ["LIKE"] = "LIKE — Pattern matching with wildcards (% and _).",
-        ["NULL"] = "NULL — Represents a missing or unknown value.",
-        ["DISTINCT"] = "DISTINCT — Removes duplicate rows from the result set.",
-        ["UNION"] = "UNION — Combines result sets of two or more SELECT statements.",
-        ["CASE"] = "CASE — Conditional expression; returns a value based on conditions.",
-        ["COUNT"] = "COUNT — Aggregate function that returns the number of rows.",
-        ["SUM"] = "SUM — Aggregate function that returns the total of a numeric column.",
-        ["AVG"] = "AVG — Aggregate function that returns the average of a numeric column.",
-        ["MIN"] = "MIN — Aggregate function that returns the minimum value.",
-        ["MAX"] = "MAX — Aggregate function that returns the maximum value.",
+        "SELECT" => Strings.Completion_Keyword_Select,
+        "FROM" => Strings.Completion_Keyword_From,
+        "WHERE" => Strings.Completion_Keyword_Where,
+        "INSERT" => Strings.Completion_Keyword_Insert,
+        "INTO" => Strings.Completion_Keyword_Into,
+        "VALUES" => Strings.Completion_Keyword_Values,
+        "UPDATE" => Strings.Completion_Keyword_Update,
+        "SET" => Strings.Completion_Keyword_Set,
+        "DELETE" => Strings.Completion_Keyword_Delete,
+        "CREATE" => Strings.Completion_Keyword_Create,
+        "ALTER" => Strings.Completion_Keyword_Alter,
+        "DROP" => Strings.Completion_Keyword_Drop,
+        "TABLE" => Strings.Completion_Keyword_Table,
+        "JOIN" => Strings.Completion_Keyword_Join,
+        "INNER" => Strings.Completion_Keyword_Inner,
+        "LEFT" => Strings.Completion_Keyword_Left,
+        "RIGHT" => Strings.Completion_Keyword_Right,
+        "GROUP" => Strings.Completion_Keyword_Group,
+        "ORDER" => Strings.Completion_Keyword_Order,
+        "HAVING" => Strings.Completion_Keyword_Having,
+        "AND" => Strings.Completion_Keyword_And,
+        "OR" => Strings.Completion_Keyword_Or,
+        "NOT" => Strings.Completion_Keyword_Not,
+        "IN" => Strings.Completion_Keyword_In,
+        "EXISTS" => Strings.Completion_Keyword_Exists,
+        "BETWEEN" => Strings.Completion_Keyword_Between,
+        "LIKE" => Strings.Completion_Keyword_Like,
+        "NULL" => Strings.Completion_Keyword_Null,
+        "DISTINCT" => Strings.Completion_Keyword_Distinct,
+        "UNION" => Strings.Completion_Keyword_Union,
+        "CASE" => Strings.Completion_Keyword_Case,
+        "COUNT" => Strings.Completion_Keyword_Count,
+        "SUM" => Strings.Completion_Keyword_Sum,
+        "AVG" => Strings.Completion_Keyword_Avg,
+        "MIN" => Strings.Completion_Keyword_Min,
+        "MAX" => Strings.Completion_Keyword_Max,
+        _ => null,
     };
 }

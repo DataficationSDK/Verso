@@ -1,0 +1,922 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Capability_CellInteractionHandler" xml:space="preserve">
+    <value>Controlador de interacción de celda</value>
+  </data>
+  <data name="Capability_CellInteractionHandler_Plural" xml:space="preserve">
+    <value>Controladores de interacción de celda</value>
+  </data>
+  <data name="Capability_CellPropertyProvider" xml:space="preserve">
+    <value>Proveedor de propiedades de celda</value>
+  </data>
+  <data name="Capability_CellPropertyProvider_Plural" xml:space="preserve">
+    <value>Proveedores de propiedades de celda</value>
+  </data>
+  <data name="Capability_CellRenderer" xml:space="preserve">
+    <value>Renderizador de celda</value>
+  </data>
+  <data name="Capability_CellRenderer_Plural" xml:space="preserve">
+    <value>Renderizadores de celda</value>
+  </data>
+  <data name="Capability_CellType" xml:space="preserve">
+    <value>Tipo de celda</value>
+  </data>
+  <data name="Capability_CellType_Plural" xml:space="preserve">
+    <value>Tipos de celda</value>
+  </data>
+  <data name="Capability_DataFormatter" xml:space="preserve">
+    <value>Formateador de datos</value>
+  </data>
+  <data name="Capability_DataFormatter_Plural" xml:space="preserve">
+    <value>Formateadores de datos</value>
+  </data>
+  <data name="Capability_ExtensionSettings" xml:space="preserve">
+    <value>Proveedor de configuración</value>
+  </data>
+  <data name="Capability_ExtensionSettings_Plural" xml:space="preserve">
+    <value>Proveedores de configuración</value>
+  </data>
+  <data name="Capability_LanguageKernel" xml:space="preserve">
+    <value>Kernel de lenguaje</value>
+  </data>
+  <data name="Capability_LanguageKernel_Plural" xml:space="preserve">
+    <value>Kernels de lenguaje</value>
+  </data>
+  <data name="Capability_LayoutEngine" xml:space="preserve">
+    <value>Motor de diseño</value>
+  </data>
+  <data name="Capability_LayoutEngine_Plural" xml:space="preserve">
+    <value>Motores de diseño</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler" xml:space="preserve">
+    <value>Controlador de interacción de diseño</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler_Plural" xml:space="preserve">
+    <value>Controladores de interacción de diseño</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler" xml:space="preserve">
+    <value>Controlador de ciclo de vida de diseño</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler_Plural" xml:space="preserve">
+    <value>Controladores de ciclo de vida de diseño</value>
+  </data>
+  <data name="Capability_MagicCommand" xml:space="preserve">
+    <value>Comando mágico</value>
+  </data>
+  <data name="Capability_MagicCommand_Plural" xml:space="preserve">
+    <value>Comandos mágicos</value>
+  </data>
+  <data name="Capability_NotebookPanel" xml:space="preserve">
+    <value>Panel</value>
+  </data>
+  <data name="Capability_NotebookPanel_Plural" xml:space="preserve">
+    <value>Paneles</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor" xml:space="preserve">
+    <value>Posprocesador</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor_Plural" xml:space="preserve">
+    <value>Posprocesadores</value>
+  </data>
+  <data name="Capability_NotebookSerializer" xml:space="preserve">
+    <value>Serializador</value>
+  </data>
+  <data name="Capability_NotebookSerializer_Plural" xml:space="preserve">
+    <value>Serializadores</value>
+  </data>
+  <data name="Capability_Other" xml:space="preserve">
+    <value>Otro</value>
+  </data>
+  <data name="Capability_Other_Plural" xml:space="preserve">
+    <value>Otros</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler" xml:space="preserve">
+    <value>Controlador de interacción de panel</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler_Plural" xml:space="preserve">
+    <value>Controladores de interacción de panel</value>
+  </data>
+  <data name="Capability_Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="Capability_Theme_Plural" xml:space="preserve">
+    <value>Temas</value>
+  </data>
+  <data name="Capability_ToolbarAction" xml:space="preserve">
+    <value>Acción de barra de herramientas</value>
+  </data>
+  <data name="Capability_ToolbarAction_Plural" xml:space="preserve">
+    <value>Acciones de barra de herramientas</value>
+  </data>
+  <data name="CellList_AddCellType" xml:space="preserve">
+    <value>+ Celda {0}</value>
+  </data>
+  <data name="Cell_AnotherCellRunning" xml:space="preserve">
+    <value>Otra celda se está ejecutando.</value>
+  </data>
+  <data name="Cell_CollapseCode" xml:space="preserve">
+    <value>Contraer código</value>
+  </data>
+  <data name="Cell_CollapseSection" xml:space="preserve">
+    <value>Contraer sección</value>
+  </data>
+  <data name="Cell_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Cell_ExpandCode" xml:space="preserve">
+    <value>Expandir código</value>
+  </data>
+  <data name="Cell_ExpandSection" xml:space="preserve">
+    <value>Expandir sección</value>
+  </data>
+  <data name="Cell_MoveDown" xml:space="preserve">
+    <value>Mover abajo</value>
+  </data>
+  <data name="Cell_MoveUp" xml:space="preserve">
+    <value>Mover arriba</value>
+  </data>
+  <data name="Cell_OutputsHidden_One" xml:space="preserve">
+    <value>{0} salida oculta</value>
+  </data>
+  <data name="Cell_OutputsHidden_Other" xml:space="preserve">
+    <value>{0} salidas ocultas</value>
+  </data>
+  <data name="Cell_Run" xml:space="preserve">
+    <value>Ejecutar</value>
+  </data>
+  <data name="Common_AppTitle" xml:space="preserve">
+    <value>Verso Notebook</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="Common_Dismiss" xml:space="preserve">
+    <value>Descartar</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
+  <data name="Common_NoNotebookOpen" xml:space="preserve">
+    <value>No hay ningún cuaderno abierto.</value>
+  </data>
+  <data name="Common_Ok" xml:space="preserve">
+    <value>Aceptar</value>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Common_Stop" xml:space="preserve">
+    <value>Detener</value>
+  </data>
+  <data name="Common_Submit" xml:space="preserve">
+    <value>Enviar</value>
+  </data>
+  <data name="Common_Untitled" xml:space="preserve">
+    <value>Sin título</value>
+  </data>
+  <data name="Compare_BackToChanges" xml:space="preserve">
+    <value>Volver a los cambios</value>
+  </data>
+  <data name="Compare_Baseline" xml:space="preserve">
+    <value>Línea base</value>
+  </data>
+  <data name="Compare_CellAt" xml:space="preserve">
+    <value>celda {0}</value>
+  </data>
+  <data name="Compare_CellMoved" xml:space="preserve">
+    <value>celda {0} → {1}</value>
+  </data>
+  <data name="Compare_ChangeBaseline" xml:space="preserve">
+    <value>Cambiar la línea base</value>
+  </data>
+  <data name="Compare_Changes" xml:space="preserve">
+    <value>Cambios</value>
+  </data>
+  <data name="Compare_CompareWith" xml:space="preserve">
+    <value>Comparar con</value>
+  </data>
+  <data name="Compare_CouldNotRun" xml:space="preserve">
+    <value>No se pudo realizar la comparación: {0}</value>
+  </data>
+  <data name="Compare_DialogTitle" xml:space="preserve">
+    <value>Comparar cuaderno</value>
+  </data>
+  <data name="Compare_DirectoryUnresolved" xml:space="preserve">
+    <value>No se pudo determinar en qué carpeta está '{0}'.</value>
+  </data>
+  <data name="Compare_EmptyCell" xml:space="preserve">
+    <value>(celda vacía)</value>
+  </data>
+  <data name="Compare_FileMissing" xml:space="preserve">
+    <value>'{0}' no existe.</value>
+  </data>
+  <data name="Compare_FileNotTracked" xml:space="preserve">
+    <value>'{0}' no está bajo control de versiones en '{1}'. Confirme el archivo primero, o elija otra referencia.</value>
+  </data>
+  <data name="Compare_GitReadFailed" xml:space="preserve">
+    <value>git no pudo leer '{0}' en '{1}'.</value>
+  </data>
+  <data name="Compare_GitRefLabel" xml:space="preserve">
+    <value>Git: {0}</value>
+  </data>
+  <data name="Compare_LookingForBaselines" xml:space="preserve">
+    <value>Buscando líneas base...</value>
+  </data>
+  <data name="Compare_NoCellChanged" xml:space="preserve">
+    <value>Ninguna celda cambió respecto a esta línea base.</value>
+  </data>
+  <data name="Compare_NotInGitRepo" xml:space="preserve">
+    <value>El archivo del cuaderno no está dentro de un repositorio git.</value>
+  </data>
+  <data name="Compare_NotSavedYet" xml:space="preserve">
+    <value>El cuaderno todavía no se ha guardado en un archivo.</value>
+  </data>
+  <data name="Compare_NotSet" xml:space="preserve">
+    <value>(sin definir)</value>
+  </data>
+  <data name="Compare_NotebookSettings" xml:space="preserve">
+    <value>Configuración del cuaderno</value>
+  </data>
+  <data name="Compare_NothingYet" xml:space="preserve">
+    <value>Todavía no se está comparando nada. El cuaderno queda intacto en cualquier caso.</value>
+  </data>
+  <data name="Compare_OpenFullDiff" xml:space="preserve">
+    <value>Abrir la comparación completa</value>
+  </data>
+  <data name="Compare_ParseFailed" xml:space="preserve">
+    <value>No se pudo leer '{0}' como cuaderno: {1}</value>
+  </data>
+  <data name="Compare_SourceChooseFile" xml:space="preserve">
+    <value>Elegir archivo...</value>
+  </data>
+  <data name="Compare_SourceGitHead" xml:space="preserve">
+    <value>Git: HEAD</value>
+  </data>
+  <data name="Compare_SourceGitRef" xml:space="preserve">
+    <value>Git: Comparar con Ref...</value>
+  </data>
+  <data name="Compare_SourceLastSaved" xml:space="preserve">
+    <value>Último guardado</value>
+  </data>
+  <data name="Compare_SummaryAdded" xml:space="preserve">
+    <value>{0} añadidas</value>
+  </data>
+  <data name="Compare_SummaryModified" xml:space="preserve">
+    <value>{0} modificadas</value>
+  </data>
+  <data name="Compare_SummaryMoved" xml:space="preserve">
+    <value>{0} movidas</value>
+  </data>
+  <data name="Compare_SummaryRemoved" xml:space="preserve">
+    <value>{0} eliminadas</value>
+  </data>
+  <data name="Compare_SummaryUnchanged" xml:space="preserve">
+    <value>{0} sin cambios</value>
+  </data>
+  <data name="Compare_UnknownRef" xml:space="preserve">
+    <value>'{0}' no es una rama, etiqueta ni confirmación conocida.</value>
+  </data>
+  <data name="Compare_WasCell" xml:space="preserve">
+    <value>era la celda {0}</value>
+  </data>
+  <data name="Consent_ApproveAll" xml:space="preserve">
+    <value>Aprobar todo</value>
+  </data>
+  <data name="Consent_ApproveInstall" xml:space="preserve">
+    <value>Instalar</value>
+  </data>
+  <data name="Consent_Deny" xml:space="preserve">
+    <value>Denegar</value>
+  </data>
+  <data name="Consent_IntroExtension_One" xml:space="preserve">
+    <value>Este cuaderno quiere cargar el siguiente paquete de extensión:</value>
+  </data>
+  <data name="Consent_IntroExtension_Other" xml:space="preserve">
+    <value>Este cuaderno quiere cargar los siguientes paquetes de extensión:</value>
+  </data>
+  <data name="Consent_IntroPackage_One" xml:space="preserve">
+    <value>Este cuaderno necesita que se instale el siguiente paquete de Python:</value>
+  </data>
+  <data name="Consent_IntroPackage_Other" xml:space="preserve">
+    <value>Este cuaderno necesita que se instalen los siguientes paquetes de Python:</value>
+  </data>
+  <data name="Consent_Target" xml:space="preserve">
+    <value>En {0}</value>
+  </data>
+  <data name="Consent_TitleExtension" xml:space="preserve">
+    <value>Se requiere consentimiento para la extensión</value>
+  </data>
+  <data name="Consent_TitlePackage" xml:space="preserve">
+    <value>Se requiere instalar un paquete</value>
+  </data>
+  <data name="Consent_WarningExtension" xml:space="preserve">
+    <value>Las extensiones ejecutan código en su equipo. Apruebe solo paquetes en los que confíe.</value>
+  </data>
+  <data name="Consent_WarningPackage" xml:space="preserve">
+    <value>Los paquetes ejecutan código en su equipo. Instale solo paquetes en los que confíe.</value>
+  </data>
+  <data name="DiffPicker_Compare" xml:space="preserve">
+    <value>Comparar</value>
+  </data>
+  <data name="DiffPicker_PlaceholderFile" xml:space="preserve">
+    <value>/ruta/al/cuaderno.verso</value>
+  </data>
+  <data name="DiffPicker_PlaceholderGitRef" xml:space="preserve">
+    <value>main</value>
+  </data>
+  <data name="DiffPicker_PromptFile" xml:space="preserve">
+    <value>Ruta a un archivo de cuaderno (.verso, .ipynb, .md, .dib)</value>
+  </data>
+  <data name="DiffPicker_PromptGitRef" xml:space="preserve">
+    <value>Rama, etiqueta o confirmación</value>
+  </data>
+  <data name="DiffPicker_TitleFile" xml:space="preserve">
+    <value>Comparar con un archivo</value>
+  </data>
+  <data name="DiffPicker_TitleGitRef" xml:space="preserve">
+    <value>Comparar con una Ref de Git</value>
+  </data>
+  <data name="DiffView_ApproximateMatch" xml:space="preserve">
+    <value>Coincidencia aproximada</value>
+  </data>
+  <data name="DiffView_ApproximateMatchChip" xml:space="preserve">
+    <value>coincidencia aproximada</value>
+  </data>
+  <data name="DiffView_ApproximateMatchDesc" xml:space="preserve">
+    <value>Estos archivos no comparten ninguna identidad de celda, así que este emparejamiento se basa en la similitud del contenido.</value>
+  </data>
+  <data name="DiffView_ChangeCount_One" xml:space="preserve">
+    <value>{0} cambio</value>
+  </data>
+  <data name="DiffView_ChangeCount_Other" xml:space="preserve">
+    <value>{0} cambios</value>
+  </data>
+  <data name="DiffView_ComparingWith" xml:space="preserve">
+    <value>Comparando con {0}</value>
+  </data>
+  <data name="DiffView_Current" xml:space="preserve">
+    <value>Actual</value>
+  </data>
+  <data name="DiffView_IdenticalDetail" xml:space="preserve">
+    <value>Todas las celdas y toda la configuración del cuaderno coinciden con la línea base, incluidos los cambios sin guardar.</value>
+  </data>
+  <data name="DiffView_IdenticalTo" xml:space="preserve">
+    <value>Idéntico a {0}</value>
+  </data>
+  <data name="DiffView_MetadataChip" xml:space="preserve">
+    <value>metadatos</value>
+  </data>
+  <data name="DiffView_NavPosition" xml:space="preserve">
+    <value>{0} de {1}</value>
+  </data>
+  <data name="DiffView_NextChange" xml:space="preserve">
+    <value>Cambio siguiente</value>
+  </data>
+  <data name="DiffView_NoChanges" xml:space="preserve">
+    <value>Sin cambios</value>
+  </data>
+  <data name="DiffView_OutputsChanged" xml:space="preserve">
+    <value>Salidas cambiadas</value>
+  </data>
+  <data name="DiffView_PositionChange" xml:space="preserve">
+    <value>posición {0} → {1}</value>
+  </data>
+  <data name="DiffView_PreviousChange" xml:space="preserve">
+    <value>Cambio anterior</value>
+  </data>
+  <data name="DiffView_ShowSourceChanges" xml:space="preserve">
+    <value>Mostrar los cambios del código fuente</value>
+  </data>
+  <data name="DiffView_TypeChange" xml:space="preserve">
+    <value>{0} → {1}</value>
+  </data>
+  <data name="DiffView_UnchangedCells_One" xml:space="preserve">
+    <value>{0} celda sin cambios</value>
+  </data>
+  <data name="DiffView_UnchangedCells_Other" xml:space="preserve">
+    <value>{0} celdas sin cambios</value>
+  </data>
+  <data name="Diff_Added" xml:space="preserve">
+    <value>Añadida</value>
+  </data>
+  <data name="Diff_Modified" xml:space="preserve">
+    <value>Modificada</value>
+  </data>
+  <data name="Diff_Moved" xml:space="preserve">
+    <value>Movida</value>
+  </data>
+  <data name="Diff_Removed" xml:space="preserve">
+    <value>Eliminada</value>
+  </data>
+  <data name="Diff_Unchanged" xml:space="preserve">
+    <value>Sin cambios</value>
+  </data>
+  <data name="Error_Cancel" xml:space="preserve">
+    <value>No se pudo detener la celda: {0}</value>
+  </data>
+  <data name="Error_CreateNotebook" xml:space="preserve">
+    <value>No se pudo crear el cuaderno: {0}</value>
+  </data>
+  <data name="Error_Execution" xml:space="preserve">
+    <value>No se pudo ejecutar la celda: {0}</value>
+  </data>
+  <data name="Error_ListComparisonSources" xml:space="preserve">
+    <value>no se pudieron enumerar los orígenes de comparación: {0}</value>
+  </data>
+  <data name="Error_OpenFile" xml:space="preserve">
+    <value>No se pudo abrir el archivo: {0}</value>
+  </data>
+  <data name="Error_SaveFailed" xml:space="preserve">
+    <value>No se pudo guardar: {0}</value>
+  </data>
+  <data name="Error_SessionRecovery" xml:space="preserve">
+    <value>No se pudo recuperar la sesión: {0}</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>error desconocido</value>
+  </data>
+  <data name="Extensions_Disable" xml:space="preserve">
+    <value>Deshabilitar</value>
+  </data>
+  <data name="Extensions_Enable" xml:space="preserve">
+    <value>Habilitar</value>
+  </data>
+  <data name="Extensions_Loaded" xml:space="preserve">
+    <value>Cargadas</value>
+  </data>
+  <data name="Extensions_Off" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Extensions_On" xml:space="preserve">
+    <value>Sí</value>
+  </data>
+  <data name="InputDialog_DefaultPrompt" xml:space="preserve">
+    <value>Entrada</value>
+  </data>
+  <data name="InputDialog_Title" xml:space="preserve">
+    <value>Entrada del cuaderno</value>
+  </data>
+  <data name="Kernel_HostExited" xml:space="preserve">
+    <value>El proceso que ejecuta los kernels se ha detenido.</value>
+  </data>
+  <data name="Key_AltDown" xml:space="preserve">
+    <value>Alt+Abajo</value>
+  </data>
+  <data name="Key_AltUp" xml:space="preserve">
+    <value>Alt+Arriba</value>
+  </data>
+  <data name="Key_Escape" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="Layout_ErrorAllocateFrame" xml:space="preserve">
+    <value>No se pudo cargar el diseño: no se pudo asignar un marco. {0}</value>
+  </data>
+  <data name="Layout_ErrorBridgeScript" xml:space="preserve">
+    <value>No se pudo cargar el diseño: el script que lo conecta con Verso no está disponible. {0}</value>
+  </data>
+  <data name="Layout_ErrorDisallowedSource" xml:space="preserve">
+    <value>No se pudo cargar el diseño: pide conectarse a un origen que no está permitido ({0}).</value>
+  </data>
+  <data name="Layout_ErrorNoActive" xml:space="preserve">
+    <value>No se pudo cargar el diseño: no hay ningún diseño activo.</value>
+  </data>
+  <data name="Layout_ErrorNotReady" xml:space="preserve">
+    <value>No se pudo cargar el diseño: no informó de que estuviera listo en {0} segundos.</value>
+  </data>
+  <data name="Layout_ErrorPackageEmpty" xml:space="preserve">
+    <value>No se pudo cargar el diseño: su renderizador está vacío.</value>
+  </data>
+  <data name="Layout_ErrorPackageFetch" xml:space="preserve">
+    <value>No se pudo cargar el diseño: no se pudo obtener su renderizador. {0}</value>
+  </data>
+  <data name="Marketplace_AddsNothing" xml:space="preserve">
+    <value>No aporta nada</value>
+  </data>
+  <data name="Marketplace_AddsNothingDesc" xml:space="preserve">
+    <value>Se cargó pero no aportó ningún punto de extensión, así que instalarlo no cambió nada.</value>
+  </data>
+  <data name="Marketplace_ChooseVersion" xml:space="preserve">
+    <value>Elegir una versión para instalar</value>
+  </data>
+  <data name="Marketplace_Downloads" xml:space="preserve">
+    <value>{0} descargas</value>
+  </data>
+  <data name="Marketplace_Install" xml:space="preserve">
+    <value>Instalar</value>
+  </data>
+  <data name="Marketplace_InstallFailed" xml:space="preserve">
+    <value>La instalación falló.</value>
+  </data>
+  <data name="Marketplace_InstallFromFile" xml:space="preserve">
+    <value>Instalar desde un archivo</value>
+  </data>
+  <data name="Marketplace_InstallFromFileDesc" xml:space="preserve">
+    <value>Cargar localmente un .dll o .nupkg.</value>
+  </data>
+  <data name="Marketplace_InstallNotApproved" xml:space="preserve">
+    <value>No se aprobó la instalación.</value>
+  </data>
+  <data name="Marketplace_InstallScope" xml:space="preserve">
+    <value>Ámbito de instalación</value>
+  </data>
+  <data name="Marketplace_InstallScopeDesc" xml:space="preserve">
+    <value>Al instalar, el paquete queda registrado en este cuaderno, no en este equipo.</value>
+  </data>
+  <data name="Marketplace_Installed" xml:space="preserve">
+    <value>Instalado</value>
+  </data>
+  <data name="Marketplace_InstallsInto" xml:space="preserve">
+    <value>Se instala en {0}</value>
+  </data>
+  <data name="Marketplace_Local" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="Marketplace_LocalDesc" xml:space="preserve">
+    <value>Cargado desde un archivo local.</value>
+  </data>
+  <data name="Marketplace_LocalFile" xml:space="preserve">
+    <value>archivo local</value>
+  </data>
+  <data name="Marketplace_NoResults" xml:space="preserve">
+    <value>No se encontró ningún paquete.</value>
+  </data>
+  <data name="Marketplace_NoneInstalled" xml:space="preserve">
+    <value>No hay extensiones instaladas. Busque para añadir una.</value>
+  </data>
+  <data name="Marketplace_NotLoaded" xml:space="preserve">
+    <value>No cargado</value>
+  </data>
+  <data name="Marketplace_PackageSources" xml:space="preserve">
+    <value>Orígenes de paquetes</value>
+  </data>
+  <data name="Marketplace_Remove" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="Marketplace_RemovedNotice" xml:space="preserve">
+    <value>Quitado de este cuaderno. Lo que cargó sigue activo hasta que se vuelva a abrir el cuaderno.</value>
+  </data>
+  <data name="Marketplace_ResultsFrom" xml:space="preserve">
+    <value>de {0}</value>
+  </data>
+  <data name="Marketplace_SearchPlaceholder" xml:space="preserve">
+    <value>Buscar extensiones...</value>
+  </data>
+  <data name="Marketplace_Searching" xml:space="preserve">
+    <value>Buscando...</value>
+  </data>
+  <data name="Marketplace_SourceCount" xml:space="preserve">
+    <value>{0} orígenes</value>
+  </data>
+  <data name="Marketplace_ThisNotebook" xml:space="preserve">
+    <value>este cuaderno</value>
+  </data>
+  <data name="Metadata_Created" xml:space="preserve">
+    <value>Creado</value>
+  </data>
+  <data name="Metadata_DefaultKernel" xml:space="preserve">
+    <value>Kernel predeterminado</value>
+  </data>
+  <data name="Metadata_FilePath" xml:space="preserve">
+    <value>Ruta del archivo</value>
+  </data>
+  <data name="Metadata_FormatVersion" xml:space="preserve">
+    <value>Versión del formato</value>
+  </data>
+  <data name="Metadata_Modified" xml:space="preserve">
+    <value>Modificado</value>
+  </data>
+  <data name="Metadata_Title" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="Metadata_Unsaved" xml:space="preserve">
+    <value>(sin guardar)</value>
+  </data>
+  <data name="NotFound_Message" xml:space="preserve">
+    <value>Lo sentimos, no hay nada en esta dirección.</value>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <value>No encontrado</value>
+  </data>
+  <data name="Output_EmptyCsv" xml:space="preserve">
+    <value>CSV vacío</value>
+  </data>
+  <data name="Output_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Output_JsonItems_One" xml:space="preserve">
+    <value>{0} elemento</value>
+  </data>
+  <data name="Output_JsonItems_Other" xml:space="preserve">
+    <value>{0} elementos</value>
+  </data>
+  <data name="Output_JsonKeys_One" xml:space="preserve">
+    <value>{0} clave</value>
+  </data>
+  <data name="Output_JsonKeys_Other" xml:space="preserve">
+    <value>{0} claves</value>
+  </data>
+  <data name="Output_RenderFailed" xml:space="preserve">
+    <value>No se pudo renderizar esta salida</value>
+  </data>
+  <data name="Output_RetryRender" xml:space="preserve">
+    <value>Reintentar renderizar esta salida</value>
+  </data>
+  <data name="Output_StandardError" xml:space="preserve">
+    <value>Salida de error estándar</value>
+  </data>
+  <data name="Output_Working" xml:space="preserve">
+    <value>Trabajando</value>
+  </data>
+  <data name="Panel_Collapse" xml:space="preserve">
+    <value>Contraer el panel</value>
+  </data>
+  <data name="Panel_Compare" xml:space="preserve">
+    <value>Comparar</value>
+  </data>
+  <data name="Panel_Compare_Description" xml:space="preserve">
+    <value>Mide este cuaderno respecto a una línea base guardada.</value>
+  </data>
+  <data name="Panel_Extensions" xml:space="preserve">
+    <value>Extensiones</value>
+  </data>
+  <data name="Panel_Extensions_Description" xml:space="preserve">
+    <value>Extensiones cargadas aquí, y otras que puede instalar.</value>
+  </data>
+  <data name="Panel_Metadata" xml:space="preserve">
+    <value>Metadatos</value>
+  </data>
+  <data name="Panel_Metadata_Description" xml:space="preserve">
+    <value>Título, kernel y detalles del archivo de este cuaderno.</value>
+  </data>
+  <data name="Panel_NothingToShow" xml:space="preserve">
+    <value>Este panel no tiene nada que mostrar.</value>
+  </data>
+  <data name="Panel_Properties" xml:space="preserve">
+    <value>Propiedades</value>
+  </data>
+  <data name="Panel_PropertiesHeading" xml:space="preserve">
+    <value>Propiedades de la celda</value>
+  </data>
+  <data name="Panel_Properties_Description" xml:space="preserve">
+    <value>Configuración de la celda seleccionada.</value>
+  </data>
+  <data name="Panel_Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="Panel_Settings_Description" xml:space="preserve">
+    <value>Configuración aportada por las extensiones habilitadas.</value>
+  </data>
+  <data name="Panel_Variables" xml:space="preserve">
+    <value>Variables</value>
+  </data>
+  <data name="Panel_Variables_Description" xml:space="preserve">
+    <value>Todo lo que el kernel tiene en este momento.</value>
+  </data>
+  <data name="Panel_View" xml:space="preserve">
+    <value>Vista</value>
+  </data>
+  <data name="Panel_View_Description" xml:space="preserve">
+    <value>Cambie el diseño o el tema sin cerrar el panel.</value>
+  </data>
+  <data name="Properties_AddTagPlaceholder" xml:space="preserve">
+    <value>Añadir etiqueta...</value>
+  </data>
+  <data name="Properties_None" xml:space="preserve">
+    <value>No hay propiedades disponibles para esta celda.</value>
+  </data>
+  <data name="Properties_RemoveTag" xml:space="preserve">
+    <value>Quitar la etiqueta</value>
+  </data>
+  <data name="Properties_SelectACell" xml:space="preserve">
+    <value>Seleccione una celda para ver sus propiedades.</value>
+  </data>
+  <data name="Reconnect_Message" xml:space="preserve">
+    <value>Su sesión sigue activa. Intentando volver a conectar.</value>
+  </data>
+  <data name="Reconnect_RecoveringMessage" xml:space="preserve">
+    <value>Recargando para restaurar su cuaderno.</value>
+  </data>
+  <data name="Reconnect_RecoveringTitle" xml:space="preserve">
+    <value>Recuperando su sesión...</value>
+  </data>
+  <data name="Reconnect_Reload" xml:space="preserve">
+    <value>Recargar la página</value>
+  </data>
+  <data name="Reconnect_Title" xml:space="preserve">
+    <value>Volviendo a conectar...</value>
+  </data>
+  <data name="SaveDialog_PathHint" xml:space="preserve">
+    <value>Escriba la ruta completa del archivo. La extensión {0} se añadirá si falta.</value>
+  </data>
+  <data name="SaveDialog_PathLabel" xml:space="preserve">
+    <value>Guardar en:</value>
+  </data>
+  <data name="SaveDialog_Title" xml:space="preserve">
+    <value>Guardar el cuaderno como</value>
+  </data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Settings_ListPlaceholder" xml:space="preserve">
+    <value>separados por comas</value>
+  </data>
+  <data name="Settings_NoConfigurableExtensions" xml:space="preserve">
+    <value>No hay extensiones habilitadas con opciones configurables.</value>
+  </data>
+  <data name="Status_KernelRestarted" xml:space="preserve">
+    <value>Kernel reiniciado</value>
+  </data>
+  <data name="Status_KernelRestartedReload" xml:space="preserve">
+    <value>Kernel reiniciado. Vuelva a ejecutar las celdas con #!nuget o #!extension para recargarlas.</value>
+  </data>
+  <data name="Status_LayoutNotLoaded" xml:space="preserve">
+    <value>El diseño '{0}' no está cargado. Ejecute la celda que contiene #!extension o #!nuget para cargarlo.</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_One" xml:space="preserve">
+    <value>No se pudo cargar la extensión requerida {0}. Puede que algunos diseños o celdas no funcionen hasta que esté disponible.</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_Other" xml:space="preserve">
+    <value>No se pudieron cargar {0} extensiones requeridas: {1}. Puede que algunos diseños o celdas no funcionen hasta que estén disponibles.</value>
+  </data>
+  <data name="Status_RestartingKernel" xml:space="preserve">
+    <value>Reiniciando el kernel...</value>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>Guardado</value>
+  </data>
+  <data name="Status_SavedTo" xml:space="preserve">
+    <value>Guardado en {0}</value>
+  </data>
+  <data name="Toolbar_ActionFailed" xml:space="preserve">
+    <value>{0} falló: {1}</value>
+  </data>
+  <data name="Toolbar_Browse" xml:space="preserve">
+    <value>Examinar</value>
+  </data>
+  <data name="Toolbar_CellCount_One" xml:space="preserve">
+    <value>{0} celda</value>
+  </data>
+  <data name="Toolbar_CellCount_Other" xml:space="preserve">
+    <value>{0} celdas</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="Toolbar_ExportNotebook" xml:space="preserve">
+    <value>Exportar el cuaderno</value>
+  </data>
+  <data name="Toolbar_Go" xml:space="preserve">
+    <value>Ir</value>
+  </data>
+  <data name="Toolbar_KernelDisconnected" xml:space="preserve">
+    <value>Desconectado</value>
+  </data>
+  <data name="Toolbar_KernelError" xml:space="preserve">
+    <value>Error del kernel</value>
+  </data>
+  <data name="Toolbar_KernelIdle" xml:space="preserve">
+    <value>Kernel inactivo</value>
+  </data>
+  <data name="Toolbar_KernelList" xml:space="preserve">
+    <value>Kernels: {0}</value>
+  </data>
+  <data name="Toolbar_KernelRestarting" xml:space="preserve">
+    <value>Reiniciando…</value>
+  </data>
+  <data name="Toolbar_KernelRunning" xml:space="preserve">
+    <value>Ejecutando…</value>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>Nuevo</value>
+  </data>
+  <data name="Toolbar_NewNotebook" xml:space="preserve">
+    <value>Nuevo cuaderno</value>
+  </data>
+  <data name="Toolbar_NoKernel" xml:space="preserve">
+    <value>Sin kernel</value>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="Toolbar_OpenFile" xml:space="preserve">
+    <value>Abrir archivo</value>
+  </data>
+  <data name="Toolbar_OpenPathPlaceholder" xml:space="preserve">
+    <value>Ruta de archivo o URL...</value>
+  </data>
+  <data name="Toolbar_ReadFileFailed" xml:space="preserve">
+    <value>No se pudo leer el archivo: {0}</value>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Toolbar_SaveUnsavedChanges" xml:space="preserve">
+    <value>Tiene cambios sin guardar.</value>
+  </data>
+  <data name="Toolbar_StopExecution" xml:space="preserve">
+    <value>Detener la ejecución</value>
+  </data>
+  <data name="Toolbar_StopFailed" xml:space="preserve">
+    <value>No se pudo detener: {0}</value>
+  </data>
+  <data name="Variables_ColumnName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Variables_ColumnType" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Variables_ColumnValue" xml:space="preserve">
+    <value>Valor</value>
+  </data>
+  <data name="Variables_Empty" xml:space="preserve">
+    <value>No hay variables definidas.</value>
+  </data>
+  <data name="Variables_Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="Variables_RefreshFailed" xml:space="preserve">
+    <value>No se pudo actualizar: {0}</value>
+  </data>
+  <data name="View_Layout" xml:space="preserve">
+    <value>Diseño</value>
+  </data>
+  <data name="View_ReadOnly" xml:space="preserve">
+    <value>Solo lectura</value>
+  </data>
+  <data name="View_Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="Welcome_Intro" xml:space="preserve">
+    <value>Cree un cuaderno nuevo o abra un archivo {0}, {1} o {2} existente para empezar.</value>
+  </data>
+  <data name="Welcome_WaitingForContent" xml:space="preserve">
+    <value>Esperando el contenido del cuaderno...</value>
+  </data>
+  <data name="Widget_FrameTitle" xml:space="preserve">
+    <value>Salida del widget</value>
+  </data>
+</root>

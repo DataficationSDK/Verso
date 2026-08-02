@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,16 +8,15 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class MdMeta : IMetaCommand
 {
     public string Name => "md";
-    public string Summary => "Marks the next submission as a markdown cell.";
-    public string DetailedHelp =>
-        ".md\n" +
-        "  One-shot: the next submission is appended as a markdown cell instead of a code cell.\n" +
-        "  After the cell is appended, the REPL reverts to code mode.";
+    public string Summary => Strings.Meta_Md_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".md\n" + Strings.Meta_Md_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         context.Session.NextCellTypeOverride = "markdown";
-        context.Console.MarkupLine("[dim]Next cell will be markdown.[/]");
+        context.Console.MarkupLine(Messages.In("dim", Messages.Say(Strings.Meta_Md_Next)));
         return Task.FromResult(true);
     }
 }

@@ -3,6 +3,7 @@ using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.Display;
 using Verso.MagicCommands;
+using Verso.Resources;
 
 namespace Verso.Execution;
 
@@ -337,7 +338,7 @@ internal sealed class ExecutionPipeline
             display: AppendOutput,
             requestInput: (prompt, isPassword, inputCt) =>
                 _requestInput is null
-                    ? throw new NotSupportedException("Interactive input is not supported by this host.")
+                    ? throw new NotSupportedException(Strings.Error_InteractiveInputUnsupported)
                     : _requestInput(cell.Id, prompt, isPassword, inputCt == default ? ct : inputCt),
             updateOutput: UpdateOutput);
 

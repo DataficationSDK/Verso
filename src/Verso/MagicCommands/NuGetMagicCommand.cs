@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Kernels;
+using Verso.Resources;
 
 namespace Verso.MagicCommands;
 
@@ -22,12 +23,12 @@ public sealed class NuGetMagicCommand : IMagicCommand
     // --- IMagicCommand ---
 
     public string Name => "nuget";
-    public string Description => "Downloads and references a NuGet package for use in subsequent code.";
+    public string Description => Strings.Magic_NuGet_Description;
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("packageId", "The NuGet package ID.", typeof(string), IsRequired: true),
-        new ParameterDefinition("version", "Optional package version.", typeof(string))
+        new ParameterDefinition("packageId", Strings.Magic_NuGet_Param_PackageId, typeof(string), IsRequired: true),
+        new ParameterDefinition("version", Strings.Magic_NuGet_Param_Version, typeof(string))
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -40,7 +41,7 @@ public sealed class NuGetMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(arguments))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Usage: #!nuget <PackageId> [Version]", IsError: true))
+                "text/plain", Strings.Magic_NuGet_Usage, IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
             return;
@@ -53,8 +54,8 @@ public sealed class NuGetMagicCommand : IMagicCommand
         await context.WriteOutputAsync(new CellOutput(
             "text/plain",
             version is not null
-                ? $"Resolving NuGet package '{packageId}' version '{version}'..."
-                : $"Resolving NuGet package '{packageId}'..."))
+                ? string.Format(Strings.Magic_NuGet_ResolvingVersion, packageId, version)
+                : string.Format(Strings.Magic_NuGet_Resolving, packageId)))
             .ConfigureAwait(false);
 
         try
@@ -82,14 +83,14 @@ public sealed class NuGetMagicCommand : IMagicCommand
 
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Installed '{result.PackageId}', {result.ResolvedVersion}"))
+                string.Format(Strings.Magic_NuGet_Installed, result.PackageId, result.ResolvedVersion)))
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Failed to resolve NuGet package '{packageId}': {ex.Message}",
+                string.Format(Strings.Magic_NuGet_ResolveFailed, packageId, ex.Message),
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;

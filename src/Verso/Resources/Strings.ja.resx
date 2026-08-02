@@ -1,0 +1,666 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ClearCellOutput" xml:space="preserve">
+    <value>セルの出力を消去</value>
+  </data>
+  <data name="Action_ClearCellOutput_Description" xml:space="preserve">
+    <value>選択したセルの出力を消去します。</value>
+  </data>
+  <data name="Action_ClearCellOutput_Label" xml:space="preserve">
+    <value>出力を消去</value>
+  </data>
+  <data name="Action_ClearOutputs" xml:space="preserve">
+    <value>すべての出力を消去</value>
+  </data>
+  <data name="Action_ClearOutputs_Description" xml:space="preserve">
+    <value>ノートブック内のすべてのセルの出力を消去します。</value>
+  </data>
+  <data name="Action_ExportHtml" xml:space="preserve">
+    <value>HTML にエクスポート</value>
+  </data>
+  <data name="Action_ExportHtml_Description" xml:space="preserve">
+    <value>ノートブックを単体で完結する HTML ドキュメントとしてエクスポートします。</value>
+  </data>
+  <data name="Action_ExportMarkdown" xml:space="preserve">
+    <value>Markdown にエクスポート</value>
+  </data>
+  <data name="Action_ExportMarkdown_Description" xml:space="preserve">
+    <value>ノートブックを Markdown ドキュメントとしてエクスポートします。</value>
+  </data>
+  <data name="Action_ExportVerso" xml:space="preserve">
+    <value>Verso にエクスポート</value>
+  </data>
+  <data name="Action_ExportVerso_Description" xml:space="preserve">
+    <value>Markdown を元にしたノートブックを、ネイティブの .verso ファイルとしてエクスポートします。</value>
+  </data>
+  <data name="Action_RestartKernel" xml:space="preserve">
+    <value>カーネルを再起動</value>
+  </data>
+  <data name="Action_RestartKernel_Confirm" xml:space="preserve">
+    <value>カーネルを再起動すると、すべての変数と実行状態が失われます。再起動しますか?</value>
+  </data>
+  <data name="Action_RestartKernel_Description" xml:space="preserve">
+    <value>アクティブな言語カーネルを再起動します。</value>
+  </data>
+  <data name="Action_RunAll" xml:space="preserve">
+    <value>すべて実行</value>
+  </data>
+  <data name="Action_RunAll_Description" xml:space="preserve">
+    <value>ノートブック内のすべてのセルを実行します。</value>
+  </data>
+  <data name="Action_RunCell" xml:space="preserve">
+    <value>セルを実行</value>
+  </data>
+  <data name="Action_RunCell_Description" xml:space="preserve">
+    <value>選択したセルを実行します。</value>
+  </data>
+  <data name="Action_SwitchLayout" xml:space="preserve">
+    <value>レイアウトを切り替え</value>
+  </data>
+  <data name="Action_SwitchLayout_Description" xml:space="preserve">
+    <value>使用できるレイアウトエンジンを順に切り替えます。</value>
+  </data>
+  <data name="Action_SwitchTheme" xml:space="preserve">
+    <value>テーマを切り替え</value>
+  </data>
+  <data name="Action_SwitchTheme_Description" xml:space="preserve">
+    <value>使用できるテーマを順に切り替えます。</value>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>コード</value>
+  </data>
+  <data name="CellType_Html" xml:space="preserve">
+    <value>HTML セルタイプ</value>
+  </data>
+  <data name="CellType_Html_Description" xml:space="preserve">
+    <value>@variable の置き換えに対応した、生の HTML を書くためのセルタイプ。</value>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown セルタイプ</value>
+  </data>
+  <data name="CellType_Markdown_Description" xml:space="preserve">
+    <value>Markdig で HTML に変換される Markdown の文章セル。</value>
+  </data>
+  <data name="CellType_Mermaid" xml:space="preserve">
+    <value>Mermaid セルタイプ</value>
+  </data>
+  <data name="CellType_Mermaid_Description" xml:space="preserve">
+    <value>mermaid.js の記法で図を作成するためのセルタイプ。</value>
+  </data>
+  <data name="CellType_Parameters" xml:space="preserve">
+    <value>パラメーターセルタイプ</value>
+  </data>
+  <data name="CellType_Parameters_Description" xml:space="preserve">
+    <value>ノートブックのパラメーター定義を対話的なフォームとして表示、管理します。</value>
+  </data>
+  <data name="CellType_Parameters_Label" xml:space="preserve">
+    <value>パラメーター</value>
+  </data>
+  <data name="Error_DibExportUnsupported" xml:space="preserve">
+    <value>Polyglot Notebook の .dib へのエクスポートはサポートされていません。Verso のネイティブ形式を使ってください。</value>
+  </data>
+  <data name="Error_ExtensionAssemblyNotFound" xml:space="preserve">
+    <value>拡張機能のアセンブリが見つかりません: {0}</value>
+  </data>
+  <data name="Error_ExtensionDirectoryNotFound" xml:space="preserve">
+    <value>拡張機能のディレクトリが見つかりません: {0}</value>
+  </data>
+  <data name="Error_InteractiveInputUnsupported" xml:space="preserve">
+    <value>このホストは対話的な入力をサポートしていません。</value>
+  </data>
+  <data name="Error_JupyterParseFailed" xml:space="preserve">
+    <value>Jupyter ノートブックを解析できませんでした。</value>
+  </data>
+  <data name="Error_LayoutNotFound" xml:space="preserve">
+    <value>レイアウト '{0}' が見つかりません。</value>
+  </data>
+  <data name="Error_NoKernelConfigured" xml:space="preserve">
+    <value>カーネル ID が指定されておらず、既定のカーネルも設定されていません。</value>
+  </data>
+  <data name="Error_NoKernelForLanguage" xml:space="preserve">
+    <value>言語 '{0}' に対応するカーネルが登録されていません。</value>
+  </data>
+  <data name="Error_PackageDownloadFailed" xml:space="preserve">
+    <value>パッケージ '{0}' v{1} をダウンロードできませんでした。</value>
+  </data>
+  <data name="Error_ThemeNotFound" xml:space="preserve">
+    <value>テーマ '{0}' が見つかりません。</value>
+  </data>
+  <data name="Error_VersoParseFailed" xml:space="preserve">
+    <value>.verso ドキュメントを読み込めませんでした。</value>
+  </data>
+  <data name="Export_MoreLines_One" xml:space="preserve">
+    <value>... (他 {0} 行)</value>
+  </data>
+  <data name="Export_MoreLines_Other" xml:space="preserve">
+    <value>... (他 {0} 行)</value>
+  </data>
+  <data name="Formatter_Collection_Description" xml:space="preserve">
+    <value>コレクションを HTML の表として整形します。</value>
+  </data>
+  <data name="Formatter_Exception_Description" xml:space="preserve">
+    <value>例外を構造化された HTML として整形します。</value>
+  </data>
+  <data name="Formatter_Html_Description" xml:space="preserve">
+    <value>ToHtml() メソッドを持つオブジェクトを HTML として整形します。</value>
+  </data>
+  <data name="Formatter_Image_Description" xml:space="preserve">
+    <value>バイト配列をインラインの base64 画像として整形します。</value>
+  </data>
+  <data name="Formatter_Object_Description" xml:space="preserve">
+    <value>オブジェクトのパブリックなプロパティとフィールドを HTML の表として整形します。</value>
+  </data>
+  <data name="Formatter_Primitive_Description" xml:space="preserve">
+    <value>プリミティブ型や一般的な値型をプレーンテキストとして整形します。</value>
+  </data>
+  <data name="Formatter_Svg_Description" xml:space="preserve">
+    <value>SVG の文字列をインライン HTML として整形します。</value>
+  </data>
+  <data name="Kernel_CSharp_Description" xml:space="preserve">
+    <value>Roslyn のスクリプティングを利用した C# 言語カーネル。</value>
+  </data>
+  <data name="Kernel_Html" xml:space="preserve">
+    <value>HTML カーネル</value>
+  </data>
+  <data name="Kernel_Html_Description" xml:space="preserve">
+    <value>@variable の置き換えを行いながら HTML セルを実行します。</value>
+  </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>インストールされたパッケージ</value>
+  </data>
+  <data name="Kernel_Mermaid" xml:space="preserve">
+    <value>Mermaid カーネル</value>
+  </data>
+  <data name="Kernel_Mermaid_Description" xml:space="preserve">
+    <value>@variable の置き換えを行いながら Mermaid の図のセルを実行します。</value>
+  </data>
+  <data name="Kernel_UnresolvedVariable" xml:space="preserve">
+    <value>変数 '@{0}' を解決できません。変数ストアに一致する変数がありません。</value>
+  </data>
+  <data name="Layout_AddCell" xml:space="preserve">
+    <value>{0} セル</value>
+  </data>
+  <data name="Layout_Dashboard" xml:space="preserve">
+    <value>ダッシュボードレイアウト</value>
+  </data>
+  <data name="Layout_Dashboard_Description" xml:space="preserve">
+    <value>出力だけを並べる、グリッド形式のダッシュボードレイアウト。</value>
+  </data>
+  <data name="Layout_Dashboard_Label" xml:space="preserve">
+    <value>ダッシュボード</value>
+  </data>
+  <data name="Layout_DragToMove" xml:space="preserve">
+    <value>ドラッグで移動</value>
+  </data>
+  <data name="Layout_EmptySubtitle" xml:space="preserve">
+    <value>下から最初のセルを追加してください。</value>
+  </data>
+  <data name="Layout_EmptyTitle" xml:space="preserve">
+    <value>このノートブックは空です</value>
+  </data>
+  <data name="Layout_InsertCellHere" xml:space="preserve">
+    <value>ここに {0} セルを挿入</value>
+  </data>
+  <data name="Layout_Notebook" xml:space="preserve">
+    <value>ノートブックレイアウト</value>
+  </data>
+  <data name="Layout_Notebook_Description" xml:space="preserve">
+    <value>編集できるセルをカードに並べる、上から下へ読む標準のノートブックレイアウト。</value>
+  </data>
+  <data name="Layout_Notebook_Label" xml:space="preserve">
+    <value>ノートブック</value>
+  </data>
+  <data name="Layout_Presentation" xml:space="preserve">
+    <value>プレゼンテーションレイアウト</value>
+  </data>
+  <data name="Layout_Presentation_Description" xml:space="preserve">
+    <value>対話的なノートブックを読むための、出力だけを表示するレイアウト。</value>
+  </data>
+  <data name="Layout_Presentation_Label" xml:space="preserve">
+    <value>プレゼンテーション</value>
+  </data>
+  <data name="Layout_RunCell" xml:space="preserve">
+    <value>実行</value>
+  </data>
+  <data name="Magic_About_Description" xml:space="preserve">
+    <value>Verso のバージョン、ランタイムの情報、読み込み済みの拡張機能を表示します。</value>
+  </data>
+  <data name="Magic_About_LoadedExtensions" xml:space="preserve">
+    <value>読み込み済みの拡張機能:</value>
+  </data>
+  <data name="Magic_About_NoExtensions" xml:space="preserve">
+    <value>読み込まれている拡張機能はありません。</value>
+  </data>
+  <data name="Magic_About_Os" xml:space="preserve">
+    <value>OS: {0}</value>
+  </data>
+  <data name="Magic_About_Runtime" xml:space="preserve">
+    <value>ランタイム: {0}</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
+    <value>拡張機能のアセンブリ '{0}' は既に読み込まれています。</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedPackage" xml:space="preserve">
+    <value>拡張機能パッケージ '{0}' は既に読み込まれています。</value>
+  </data>
+  <data name="Magic_Extension_AssemblyNotFound" xml:space="preserve">
+    <value>拡張機能のアセンブリが見つかりません: {0}</value>
+  </data>
+  <data name="Magic_Extension_ConsentReason_SessionGenerated" xml:space="preserve">
+    <value>このセッションで生成されたローカルアセンブリ</value>
+  </data>
+  <data name="Magic_Extension_Description" xml:space="preserve">
+    <value>NuGet パッケージをインストールするか、Verso の拡張機能を含むローカルのアセンブリを読み込みます。</value>
+  </data>
+  <data name="Magic_Extension_Installed_One" xml:space="preserve">
+    <value>'{0}' {1} をインストールしました (拡張機能 {2} 件を登録)</value>
+  </data>
+  <data name="Magic_Extension_Installed_Other" xml:space="preserve">
+    <value>'{0}' {1} をインストールしました (拡張機能 {2} 件を登録)</value>
+  </data>
+  <data name="Magic_Extension_LoadFailed" xml:space="preserve">
+    <value>'{0}' からの拡張機能の読み込みでエラーが発生しました: {1}</value>
+  </data>
+  <data name="Magic_Extension_LoadFailedGeneric" xml:space="preserve">
+    <value>'{0}' の読み込みでエラーが発生しました: {1}</value>
+  </data>
+  <data name="Magic_Extension_Loaded_One" xml:space="preserve">
+    <value>'{0}' を読み込みました (拡張機能 {1} 件を登録)</value>
+  </data>
+  <data name="Magic_Extension_Loaded_Other" xml:space="preserve">
+    <value>'{0}' を読み込みました (拡張機能 {1} 件を登録)</value>
+  </data>
+  <data name="Magic_Extension_Loading" xml:space="preserve">
+    <value>'{0}' から拡張機能を読み込んでいます...</value>
+  </data>
+  <data name="Magic_Extension_NoTypes" xml:space="preserve">
+    <value>'{0}' を読み込みましたが、[VersoExtension] の型が含まれていません。このアセンブリは参照としては引き続き利用できます。</value>
+  </data>
+  <data name="Magic_Extension_NotAnAssembly" xml:space="preserve">
+    <value>'{0}' は有効な .NET アセンブリではありません。</value>
+  </data>
+  <data name="Magic_Extension_NotApproved" xml:space="preserve">
+    <value>拡張機能 '{0}' は許可されませんでした。スキップします。</value>
+  </data>
+  <data name="Magic_Extension_Param_PackageIdOrPath" xml:space="preserve">
+    <value>NuGet パッケージ ID、またはローカルの .dll ファイルのパス。</value>
+  </data>
+  <data name="Magic_Extension_Param_Version" xml:space="preserve">
+    <value>パッケージのバージョン (NuGet のみ、省略可)。</value>
+  </data>
+  <data name="Magic_Extension_ResolveFailed" xml:space="preserve">
+    <value>拡張機能パッケージ '{0}' を解決できませんでした: {1}</value>
+  </data>
+  <data name="Magic_Extension_Resolving" xml:space="preserve">
+    <value>拡張機能パッケージ '{0}' を解決しています...</value>
+  </data>
+  <data name="Magic_Extension_ResolvingVersion" xml:space="preserve">
+    <value>拡張機能パッケージ '{0}' のバージョン '{1}' を解決しています...</value>
+  </data>
+  <data name="Magic_Extension_Usage" xml:space="preserve">
+    <value>使い方: #!extension &lt;PackageId&gt; [Version]  または  #!extension &lt;path/to/assembly.dll&gt;</value>
+  </data>
+  <data name="Magic_Import_CellCount_One" xml:space="preserve">
+    <value>{0} 個のセル</value>
+  </data>
+  <data name="Magic_Import_CellCount_Other" xml:space="preserve">
+    <value>{0} 個のセル</value>
+  </data>
+  <data name="Magic_Import_ConsentReason" xml:space="preserve">
+    <value>{0} からインポート</value>
+  </data>
+  <data name="Magic_Import_Description" xml:space="preserve">
+    <value>別のノートブックファイルを読み込み、そのセル (Markdown と raw 以外のすべてのセルタイプ) を実行します。パラメーターの上書きも指定できます。インポートしたセルの出力を表示するには --show-output を指定してください。</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_One" xml:space="preserve">
+    <value>{0} 件のディレクティブを抽出</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_Other" xml:space="preserve">
+    <value>{0} 件のディレクティブを抽出</value>
+  </data>
+  <data name="Magic_Import_ExecutionFailed" xml:space="preserve">
+    <value>{0} (実行に失敗)</value>
+  </data>
+  <data name="Magic_Import_Failed" xml:space="preserve">
+    <value>ノートブックのインポートでエラーが発生しました: {0}</value>
+  </data>
+  <data name="Magic_Import_FileNotFound" xml:space="preserve">
+    <value>ファイルが見つかりません: {0}</value>
+  </data>
+  <data name="Magic_Import_InvalidParameter" xml:space="preserve">
+    <value>パラメーター '{0}' ({1}) の値が正しくありません: {2}</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_One" xml:space="preserve">
+    <value>インポートするノートブックの必須パラメーターが指定されていません:
+{0}</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_Other" xml:space="preserve">
+    <value>インポートするノートブックの必須パラメーターが指定されていません:
+{0}</value>
+  </data>
+  <data name="Magic_Import_NoSerializer" xml:space="preserve">
+    <value>'{0}' に対応するシリアライザーまたはカーネルが見つかりません。使用できる形式: {1}</value>
+  </data>
+  <data name="Magic_Import_Param_Param" xml:space="preserve">
+    <value>name=value の形式でパラメーターを上書きします。繰り返し指定できます。</value>
+  </data>
+  <data name="Magic_Import_Param_Path" xml:space="preserve">
+    <value>インポートするノートブックファイルのパス。</value>
+  </data>
+  <data name="Magic_Import_Param_ShowOutput" xml:space="preserve">
+    <value>インポートしたセルが生成した出力を表示します。既定では無効です。</value>
+  </data>
+  <data name="Magic_Import_SourceSummary" xml:space="preserve">
+    <value>{0} をインポートしました</value>
+  </data>
+  <data name="Magic_Import_SourceSummaryDirectives" xml:space="preserve">
+    <value>{0} をインポートしました ({1})</value>
+  </data>
+  <data name="Magic_Import_Summary" xml:space="preserve">
+    <value>{1} から {0} をインポートしました</value>
+  </data>
+  <data name="Magic_Import_SummaryWithFailures" xml:space="preserve">
+    <value>{1} から {0} をインポートしました ({2} 件が失敗)</value>
+  </data>
+  <data name="Magic_Import_Usage" xml:space="preserve">
+    <value>#!import にはファイルパスが必要です。使い方: #!import &lt;path&gt; [--param name=value ...]</value>
+  </data>
+  <data name="Magic_NuGet_Description" xml:space="preserve">
+    <value>NuGet パッケージをダウンロードし、以降のコードから参照できるようにします。</value>
+  </data>
+  <data name="Magic_NuGet_Installed" xml:space="preserve">
+    <value>'{0}' {1} をインストールしました</value>
+  </data>
+  <data name="Magic_NuGet_Param_PackageId" xml:space="preserve">
+    <value>NuGet パッケージの ID。</value>
+  </data>
+  <data name="Magic_NuGet_Param_Version" xml:space="preserve">
+    <value>パッケージのバージョン (省略可)。</value>
+  </data>
+  <data name="Magic_NuGet_ResolveFailed" xml:space="preserve">
+    <value>NuGet パッケージ '{0}' を解決できませんでした: {1}</value>
+  </data>
+  <data name="Magic_NuGet_Resolving" xml:space="preserve">
+    <value>NuGet パッケージ '{0}' を解決しています...</value>
+  </data>
+  <data name="Magic_NuGet_ResolvingVersion" xml:space="preserve">
+    <value>NuGet パッケージ '{0}' のバージョン '{1}' を解決しています...</value>
+  </data>
+  <data name="Magic_NuGet_Usage" xml:space="preserve">
+    <value>使い方: #!nuget &lt;PackageId&gt; [Version]</value>
+  </data>
+  <data name="Magic_Restart_Description" xml:space="preserve">
+    <value>指定したカーネルを再起動します。引数がない場合は既定のカーネルを再起動します。</value>
+  </data>
+  <data name="Magic_Restart_Done" xml:space="preserve">
+    <value>カーネル '{0}' を再起動しました。</value>
+  </data>
+  <data name="Magic_Restart_DoneDefault" xml:space="preserve">
+    <value>既定のカーネルを再起動しました。</value>
+  </data>
+  <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
+    <value>再起動するカーネルの言語 ID。</value>
+  </data>
+  <data name="Magic_Time_Description" xml:space="preserve">
+    <value>セルの実行にかかった実時間を報告します。</value>
+  </data>
+  <data name="ObjectTree_EmptyCollection" xml:space="preserve">
+    <value>空のコレクション</value>
+  </data>
+  <data name="ObjectTree_ItemCount" xml:space="preserve">
+    <value>({0} 個の項目)</value>
+  </data>
+  <data name="ObjectTree_MemberCount_One" xml:space="preserve">
+    <value>({0} 個のメンバー)</value>
+  </data>
+  <data name="ObjectTree_MemberCount_Other" xml:space="preserve">
+    <value>({0} 個のメンバー)</value>
+  </data>
+  <data name="ObjectTree_ShowingMore" xml:space="preserve">
+    <value>{0} 個を表示中 (さらにあります)</value>
+  </data>
+  <data name="Parameters_Add" xml:space="preserve">
+    <value>パラメーターを追加</value>
+  </data>
+  <data name="Parameters_Applied" xml:space="preserve">
+    <value>パラメーターを適用しました。</value>
+  </data>
+  <data name="Parameters_CancelAdd" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="Parameters_ColumnDefault" xml:space="preserve">
+    <value>既定値</value>
+  </data>
+  <data name="Parameters_ColumnDescription" xml:space="preserve">
+    <value>説明</value>
+  </data>
+  <data name="Parameters_ColumnName" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="Parameters_ColumnRequired" xml:space="preserve">
+    <value>必須</value>
+  </data>
+  <data name="Parameters_ColumnType" xml:space="preserve">
+    <value>型</value>
+  </data>
+  <data name="Parameters_ConfirmAdd" xml:space="preserve">
+    <value>追加</value>
+  </data>
+  <data name="Parameters_DefaultPlaceholder" xml:space="preserve">
+    <value>既定値</value>
+  </data>
+  <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
+    <value>説明</value>
+  </data>
+  <data name="Parameters_ExpectedBoolean" xml:space="preserve">
+    <value>true/false、yes/no、1/0 のいずれかを指定してください。入力された値: '{0}'</value>
+  </data>
+  <data name="Parameters_ExpectedDate" xml:space="preserve">
+    <value>yyyy-MM-dd 形式の日付を指定してください。入力された値: '{0}'</value>
+  </data>
+  <data name="Parameters_ExpectedDateTime" xml:space="preserve">
+    <value>ISO 8601 形式の日時を指定してください。入力された値: '{0}'</value>
+  </data>
+  <data name="Parameters_ExpectedInteger" xml:space="preserve">
+    <value>整数を指定してください。入力された値: '{0}'</value>
+  </data>
+  <data name="Parameters_ExpectedNumber" xml:space="preserve">
+    <value>数値を指定してください。入力された値: '{0}'</value>
+  </data>
+  <data name="Parameters_InvalidValue" xml:space="preserve">
+    <value>値が正しくありません。</value>
+  </data>
+  <data name="Parameters_NamePlaceholder" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="Parameters_None" xml:space="preserve">
+    <value>パラメーターは定義されていません。</value>
+  </data>
+  <data name="Parameters_NotFound" xml:space="preserve">
+    <value>パラメーター '{0}' が見つかりません。</value>
+  </data>
+  <data name="Parameters_Remove" xml:space="preserve">
+    <value>パラメーターを削除</value>
+  </data>
+  <data name="Parameters_Required" xml:space="preserve">
+    <value>必須</value>
+  </data>
+  <data name="Parameters_Title" xml:space="preserve">
+    <value>パラメーター</value>
+  </data>
+  <data name="Parameters_UnknownType" xml:space="preserve">
+    <value>不明なパラメーターの型 '{0}' です。</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>エラー: {0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>警告: {0}</value>
+  </data>
+  <data name="Properties_CollapseInput" xml:space="preserve">
+    <value>入力を折りたたむ</value>
+  </data>
+  <data name="Properties_DefaultIs" xml:space="preserve">
+    <value>既定: {0}</value>
+  </data>
+  <data name="Properties_DisplaySection" xml:space="preserve">
+    <value>表示</value>
+  </data>
+  <data name="Properties_InputPreviewLines" xml:space="preserve">
+    <value>入力プレビューの行数</value>
+  </data>
+  <data name="Properties_Output" xml:space="preserve">
+    <value>出力</value>
+  </data>
+  <data name="Properties_OutputFull" xml:space="preserve">
+    <value>全体</value>
+  </data>
+  <data name="Properties_OutputHidden" xml:space="preserve">
+    <value>非表示</value>
+  </data>
+  <data name="Properties_OutputPreview" xml:space="preserve">
+    <value>プレビュー</value>
+  </data>
+  <data name="Properties_OutputPreviewLines" xml:space="preserve">
+    <value>出力プレビューの行数</value>
+  </data>
+  <data name="Properties_PreviewStyle" xml:space="preserve">
+    <value>プレビューの形式</value>
+  </data>
+  <data name="Properties_PreviewStyleLines" xml:space="preserve">
+    <value>行</value>
+  </data>
+  <data name="Properties_VisibilitySection" xml:space="preserve">
+    <value>表示対象</value>
+  </data>
+  <data name="PropertyProvider_Display" xml:space="preserve">
+    <value>セルの表示プロパティ</value>
+  </data>
+  <data name="PropertyProvider_Display_Description" xml:space="preserve">
+    <value>セルごとの入力と出力の表示設定を提供します。</value>
+  </data>
+  <data name="PropertyProvider_Visibility" xml:space="preserve">
+    <value>セルの表示対象プロパティ</value>
+  </data>
+  <data name="PropertyProvider_Visibility_Description" xml:space="preserve">
+    <value>プロパティパネルで、レイアウトごとのセルの表示設定を上書きできるようにします。</value>
+  </data>
+  <data name="Renderer_Fallback" xml:space="preserve">
+    <value>フォールバックレンダラー</value>
+  </data>
+  <data name="Renderer_Fallback_Label" xml:space="preserve">
+    <value>フォールバック</value>
+  </data>
+  <data name="Renderer_Html" xml:space="preserve">
+    <value>HTML レンダラー</value>
+  </data>
+  <data name="Renderer_Html_Description" xml:space="preserve">
+    <value>HTML セルを表示し、実行時に入力を折りたたみます。</value>
+  </data>
+  <data name="Renderer_Markdown" xml:space="preserve">
+    <value>Markdown レンダラー</value>
+  </data>
+  <data name="Renderer_Markdown_Description" xml:space="preserve">
+    <value>Markdig を使って Markdown セルを表示します。</value>
+  </data>
+  <data name="Renderer_Mermaid" xml:space="preserve">
+    <value>Mermaid レンダラー</value>
+  </data>
+  <data name="Renderer_Mermaid_Description" xml:space="preserve">
+    <value>Mermaid の図のセルを表示し、実行時に入力を折りたたみます。</value>
+  </data>
+  <data name="Renderer_Parameters" xml:space="preserve">
+    <value>パラメーターレンダラー</value>
+  </data>
+  <data name="Renderer_Parameters_Description" xml:space="preserve">
+    <value>パラメーターの定義を、型に応じた入力欄を持つ対話的なフォームとして表示します。</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Verso ダーク</value>
+  </data>
+  <data name="Theme_Dark_Description" xml:space="preserve">
+    <value>Verso ノートブックの既定のダークテーマ。</value>
+  </data>
+  <data name="Theme_HighContrast" xml:space="preserve">
+    <value>Verso ハイコントラスト</value>
+  </data>
+  <data name="Theme_HighContrast_Description" xml:space="preserve">
+    <value>WCAG 2.1 AA に準拠した配色トークンを使う、アクセシビリティ向けのハイコントラストテーマ。</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Verso ライト</value>
+  </data>
+  <data name="Theme_Light_Description" xml:space="preserve">
+    <value>Verso ノートブックの既定のライトテーマ。</value>
+  </data>
+  <data name="Visibility_Collapsed" xml:space="preserve">
+    <value>折りたたみ</value>
+  </data>
+  <data name="Visibility_Hidden" xml:space="preserve">
+    <value>非表示</value>
+  </data>
+  <data name="Visibility_OutputOnly" xml:space="preserve">
+    <value>出力のみ</value>
+  </data>
+  <data name="Visibility_Visible" xml:space="preserve">
+    <value>表示</value>
+  </data>
+</root>

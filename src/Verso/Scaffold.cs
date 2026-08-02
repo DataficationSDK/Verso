@@ -4,6 +4,7 @@ using Verso.Contexts;
 using Verso.Execution;
 using Verso.Extensions;
 using Verso.Stubs;
+using Verso.Resources;
 
 namespace Verso;
 
@@ -391,10 +392,10 @@ public sealed class Scaffold : IAsyncDisposable
         }
 
         var id = kernelId ?? _notebook.DefaultKernelId
-            ?? throw new InvalidOperationException("No kernel ID specified and no default kernel is configured.");
+            ?? throw new InvalidOperationException(Strings.Error_NoKernelConfigured);
 
         var kernel = ResolveKernel(id)
-            ?? throw new InvalidOperationException($"No kernel registered for language '{id}'.");
+            ?? throw new InvalidOperationException(string.Format(Strings.Error_NoKernelForLanguage, id));
 
         OnKernelRestarting?.Invoke(id);
         try

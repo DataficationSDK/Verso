@@ -1,0 +1,922 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Capability_CellInteractionHandler" xml:space="preserve">
+    <value>单元格交互处理程序</value>
+  </data>
+  <data name="Capability_CellInteractionHandler_Plural" xml:space="preserve">
+    <value>单元格交互处理程序</value>
+  </data>
+  <data name="Capability_CellPropertyProvider" xml:space="preserve">
+    <value>单元格属性提供程序</value>
+  </data>
+  <data name="Capability_CellPropertyProvider_Plural" xml:space="preserve">
+    <value>单元格属性提供程序</value>
+  </data>
+  <data name="Capability_CellRenderer" xml:space="preserve">
+    <value>单元格渲染器</value>
+  </data>
+  <data name="Capability_CellRenderer_Plural" xml:space="preserve">
+    <value>单元格渲染器</value>
+  </data>
+  <data name="Capability_CellType" xml:space="preserve">
+    <value>单元格类型</value>
+  </data>
+  <data name="Capability_CellType_Plural" xml:space="preserve">
+    <value>单元格类型</value>
+  </data>
+  <data name="Capability_DataFormatter" xml:space="preserve">
+    <value>数据格式化程序</value>
+  </data>
+  <data name="Capability_DataFormatter_Plural" xml:space="preserve">
+    <value>数据格式化程序</value>
+  </data>
+  <data name="Capability_ExtensionSettings" xml:space="preserve">
+    <value>设置提供程序</value>
+  </data>
+  <data name="Capability_ExtensionSettings_Plural" xml:space="preserve">
+    <value>设置提供程序</value>
+  </data>
+  <data name="Capability_LanguageKernel" xml:space="preserve">
+    <value>语言内核</value>
+  </data>
+  <data name="Capability_LanguageKernel_Plural" xml:space="preserve">
+    <value>语言内核</value>
+  </data>
+  <data name="Capability_LayoutEngine" xml:space="preserve">
+    <value>布局引擎</value>
+  </data>
+  <data name="Capability_LayoutEngine_Plural" xml:space="preserve">
+    <value>布局引擎</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler" xml:space="preserve">
+    <value>布局交互处理程序</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler_Plural" xml:space="preserve">
+    <value>布局交互处理程序</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler" xml:space="preserve">
+    <value>布局生命周期处理程序</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler_Plural" xml:space="preserve">
+    <value>布局生命周期处理程序</value>
+  </data>
+  <data name="Capability_MagicCommand" xml:space="preserve">
+    <value>魔法命令</value>
+  </data>
+  <data name="Capability_MagicCommand_Plural" xml:space="preserve">
+    <value>魔法命令</value>
+  </data>
+  <data name="Capability_NotebookPanel" xml:space="preserve">
+    <value>面板</value>
+  </data>
+  <data name="Capability_NotebookPanel_Plural" xml:space="preserve">
+    <value>面板</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor" xml:space="preserve">
+    <value>后处理程序</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor_Plural" xml:space="preserve">
+    <value>后处理程序</value>
+  </data>
+  <data name="Capability_NotebookSerializer" xml:space="preserve">
+    <value>序列化程序</value>
+  </data>
+  <data name="Capability_NotebookSerializer_Plural" xml:space="preserve">
+    <value>序列化程序</value>
+  </data>
+  <data name="Capability_Other" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="Capability_Other_Plural" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler" xml:space="preserve">
+    <value>面板交互处理程序</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler_Plural" xml:space="preserve">
+    <value>面板交互处理程序</value>
+  </data>
+  <data name="Capability_Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Capability_Theme_Plural" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Capability_ToolbarAction" xml:space="preserve">
+    <value>工具栏操作</value>
+  </data>
+  <data name="Capability_ToolbarAction_Plural" xml:space="preserve">
+    <value>工具栏操作</value>
+  </data>
+  <data name="CellList_AddCellType" xml:space="preserve">
+    <value>+ {0} 单元格</value>
+  </data>
+  <data name="Cell_AnotherCellRunning" xml:space="preserve">
+    <value>另一个单元格正在运行。</value>
+  </data>
+  <data name="Cell_CollapseCode" xml:space="preserve">
+    <value>折叠代码</value>
+  </data>
+  <data name="Cell_CollapseSection" xml:space="preserve">
+    <value>折叠节</value>
+  </data>
+  <data name="Cell_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Cell_ExpandCode" xml:space="preserve">
+    <value>展开代码</value>
+  </data>
+  <data name="Cell_ExpandSection" xml:space="preserve">
+    <value>展开节</value>
+  </data>
+  <data name="Cell_MoveDown" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="Cell_MoveUp" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="Cell_OutputsHidden_One" xml:space="preserve">
+    <value>已隐藏 {0} 个输出</value>
+  </data>
+  <data name="Cell_OutputsHidden_Other" xml:space="preserve">
+    <value>已隐藏 {0} 个输出</value>
+  </data>
+  <data name="Cell_Run" xml:space="preserve">
+    <value>运行</value>
+  </data>
+  <data name="Common_AppTitle" xml:space="preserve">
+    <value>Verso 笔记本</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Common_Dismiss" xml:space="preserve">
+    <value>忽略</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>正在加载...</value>
+  </data>
+  <data name="Common_NoNotebookOpen" xml:space="preserve">
+    <value>没有打开的笔记本。</value>
+  </data>
+  <data name="Common_Ok" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Common_Stop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="Common_Submit" xml:space="preserve">
+    <value>提交</value>
+  </data>
+  <data name="Common_Untitled" xml:space="preserve">
+    <value>无标题</value>
+  </data>
+  <data name="Compare_BackToChanges" xml:space="preserve">
+    <value>返回更改列表</value>
+  </data>
+  <data name="Compare_Baseline" xml:space="preserve">
+    <value>基线</value>
+  </data>
+  <data name="Compare_CellAt" xml:space="preserve">
+    <value>单元格 {0}</value>
+  </data>
+  <data name="Compare_CellMoved" xml:space="preserve">
+    <value>单元格 {0} → {1}</value>
+  </data>
+  <data name="Compare_ChangeBaseline" xml:space="preserve">
+    <value>更改基线</value>
+  </data>
+  <data name="Compare_Changes" xml:space="preserve">
+    <value>更改</value>
+  </data>
+  <data name="Compare_CompareWith" xml:space="preserve">
+    <value>比较对象</value>
+  </data>
+  <data name="Compare_CouldNotRun" xml:space="preserve">
+    <value>无法执行比较：{0}</value>
+  </data>
+  <data name="Compare_DialogTitle" xml:space="preserve">
+    <value>比较笔记本</value>
+  </data>
+  <data name="Compare_DirectoryUnresolved" xml:space="preserve">
+    <value>无法确定“{0}”所在的文件夹。</value>
+  </data>
+  <data name="Compare_EmptyCell" xml:space="preserve">
+    <value>（空单元格）</value>
+  </data>
+  <data name="Compare_FileMissing" xml:space="preserve">
+    <value>“{0}”不存在。</value>
+  </data>
+  <data name="Compare_FileNotTracked" xml:space="preserve">
+    <value>“{0}”在“{1}”处未被跟踪。请先提交该文件，或选择其他引用。</value>
+  </data>
+  <data name="Compare_GitReadFailed" xml:space="preserve">
+    <value>git 无法在“{1}”处读取“{0}”。</value>
+  </data>
+  <data name="Compare_GitRefLabel" xml:space="preserve">
+    <value>Git：{0}</value>
+  </data>
+  <data name="Compare_LookingForBaselines" xml:space="preserve">
+    <value>正在查找基线...</value>
+  </data>
+  <data name="Compare_NoCellChanged" xml:space="preserve">
+    <value>与此基线相比没有单元格发生更改。</value>
+  </data>
+  <data name="Compare_NotInGitRepo" xml:space="preserve">
+    <value>笔记本文件不在 git 存储库中。</value>
+  </data>
+  <data name="Compare_NotSavedYet" xml:space="preserve">
+    <value>笔记本尚未保存到文件。</value>
+  </data>
+  <data name="Compare_NotSet" xml:space="preserve">
+    <value>（未设置）</value>
+  </data>
+  <data name="Compare_NotebookSettings" xml:space="preserve">
+    <value>笔记本设置</value>
+  </data>
+  <data name="Compare_NothingYet" xml:space="preserve">
+    <value>尚未开始比较。无论如何，笔记本都不会被改动。</value>
+  </data>
+  <data name="Compare_OpenFullDiff" xml:space="preserve">
+    <value>打开完整差异</value>
+  </data>
+  <data name="Compare_ParseFailed" xml:space="preserve">
+    <value>无法将“{0}”作为笔记本读取：{1}</value>
+  </data>
+  <data name="Compare_SourceChooseFile" xml:space="preserve">
+    <value>选择文件...</value>
+  </data>
+  <data name="Compare_SourceGitHead" xml:space="preserve">
+    <value>Git：HEAD</value>
+  </data>
+  <data name="Compare_SourceGitRef" xml:space="preserve">
+    <value>Git：与 Ref 比较...</value>
+  </data>
+  <data name="Compare_SourceLastSaved" xml:space="preserve">
+    <value>上次保存</value>
+  </data>
+  <data name="Compare_SummaryAdded" xml:space="preserve">
+    <value>已添加 {0} 个</value>
+  </data>
+  <data name="Compare_SummaryModified" xml:space="preserve">
+    <value>已修改 {0} 个</value>
+  </data>
+  <data name="Compare_SummaryMoved" xml:space="preserve">
+    <value>已移动 {0} 个</value>
+  </data>
+  <data name="Compare_SummaryRemoved" xml:space="preserve">
+    <value>已删除 {0} 个</value>
+  </data>
+  <data name="Compare_SummaryUnchanged" xml:space="preserve">
+    <value>未更改 {0} 个</value>
+  </data>
+  <data name="Compare_UnknownRef" xml:space="preserve">
+    <value>“{0}”不是已知的分支、标记或提交。</value>
+  </data>
+  <data name="Compare_WasCell" xml:space="preserve">
+    <value>原为单元格 {0}</value>
+  </data>
+  <data name="Consent_ApproveAll" xml:space="preserve">
+    <value>全部批准</value>
+  </data>
+  <data name="Consent_ApproveInstall" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="Consent_Deny" xml:space="preserve">
+    <value>拒绝</value>
+  </data>
+  <data name="Consent_IntroExtension_One" xml:space="preserve">
+    <value>此笔记本想要加载以下扩展包：</value>
+  </data>
+  <data name="Consent_IntroExtension_Other" xml:space="preserve">
+    <value>此笔记本想要加载以下扩展包：</value>
+  </data>
+  <data name="Consent_IntroPackage_One" xml:space="preserve">
+    <value>此笔记本需要安装以下 Python 包：</value>
+  </data>
+  <data name="Consent_IntroPackage_Other" xml:space="preserve">
+    <value>此笔记本需要安装以下 Python 包：</value>
+  </data>
+  <data name="Consent_Target" xml:space="preserve">
+    <value>安装到 {0}</value>
+  </data>
+  <data name="Consent_TitleExtension" xml:space="preserve">
+    <value>需要扩展许可</value>
+  </data>
+  <data name="Consent_TitlePackage" xml:space="preserve">
+    <value>需要安装包</value>
+  </data>
+  <data name="Consent_WarningExtension" xml:space="preserve">
+    <value>扩展会在你的计算机上运行代码。请只批准你信任的包。</value>
+  </data>
+  <data name="Consent_WarningPackage" xml:space="preserve">
+    <value>包会在你的计算机上运行代码。请只安装你信任的包。</value>
+  </data>
+  <data name="DiffPicker_Compare" xml:space="preserve">
+    <value>比较</value>
+  </data>
+  <data name="DiffPicker_PlaceholderFile" xml:space="preserve">
+    <value>/path/to/notebook.verso</value>
+  </data>
+  <data name="DiffPicker_PlaceholderGitRef" xml:space="preserve">
+    <value>main</value>
+  </data>
+  <data name="DiffPicker_PromptFile" xml:space="preserve">
+    <value>笔记本文件的路径（.verso、.ipynb、.md、.dib）</value>
+  </data>
+  <data name="DiffPicker_PromptGitRef" xml:space="preserve">
+    <value>分支、标记或提交</value>
+  </data>
+  <data name="DiffPicker_TitleFile" xml:space="preserve">
+    <value>与文件比较</value>
+  </data>
+  <data name="DiffPicker_TitleGitRef" xml:space="preserve">
+    <value>与 Git Ref 比较</value>
+  </data>
+  <data name="DiffView_ApproximateMatch" xml:space="preserve">
+    <value>近似匹配</value>
+  </data>
+  <data name="DiffView_ApproximateMatchChip" xml:space="preserve">
+    <value>近似匹配</value>
+  </data>
+  <data name="DiffView_ApproximateMatchDesc" xml:space="preserve">
+    <value>这些文件没有共同的单元格标识，因此此配对基于内容相似度。</value>
+  </data>
+  <data name="DiffView_ChangeCount_One" xml:space="preserve">
+    <value>{0} 项更改</value>
+  </data>
+  <data name="DiffView_ChangeCount_Other" xml:space="preserve">
+    <value>{0} 项更改</value>
+  </data>
+  <data name="DiffView_ComparingWith" xml:space="preserve">
+    <value>正在与 {0} 比较</value>
+  </data>
+  <data name="DiffView_Current" xml:space="preserve">
+    <value>当前</value>
+  </data>
+  <data name="DiffView_IdenticalDetail" xml:space="preserve">
+    <value>每个单元格和每项笔记本设置都与基线相同，包括未保存的编辑。</value>
+  </data>
+  <data name="DiffView_IdenticalTo" xml:space="preserve">
+    <value>与 {0} 完全相同</value>
+  </data>
+  <data name="DiffView_MetadataChip" xml:space="preserve">
+    <value>元数据</value>
+  </data>
+  <data name="DiffView_NavPosition" xml:space="preserve">
+    <value>第 {0} 项，共 {1} 项</value>
+  </data>
+  <data name="DiffView_NextChange" xml:space="preserve">
+    <value>下一处更改</value>
+  </data>
+  <data name="DiffView_NoChanges" xml:space="preserve">
+    <value>无更改</value>
+  </data>
+  <data name="DiffView_OutputsChanged" xml:space="preserve">
+    <value>输出已更改</value>
+  </data>
+  <data name="DiffView_PositionChange" xml:space="preserve">
+    <value>位置 {0} → {1}</value>
+  </data>
+  <data name="DiffView_PreviousChange" xml:space="preserve">
+    <value>上一处更改</value>
+  </data>
+  <data name="DiffView_ShowSourceChanges" xml:space="preserve">
+    <value>显示源代码更改</value>
+  </data>
+  <data name="DiffView_TypeChange" xml:space="preserve">
+    <value>{0} → {1}</value>
+  </data>
+  <data name="DiffView_UnchangedCells_One" xml:space="preserve">
+    <value>{0} 个未更改的单元格</value>
+  </data>
+  <data name="DiffView_UnchangedCells_Other" xml:space="preserve">
+    <value>{0} 个未更改的单元格</value>
+  </data>
+  <data name="Diff_Added" xml:space="preserve">
+    <value>已添加</value>
+  </data>
+  <data name="Diff_Modified" xml:space="preserve">
+    <value>已修改</value>
+  </data>
+  <data name="Diff_Moved" xml:space="preserve">
+    <value>已移动</value>
+  </data>
+  <data name="Diff_Removed" xml:space="preserve">
+    <value>已删除</value>
+  </data>
+  <data name="Diff_Unchanged" xml:space="preserve">
+    <value>未更改</value>
+  </data>
+  <data name="Error_Cancel" xml:space="preserve">
+    <value>无法停止单元格：{0}</value>
+  </data>
+  <data name="Error_CreateNotebook" xml:space="preserve">
+    <value>无法创建笔记本：{0}</value>
+  </data>
+  <data name="Error_Execution" xml:space="preserve">
+    <value>无法运行单元格：{0}</value>
+  </data>
+  <data name="Error_ListComparisonSources" xml:space="preserve">
+    <value>无法列出比较源：{0}</value>
+  </data>
+  <data name="Error_OpenFile" xml:space="preserve">
+    <value>无法打开文件：{0}</value>
+  </data>
+  <data name="Error_SaveFailed" xml:space="preserve">
+    <value>无法保存：{0}</value>
+  </data>
+  <data name="Error_SessionRecovery" xml:space="preserve">
+    <value>无法恢复会话：{0}</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="Extensions_Disable" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="Extensions_Enable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="Extensions_Loaded" xml:space="preserve">
+    <value>已加载</value>
+  </data>
+  <data name="Extensions_Off" xml:space="preserve">
+    <value>关</value>
+  </data>
+  <data name="Extensions_On" xml:space="preserve">
+    <value>开</value>
+  </data>
+  <data name="InputDialog_DefaultPrompt" xml:space="preserve">
+    <value>输入</value>
+  </data>
+  <data name="InputDialog_Title" xml:space="preserve">
+    <value>笔记本输入</value>
+  </data>
+  <data name="Kernel_HostExited" xml:space="preserve">
+    <value>运行内核的进程已停止。</value>
+  </data>
+  <data name="Key_AltDown" xml:space="preserve">
+    <value>Alt+Down</value>
+  </data>
+  <data name="Key_AltUp" xml:space="preserve">
+    <value>Alt+Up</value>
+  </data>
+  <data name="Key_Escape" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="Layout_ErrorAllocateFrame" xml:space="preserve">
+    <value>布局无法加载：无法分配框架。{0}</value>
+  </data>
+  <data name="Layout_ErrorBridgeScript" xml:space="preserve">
+    <value>布局无法加载：将其连接到 Verso 的脚本不可用。{0}</value>
+  </data>
+  <data name="Layout_ErrorDisallowedSource" xml:space="preserve">
+    <value>布局无法加载：它请求连接到不允许的源（{0}）。</value>
+  </data>
+  <data name="Layout_ErrorNoActive" xml:space="preserve">
+    <value>布局无法加载：没有活动的布局。</value>
+  </data>
+  <data name="Layout_ErrorNotReady" xml:space="preserve">
+    <value>布局无法加载：它未在 {0} 秒内报告就绪。</value>
+  </data>
+  <data name="Layout_ErrorPackageEmpty" xml:space="preserve">
+    <value>布局无法加载：它的渲染器为空。</value>
+  </data>
+  <data name="Layout_ErrorPackageFetch" xml:space="preserve">
+    <value>布局无法加载：无法获取它的渲染器。{0}</value>
+  </data>
+  <data name="Marketplace_AddsNothing" xml:space="preserve">
+    <value>无贡献</value>
+  </data>
+  <data name="Marketplace_AddsNothingDesc" xml:space="preserve">
+    <value>它已加载，但未贡献任何扩展点，因此安装它没有带来任何变化。</value>
+  </data>
+  <data name="Marketplace_ChooseVersion" xml:space="preserve">
+    <value>选择要安装的版本</value>
+  </data>
+  <data name="Marketplace_Downloads" xml:space="preserve">
+    <value>{0} 次下载</value>
+  </data>
+  <data name="Marketplace_Install" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="Marketplace_InstallFailed" xml:space="preserve">
+    <value>安装失败。</value>
+  </data>
+  <data name="Marketplace_InstallFromFile" xml:space="preserve">
+    <value>从文件安装</value>
+  </data>
+  <data name="Marketplace_InstallFromFileDesc" xml:space="preserve">
+    <value>旁加载本地 .dll 或 .nupkg 文件。</value>
+  </data>
+  <data name="Marketplace_InstallNotApproved" xml:space="preserve">
+    <value>安装未获批准。</value>
+  </data>
+  <data name="Marketplace_InstallScope" xml:space="preserve">
+    <value>安装范围</value>
+  </data>
+  <data name="Marketplace_InstallScopeDesc" xml:space="preserve">
+    <value>安装会将包记录在此笔记本中，而不是这台计算机上。</value>
+  </data>
+  <data name="Marketplace_Installed" xml:space="preserve">
+    <value>已安装</value>
+  </data>
+  <data name="Marketplace_InstallsInto" xml:space="preserve">
+    <value>安装到 {0}</value>
+  </data>
+  <data name="Marketplace_Local" xml:space="preserve">
+    <value>本地</value>
+  </data>
+  <data name="Marketplace_LocalDesc" xml:space="preserve">
+    <value>从本地文件旁加载。</value>
+  </data>
+  <data name="Marketplace_LocalFile" xml:space="preserve">
+    <value>本地文件</value>
+  </data>
+  <data name="Marketplace_NoResults" xml:space="preserve">
+    <value>未找到任何包。</value>
+  </data>
+  <data name="Marketplace_NoneInstalled" xml:space="preserve">
+    <value>未安装任何扩展。搜索以添加。</value>
+  </data>
+  <data name="Marketplace_NotLoaded" xml:space="preserve">
+    <value>未加载</value>
+  </data>
+  <data name="Marketplace_PackageSources" xml:space="preserve">
+    <value>包源</value>
+  </data>
+  <data name="Marketplace_Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="Marketplace_RemovedNotice" xml:space="preserve">
+    <value>已从此笔记本移除。它已加载的内容会一直有效，直到重新打开笔记本。</value>
+  </data>
+  <data name="Marketplace_ResultsFrom" xml:space="preserve">
+    <value>来自 {0}</value>
+  </data>
+  <data name="Marketplace_SearchPlaceholder" xml:space="preserve">
+    <value>搜索扩展...</value>
+  </data>
+  <data name="Marketplace_Searching" xml:space="preserve">
+    <value>正在搜索...</value>
+  </data>
+  <data name="Marketplace_SourceCount" xml:space="preserve">
+    <value>{0} 个源</value>
+  </data>
+  <data name="Marketplace_ThisNotebook" xml:space="preserve">
+    <value>此笔记本</value>
+  </data>
+  <data name="Metadata_Created" xml:space="preserve">
+    <value>创建时间</value>
+  </data>
+  <data name="Metadata_DefaultKernel" xml:space="preserve">
+    <value>默认内核</value>
+  </data>
+  <data name="Metadata_FilePath" xml:space="preserve">
+    <value>文件路径</value>
+  </data>
+  <data name="Metadata_FormatVersion" xml:space="preserve">
+    <value>格式版本</value>
+  </data>
+  <data name="Metadata_Modified" xml:space="preserve">
+    <value>修改时间</value>
+  </data>
+  <data name="Metadata_Title" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Metadata_Unsaved" xml:space="preserve">
+    <value>（未保存）</value>
+  </data>
+  <data name="NotFound_Message" xml:space="preserve">
+    <value>抱歉，此地址上没有任何内容。</value>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <value>未找到</value>
+  </data>
+  <data name="Output_EmptyCsv" xml:space="preserve">
+    <value>CSV 为空</value>
+  </data>
+  <data name="Output_Error" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Output_JsonItems_One" xml:space="preserve">
+    <value>{0} 项</value>
+  </data>
+  <data name="Output_JsonItems_Other" xml:space="preserve">
+    <value>{0} 项</value>
+  </data>
+  <data name="Output_JsonKeys_One" xml:space="preserve">
+    <value>{0} 个键</value>
+  </data>
+  <data name="Output_JsonKeys_Other" xml:space="preserve">
+    <value>{0} 个键</value>
+  </data>
+  <data name="Output_RenderFailed" xml:space="preserve">
+    <value>无法渲染此输出</value>
+  </data>
+  <data name="Output_RetryRender" xml:space="preserve">
+    <value>重试渲染此输出</value>
+  </data>
+  <data name="Output_StandardError" xml:space="preserve">
+    <value>标准错误输出</value>
+  </data>
+  <data name="Output_Working" xml:space="preserve">
+    <value>正在处理</value>
+  </data>
+  <data name="Panel_Collapse" xml:space="preserve">
+    <value>折叠面板</value>
+  </data>
+  <data name="Panel_Compare" xml:space="preserve">
+    <value>比较</value>
+  </data>
+  <data name="Panel_Compare_Description" xml:space="preserve">
+    <value>将此笔记本与保存的基线进行比较。</value>
+  </data>
+  <data name="Panel_Extensions" xml:space="preserve">
+    <value>扩展</value>
+  </data>
+  <data name="Panel_Extensions_Description" xml:space="preserve">
+    <value>此处加载的扩展，以及更多可安装的扩展。</value>
+  </data>
+  <data name="Panel_Metadata" xml:space="preserve">
+    <value>元数据</value>
+  </data>
+  <data name="Panel_Metadata_Description" xml:space="preserve">
+    <value>此笔记本的标题、内核和文件详细信息。</value>
+  </data>
+  <data name="Panel_NothingToShow" xml:space="preserve">
+    <value>此面板没有可显示的内容。</value>
+  </data>
+  <data name="Panel_Properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Panel_PropertiesHeading" xml:space="preserve">
+    <value>单元格属性</value>
+  </data>
+  <data name="Panel_Properties_Description" xml:space="preserve">
+    <value>所选单元格的设置。</value>
+  </data>
+  <data name="Panel_Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Panel_Settings_Description" xml:space="preserve">
+    <value>已启用的扩展贡献的设置。</value>
+  </data>
+  <data name="Panel_Variables" xml:space="preserve">
+    <value>变量</value>
+  </data>
+  <data name="Panel_Variables_Description" xml:space="preserve">
+    <value>内核当前持有的全部内容。</value>
+  </data>
+  <data name="Panel_View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Panel_View_Description" xml:space="preserve">
+    <value>无需关闭面板即可切换布局或主题。</value>
+  </data>
+  <data name="Properties_AddTagPlaceholder" xml:space="preserve">
+    <value>添加标签...</value>
+  </data>
+  <data name="Properties_None" xml:space="preserve">
+    <value>此单元格没有可用的属性。</value>
+  </data>
+  <data name="Properties_RemoveTag" xml:space="preserve">
+    <value>移除标签</value>
+  </data>
+  <data name="Properties_SelectACell" xml:space="preserve">
+    <value>选择一个单元格以查看其属性。</value>
+  </data>
+  <data name="Reconnect_Message" xml:space="preserve">
+    <value>你的会话仍处于活动状态。正在尝试重新连接。</value>
+  </data>
+  <data name="Reconnect_RecoveringMessage" xml:space="preserve">
+    <value>正在重新加载以还原你的笔记本。</value>
+  </data>
+  <data name="Reconnect_RecoveringTitle" xml:space="preserve">
+    <value>正在恢复你的会话...</value>
+  </data>
+  <data name="Reconnect_Reload" xml:space="preserve">
+    <value>重新加载页面</value>
+  </data>
+  <data name="Reconnect_Title" xml:space="preserve">
+    <value>正在重新连接...</value>
+  </data>
+  <data name="SaveDialog_PathHint" xml:space="preserve">
+    <value>请输入完整的文件路径。如果缺少 {0} 扩展名，将自动添加。</value>
+  </data>
+  <data name="SaveDialog_PathLabel" xml:space="preserve">
+    <value>保存到：</value>
+  </data>
+  <data name="SaveDialog_Title" xml:space="preserve">
+    <value>笔记本另存为</value>
+  </data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Settings_ListPlaceholder" xml:space="preserve">
+    <value>以逗号分隔</value>
+  </data>
+  <data name="Settings_NoConfigurableExtensions" xml:space="preserve">
+    <value>没有已启用且包含可配置设置的扩展。</value>
+  </data>
+  <data name="Status_KernelRestarted" xml:space="preserve">
+    <value>内核已重启</value>
+  </data>
+  <data name="Status_KernelRestartedReload" xml:space="preserve">
+    <value>内核已重启。请重新运行包含 #!nuget 或 #!extension 的单元格以重新加载。</value>
+  </data>
+  <data name="Status_LayoutNotLoaded" xml:space="preserve">
+    <value>布局“{0}”未加载。请运行包含 #!extension 或 #!nuget 的单元格以加载它。</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_One" xml:space="preserve">
+    <value>无法加载所需的扩展 {0}。在它可用之前，某些布局或单元格可能无法正常工作。</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_Other" xml:space="preserve">
+    <value>无法加载 {0} 个所需的扩展：{1}。在它们可用之前，某些布局或单元格可能无法正常工作。</value>
+  </data>
+  <data name="Status_RestartingKernel" xml:space="preserve">
+    <value>正在重启内核...</value>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>已保存</value>
+  </data>
+  <data name="Status_SavedTo" xml:space="preserve">
+    <value>已保存到 {0}</value>
+  </data>
+  <data name="Toolbar_ActionFailed" xml:space="preserve">
+    <value>{0} 失败：{1}</value>
+  </data>
+  <data name="Toolbar_Browse" xml:space="preserve">
+    <value>浏览</value>
+  </data>
+  <data name="Toolbar_CellCount_One" xml:space="preserve">
+    <value>{0} 个单元格</value>
+  </data>
+  <data name="Toolbar_CellCount_Other" xml:space="preserve">
+    <value>{0} 个单元格</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Toolbar_ExportNotebook" xml:space="preserve">
+    <value>导出笔记本</value>
+  </data>
+  <data name="Toolbar_Go" xml:space="preserve">
+    <value>转到</value>
+  </data>
+  <data name="Toolbar_KernelDisconnected" xml:space="preserve">
+    <value>已断开连接</value>
+  </data>
+  <data name="Toolbar_KernelError" xml:space="preserve">
+    <value>内核错误</value>
+  </data>
+  <data name="Toolbar_KernelIdle" xml:space="preserve">
+    <value>内核空闲</value>
+  </data>
+  <data name="Toolbar_KernelList" xml:space="preserve">
+    <value>内核：{0}</value>
+  </data>
+  <data name="Toolbar_KernelRestarting" xml:space="preserve">
+    <value>正在重启…</value>
+  </data>
+  <data name="Toolbar_KernelRunning" xml:space="preserve">
+    <value>正在运行…</value>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>新建</value>
+  </data>
+  <data name="Toolbar_NewNotebook" xml:space="preserve">
+    <value>新建笔记本</value>
+  </data>
+  <data name="Toolbar_NoKernel" xml:space="preserve">
+    <value>无内核</value>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Toolbar_OpenFile" xml:space="preserve">
+    <value>打开文件</value>
+  </data>
+  <data name="Toolbar_OpenPathPlaceholder" xml:space="preserve">
+    <value>文件路径或 URL...</value>
+  </data>
+  <data name="Toolbar_ReadFileFailed" xml:space="preserve">
+    <value>读取文件失败：{0}</value>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Toolbar_SaveUnsavedChanges" xml:space="preserve">
+    <value>你有未保存的更改。</value>
+  </data>
+  <data name="Toolbar_StopExecution" xml:space="preserve">
+    <value>停止执行</value>
+  </data>
+  <data name="Toolbar_StopFailed" xml:space="preserve">
+    <value>停止失败：{0}</value>
+  </data>
+  <data name="Variables_ColumnName" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Variables_ColumnType" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Variables_ColumnValue" xml:space="preserve">
+    <value>值</value>
+  </data>
+  <data name="Variables_Empty" xml:space="preserve">
+    <value>尚未定义任何变量。</value>
+  </data>
+  <data name="Variables_Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Variables_RefreshFailed" xml:space="preserve">
+    <value>刷新失败：{0}</value>
+  </data>
+  <data name="View_Layout" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="View_ReadOnly" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="View_Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Welcome_Intro" xml:space="preserve">
+    <value>新建笔记本，或打开现有的 {0}、{1} 或 {2} 文件即可开始。</value>
+  </data>
+  <data name="Welcome_WaitingForContent" xml:space="preserve">
+    <value>正在等待笔记本内容...</value>
+  </data>
+  <data name="Widget_FrameTitle" xml:space="preserve">
+    <value>小组件输出</value>
+  </data>
+</root>

@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.MagicCommands;
 
@@ -14,16 +15,16 @@ public sealed class NpmMagicCommand : IMagicCommand
     string IExtension.Name => "Npm Magic Command";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    string? IExtension.Description => "Installs npm packages for use in JavaScript cells.";
+    string? IExtension.Description => Strings.Extension_Npm_Description;
 
     // IMagicCommand
     public string Name => "npm";
-    public string Description => "Installs npm packages for use in subsequent JavaScript cells.";
+    public string Description => Strings.Magic_Npm_Description;
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } =
     [
         new ParameterDefinition("packages",
-            "One or more package names (e.g. lodash axios@1.6).",
+            Strings.Magic_Npm_Param_Packages,
             typeof(string), IsRequired: true),
     ];
 
@@ -41,7 +42,7 @@ public sealed class NpmMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(packages))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Usage: #!npm <package-names>", IsError: true, ErrorName: "NpmError"));
+                "text/plain", Strings.Magic_Npm_Usage, IsError: true, ErrorName: "NpmError"));
             context.SuppressExecution = true;
             return;
         }
@@ -53,7 +54,7 @@ public sealed class NpmMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                "No JavaScript kernel is loaded. #!npm requires the JavaScript kernel.",
+                Strings.Magic_Npm_NoKernel,
                 IsError: true, ErrorName: "NpmError"));
             context.SuppressExecution = true;
             return;
@@ -75,7 +76,7 @@ public sealed class NpmMagicCommand : IMagicCommand
         // Said before the install starts rather than after it finishes. Resolving a package with
         // a large dependency tree takes long enough that a cell showing nothing looks stuck.
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"Installing {string.Join(", ", packageNames)}..."));
+            "text/plain", string.Format(Strings.Magic_Npm_Installing, string.Join(", ", packageNames))));
 
         var detail = (jsKernel as Kernel.JavaScriptKernel)?.ShowInstallOutput ?? false;
 
@@ -100,8 +101,8 @@ public sealed class NpmMagicCommand : IMagicCommand
                 : name)
             .ToList();
 
-        return described.Count == 1
-            ? $"{described[0]} is already installed."
-            : $"{string.Join(", ", described)} are already installed.";
+        return string.Format(
+            Plural.Of(described.Count, Strings.Magic_Npm_AlreadyInstalled_One, Strings.Magic_Npm_AlreadyInstalled_Other),
+            string.Join(", ", described));
     }
 }

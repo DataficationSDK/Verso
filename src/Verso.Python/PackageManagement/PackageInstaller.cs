@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Verso.Abstractions;
 using Verso.Python.Interpreter;
+using Verso.Python.Resources;
 
 namespace Verso.Python.PackageManagement;
 
@@ -40,7 +41,7 @@ internal static class PackageInstaller
             using var process = Process.Start(psi);
             if (process is null)
             {
-                await WriteAsync(context, "Failed to start the package installer.", isError: true)
+                await WriteAsync(context, Strings.Install_StartFailed, isError: true)
                     .ConfigureAwait(false);
                 return false;
             }
@@ -51,7 +52,7 @@ internal static class PackageInstaller
         }
         catch (Exception ex)
         {
-            await WriteAsync(context, $"Failed to run the package installer: {ex.Message}", isError: true)
+            await WriteAsync(context, string.Format(Strings.Install_RunFailed, ex.Message), isError: true)
                 .ConfigureAwait(false);
             return false;
         }
@@ -203,7 +204,7 @@ internal static class PackageInstaller
             foreach (var line in report.Output)
                 await WriteAsync(context, line).ConfigureAwait(false);
 
-            await WriteAsync(context, $"Package install failed (exit code {exitCode}).", isError: true)
+            await WriteAsync(context, string.Format(Strings.Install_ExitedWithCode, exitCode), isError: true)
                 .ConfigureAwait(false);
             return false;
         }

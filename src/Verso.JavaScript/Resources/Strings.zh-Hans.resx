@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Npm_Description" xml:space="preserve">
+    <value>安装 npm 包以供 JavaScript 单元格使用。</value>
+  </data>
+  <data name="Kernel_JavaScript_Description" xml:space="preserve">
+    <value>通过 Node.js 或 Jint 运行的 JavaScript 语言内核。</value>
+  </data>
+  <data name="Kernel_TypeScript_Description" xml:space="preserve">
+    <value>通过 Node.js 运行并自动转译的 TypeScript 语言内核。</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} 已安装。</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} 已安装。</value>
+  </data>
+  <data name="Magic_Npm_Description" xml:space="preserve">
+    <value>安装 npm 包以供后续 JavaScript 单元格使用。</value>
+  </data>
+  <data name="Magic_Npm_Installing" xml:space="preserve">
+    <value>正在安装 {0}...</value>
+  </data>
+  <data name="Magic_Npm_NoKernel" xml:space="preserve">
+    <value>未加载 JavaScript 内核。#!npm 需要 JavaScript 内核。</value>
+  </data>
+  <data name="Magic_Npm_Param_Packages" xml:space="preserve">
+    <value>一个或多个包名称（例如 lodash axios@1.6）。</value>
+  </data>
+  <data name="Magic_Npm_Usage" xml:space="preserve">
+    <value>用法：#!npm &lt;package-names&gt;</value>
+  </data>
+  <data name="Node_NotReady" xml:space="preserve">
+    <value>Node.js 桥接在 10 秒内未发送就绪信号。</value>
+  </data>
+  <data name="Node_NotRunning" xml:space="preserve">
+    <value>Node.js 进程未在运行。</value>
+  </data>
+  <data name="Node_Required" xml:space="preserve">
+    <value>TypeScript 内核需要 Node.js。在 PATH 或常见位置中都找不到 Node.js。</value>
+  </data>
+  <data name="Node_Terminated" xml:space="preserve">
+    <value>Node.js 进程意外终止。</value>
+  </data>
+  <data name="Node_TranspileRequiresModule" xml:space="preserve">
+    <value>TypeScript 转译需要 Node.js 并安装 typescript 模块。</value>
+  </data>
+  <data name="Npm_AuditSummary" xml:space="preserve">
+    <value>npm audit 在已安装的包中发现 {0}。运行 npm audit 了解详细信息。</value>
+  </data>
+  <data name="Npm_AuditSummaryBySeverity" xml:space="preserve">
+    <value>npm audit 在已安装的包中发现 {0}（{1}）。运行 npm audit 了解详细信息。</value>
+  </data>
+  <data name="Npm_Dependencies" xml:space="preserve">
+    <value>依赖项：{0}。</value>
+  </data>
+  <data name="Npm_DependencyCount_One" xml:space="preserve">
+    <value>{0} 个依赖项</value>
+  </data>
+  <data name="Npm_DependencyCount_Other" xml:space="preserve">
+    <value>{0} 个依赖项</value>
+  </data>
+  <data name="Npm_InstallFailed" xml:space="preserve">
+    <value>npm 安装失败。</value>
+  </data>
+  <data name="Npm_Installed" xml:space="preserve">
+    <value>已安装 {0}。</value>
+  </data>
+  <data name="Npm_InstalledAnd" xml:space="preserve">
+    <value>已安装 {0} 和 {1}。</value>
+  </data>
+  <data name="Npm_NotFound" xml:space="preserve">
+    <value>在 PATH 中找不到 npm。</value>
+  </data>
+  <data name="Npm_NothingToDo" xml:space="preserve">
+    <value>请求的内容均已安装。</value>
+  </data>
+  <data name="Npm_PackageCount_One" xml:space="preserve">
+    <value>{0} 个包</value>
+  </data>
+  <data name="Npm_PackageCount_Other" xml:space="preserve">
+    <value>{0} 个包</value>
+  </data>
+  <data name="Npm_Packages" xml:space="preserve">
+    <value>包：{0}。</value>
+  </data>
+  <data name="Npm_Replaced" xml:space="preserve">
+    <value>已替换：{0}。</value>
+  </data>
+  <data name="Npm_Severity_Critical" xml:space="preserve">
+    <value>严重 {0} 个</value>
+  </data>
+  <data name="Npm_Severity_High" xml:space="preserve">
+    <value>高 {0} 个</value>
+  </data>
+  <data name="Npm_Severity_Info" xml:space="preserve">
+    <value>信息 {0} 个</value>
+  </data>
+  <data name="Npm_Severity_Low" xml:space="preserve">
+    <value>低 {0} 个</value>
+  </data>
+  <data name="Npm_Severity_Moderate" xml:space="preserve">
+    <value>中 {0} 个</value>
+  </data>
+  <data name="Npm_StartFailed" xml:space="preserve">
+    <value>无法启动 npm 进程。</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_One" xml:space="preserve">
+    <value>{0} 个漏洞</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_Other" xml:space="preserve">
+    <value>{0} 个漏洞</value>
+  </data>
+  <data name="Run_NodeCrashed" xml:space="preserve">
+    <value>Node.js 进程已崩溃。正在重启...</value>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>超出内存限制（128 MB）。</value>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>执行超时（15 秒限制）。</value>
+  </data>
+  <data name="Run_TranspileFailed" xml:space="preserve">
+    <value>转译失败：{0}</value>
+  </data>
+  <data name="Run_UnknownError" xml:space="preserve">
+    <value>未知的 JavaScript 错误</value>
+  </data>
+  <data name="Run_UnknownTranspileError" xml:space="preserve">
+    <value>未知的转译错误</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>以安装了哪些包及其版本来报告 npm 安装结果，而不是转述 npm 自己的过程叙述及其赞助和审核页脚。安装一个包会带入它的依赖项，而这段内容会与该单元格实际运行所得的输出一起保存进笔记本。安装失败时始终完整报告，npm audit 的发现也是如此。</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>隐藏安装输出</value>
+  </data>
+  <data name="TypeScript_InstallFailed" xml:space="preserve">
+    <value>无法安装 {0} npm 包。</value>
+  </data>
+  <data name="TypeScript_VerifyFailed" xml:space="preserve">
+    <value>安装后 TypeScript 编译器无法工作（typescript {0}）：{1}</value>
+  </data>
+  <data name="TypeScript_VersionUnknown" xml:space="preserve">
+    <value>版本未知</value>
+  </data>
+</root>

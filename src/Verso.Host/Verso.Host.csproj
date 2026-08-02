@@ -11,6 +11,23 @@
     <RootNamespace>Verso.Host</RootNamespace>
   </PropertyGroup>
 
+  <!--
+    The messages this process sends back for somebody to read are reached through the generated
+    Strings class, so a renamed or deleted key breaks the build instead of silently falling back
+    to the key name.
+    Each property reads its resource on access, which is what lets one process answer in the
+    language it was asked for.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator>MSBuild:Compile</Generator>
+      <StronglyTypedFileName>$(IntermediateOutputPath)Strings.Designer.cs</StronglyTypedFileName>
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedNamespace>Verso.Host.Resources</StronglyTypedNamespace>
+      <StronglyTypedClassName>Strings</StronglyTypedClassName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Verso.Host.Tests" />
   </ItemGroup>

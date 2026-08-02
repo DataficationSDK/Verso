@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ExportCsv_Description" xml:space="preserve">
+    <value>Exporta los conjuntos de resultados de SQL como archivos CSV.</value>
+  </data>
+  <data name="Action_ExportJson_Description" xml:space="preserve">
+    <value>Exporta los conjuntos de resultados de SQL como archivos JSON.</value>
+  </data>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>Tipo de celda SQL para consultar bases de datos a través de ADO.NET.</value>
+  </data>
+  <data name="Completion_Keyword_Alter" xml:space="preserve">
+    <value>ALTER — Modifica un objeto de base de datos existente.</value>
+  </data>
+  <data name="Completion_Keyword_And" xml:space="preserve">
+    <value>AND — Operador lógico Y; ambas condiciones deben ser verdaderas.</value>
+  </data>
+  <data name="Completion_Keyword_Avg" xml:space="preserve">
+    <value>AVG — Función de agregado que devuelve el promedio de una columna numérica.</value>
+  </data>
+  <data name="Completion_Keyword_Between" xml:space="preserve">
+    <value>BETWEEN — Comprueba si un valor está dentro de un rango.</value>
+  </data>
+  <data name="Completion_Keyword_Case" xml:space="preserve">
+    <value>CASE — Expresión condicional; devuelve un valor según las condiciones.</value>
+  </data>
+  <data name="Completion_Keyword_Count" xml:space="preserve">
+    <value>COUNT — Función de agregado que devuelve el número de filas.</value>
+  </data>
+  <data name="Completion_Keyword_Create" xml:space="preserve">
+    <value>CREATE — Crea un objeto de base de datos nuevo (tabla, vista, índice, etc.).</value>
+  </data>
+  <data name="Completion_Keyword_Delete" xml:space="preserve">
+    <value>DELETE — Quita filas de una tabla.</value>
+  </data>
+  <data name="Completion_Keyword_Distinct" xml:space="preserve">
+    <value>DISTINCT — Quita las filas duplicadas del conjunto de resultados.</value>
+  </data>
+  <data name="Completion_Keyword_Drop" xml:space="preserve">
+    <value>DROP — Quita un objeto de base de datos.</value>
+  </data>
+  <data name="Completion_Keyword_Exists" xml:space="preserve">
+    <value>EXISTS — Comprueba si una subconsulta devuelve alguna fila.</value>
+  </data>
+  <data name="Completion_Keyword_From" xml:space="preserve">
+    <value>FROM — Indica las tablas o vistas de origen de una consulta.</value>
+  </data>
+  <data name="Completion_Keyword_Group" xml:space="preserve">
+    <value>GROUP BY — Agrupa las filas que comparten una propiedad para las funciones de agregado.</value>
+  </data>
+  <data name="Completion_Keyword_Having" xml:space="preserve">
+    <value>HAVING — Filtra los grupos creados por GROUP BY.</value>
+  </data>
+  <data name="Completion_Keyword_In" xml:space="preserve">
+    <value>IN — Comprueba si un valor coincide con alguno de una lista o subconsulta.</value>
+  </data>
+  <data name="Completion_Keyword_Inner" xml:space="preserve">
+    <value>INNER — Devuelve las filas que tienen valores coincidentes en ambas tablas.</value>
+  </data>
+  <data name="Completion_Keyword_Insert" xml:space="preserve">
+    <value>INSERT — Añade filas nuevas a una tabla.</value>
+  </data>
+  <data name="Completion_Keyword_Into" xml:space="preserve">
+    <value>INTO — Indica la tabla de destino de INSERT.</value>
+  </data>
+  <data name="Completion_Keyword_Join" xml:space="preserve">
+    <value>JOIN — Combina filas de dos o más tablas a partir de una columna relacionada.</value>
+  </data>
+  <data name="Completion_Keyword_Left" xml:space="preserve">
+    <value>LEFT — Devuelve todas las filas de la tabla izquierda y las coincidentes de la derecha.</value>
+  </data>
+  <data name="Completion_Keyword_Like" xml:space="preserve">
+    <value>LIKE — Coincidencia de patrones con comodines (% y _).</value>
+  </data>
+  <data name="Completion_Keyword_Max" xml:space="preserve">
+    <value>MAX — Función de agregado que devuelve el valor máximo.</value>
+  </data>
+  <data name="Completion_Keyword_Min" xml:space="preserve">
+    <value>MIN — Función de agregado que devuelve el valor mínimo.</value>
+  </data>
+  <data name="Completion_Keyword_Not" xml:space="preserve">
+    <value>NOT — Operador lógico NO; niega una condición.</value>
+  </data>
+  <data name="Completion_Keyword_Null" xml:space="preserve">
+    <value>NULL — Representa un valor ausente o desconocido.</value>
+  </data>
+  <data name="Completion_Keyword_Or" xml:space="preserve">
+    <value>OR — Operador lógico O; basta con que se cumpla una de las condiciones.</value>
+  </data>
+  <data name="Completion_Keyword_Order" xml:space="preserve">
+    <value>ORDER BY — Ordena el conjunto de resultados por una o varias columnas.</value>
+  </data>
+  <data name="Completion_Keyword_Right" xml:space="preserve">
+    <value>RIGHT — Devuelve todas las filas de la tabla derecha y las coincidentes de la izquierda.</value>
+  </data>
+  <data name="Completion_Keyword_Select" xml:space="preserve">
+    <value>SELECT — Recupera filas de una o varias tablas o vistas.</value>
+  </data>
+  <data name="Completion_Keyword_Set" xml:space="preserve">
+    <value>SET — Indica las columnas y los valores de UPDATE.</value>
+  </data>
+  <data name="Completion_Keyword_Sum" xml:space="preserve">
+    <value>SUM — Función de agregado que devuelve el total de una columna numérica.</value>
+  </data>
+  <data name="Completion_Keyword_Table" xml:space="preserve">
+    <value>TABLE — Hace referencia a una tabla de la base de datos.</value>
+  </data>
+  <data name="Completion_Keyword_Union" xml:space="preserve">
+    <value>UNION — Combina los conjuntos de resultados de dos o más instrucciones SELECT.</value>
+  </data>
+  <data name="Completion_Keyword_Update" xml:space="preserve">
+    <value>UPDATE — Modifica filas existentes de una tabla.</value>
+  </data>
+  <data name="Completion_Keyword_Values" xml:space="preserve">
+    <value>VALUES — Indica los valores literales de INSERT.</value>
+  </data>
+  <data name="Completion_Keyword_Where" xml:space="preserve">
+    <value>WHERE — Filtra las filas según una condición.</value>
+  </data>
+  <data name="Directive_SpacedHint" xml:space="preserve">
+    <value>Sugerencia: '--{0}' no debe llevar espacio después de '--'. Esta línea se leyó como un comentario de SQL y se omitió, así que la celda usó la conexión predeterminada.</value>
+  </data>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>Extensión de conectividad con bases de datos SQL para los cuadernos de Verso.</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>Da formato a los conjuntos de resultados de SQL y a los DataTable como tablas HTML paginadas.</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>Convierte los patrones SQL de Polyglot Notebooks en celdas SQL de Verso al importar desde Jupyter.</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Ejecuta consultas SQL contra conexiones de base de datos ADO.NET.</value>
+  </data>
+  <data name="Magic_Connect_Connected" xml:space="preserve">
+    <value>Se conectó '{0}'{1} usando {2}</value>
+  </data>
+  <data name="Magic_Connect_ConnectionString" xml:space="preserve">
+    <value>
+  Cadena de conexión: {0}</value>
+  </data>
+  <data name="Magic_Connect_ConnectionStringRequired" xml:space="preserve">
+    <value>--connection-string es obligatorio. Uso: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_CredentialFailed" xml:space="preserve">
+    <value>Error al resolver la cadena de conexión: {0}</value>
+  </data>
+  <data name="Magic_Connect_Database" xml:space="preserve">
+    <value> — base de datos: {0}</value>
+  </data>
+  <data name="Magic_Connect_DefaultLabel" xml:space="preserve">
+    <value> (predeterminada)</value>
+  </data>
+  <data name="Magic_Connect_Description" xml:space="preserve">
+    <value>Establece una conexión de base de datos para las celdas SQL.</value>
+  </data>
+  <data name="Magic_Connect_NameRequired" xml:space="preserve">
+    <value>--name es obligatorio. Uso: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_OpenFailed" xml:space="preserve">
+    <value>Error al abrir la conexión: {0}</value>
+  </data>
+  <data name="Magic_Connect_Param_CommandTimeout" xml:space="preserve">
+    <value>Tiempo de espera predeterminado de los comandos, en segundos, para las celdas SQL de esta conexión (0 = sin límite).</value>
+  </data>
+  <data name="Magic_Connect_Param_ConnectionString" xml:space="preserve">
+    <value>La cadena de conexión de ADO.NET.</value>
+  </data>
+  <data name="Magic_Connect_Param_Default" xml:space="preserve">
+    <value>Establece esta conexión como la predeterminada.</value>
+  </data>
+  <data name="Magic_Connect_Param_Name" xml:space="preserve">
+    <value>Un nombre descriptivo para esta conexión.</value>
+  </data>
+  <data name="Magic_Connect_Param_Provider" xml:space="preserve">
+    <value>El nombre invariable de DbProviderFactory.</value>
+  </data>
+  <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
+    <value>Error al resolver el proveedor: {0}</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnknown" xml:space="preserve">
+    <value>desconocido</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnresolved" xml:space="preserve">
+    <value>No se pudo resolver el proveedor.</value>
+  </data>
+  <data name="Magic_Connect_Timeout" xml:space="preserve">
+    <value>
+  Tiempo de espera del comando: {0}s</value>
+  </data>
+  <data name="Magic_Connect_TimeoutInvalid" xml:space="preserve">
+    <value>--command-timeout debe ser un número entero no negativo (segundos; 0 = sin límite).</value>
+  </data>
+  <data name="Magic_Connect_TimeoutNoLimit" xml:space="preserve">
+    <value>
+  Tiempo de espera del comando: sin límite</value>
+  </data>
+  <data name="Magic_Disconnect_Description" xml:space="preserve">
+    <value>Cierra y quita una conexión de base de datos.</value>
+  </data>
+  <data name="Magic_Disconnect_Done" xml:space="preserve">
+    <value>Se desconectó '{0}'.</value>
+  </data>
+  <data name="Magic_Disconnect_NoName" xml:space="preserve">
+    <value>No se indicó ningún nombre de conexión y no hay ninguna conexión predeterminada establecida.</value>
+  </data>
+  <data name="Magic_Disconnect_NotFound" xml:space="preserve">
+    <value>No se encontró la conexión '{0}'.</value>
+  </data>
+  <data name="Magic_Disconnect_Param_Name" xml:space="preserve">
+    <value>El nombre de la conexión que se va a cerrar. De forma predeterminada, la conexión predeterminada.</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionClosed" xml:space="preserve">
+    <value>La conexión '{0}' no está abierta.</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionRequired" xml:space="preserve">
+    <value>--connection es obligatorio. Uso: #!sql-scaffold --connection &lt;name&gt; [--tables "Table1,Table2"]</value>
+  </data>
+  <data name="Magic_Scaffold_Description" xml:space="preserve">
+    <value>Genera un DbContext de EF Core y las clases de entidad a partir del esquema de una base de datos.</value>
+  </data>
+  <data name="Magic_Scaffold_EfCoreHint" xml:space="preserve">
+    <value>Sugerencia: asegúrese de que los paquetes de EF Core estén instalados en una celda de C# anterior:
+
+{0}</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_One" xml:space="preserve">
+    <value>{0} entidad</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_Other" xml:space="preserve">
+    <value>{0} entidades</value>
+  </data>
+  <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
+    <value>Código C# generado</value>
+  </data>
+  <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
+    <value>No se encontró el kernel de C#. No se puede ejecutar el código generado.</value>
+  </data>
+  <data name="Magic_Scaffold_NoTables" xml:space="preserve">
+    <value>No se encontró ninguna tabla que coincida con los criterios indicados.</value>
+  </data>
+  <data name="Magic_Scaffold_NotFound" xml:space="preserve">
+    <value>No se encontró la conexión '{0}'. Use antes #!sql-connect.</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Connection" xml:space="preserve">
+    <value>La conexión con nombre desde la que generar.</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Schema" xml:space="preserve">
+    <value>Esquema de base de datos por el que filtrar (por ejemplo, dbo).</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Tables" xml:space="preserve">
+    <value>Lista de tablas separadas por comas que se van a incluir (de forma predeterminada, todas).</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_One" xml:space="preserve">
+    <value> ({0} relación)</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_Other" xml:space="preserve">
+    <value> ({0} relaciones)</value>
+  </data>
+  <data name="Magic_Scaffold_Summary" xml:space="preserve">
+    <value>Se generaron {0}{1} en {2}
+
+Entidades: {3}
+Variable de contexto: {4}
+
+Uso en celdas de C#:
+  var items = {4}.{5}.ToList();
+</value>
+  </data>
+  <data name="Magic_Schema_ColumnCount" xml:space="preserve">
+    <value>({0} columnas)</value>
+  </data>
+  <data name="Magic_Schema_ColumnDefault" xml:space="preserve">
+    <value>Predeterminado</value>
+  </data>
+  <data name="Magic_Schema_ColumnKey" xml:space="preserve">
+    <value>Clave</value>
+  </data>
+  <data name="Magic_Schema_ColumnName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Magic_Schema_ColumnNullable" xml:space="preserve">
+    <value>Acepta NULL</value>
+  </data>
+  <data name="Magic_Schema_ColumnSchema" xml:space="preserve">
+    <value>Esquema</value>
+  </data>
+  <data name="Magic_Schema_ColumnType" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Magic_Schema_ConnectionClosed" xml:space="preserve">
+    <value>La conexión '{0}' no está abierta. Vuelva a conectarse con #!sql-connect.</value>
+  </data>
+  <data name="Magic_Schema_Description" xml:space="preserve">
+    <value>Muestra la información del esquema de la base de datos (tablas, vistas, columnas).</value>
+  </data>
+  <data name="Magic_Schema_Heading" xml:space="preserve">
+    <value>Esquema de la conexión: {0}</value>
+  </data>
+  <data name="Magic_Schema_LoadFailed" xml:space="preserve">
+    <value>Error al cargar el esquema: {0}</value>
+  </data>
+  <data name="Magic_Schema_NoConnection" xml:space="preserve">
+    <value>No hay ninguna conexión de base de datos. Use #!sql-connect para establecer una.</value>
+  </data>
+  <data name="Magic_Schema_NotFound" xml:space="preserve">
+    <value>No se encontró la conexión '{0}'. Use #!sql-connect para establecer una.</value>
+  </data>
+  <data name="Magic_Schema_Param_Connection" xml:space="preserve">
+    <value>Nombre de la conexión que se va a inspeccionar.</value>
+  </data>
+  <data name="Magic_Schema_Param_Refresh" xml:space="preserve">
+    <value>Fuerza la actualización de la caché del esquema.</value>
+  </data>
+  <data name="Magic_Schema_Param_Table" xml:space="preserve">
+    <value>Muestra los detalles de las columnas de una tabla concreta.</value>
+  </data>
+  <data name="Magic_Schema_TableCount" xml:space="preserve">
+    <value>({0} tablas/vistas)</value>
+  </data>
+  <data name="Magic_Schema_TableNotFound" xml:space="preserve">
+    <value>No se encontró la tabla '{0}' en el esquema.</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>Advertencia: {0}</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>Renderiza las celdas SQL con distintivos que indican la conexión.</value>
+  </data>
+  <data name="Run_ConnectionClosed" xml:space="preserve">
+    <value>La conexión '{0}' no está abierta. Vuelva a conectarse con `#!sql-connect`.</value>
+  </data>
+  <data name="Run_Failed" xml:space="preserve">
+    <value>Error de SQL: {0}</value>
+  </data>
+  <data name="Run_NoConnection" xml:space="preserve">
+    <value>No hay ninguna conexión de base de datos. Use `#!sql-connect` para establecer una.</value>
+  </data>
+  <data name="Run_NoSql" xml:space="preserve">
+    <value>No hay SQL que ejecutar.</value>
+  </data>
+  <data name="Run_UnsupportedParameterType" xml:space="preserve">
+    <value>El tipo '{0}' de '{1}' no es un DbType admitido. Se pasa tal cual.</value>
+  </data>
+  <data name="Table_Elapsed" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Table_Next" xml:space="preserve">
+    <value>Siguiente</value>
+  </data>
+  <data name="Table_Previous" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="Table_RowsAffected_One" xml:space="preserve">
+    <value>{0} fila afectada</value>
+  </data>
+  <data name="Table_RowsAffected_Other" xml:space="preserve">
+    <value>{0} filas afectadas</value>
+  </data>
+  <data name="Table_ShowingRows" xml:space="preserve">
+    <value>Mostrando {0}-{1} de {2} filas</value>
+  </data>
+  <data name="Table_Statements" xml:space="preserve">
+    <value>{0} ({1} instrucciones)</value>
+  </data>
+  <data name="Table_Truncated" xml:space="preserve">
+    <value>Resultados recortados en {0} de {1} filas en total. Use WHERE o LIMIT para acotar la consulta.</value>
+  </data>
+</root>

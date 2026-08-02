@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Python.Kernel;
+using Verso.Python.Resources;
 
 namespace Verso.Python.PackageManagement;
 
@@ -189,9 +190,7 @@ internal sealed class AutoInstallService
         foreach (var guess in candidates.Where(c => !c.Vetted))
         {
             await WriteAsync(context,
-                $"'{guess.Module}' is not installed and Verso does not know which distribution " +
-                "provides it. Automatic installs only cover known packages; install it with " +
-                $"#!pip {guess.Module} if that is the right name.")
+                string.Format(Strings.Auto_UnknownDistribution, guess.Module))
                 .ConfigureAwait(false);
 
             // The decision is made for this session. Without recording it the import failure
@@ -202,7 +201,8 @@ internal sealed class AutoInstallService
         if (specs.Count == 0)
             return Array.Empty<string>();
 
-        await WriteAsync(context, $"Installing {Join(specs)} into {environment}.").ConfigureAwait(false);
+        await WriteAsync(context, string.Format(Strings.Auto_Installing, Join(specs), environment))
+            .ConfigureAwait(false);
         return await RunAsync(specs, declared, interpreter, context).ConfigureAwait(false);
     }
 
@@ -266,7 +266,8 @@ internal sealed class AutoInstallService
         }
 
         var specs = candidates.Select(c => c.Distribution).Concat(declared).ToList();
-        await WriteAsync(context, $"Installing {Join(specs)} into {environment}.").ConfigureAwait(false);
+        await WriteAsync(context, string.Format(Strings.Auto_Installing, Join(specs), environment))
+            .ConfigureAwait(false);
         return await RunAsync(specs, declared, interpreter, context).ConfigureAwait(false);
     }
 
@@ -331,9 +332,7 @@ internal sealed class AutoInstallService
         if (options.Count > 0)
         {
             await WriteAsync(context,
-                $"Not installed: {Join(options)}. A dependency has to name a package; these are " +
-                "installer options, which a notebook is not allowed to pass. Remove them, or run " +
-                "the install yourself with #!pip if you meant them.")
+                string.Format(Strings.Auto_RefusedOptions, Join(options)))
                 .ConfigureAwait(false);
         }
 
@@ -341,10 +340,7 @@ internal sealed class AutoInstallService
         if (sources.Count > 0)
         {
             await WriteAsync(context,
-                $"Not installed: {Join(sources)}. A dependency has to name a package; these name " +
-                "somewhere to install from, which would have fetched code from a location the " +
-                "notebook chose rather than from the configured index. Name the package instead, " +
-                "or run the install yourself with #!pip if you meant them.")
+                string.Format(Strings.Auto_RefusedSources, Join(sources)))
                 .ConfigureAwait(false);
         }
     }

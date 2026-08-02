@@ -1,5 +1,6 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@using System.Globalization
 @using System.Text.Json
 
 <div class="verso-properties-field-control">
@@ -184,7 +185,15 @@
 
     private async Task HandleNumberChange(ChangeEventArgs e)
     {
-        if (double.TryParse(e.Value?.ToString(), out var d))
+        // A number field hands back what HTML calls a valid floating-point number, which is
+        // written with a full stop whatever language the page is in. Reading it in the
+        // reader's own culture would take "3.14" in German for three thousand one hundred and
+        // fourteen and write that into the notebook, with nothing on screen looking wrong.
+        if (double.TryParse(
+                e.Value?.ToString(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var d))
             await OnValueChanged.InvokeAsync(d);
         else
             await OnValueChanged.InvokeAsync(e.Value);

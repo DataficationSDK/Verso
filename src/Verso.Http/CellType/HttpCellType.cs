@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Http.Kernel;
+using Verso.Http.Resources;
 
 namespace Verso.Http.CellType;
 
@@ -16,7 +17,7 @@ public sealed class HttpCellType : ICellType
     public string Name => "HTTP Cell Type";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "HTTP request cell type for sending REST API requests.";
+    public string? Description => Strings.CellType_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

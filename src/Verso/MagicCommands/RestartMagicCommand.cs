@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.MagicCommands;
 
@@ -18,11 +19,11 @@ public sealed class RestartMagicCommand : IMagicCommand
     // --- IMagicCommand ---
 
     public string Name => "restart";
-    public string Description => "Restarts the specified kernel, or the default kernel if no argument is given.";
+    public string Description => Strings.Magic_Restart_Description;
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("kernelId", "The language ID of the kernel to restart.", typeof(string))
+        new ParameterDefinition("kernelId", Strings.Magic_Restart_Param_KernelId, typeof(string))
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -37,8 +38,8 @@ public sealed class RestartMagicCommand : IMagicCommand
         await context.Notebook.RestartKernelAsync(kernelId).ConfigureAwait(false);
 
         var message = kernelId is not null
-            ? $"Kernel '{kernelId}' restarted."
-            : "Default kernel restarted.";
+            ? string.Format(Strings.Magic_Restart_Done, kernelId)
+            : Strings.Magic_Restart_DoneDefault;
 
         await context.WriteOutputAsync(new CellOutput("text/plain", message)).ConfigureAwait(false);
     }

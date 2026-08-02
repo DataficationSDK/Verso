@@ -2,6 +2,8 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 using Verso.Abstractions;
 using Verso.Cli.Repl.Settings;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Execution;
 using Verso.Extensions.Utilities;
 
@@ -114,7 +116,7 @@ public sealed class TerminalRenderer
 
     private IRenderable BuildResultErrorRenderable(ExecutionResult result)
     {
-        var message = result.Error?.Message ?? "Execution failed.";
+        var message = result.Error?.Message ?? Strings.Render_ExecutionFailed;
         var name = result.Error?.GetType().Name;
         var stack = result.Error?.StackTrace;
 
@@ -138,10 +140,11 @@ public sealed class TerminalRenderer
     private void MaybePrintElapsed(ExecutionResult result, TimeSpan threshold)
     {
         if (result.Elapsed < threshold || result.Elapsed <= TimeSpan.Zero) return;
+        var elapsed = string.Format(Strings.Render_ExecutedIn, FormatElapsed(result.Elapsed));
         if (_useColor)
-            _console.MarkupLine($"[dim](executed in {FormatElapsed(result.Elapsed)})[/]");
+            _console.MarkupLine(Messages.In("dim", Markup.Escape(elapsed)));
         else
-            _console.WriteLine($"(executed in {FormatElapsed(result.Elapsed)})");
+            _console.WriteLine(elapsed);
     }
 
     private static string FormatElapsed(TimeSpan elapsed)

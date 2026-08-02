@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,11 +8,10 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class HistoryMeta : IMetaCommand
 {
     public string Name => "history";
-    public string Summary => "Prints recent cell submissions.";
-    public string DetailedHelp =>
-        ".history [<n>]\n" +
-        "  Prints the last n submitted cells (default 20). Each entry shows the input counter\n" +
-        "  and a preview of the first non-empty line of source.";
+    public string Summary => Strings.Meta_History_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".history [<n>]\n" + Strings.Meta_History_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -20,7 +21,9 @@ public sealed class HistoryMeta : IMetaCommand
         {
             if (!int.TryParse(arg, out n) || n <= 0)
             {
-                context.Console.MarkupLine($"[red]Invalid count '{Markup.Escape(arg)}'.[/] Usage: .history [<n>]");
+                context.Console.MarkupLine(
+                    Messages.In("red", Messages.Say(Strings.Meta_History_InvalidCount, arg))
+                    + " " + Messages.Typed(Strings.Repl_Usage, ".history [<n>]"));
                 return Task.FromResult(true);
             }
         }
@@ -30,7 +33,7 @@ public sealed class HistoryMeta : IMetaCommand
 
         if (cells.Count == 0)
         {
-            context.Console.MarkupLine("[dim]No history.[/]");
+            context.Console.MarkupLine(Messages.In("dim", Messages.Say(Strings.Meta_History_Empty)));
             return Task.FromResult(true);
         }
 

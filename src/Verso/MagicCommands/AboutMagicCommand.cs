@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.MagicCommands;
 
@@ -19,7 +20,7 @@ public sealed class AboutMagicCommand : IMagicCommand
     // --- IMagicCommand ---
 
     public string Name => "about";
-    public string Description => "Displays Verso version, runtime information, and loaded extensions.";
+    public string Description => Strings.Magic_About_Description;
     public IReadOnlyList<ParameterDefinition> Parameters => Array.Empty<ParameterDefinition>();
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -36,15 +37,15 @@ public sealed class AboutMagicCommand : IMagicCommand
         var lines = new List<string>
         {
             $"Verso v{versoVersion}",
-            $"Runtime: {framework}",
-            $"OS: {os}",
+            string.Format(Strings.Magic_About_Runtime, framework),
+            string.Format(Strings.Magic_About_Os, os),
             ""
         };
 
         var extensions = context.ExtensionHost.GetLoadedExtensions();
         if (extensions.Count > 0)
         {
-            lines.Add("Loaded extensions:");
+            lines.Add(Strings.Magic_About_LoadedExtensions);
             foreach (var ext in extensions)
             {
                 lines.Add($"  {ext.ExtensionId} ({ext.Name}) v{ext.Version}");
@@ -52,7 +53,7 @@ public sealed class AboutMagicCommand : IMagicCommand
         }
         else
         {
-            lines.Add("No extensions loaded.");
+            lines.Add(Strings.Magic_About_NoExtensions);
         }
 
         var output = new CellOutput("text/plain", string.Join(Environment.NewLine, lines));

@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,17 +8,15 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class ResetMeta : IMetaCommand
 {
     public string Name => "reset";
-    public string Summary => "Resets kernel state; keeps cell history.";
-    public string DetailedHelp =>
-        ".reset\n" +
-        "  Rebuilds the kernel session, clearing all variables and runtime state.\n" +
-        "  The notebook's cell history (cells already typed) is preserved, so .save\n" +
-        "  still captures them. Variables declared before .reset are gone.";
+    public string Summary => Strings.Meta_Reset_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".reset\n" + Strings.Meta_Reset_Details;
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         await context.Session.ResetScaffoldAsync();
-        context.Console.MarkupLine("[green]Kernel state reset.[/]");
+        context.Console.MarkupLine(Messages.In("green", Messages.Say(Strings.Meta_Reset_Done)));
         return true;
     }
 }

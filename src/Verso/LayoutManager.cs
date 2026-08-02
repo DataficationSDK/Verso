@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso;
 
@@ -129,7 +130,7 @@ public sealed class LayoutManager
     public void SetActiveLayout(LayoutReference reference)
     {
         if (!TryActivate(reference))
-            throw new InvalidOperationException($"Layout '{reference}' not found.");
+            throw new InvalidOperationException(string.Format(Strings.Error_LayoutNotFound, reference));
     }
 
     /// <summary>

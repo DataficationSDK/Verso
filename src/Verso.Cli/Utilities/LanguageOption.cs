@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Verso.Cli.Resources;
 using Verso.Localization;
 
 namespace Verso.Cli.Utilities;
@@ -17,11 +18,17 @@ public static class LanguageOption
     /// global. It has to be accepted before a subcommand name so that <c>verso --language de
     /// --help</c> works, and a global option is also the only way for every subcommand to read
     /// the same instance out of a parse result.
+    /// <para>
+    /// Built on first use rather than in a field initializer. An option holds its description as
+    /// a finished string, so building this one before <see cref="ApplyFromArguments"/> has run
+    /// would freeze the help text in whatever language the machine happens to be set to.
+    /// </para>
     /// </remarks>
-    public static Option<string?> Instance { get; } = new(
+    public static Option<string?> Instance => _instance ??= new(
         VersoCultures.Option,
-        $"Language for messages and help, one of: {string.Join(", ", VersoCultures.Supported)}. " +
-        "Defaults to the system language, falling back to English.");
+        string.Format(Strings.Option_Language, string.Join(", ", VersoCultures.Supported)));
+
+    private static Option<string?>? _instance;
 
     /// <summary>
     /// Applies the language named in the raw arguments, before anything is parsed.

@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Python.Host;
+using Verso.Python.Resources;
 
 namespace Verso.Python.Kernel;
 
@@ -111,7 +112,7 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
     public string Name => "Python";
     public string Version => "1.1.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Python language kernel running the interpreter installed on this machine.";
+    public string? Description => Strings.Kernel_Description;
 
     // --- ILanguageKernel ---
 
@@ -124,21 +125,19 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
 
     // --- IExtensionSettings ---
 
-    public IReadOnlyList<SettingDefinition> SettingDefinitions { get; } = new[]
+    /// <remarks>
+    /// Built on each read rather than held, so the settings panel shows the words in the
+    /// language the reader asked for rather than the one the kernel first loaded in.
+    /// </remarks>
+    public IReadOnlyList<SettingDefinition> SettingDefinitions => new[]
     {
-        new SettingDefinition(DependenciesSetting, "Dependencies",
-            "Requirement strings installed into the notebook's Python environment before the " +
-            "first cell runs, under the same consent policy as an import. One per entry, in the " +
-            "form pip accepts (for example \"pandas>=2\"). An entry has to name a package: " +
-            "installer options and locations such as a URL, a version control reference or a " +
-            "path are refused, because a notebook does not choose where packages come from.",
+        new SettingDefinition(DependenciesSetting,
+            Strings.Setting_Dependencies_Label,
+            Strings.Setting_Dependencies_Description,
             SettingType.StringList, null, "Packages"),
-        new SettingDefinition(HideInstallOutputSetting, "Hide Installation Output",
-            "Report an install as the packages it added and the versions they came in at, rather " +
-            "than relaying everything the installer printed on the way there. Installing one " +
-            "package pulls in its dependencies, and the resulting screen of text is saved into " +
-            "the notebook alongside the output the cell was actually run for. An install that " +
-            "fails is always reported in full.",
+        new SettingDefinition(HideInstallOutputSetting,
+            Strings.Setting_HideInstallOutput_Label,
+            Strings.Setting_HideInstallOutput_Description,
             SettingType.Boolean, true, "Packages", Order: 1),
     };
 

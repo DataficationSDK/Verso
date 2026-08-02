@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.Kernel;
 
@@ -66,7 +67,7 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new TimeoutException("Node.js bridge did not send ready signal within 10 seconds.");
+            throw new TimeoutException(Strings.Node_NotReady);
         }
 
         _alive = true;
@@ -206,7 +207,7 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
     private async Task<JsonElement> SendCommandAsync(object command, CancellationToken ct)
     {
         if (!IsAlive)
-            throw new InvalidOperationException("Node.js process is not running.");
+            throw new InvalidOperationException(Strings.Node_NotRunning);
 
         var json = JsonSerializer.Serialize(command);
 
@@ -262,7 +263,7 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         _alive = false;
 
         foreach (var tcs in _pending.Values)
-            tcs.TrySetException(new IOException("Node.js process terminated unexpectedly."));
+            tcs.TrySetException(new IOException(Strings.Node_Terminated));
         _pending.Clear();
     }
 

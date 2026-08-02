@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Auto_Installing" xml:space="preserve">
+    <value>[!!Ïñštàllïñg {0} ïñtò {1}.···!!]</value>
+  </data>
+  <data name="Auto_RefusedOptions" xml:space="preserve">
+    <value>[!!Ñòt ïñštàlléd: {0}. À dépéñdéñçÿ hàš tò ñàmé à pàçkàgé; théšé àré ïñštàllér òptïòñš, whïçh à ñòtébòòk ïš ñòt àllòwéd tò pàšš. Rémòvé thém, òr rùñ thé ïñštàll ÿòùršélf wïth #!pïp ïf ÿòù méàñt thém.···!!]</value>
+  </data>
+  <data name="Auto_RefusedSources" xml:space="preserve">
+    <value>[!!Ñòt ïñštàlléd: {0}. À dépéñdéñçÿ hàš tò ñàmé à pàçkàgé; théšé ñàmé šòméwhéré tò ïñštàll fròm, whïçh wòùld hàvé fétçhéd çòdé fròm à lòçàtïòñ thé ñòtébòòk çhòšé ràthér thàñ fròm thé çòñfïgùréd ïñdéx. Ñàmé thé pàçkàgé ïñštéàd, òr rùñ thé ïñštàll ÿòùršélf wïth #!pïp ïf ÿòù méàñt thém.···!!]</value>
+  </data>
+  <data name="Auto_UnknownDistribution" xml:space="preserve">
+    <value>[!!'{0}' ïš ñòt ïñštàlléd àñd Véršò dòéš ñòt kñòw whïçh dïštrïbùtïòñ pròvïdéš ït. Àùtòmàtïç ïñštàllš òñlÿ çòvér kñòwñ pàçkàgéš; ïñštàll ït wïth #!pïp {0} ïf thàt ïš thé rïght ñàmé.···!!]</value>
+  </data>
+  <data name="Install_AlreadyInstalled_One" xml:space="preserve">
+    <value>[!!{0} ïš àlréàdÿ ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Install_AlreadyInstalled_Other" xml:space="preserve">
+    <value>[!!{0} àré àlréàdÿ ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Install_AlreadyPresent" xml:space="preserve">
+    <value>[!!Àlréàdÿ préšéñt: {0}.···!!]</value>
+  </data>
+  <data name="Install_Completed" xml:space="preserve">
+    <value>[!!Ïñštàll çòmplétéd.···!!]</value>
+  </data>
+  <data name="Install_Dependencies" xml:space="preserve">
+    <value>[!!Dépéñdéñçïéš: {0}.···!!]</value>
+  </data>
+  <data name="Install_DependencyCount_One" xml:space="preserve">
+    <value>[!!{0} dépéñdéñçÿ···!!]</value>
+  </data>
+  <data name="Install_DependencyCount_Other" xml:space="preserve">
+    <value>[!!{0} dépéñdéñçïéš···!!]</value>
+  </data>
+  <data name="Install_ExitedWithCode" xml:space="preserve">
+    <value>[!!Pàçkàgé ïñštàll fàïléd (éxït çòdé {0}).···!!]</value>
+  </data>
+  <data name="Install_Installed" xml:space="preserve">
+    <value>[!!Ïñštàlléd {0}.···!!]</value>
+  </data>
+  <data name="Install_InstalledAnd" xml:space="preserve">
+    <value>[!!Ïñštàlléd {0} àñd {1}.···!!]</value>
+  </data>
+  <data name="Install_NothingToDo" xml:space="preserve">
+    <value>[!!Évérÿthïñg réqùéštéd ïš àlréàdÿ ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Install_PackageCount_One" xml:space="preserve">
+    <value>[!!{0} pàçkàgé···!!]</value>
+  </data>
+  <data name="Install_PackageCount_Other" xml:space="preserve">
+    <value>[!!{0} pàçkàgéš···!!]</value>
+  </data>
+  <data name="Install_Packages" xml:space="preserve">
+    <value>[!!Pàçkàgéš: {0}.···!!]</value>
+  </data>
+  <data name="Install_RunFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò rùñ thé pàçkàgé ïñštàllér: {0}···!!]</value>
+  </data>
+  <data name="Install_StartFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò štàrt thé pàçkàgé ïñštàllér.···!!]</value>
+  </data>
+  <data name="InterpreterSource_CondaPrefix" xml:space="preserve">
+    <value>[!!çòñdà···!!]</value>
+  </data>
+  <data name="InterpreterSource_DerivedEnvironment" xml:space="preserve">
+    <value>[!!màñàgéd éñvïròñméñt···!!]</value>
+  </data>
+  <data name="InterpreterSource_Explicit" xml:space="preserve">
+    <value>[!!çòñfïgùréd···!!]</value>
+  </data>
+  <data name="InterpreterSource_Path" xml:space="preserve">
+    <value>[!!šéàrçh pàth···!!]</value>
+  </data>
+  <data name="InterpreterSource_SessionSelection" xml:space="preserve">
+    <value>[!!šéššïòñ···!!]</value>
+  </data>
+  <data name="InterpreterSource_VirtualEnv" xml:space="preserve">
+    <value>[!!vïrtùàl éñvïròñméñt···!!]</value>
+  </data>
+  <data name="InterpreterSource_WellKnown" xml:space="preserve">
+    <value>[!!wéll-kñòwñ lòçàtïòñ···!!]</value>
+  </data>
+  <data name="InterpreterSource_WorkspaceVenv" xml:space="preserve">
+    <value>[!!wòrkšpàçé véñv···!!]</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>[!!Pÿthòñ làñgùàgé kérñél rùññïñg thé ïñtérprétér ïñštàlléd òñ thïš màçhïñé.···!!]</value>
+  </data>
+  <data name="Magic_Pip_Description" xml:space="preserve">
+    <value>[!!Ïñštàllš Pÿthòñ pàçkàgéš vïà pïp fòr ùšé ïñ šùbšéqùéñt çòdé.···!!]</value>
+  </data>
+  <data name="Magic_Pip_Installing" xml:space="preserve">
+    <value>[!!Ïñštàllïñg {0}...···!!]</value>
+  </data>
+  <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
+    <value>[!!Ñò Pÿthòñ ïñtérprétér ïš àvàïlàblé, šò théré ïš ñòthïñg tò ïñštàll ïñtò. Ïñštàll Pÿthòñ 3.8 òr ñéwér, òr šéléçt àñ ïñtérprétér wïth #!pÿthòñ.···!!]</value>
+  </data>
+  <data name="Magic_Pip_Param_Options" xml:space="preserve">
+    <value>[!!Àddïtïòñàl pïp òptïòñš pàššéd thròùgh tò thé ïñštàll çòmmàñd.···!!]</value>
+  </data>
+  <data name="Magic_Pip_Param_Packages" xml:space="preserve">
+    <value>[!!Òñé òr mòré pàçkàgé špéçïfïérš (é.g. pàñdàš==2.0 ñùmpÿ).···!!]</value>
+  </data>
+  <data name="Magic_Pip_Usage" xml:space="preserve">
+    <value>[!!Ùšàgé: #!pïp &lt;pàçkàgé&gt; [pàçkàgé2 ...] [--òptïòñš]···!!]</value>
+  </data>
+  <data name="Magic_Python_Active" xml:space="preserve">
+    <value>[!!Àçtïvé ïñtérprétér: {0}
+Pÿthòñ {1} ({2}, {3})···!!]</value>
+  </data>
+  <data name="Magic_Python_Description" xml:space="preserve">
+    <value>[!!Ïñšpéçtš òr šéléçtš thé Pÿthòñ ïñtérprétér fòr thé çùrréñt šéššïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Python_DiscoveredHeading" xml:space="preserve">
+    <value>[!!Dïšçòvéréd ïñtérprétérš:···!!]</value>
+  </data>
+  <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
+    <value>[!!
+Thïš ïñtérprétér ïš éxtérñàllÿ màñàgéd; ïñštàllš ùšé à Véršò-màñàgéd éñvïròñméñt.···!!]</value>
+  </data>
+  <data name="Magic_Python_NoneFound" xml:space="preserve">
+    <value>[!!Ñò Pÿthòñ ïñtérprétérš wéré dïšçòvéréd.···!!]</value>
+  </data>
+  <data name="Magic_Python_NotFoundFor" xml:space="preserve">
+    <value>[!!Ñò Pÿthòñ ïñtérprétér wàš fòùñd fòr '{0}'.···!!]</value>
+  </data>
+  <data name="Magic_Python_Param_Target" xml:space="preserve">
+    <value>[!!À pàth òr ñàmé tò šéléçt, òr --lïšt tò šhòw dïšçòvéréd ïñtérprétérš. Òmït tò šhòw thé àçtïvé ïñtérprétér.···!!]</value>
+  </data>
+  <data name="Magic_Python_RestartFailed" xml:space="preserve">
+    <value>[!!Thé kérñél çòùld ñòt bé réštàrtéd àùtòmàtïçàllÿ ({0}). Rùñ #!réštàrt tò àpplÿ thé šéléçtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Python_Selected" xml:space="preserve">
+    <value>[!!Šéléçtéd {0} (Pÿthòñ {1}). ···!!]</value>
+  </data>
+  <data name="Magic_Python_SelectedAppliesLater" xml:space="preserve">
+    <value>[!!Ït àpplïéš thé ñéxt tïmé thé Pÿthòñ kérñél štàrtš.···!!]</value>
+  </data>
+  <data name="Magic_Python_SelectedRestarting" xml:space="preserve">
+    <value>[!!Réštàrtïñg thé kérñél tò àpplÿ ït.···!!]</value>
+  </data>
+  <data name="Setting_Dependencies_Description" xml:space="preserve">
+    <value>[!!Réqùïréméñt štrïñgš ïñštàlléd ïñtò thé ñòtébòòk'š Pÿthòñ éñvïròñméñt béfòré thé fïršt çéll rùñš, ùñdér thé šàmé çòñšéñt pòlïçÿ àš àñ ïmpòrt. Òñé pér éñtrÿ, ïñ thé fòrm pïp àççéptš (fòr éxàmplé "pàñdàš&gt;=2"). Àñ éñtrÿ hàš tò ñàmé à pàçkàgé: ïñštàllér òptïòñš àñd lòçàtïòñš šùçh àš à ÙRL, à véršïòñ çòñtròl référéñçé òr à pàth àré réfùšéd, béçàùšé à ñòtébòòk dòéš ñòt çhòòšé whéré pàçkàgéš çòmé fròm.···!!]</value>
+  </data>
+  <data name="Setting_Dependencies_Label" xml:space="preserve">
+    <value>[!!Dépéñdéñçïéš···!!]</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>[!!Répòrt àñ ïñštàll àš thé pàçkàgéš ït àddéd àñd thé véršïòñš théÿ çàmé ïñ àt, ràthér thàñ rélàÿïñg évérÿthïñg thé ïñštàllér prïñtéd òñ thé wàÿ théré. Ïñštàllïñg òñé pàçkàgé pùllš ïñ ïtš dépéñdéñçïéš, àñd thé réšùltïñg šçrééñ òf téxt ïš šàvéd ïñtò thé ñòtébòòk àlòñgšïdé thé òùtpùt thé çéll wàš àçtùàllÿ rùñ fòr. Àñ ïñštàll thàt fàïlš ïš àlwàÿš répòrtéd ïñ fùll.···!!]</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>[!!Hïdé Ïñštàllàtïòñ Òùtpùt···!!]</value>
+  </data>
+</root>

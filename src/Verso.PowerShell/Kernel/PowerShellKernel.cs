@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.PowerShell.Kernel.Host;
+using Verso.PowerShell.Resources;
 
 namespace Verso.PowerShell.Kernel;
 
@@ -19,7 +20,7 @@ public sealed class PowerShellKernel : ILanguageKernel
     public string Name => "PowerShell";
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "PowerShell language kernel powered by System.Management.Automation.";
+    public string? Description => Strings.Kernel_Description;
 
     // ILanguageKernel
     public string LanguageId => "powershell";

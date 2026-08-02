@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Auto_Installing" xml:space="preserve">
+    <value>Instalando {0} en {1}.</value>
+  </data>
+  <data name="Auto_RefusedOptions" xml:space="preserve">
+    <value>No instalados: {0}. Una dependencia tiene que nombrar un paquete; estas son opciones del instalador, que un cuaderno no puede pasar. Quítelas, o ejecute usted mismo la instalación con #!pip si era lo que quería.</value>
+  </data>
+  <data name="Auto_RefusedSources" xml:space="preserve">
+    <value>No instalados: {0}. Una dependencia tiene que nombrar un paquete; estas indican un lugar desde el que instalar, lo que habría descargado código de una ubicación elegida por el cuaderno en lugar del índice configurado. Nombre el paquete, o ejecute usted mismo la instalación con #!pip si era lo que quería.</value>
+  </data>
+  <data name="Auto_UnknownDistribution" xml:space="preserve">
+    <value>'{0}' no está instalado y Verso no sabe qué distribución lo proporciona. Las instalaciones automáticas solo cubren los paquetes conocidos; instálelo con #!pip {0} si ese es el nombre correcto.</value>
+  </data>
+  <data name="Install_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} ya está instalado.</value>
+  </data>
+  <data name="Install_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} ya están instalados.</value>
+  </data>
+  <data name="Install_AlreadyPresent" xml:space="preserve">
+    <value>Ya estaban presentes: {0}.</value>
+  </data>
+  <data name="Install_Completed" xml:space="preserve">
+    <value>Instalación completada.</value>
+  </data>
+  <data name="Install_Dependencies" xml:space="preserve">
+    <value>Dependencias: {0}.</value>
+  </data>
+  <data name="Install_DependencyCount_One" xml:space="preserve">
+    <value>{0} dependencia</value>
+  </data>
+  <data name="Install_DependencyCount_Other" xml:space="preserve">
+    <value>{0} dependencias</value>
+  </data>
+  <data name="Install_ExitedWithCode" xml:space="preserve">
+    <value>La instalación del paquete falló (código de salida {0}).</value>
+  </data>
+  <data name="Install_Installed" xml:space="preserve">
+    <value>Se instaló {0}.</value>
+  </data>
+  <data name="Install_InstalledAnd" xml:space="preserve">
+    <value>Se instaló {0} y {1}.</value>
+  </data>
+  <data name="Install_NothingToDo" xml:space="preserve">
+    <value>Todo lo solicitado ya está instalado.</value>
+  </data>
+  <data name="Install_PackageCount_One" xml:space="preserve">
+    <value>{0} paquete</value>
+  </data>
+  <data name="Install_PackageCount_Other" xml:space="preserve">
+    <value>{0} paquetes</value>
+  </data>
+  <data name="Install_Packages" xml:space="preserve">
+    <value>Paquetes: {0}.</value>
+  </data>
+  <data name="Install_RunFailed" xml:space="preserve">
+    <value>No se pudo ejecutar el instalador de paquetes: {0}</value>
+  </data>
+  <data name="Install_StartFailed" xml:space="preserve">
+    <value>No se pudo iniciar el instalador de paquetes.</value>
+  </data>
+  <data name="InterpreterSource_CondaPrefix" xml:space="preserve">
+    <value>conda</value>
+  </data>
+  <data name="InterpreterSource_DerivedEnvironment" xml:space="preserve">
+    <value>entorno gestionado</value>
+  </data>
+  <data name="InterpreterSource_Explicit" xml:space="preserve">
+    <value>configurado</value>
+  </data>
+  <data name="InterpreterSource_Path" xml:space="preserve">
+    <value>ruta de búsqueda</value>
+  </data>
+  <data name="InterpreterSource_SessionSelection" xml:space="preserve">
+    <value>sesión</value>
+  </data>
+  <data name="InterpreterSource_VirtualEnv" xml:space="preserve">
+    <value>entorno virtual</value>
+  </data>
+  <data name="InterpreterSource_WellKnown" xml:space="preserve">
+    <value>ubicación habitual</value>
+  </data>
+  <data name="InterpreterSource_WorkspaceVenv" xml:space="preserve">
+    <value>venv del espacio de trabajo</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Kernel del lenguaje Python que ejecuta el intérprete instalado en este equipo.</value>
+  </data>
+  <data name="Magic_Pip_Description" xml:space="preserve">
+    <value>Instala paquetes de Python con pip para usarlos en el código posterior.</value>
+  </data>
+  <data name="Magic_Pip_Installing" xml:space="preserve">
+    <value>Instalando {0}...</value>
+  </data>
+  <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
+    <value>No hay ningún intérprete de Python disponible, así que no hay dónde instalar. Instale Python 3.8 o posterior, o seleccione un intérprete con #!python.</value>
+  </data>
+  <data name="Magic_Pip_Param_Options" xml:space="preserve">
+    <value>Opciones adicionales de pip que se pasan al comando de instalación.</value>
+  </data>
+  <data name="Magic_Pip_Param_Packages" xml:space="preserve">
+    <value>Uno o más especificadores de paquete (por ejemplo, pandas==2.0 numpy).</value>
+  </data>
+  <data name="Magic_Pip_Usage" xml:space="preserve">
+    <value>Uso: #!pip &lt;package&gt; [package2 ...] [--options]</value>
+  </data>
+  <data name="Magic_Python_Active" xml:space="preserve">
+    <value>Intérprete activo: {0}
+Python {1} ({2}, {3})</value>
+  </data>
+  <data name="Magic_Python_Description" xml:space="preserve">
+    <value>Inspecciona o selecciona el intérprete de Python de la sesión actual.</value>
+  </data>
+  <data name="Magic_Python_DiscoveredHeading" xml:space="preserve">
+    <value>Intérpretes detectados:</value>
+  </data>
+  <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
+    <value>
+Este intérprete se gestiona externamente; las instalaciones usan un entorno gestionado por Verso.</value>
+  </data>
+  <data name="Magic_Python_NoneFound" xml:space="preserve">
+    <value>No se detectó ningún intérprete de Python.</value>
+  </data>
+  <data name="Magic_Python_NotFoundFor" xml:space="preserve">
+    <value>No se encontró ningún intérprete de Python para '{0}'.</value>
+  </data>
+  <data name="Magic_Python_Param_Target" xml:space="preserve">
+    <value>Una ruta o un nombre que seleccionar, o --list para mostrar los intérpretes detectados. Omítalo para mostrar el intérprete activo.</value>
+  </data>
+  <data name="Magic_Python_RestartFailed" xml:space="preserve">
+    <value>El kernel no se pudo reiniciar automáticamente ({0}). Ejecute #!restart para aplicar la selección.</value>
+  </data>
+  <data name="Magic_Python_Selected" xml:space="preserve">
+    <value>Se seleccionó {0} (Python {1}). </value>
+  </data>
+  <data name="Magic_Python_SelectedAppliesLater" xml:space="preserve">
+    <value>Se aplicará la próxima vez que se inicie el kernel de Python.</value>
+  </data>
+  <data name="Magic_Python_SelectedRestarting" xml:space="preserve">
+    <value>Reiniciando el kernel para aplicarlo.</value>
+  </data>
+  <data name="Setting_Dependencies_Description" xml:space="preserve">
+    <value>Cadenas de requisitos que se instalan en el entorno de Python del cuaderno antes de que se ejecute la primera celda, con la misma política de consentimiento que una importación. Una por entrada, en el formato que acepta pip (por ejemplo, "pandas&gt;=2"). Una entrada tiene que nombrar un paquete: las opciones del instalador y las ubicaciones como una URL, una referencia de control de versiones o una ruta se rechazan, porque un cuaderno no elige de dónde vienen los paquetes.</value>
+  </data>
+  <data name="Setting_Dependencies_Label" xml:space="preserve">
+    <value>Dependencias</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>Informa de una instalación indicando los paquetes que añadió y las versiones con las que llegaron, en lugar de repetir todo lo que el instalador imprimió por el camino. Instalar un paquete arrastra sus dependencias, y la pantalla de texto resultante se guarda en el cuaderno junto a la salida por la que realmente se ejecutó la celda. Una instalación que falla siempre se informa al completo.</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>Ocultar la salida de instalación</value>
+  </data>
+</root>

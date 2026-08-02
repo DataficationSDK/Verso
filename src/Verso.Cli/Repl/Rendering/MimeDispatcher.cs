@@ -2,6 +2,8 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 using Verso.Abstractions;
 using Verso.Cli.Repl.Rendering.Renderers;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Rendering;
 
@@ -37,7 +39,7 @@ public sealed class MimeDispatcher
             // A widget only exists once a browser has run it, so a terminal says it is there
             // rather than printing the page it would have run.
             CellOutput.WidgetMimeType => PlainTextRenderer.AsRenderable(
-                output with { Content = "[widget output, shown when the notebook is opened]" }, policy),
+                output with { Content = Strings.Render_WidgetPlaceholder }, policy),
             // A terminal has no live bar to show once the cell is done, so the last reported
             // state is rendered as one line.
             CellOutput.ProgressMimeType => PlainTextRenderer.AsRenderable(
@@ -59,12 +61,14 @@ public sealed class MimeDispatcher
         var isProbablyText = text.Length == 0 || text.Take(256).All(c => c >= ' ' || c == '\n' || c == '\r' || c == '\t');
         if (!isProbablyText)
         {
-            var msg = $"<output: {output.MimeType}, {text.Length} chars, binary>";
-            return _useColor ? new Markup($"[dim]{Markup.Escape(msg)}[/]") : new Text(msg);
+            var msg = string.Format(Strings.Render_BinaryOutput, output.MimeType, text.Length);
+            return _useColor ? new Markup(Messages.In("dim", Markup.Escape(msg))) : new Text(msg);
         }
 
-        var header = $"<output: {output.MimeType}>";
-        var headerRenderable = _useColor ? (IRenderable)new Markup($"[dim]{Markup.Escape(header)}[/]") : new Text(header);
+        var header = string.Format(Strings.Render_UnknownOutput, output.MimeType);
+        var headerRenderable = _useColor
+            ? (IRenderable)new Markup(Messages.In("dim", Markup.Escape(header)))
+            : new Text(header);
         return new Rows(headerRenderable, new Text(policy.ClipLines(text)));
     }
 }

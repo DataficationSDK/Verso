@@ -6,6 +6,7 @@ using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
+using Verso.Resources;
 
 namespace Verso.Kernels;
 
@@ -362,7 +363,8 @@ internal sealed class NuGetPackageResolver
                 packageId, resolvedVersion, fileStream, cache, logger, ct).ConfigureAwait(false);
 
             if (!downloaded)
-                throw new InvalidOperationException($"Failed to download package '{packageId}' v{resolvedVersion}.");
+                throw new InvalidOperationException(
+                    string.Format(Strings.Error_PackageDownloadFailed, packageId, resolvedVersion));
         }
 
         var assemblyPaths = new List<string>();

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Auto_Installing" xml:space="preserve">
+    <value>Installing {0} into {1}.</value>
+    <comment>{0} is a comma-separated list of what is being installed and {1} the environment it is going into.</comment>
+  </data>
+  <data name="Auto_RefusedOptions" xml:space="preserve">
+    <value>Not installed: {0}. A dependency has to name a package; these are installer options, which a notebook is not allowed to pass. Remove them, or run the install yourself with #!pip if you meant them.</value>
+    <comment>Entries in the Dependencies setting that were skipped. {0} is a comma-separated list of them.</comment>
+  </data>
+  <data name="Auto_RefusedSources" xml:space="preserve">
+    <value>Not installed: {0}. A dependency has to name a package; these name somewhere to install from, which would have fetched code from a location the notebook chose rather than from the configured index. Name the package instead, or run the install yourself with #!pip if you meant them.</value>
+    <comment>Entries in the Dependencies setting that were skipped for pointing somewhere else. {0} is a comma-separated list of them.</comment>
+  </data>
+  <data name="Auto_UnknownDistribution" xml:space="preserve">
+    <value>'{0}' is not installed and Verso does not know which distribution provides it. Automatic installs only cover known packages; install it with #!pip {0} if that is the right name.</value>
+    <comment>A cell imported something Verso cannot map to a package. {0} is the name the cell imported, and appears twice.</comment>
+  </data>
+  <data name="Install_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} is already installed.</value>
+    <comment>Nothing was done. {0} is one package name with its version.</comment>
+  </data>
+  <data name="Install_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} are already installed.</value>
+    <comment>The same for more than one. {0} is a comma-separated list.</comment>
+  </data>
+  <data name="Install_AlreadyPresent" xml:space="preserve">
+    <value>Already present: {0}.</value>
+    <comment>Names what was there before the install. {0} is a comma-separated list with versions.</comment>
+  </data>
+  <data name="Install_Completed" xml:space="preserve">
+    <value>Install completed.</value>
+    <comment>The install worked but said nothing this could read, and nothing was asked for by name.</comment>
+  </data>
+  <data name="Install_Dependencies" xml:space="preserve">
+    <value>Dependencies: {0}.</value>
+    <comment>Names what came along with the request. {0} is a comma-separated list with versions.</comment>
+  </data>
+  <data name="Install_DependencyCount_One" xml:space="preserve">
+    <value>{0} dependency</value>
+    <comment>How many packages came along with what was asked for, written for exactly one.</comment>
+  </data>
+  <data name="Install_DependencyCount_Other" xml:space="preserve">
+    <value>{0} dependencies</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Install_ExitedWithCode" xml:space="preserve">
+    <value>Package install failed (exit code {0}).</value>
+    <comment>The installer ran and gave up. {0} is the number it exited with.</comment>
+  </data>
+  <data name="Install_Installed" xml:space="preserve">
+    <value>Installed {0}.</value>
+    <comment>{0} is a list of packages with their versions, or a count already written out.</comment>
+  </data>
+  <data name="Install_InstalledAnd" xml:space="preserve">
+    <value>Installed {0} and {1}.</value>
+    <comment>{0} is what was asked for, {1} a count of what came along with it, already written out.</comment>
+  </data>
+  <data name="Install_NothingToDo" xml:space="preserve">
+    <value>Everything requested is already installed.</value>
+    <comment>The install ran and added nothing, because it was all there.</comment>
+  </data>
+  <data name="Install_PackageCount_One" xml:space="preserve">
+    <value>{0} package</value>
+    <comment>How many packages were installed, written for exactly one. Goes into the sentence above.</comment>
+  </data>
+  <data name="Install_PackageCount_Other" xml:space="preserve">
+    <value>{0} packages</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Install_Packages" xml:space="preserve">
+    <value>Packages: {0}.</value>
+    <comment>Names what was installed when none of it matches what was asked for by name.</comment>
+  </data>
+  <data name="Install_RunFailed" xml:space="preserve">
+    <value>Failed to run the package installer: {0}</value>
+    <comment>{0} is the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Install_StartFailed" xml:space="preserve">
+    <value>Failed to start the package installer.</value>
+    <comment>The installer would not run at all.</comment>
+  </data>
+  <data name="InterpreterSource_CondaPrefix" xml:space="preserve">
+    <value>conda</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: a conda environment. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_DerivedEnvironment" xml:space="preserve">
+    <value>managed environment</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: an environment Verso made for this notebook. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_Explicit" xml:space="preserve">
+    <value>configured</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: chosen in the settings. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_Path" xml:space="preserve">
+    <value>search path</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: found by looking along the system's search path. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_SessionSelection" xml:space="preserve">
+    <value>session</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: chosen with #!python earlier in this session. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_VirtualEnv" xml:space="preserve">
+    <value>virtual environment</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: the virtual environment that is currently active. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_WellKnown" xml:space="preserve">
+    <value>well-known location</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: found where an installer usually puts one. Keep it to a word or two.</comment>
+  </data>
+  <data name="InterpreterSource_WorkspaceVenv" xml:space="preserve">
+    <value>workspace venv</value>
+    <comment>Where an interpreter came from, shown in brackets after it in a list: a virtual environment inside the open folder. Keep it to a word or two.</comment>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Python language kernel running the interpreter installed on this machine.</value>
+    <comment>What the Python kernel is, shown wherever kernels are listed.</comment>
+  </data>
+  <data name="Magic_Pip_Description" xml:space="preserve">
+    <value>Installs Python packages via pip for use in subsequent code.</value>
+    <comment>What #!pip does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Pip_Installing" xml:space="preserve">
+    <value>Installing {0}...</value>
+    <comment>Printed before the install starts, so a slow one does not look like nothing happening. {0} is a comma-separated list of package names.</comment>
+  </data>
+  <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
+    <value>No Python interpreter is available, so there is nothing to install into. Install Python 3.8 or newer, or select an interpreter with #!python.</value>
+    <comment>Packages need somewhere to go, and there is no Python on this machine that Verso can use.</comment>
+  </data>
+  <data name="Magic_Pip_Param_Options" xml:space="preserve">
+    <value>Additional pip options passed through to the install command.</value>
+    <comment>What the second argument to #!pip is.</comment>
+  </data>
+  <data name="Magic_Pip_Param_Packages" xml:space="preserve">
+    <value>One or more package specifiers (e.g. pandas==2.0 numpy).</value>
+    <comment>What the first argument to #!pip is. The two package names are examples and stay as written.</comment>
+  </data>
+  <data name="Magic_Pip_Usage" xml:space="preserve">
+    <value>Usage: #!pip &lt;package&gt; [package2 ...] [--options]</value>
+    <comment>Shown when #!pip is given nothing to install. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Python_Active" xml:space="preserve">
+    <value>Active interpreter: {0}
+Python {1} ({2}, {3})</value>
+    <comment>What #!python prints with no argument. {0} is the path, {1} the version, {2} the implementation name such as CPython, and {3} the kind of environment. The last two stay as they are reported.</comment>
+  </data>
+  <data name="Magic_Python_Description" xml:space="preserve">
+    <value>Inspects or selects the Python interpreter for the current session.</value>
+    <comment>What #!python does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Python_DiscoveredHeading" xml:space="preserve">
+    <value>Discovered interpreters:</value>
+    <comment>Heading above the list #!python --list prints. Each interpreter follows on its own line.</comment>
+  </data>
+  <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
+    <value>
+This interpreter is externally managed; installs use a Verso-managed environment.</value>
+    <comment>Added to the end of the message above. It opens with a line break because it is a line of its own.</comment>
+  </data>
+  <data name="Magic_Python_NoneFound" xml:space="preserve">
+    <value>No Python interpreters were discovered.</value>
+    <comment>Nothing on this machine looks like a Python that Verso can use.</comment>
+  </data>
+  <data name="Magic_Python_NotFoundFor" xml:space="preserve">
+    <value>No Python interpreter was found for '{0}'.</value>
+    <comment>{0} is the path, name, or version number that was asked for.</comment>
+  </data>
+  <data name="Magic_Python_Param_Target" xml:space="preserve">
+    <value>A path or name to select, or --list to show discovered interpreters. Omit to show the active interpreter.</value>
+    <comment>What the argument to #!python is. --list is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Python_RestartFailed" xml:space="preserve">
+    <value>The kernel could not be restarted automatically ({0}). Run #!restart to apply the selection.</value>
+    <comment>{0} is the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Magic_Python_Selected" xml:space="preserve">
+    <value>Selected {0} (Python {1}). </value>
+    <comment>The first half of a sentence finished by one of the two below. It ends in a space because the rest follows on the same line. {0} is the path to the interpreter and {1} its version.</comment>
+  </data>
+  <data name="Magic_Python_SelectedAppliesLater" xml:space="preserve">
+    <value>It applies the next time the Python kernel starts.</value>
+    <comment>Finishes the sentence above when no kernel is running to restart.</comment>
+  </data>
+  <data name="Magic_Python_SelectedRestarting" xml:space="preserve">
+    <value>Restarting the kernel to apply it.</value>
+    <comment>Finishes the sentence above when a kernel is running and is being restarted.</comment>
+  </data>
+  <data name="Setting_Dependencies_Description" xml:space="preserve">
+    <value>Requirement strings installed into the notebook's Python environment before the first cell runs, under the same consent policy as an import. One per entry, in the form pip accepts (for example "pandas&gt;=2"). An entry has to name a package: installer options and locations such as a URL, a version control reference or a path are refused, because a notebook does not choose where packages come from.</value>
+    <comment>What the setting above does, shown under its name. The example in quotation marks is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Setting_Dependencies_Label" xml:space="preserve">
+    <value>Dependencies</value>
+    <comment>Name of a setting, shown in the settings panel. Keep it short; it sits on one line above a list.</comment>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>Report an install as the packages it added and the versions they came in at, rather than relaying everything the installer printed on the way there. Installing one package pulls in its dependencies, and the resulting screen of text is saved into the notebook alongside the output the cell was actually run for. An install that fails is always reported in full.</value>
+    <comment>What the setting above does, shown under its name.</comment>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>Hide Installation Output</value>
+    <comment>Name of a setting. Keep it short; it sits on one line beside a switch.</comment>
+  </data>
+</root>

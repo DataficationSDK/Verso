@@ -110,6 +110,8 @@ public sealed class JsonOutputWriter
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // English, like the statuses below: this stands in for a value inside a machine-read
+            // document, next to a type name that is not translated either.
             return $"<{value.GetType().Name}, which has no JSON form>";
         }
     }
@@ -144,6 +146,12 @@ public sealed class JsonOutputWriter
     /// The reported status of a cell: what was recorded, unless the cell produced an error output
     /// while completing, which is how a raised exception usually arrives.
     /// </summary>
+    /// <remarks>
+    /// The values here stay in English. This document is what <c>--output json</c> writes, and it
+    /// is read by whatever the run was piped into rather than by a person; the other statuses are
+    /// enum names, so a translated one would be the only value in the document a caller could not
+    /// compare against.
+    /// </remarks>
     private static string StatusOf(CellModel cell, ExecutionResult? result)
     {
         if (result is null)

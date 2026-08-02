@@ -225,7 +225,7 @@ public sealed class SqlKernelTests
         await kernel.ExecuteAsync("CREATE TABLE T2 (X INTEGER)", ctx);
         var outputs = await kernel.ExecuteAsync("INSERT INTO T2 VALUES (1)", ctx);
 
-        Assert.IsTrue(outputs.Any(o => o.Content.Contains("row(s) affected")));
+        Assert.IsTrue(outputs.Any(o => o.Content.Contains("1 row affected")));
     }
 
     [TestMethod]
@@ -255,9 +255,9 @@ public sealed class SqlKernelTests
             "INSERT INTO T3b VALUES (1); INSERT INTO T3b VALUES (2); INSERT INTO T3b VALUES (3)", ctx);
 
         // Three inserts should produce a single consolidated output, not three separate ones
-        var nonQueryOutputs = outputs.Where(o => o.Content.Contains("row(s) affected")).ToList();
+        var nonQueryOutputs = outputs.Where(o => o.Content.Contains("rows affected")).ToList();
         Assert.AreEqual(1, nonQueryOutputs.Count);
-        Assert.IsTrue(nonQueryOutputs[0].Content.Contains("3 row(s) affected"));
+        Assert.IsTrue(nonQueryOutputs[0].Content.Contains("3 rows affected"));
         Assert.IsTrue(nonQueryOutputs[0].Content.Contains("3 statements"));
     }
 

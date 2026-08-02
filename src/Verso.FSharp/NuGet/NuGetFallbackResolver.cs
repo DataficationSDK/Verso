@@ -6,6 +6,7 @@ using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
+using Verso.FSharp.Resources;
 
 namespace Verso.FSharp.NuGet;
 
@@ -264,9 +265,11 @@ internal sealed class NuGetFallbackResolver
         if (resource is null || resolvedVersion is null)
         {
             var sourceNames = string.Join(", ", _sources.Select(s => s.PackageSource.Source));
-            var message = $"Package '{packageId}'{(version is not null ? $" v{version}" : "")} was not found on any configured source. Sources tried: {sourceNames}";
+            var message = string.Format(Strings.NuGet_PackageNotFound,
+                packageId, version is not null ? $" v{version}" : "", sourceNames);
             if (lastException is not null)
-                message += $" Last error: {lastException.GetType().Name}: {lastException.Message}";
+                message += string.Format(Strings.NuGet_PackageNotFound_LastError,
+                    lastException.GetType().Name, lastException.Message);
             throw new InvalidOperationException(message);
         }
 
@@ -304,13 +307,14 @@ internal sealed class NuGetFallbackResolver
 
                 if (!downloaded)
                     throw new InvalidOperationException(
-                        $"Failed to download package '{packageId}' v{resolvedVersion} from nuget.org.");
+                        string.Format(Strings.NuGet_DownloadFailed, packageId, resolvedVersion));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not InvalidOperationException)
         {
             throw new InvalidOperationException(
-                $"Unable to download package '{packageId}' v{resolvedVersion}. Check your network connection and try again. ({ex.GetType().Name}: {ex.Message})", ex);
+                string.Format(Strings.NuGet_DownloadUnreachable,
+                    packageId, resolvedVersion, ex.GetType().Name, ex.Message), ex);
         }
 
         var assemblyPaths = new List<string>();

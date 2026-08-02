@@ -298,7 +298,7 @@ public sealed class SqlIntegrationTests
         Assert.IsFalse(outputs.Any(o => o.IsError));
         var htmlOutput = outputs.FirstOrDefault(o => o.MimeType == "text/html");
         Assert.IsNotNull(htmlOutput);
-        Assert.IsTrue(htmlOutput!.Content.Contains("row(s) affected"));
+        Assert.IsTrue(htmlOutput!.Content.Contains("1 row affected"));
         Assert.IsTrue(htmlOutput.Content.Contains("ms"));
 
         await DisposeConnectionsAsync(connections);

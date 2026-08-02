@@ -6,6 +6,7 @@ using Verso.Cli.Repl.Prompt;
 using Verso.Cli.Repl.Rendering;
 using Verso.Cli.Repl.Settings;
 using Verso.Cli.Repl.Signals;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 using Verso.Execution;
 using Verso.Extensions;
@@ -32,48 +33,36 @@ public static class ReplCommand
 {
     public static Command Create()
     {
-        var notebookArg = new Argument<FileInfo?>("notebook",
-            "Path to a .verso, .ipynb, or .dib file. When omitted, starts with an empty scratch notebook.")
+        var notebookArg = new Argument<FileInfo?>("notebook", Strings.Repl_ArgNotebook)
         {
             Arity = ArgumentArity.ZeroOrOne
         };
 
-        var kernelOption = new Option<string?>("--kernel",
-            "Active kernel for the first cell. Matched against ILanguageKernel.KernelId case-insensitively. Can be changed at runtime with .kernel.");
+        var kernelOption = new Option<string?>("--kernel", Strings.Repl_OptKernel);
 
-        var executeOption = new Option<bool>(new[] { "--execute", "-x" }, () => false,
-            "When combined with <notebook>, executes all loaded cells before handing control to the prompt.");
+        var executeOption = new Option<bool>(new[] { "--execute", "-x" }, () => false, Strings.Repl_OptExecute);
 
-        var themeOption = new Option<string?>("--theme",
-            "Active theme for output rendering. DisplayName case-insensitive with ThemeId fallback.");
+        var themeOption = new Option<string?>("--theme", Strings.Repl_OptTheme);
 
-        var layoutOption = new Option<string?>("--layout",
-            "Default layout id, passed to .export as ActiveLayoutId unless the command overrides it.");
+        var layoutOption = new Option<string?>("--layout", Strings.Repl_OptLayout);
 
-        var extensionsOption = new Option<DirectoryInfo?>("--extensions",
-            "Additional directory to scan for extension assemblies.");
+        var extensionsOption = new Option<DirectoryInfo?>("--extensions", Strings.Option_Extensions);
 
-        var noColorOption = new Option<bool>("--no-color", () => false,
-            "Disable ANSI styling. Output is plain UTF-8 text.");
+        var noColorOption = new Option<bool>("--no-color", () => false, Strings.Repl_OptNoColor);
 
-        var plainOption = new Option<bool>("--plain", () => false,
-            "Force the line-oriented fallback prompt, bypassing PrettyPrompt even when the terminal would support it.");
+        var plainOption = new Option<bool>("--plain", () => false, Strings.Repl_OptPlain);
 
-        var historyOption = new Option<string?>("--history",
-            "Path to the prompt history file. Use 'none' to disable persistent history.");
+        var historyOption = new Option<string?>("--history", Strings.Repl_OptHistory);
 
-        var listKernelsOption = new Option<bool>("--list-kernels", () => false,
-            "Print available kernels and exit.");
+        var listKernelsOption = new Option<bool>("--list-kernels", () => false, Strings.Repl_OptListKernels);
 
-        var listThemesOption = new Option<bool>("--list-themes", () => false,
-            "Print registered themes and exit.");
+        var listThemesOption = new Option<bool>("--list-themes", () => false, Strings.Repl_OptListThemes);
 
-        var preserveFormatOption = new Option<bool>("--preserve-format", () => false,
-            "When the loaded notebook is .ipynb, .save (no arg) writes back to .ipynb instead of converting to .verso. Cell outputs are preserved.");
+        var preserveFormatOption = new Option<bool>("--preserve-format", () => false, Strings.Repl_OptPreserveFormat);
 
         var pythonOption = PythonInterpreterOption.Create();
 
-        var command = new Command("repl", "Start an interactive Verso REPL in the terminal.")
+        var command = new Command("repl", Strings.Repl_Description)
         {
             notebookArg,
             kernelOption,
@@ -168,7 +157,8 @@ public static class ReplCommand
                 var fullPath = Path.GetFullPath(options.NotebookPath);
                 if (!File.Exists(fullPath))
                 {
-                    Console.Error.WriteLine($"Error: Notebook file not found: {fullPath}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Error_NotebookNotFound, fullPath)));
                     return ExitCodes.FileNotFound;
                 }
 
@@ -179,7 +169,7 @@ public static class ReplCommand
                 }
                 catch (SerializerNotFoundException ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(ex.Message));
                     return ExitCodes.SerializationError;
                 }
 
@@ -190,7 +180,8 @@ public static class ReplCommand
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: Failed to deserialize '{fullPath}': {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Error_DeserializeFailed, fullPath, ex.Message)));
                     return ExitCodes.SerializationError;
                 }
 
@@ -200,7 +191,8 @@ public static class ReplCommand
             {
                 notebook = new NotebookModel
                 {
-                    Title = $"Verso REPL — {DateTimeOffset.Now:yyyy-MM-ddTHH-mm-ss}"
+                    Title = string.Format(
+                        Strings.Repl_ScratchTitle, DateTimeOffset.Now.ToString("yyyy-MM-ddTHH-mm-ss"))
                 };
             }
 
@@ -287,7 +279,7 @@ public static class ReplCommand
                     var result = cell.LastStatus switch
                     {
                         "Success" => ExecutionResult.Success(cell.Id, cell.ExecutionCount ?? 0, cell.LastElapsed ?? TimeSpan.Zero),
-                        "Failed" => ExecutionResult.Failed(cell.Id, cell.ExecutionCount ?? 0, cell.LastElapsed ?? TimeSpan.Zero, new Exception("Prior execution failed.")),
+                        "Failed" => ExecutionResult.Failed(cell.Id, cell.ExecutionCount ?? 0, cell.LastElapsed ?? TimeSpan.Zero, new Exception(Strings.Repl_PriorExecutionFailed)),
                         "Cancelled" => ExecutionResult.Cancelled(cell.Id, cell.ExecutionCount ?? 0, cell.LastElapsed ?? TimeSpan.Zero),
                         _ => ExecutionResult.Success(cell.Id, 0, TimeSpan.Zero)
                     };
@@ -307,7 +299,7 @@ public static class ReplCommand
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Fatal error: {ex.Message}");
+            Console.Error.WriteLine(Messages.Fatal(ex.Message));
             return ExitCodes.CellFailure;
         }
         finally
@@ -341,10 +333,20 @@ public static class ReplCommand
 
     private static void PrintHeader(IAnsiConsole console, bool useColor, ReplSession session, ExtensionHost extensionHost)
     {
-        var kernel = session.ActiveKernelId ?? "<none>";
-        var theme = session.ActiveTheme?.DisplayName ?? "<default>";
-        var notebookLine = session.NotebookPath is not null ? session.NotebookPath : "*scratch*";
-        var extensionCount = extensionHost.GetExtensionInfos().Count;
+        var kernel = session.ActiveKernelId ?? Strings.Repl_MarkerNone;
+        var theme = session.ActiveTheme?.DisplayName ?? Strings.Repl_MarkerDefault;
+        var notebookLine = session.NotebookPath is not null ? session.NotebookPath : Strings.Repl_MarkerScratch;
+        var extensions = string.Format(Strings.Repl_HeaderExtensionCount, extensionCountOf(extensionHost));
+        var hint = Messages.Typed(Strings.Repl_HeaderHint, HelpCommand, ExitCommand);
+
+        // Read into locals and measured here, because a translated label is not the length the
+        // English one was and the four of them are meant to line up.
+        var labels = new[]
+        {
+            Strings.Repl_HeaderKernel, Strings.Repl_HeaderTheme,
+            Strings.Repl_HeaderNotebook, Strings.Repl_HeaderExtensions,
+        };
+        var labelWidth = labels.Max(DisplayWidth.Measure);
 
         if (useColor)
         {
@@ -354,31 +356,41 @@ public static class ReplCommand
             console.Write(banner);
             console.WriteLine();
 
-            var panel = new Panel(
-                $"[bold]kernel:[/] {Markup.Escape(kernel)}\n" +
-                $"[bold]theme:[/]  {Markup.Escape(theme)}\n" +
-                $"[bold]notebook:[/] {Markup.Escape(notebookLine)}\n" +
-                $"[bold]extensions:[/] {extensionCount} loaded")
+            var values = new[] { kernel, theme, notebookLine, extensions };
+            var panel = new Panel(string.Join("\n", labels.Zip(values, (label, value) =>
+                $"[bold]{Markup.Escape(label)}[/] {Markup.Escape(value)}")))
             {
                 Border = BoxBorder.Rounded,
                 BorderStyle = new Style(foreground: Color.Grey39)
             };
             console.Write(panel);
-            console.MarkupLine("[dim]Type [bold].help[/] for commands, [bold].exit[/] to quit.[/]");
+            console.MarkupLine(Messages.In("dim", hint));
             console.WriteLine();
         }
         else
         {
             console.WriteLine("Verso REPL");
-            console.WriteLine($"  kernel:     {kernel}");
-            console.WriteLine($"  theme:      {theme}");
-            console.WriteLine($"  notebook:   {notebookLine}");
-            console.WriteLine($"  extensions: {extensionCount} loaded");
+            foreach (var (label, value) in labels.Zip(new[] { kernel, theme, notebookLine, extensions }))
+                console.WriteLine($"  {DisplayWidth.PadRight(label, labelWidth)} {value}");
             console.WriteLine();
-            console.WriteLine("Type .help for commands, .exit to quit.");
+            console.MarkupLine(hint);
             console.WriteLine();
         }
+
+        static int extensionCountOf(ExtensionHost host) => host.GetExtensionInfos().Count;
     }
+
+    /// <summary>What the reader types to see the REPL's commands. The same in every language.</summary>
+    private const string HelpCommand = ".help";
+
+    /// <summary>What the reader types to leave the REPL. The same in every language.</summary>
+    private const string ExitCommand = ".exit";
+
+    /// <summary>What to type to see the kernels that are installed. The same in every language.</summary>
+    private const string ListKernelsCommand = "verso repl --list-kernels";
+
+    /// <summary>What to type to see the themes that are installed. The same in every language.</summary>
+    private const string ListThemesCommand = "verso repl --list-themes";
 
     private static bool TryResolveKernel(ExtensionHost extensionHost, string value, out string kernelLanguageId, out string error)
     {
@@ -390,9 +402,9 @@ public static class ReplCommand
         {
             kernelLanguageId = "";
             var known = string.Join(", ", kernels.Select(k => k.LanguageId));
-            error = $"Error: Kernel '{value}' is not registered." +
-                    (known.Length > 0 ? $" Available kernels: {known}." : "") +
-                    " Run 'verso repl --list-kernels' for details.";
+            error = Messages.Error(string.Format(Strings.Error_KernelNotRegistered, value))
+                    + (known.Length > 0 ? " " + string.Format(Strings.Error_AvailableKernels, known) : "")
+                    + " " + string.Format(Strings.Hint_RunForDetails, ListKernelsCommand);
             return false;
         }
 
@@ -429,7 +441,7 @@ public static class ReplCommand
 
             var ids = string.Join(", ", byName.Select(t => t.ThemeId));
             theme = null!;
-            error = $"Error: Multiple themes share display name '{value}'. Disambiguate by ThemeId: {ids}.";
+            error = Messages.Error(string.Format(Strings.Error_MultipleThemes, value, ids));
             return false;
         }
 
@@ -444,9 +456,9 @@ public static class ReplCommand
 
         theme = null!;
         var known = string.Join(", ", themes.Select(t => t.DisplayName));
-        error = $"Error: Theme '{value}' is not registered." +
-                (known.Length > 0 ? $" Available themes: {known}." : "") +
-                " Run 'verso repl --list-themes' for details.";
+        error = Messages.Error(string.Format(Strings.Error_ThemeNotRegistered, value))
+                + (known.Length > 0 ? " " + string.Format(Strings.Error_AvailableThemes, known) : "")
+                + " " + string.Format(Strings.Hint_RunForDetails, ListThemesCommand);
         return false;
     }
 
@@ -457,16 +469,20 @@ public static class ReplCommand
             .ToList();
         if (kernels.Count == 0)
         {
-            Console.WriteLine("No kernels are registered.");
+            Console.WriteLine(Strings.List_NoKernels);
             return;
         }
-        var idWidth = Math.Max("LANGUAGE".Length, kernels.Max(k => k.LanguageId.Length));
-        var nameWidth = Math.Max("DISPLAY NAME".Length, kernels.Max(k => k.DisplayName.Length));
-        Console.WriteLine($"{"LANGUAGE".PadRight(idWidth)}  {"DISPLAY NAME".PadRight(nameWidth)}  DESCRIPTION");
+        // Read once into locals: a column is padded to the width of its own heading, and the
+        // heading is not the length it was in English.
+        var languageHeading = Strings.Table_Language;
+        var displayNameHeading = Strings.Table_DisplayName;
+        var idWidth = Math.Max(DisplayWidth.Measure(languageHeading), kernels.Max(k => DisplayWidth.Measure(k.LanguageId)));
+        var nameWidth = Math.Max(DisplayWidth.Measure(displayNameHeading), kernels.Max(k => DisplayWidth.Measure(k.DisplayName)));
+        Console.WriteLine($"{DisplayWidth.PadRight(languageHeading, idWidth)}  {DisplayWidth.PadRight(displayNameHeading, nameWidth)}  {Strings.Table_Description}");
         foreach (var kernel in kernels)
         {
             var description = kernel.Description ?? string.Empty;
-            Console.WriteLine($"{kernel.LanguageId.PadRight(idWidth)}  {kernel.DisplayName.PadRight(nameWidth)}  {description}");
+            Console.WriteLine($"{DisplayWidth.PadRight(kernel.LanguageId, idWidth)}  {DisplayWidth.PadRight(kernel.DisplayName, nameWidth)}  {description}");
         }
     }
 
@@ -477,16 +493,18 @@ public static class ReplCommand
             .ToList();
         if (themes.Count == 0)
         {
-            Console.WriteLine("No themes are registered.");
+            Console.WriteLine(Strings.List_NoThemes);
             return;
         }
-        var nameWidth = Math.Max("THEME".Length, themes.Max(t => t.DisplayName.Length));
-        var kindWidth = Math.Max("KIND".Length, themes.Max(t => t.ThemeKind.ToString().Length));
-        Console.WriteLine($"{"THEME".PadRight(nameWidth)}  {"KIND".PadRight(kindWidth)}  DESCRIPTION");
+        var themeHeading = Strings.Table_Theme;
+        var kindHeading = Strings.Table_Kind;
+        var nameWidth = Math.Max(DisplayWidth.Measure(themeHeading), themes.Max(t => DisplayWidth.Measure(t.DisplayName)));
+        var kindWidth = Math.Max(DisplayWidth.Measure(kindHeading), themes.Max(t => t.ThemeKind.ToString().Length));
+        Console.WriteLine($"{DisplayWidth.PadRight(themeHeading, nameWidth)}  {DisplayWidth.PadRight(kindHeading, kindWidth)}  {Strings.Table_Description}");
         foreach (var theme in themes)
         {
             var description = theme.Description ?? string.Empty;
-            Console.WriteLine($"{theme.DisplayName.PadRight(nameWidth)}  {theme.ThemeKind.ToString().PadRight(kindWidth)}  {description}");
+            Console.WriteLine($"{DisplayWidth.PadRight(theme.DisplayName, nameWidth)}  {theme.ThemeKind.ToString().PadRight(kindWidth)}  {description}");
         }
     }
 }

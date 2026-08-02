@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,11 +8,10 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class ClearMeta : IMetaCommand
 {
     public string Name => "clear";
-    public string Summary => "Clears the terminal.";
-    public string DetailedHelp =>
-        ".clear\n" +
-        "  Clears the terminal screen. Session state (kernel variables, notebook cells)\n" +
-        "  is preserved; only the scrollback is cleared.";
+    public string Summary => Strings.Meta_Clear_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".clear\n" + Strings.Meta_Clear_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
