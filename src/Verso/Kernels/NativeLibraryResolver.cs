@@ -147,6 +147,23 @@ internal static class NuGetRuntimeResolver
             dirs = NativeSearchDirs.ToArray();
         }
 
+        // Prefer a directory belonging to the same package version as the assembly making
+        // the call. Native asset packages ship in lockstep with the managed package that
+        // P/Invokes into them (SkiaSharp 3.119.0 alongside SkiaSharp.NativeAssets.* 3.119.0),
+        // and a managed library that loads a native of the wrong version typically refuses to
+        // initialize. Search directories accumulate for the life of the process, so a session
+        // that referenced two versions of the same package would otherwise hand the first
+        // registered native to whichever version asked for it. Ordering is stable, so
+        // directories that do not match keep their existing relative order and remain
+        // reachable as a fallback.
+        var requestedVersion = GetPackageVersion(assembly);
+        if (requestedVersion is not null)
+        {
+            dirs = dirs
+                .OrderByDescending(dir => BelongsToPackageVersion(dir, requestedVersion) ? 1 : 0)
+                .ToArray();
+        }
+
         foreach (var dir in dirs)
         {
             foreach (var candidate in GetCandidateNames(libraryName))
@@ -158,6 +175,44 @@ internal static class NuGetRuntimeResolver
         }
 
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Returns the package version of the NuGet directory an assembly was loaded from, or
+    /// <see langword="null"/> when it did not come from one. Package directories follow the
+    /// convention <c>.../{packageId}/{version}/{file}.dll</c>, so the immediate parent
+    /// directory name is the version.
+    /// </summary>
+    private static string? GetPackageVersion(Assembly assembly)
+    {
+        string location;
+        try
+        {
+            // Throws for assemblies with no backing file, and returns empty for some others.
+            location = assembly.Location;
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(location))
+            return null;
+
+        var directory = Path.GetDirectoryName(location);
+        return string.IsNullOrEmpty(directory) ? null : Path.GetFileName(directory);
+    }
+
+    /// <summary>
+    /// Returns whether a native search directory sits under the given package version.
+    /// Native libraries are extracted to <c>.../{packageId}/{version}/native/</c>.
+    /// </summary>
+    internal static bool BelongsToPackageVersion(string nativeDir, string version)
+    {
+        var trimmed = nativeDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(trimmed);
+        return !string.IsNullOrEmpty(parent)
+            && string.Equals(Path.GetFileName(parent), version, StringComparison.Ordinal);
     }
 
     /// <summary>
