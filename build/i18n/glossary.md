@@ -74,6 +74,22 @@ language, keep the English word.
 | result set | The rows one query came back with |
 | schema | What a database holds: its tables, views, and columns. Also the grouping a table belongs to, which is the column heading `Schema` |
 
+### Naming the things in the Extensions panel
+
+Every loaded part of Verso is listed there by name, and those names are translated: a reader
+should not meet a list half in their language. Three shapes recur, and each keeps its identifier
+exactly as it is typed while translating the words around it.
+
+- A magic command is named for the word it answers to, which is not translated: `Import Magic
+  Command` becomes `Import-Magic-Command`, `Comando mágico Import`, `Import マジックコマンド`,
+  `Import 魔法命令`.
+- A part of the product is named for what it does: `SQL Renderer`, `Result Set Formatter`,
+  `Jupyter Serializer`. Language names, format names, and file extensions inside them stay as
+  written, and only the role word is translated.
+- A consent reason says why the dialog is asking, in lower case, because it is drawn in brackets
+  after the package name. `import cv2` is the exception: it quotes a line of Python back to the
+  reader, so `import` is a keyword rather than a word.
+
 ## Terms already chosen
 
 Where a house term above has been settled in a language, it is recorded here so the next batch

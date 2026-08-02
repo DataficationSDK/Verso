@@ -79,6 +79,9 @@
   <data name="Magic_Npm_Installing" xml:space="preserve">
     <value>{0} をインストールしています...</value>
   </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Npm マジックコマンド</value>
+  </data>
   <data name="Magic_Npm_NoKernel" xml:space="preserve">
     <value>JavaScript カーネルが読み込まれていません。#!npm には JavaScript カーネルが必要です。</value>
   </data>

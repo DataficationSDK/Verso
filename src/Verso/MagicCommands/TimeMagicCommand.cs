@@ -13,7 +13,7 @@ public sealed class TimeMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.time";
-    string IExtension.Name => "Time Magic Command";
+    string IExtension.Name => Strings.Magic_Time;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 

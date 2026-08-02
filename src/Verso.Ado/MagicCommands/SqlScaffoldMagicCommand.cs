@@ -16,7 +16,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-scaffold";
-    string IExtension.Name => "SQL Scaffold Magic Command";
+    string IExtension.Name => Strings.Magic_Scaffold_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_Scaffold_Description;

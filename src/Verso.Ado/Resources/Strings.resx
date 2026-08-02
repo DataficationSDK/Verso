@@ -58,9 +58,17 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>Export CSV</value>
+    <comment>Name of the toolbar action that writes query results to a CSV file, as listed in the Extensions panel. CSV is a file format and stays as written.</comment>
+  </data>
   <data name="Action_ExportCsv_Description" xml:space="preserve">
     <value>Exports SQL result sets as CSV files.</value>
     <comment>What this toolbar action does, shown as its tooltip.</comment>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>Export JSON</value>
+    <comment>Name of the toolbar action that writes query results to a JSON file, as listed in the Extensions panel. JSON is a file format and stays as written.</comment>
   </data>
   <data name="Action_ExportJson_Description" xml:space="preserve">
     <value>Exports SQL result sets as JSON files.</value>
@@ -69,6 +77,10 @@
   <data name="CellType_Description" xml:space="preserve">
     <value>SQL cell type for querying databases via ADO.NET.</value>
     <comment>What a SQL cell is, shown when choosing a cell type.</comment>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL Cell Type</value>
+    <comment>Name of the SQL cell type, as listed in the Extensions panel.</comment>
   </data>
   <data name="Completion_Keyword_Alter" xml:space="preserve">
     <value>ALTER — Modifies an existing database object.</value>
@@ -226,13 +238,25 @@
     <value>Formats SQL result sets and DataTables as paginated HTML tables.</value>
     <comment>What this formatter does, shown wherever extensions are listed. DataTable is a type name and stays as written.</comment>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>Result Set Formatter</value>
+    <comment>Name of the formatter that draws query results as a table, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>Converts Polyglot Notebooks SQL patterns to Verso SQL cells on Jupyter import.</value>
     <comment>What this import hook does, shown wherever extensions are listed.</comment>
   </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter SQL Import Hook</value>
+    <comment>Name of the hook that turns SQL cells in an imported Jupyter notebook into Verso SQL cells, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>Executes SQL queries against ADO.NET database connections.</value>
     <comment>What the SQL kernel is, shown wherever kernels are listed. ADO.NET is the name of the library and stays as written.</comment>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL Kernel</value>
+    <comment>Name of the SQL kernel, as listed in the Extensions panel.</comment>
   </data>
   <data name="Magic_Connect_Connected" xml:space="preserve">
     <value>Connected '{0}'{1} using {2}</value>
@@ -262,6 +286,10 @@
   <data name="Magic_Connect_Description" xml:space="preserve">
     <value>Establishes a database connection for SQL cells.</value>
     <comment>What #!sql-connect does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL Connect Magic Command</value>
+    <comment>Name of the #!sql-connect magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_Connect_NameRequired" xml:space="preserve">
     <value>--name is required. Usage: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
@@ -325,6 +353,10 @@
     <value>Disconnected '{0}'.</value>
     <comment>{0} is the connection's name.</comment>
   </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL Disconnect Magic Command</value>
+    <comment>Name of the #!sql-disconnect magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_Disconnect_NoName" xml:space="preserve">
     <value>No connection name specified and no default connection is set.</value>
     <comment>Nothing was named, and there is nothing to fall back to.</comment>
@@ -366,6 +398,10 @@
   <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
     <value>Generated C# code</value>
     <comment>A heading the reader can open to see what was generated. Keep it short.</comment>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL Scaffold Magic Command</value>
+    <comment>Name of the #!sql-scaffold magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
     <value>C# kernel not found. Cannot execute scaffolded code.</value>
@@ -454,6 +490,10 @@ Usage in C# cells:
     <value>Error loading schema: {0}</value>
     <comment>The database would not say what it holds. {0} is what it said.</comment>
   </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL Schema Magic Command</value>
+    <comment>Name of the #!sql-schema magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_Schema_NoConnection" xml:space="preserve">
     <value>No database connection. Use #!sql-connect to establish a connection.</value>
     <comment>Nothing was named, and nothing has been connected to yet.</comment>
@@ -493,6 +533,10 @@ Usage in C# cells:
   <data name="Renderer_Description" xml:space="preserve">
     <value>Renders SQL cells with connection indicator badges.</value>
     <comment>What this renderer does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL Renderer</value>
+    <comment>Name of the SQL result renderer, as listed in the Extensions panel.</comment>
   </data>
   <data name="Run_ConnectionClosed" xml:space="preserve">
     <value>Connection '{0}' is not open. Reconnect with `#!sql-connect`.</value>

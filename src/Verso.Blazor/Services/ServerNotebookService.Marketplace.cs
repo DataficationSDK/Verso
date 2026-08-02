@@ -55,7 +55,7 @@ public sealed partial class ServerNotebookService
         {
             if (!_trustStore.IsApproved(packageId, version))
             {
-                var consent = new List<ExtensionConsentInfo> { new(packageId, version, "marketplace") };
+                var consent = new List<ExtensionConsentInfo> { new(packageId, version, Verso.Resources.Strings.Consent_Source_Marketplace) };
                 var approved = await _extensionHost.RequestExtensionConsentAsync(consent, ct);
                 if (!approved)
                     return new PackageInstallResultDto(false, null, UI.Marketplace_InstallNotApproved, 0);

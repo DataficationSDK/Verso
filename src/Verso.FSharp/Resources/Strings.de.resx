@@ -64,8 +64,14 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>Formatiert F#-Typen als reichhaltige HTML-Tabellen und gestaltete Ausgabe.</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>F#-Daten-Formatierer</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>Wandelt beim Jupyter-Import die F#-Muster von Polyglot Notebooks in Verso-F#-Zellen um.</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter-F#-Import-Hook</value>
   </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>F#-Sprachkernel auf Basis von FSharp.Compiler.Service.</value>

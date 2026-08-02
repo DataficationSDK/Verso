@@ -19,7 +19,7 @@ public sealed class SqlConnectMagicCommand : IMagicCommand
 
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-connect";
-    string IExtension.Name => "SQL Connect Magic Command";
+    string IExtension.Name => Strings.Magic_Connect_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_Connect_Description;

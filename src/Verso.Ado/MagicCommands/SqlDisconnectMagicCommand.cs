@@ -15,7 +15,7 @@ public sealed class SqlDisconnectMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-disconnect";
-    string IExtension.Name => "SQL Disconnect Magic Command";
+    string IExtension.Name => Strings.Magic_Disconnect_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_Disconnect_Description;

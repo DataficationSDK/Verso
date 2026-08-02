@@ -23,7 +23,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.extension";
-    string IExtension.Name => "Extension Magic Command";
+    string IExtension.Name => Strings.Magic_Extension;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 

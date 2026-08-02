@@ -12,7 +12,7 @@ public sealed class SvgFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.formatter.svg";
-    public string Name => "SVG Formatter";
+    public string Name => Strings.Formatter_Svg;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Formatter_Svg_Description;

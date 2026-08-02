@@ -154,6 +154,18 @@
   <data name="CellType_Parameters_Label" xml:space="preserve">
     <value>Parameter</value>
   </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>Zelle</value>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>lokale Datei: {0}</value>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>Marketplace</value>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>vom Notebook benötigte Erweiterungen</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>Der Export als Polyglot-Notebook (.dib) wird nicht unterstützt. Verwenden Sie das native Verso-Format.</value>
   </data>
@@ -193,23 +205,44 @@
   <data name="Export_MoreLines_Other" xml:space="preserve">
     <value>... ({0} weitere Zeilen)</value>
   </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>Auflistungs-Formatierer</value>
+  </data>
   <data name="Formatter_Collection_Description" xml:space="preserve">
     <value>Formatiert Auflistungen als HTML-Tabellen.</value>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>Ausnahmen-Formatierer</value>
   </data>
   <data name="Formatter_Exception_Description" xml:space="preserve">
     <value>Formatiert Ausnahmen als strukturiertes HTML.</value>
   </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>HTML-Formatierer</value>
+  </data>
   <data name="Formatter_Html_Description" xml:space="preserve">
     <value>Formatiert Objekte mit einer ToHtml()-Methode als HTML.</value>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>Bild-Formatierer</value>
   </data>
   <data name="Formatter_Image_Description" xml:space="preserve">
     <value>Formatiert Bytearrays als eingebettete Base64-Bilder.</value>
   </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>Objekt-Formatierer</value>
+  </data>
   <data name="Formatter_Object_Description" xml:space="preserve">
     <value>Formatiert Objekte als HTML-Tabellen mit ihren öffentlichen Eigenschaften und Feldern.</value>
   </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>Primitivtypen-Formatierer</value>
+  </data>
   <data name="Formatter_Primitive_Description" xml:space="preserve">
     <value>Formatiert primitive und gängige Werttypen als reinen Text.</value>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>SVG-Formatierer</value>
   </data>
   <data name="Formatter_Svg_Description" xml:space="preserve">
     <value>Formatiert SVG-Zeichenfolgen als eingebettetes HTML.</value>
@@ -280,6 +313,9 @@
   <data name="Layout_RunCell" xml:space="preserve">
     <value>Ausführen</value>
   </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>About-Magic-Command</value>
+  </data>
   <data name="Magic_About_Description" xml:space="preserve">
     <value>Zeigt die Verso-Version, Angaben zur Laufzeitumgebung und die geladenen Erweiterungen.</value>
   </data>
@@ -294,6 +330,9 @@
   </data>
   <data name="Magic_About_Runtime" xml:space="preserve">
     <value>Laufzeit: {0}</value>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>Extension-Magic-Command</value>
   </data>
   <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
     <value>Die Erweiterungsassembly '{0}' ist bereits geladen.</value>
@@ -357,6 +396,9 @@
   </data>
   <data name="Magic_Extension_Usage" xml:space="preserve">
     <value>Verwendung: #!extension &lt;PackageId&gt; [Version]  oder  #!extension &lt;path/to/assembly.dll&gt;</value>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>Import-Magic-Command</value>
   </data>
   <data name="Magic_Import_CellCount_One" xml:space="preserve">
     <value>{0} Zelle</value>
@@ -423,6 +465,9 @@
   <data name="Magic_Import_Usage" xml:space="preserve">
     <value>#!import benötigt einen Dateipfad. Verwendung: #!import &lt;path&gt; [--param name=value ...]</value>
   </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>NuGet-Magic-Command</value>
+  </data>
   <data name="Magic_NuGet_Description" xml:space="preserve">
     <value>Lädt ein NuGet-Paket herunter und verweist darauf, damit nachfolgender Code es verwenden kann.</value>
   </data>
@@ -447,6 +492,9 @@
   <data name="Magic_NuGet_Usage" xml:space="preserve">
     <value>Verwendung: #!nuget &lt;PackageId&gt; [Version]</value>
   </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>Restart-Magic-Command</value>
+  </data>
   <data name="Magic_Restart_Description" xml:space="preserve">
     <value>Startet den angegebenen Kernel neu, oder den Standardkernel, wenn kein Argument angegeben wird.</value>
   </data>
@@ -458,6 +506,9 @@
   </data>
   <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
     <value>Die Sprach-ID des neu zu startenden Kernels.</value>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>Time-Magic-Command</value>
   </data>
   <data name="Magic_Time_Description" xml:space="preserve">
     <value>Meldet die verstrichene Zeit nach der Ausführung einer Zelle.</value>
@@ -549,6 +600,12 @@
   <data name="Parameters_UnknownType" xml:space="preserve">
     <value>Unbekannter Parametertyp '{0}'.</value>
   </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>Jupyter-Polyglot-Magic-Splitter</value>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>Teilt Polyglot-Notebook-Direktiven zum Sprachwechsel in importierten .ipynb-Dateien in eigene Zellen auf.</value>
+  </data>
   <data name="Prefix_Error" xml:space="preserve">
     <value>Fehler: {0}</value>
   </data>
@@ -632,6 +689,30 @@
   </data>
   <data name="Renderer_Parameters_Description" xml:space="preserve">
     <value>Stellt Parameterdefinitionen als interaktives Formular mit typgerechten Eingabefeldern dar.</value>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>Polyglot-Notebook-Serialisierer</value>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>Serialisierer für die .dib-Dateien von Polyglot Notebooks, nur zum Importieren.</value>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>Jupyter-Serialisierer</value>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>Serialisierer für Jupyter-Notebooks im Format .ipynb (nbformat v4).</value>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>Markdown-Serialisierer</value>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>Serialisierer für Markdown-Notebooks (.md), deren Codeblöcke zu Zellen werden.</value>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>Verso-Serialisierer</value>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>Serialisierer für Versos eigenes Dateiformat .verso.</value>
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>Verso Dunkel</value>

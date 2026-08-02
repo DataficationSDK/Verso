@@ -21,7 +21,7 @@ public sealed class ObjectFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.formatter.object";
-    public string Name => "Object Formatter";
+    public string Name => Strings.Formatter_Object;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Formatter_Object_Description;

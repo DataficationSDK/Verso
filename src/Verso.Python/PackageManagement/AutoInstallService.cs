@@ -220,7 +220,7 @@ internal sealed class AutoInstallService
             request.Add(new ExtensionConsentInfo(
                 candidate.Distribution,
                 Version: null,
-                Source: $"import {candidate.Module}")
+                Source: string.Format(Strings.Consent_Source_Import, candidate.Module))
             {
                 Kind = ConsentKind.Package,
                 Target = environment,
@@ -232,7 +232,7 @@ internal sealed class AutoInstallService
             request.Add(new ExtensionConsentInfo(
                 requirement,
                 Version: null,
-                Source: "declared dependency")
+                Source: Strings.Consent_Source_DeclaredDependency)
             {
                 Kind = ConsentKind.Package,
                 Target = environment,

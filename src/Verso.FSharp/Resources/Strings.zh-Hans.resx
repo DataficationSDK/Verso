@@ -64,8 +64,14 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>将 F# 类型格式化为富 HTML 表格和带样式的输出。</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>F# 数据格式化程序</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>在导入 Jupyter 文件时，将 Polyglot Notebooks 的 F# 模式转换为 Verso F# 单元格。</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter F# 导入挂钩</value>
   </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>由 FSharp.Compiler.Service 驱动的 F# 语言内核。</value>

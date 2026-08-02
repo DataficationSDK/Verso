@@ -13,7 +13,7 @@ public sealed class HttpSetTimeoutMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.http.magic.http-set-timeout";
-    string IExtension.Name => "HTTP Set Timeout Magic Command";
+    string IExtension.Name => Strings.Magic_SetTimeout_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_SetTimeout_Description;

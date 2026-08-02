@@ -9,6 +9,7 @@ on:
       - "templates/**"
       - "vscode/**"
       - "samples/showcase/**"
+      - "build/i18n/**"
       - "Verso.sln"
       - ".github/workflows/verso-ci.yml"
   pull_request:
@@ -19,6 +20,7 @@ on:
       - "templates/**"
       - "vscode/**"
       - "samples/showcase/**"
+      - "build/i18n/**"
       - "Verso.sln"
       - ".github/workflows/verso-ci.yml"
   workflow_dispatch:
@@ -57,6 +59,14 @@ jobs:
       # hover, and diagnostics tests do not depend on reaching a package index while they run.
       - name: Install Python test dependencies
         run: python -m pip install --upgrade pip jedi
+
+      # None of what this catches fails the build: a missing translation falls back to English,
+      # and a translation that lost the `{0}` it was going to fill in only throws when the message
+      # is finally shown to somebody. It reads the committed files and nothing else, so it needs no
+      # API key and no network, and it runs before the build so a drifted string is reported in
+      # seconds rather than after everything has compiled.
+      - name: Check translations
+        run: python build/i18n/check.py
 
       - name: Restore
         run: dotnet restore Verso.sln

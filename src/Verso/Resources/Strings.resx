@@ -186,6 +186,22 @@
     <value>Parameters</value>
     <comment>The parameters cell as offered in the new-cell list.</comment>
   </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>cell</value>
+    <comment>Why the consent dialog is asking: a cell in the notebook asked for this package. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>local file: {0}</value>
+    <comment>Why the consent dialog is asking: the package was read from a file on this machine. {0} is the file name. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>marketplace</value>
+    <comment>Why the consent dialog is asking: the package was chosen from the Extensions panel's search. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>notebook required extensions</value>
+    <comment>Why the consent dialog is asking: the notebook declares this package as one it needs. Appears beside the package name, in brackets.</comment>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>Polyglot Notebook .dib export is not supported. Use the Verso native format.</value>
     <comment>Saving to .dib is not offered. The file extensions stay as written.</comment>
@@ -238,29 +254,57 @@
     <value>... ({0} more lines)</value>
     <comment>The same for any other number.</comment>
   </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>Collection Formatter</value>
+    <comment>Name of the built-in collection formatter, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Formatter_Collection_Description" xml:space="preserve">
     <value>Formats collections as HTML tables.</value>
     <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>Exception Formatter</value>
+    <comment>Name of the built-in exception formatter, as listed in the Extensions panel.</comment>
   </data>
   <data name="Formatter_Exception_Description" xml:space="preserve">
     <value>Formats exceptions as structured HTML.</value>
     <comment>What this formatter does, shown wherever extensions are listed.</comment>
   </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>HTML Formatter</value>
+    <comment>Name of the built-in HTML formatter, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Formatter_Html_Description" xml:space="preserve">
     <value>Formats objects with a ToHtml() method as HTML.</value>
     <comment>What this formatter does, shown wherever extensions are listed. ToHtml() is written in code and stays as it is.</comment>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>Image Formatter</value>
+    <comment>Name of the built-in image formatter, as listed in the Extensions panel.</comment>
   </data>
   <data name="Formatter_Image_Description" xml:space="preserve">
     <value>Formats byte arrays as inline base64 images.</value>
     <comment>What this formatter does, shown wherever extensions are listed.</comment>
   </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>Object Formatter</value>
+    <comment>Name of the built-in object formatter, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Formatter_Object_Description" xml:space="preserve">
     <value>Formats objects as HTML tables showing public properties and fields.</value>
     <comment>What this formatter does, shown wherever extensions are listed.</comment>
   </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>Primitive Formatter</value>
+    <comment>Name of the built-in formatter for numbers, strings and other single values, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Formatter_Primitive_Description" xml:space="preserve">
     <value>Formats primitive and common value types as plain text.</value>
     <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>SVG Formatter</value>
+    <comment>Name of the built-in SVG formatter, as listed in the Extensions panel.</comment>
   </data>
   <data name="Formatter_Svg_Description" xml:space="preserve">
     <value>Formats SVG strings as inline HTML.</value>
@@ -354,6 +398,10 @@
     <value>Run</value>
     <comment>Tooltip on the button that runs one cell on the dashboard. Keep it to a word: the button holds only an icon.</comment>
   </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>About Magic Command</value>
+    <comment>Name of the #!about magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_About_Description" xml:space="preserve">
     <value>Displays Verso version, runtime information, and loaded extensions.</value>
     <comment>What #!about does, shown in the list of magic commands.</comment>
@@ -373,6 +421,10 @@
   <data name="Magic_About_Runtime" xml:space="preserve">
     <value>Runtime: {0}</value>
     <comment>A line of #!about output. {0} is the .NET runtime description, which stays as the runtime reports it.</comment>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>Extension Magic Command</value>
+    <comment>Name of the #!extension magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
     <value>Extension assembly '{0}' is already loaded.</value>
@@ -457,6 +509,10 @@
   <data name="Magic_Extension_Usage" xml:space="preserve">
     <value>Usage: #!extension &lt;PackageId&gt; [Version]  or  #!extension &lt;path/to/assembly.dll&gt;</value>
     <comment>Shown when #!extension is given nothing to install. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>Import Magic Command</value>
+    <comment>Name of the #!import magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_Import_CellCount_One" xml:space="preserve">
     <value>{0} cell</value>
@@ -544,6 +600,10 @@
     <value>#!import requires a file path. Usage: #!import &lt;path&gt; [--param name=value ...]</value>
     <comment>Shown when #!import is given nothing to import. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
   </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>NuGet Magic Command</value>
+    <comment>Name of the #!nuget magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_NuGet_Description" xml:space="preserve">
     <value>Downloads and references a NuGet package for use in subsequent code.</value>
     <comment>What #!nuget does, shown in the list of magic commands.</comment>
@@ -576,6 +636,10 @@
     <value>Usage: #!nuget &lt;PackageId&gt; [Version]</value>
     <comment>Shown when #!nuget is given nothing to install. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
   </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>Restart Magic Command</value>
+    <comment>Name of the #!restart magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_Restart_Description" xml:space="preserve">
     <value>Restarts the specified kernel, or the default kernel if no argument is given.</value>
     <comment>What #!restart does, shown in the list of magic commands.</comment>
@@ -591,6 +655,10 @@
   <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
     <value>The language ID of the kernel to restart.</value>
     <comment>What the argument to #!restart is.</comment>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>Time Magic Command</value>
+    <comment>Name of the #!time magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_Time_Description" xml:space="preserve">
     <value>Reports elapsed wall-clock time after cell execution.</value>
@@ -712,6 +780,14 @@
     <value>Unknown parameter type '{0}'.</value>
     <comment>The notebook declares a parameter of a type Verso does not have. {0} is the type it named.</comment>
   </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>Jupyter Polyglot Magic Splitter</value>
+    <comment>Name of the built-in import hook that splits Polyglot Notebook language directives into separate cells, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>Splits Polyglot Notebook language-switching directives in imported .ipynb files into separate cells.</value>
+    <comment>What this import hook does, shown wherever extensions are listed. The file extension stays as written.</comment>
+  </data>
   <data name="Prefix_Error" xml:space="preserve">
     <value>Error: {0}</value>
     <comment>Written in front of a message a cell could not carry out. {0} is the message.</comment>
@@ -823,6 +899,38 @@
   <data name="Renderer_Parameters_Description" xml:space="preserve">
     <value>Renders parameter definitions as an interactive form with type-aware inputs.</value>
     <comment>Second line of the parameters renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>Polyglot Notebook Serializer</value>
+    <comment>Name of the built-in Polyglot Notebook reader, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>Import-only serializer for Polyglot Notebooks .dib files.</value>
+    <comment>What this serializer does, shown wherever extensions are listed. It reads that format but never writes it. The file extension stays as written.</comment>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>Jupyter Serializer</value>
+    <comment>Name of the built-in Jupyter serializer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>Serializer for Jupyter .ipynb notebooks (nbformat v4).</value>
+    <comment>What this serializer does, shown wherever extensions are listed. The file extension and the format version stay as written.</comment>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>Markdown Serializer</value>
+    <comment>Name of the built-in Markdown serializer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>Serializer for Markdown (.md) notebooks with fenced code cells.</value>
+    <comment>What this serializer does, shown wherever extensions are listed. The file extension stays as written.</comment>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>Verso Serializer</value>
+    <comment>Name of the serializer for Verso's own format, as listed in the Extensions panel. Verso is a product name.</comment>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>Native .verso file format serializer.</value>
+    <comment>What this serializer does, shown wherever extensions are listed. The file extension stays as written.</comment>
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>Verso Dark</value>

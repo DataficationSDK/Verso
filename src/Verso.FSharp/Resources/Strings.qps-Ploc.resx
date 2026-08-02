@@ -64,8 +64,14 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>[!!Fòrmàtš F# tÿpéš àš rïçh HTML tàbléš àñd štÿléd òùtpùt.···!!]</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>[!!F# Dàtà Fòrmàttér···!!]</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>[!!Çòñvértš Pòlÿglòt Ñòtébòòkš F# pàttérñš tò Véršò F# çéllš òñ Jùpÿtér ïmpòrt.···!!]</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>[!!Jùpÿtér F# Ïmpòrt Hòòk···!!]</value>
   </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>[!!F# làñgùàgé kérñél pòwéréd bÿ FŠhàrp.Çòmpïlér.Šérvïçé.···!!]</value>

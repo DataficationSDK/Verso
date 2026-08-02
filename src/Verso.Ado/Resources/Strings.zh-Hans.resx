@@ -58,14 +58,23 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>导出 CSV</value>
+  </data>
   <data name="Action_ExportCsv_Description" xml:space="preserve">
     <value>将 SQL 结果集导出为 CSV 文件。</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>导出 JSON</value>
   </data>
   <data name="Action_ExportJson_Description" xml:space="preserve">
     <value>将 SQL 结果集导出为 JSON 文件。</value>
   </data>
   <data name="CellType_Description" xml:space="preserve">
     <value>通过 ADO.NET 查询数据库的 SQL 单元格类型。</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL 单元格类型</value>
   </data>
   <data name="Completion_Keyword_Alter" xml:space="preserve">
     <value>ALTER — 修改现有的数据库对象。</value>
@@ -184,11 +193,20 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>将 SQL 结果集和 DataTable 格式化为分页的 HTML 表格。</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>结果集格式化程序</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>在导入 Jupyter 文件时，将 Polyglot Notebooks 的 SQL 模式转换为 Verso SQL 单元格。</value>
   </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter SQL 导入挂钩</value>
+  </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>对 ADO.NET 数据库连接执行 SQL 查询。</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL 内核</value>
   </data>
   <data name="Magic_Connect_Connected" xml:space="preserve">
     <value>已连接“{0}”{1}，使用 {2}</value>
@@ -211,6 +229,9 @@
   </data>
   <data name="Magic_Connect_Description" xml:space="preserve">
     <value>为 SQL 单元格建立数据库连接。</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL Connect 魔法命令</value>
   </data>
   <data name="Magic_Connect_NameRequired" xml:space="preserve">
     <value>必须指定 --name。用法：#!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
@@ -259,6 +280,9 @@
   <data name="Magic_Disconnect_Done" xml:space="preserve">
     <value>已断开“{0}”。</value>
   </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL Disconnect 魔法命令</value>
+  </data>
   <data name="Magic_Disconnect_NoName" xml:space="preserve">
     <value>未指定连接名称，也未设置默认连接。</value>
   </data>
@@ -290,6 +314,9 @@
   </data>
   <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
     <value>生成的 C# 代码</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL Scaffold 魔法命令</value>
   </data>
   <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
     <value>找不到 C# 内核。无法执行生成的代码。</value>
@@ -358,6 +385,9 @@
   <data name="Magic_Schema_LoadFailed" xml:space="preserve">
     <value>加载架构时出错：{0}</value>
   </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL Schema 魔法命令</value>
+  </data>
   <data name="Magic_Schema_NoConnection" xml:space="preserve">
     <value>没有数据库连接。请使用 #!sql-connect 建立连接。</value>
   </data>
@@ -387,6 +417,9 @@
   </data>
   <data name="Renderer_Description" xml:space="preserve">
     <value>渲染带连接标识徽章的 SQL 单元格。</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL 渲染器</value>
   </data>
   <data name="Run_ConnectionClosed" xml:space="preserve">
     <value>连接“{0}”未打开。请使用 `#!sql-connect` 重新连接。</value>

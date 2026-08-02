@@ -64,8 +64,14 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>F# の型を、見やすい HTML の表とスタイル付きの出力として整形します。</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>F# データフォーマッター</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>Jupyter のインポート時に、Polyglot Notebooks の F# の書き方を Verso の F# セルに変換します。</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter F# インポートフック</value>
   </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>FSharp.Compiler.Service を利用した F# 言語カーネル。</value>

@@ -17,6 +17,14 @@ dotnet tool update -g Verso.Cli
 
 Requires .NET 8.0 SDK or later.
 
+## Global Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--language <tag>` | system | Interface language: `en`, `de`, `es`, `ja`, or `zh-Hans` |
+
+Accepted by every command, and before the command name as well, so `verso --language de --help` prints the help in German. Without it the language comes from the `VERSO_LANGUAGE` environment variable, then from the operating system, then English. Only the words change: numbers and dates keep the machine's own formatting, and the `[error]` tags and `--output json` status values stay in English so a pipeline that reads them cannot break.
+
 ## Commands
 
 ### `verso serve`

@@ -74,6 +74,14 @@
     <value>'{0}' is not installed and Verso does not know which distribution provides it. Automatic installs only cover known packages; install it with #!pip {0} if that is the right name.</value>
     <comment>A cell imported something Verso cannot map to a package. {0} is the name the cell imported, and appears twice.</comment>
   </data>
+  <data name="Consent_Source_DeclaredDependency" xml:space="preserve">
+    <value>declared dependency</value>
+    <comment>Why the consent dialog is asking: the notebook lists this package among the ones it needs. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_Import" xml:space="preserve">
+    <value>import {0}</value>
+    <comment>Why the consent dialog is asking, quoting the line of Python that needs the package. `import` is a Python keyword and stays as written; {0} is the module name.</comment>
+  </data>
   <data name="Install_AlreadyInstalled_One" xml:space="preserve">
     <value>{0} is already installed.</value>
     <comment>Nothing was done. {0} is one package name with its version.</comment>
@@ -182,6 +190,10 @@
     <value>Installing {0}...</value>
     <comment>Printed before the install starts, so a slow one does not look like nothing happening. {0} is a comma-separated list of package names.</comment>
   </data>
+  <data name="Magic_Pip_Name" xml:space="preserve">
+    <value>Pip Magic Command</value>
+    <comment>Name of the #!pip magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
     <value>No Python interpreter is available, so there is nothing to install into. Install Python 3.8 or newer, or select an interpreter with #!python.</value>
     <comment>Packages need somewhere to go, and there is no Python on this machine that Verso can use.</comment>
@@ -215,6 +227,10 @@ Python {1} ({2}, {3})</value>
     <value>
 This interpreter is externally managed; installs use a Verso-managed environment.</value>
     <comment>Added to the end of the message above. It opens with a line break because it is a line of its own.</comment>
+  </data>
+  <data name="Magic_Python_Name" xml:space="preserve">
+    <value>Python Interpreter Magic Command</value>
+    <comment>Name of the #!python magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_Python_NoneFound" xml:space="preserve">
     <value>No Python interpreters were discovered.</value>

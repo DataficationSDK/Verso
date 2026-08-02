@@ -16,7 +16,7 @@ public sealed class PipMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.pip";
-    string IExtension.Name => "Pip Magic Command";
+    string IExtension.Name => Strings.Magic_Pip_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 

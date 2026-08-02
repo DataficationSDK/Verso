@@ -16,7 +16,7 @@ public sealed class NuGetMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.nuget";
-    string IExtension.Name => "NuGet Magic Command";
+    string IExtension.Name => Strings.Magic_NuGet;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 

@@ -24,7 +24,7 @@ public sealed class FSharpDataFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.fsharp.formatter";
-    public string Name => "F# Data Formatter";
+    public string Name => Strings.Formatter_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Formatter_Description;

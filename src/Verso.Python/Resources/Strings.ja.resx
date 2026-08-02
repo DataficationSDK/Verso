@@ -70,6 +70,12 @@
   <data name="Auto_UnknownDistribution" xml:space="preserve">
     <value>'{0}' はインストールされておらず、どのディストリビューションが提供しているか Verso にはわかりません。自動インストールの対象は既知のパッケージだけです。その名前で正しければ #!pip {0} でインストールしてください。</value>
   </data>
+  <data name="Consent_Source_DeclaredDependency" xml:space="preserve">
+    <value>宣言された依存関係</value>
+  </data>
+  <data name="Consent_Source_Import" xml:space="preserve">
+    <value>import {0}</value>
+  </data>
   <data name="Install_AlreadyInstalled_One" xml:space="preserve">
     <value>{0} は既にインストールされています。</value>
   </data>
@@ -151,6 +157,9 @@
   <data name="Magic_Pip_Installing" xml:space="preserve">
     <value>{0} をインストールしています...</value>
   </data>
+  <data name="Magic_Pip_Name" xml:space="preserve">
+    <value>Pip マジックコマンド</value>
+  </data>
   <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
     <value>使用できる Python インタープリターがないため、インストール先がありません。Python 3.8 以降をインストールするか、#!python でインタープリターを選択してください。</value>
   </data>
@@ -176,6 +185,9 @@ Python {1} ({2}、{3})</value>
   <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
     <value>
 このインタープリターは外部で管理されているため、インストールには Verso が管理する環境を使います。</value>
+  </data>
+  <data name="Magic_Python_Name" xml:space="preserve">
+    <value>Python インタープリターマジックコマンド</value>
   </data>
   <data name="Magic_Python_NoneFound" xml:space="preserve">
     <value>Python インタープリターは検出されませんでした。</value>

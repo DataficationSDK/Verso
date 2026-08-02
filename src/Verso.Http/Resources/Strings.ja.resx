@@ -61,6 +61,9 @@
   <data name="CellType_Description" xml:space="preserve">
     <value>REST API へのリクエストを送るための HTTP リクエストセルタイプ。</value>
   </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>HTTP セルタイプ</value>
+  </data>
   <data name="Completion_Header_Accept" xml:space="preserve">
     <value>Accept — クライアントが応答として扱えるメディアタイプ。</value>
   </data>
@@ -142,11 +145,17 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>.http ファイルの記法で HTTP リクエストを実行します。</value>
   </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>HTTP カーネル</value>
+  </data>
   <data name="Magic_SetBase_Description" xml:space="preserve">
     <value>相対的な HTTP リクエスト URL の基準となる URL を設定します。</value>
   </data>
   <data name="Magic_SetBase_Done" xml:space="preserve">
     <value>HTTP の基準 URL を設定しました: {0}</value>
+  </data>
+  <data name="Magic_SetBase_Name" xml:space="preserve">
+    <value>HTTP Set Base マジックコマンド</value>
   </data>
   <data name="Magic_SetBase_Param_Url" xml:space="preserve">
     <value>相対的なリクエスト URL の前に付ける基準 URL。</value>
@@ -162,6 +171,9 @@
   </data>
   <data name="Magic_SetHeader_Done" xml:space="preserve">
     <value>既定のヘッダーを設定しました: {0}: {1}</value>
+  </data>
+  <data name="Magic_SetHeader_Name" xml:space="preserve">
+    <value>HTTP Set Header マジックコマンド</value>
   </data>
   <data name="Magic_SetHeader_Param_Name" xml:space="preserve">
     <value>ヘッダーの名前。</value>
@@ -181,6 +193,9 @@
   <data name="Magic_SetTimeout_Invalid" xml:space="preserve">
     <value>正の整数が必要です。使い方: #!http-set-timeout &lt;seconds&gt;</value>
   </data>
+  <data name="Magic_SetTimeout_Name" xml:space="preserve">
+    <value>HTTP Set Timeout マジックコマンド</value>
+  </data>
   <data name="Magic_SetTimeout_Param_Seconds" xml:space="preserve">
     <value>タイムアウトの秒数。</value>
   </data>
@@ -189,6 +204,9 @@
   </data>
   <data name="Renderer_Description" xml:space="preserve">
     <value>HTTP リクエストのセルを表示します。</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>HTTP レンダラー</value>
   </data>
   <data name="Response_Headers" xml:space="preserve">
     <value>応答ヘッダー ({0})</value>

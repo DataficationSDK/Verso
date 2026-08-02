@@ -70,6 +70,12 @@
   <data name="Auto_UnknownDistribution" xml:space="preserve">
     <value>'{0}' ist nicht installiert und Verso weiß nicht, welche Distribution es bereitstellt. Automatische Installationen erfassen nur bekannte Pakete; installieren Sie es mit #!pip {0}, falls das der richtige Name ist.</value>
   </data>
+  <data name="Consent_Source_DeclaredDependency" xml:space="preserve">
+    <value>deklarierte Abhängigkeit</value>
+  </data>
+  <data name="Consent_Source_Import" xml:space="preserve">
+    <value>import {0}</value>
+  </data>
   <data name="Install_AlreadyInstalled_One" xml:space="preserve">
     <value>{0} ist bereits installiert.</value>
   </data>
@@ -151,6 +157,9 @@
   <data name="Magic_Pip_Installing" xml:space="preserve">
     <value>{0} wird installiert...</value>
   </data>
+  <data name="Magic_Pip_Name" xml:space="preserve">
+    <value>Pip-Magic-Command</value>
+  </data>
   <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
     <value>Es ist kein Python-Interpreter verfügbar, daher gibt es kein Ziel für die Installation. Installieren Sie Python 3.8 oder neuer, oder wählen Sie mit #!python einen Interpreter aus.</value>
   </data>
@@ -176,6 +185,9 @@ Python {1} ({2}, {3})</value>
   <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
     <value>
 Dieser Interpreter wird extern verwaltet; Installationen verwenden eine von Verso verwaltete Umgebung.</value>
+  </data>
+  <data name="Magic_Python_Name" xml:space="preserve">
+    <value>Python-Interpreter-Magic-Command</value>
   </data>
   <data name="Magic_Python_NoneFound" xml:space="preserve">
     <value>Es wurden keine Python-Interpreter gefunden.</value>

@@ -79,6 +79,9 @@
   <data name="Magic_Npm_Installing" xml:space="preserve">
     <value>Instalando {0}...</value>
   </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Comando mágico Npm</value>
+  </data>
   <data name="Magic_Npm_NoKernel" xml:space="preserve">
     <value>No hay ningún kernel de JavaScript cargado. #!npm necesita el kernel de JavaScript.</value>
   </data>

@@ -12,7 +12,7 @@ public sealed class RestartMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.restart";
-    string IExtension.Name => "Restart Magic Command";
+    string IExtension.Name => Strings.Magic_Restart;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 

@@ -14,7 +14,7 @@ public sealed class ExceptionFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.formatter.exception";
-    public string Name => "Exception Formatter";
+    public string Name => Strings.Formatter_Exception;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Formatter_Exception_Description;

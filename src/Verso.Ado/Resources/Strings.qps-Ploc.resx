@@ -58,14 +58,23 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>[!!Éxpòrt ÇŠV···!!]</value>
+  </data>
   <data name="Action_ExportCsv_Description" xml:space="preserve">
     <value>[!!Éxpòrtš ŠQL réšùlt šétš àš ÇŠV fïléš.···!!]</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>[!!Éxpòrt JŠÒÑ···!!]</value>
   </data>
   <data name="Action_ExportJson_Description" xml:space="preserve">
     <value>[!!Éxpòrtš ŠQL réšùlt šétš àš JŠÒÑ fïléš.···!!]</value>
   </data>
   <data name="CellType_Description" xml:space="preserve">
     <value>[!!ŠQL çéll tÿpé fòr qùérÿïñg dàtàbàšéš vïà ÀDÒ.ÑÉT.···!!]</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>[!!ŠQL Çéll Tÿpé···!!]</value>
   </data>
   <data name="Completion_Keyword_Alter" xml:space="preserve">
     <value>[!!ÀLTÉR — Mòdïfïéš àñ éxïštïñg dàtàbàšé òbjéçt.···!!]</value>
@@ -184,11 +193,20 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>[!!Fòrmàtš ŠQL réšùlt šétš àñd DàtàTàbléš àš pàgïñàtéd HTML tàbléš.···!!]</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>[!!Réšùlt Šét Fòrmàttér···!!]</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>[!!Çòñvértš Pòlÿglòt Ñòtébòòkš ŠQL pàttérñš tò Véršò ŠQL çéllš òñ Jùpÿtér ïmpòrt.···!!]</value>
   </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>[!!Jùpÿtér ŠQL Ïmpòrt Hòòk···!!]</value>
+  </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>[!!Éxéçùtéš ŠQL qùérïéš àgàïñšt ÀDÒ.ÑÉT dàtàbàšé çòññéçtïòñš.···!!]</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>[!!ŠQL Kérñél···!!]</value>
   </data>
   <data name="Magic_Connect_Connected" xml:space="preserve">
     <value>[!!Çòññéçtéd '{0}'{1} ùšïñg {2}···!!]</value>
@@ -211,6 +229,9 @@
   </data>
   <data name="Magic_Connect_Description" xml:space="preserve">
     <value>[!!Éštàblïšhéš à dàtàbàšé çòññéçtïòñ fòr ŠQL çéllš.···!!]</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>[!!ŠQL Çòññéçt Màgïç Çòmmàñd···!!]</value>
   </data>
   <data name="Magic_Connect_NameRequired" xml:space="preserve">
     <value>[!!--ñàmé ïš réqùïréd. Ùšàgé: #!šql-çòññéçt --ñàmé &lt;ñàmé&gt; --çòññéçtïòñ-štrïñg &lt;çš&gt;···!!]</value>
@@ -259,6 +280,9 @@
   <data name="Magic_Disconnect_Done" xml:space="preserve">
     <value>[!!Dïšçòññéçtéd '{0}'.···!!]</value>
   </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>[!!ŠQL Dïšçòññéçt Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_Disconnect_NoName" xml:space="preserve">
     <value>[!!Ñò çòññéçtïòñ ñàmé špéçïfïéd àñd ñò défàùlt çòññéçtïòñ ïš šét.···!!]</value>
   </data>
@@ -290,6 +314,9 @@
   </data>
   <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
     <value>[!!Géñéràtéd Ç# çòdé···!!]</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>[!!ŠQL Šçàffòld Màgïç Çòmmàñd···!!]</value>
   </data>
   <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
     <value>[!!Ç# kérñél ñòt fòùñd. Çàññòt éxéçùté šçàffòldéd çòdé.···!!]</value>
@@ -358,6 +385,9 @@
   <data name="Magic_Schema_LoadFailed" xml:space="preserve">
     <value>[!!Érròr lòàdïñg šçhémà: {0}···!!]</value>
   </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>[!!ŠQL Šçhémà Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_Schema_NoConnection" xml:space="preserve">
     <value>[!!Ñò dàtàbàšé çòññéçtïòñ. Ùšé #!šql-çòññéçt tò éštàblïšh à çòññéçtïòñ.···!!]</value>
   </data>
@@ -387,6 +417,9 @@
   </data>
   <data name="Renderer_Description" xml:space="preserve">
     <value>[!!Réñdérš ŠQL çéllš wïth çòññéçtïòñ ïñdïçàtòr bàdgéš.···!!]</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>[!!ŠQL Réñdérér···!!]</value>
   </data>
   <data name="Run_ConnectionClosed" xml:space="preserve">
     <value>[!!Çòññéçtïòñ '{0}' ïš ñòt òpéñ. Réçòññéçt wïth `#!šql-çòññéçt`.···!!]</value>

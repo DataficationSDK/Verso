@@ -14,7 +14,7 @@ public sealed class HttpCellType : ICellType
     // --- IExtension ---
 
     public string ExtensionId => "verso.http.celltype.http";
-    public string Name => "HTTP Cell Type";
+    public string Name => Strings.CellType_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.CellType_Description;

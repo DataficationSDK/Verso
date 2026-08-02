@@ -66,9 +66,17 @@
     <value>Formats F# types as rich HTML tables and styled output.</value>
     <comment>What this formatter does, shown wherever extensions are listed.</comment>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>F# Data Formatter</value>
+    <comment>Name of the formatter for F# values such as lists, records and maps, as listed in the Extensions panel. F# is a language name.</comment>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>Converts Polyglot Notebooks F# patterns to Verso F# cells on Jupyter import.</value>
     <comment>What this import hook does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter F# Import Hook</value>
+    <comment>Name of the hook that turns F# cells in an imported Jupyter notebook into Verso F# cells, as listed in the Extensions panel.</comment>
   </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>F# language kernel powered by FSharp.Compiler.Service.</value>

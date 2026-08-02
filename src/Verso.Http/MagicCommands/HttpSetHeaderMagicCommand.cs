@@ -13,7 +13,7 @@ public sealed class HttpSetHeaderMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.http.magic.http-set-header";
-    string IExtension.Name => "HTTP Set Header Magic Command";
+    string IExtension.Name => Strings.Magic_SetHeader_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_SetHeader_Description;

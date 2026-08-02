@@ -154,6 +154,18 @@
   <data name="CellType_Parameters_Label" xml:space="preserve">
     <value>[!!Pàràmétérš···!!]</value>
   </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>[!!çéll···!!]</value>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>[!!lòçàl fïlé: {0}···!!]</value>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>[!!màrkétplàçé···!!]</value>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>[!!ñòtébòòk réqùïréd éxtéñšïòñš···!!]</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>[!!Pòlÿglòt Ñòtébòòk .dïb éxpòrt ïš ñòt šùppòrtéd. Ùšé thé Véršò ñàtïvé fòrmàt.···!!]</value>
   </data>
@@ -193,23 +205,44 @@
   <data name="Export_MoreLines_Other" xml:space="preserve">
     <value>[!!... ({0} mòré lïñéš)···!!]</value>
   </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>[!!Çòlléçtïòñ Fòrmàttér···!!]</value>
+  </data>
   <data name="Formatter_Collection_Description" xml:space="preserve">
     <value>[!!Fòrmàtš çòlléçtïòñš àš HTML tàbléš.···!!]</value>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>[!!Éxçéptïòñ Fòrmàttér···!!]</value>
   </data>
   <data name="Formatter_Exception_Description" xml:space="preserve">
     <value>[!!Fòrmàtš éxçéptïòñš àš štrùçtùréd HTML.···!!]</value>
   </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>[!!HTML Fòrmàttér···!!]</value>
+  </data>
   <data name="Formatter_Html_Description" xml:space="preserve">
     <value>[!!Fòrmàtš òbjéçtš wïth à TòHtml() méthòd àš HTML.···!!]</value>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>[!!Ïmàgé Fòrmàttér···!!]</value>
   </data>
   <data name="Formatter_Image_Description" xml:space="preserve">
     <value>[!!Fòrmàtš bÿté àrràÿš àš ïñlïñé bàšé64 ïmàgéš.···!!]</value>
   </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>[!!Òbjéçt Fòrmàttér···!!]</value>
+  </data>
   <data name="Formatter_Object_Description" xml:space="preserve">
     <value>[!!Fòrmàtš òbjéçtš àš HTML tàbléš šhòwïñg pùblïç pròpértïéš àñd fïéldš.···!!]</value>
   </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>[!!Prïmïtïvé Fòrmàttér···!!]</value>
+  </data>
   <data name="Formatter_Primitive_Description" xml:space="preserve">
     <value>[!!Fòrmàtš prïmïtïvé àñd çòmmòñ vàlùé tÿpéš àš plàïñ téxt.···!!]</value>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>[!!ŠVG Fòrmàttér···!!]</value>
   </data>
   <data name="Formatter_Svg_Description" xml:space="preserve">
     <value>[!!Fòrmàtš ŠVG štrïñgš àš ïñlïñé HTML.···!!]</value>
@@ -280,6 +313,9 @@
   <data name="Layout_RunCell" xml:space="preserve">
     <value>[!!Rùñ···!!]</value>
   </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>[!!Àbòùt Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_About_Description" xml:space="preserve">
     <value>[!!Dïšplàÿš Véršò véršïòñ, rùñtïmé ïñfòrmàtïòñ, àñd lòàdéd éxtéñšïòñš.···!!]</value>
   </data>
@@ -294,6 +330,9 @@
   </data>
   <data name="Magic_About_Runtime" xml:space="preserve">
     <value>[!!Rùñtïmé: {0}···!!]</value>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>[!!Éxtéñšïòñ Màgïç Çòmmàñd···!!]</value>
   </data>
   <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
     <value>[!!Éxtéñšïòñ àššémblÿ '{0}' ïš àlréàdÿ lòàdéd.···!!]</value>
@@ -357,6 +396,9 @@
   </data>
   <data name="Magic_Extension_Usage" xml:space="preserve">
     <value>[!!Ùšàgé: #!éxtéñšïòñ &lt;PàçkàgéÏd&gt; [Véršïòñ]  òr  #!éxtéñšïòñ &lt;pàth/tò/àššémblÿ.dll&gt;···!!]</value>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>[!!Ïmpòrt Màgïç Çòmmàñd···!!]</value>
   </data>
   <data name="Magic_Import_CellCount_One" xml:space="preserve">
     <value>[!!{0} çéll···!!]</value>
@@ -423,6 +465,9 @@
   <data name="Magic_Import_Usage" xml:space="preserve">
     <value>[!!#!ïmpòrt réqùïréš à fïlé pàth. Ùšàgé: #!ïmpòrt &lt;pàth&gt; [--pàràm ñàmé=vàlùé ...]···!!]</value>
   </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>[!!ÑùGét Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_NuGet_Description" xml:space="preserve">
     <value>[!!Dòwñlòàdš àñd référéñçéš à ÑùGét pàçkàgé fòr ùšé ïñ šùbšéqùéñt çòdé.···!!]</value>
   </data>
@@ -447,6 +492,9 @@
   <data name="Magic_NuGet_Usage" xml:space="preserve">
     <value>[!!Ùšàgé: #!ñùgét &lt;PàçkàgéÏd&gt; [Véršïòñ]···!!]</value>
   </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>[!!Réštàrt Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_Restart_Description" xml:space="preserve">
     <value>[!!Réštàrtš thé špéçïfïéd kérñél, òr thé défàùlt kérñél ïf ñò àrgùméñt ïš gïvéñ.···!!]</value>
   </data>
@@ -458,6 +506,9 @@
   </data>
   <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
     <value>[!!Thé làñgùàgé ÏD òf thé kérñél tò réštàrt.···!!]</value>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>[!!Tïmé Màgïç Çòmmàñd···!!]</value>
   </data>
   <data name="Magic_Time_Description" xml:space="preserve">
     <value>[!!Répòrtš élàpšéd wàll-çlòçk tïmé àftér çéll éxéçùtïòñ.···!!]</value>
@@ -549,6 +600,12 @@
   <data name="Parameters_UnknownType" xml:space="preserve">
     <value>[!!Ùñkñòwñ pàràmétér tÿpé '{0}'.···!!]</value>
   </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>[!!Jùpÿtér Pòlÿglòt Màgïç Šplïttér···!!]</value>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>[!!Šplïtš Pòlÿglòt Ñòtébòòk làñgùàgé-šwïtçhïñg dïréçtïvéš ïñ ïmpòrtéd .ïpÿñb fïléš ïñtò šépàràté çéllš.···!!]</value>
+  </data>
   <data name="Prefix_Error" xml:space="preserve">
     <value>[!!Érròr: {0}···!!]</value>
   </data>
@@ -632,6 +689,30 @@
   </data>
   <data name="Renderer_Parameters_Description" xml:space="preserve">
     <value>[!!Réñdérš pàràmétér défïñïtïòñš àš àñ ïñtéràçtïvé fòrm wïth tÿpé-àwàré ïñpùtš.···!!]</value>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>[!!Pòlÿglòt Ñòtébòòk Šérïàlïzér···!!]</value>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>[!!Ïmpòrt-òñlÿ šérïàlïzér fòr Pòlÿglòt Ñòtébòòkš .dïb fïléš.···!!]</value>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>[!!Jùpÿtér Šérïàlïzér···!!]</value>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>[!!Šérïàlïzér fòr Jùpÿtér .ïpÿñb ñòtébòòkš (ñbfòrmàt v4).···!!]</value>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>[!!Màrkdòwñ Šérïàlïzér···!!]</value>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>[!!Šérïàlïzér fòr Màrkdòwñ (.md) ñòtébòòkš wïth féñçéd çòdé çéllš.···!!]</value>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>[!!Véršò Šérïàlïzér···!!]</value>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>[!!Ñàtïvé .véršò fïlé fòrmàt šérïàlïzér.···!!]</value>
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>[!!Véršò Dàrk···!!]</value>

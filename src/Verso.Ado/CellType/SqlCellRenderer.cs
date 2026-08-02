@@ -15,7 +15,7 @@ public sealed class SqlCellRenderer : ICellRenderer
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.renderer.sql";
-    public string Name => "SQL Renderer";
+    public string Name => Strings.Renderer_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Renderer_Description;

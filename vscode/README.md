@@ -177,6 +177,12 @@ Notebooks can also be exported to HTML or Markdown from the editor's Export menu
 
 \* IntelliSense for JavaScript and TypeScript comes from Monaco's built-in language services rather than the kernel.
 
+## Interface Language
+
+The notebook interface is translated into German, Spanish, Japanese, and Simplified Chinese. It follows your VS Code display language on its own, and `verso.language` overrides that for Verso alone. A change applies the next time a notebook is opened.
+
+Menu entries, command names, and the descriptions of these settings come from VS Code and always follow its display language, which no extension can override. So the Compare command in the Command Palette and the Compare panel inside a notebook can legitimately be showing two different languages at once.
+
 ## Settings
 
 | Setting | Default | Description |
@@ -184,6 +190,7 @@ Notebooks can also be exported to HTML or Markdown from the editor's Export menu
 | `verso.dotnetPath` | auto-detect | Path to the `dotnet` executable used to run notebooks. If empty, Verso reuses an installed .NET runtime, locating it via the .NET Install Tool. |
 | `verso.extensionsPath` | `[]` | Directories of third-party Verso extension assemblies to load on notebook open, one directory per entry. Applies on the next notebook open. |
 | `verso.hostPath` | bundled | Path to a custom `Verso.Host.dll`. If empty, the bundled host is used. |
+| `verso.language` | `auto` | Language of the notebook interface and kernel messages: English, Deutsch, Español, 日本語, or 简体中文. `auto` follows the VS Code display language. Applies on the next notebook open. |
 | `verso.preserveOriginalFormat` | `false` | When opening an `.ipynb` file, save changes back to `.ipynb` (cell outputs preserved) instead of converting to a sibling `.verso` file. |
 | `verso.showOpenInVersoMenu` | `true` | Show the **Open as Verso Notebook** entry in the Explorer context menu for `.md` files. Turning it off hides the entry only; **Reopen Editor With...** still works. |
 | `verso.python.interpreterPath` | auto-detect | Path to the Python interpreter used by Python cells. If empty, Verso discovers one from the active virtual environment, the workspace, and well-known install locations. |

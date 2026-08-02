@@ -19,7 +19,7 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-schema";
-    string IExtension.Name => "SQL Schema Magic Command";
+    string IExtension.Name => Strings.Magic_Schema_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_Schema_Description;

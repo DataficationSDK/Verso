@@ -62,6 +62,10 @@
     <value>HTTP request cell type for sending REST API requests.</value>
     <comment>What an HTTP cell is, shown when choosing a cell type.</comment>
   </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>HTTP Cell Type</value>
+    <comment>Name of the HTTP cell type, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Completion_Header_Accept" xml:space="preserve">
     <value>Accept — Media types the client can handle in the response.</value>
     <comment>What the Accept header is for, offered while typing and shown on hover. The header name at the start is part of the standard and stays as written.</comment>
@@ -170,6 +174,10 @@
     <value>Executes HTTP requests using .http file syntax.</value>
     <comment>What the HTTP kernel is, shown wherever kernels are listed. .http is a file extension and stays as written.</comment>
   </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>HTTP Kernel</value>
+    <comment>Name of the HTTP kernel, as listed in the Extensions panel.</comment>
+  </data>
   <data name="Magic_SetBase_Description" xml:space="preserve">
     <value>Sets the base URL for relative HTTP request URLs.</value>
     <comment>What #!http-set-base does, shown in the list of magic commands.</comment>
@@ -177,6 +185,10 @@
   <data name="Magic_SetBase_Done" xml:space="preserve">
     <value>HTTP base URL set to: {0}</value>
     <comment>{0} is the address that was set.</comment>
+  </data>
+  <data name="Magic_SetBase_Name" xml:space="preserve">
+    <value>HTTP Set Base Magic Command</value>
+    <comment>Name of the #!http-set-base magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_SetBase_Param_Url" xml:space="preserve">
     <value>The base URL to prepend to relative request URLs.</value>
@@ -197,6 +209,10 @@
   <data name="Magic_SetHeader_Done" xml:space="preserve">
     <value>Default header set: {0}: {1}</value>
     <comment>{0} is the header name and {1} its value, both as typed.</comment>
+  </data>
+  <data name="Magic_SetHeader_Name" xml:space="preserve">
+    <value>HTTP Set Header Magic Command</value>
+    <comment>Name of the #!http-set-header magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
   </data>
   <data name="Magic_SetHeader_Param_Name" xml:space="preserve">
     <value>The header name.</value>
@@ -222,6 +238,10 @@
     <value>A positive integer is required. Usage: #!http-set-timeout &lt;seconds&gt;</value>
     <comment>Shown when #!http-set-timeout is given something that is not a whole number above zero.</comment>
   </data>
+  <data name="Magic_SetTimeout_Name" xml:space="preserve">
+    <value>HTTP Set Timeout Magic Command</value>
+    <comment>Name of the #!http-set-timeout magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_SetTimeout_Param_Seconds" xml:space="preserve">
     <value>The timeout in seconds.</value>
     <comment>What the argument to #!http-set-timeout is.</comment>
@@ -233,6 +253,10 @@
   <data name="Renderer_Description" xml:space="preserve">
     <value>Renders HTTP request cells.</value>
     <comment>What this renderer does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>HTTP Renderer</value>
+    <comment>Name of the HTTP response renderer, as listed in the Extensions panel.</comment>
   </data>
   <data name="Response_Headers" xml:space="preserve">
     <value>Response Headers ({0})</value>

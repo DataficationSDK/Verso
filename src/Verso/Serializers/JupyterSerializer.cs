@@ -25,10 +25,10 @@ public sealed class JupyterSerializer : INotebookSerializer
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.jupyter";
-    public string Name => "Jupyter Serializer";
+    public string Name => Strings.Serializer_Jupyter;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Serializer for Jupyter .ipynb notebooks (nbformat v4).";
+    public string? Description => Strings.Serializer_Jupyter_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

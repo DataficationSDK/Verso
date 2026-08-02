@@ -68,7 +68,7 @@ public static class ExtensionHandler
         {
             if (!TrustStore.IsApproved(p.PackageId, p.Version))
             {
-                var consent = new[] { new ExtensionConsentInfo(p.PackageId, p.Version, "marketplace") };
+                var consent = new[] { new ExtensionConsentInfo(p.PackageId, p.Version, Verso.Resources.Strings.Consent_Source_Marketplace) };
                 var approved = await ns.ExtensionHost.RequestExtensionConsentAsync(consent, CancellationToken.None);
                 if (!approved)
                     return new ExtensionInstallResult { Success = false, ErrorMessage = Strings.Extension_NotApproved };

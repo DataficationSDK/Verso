@@ -34,7 +34,7 @@ public sealed class PythonMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.python";
-    string IExtension.Name => "Python Interpreter Magic Command";
+    string IExtension.Name => Strings.Magic_Python_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 

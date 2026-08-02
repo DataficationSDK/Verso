@@ -154,6 +154,18 @@
   <data name="CellType_Parameters_Label" xml:space="preserve">
     <value>パラメーター</value>
   </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>セル</value>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>ローカルファイル: {0}</value>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>マーケットプレース</value>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>ノートブックが必要とする拡張機能</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>Polyglot Notebook の .dib へのエクスポートはサポートされていません。Verso のネイティブ形式を使ってください。</value>
   </data>
@@ -193,23 +205,44 @@
   <data name="Export_MoreLines_Other" xml:space="preserve">
     <value>... (他 {0} 行)</value>
   </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>コレクションフォーマッター</value>
+  </data>
   <data name="Formatter_Collection_Description" xml:space="preserve">
     <value>コレクションを HTML の表として整形します。</value>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>例外フォーマッター</value>
   </data>
   <data name="Formatter_Exception_Description" xml:space="preserve">
     <value>例外を構造化された HTML として整形します。</value>
   </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>HTML フォーマッター</value>
+  </data>
   <data name="Formatter_Html_Description" xml:space="preserve">
     <value>ToHtml() メソッドを持つオブジェクトを HTML として整形します。</value>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>画像フォーマッター</value>
   </data>
   <data name="Formatter_Image_Description" xml:space="preserve">
     <value>バイト配列をインラインの base64 画像として整形します。</value>
   </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>オブジェクトフォーマッター</value>
+  </data>
   <data name="Formatter_Object_Description" xml:space="preserve">
     <value>オブジェクトのパブリックなプロパティとフィールドを HTML の表として整形します。</value>
   </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>プリミティブ型フォーマッター</value>
+  </data>
   <data name="Formatter_Primitive_Description" xml:space="preserve">
     <value>プリミティブ型や一般的な値型をプレーンテキストとして整形します。</value>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>SVG フォーマッター</value>
   </data>
   <data name="Formatter_Svg_Description" xml:space="preserve">
     <value>SVG の文字列をインライン HTML として整形します。</value>
@@ -280,6 +313,9 @@
   <data name="Layout_RunCell" xml:space="preserve">
     <value>実行</value>
   </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>About マジックコマンド</value>
+  </data>
   <data name="Magic_About_Description" xml:space="preserve">
     <value>Verso のバージョン、ランタイムの情報、読み込み済みの拡張機能を表示します。</value>
   </data>
@@ -294,6 +330,9 @@
   </data>
   <data name="Magic_About_Runtime" xml:space="preserve">
     <value>ランタイム: {0}</value>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>Extension マジックコマンド</value>
   </data>
   <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
     <value>拡張機能のアセンブリ '{0}' は既に読み込まれています。</value>
@@ -357,6 +396,9 @@
   </data>
   <data name="Magic_Extension_Usage" xml:space="preserve">
     <value>使い方: #!extension &lt;PackageId&gt; [Version]  または  #!extension &lt;path/to/assembly.dll&gt;</value>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>Import マジックコマンド</value>
   </data>
   <data name="Magic_Import_CellCount_One" xml:space="preserve">
     <value>{0} 個のセル</value>
@@ -423,6 +465,9 @@
   <data name="Magic_Import_Usage" xml:space="preserve">
     <value>#!import にはファイルパスが必要です。使い方: #!import &lt;path&gt; [--param name=value ...]</value>
   </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>NuGet マジックコマンド</value>
+  </data>
   <data name="Magic_NuGet_Description" xml:space="preserve">
     <value>NuGet パッケージをダウンロードし、以降のコードから参照できるようにします。</value>
   </data>
@@ -447,6 +492,9 @@
   <data name="Magic_NuGet_Usage" xml:space="preserve">
     <value>使い方: #!nuget &lt;PackageId&gt; [Version]</value>
   </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>Restart マジックコマンド</value>
+  </data>
   <data name="Magic_Restart_Description" xml:space="preserve">
     <value>指定したカーネルを再起動します。引数がない場合は既定のカーネルを再起動します。</value>
   </data>
@@ -458,6 +506,9 @@
   </data>
   <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
     <value>再起動するカーネルの言語 ID。</value>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>Time マジックコマンド</value>
   </data>
   <data name="Magic_Time_Description" xml:space="preserve">
     <value>セルの実行にかかった実時間を報告します。</value>
@@ -549,6 +600,12 @@
   <data name="Parameters_UnknownType" xml:space="preserve">
     <value>不明なパラメーターの型 '{0}' です。</value>
   </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>Jupyter Polyglot マジックコマンド分割ツール</value>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>インポートした .ipynb ファイル内の Polyglot Notebook の言語切り替えディレクティブを、別々のセルに分割します。</value>
+  </data>
   <data name="Prefix_Error" xml:space="preserve">
     <value>エラー: {0}</value>
   </data>
@@ -632,6 +689,30 @@
   </data>
   <data name="Renderer_Parameters_Description" xml:space="preserve">
     <value>パラメーターの定義を、型に応じた入力欄を持つ対話的なフォームとして表示します。</value>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>Polyglot Notebook シリアライザー</value>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>Polyglot Notebooks の .dib ファイルを読み込むだけのシリアライザーです。</value>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>Jupyter シリアライザー</value>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>Jupyter の .ipynb ノートブック (nbformat v4) のシリアライザーです。</value>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>Markdown シリアライザー</value>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>コードフェンスをセルとして扱う Markdown (.md) ノートブックのシリアライザーです。</value>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>Verso シリアライザー</value>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>Verso 独自の .verso ファイル形式のシリアライザーです。</value>
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>Verso ダーク</value>

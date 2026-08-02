@@ -58,7 +58,7 @@
             <div class="verso-cell-type-dropdown" @onfocusout="OnTypeDropdownFocusOut" tabindex="-1">
                 <button class="verso-cell-type-badge" @onclick="ToggleTypeDropdown" @ref="_typeBadgeRef"
                         aria-haspopup="true" aria-expanded="@(_showTypeDropdown ? "true" : "false")" aria-controls="@_typePopupId">
-                    @CellData.Type
+                    @GetCellTypeDisplayName(CellData.Type)
                     <span class="verso-cell-type-chevron">&#9662;</span>
                 </button>
                 @if (_showTypeDropdown)
@@ -681,6 +681,20 @@
         var info = Service.RegisteredLanguages
             .FirstOrDefault(l => string.Equals(l.Id, languageId, StringComparison.OrdinalIgnoreCase));
         return info?.DisplayName ?? languageId;
+    }
+
+    /// <summary>
+    /// The words a cell type is known by, rather than the id it is stored under.
+    /// </summary>
+    /// <remarks>
+    /// The badge and the menu it opens have to say the same thing. The id falls through only
+    /// for a type nothing registered, where naming it is more use than saying nothing.
+    /// </remarks>
+    private string GetCellTypeDisplayName(string typeId)
+    {
+        var info = Service.AvailableCellTypes
+            .FirstOrDefault(t => string.Equals(t.Id, typeId, StringComparison.OrdinalIgnoreCase));
+        return info?.DisplayName ?? typeId;
     }
 
     private bool ReadMetadataBool(string key)

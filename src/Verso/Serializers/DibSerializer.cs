@@ -18,10 +18,10 @@ public sealed class DibSerializer : INotebookSerializer
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.dib";
-    public string Name => "Polyglot Notebook Serializer";
+    public string Name => Strings.Serializer_Dib;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Import-only serializer for Polyglot Notebooks .dib files.";
+    public string? Description => Strings.Serializer_Dib_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

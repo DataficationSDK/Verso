@@ -154,6 +154,18 @@
   <data name="CellType_Parameters_Label" xml:space="preserve">
     <value>参数</value>
   </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>单元格</value>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>本地文件：{0}</value>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>扩展市场</value>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>笔记本所需的扩展</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>不支持导出为 Polyglot Notebook 的 .dib 格式。请使用 Verso 原生格式。</value>
   </data>
@@ -193,23 +205,44 @@
   <data name="Export_MoreLines_Other" xml:space="preserve">
     <value>...（另有 {0} 行）</value>
   </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>集合格式化程序</value>
+  </data>
   <data name="Formatter_Collection_Description" xml:space="preserve">
     <value>将集合格式化为 HTML 表格。</value>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>异常格式化程序</value>
   </data>
   <data name="Formatter_Exception_Description" xml:space="preserve">
     <value>将异常格式化为结构化的 HTML。</value>
   </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>HTML 格式化程序</value>
+  </data>
   <data name="Formatter_Html_Description" xml:space="preserve">
     <value>将带有 ToHtml() 方法的对象格式化为 HTML。</value>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>图像格式化程序</value>
   </data>
   <data name="Formatter_Image_Description" xml:space="preserve">
     <value>将字节数组格式化为内联的 base64 图像。</value>
   </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>对象格式化程序</value>
+  </data>
   <data name="Formatter_Object_Description" xml:space="preserve">
     <value>将对象格式化为显示公共属性和字段的 HTML 表格。</value>
   </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>基元类型格式化程序</value>
+  </data>
   <data name="Formatter_Primitive_Description" xml:space="preserve">
     <value>将基元类型和常见值类型格式化为纯文本。</value>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>SVG 格式化程序</value>
   </data>
   <data name="Formatter_Svg_Description" xml:space="preserve">
     <value>将 SVG 字符串格式化为内联 HTML。</value>
@@ -280,6 +313,9 @@
   <data name="Layout_RunCell" xml:space="preserve">
     <value>运行</value>
   </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>About 魔法命令</value>
+  </data>
   <data name="Magic_About_Description" xml:space="preserve">
     <value>显示 Verso 版本、运行时信息和已加载的扩展。</value>
   </data>
@@ -294,6 +330,9 @@
   </data>
   <data name="Magic_About_Runtime" xml:space="preserve">
     <value>运行时：{0}</value>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>Extension 魔法命令</value>
   </data>
   <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
     <value>扩展程序集“{0}”已加载。</value>
@@ -357,6 +396,9 @@
   </data>
   <data name="Magic_Extension_Usage" xml:space="preserve">
     <value>用法：#!extension &lt;PackageId&gt; [Version]  或  #!extension &lt;path/to/assembly.dll&gt;</value>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>Import 魔法命令</value>
   </data>
   <data name="Magic_Import_CellCount_One" xml:space="preserve">
     <value>{0} 个单元格</value>
@@ -423,6 +465,9 @@
   <data name="Magic_Import_Usage" xml:space="preserve">
     <value>#!import 需要文件路径。用法：#!import &lt;path&gt; [--param name=value ...]</value>
   </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>NuGet 魔法命令</value>
+  </data>
   <data name="Magic_NuGet_Description" xml:space="preserve">
     <value>下载并引用 NuGet 包，以供后续代码使用。</value>
   </data>
@@ -447,6 +492,9 @@
   <data name="Magic_NuGet_Usage" xml:space="preserve">
     <value>用法：#!nuget &lt;PackageId&gt; [Version]</value>
   </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>Restart 魔法命令</value>
+  </data>
   <data name="Magic_Restart_Description" xml:space="preserve">
     <value>重启指定的内核；未提供参数时重启默认内核。</value>
   </data>
@@ -458,6 +506,9 @@
   </data>
   <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
     <value>要重启的内核的语言 ID。</value>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>Time 魔法命令</value>
   </data>
   <data name="Magic_Time_Description" xml:space="preserve">
     <value>在单元格执行后报告经过的实际时间。</value>
@@ -549,6 +600,12 @@
   <data name="Parameters_UnknownType" xml:space="preserve">
     <value>未知的参数类型“{0}”。</value>
   </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>Jupyter Polyglot 魔法命令拆分器</value>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>将导入的 .ipynb 文件中 Polyglot Notebook 的语言切换指令拆分为独立的单元格。</value>
+  </data>
   <data name="Prefix_Error" xml:space="preserve">
     <value>错误：{0}</value>
   </data>
@@ -632,6 +689,30 @@
   </data>
   <data name="Renderer_Parameters_Description" xml:space="preserve">
     <value>将参数定义渲染为带类型感知输入控件的交互式表单。</value>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>Polyglot Notebook 序列化程序</value>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>仅用于导入 Polyglot Notebooks 的 .dib 文件的序列化程序。</value>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>Jupyter 序列化程序</value>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>适用于 Jupyter .ipynb 笔记本（nbformat v4）的序列化程序。</value>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>Markdown 序列化程序</value>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>适用于 Markdown (.md) 笔记本的序列化程序，围栏代码块即单元格。</value>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>Verso 序列化程序</value>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>Verso 原生 .verso 文件格式的序列化程序。</value>
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>Verso 深色</value>

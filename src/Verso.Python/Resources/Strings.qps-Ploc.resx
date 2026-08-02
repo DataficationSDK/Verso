@@ -70,6 +70,12 @@
   <data name="Auto_UnknownDistribution" xml:space="preserve">
     <value>[!!'{0}' ïš ñòt ïñštàlléd àñd Véršò dòéš ñòt kñòw whïçh dïštrïbùtïòñ pròvïdéš ït. Àùtòmàtïç ïñštàllš òñlÿ çòvér kñòwñ pàçkàgéš; ïñštàll ït wïth #!pïp {0} ïf thàt ïš thé rïght ñàmé.···!!]</value>
   </data>
+  <data name="Consent_Source_DeclaredDependency" xml:space="preserve">
+    <value>[!!déçlàréd dépéñdéñçÿ···!!]</value>
+  </data>
+  <data name="Consent_Source_Import" xml:space="preserve">
+    <value>[!!ïmpòrt {0}···!!]</value>
+  </data>
   <data name="Install_AlreadyInstalled_One" xml:space="preserve">
     <value>[!!{0} ïš àlréàdÿ ïñštàlléd.···!!]</value>
   </data>
@@ -151,6 +157,9 @@
   <data name="Magic_Pip_Installing" xml:space="preserve">
     <value>[!!Ïñštàllïñg {0}...···!!]</value>
   </data>
+  <data name="Magic_Pip_Name" xml:space="preserve">
+    <value>[!!Pïp Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
     <value>[!!Ñò Pÿthòñ ïñtérprétér ïš àvàïlàblé, šò théré ïš ñòthïñg tò ïñštàll ïñtò. Ïñštàll Pÿthòñ 3.8 òr ñéwér, òr šéléçt àñ ïñtérprétér wïth #!pÿthòñ.···!!]</value>
   </data>
@@ -176,6 +185,9 @@ Pÿthòñ {1} ({2}, {3})···!!]</value>
   <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
     <value>[!!
 Thïš ïñtérprétér ïš éxtérñàllÿ màñàgéd; ïñštàllš ùšé à Véršò-màñàgéd éñvïròñméñt.···!!]</value>
+  </data>
+  <data name="Magic_Python_Name" xml:space="preserve">
+    <value>[!!Pÿthòñ Ïñtérprétér Màgïç Çòmmàñd···!!]</value>
   </data>
   <data name="Magic_Python_NoneFound" xml:space="preserve">
     <value>[!!Ñò Pÿthòñ ïñtérprétérš wéré dïšçòvéréd.···!!]</value>

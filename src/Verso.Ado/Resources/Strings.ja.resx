@@ -58,14 +58,23 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>CSV にエクスポート</value>
+  </data>
   <data name="Action_ExportCsv_Description" xml:space="preserve">
     <value>SQL の結果セットを CSV ファイルとしてエクスポートします。</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>JSON にエクスポート</value>
   </data>
   <data name="Action_ExportJson_Description" xml:space="preserve">
     <value>SQL の結果セットを JSON ファイルとしてエクスポートします。</value>
   </data>
   <data name="CellType_Description" xml:space="preserve">
     <value>ADO.NET でデータベースに問い合わせるための SQL セルタイプ。</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL セルタイプ</value>
   </data>
   <data name="Completion_Keyword_Alter" xml:space="preserve">
     <value>ALTER — 既存のデータベースオブジェクトを変更します。</value>
@@ -184,11 +193,20 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>SQL の結果セットと DataTable を、ページ送りできる HTML の表として整形します。</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>結果セットフォーマッター</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>Jupyter のインポート時に、Polyglot Notebooks の SQL の書き方を Verso の SQL セルに変換します。</value>
   </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter SQL インポートフック</value>
+  </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>ADO.NET のデータベース接続に対して SQL クエリを実行します。</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL カーネル</value>
   </data>
   <data name="Magic_Connect_Connected" xml:space="preserve">
     <value>'{0}'{1} に {2} で接続しました</value>
@@ -211,6 +229,9 @@
   </data>
   <data name="Magic_Connect_Description" xml:space="preserve">
     <value>SQL セルで使うデータベース接続を確立します。</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL Connect マジックコマンド</value>
   </data>
   <data name="Magic_Connect_NameRequired" xml:space="preserve">
     <value>--name は必須です。使い方: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
@@ -259,6 +280,9 @@
   <data name="Magic_Disconnect_Done" xml:space="preserve">
     <value>'{0}' の接続を切断しました。</value>
   </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL Disconnect マジックコマンド</value>
+  </data>
   <data name="Magic_Disconnect_NoName" xml:space="preserve">
     <value>接続名が指定されておらず、既定の接続も設定されていません。</value>
   </data>
@@ -290,6 +314,9 @@
   </data>
   <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
     <value>生成された C# コード</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL Scaffold マジックコマンド</value>
   </data>
   <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
     <value>C# カーネルが見つかりません。生成したコードを実行できません。</value>
@@ -358,6 +385,9 @@ C# セルでの使い方:
   <data name="Magic_Schema_LoadFailed" xml:space="preserve">
     <value>スキーマの読み込みでエラーが発生しました: {0}</value>
   </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL Schema マジックコマンド</value>
+  </data>
   <data name="Magic_Schema_NoConnection" xml:space="preserve">
     <value>データベースに接続していません。#!sql-connect で接続してください。</value>
   </data>
@@ -387,6 +417,9 @@ C# セルでの使い方:
   </data>
   <data name="Renderer_Description" xml:space="preserve">
     <value>接続を示すバッジを付けて SQL セルを表示します。</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL レンダラー</value>
   </data>
   <data name="Run_ConnectionClosed" xml:space="preserve">
     <value>接続 '{0}' は開かれていません。`#!sql-connect` で接続し直してください。</value>

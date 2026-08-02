@@ -15,7 +15,7 @@ public sealed class ExportJsonAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.action.export-json";
-    public string Name => "Export JSON";
+    public string Name => Strings.Action_ExportJson;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Action_ExportJson_Description;

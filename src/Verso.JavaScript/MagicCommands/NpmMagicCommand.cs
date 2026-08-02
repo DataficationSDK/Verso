@@ -12,7 +12,7 @@ namespace Verso.JavaScript.MagicCommands;
 public sealed class NpmMagicCommand : IMagicCommand
 {
     public string ExtensionId => "verso.magic.npm";
-    string IExtension.Name => "Npm Magic Command";
+    string IExtension.Name => Strings.Magic_Npm_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     string? IExtension.Description => Strings.Extension_Npm_Description;

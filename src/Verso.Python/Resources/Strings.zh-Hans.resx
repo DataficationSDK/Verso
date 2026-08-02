@@ -70,6 +70,12 @@
   <data name="Auto_UnknownDistribution" xml:space="preserve">
     <value>“{0}”未安装，且 Verso 不知道哪个分发包提供它。自动安装仅涵盖已知的包；如果这就是正确的名称，请使用 #!pip {0} 安装它。</value>
   </data>
+  <data name="Consent_Source_DeclaredDependency" xml:space="preserve">
+    <value>已声明的依赖项</value>
+  </data>
+  <data name="Consent_Source_Import" xml:space="preserve">
+    <value>import {0}</value>
+  </data>
   <data name="Install_AlreadyInstalled_One" xml:space="preserve">
     <value>{0} 已安装。</value>
   </data>
@@ -151,6 +157,9 @@
   <data name="Magic_Pip_Installing" xml:space="preserve">
     <value>正在安装 {0}...</value>
   </data>
+  <data name="Magic_Pip_Name" xml:space="preserve">
+    <value>Pip 魔法命令</value>
+  </data>
   <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
     <value>没有可用的 Python 解释器，因此无处可安装。请安装 Python 3.8 或更高版本，或使用 #!python 选择一个解释器。</value>
   </data>
@@ -176,6 +185,9 @@ Python {1}（{2}，{3}）</value>
   <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
     <value>
 此解释器由外部管理；安装将使用 Verso 托管的环境。</value>
+  </data>
+  <data name="Magic_Python_Name" xml:space="preserve">
+    <value>Python 解释器魔法命令</value>
   </data>
   <data name="Magic_Python_NoneFound" xml:space="preserve">
     <value>未发现任何 Python 解释器。</value>

@@ -58,14 +58,23 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>Exportar a CSV</value>
+  </data>
   <data name="Action_ExportCsv_Description" xml:space="preserve">
     <value>Exporta los conjuntos de resultados de SQL como archivos CSV.</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>Exportar a JSON</value>
   </data>
   <data name="Action_ExportJson_Description" xml:space="preserve">
     <value>Exporta los conjuntos de resultados de SQL como archivos JSON.</value>
   </data>
   <data name="CellType_Description" xml:space="preserve">
     <value>Tipo de celda SQL para consultar bases de datos a través de ADO.NET.</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>Tipo de celda SQL</value>
   </data>
   <data name="Completion_Keyword_Alter" xml:space="preserve">
     <value>ALTER — Modifica un objeto de base de datos existente.</value>
@@ -184,11 +193,20 @@
   <data name="Formatter_Description" xml:space="preserve">
     <value>Da formato a los conjuntos de resultados de SQL y a los DataTable como tablas HTML paginadas.</value>
   </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>Formateador de conjuntos de resultados</value>
+  </data>
   <data name="Import_Description" xml:space="preserve">
     <value>Convierte los patrones SQL de Polyglot Notebooks en celdas SQL de Verso al importar desde Jupyter.</value>
   </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Enlace de importación de SQL para Jupyter</value>
+  </data>
   <data name="Kernel_Description" xml:space="preserve">
     <value>Ejecuta consultas SQL contra conexiones de base de datos ADO.NET.</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>Kernel de SQL</value>
   </data>
   <data name="Magic_Connect_Connected" xml:space="preserve">
     <value>Se conectó '{0}'{1} usando {2}</value>
@@ -211,6 +229,9 @@
   </data>
   <data name="Magic_Connect_Description" xml:space="preserve">
     <value>Establece una conexión de base de datos para las celdas SQL.</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>Comando mágico SQL Connect</value>
   </data>
   <data name="Magic_Connect_NameRequired" xml:space="preserve">
     <value>--name es obligatorio. Uso: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
@@ -259,6 +280,9 @@
   <data name="Magic_Disconnect_Done" xml:space="preserve">
     <value>Se desconectó '{0}'.</value>
   </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>Comando mágico SQL Disconnect</value>
+  </data>
   <data name="Magic_Disconnect_NoName" xml:space="preserve">
     <value>No se indicó ningún nombre de conexión y no hay ninguna conexión predeterminada establecida.</value>
   </data>
@@ -290,6 +314,9 @@
   </data>
   <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
     <value>Código C# generado</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>Comando mágico SQL Scaffold</value>
   </data>
   <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
     <value>No se encontró el kernel de C#. No se puede ejecutar el código generado.</value>
@@ -358,6 +385,9 @@ Uso en celdas de C#:
   <data name="Magic_Schema_LoadFailed" xml:space="preserve">
     <value>Error al cargar el esquema: {0}</value>
   </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>Comando mágico SQL Schema</value>
+  </data>
   <data name="Magic_Schema_NoConnection" xml:space="preserve">
     <value>No hay ninguna conexión de base de datos. Use #!sql-connect para establecer una.</value>
   </data>
@@ -387,6 +417,9 @@ Uso en celdas de C#:
   </data>
   <data name="Renderer_Description" xml:space="preserve">
     <value>Renderiza las celdas SQL con distintivos que indican la conexión.</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>Renderizador de SQL</value>
   </data>
   <data name="Run_ConnectionClosed" xml:space="preserve">
     <value>La conexión '{0}' no está abierta. Vuelva a conectarse con `#!sql-connect`.</value>

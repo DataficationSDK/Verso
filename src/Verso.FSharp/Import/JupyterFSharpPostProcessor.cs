@@ -26,7 +26,7 @@ public sealed class JupyterFSharpPostProcessor : INotebookPostProcessor
     // --- IExtension ---
 
     public string ExtensionId => "verso.fsharp.postprocessor.jupyter-fsharp";
-    string IExtension.Name => "Jupyter F# Import Hook";
+    string IExtension.Name => Strings.Import_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Import_Description;

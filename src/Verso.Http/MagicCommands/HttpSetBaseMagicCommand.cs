@@ -13,7 +13,7 @@ public sealed class HttpSetBaseMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.http.magic.http-set-base";
-    string IExtension.Name => "HTTP Set Base Magic Command";
+    string IExtension.Name => Strings.Magic_SetBase_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string Description => Strings.Magic_SetBase_Description;

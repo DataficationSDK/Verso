@@ -21,7 +21,7 @@ public sealed class ResultSetFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.formatter.resultset";
-    public string Name => "Result Set Formatter";
+    public string Name => Strings.Formatter_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Formatter_Description;

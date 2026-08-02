@@ -79,6 +79,9 @@
   <data name="Magic_Npm_Installing" xml:space="preserve">
     <value>正在安装 {0}...</value>
   </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Npm 魔法命令</value>
+  </data>
   <data name="Magic_Npm_NoKernel" xml:space="preserve">
     <value>未加载 JavaScript 内核。#!npm 需要 JavaScript 内核。</value>
   </data>

@@ -13,7 +13,7 @@ public sealed class CollectionFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.formatter.collection";
-    public string Name => "Collection Formatter";
+    public string Name => Strings.Formatter_Collection;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Formatter_Collection_Description;

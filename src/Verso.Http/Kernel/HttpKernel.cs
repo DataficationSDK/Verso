@@ -45,7 +45,7 @@ public sealed class HttpKernel : ILanguageKernel
 
     // --- IExtension ---
     public string ExtensionId => "verso.http.kernel.http";
-    string IExtension.Name => "HTTP Kernel";
+    string IExtension.Name => Strings.Kernel_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Kernel_Description;

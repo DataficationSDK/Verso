@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -58,11 +59,10 @@ public sealed class JupyterPolyglotPostProcessor : INotebookPostProcessor
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.jupyter-polyglot";
-    string IExtension.Name => "Jupyter Polyglot Magic Splitter";
+    string IExtension.Name => Strings.PostProcessor_JupyterPolyglot;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description =>
-        "Splits Polyglot Notebook language-switching directives in imported .ipynb files into separate cells.";
+    public string? Description => Strings.PostProcessor_JupyterPolyglot_Description;
 
     // --- INotebookPostProcessor ---
 

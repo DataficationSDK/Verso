@@ -14,7 +14,7 @@ public sealed class ExportCsvAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.action.export-csv";
-    public string Name => "Export CSV";
+    public string Name => Strings.Action_ExportCsv;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
     public string? Description => Strings.Action_ExportCsv_Description;

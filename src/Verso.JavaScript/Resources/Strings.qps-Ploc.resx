@@ -79,6 +79,9 @@
   <data name="Magic_Npm_Installing" xml:space="preserve">
     <value>[!!Ïñštàllïñg {0}...···!!]</value>
   </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>[!!Ñpm Màgïç Çòmmàñd···!!]</value>
+  </data>
   <data name="Magic_Npm_NoKernel" xml:space="preserve">
     <value>[!!Ñò JàvàŠçrïpt kérñél ïš lòàdéd. #!ñpm réqùïréš thé JàvàŠçrïpt kérñél.···!!]</value>
   </data>

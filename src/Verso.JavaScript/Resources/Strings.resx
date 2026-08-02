@@ -86,6 +86,10 @@
     <value>Installing {0}...</value>
     <comment>Printed before the install starts, so a slow one does not look like nothing happening. {0} is a comma-separated list of package names.</comment>
   </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Npm Magic Command</value>
+    <comment>Name of the #!npm magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
   <data name="Magic_Npm_NoKernel" xml:space="preserve">
     <value>No JavaScript kernel is loaded. #!npm requires the JavaScript kernel.</value>
     <comment>#!npm installs for the JavaScript kernel, and there is not one to install for.</comment>
