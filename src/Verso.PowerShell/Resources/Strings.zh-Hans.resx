@@ -64,4 +64,10 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>由 System.Management.Automation 驱动的 PowerShell 语言内核。</value>
   </data>
+  <data name="Table_ObjectCount_One" xml:space="preserve">
+    <value>{0} 个对象</value>
+  </data>
+  <data name="Table_ObjectCount_Other" xml:space="preserve">
+    <value>{0} 个对象</value>
+  </data>
 </root>

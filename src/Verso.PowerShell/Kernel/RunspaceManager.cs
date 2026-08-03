@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using Verso.Abstractions;
 using Verso.PowerShell.Kernel.Host;
+using Verso.PowerShell.Resources;
 
 namespace Verso.PowerShell.Kernel;
 
@@ -448,12 +449,29 @@ function Display {
         }
         sb.Append("</tbody></table>");
 
-        sb.Append("<div class=\"verso-ps-footer\">")
-          .Append(dataRowCount.ToString("N0"))
-          .Append(" object(s)</div>");
+        AppendObjectCountFooter(sb, dataRowCount);
         sb.Append("</div>");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Writes the line under a table saying how much of a result it is showing.
+    /// </summary>
+    /// <remarks>
+    /// The count goes in as an argument rather than being written beside the word, because the
+    /// number and the noun it counts do not sit in the same order in every language, and because
+    /// the singular and the plural are separate words in most of them.
+    /// </remarks>
+    private static void AppendObjectCountFooter(StringBuilder sb, int count)
+    {
+        var described = string.Format(
+            Plural.Of(count, Strings.Table_ObjectCount_One, Strings.Table_ObjectCount_Other),
+            count.ToString("N0"));
+
+        sb.Append("<div class=\"verso-ps-footer\">")
+          .Append(WebUtility.HtmlEncode(described))
+          .Append("</div>");
     }
 
     private static void AppendTableStyles(StringBuilder sb)
@@ -587,9 +605,7 @@ function Display {
         sb.Append("</tbody></table>");
 
         // Footer
-        sb.Append("<div class=\"verso-ps-footer\">")
-          .Append(resolved.Count(o => o is not null).ToString("N0"))
-          .Append(" object(s)</div>");
+        AppendObjectCountFooter(sb, resolved.Count(o => o is not null));
 
         sb.Append("</div>");
         return sb.ToString();

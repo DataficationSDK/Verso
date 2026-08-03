@@ -64,4 +64,10 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>Kernel del lenguaje PowerShell basado en System.Management.Automation.</value>
   </data>
+  <data name="Table_ObjectCount_One" xml:space="preserve">
+    <value>{0} objeto</value>
+  </data>
+  <data name="Table_ObjectCount_Other" xml:space="preserve">
+    <value>{0} objetos</value>
+  </data>
 </root>

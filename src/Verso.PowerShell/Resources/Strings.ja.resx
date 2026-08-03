@@ -64,4 +64,10 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>System.Management.Automation を利用した PowerShell 言語カーネル。</value>
   </data>
+  <data name="Table_ObjectCount_One" xml:space="preserve">
+    <value>{0} 個のオブジェクト</value>
+  </data>
+  <data name="Table_ObjectCount_Other" xml:space="preserve">
+    <value>{0} 個のオブジェクト</value>
+  </data>
 </root>

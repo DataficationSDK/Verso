@@ -66,4 +66,12 @@
     <value>PowerShell language kernel powered by System.Management.Automation.</value>
     <comment>What the PowerShell kernel is, shown wherever kernels are listed. System.Management.Automation is the name of the library and stays as written.</comment>
   </data>
+  <data name="Table_ObjectCount_One" xml:space="preserve">
+    <value>{0} object</value>
+    <comment>Footer under a table of PowerShell results, saying how much the table is showing. {0} is the count, already written out with digit grouping.</comment>
+  </data>
+  <data name="Table_ObjectCount_Other" xml:space="preserve">
+    <value>{0} objects</value>
+    <comment>Footer under a table of PowerShell results, saying how much the table is showing. {0} is the count, already written out with digit grouping.</comment>
+  </data>
 </root>
