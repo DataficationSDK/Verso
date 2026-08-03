@@ -254,6 +254,27 @@
   <data name="Magic_Connect_Param_Provider" xml:space="preserve">
     <value>DbProviderFactory 的固定名称。</value>
   </data>
+  <data name="Magic_Connect_ProviderMultipleRegistered" xml:space="preserve">
+    <value>已注册多个数据库提供程序（{0}）。请使用 --provider 指定要使用的提供程序。</value>
+  </data>
+  <data name="Magic_Connect_ProviderMultipleScanned" xml:space="preserve">
+    <value>在已加载的程序集中找到多个数据库提供程序（{0}）。请使用 --provider 指定要使用的提供程序。</value>
+  </data>
+  <data name="Magic_Connect_ProviderNoPaths" xml:space="preserve">
+    <value>（没有可用的 NuGet 程序集路径；是否先运行了 #r "nuget:"？）</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotFound" xml:space="preserve">
+    <value>未找到数据库提供程序。请安装提供程序的 NuGet 包（例如 Microsoft.Data.Sqlite、Microsoft.Data.SqlClient），并使用 --provider 指定。</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotRegistered" xml:space="preserve">
+    <value>未注册提供程序“{0}”。{1}请确保已引用该提供程序的 NuGet 包，并已调用 DbProviderFactories.RegisterFactory()。</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_One" xml:space="preserve">
+    <value>（已搜索 {0} 个 NuGet 程序集路径）</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_Other" xml:space="preserve">
+    <value>（已搜索 {0} 个 NuGet 程序集路径）</value>
+  </data>
   <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
     <value>解析提供程序时出错：{0}</value>
   </data>

@@ -319,6 +319,34 @@
     <value>The DbProviderFactory invariant name.</value>
     <comment>What --provider is for. DbProviderFactory is a type name and stays as written.</comment>
   </data>
+  <data name="Magic_Connect_ProviderMultipleRegistered" xml:space="preserve">
+    <value>Multiple database providers are registered ({0}). Use --provider to specify which one to use.</value>
+    <comment>Shown when a connection cannot say which provider it meant. {0} is a comma-separated list of provider names. --provider is a command-line option and stays as written.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderMultipleScanned" xml:space="preserve">
+    <value>Multiple database providers found in loaded assemblies ({0}). Use --provider to specify which one to use.</value>
+    <comment>As above, but the providers were found by scanning what is loaded rather than in the registry. {0} is a comma-separated list of type names.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderNoPaths" xml:space="preserve">
+    <value>(no NuGet assembly paths available; was #r "nuget:" run first?)</value>
+    <comment>Goes in as {1} of Magic_Connect_ProviderNotRegistered, saying there was nowhere to look. #r "nuget:" is typed into a cell and stays as written. Keep the brackets.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderNotFound" xml:space="preserve">
+    <value>No database provider found. Install a provider NuGet package (e.g., Microsoft.Data.Sqlite, Microsoft.Data.SqlClient) and use --provider to specify it.</value>
+    <comment>Shown when nothing was registered, guessed, or found. The two package names are examples and stay as written.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderNotRegistered" xml:space="preserve">
+    <value>Provider '{0}' is not registered. {1} Ensure the provider NuGet package is referenced and DbProviderFactories.RegisterFactory() has been called.</value>
+    <comment>Shown when --provider named a provider nothing answers to. {0} is that name. {1} is one of Magic_Connect_ProviderPathsSearched_One, its plural, or Magic_Connect_ProviderNoPaths, and arrives already bracketed. DbProviderFactories.RegisterFactory() is a method name and stays as written.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_One" xml:space="preserve">
+    <value>({0} NuGet assembly path searched)</value>
+    <comment>Goes in as {1} of Magic_Connect_ProviderNotRegistered, saying how widely Verso looked. {0} is the count. Keep the brackets.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_Other" xml:space="preserve">
+    <value>({0} NuGet assembly paths searched)</value>
+    <comment>Goes in as {1} of Magic_Connect_ProviderNotRegistered, saying how widely Verso looked. {0} is the count. Keep the brackets.</comment>
+  </data>
   <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
     <value>Error resolving provider: {0}</value>
     <comment>A placeholder in the provider name could not be filled in. {0} says why.</comment>

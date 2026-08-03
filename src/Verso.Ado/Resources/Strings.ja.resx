@@ -254,6 +254,27 @@
   <data name="Magic_Connect_Param_Provider" xml:space="preserve">
     <value>DbProviderFactory の不変名。</value>
   </data>
+  <data name="Magic_Connect_ProviderMultipleRegistered" xml:space="preserve">
+    <value>複数のデータベースプロバイダーが登録されています ({0})。--provider で使用するものを指定してください。</value>
+  </data>
+  <data name="Magic_Connect_ProviderMultipleScanned" xml:space="preserve">
+    <value>読み込まれたアセンブリ内に複数のデータベースプロバイダーが見つかりました ({0})。--provider で使用するものを指定してください。</value>
+  </data>
+  <data name="Magic_Connect_ProviderNoPaths" xml:space="preserve">
+    <value>(NuGet アセンブリパスがありません。先に #r "nuget:" を実行しましたか?)</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotFound" xml:space="preserve">
+    <value>データベースプロバイダーが見つかりません。プロバイダーの NuGet パッケージ (Microsoft.Data.Sqlite、Microsoft.Data.SqlClient など) をインストールし、--provider で指定してください。</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotRegistered" xml:space="preserve">
+    <value>プロバイダー '{0}' が登録されていません。{1} プロバイダーの NuGet パッケージが参照されていること、および DbProviderFactories.RegisterFactory() が呼び出されていることを確認してください。</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_One" xml:space="preserve">
+    <value>(NuGet アセンブリパス {0} 件を検索しました)</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_Other" xml:space="preserve">
+    <value>(NuGet アセンブリパス {0} 件を検索しました)</value>
+  </data>
   <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
     <value>プロバイダーの解決でエラーが発生しました: {0}</value>
   </data>

@@ -254,6 +254,27 @@
   <data name="Magic_Connect_Param_Provider" xml:space="preserve">
     <value>[!!Thé DbPròvïdérFàçtòrÿ ïñvàrïàñt ñàmé.···!!]</value>
   </data>
+  <data name="Magic_Connect_ProviderMultipleRegistered" xml:space="preserve">
+    <value>[!!Mùltïplé dàtàbàšé pròvïdérš àré régïštéréd ({0}). Ùšé --pròvïdér tò špéçïfÿ whïçh òñé tò ùšé.···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderMultipleScanned" xml:space="preserve">
+    <value>[!!Mùltïplé dàtàbàšé pròvïdérš fòùñd ïñ lòàdéd àššémblïéš ({0}). Ùšé --pròvïdér tò špéçïfÿ whïçh òñé tò ùšé.···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderNoPaths" xml:space="preserve">
+    <value>[!!(ñò ÑùGét àššémblÿ pàthš àvàïlàblé; wàš #r "ñùgét:" rùñ fïršt?)···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotFound" xml:space="preserve">
+    <value>[!!Ñò dàtàbàšé pròvïdér fòùñd. Ïñštàll à pròvïdér ÑùGét pàçkàgé (é.g., Mïçròšòft.Dàtà.Šqlïté, Mïçròšòft.Dàtà.ŠqlÇlïéñt) àñd ùšé --pròvïdér tò špéçïfÿ ït.···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotRegistered" xml:space="preserve">
+    <value>[!!Pròvïdér '{0}' ïš ñòt régïštéréd. {1} Éñšùré thé pròvïdér ÑùGét pàçkàgé ïš référéñçéd àñd DbPròvïdérFàçtòrïéš.RégïštérFàçtòrÿ() hàš bééñ çàlléd.···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_One" xml:space="preserve">
+    <value>[!!({0} ÑùGét àššémblÿ pàth šéàrçhéd)···!!]</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_Other" xml:space="preserve">
+    <value>[!!({0} ÑùGét àššémblÿ pàthš šéàrçhéd)···!!]</value>
+  </data>
   <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
     <value>[!!Érròr réšòlvïñg pròvïdér: {0}···!!]</value>
   </data>

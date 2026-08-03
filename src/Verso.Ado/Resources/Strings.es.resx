@@ -254,6 +254,27 @@
   <data name="Magic_Connect_Param_Provider" xml:space="preserve">
     <value>El nombre invariable de DbProviderFactory.</value>
   </data>
+  <data name="Magic_Connect_ProviderMultipleRegistered" xml:space="preserve">
+    <value>Hay varios proveedores de bases de datos registrados ({0}). Use --provider para indicar cuál se debe usar.</value>
+  </data>
+  <data name="Magic_Connect_ProviderMultipleScanned" xml:space="preserve">
+    <value>Se encontraron varios proveedores de bases de datos en los ensamblados cargados ({0}). Use --provider para indicar cuál se debe usar.</value>
+  </data>
+  <data name="Magic_Connect_ProviderNoPaths" xml:space="preserve">
+    <value>(no hay rutas de ensamblado NuGet disponibles; ¿se ejecutó antes #r "nuget:"?)</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotFound" xml:space="preserve">
+    <value>No se encontró ningún proveedor de bases de datos. Instale un paquete NuGet de proveedor (por ejemplo, Microsoft.Data.Sqlite, Microsoft.Data.SqlClient) y use --provider para indicarlo.</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotRegistered" xml:space="preserve">
+    <value>El proveedor '{0}' no está registrado. {1} Asegúrese de que se hace referencia al paquete NuGet del proveedor y de que se ha llamado a DbProviderFactories.RegisterFactory().</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_One" xml:space="preserve">
+    <value>(se buscó en {0} ruta de ensamblado NuGet)</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_Other" xml:space="preserve">
+    <value>(se buscó en {0} rutas de ensamblado NuGet)</value>
+  </data>
   <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
     <value>Error al resolver el proveedor: {0}</value>
   </data>

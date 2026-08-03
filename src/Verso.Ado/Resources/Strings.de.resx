@@ -254,6 +254,27 @@
   <data name="Magic_Connect_Param_Provider" xml:space="preserve">
     <value>Der invariante Name der DbProviderFactory.</value>
   </data>
+  <data name="Magic_Connect_ProviderMultipleRegistered" xml:space="preserve">
+    <value>Es sind mehrere Datenbankanbieter registriert ({0}). Geben Sie mit --provider an, welcher verwendet werden soll.</value>
+  </data>
+  <data name="Magic_Connect_ProviderMultipleScanned" xml:space="preserve">
+    <value>In den geladenen Assemblys wurden mehrere Datenbankanbieter gefunden ({0}). Geben Sie mit --provider an, welcher verwendet werden soll.</value>
+  </data>
+  <data name="Magic_Connect_ProviderNoPaths" xml:space="preserve">
+    <value>(keine NuGet-Assemblypfade verfügbar; wurde #r "nuget:" zuerst ausgeführt?)</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotFound" xml:space="preserve">
+    <value>Kein Datenbankanbieter gefunden. Installieren Sie ein NuGet-Paket mit einem Anbieter (z. B. Microsoft.Data.Sqlite, Microsoft.Data.SqlClient) und geben Sie ihn mit --provider an.</value>
+  </data>
+  <data name="Magic_Connect_ProviderNotRegistered" xml:space="preserve">
+    <value>Der Anbieter '{0}' ist nicht registriert. {1} Stellen Sie sicher, dass das NuGet-Paket des Anbieters referenziert ist und DbProviderFactories.RegisterFactory() aufgerufen wurde.</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_One" xml:space="preserve">
+    <value>({0} NuGet-Assemblypfad durchsucht)</value>
+  </data>
+  <data name="Magic_Connect_ProviderPathsSearched_Other" xml:space="preserve">
+    <value>({0} NuGet-Assemblypfade durchsucht)</value>
+  </data>
   <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
     <value>Fehler beim Auflösen des Anbieters: {0}</value>
   </data>

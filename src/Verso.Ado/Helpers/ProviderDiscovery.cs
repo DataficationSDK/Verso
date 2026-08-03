@@ -1,5 +1,7 @@
 using System.Data.Common;
 using System.Reflection;
+using Verso.Abstractions;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.Helpers;
 
@@ -87,11 +89,18 @@ internal static class ProviderDiscovery
             if (factory is not null)
                 return (factory, explicitProvider, null);
 
+            // The detail goes into the sentence as an argument rather than being glued onto it,
+            // so a translation is free to put it wherever that language wants it.
             var nugetDetail = nugetAssemblyPaths is { Count: > 0 }
-                ? $" ({nugetAssemblyPaths.Count} NuGet assembly path(s) searched)"
-                : " (no NuGet assembly paths available — was #r \"nuget:\" run first?)";
-            return (null, null, $"Provider '{explicitProvider}' is not registered.{nugetDetail} " +
-                "Ensure the provider NuGet package is referenced and DbProviderFactories.RegisterFactory() has been called.");
+                ? string.Format(
+                    Plural.Of(
+                        nugetAssemblyPaths.Count,
+                        Strings.Magic_Connect_ProviderPathsSearched_One,
+                        Strings.Magic_Connect_ProviderPathsSearched_Other),
+                    nugetAssemblyPaths.Count)
+                : Strings.Magic_Connect_ProviderNoPaths;
+            return (null, null, string.Format(
+                Strings.Magic_Connect_ProviderNotRegistered, explicitProvider, nugetDetail));
         }
 
         // 2. Connection string heuristics
@@ -111,8 +120,7 @@ internal static class ProviderDiscovery
         if (registered.Count > 1)
         {
             var names = string.Join(", ", registered.Select(r => r.ProviderName));
-            return (null, null, $"Multiple database providers are registered ({names}). " +
-                "Use --provider to specify which one to use.");
+            return (null, null, string.Format(Strings.Magic_Connect_ProviderMultipleRegistered, names));
         }
 
         // 4. Broad assembly scanning (last resort)
@@ -124,12 +132,10 @@ internal static class ProviderDiscovery
         if (scanned.Count > 1)
         {
             var names = string.Join(", ", scanned.Select(s => s.TypeName));
-            return (null, null, $"Multiple database providers found in loaded assemblies ({names}). " +
-                "Use --provider to specify which one to use.");
+            return (null, null, string.Format(Strings.Magic_Connect_ProviderMultipleScanned, names));
         }
 
-        return (null, null, "No database provider found. Install a provider NuGet package " +
-            "(e.g., Microsoft.Data.Sqlite, Microsoft.Data.SqlClient) and use --provider to specify it.");
+        return (null, null, Strings.Magic_Connect_ProviderNotFound);
     }
 
     private static string? GuessProviderFromConnectionString(string connectionString)
