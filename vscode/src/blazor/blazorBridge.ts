@@ -147,7 +147,10 @@ export class BlazorBridge implements vscode.Disposable {
       this.handleFileDownload(params).catch((err) => {
         log.error(`file/download error: ${err instanceof Error ? err.message : String(err)}`);
         vscode.window.showErrorMessage(
-          `Export failed: ${err instanceof Error ? err.message : String(err)}`
+          vscode.l10n.t(
+            "Export failed: {0}",
+            err instanceof Error ? err.message : String(err)
+          )
         );
       });
     });
@@ -161,7 +164,10 @@ export class BlazorBridge implements vscode.Disposable {
       this.handleInputRequest(params).catch((err) => {
         log.error(`input/request error: ${err instanceof Error ? err.message : String(err)}`);
         vscode.window.showErrorMessage(
-          `Input request failed: ${err instanceof Error ? err.message : String(err)}`
+          vscode.l10n.t(
+            "Input request failed: {0}",
+            err instanceof Error ? err.message : String(err)
+          )
         );
       });
     });
@@ -334,8 +340,16 @@ export class BlazorBridge implements vscode.Disposable {
         // host reads the file directly from disk. A cancelled dialog returns a null path.
         const picked = await vscode.window.showOpenDialog({
           canSelectMany: false,
-          openLabel: "Install Extension",
-          filters: { "Extensions": ["dll", "nupkg"] },
+          openLabel: vscode.l10n.t({
+            message: "Install Extension",
+            comment: ["The button that accepts the chosen file, in place of \"Open\"."],
+          }),
+          filters: {
+            [vscode.l10n.t({
+              message: "Extensions",
+              comment: ["Names the kind of file the box will accept."],
+            })]: ["dll", "nupkg"],
+          },
         });
         result = { path: picked?.[0]?.fsPath ?? null };
       } else if (method === "diff/sources") {
@@ -464,7 +478,9 @@ export class BlazorBridge implements vscode.Disposable {
 
     const bytes = Buffer.from(p.data, "base64");
     await vscode.workspace.fs.writeFile(uri, bytes);
-    vscode.window.showInformationMessage(`Exported to ${uri.fsPath}`);
+    vscode.window.showInformationMessage(
+      vscode.l10n.t("Exported to {0}", uri.fsPath)
+    );
     return true;
   }
 
@@ -493,7 +509,14 @@ export class BlazorBridge implements vscode.Disposable {
     }
 
     const value = await vscode.window.showInputBox({
-      prompt: p.prompt || "Notebook input",
+      prompt:
+        p.prompt ||
+        vscode.l10n.t({
+          message: "Notebook input",
+          comment: [
+            "Asked when a running cell wants something typed and did not say what.",
+          ],
+        }),
       password: !!p.isPassword,
       ignoreFocusOut: true,
     });
@@ -514,31 +537,50 @@ export class BlazorBridge implements vscode.Disposable {
     fileName?: string
   ): Record<string, string[]> {
     const ext = fileName?.split(".").pop()?.toLowerCase();
+    // A format's name is the same word in every language, so the kinds below are named
+    // by dropping it into a translated phrase rather than by translating each pairing.
+    const named = (format: string) =>
+      vscode.l10n.t({
+        message: "{0} Files",
+        args: [format],
+        comment: [
+          "Names the kind of file a save box will accept. {0} is a format name such as CSV or HTML and is the same word in every language.",
+        ],
+      });
+    const images = vscode.l10n.t({
+      message: "Images",
+      comment: ["Names the kind of file a save box will accept: pictures."],
+    });
+    const all = vscode.l10n.t({
+      message: "All Files",
+      comment: ["The entry in a save box that accepts any file at all."],
+    });
     switch (contentType) {
       case "text/csv":
-        return { "CSV Files": ["csv"], "All Files": ["*"] };
+        return { [named("CSV")]: ["csv"], [all]: ["*"] };
       case "application/json":
-        return { "JSON Files": ["json"], "All Files": ["*"] };
+        return { [named("JSON")]: ["json"], [all]: ["*"] };
       case "text/html":
-        return { "HTML Files": ["html", "htm"], "All Files": ["*"] };
+        return { [named("HTML")]: ["html", "htm"], [all]: ["*"] };
       case "text/markdown":
-        return { "Markdown Files": ["md"], "All Files": ["*"] };
+        return { [named("Markdown")]: ["md"], [all]: ["*"] };
       case "image/png":
-        return { Images: ["png"], "All Files": ["*"] };
+        return { [images]: ["png"], [all]: ["*"] };
       case "image/jpeg":
-        return { Images: ["jpg", "jpeg"], "All Files": ["*"] };
+        return { [images]: ["jpg", "jpeg"], [all]: ["*"] };
       case "image/svg+xml":
-        return { Images: ["svg"], "All Files": ["*"] };
+        return { [images]: ["svg"], [all]: ["*"] };
       case "image/webp":
-        return { Images: ["webp"], "All Files": ["*"] };
+        return { [images]: ["webp"], [all]: ["*"] };
       default:
         if (ext === "verso") {
-          return { "Verso Notebooks": ["verso"], "All Files": ["*"] };
+          // "Verso Notebooks" is the product's name, so it reads the same everywhere.
+          return { "Verso Notebooks": ["verso"], [all]: ["*"] };
         }
         if (ext) {
-          return { Files: [ext], "All Files": ["*"] };
+          return { [named(ext.toUpperCase())]: [ext], [all]: ["*"] };
         }
-        return { "All Files": ["*"] };
+        return { [all]: ["*"] };
     }
   }
 
@@ -551,7 +593,15 @@ export class BlazorBridge implements vscode.Disposable {
     this.onDidEdit?.();
   }
 
-  /** Baseline sources for the Compare menu, with git entries gated on repo membership. */
+  /**
+   * Baseline sources for the Compare menu, with git entries gated on repo membership.
+   *
+   * The labels here are for the native quick pick the "Compare Notebook with..." command
+   * opens, so they follow the editor's display language like the rest of its menus. The
+   * notebook's own Compare panel names the same four sources from its own resources,
+   * because that surface follows the notebook interface language instead. Both read from
+   * the ids below, which are what is actually compared against.
+   */
   listDiffSources(): {
     sources: Array<{
       id: string;
@@ -564,33 +614,57 @@ export class BlazorBridge implements vscode.Disposable {
     const uri = this.documentUri;
     const hasUri = uri !== undefined;
     const gitAvailable = hasUri && this.gitProvider.isAvailableFor(uri);
-    const notInRepo = "The notebook file is not inside a git repository.";
+    const notInRepo = vscode.l10n.t(
+      "The notebook file is not inside a git repository."
+    );
     return {
       sources: [
         {
           id: "lastSaved",
-          label: "Last Saved",
+          label: vscode.l10n.t({
+            message: "Last Saved",
+            comment: [
+              "One of the things a notebook can be compared against: the copy currently on disk.",
+            ],
+          }),
           kind: "lastSaved",
           available: hasUri,
-          description: hasUri ? null : "The notebook has no file on disk yet.",
+          description: hasUri
+            ? null
+            : vscode.l10n.t("The notebook has no file on disk yet."),
         },
         {
           id: "gitHead",
-          label: "Git: HEAD",
+          label: vscode.l10n.t({
+            message: "Git: HEAD",
+            comment: [
+              "One of the things a notebook can be compared against. Git and HEAD are version control terms and are not translated.",
+            ],
+          }),
           kind: "git",
           available: gitAvailable,
           description: gitAvailable ? null : notInRepo,
         },
         {
           id: "gitRef",
-          label: "Git: Compare with Ref...",
+          label: vscode.l10n.t({
+            message: "Git: Compare with Ref...",
+            comment: [
+              "Opens a box for choosing a branch, tag, or commit. Git and Ref are version control terms and are not translated. Keep the three dots, which mean a question follows.",
+            ],
+          }),
           kind: "git",
           available: gitAvailable,
           description: gitAvailable ? null : notInRepo,
         },
         {
           id: "file",
-          label: "Choose File...",
+          label: vscode.l10n.t({
+            message: "Choose File...",
+            comment: [
+              "Opens a box for picking another notebook to compare against. Keep the three dots, which mean a question follows.",
+            ],
+          }),
           kind: "file",
           available: true,
           description: null,
@@ -602,47 +676,63 @@ export class BlazorBridge implements vscode.Disposable {
   /**
    * Resolves a comparison baseline's content. Pickers (ref quick pick, file dialog) run
    * natively here; a dismissed picker reports `cancelled` rather than an error.
+   *
+   * Names the baseline by `labelKind` and, where the name depends on what was picked, a
+   * `labelArg`, rather than by a finished sentence. The name is drawn in the notebook's
+   * Compare panel, which is written in the notebook interface language, not the editor's,
+   * so the words are chosen there and only the parts nothing can translate, a git ref and
+   * a file name, travel from here.
    */
   private async resolveDiffBaseline(
     sourceId: string | undefined
   ): Promise<
-    | { content: string; filePath?: string; label: string }
+    | {
+        content: string;
+        filePath?: string;
+        labelKind: "lastSaved" | "gitHead" | "gitRef" | "file";
+        labelArg?: string;
+      }
     | { cancelled: true }
   > {
     const uri = this.documentUri;
     switch (sourceId) {
       case "lastSaved": {
         if (!uri) {
-          throw new Error("The notebook has no file on disk yet.");
+          throw new Error(vscode.l10n.t("The notebook has no file on disk yet."));
         }
         const bytes = await vscode.workspace.fs.readFile(uri);
         return {
           content: new TextDecoder().decode(bytes),
           filePath: uri.fsPath,
-          label: "Last Saved",
+          labelKind: "lastSaved",
         };
       }
 
       case "gitHead": {
         if (!uri) {
-          throw new Error("The notebook has no file on disk yet.");
+          throw new Error(vscode.l10n.t("The notebook has no file on disk yet."));
         }
         const content = await this.gitProvider.showAtRef(uri, "HEAD");
-        return { content, filePath: uri.fsPath, label: "Git: HEAD" };
+        return { content, filePath: uri.fsPath, labelKind: "gitHead" };
       }
 
       case "gitRef": {
         if (!uri) {
-          throw new Error("The notebook has no file on disk yet.");
+          throw new Error(vscode.l10n.t("The notebook has no file on disk yet."));
         }
         const typedItem = {
-          label: "Type a ref or commit...",
+          label: vscode.l10n.t({
+            message: "Type a ref or commit...",
+            comment: [
+              "The last entry in a list of branches and tags, for naming one that is not listed. Ref and commit are version control terms.",
+            ],
+          }),
           description: "",
           ref: "__typed__",
         };
         const picked = await vscode.window.showQuickPick(
           [...this.gitProvider.listRefsForQuickPick(uri), typedItem],
-          { placeHolder: "Compare notebook with..." }
+          { placeHolder: vscode.l10n.t("Compare notebook with...") }
         );
         if (!picked) {
           return { cancelled: true };
@@ -650,7 +740,13 @@ export class BlazorBridge implements vscode.Disposable {
         const ref =
           picked.ref === "__typed__"
             ? await vscode.window.showInputBox({
-                prompt: "Git branch, tag, or commit SHA",
+                prompt: vscode.l10n.t({
+                  message: "Git branch, tag, or commit SHA",
+                  comment: [
+                    "Says what may be typed. Every term here is a version control term and stays as written.",
+                  ],
+                }),
+                // The default branch name, offered as an example of what to type.
                 placeHolder: "main",
               })
             : picked.ref;
@@ -658,14 +754,27 @@ export class BlazorBridge implements vscode.Disposable {
           return { cancelled: true };
         }
         const content = await this.gitProvider.showAtRef(uri, ref);
-        return { content, filePath: uri.fsPath, label: `Git: ${ref}` };
+        return {
+          content,
+          filePath: uri.fsPath,
+          labelKind: "gitRef",
+          labelArg: ref,
+        };
       }
 
       case "file": {
         const picked = await vscode.window.showOpenDialog({
           canSelectMany: false,
-          openLabel: "Compare",
-          filters: { "Notebook Files": ["verso", "ipynb", "dib"] },
+          openLabel: vscode.l10n.t({
+            message: "Compare",
+            comment: ["The button that accepts the chosen file, in place of \"Open\"."],
+          }),
+          filters: {
+            [vscode.l10n.t({
+              message: "Notebook Files",
+              comment: ["Names the kind of file the box will accept."],
+            })]: ["verso", "ipynb", "dib"],
+          },
         });
         const file = picked?.[0];
         if (!file) {
@@ -675,12 +784,15 @@ export class BlazorBridge implements vscode.Disposable {
         return {
           content: new TextDecoder().decode(bytes),
           filePath: file.fsPath,
-          label: file.path.split("/").pop() ?? "File",
+          labelKind: "file",
+          labelArg: file.path.split("/").pop(),
         };
       }
 
       default:
-        throw new Error(`Unknown comparison source '${sourceId}'.`);
+        throw new Error(
+          vscode.l10n.t("Unknown comparison source '{0}'.", sourceId ?? "")
+        );
     }
   }
 

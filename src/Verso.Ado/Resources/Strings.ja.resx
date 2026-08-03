@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>CSV にエクスポート</value>
+  </data>
+  <data name="Action_ExportCsv_Description" xml:space="preserve">
+    <value>SQL の結果セットを CSV ファイルとしてエクスポートします。</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>JSON にエクスポート</value>
+  </data>
+  <data name="Action_ExportJson_Description" xml:space="preserve">
+    <value>SQL の結果セットを JSON ファイルとしてエクスポートします。</value>
+  </data>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>ADO.NET でデータベースに問い合わせるための SQL セルタイプ。</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL セルタイプ</value>
+  </data>
+  <data name="Completion_Keyword_Alter" xml:space="preserve">
+    <value>ALTER — 既存のデータベースオブジェクトを変更します。</value>
+  </data>
+  <data name="Completion_Keyword_And" xml:space="preserve">
+    <value>AND — 論理積の演算子。両方の条件が真である必要があります。</value>
+  </data>
+  <data name="Completion_Keyword_Avg" xml:space="preserve">
+    <value>AVG — 数値列の平均を返す集計関数。</value>
+  </data>
+  <data name="Completion_Keyword_Between" xml:space="preserve">
+    <value>BETWEEN — 値が範囲内にあるかどうかを判定します。</value>
+  </data>
+  <data name="Completion_Keyword_Case" xml:space="preserve">
+    <value>CASE — 条件式。条件に応じて値を返します。</value>
+  </data>
+  <data name="Completion_Keyword_Count" xml:space="preserve">
+    <value>COUNT — 行数を返す集計関数。</value>
+  </data>
+  <data name="Completion_Keyword_Create" xml:space="preserve">
+    <value>CREATE — 新しいデータベースオブジェクト (テーブル、ビュー、インデックスなど) を作成します。</value>
+  </data>
+  <data name="Completion_Keyword_Delete" xml:space="preserve">
+    <value>DELETE — テーブルから行を削除します。</value>
+  </data>
+  <data name="Completion_Keyword_Distinct" xml:space="preserve">
+    <value>DISTINCT — 結果セットから重複する行を取り除きます。</value>
+  </data>
+  <data name="Completion_Keyword_Drop" xml:space="preserve">
+    <value>DROP — データベースオブジェクトを削除します。</value>
+  </data>
+  <data name="Completion_Keyword_Exists" xml:space="preserve">
+    <value>EXISTS — サブクエリに行が存在するかどうかを判定します。</value>
+  </data>
+  <data name="Completion_Keyword_From" xml:space="preserve">
+    <value>FROM — クエリの対象となるテーブルまたはビューを指定します。</value>
+  </data>
+  <data name="Completion_Keyword_Group" xml:space="preserve">
+    <value>GROUP BY — 集計関数のために、共通の値を持つ行をグループ化します。</value>
+  </data>
+  <data name="Completion_Keyword_Having" xml:space="preserve">
+    <value>HAVING — GROUP BY で作られたグループを絞り込みます。</value>
+  </data>
+  <data name="Completion_Keyword_In" xml:space="preserve">
+    <value>IN — 値がリストまたはサブクエリのいずれかの値と一致するかどうかを判定します。</value>
+  </data>
+  <data name="Completion_Keyword_Inner" xml:space="preserve">
+    <value>INNER — 両方のテーブルで値が一致する行を返します。</value>
+  </data>
+  <data name="Completion_Keyword_Insert" xml:space="preserve">
+    <value>INSERT — テーブルに新しい行を追加します。</value>
+  </data>
+  <data name="Completion_Keyword_Into" xml:space="preserve">
+    <value>INTO — INSERT の対象となるテーブルを指定します。</value>
+  </data>
+  <data name="Completion_Keyword_Join" xml:space="preserve">
+    <value>JOIN — 関連する列をもとに、2 つ以上のテーブルの行を結合します。</value>
+  </data>
+  <data name="Completion_Keyword_Left" xml:space="preserve">
+    <value>LEFT — 左のテーブルのすべての行と、右のテーブルの一致する行を返します。</value>
+  </data>
+  <data name="Completion_Keyword_Like" xml:space="preserve">
+    <value>LIKE — ワイルドカード (% と _) を使ったパターン照合。</value>
+  </data>
+  <data name="Completion_Keyword_Max" xml:space="preserve">
+    <value>MAX — 最大値を返す集計関数。</value>
+  </data>
+  <data name="Completion_Keyword_Min" xml:space="preserve">
+    <value>MIN — 最小値を返す集計関数。</value>
+  </data>
+  <data name="Completion_Keyword_Not" xml:space="preserve">
+    <value>NOT — 論理否定の演算子。条件を反転します。</value>
+  </data>
+  <data name="Completion_Keyword_Null" xml:space="preserve">
+    <value>NULL — 値がない、または不明であることを表します。</value>
+  </data>
+  <data name="Completion_Keyword_Or" xml:space="preserve">
+    <value>OR — 論理和の演算子。いずれかの条件が真であれば成立します。</value>
+  </data>
+  <data name="Completion_Keyword_Order" xml:space="preserve">
+    <value>ORDER BY — 1 つ以上の列で結果セットを並べ替えます。</value>
+  </data>
+  <data name="Completion_Keyword_Right" xml:space="preserve">
+    <value>RIGHT — 右のテーブルのすべての行と、左のテーブルの一致する行を返します。</value>
+  </data>
+  <data name="Completion_Keyword_Select" xml:space="preserve">
+    <value>SELECT — 1 つ以上のテーブルまたはビューから行を取得します。</value>
+  </data>
+  <data name="Completion_Keyword_Set" xml:space="preserve">
+    <value>SET — UPDATE で更新する列と値を指定します。</value>
+  </data>
+  <data name="Completion_Keyword_Sum" xml:space="preserve">
+    <value>SUM — 数値列の合計を返す集計関数。</value>
+  </data>
+  <data name="Completion_Keyword_Table" xml:space="preserve">
+    <value>TABLE — データベースのテーブルを指します。</value>
+  </data>
+  <data name="Completion_Keyword_Union" xml:space="preserve">
+    <value>UNION — 2 つ以上の SELECT 文の結果セットを結合します。</value>
+  </data>
+  <data name="Completion_Keyword_Update" xml:space="preserve">
+    <value>UPDATE — テーブルの既存の行を変更します。</value>
+  </data>
+  <data name="Completion_Keyword_Values" xml:space="preserve">
+    <value>VALUES — INSERT で挿入する値を指定します。</value>
+  </data>
+  <data name="Completion_Keyword_Where" xml:space="preserve">
+    <value>WHERE — 条件に基づいて行を絞り込みます。</value>
+  </data>
+  <data name="Directive_SpacedHint" xml:space="preserve">
+    <value>ヒント: '--{0}' は '--' の後に空白を入れられません。この行は SQL のコメントとして読み飛ばされたため、セルは既定の接続を使いました。</value>
+  </data>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>Verso ノートブック向けの SQL データベース接続拡張機能。</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>SQL の結果セットと DataTable を、ページ送りできる HTML の表として整形します。</value>
+  </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>結果セットフォーマッター</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>Jupyter のインポート時に、Polyglot Notebooks の SQL の書き方を Verso の SQL セルに変換します。</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter SQL インポートフック</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>ADO.NET のデータベース接続に対して SQL クエリを実行します。</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL カーネル</value>
+  </data>
+  <data name="Magic_Connect_Connected" xml:space="preserve">
+    <value>'{0}'{1} に {2} で接続しました</value>
+  </data>
+  <data name="Magic_Connect_ConnectionString" xml:space="preserve">
+    <value>
+  接続文字列: {0}</value>
+  </data>
+  <data name="Magic_Connect_ConnectionStringRequired" xml:space="preserve">
+    <value>--connection-string は必須です。使い方: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_CredentialFailed" xml:space="preserve">
+    <value>接続文字列の解決でエラーが発生しました: {0}</value>
+  </data>
+  <data name="Magic_Connect_Database" xml:space="preserve">
+    <value> — データベース: {0}</value>
+  </data>
+  <data name="Magic_Connect_DefaultLabel" xml:space="preserve">
+    <value> (既定)</value>
+  </data>
+  <data name="Magic_Connect_Description" xml:space="preserve">
+    <value>SQL セルで使うデータベース接続を確立します。</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL Connect マジックコマンド</value>
+  </data>
+  <data name="Magic_Connect_NameRequired" xml:space="preserve">
+    <value>--name は必須です。使い方: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_OpenFailed" xml:space="preserve">
+    <value>接続を開くときにエラーが発生しました: {0}</value>
+  </data>
+  <data name="Magic_Connect_Param_CommandTimeout" xml:space="preserve">
+    <value>この接続の SQL セルで使う既定のコマンドタイムアウト (秒、0 = 無制限)。</value>
+  </data>
+  <data name="Magic_Connect_Param_ConnectionString" xml:space="preserve">
+    <value>ADO.NET の接続文字列。</value>
+  </data>
+  <data name="Magic_Connect_Param_Default" xml:space="preserve">
+    <value>この接続を既定にします。</value>
+  </data>
+  <data name="Magic_Connect_Param_Name" xml:space="preserve">
+    <value>この接続に付けるわかりやすい名前。</value>
+  </data>
+  <data name="Magic_Connect_Param_Provider" xml:space="preserve">
+    <value>DbProviderFactory の不変名。</value>
+  </data>
+  <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
+    <value>プロバイダーの解決でエラーが発生しました: {0}</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnknown" xml:space="preserve">
+    <value>不明</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnresolved" xml:space="preserve">
+    <value>プロバイダーを解決できませんでした。</value>
+  </data>
+  <data name="Magic_Connect_Timeout" xml:space="preserve">
+    <value>
+  コマンドタイムアウト: {0}s</value>
+  </data>
+  <data name="Magic_Connect_TimeoutInvalid" xml:space="preserve">
+    <value>--command-timeout には 0 以上の整数を指定してください (秒、0 = 無制限)。</value>
+  </data>
+  <data name="Magic_Connect_TimeoutNoLimit" xml:space="preserve">
+    <value>
+  コマンドタイムアウト: 無制限</value>
+  </data>
+  <data name="Magic_Disconnect_Description" xml:space="preserve">
+    <value>データベース接続を閉じて削除します。</value>
+  </data>
+  <data name="Magic_Disconnect_Done" xml:space="preserve">
+    <value>'{0}' の接続を切断しました。</value>
+  </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL Disconnect マジックコマンド</value>
+  </data>
+  <data name="Magic_Disconnect_NoName" xml:space="preserve">
+    <value>接続名が指定されておらず、既定の接続も設定されていません。</value>
+  </data>
+  <data name="Magic_Disconnect_NotFound" xml:space="preserve">
+    <value>接続 '{0}' が見つかりません。</value>
+  </data>
+  <data name="Magic_Disconnect_Param_Name" xml:space="preserve">
+    <value>切断する接続の名前。省略した場合は既定の接続を切断します。</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionClosed" xml:space="preserve">
+    <value>接続 '{0}' は開かれていません。</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionRequired" xml:space="preserve">
+    <value>--connection は必須です。使い方: #!sql-scaffold --connection &lt;name&gt; [--tables "Table1,Table2"]</value>
+  </data>
+  <data name="Magic_Scaffold_Description" xml:space="preserve">
+    <value>データベースのスキーマから EF Core の DbContext とエンティティクラスを生成します。</value>
+  </data>
+  <data name="Magic_Scaffold_EfCoreHint" xml:space="preserve">
+    <value>ヒント: 先行する C# セルで EF Core のパッケージがインストールされているか確認してください:
+
+{0}</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_One" xml:space="preserve">
+    <value>{0} 個のエンティティ</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_Other" xml:space="preserve">
+    <value>{0} 個のエンティティ</value>
+  </data>
+  <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
+    <value>生成された C# コード</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL Scaffold マジックコマンド</value>
+  </data>
+  <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
+    <value>C# カーネルが見つかりません。生成したコードを実行できません。</value>
+  </data>
+  <data name="Magic_Scaffold_NoTables" xml:space="preserve">
+    <value>指定した条件に一致するテーブルが見つかりません。</value>
+  </data>
+  <data name="Magic_Scaffold_NotFound" xml:space="preserve">
+    <value>接続 '{0}' が見つかりません。先に #!sql-connect を使ってください。</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Connection" xml:space="preserve">
+    <value>生成元となる名前付きの接続。</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Schema" xml:space="preserve">
+    <value>絞り込みに使うデータベースのスキーマ (例: dbo)。</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Tables" xml:space="preserve">
+    <value>含めるテーブルのカンマ区切りの一覧 (既定: すべて)。</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_One" xml:space="preserve">
+    <value> ({0} 件のリレーションシップ)</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_Other" xml:space="preserve">
+    <value> ({0} 件のリレーションシップ)</value>
+  </data>
+  <data name="Magic_Scaffold_Summary" xml:space="preserve">
+    <value>{0}{1} を {2} に生成しました
+
+エンティティ: {3}
+コンテキストの変数: {4}
+
+C# セルでの使い方:
+  var items = {4}.{5}.ToList();
+</value>
+  </data>
+  <data name="Magic_Schema_ColumnCount" xml:space="preserve">
+    <value>({0} 列)</value>
+  </data>
+  <data name="Magic_Schema_ColumnDefault" xml:space="preserve">
+    <value>既定値</value>
+  </data>
+  <data name="Magic_Schema_ColumnKey" xml:space="preserve">
+    <value>キー</value>
+  </data>
+  <data name="Magic_Schema_ColumnName" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="Magic_Schema_ColumnNullable" xml:space="preserve">
+    <value>NULL 可</value>
+  </data>
+  <data name="Magic_Schema_ColumnSchema" xml:space="preserve">
+    <value>スキーマ</value>
+  </data>
+  <data name="Magic_Schema_ColumnType" xml:space="preserve">
+    <value>型</value>
+  </data>
+  <data name="Magic_Schema_ConnectionClosed" xml:space="preserve">
+    <value>接続 '{0}' は開かれていません。#!sql-connect で接続し直してください。</value>
+  </data>
+  <data name="Magic_Schema_Description" xml:space="preserve">
+    <value>データベースのスキーマ情報 (テーブル、ビュー、列) を表示します。</value>
+  </data>
+  <data name="Magic_Schema_Heading" xml:space="preserve">
+    <value>接続のスキーマ: {0}</value>
+  </data>
+  <data name="Magic_Schema_LoadFailed" xml:space="preserve">
+    <value>スキーマの読み込みでエラーが発生しました: {0}</value>
+  </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL Schema マジックコマンド</value>
+  </data>
+  <data name="Magic_Schema_NoConnection" xml:space="preserve">
+    <value>データベースに接続していません。#!sql-connect で接続してください。</value>
+  </data>
+  <data name="Magic_Schema_NotFound" xml:space="preserve">
+    <value>接続 '{0}' が見つかりません。#!sql-connect で接続してください。</value>
+  </data>
+  <data name="Magic_Schema_Param_Connection" xml:space="preserve">
+    <value>調べる接続の名前。</value>
+  </data>
+  <data name="Magic_Schema_Param_Refresh" xml:space="preserve">
+    <value>スキーマのキャッシュを強制的に更新します。</value>
+  </data>
+  <data name="Magic_Schema_Param_Table" xml:space="preserve">
+    <value>特定のテーブルの列の詳細を表示します。</value>
+  </data>
+  <data name="Magic_Schema_TableCount" xml:space="preserve">
+    <value>({0} 件のテーブル/ビュー)</value>
+  </data>
+  <data name="Magic_Schema_TableNotFound" xml:space="preserve">
+    <value>テーブル '{0}' がスキーマに見つかりません。</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>エラー: {0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>警告: {0}</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>接続を示すバッジを付けて SQL セルを表示します。</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL レンダラー</value>
+  </data>
+  <data name="Run_ConnectionClosed" xml:space="preserve">
+    <value>接続 '{0}' は開かれていません。`#!sql-connect` で接続し直してください。</value>
+  </data>
+  <data name="Run_Failed" xml:space="preserve">
+    <value>SQL エラー: {0}</value>
+  </data>
+  <data name="Run_NoConnection" xml:space="preserve">
+    <value>データベースに接続していません。`#!sql-connect` で接続してください。</value>
+  </data>
+  <data name="Run_NoSql" xml:space="preserve">
+    <value>実行する SQL がありません。</value>
+  </data>
+  <data name="Run_UnsupportedParameterType" xml:space="preserve">
+    <value>'{1}' の型 '{0}' はサポートされている DbType ではありません。そのまま渡します。</value>
+  </data>
+  <data name="Table_Elapsed" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Table_Next" xml:space="preserve">
+    <value>次へ</value>
+  </data>
+  <data name="Table_Previous" xml:space="preserve">
+    <value>前へ</value>
+  </data>
+  <data name="Table_RowsAffected_One" xml:space="preserve">
+    <value>{0} 行が影響を受けました</value>
+  </data>
+  <data name="Table_RowsAffected_Other" xml:space="preserve">
+    <value>{0} 行が影響を受けました</value>
+  </data>
+  <data name="Table_ShowingRows" xml:space="preserve">
+    <value>{2} 行中 {0}-{1} 行目を表示</value>
+  </data>
+  <data name="Table_Statements" xml:space="preserve">
+    <value>{0} ({1} 個のステートメント)</value>
+  </data>
+  <data name="Table_Truncated" xml:space="preserve">
+    <value>結果を {1} 行中 {0} 行で打ち切りました。WHERE や LIMIT でクエリを絞り込んでください。</value>
+  </data>
+</root>

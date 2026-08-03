@@ -1,4 +1,6 @@
 using Verso.Abstractions;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Extensions;
 
 namespace Verso.Cli.Execution;
@@ -47,7 +49,7 @@ public static class ToolbarActionResolver
 
             var ids = string.Join(", ", byName.Select(a => a.ActionId));
             action = null!;
-            error = $"Error: Multiple export actions share display name '{format}'. Disambiguate by ActionId: {ids}.";
+            error = Messages.Error(string.Format(Strings.Error_MultipleExportActions, format, ids));
             return false;
         }
 
@@ -60,7 +62,7 @@ public static class ToolbarActionResolver
         }
 
         action = null!;
-        error = $"Error: Export format '{format}' is not registered.";
+        error = Messages.Error(string.Format(Strings.Error_ExportFormatNotRegistered, format));
         return false;
     }
 
@@ -100,7 +102,7 @@ public static class ToolbarActionResolver
 
             var ids = string.Join(", ", byName.Select(t => t.ThemeId));
             theme = null!;
-            error = $"Error: Multiple themes share display name '{value}'. Disambiguate by ThemeId: {ids}.";
+            error = Messages.Error(string.Format(Strings.Error_MultipleThemes, value, ids));
             return false;
         }
 
@@ -115,8 +117,8 @@ public static class ToolbarActionResolver
 
         theme = null!;
         var known = string.Join(", ", themes.Select(t => t.DisplayName));
-        error = $"Error: Theme '{value}' is not registered." +
-                (known.Length > 0 ? $" Available themes: {known}." : "");
+        error = Messages.Error(string.Format(Strings.Error_ThemeNotRegistered, value))
+                + (known.Length > 0 ? " " + string.Format(Strings.Error_AvailableThemes, known) : "");
         return false;
     }
 }

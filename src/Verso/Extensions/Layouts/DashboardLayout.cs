@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Layouts;
@@ -21,15 +22,15 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
     // --- IExtension ---
 
     public string ExtensionId => "verso.layout.dashboard";
-    public string Name => "Dashboard Layout";
+    public string Name => Strings.Layout_Dashboard;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Grid-based dashboard layout showing output-only cells.";
+    public string? Description => Strings.Layout_Dashboard_Description;
 
     // --- ILayoutEngine ---
 
     public string LayoutId => "dashboard";
-    public string DisplayName => "Dashboard";
+    public string DisplayName => Strings.Layout_Dashboard_Label;
     public string? Icon => null;
     public bool RequiresCustomRenderer => true;
 
@@ -98,11 +99,14 @@ public sealed class DashboardLayout : ILayoutEngine, ILayoutInteractionHandler
             // Toolbar IS the drag handle: clicking empty space drags, clicking the Run button
             // fires its data-action via layout-interact. dashboard-interop.js skips drag when the
             // mousedown target is inside a <button>.
-            sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" title=\"Drag to move\">")
+            var dragTip = System.Net.WebUtility.HtmlEncode(Strings.Layout_DragToMove);
+            sb.Append("<div class=\"verso-dashboard-cell-toolbar verso-dashboard-drag-handle\" title=\"")
+              .Append(dragTip).Append("\">")
               .Append("<button class=\"verso-cell-btn verso-cell-btn--run\" data-action=\"run\" data-target-id=\"")
               .Append(cell.Id)
-              .Append("\" title=\"Run\"><span>&#x25B6;</span></button>")
-              .Append("<span class=\"verso-dashboard-drag-icon\" title=\"Drag to move\">&#x2630;</span>")
+              .Append("\" title=\"").Append(System.Net.WebUtility.HtmlEncode(Strings.Layout_RunCell))
+              .Append("\"><span>&#x25B6;</span></button>")
+              .Append("<span class=\"verso-dashboard-drag-icon\" title=\"").Append(dragTip).Append("\">&#x2630;</span>")
               .Append("</div>");
 
             // Resize handle (bottom-right corner).

@@ -1,0 +1,922 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Capability_CellInteractionHandler" xml:space="preserve">
+    <value>セル操作ハンドラー</value>
+  </data>
+  <data name="Capability_CellInteractionHandler_Plural" xml:space="preserve">
+    <value>セル操作ハンドラー</value>
+  </data>
+  <data name="Capability_CellPropertyProvider" xml:space="preserve">
+    <value>セルプロパティプロバイダー</value>
+  </data>
+  <data name="Capability_CellPropertyProvider_Plural" xml:space="preserve">
+    <value>セルプロパティプロバイダー</value>
+  </data>
+  <data name="Capability_CellRenderer" xml:space="preserve">
+    <value>セルレンダラー</value>
+  </data>
+  <data name="Capability_CellRenderer_Plural" xml:space="preserve">
+    <value>セルレンダラー</value>
+  </data>
+  <data name="Capability_CellType" xml:space="preserve">
+    <value>セルタイプ</value>
+  </data>
+  <data name="Capability_CellType_Plural" xml:space="preserve">
+    <value>セルタイプ</value>
+  </data>
+  <data name="Capability_DataFormatter" xml:space="preserve">
+    <value>データフォーマッター</value>
+  </data>
+  <data name="Capability_DataFormatter_Plural" xml:space="preserve">
+    <value>データフォーマッター</value>
+  </data>
+  <data name="Capability_ExtensionSettings" xml:space="preserve">
+    <value>設定プロバイダー</value>
+  </data>
+  <data name="Capability_ExtensionSettings_Plural" xml:space="preserve">
+    <value>設定プロバイダー</value>
+  </data>
+  <data name="Capability_LanguageKernel" xml:space="preserve">
+    <value>言語カーネル</value>
+  </data>
+  <data name="Capability_LanguageKernel_Plural" xml:space="preserve">
+    <value>言語カーネル</value>
+  </data>
+  <data name="Capability_LayoutEngine" xml:space="preserve">
+    <value>レイアウトエンジン</value>
+  </data>
+  <data name="Capability_LayoutEngine_Plural" xml:space="preserve">
+    <value>レイアウトエンジン</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler" xml:space="preserve">
+    <value>レイアウト操作ハンドラー</value>
+  </data>
+  <data name="Capability_LayoutInteractionHandler_Plural" xml:space="preserve">
+    <value>レイアウト操作ハンドラー</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler" xml:space="preserve">
+    <value>レイアウトライフサイクルハンドラー</value>
+  </data>
+  <data name="Capability_LayoutLifecycleHandler_Plural" xml:space="preserve">
+    <value>レイアウトライフサイクルハンドラー</value>
+  </data>
+  <data name="Capability_MagicCommand" xml:space="preserve">
+    <value>マジックコマンド</value>
+  </data>
+  <data name="Capability_MagicCommand_Plural" xml:space="preserve">
+    <value>マジックコマンド</value>
+  </data>
+  <data name="Capability_NotebookPanel" xml:space="preserve">
+    <value>パネル</value>
+  </data>
+  <data name="Capability_NotebookPanel_Plural" xml:space="preserve">
+    <value>パネル</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor" xml:space="preserve">
+    <value>ポストプロセッサー</value>
+  </data>
+  <data name="Capability_NotebookPostProcessor_Plural" xml:space="preserve">
+    <value>ポストプロセッサー</value>
+  </data>
+  <data name="Capability_NotebookSerializer" xml:space="preserve">
+    <value>シリアライザー</value>
+  </data>
+  <data name="Capability_NotebookSerializer_Plural" xml:space="preserve">
+    <value>シリアライザー</value>
+  </data>
+  <data name="Capability_Other" xml:space="preserve">
+    <value>その他</value>
+  </data>
+  <data name="Capability_Other_Plural" xml:space="preserve">
+    <value>その他</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler" xml:space="preserve">
+    <value>パネル操作ハンドラー</value>
+  </data>
+  <data name="Capability_PanelInteractionHandler_Plural" xml:space="preserve">
+    <value>パネル操作ハンドラー</value>
+  </data>
+  <data name="Capability_Theme" xml:space="preserve">
+    <value>テーマ</value>
+  </data>
+  <data name="Capability_Theme_Plural" xml:space="preserve">
+    <value>テーマ</value>
+  </data>
+  <data name="Capability_ToolbarAction" xml:space="preserve">
+    <value>ツールバーアクション</value>
+  </data>
+  <data name="Capability_ToolbarAction_Plural" xml:space="preserve">
+    <value>ツールバーアクション</value>
+  </data>
+  <data name="CellList_AddCellType" xml:space="preserve">
+    <value>+ {0} セル</value>
+  </data>
+  <data name="Cell_AnotherCellRunning" xml:space="preserve">
+    <value>別のセルを実行中です。</value>
+  </data>
+  <data name="Cell_CollapseCode" xml:space="preserve">
+    <value>コードを折りたたむ</value>
+  </data>
+  <data name="Cell_CollapseSection" xml:space="preserve">
+    <value>セクションを折りたたむ</value>
+  </data>
+  <data name="Cell_Delete" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="Cell_ExpandCode" xml:space="preserve">
+    <value>コードを展開</value>
+  </data>
+  <data name="Cell_ExpandSection" xml:space="preserve">
+    <value>セクションを展開</value>
+  </data>
+  <data name="Cell_MoveDown" xml:space="preserve">
+    <value>下へ移動</value>
+  </data>
+  <data name="Cell_MoveUp" xml:space="preserve">
+    <value>上へ移動</value>
+  </data>
+  <data name="Cell_OutputsHidden_One" xml:space="preserve">
+    <value>{0} 件の出力を非表示</value>
+  </data>
+  <data name="Cell_OutputsHidden_Other" xml:space="preserve">
+    <value>{0} 件の出力を非表示</value>
+  </data>
+  <data name="Cell_Run" xml:space="preserve">
+    <value>実行</value>
+  </data>
+  <data name="Common_AppTitle" xml:space="preserve">
+    <value>Verso ノートブック</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="Common_Dismiss" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>読み込み中...</value>
+  </data>
+  <data name="Common_NoNotebookOpen" xml:space="preserve">
+    <value>ノートブックが開かれていません。</value>
+  </data>
+  <data name="Common_Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>再試行</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Common_Stop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="Common_Submit" xml:space="preserve">
+    <value>送信</value>
+  </data>
+  <data name="Common_Untitled" xml:space="preserve">
+    <value>無題</value>
+  </data>
+  <data name="Compare_BackToChanges" xml:space="preserve">
+    <value>変更点に戻る</value>
+  </data>
+  <data name="Compare_Baseline" xml:space="preserve">
+    <value>ベースライン</value>
+  </data>
+  <data name="Compare_CellAt" xml:space="preserve">
+    <value>セル {0}</value>
+  </data>
+  <data name="Compare_CellMoved" xml:space="preserve">
+    <value>セル {0} → {1}</value>
+  </data>
+  <data name="Compare_ChangeBaseline" xml:space="preserve">
+    <value>ベースラインを変更</value>
+  </data>
+  <data name="Compare_Changes" xml:space="preserve">
+    <value>変更点</value>
+  </data>
+  <data name="Compare_CompareWith" xml:space="preserve">
+    <value>比較対象</value>
+  </data>
+  <data name="Compare_CouldNotRun" xml:space="preserve">
+    <value>比較を実行できませんでした: {0}</value>
+  </data>
+  <data name="Compare_DialogTitle" xml:space="preserve">
+    <value>ノートブックの比較</value>
+  </data>
+  <data name="Compare_DirectoryUnresolved" xml:space="preserve">
+    <value>'{0}' がどのフォルダーにあるか特定できませんでした。</value>
+  </data>
+  <data name="Compare_EmptyCell" xml:space="preserve">
+    <value>(空のセル)</value>
+  </data>
+  <data name="Compare_FileMissing" xml:space="preserve">
+    <value>'{0}' は存在しません。</value>
+  </data>
+  <data name="Compare_FileNotTracked" xml:space="preserve">
+    <value>'{0}' は '{1}' で追跡されていません。先にコミットするか、別の参照を選んでください。</value>
+  </data>
+  <data name="Compare_GitReadFailed" xml:space="preserve">
+    <value>git は '{1}' の '{0}' を読み取れませんでした。</value>
+  </data>
+  <data name="Compare_GitRefLabel" xml:space="preserve">
+    <value>Git: {0}</value>
+  </data>
+  <data name="Compare_LookingForBaselines" xml:space="preserve">
+    <value>ベースラインを探しています...</value>
+  </data>
+  <data name="Compare_NoCellChanged" xml:space="preserve">
+    <value>このベースラインと比べて変更されたセルはありません。</value>
+  </data>
+  <data name="Compare_NotInGitRepo" xml:space="preserve">
+    <value>ノートブックファイルは git リポジトリの中にありません。</value>
+  </data>
+  <data name="Compare_NotSavedYet" xml:space="preserve">
+    <value>ノートブックはまだファイルに保存されていません。</value>
+  </data>
+  <data name="Compare_NotSet" xml:space="preserve">
+    <value>(未設定)</value>
+  </data>
+  <data name="Compare_NotebookSettings" xml:space="preserve">
+    <value>ノートブックの設定</value>
+  </data>
+  <data name="Compare_NothingYet" xml:space="preserve">
+    <value>まだ何も比較していません。どちらの場合もノートブックは変更されません。</value>
+  </data>
+  <data name="Compare_OpenFullDiff" xml:space="preserve">
+    <value>差分全体を開く</value>
+  </data>
+  <data name="Compare_ParseFailed" xml:space="preserve">
+    <value>'{0}' をノートブックとして読み取れませんでした: {1}</value>
+  </data>
+  <data name="Compare_SourceChooseFile" xml:space="preserve">
+    <value>ファイルを選択...</value>
+  </data>
+  <data name="Compare_SourceGitHead" xml:space="preserve">
+    <value>Git: HEAD</value>
+  </data>
+  <data name="Compare_SourceGitRef" xml:space="preserve">
+    <value>Git: Ref と比較...</value>
+  </data>
+  <data name="Compare_SourceLastSaved" xml:space="preserve">
+    <value>最後に保存した状態</value>
+  </data>
+  <data name="Compare_SummaryAdded" xml:space="preserve">
+    <value>追加 {0} 件</value>
+  </data>
+  <data name="Compare_SummaryModified" xml:space="preserve">
+    <value>変更 {0} 件</value>
+  </data>
+  <data name="Compare_SummaryMoved" xml:space="preserve">
+    <value>移動 {0} 件</value>
+  </data>
+  <data name="Compare_SummaryRemoved" xml:space="preserve">
+    <value>削除 {0} 件</value>
+  </data>
+  <data name="Compare_SummaryUnchanged" xml:space="preserve">
+    <value>変更なし {0} 件</value>
+  </data>
+  <data name="Compare_UnknownRef" xml:space="preserve">
+    <value>'{0}' は既知のブランチ、タグ、コミットのいずれでもありません。</value>
+  </data>
+  <data name="Compare_WasCell" xml:space="preserve">
+    <value>元はセル {0}</value>
+  </data>
+  <data name="Consent_ApproveAll" xml:space="preserve">
+    <value>すべて許可</value>
+  </data>
+  <data name="Consent_ApproveInstall" xml:space="preserve">
+    <value>インストール</value>
+  </data>
+  <data name="Consent_Deny" xml:space="preserve">
+    <value>拒否</value>
+  </data>
+  <data name="Consent_IntroExtension_One" xml:space="preserve">
+    <value>このノートブックは次の拡張機能パッケージを読み込もうとしています:</value>
+  </data>
+  <data name="Consent_IntroExtension_Other" xml:space="preserve">
+    <value>このノートブックは次の拡張機能パッケージを読み込もうとしています:</value>
+  </data>
+  <data name="Consent_IntroPackage_One" xml:space="preserve">
+    <value>このノートブックには次の Python パッケージのインストールが必要です:</value>
+  </data>
+  <data name="Consent_IntroPackage_Other" xml:space="preserve">
+    <value>このノートブックには次の Python パッケージのインストールが必要です:</value>
+  </data>
+  <data name="Consent_Target" xml:space="preserve">
+    <value>インストール先: {0}</value>
+  </data>
+  <data name="Consent_TitleExtension" xml:space="preserve">
+    <value>拡張機能の許可が必要です</value>
+  </data>
+  <data name="Consent_TitlePackage" xml:space="preserve">
+    <value>パッケージのインストールが必要です</value>
+  </data>
+  <data name="Consent_WarningExtension" xml:space="preserve">
+    <value>拡張機能はお使いのマシンでコードを実行します。信頼できるパッケージだけを許可してください。</value>
+  </data>
+  <data name="Consent_WarningPackage" xml:space="preserve">
+    <value>パッケージはお使いのマシンでコードを実行します。信頼できるパッケージだけをインストールしてください。</value>
+  </data>
+  <data name="DiffPicker_Compare" xml:space="preserve">
+    <value>比較</value>
+  </data>
+  <data name="DiffPicker_PlaceholderFile" xml:space="preserve">
+    <value>/path/to/notebook.verso</value>
+  </data>
+  <data name="DiffPicker_PlaceholderGitRef" xml:space="preserve">
+    <value>main</value>
+  </data>
+  <data name="DiffPicker_PromptFile" xml:space="preserve">
+    <value>ノートブックファイルのパス (.verso、.ipynb、.md、.dib)</value>
+  </data>
+  <data name="DiffPicker_PromptGitRef" xml:space="preserve">
+    <value>ブランチ、タグ、またはコミット</value>
+  </data>
+  <data name="DiffPicker_TitleFile" xml:space="preserve">
+    <value>ファイルと比較</value>
+  </data>
+  <data name="DiffPicker_TitleGitRef" xml:space="preserve">
+    <value>Git Ref と比較</value>
+  </data>
+  <data name="DiffView_ApproximateMatch" xml:space="preserve">
+    <value>おおよその一致</value>
+  </data>
+  <data name="DiffView_ApproximateMatchChip" xml:space="preserve">
+    <value>おおよその一致</value>
+  </data>
+  <data name="DiffView_ApproximateMatchDesc" xml:space="preserve">
+    <value>これらのファイルには共通のセル識別子がないため、この対応付けは内容の類似度に基づいています。</value>
+  </data>
+  <data name="DiffView_ChangeCount_One" xml:space="preserve">
+    <value>{0} 件の変更</value>
+  </data>
+  <data name="DiffView_ChangeCount_Other" xml:space="preserve">
+    <value>{0} 件の変更</value>
+  </data>
+  <data name="DiffView_ComparingWith" xml:space="preserve">
+    <value>{0} と比較しています</value>
+  </data>
+  <data name="DiffView_Current" xml:space="preserve">
+    <value>現在</value>
+  </data>
+  <data name="DiffView_IdenticalDetail" xml:space="preserve">
+    <value>未保存の編集も含め、すべてのセルとノートブックの設定がベースラインと一致しています。</value>
+  </data>
+  <data name="DiffView_IdenticalTo" xml:space="preserve">
+    <value>{0} と同一です</value>
+  </data>
+  <data name="DiffView_MetadataChip" xml:space="preserve">
+    <value>メタデータ</value>
+  </data>
+  <data name="DiffView_NavPosition" xml:space="preserve">
+    <value>{1} 件中 {0} 件目</value>
+  </data>
+  <data name="DiffView_NextChange" xml:space="preserve">
+    <value>次の変更</value>
+  </data>
+  <data name="DiffView_NoChanges" xml:space="preserve">
+    <value>変更なし</value>
+  </data>
+  <data name="DiffView_OutputsChanged" xml:space="preserve">
+    <value>出力の変更</value>
+  </data>
+  <data name="DiffView_PositionChange" xml:space="preserve">
+    <value>位置 {0} → {1}</value>
+  </data>
+  <data name="DiffView_PreviousChange" xml:space="preserve">
+    <value>前の変更</value>
+  </data>
+  <data name="DiffView_ShowSourceChanges" xml:space="preserve">
+    <value>ソースの変更を表示</value>
+  </data>
+  <data name="DiffView_TypeChange" xml:space="preserve">
+    <value>{0} → {1}</value>
+  </data>
+  <data name="DiffView_UnchangedCells_One" xml:space="preserve">
+    <value>変更のないセル {0} 件</value>
+  </data>
+  <data name="DiffView_UnchangedCells_Other" xml:space="preserve">
+    <value>変更のないセル {0} 件</value>
+  </data>
+  <data name="Diff_Added" xml:space="preserve">
+    <value>追加</value>
+  </data>
+  <data name="Diff_Modified" xml:space="preserve">
+    <value>変更</value>
+  </data>
+  <data name="Diff_Moved" xml:space="preserve">
+    <value>移動</value>
+  </data>
+  <data name="Diff_Removed" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="Diff_Unchanged" xml:space="preserve">
+    <value>変更なし</value>
+  </data>
+  <data name="Error_Cancel" xml:space="preserve">
+    <value>セルを停止できませんでした: {0}</value>
+  </data>
+  <data name="Error_CreateNotebook" xml:space="preserve">
+    <value>ノートブックを作成できませんでした: {0}</value>
+  </data>
+  <data name="Error_Execution" xml:space="preserve">
+    <value>セルを実行できませんでした: {0}</value>
+  </data>
+  <data name="Error_ListComparisonSources" xml:space="preserve">
+    <value>比較対象を一覧できませんでした: {0}</value>
+  </data>
+  <data name="Error_OpenFile" xml:space="preserve">
+    <value>ファイルを開けませんでした: {0}</value>
+  </data>
+  <data name="Error_SaveFailed" xml:space="preserve">
+    <value>保存できませんでした: {0}</value>
+  </data>
+  <data name="Error_SessionRecovery" xml:space="preserve">
+    <value>セッションを復元できませんでした: {0}</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>不明なエラー</value>
+  </data>
+  <data name="Extensions_Disable" xml:space="preserve">
+    <value>無効にする</value>
+  </data>
+  <data name="Extensions_Enable" xml:space="preserve">
+    <value>有効にする</value>
+  </data>
+  <data name="Extensions_Loaded" xml:space="preserve">
+    <value>読み込み済み</value>
+  </data>
+  <data name="Extensions_Off" xml:space="preserve">
+    <value>オフ</value>
+  </data>
+  <data name="Extensions_On" xml:space="preserve">
+    <value>オン</value>
+  </data>
+  <data name="InputDialog_DefaultPrompt" xml:space="preserve">
+    <value>入力</value>
+  </data>
+  <data name="InputDialog_Title" xml:space="preserve">
+    <value>ノートブックの入力</value>
+  </data>
+  <data name="Kernel_HostExited" xml:space="preserve">
+    <value>カーネルを実行しているプロセスが停止しました。</value>
+  </data>
+  <data name="Key_AltDown" xml:space="preserve">
+    <value>Alt+Down</value>
+  </data>
+  <data name="Key_AltUp" xml:space="preserve">
+    <value>Alt+Up</value>
+  </data>
+  <data name="Key_Escape" xml:space="preserve">
+    <value>Esc</value>
+  </data>
+  <data name="Layout_ErrorAllocateFrame" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: フレームを割り当てられませんでした。{0}</value>
+  </data>
+  <data name="Layout_ErrorBridgeScript" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: Verso と接続するスクリプトを利用できません。{0}</value>
+  </data>
+  <data name="Layout_ErrorDisallowedSource" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: 許可されていない接続先が要求されました ({0})。</value>
+  </data>
+  <data name="Layout_ErrorNoActive" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: アクティブなレイアウトがありません。</value>
+  </data>
+  <data name="Layout_ErrorNotReady" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: {0} 秒以内に準備完了が通知されませんでした。</value>
+  </data>
+  <data name="Layout_ErrorPackageEmpty" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: レンダラーが空です。</value>
+  </data>
+  <data name="Layout_ErrorPackageFetch" xml:space="preserve">
+    <value>レイアウトを読み込めませんでした: レンダラーを取得できませんでした。{0}</value>
+  </data>
+  <data name="Marketplace_AddsNothing" xml:space="preserve">
+    <value>追加なし</value>
+  </data>
+  <data name="Marketplace_AddsNothingDesc" xml:space="preserve">
+    <value>読み込まれましたが拡張ポイントを提供していないため、インストールしても何も変わりません。</value>
+  </data>
+  <data name="Marketplace_ChooseVersion" xml:space="preserve">
+    <value>インストールするバージョンを選択</value>
+  </data>
+  <data name="Marketplace_Downloads" xml:space="preserve">
+    <value>ダウンロード数 {0}</value>
+  </data>
+  <data name="Marketplace_Install" xml:space="preserve">
+    <value>インストール</value>
+  </data>
+  <data name="Marketplace_InstallFailed" xml:space="preserve">
+    <value>インストールに失敗しました。</value>
+  </data>
+  <data name="Marketplace_InstallFromFile" xml:space="preserve">
+    <value>ファイルからインストール</value>
+  </data>
+  <data name="Marketplace_InstallFromFileDesc" xml:space="preserve">
+    <value>ローカルの .dll または .nupkg をサイドロードします。</value>
+  </data>
+  <data name="Marketplace_InstallNotApproved" xml:space="preserve">
+    <value>インストールは許可されませんでした。</value>
+  </data>
+  <data name="Marketplace_InstallScope" xml:space="preserve">
+    <value>インストール範囲</value>
+  </data>
+  <data name="Marketplace_InstallScopeDesc" xml:space="preserve">
+    <value>インストールしたパッケージはこのノートブックに記録され、このマシンには記録されません。</value>
+  </data>
+  <data name="Marketplace_Installed" xml:space="preserve">
+    <value>インストール済み</value>
+  </data>
+  <data name="Marketplace_InstallsInto" xml:space="preserve">
+    <value>{0} にインストール</value>
+  </data>
+  <data name="Marketplace_Local" xml:space="preserve">
+    <value>ローカル</value>
+  </data>
+  <data name="Marketplace_LocalDesc" xml:space="preserve">
+    <value>ローカルファイルからサイドロードされました。</value>
+  </data>
+  <data name="Marketplace_LocalFile" xml:space="preserve">
+    <value>ローカルファイル</value>
+  </data>
+  <data name="Marketplace_NoResults" xml:space="preserve">
+    <value>パッケージが見つかりません。</value>
+  </data>
+  <data name="Marketplace_NoneInstalled" xml:space="preserve">
+    <value>拡張機能はインストールされていません。検索して追加してください。</value>
+  </data>
+  <data name="Marketplace_NotLoaded" xml:space="preserve">
+    <value>未読み込み</value>
+  </data>
+  <data name="Marketplace_PackageSources" xml:space="preserve">
+    <value>パッケージソース</value>
+  </data>
+  <data name="Marketplace_Remove" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="Marketplace_RemovedNotice" xml:space="preserve">
+    <value>このノートブックから削除しました。読み込み済みの内容は、ノートブックを開き直すまで有効なままです。</value>
+  </data>
+  <data name="Marketplace_ResultsFrom" xml:space="preserve">
+    <value>{0} から</value>
+  </data>
+  <data name="Marketplace_SearchPlaceholder" xml:space="preserve">
+    <value>拡張機能を検索...</value>
+  </data>
+  <data name="Marketplace_Searching" xml:space="preserve">
+    <value>検索しています...</value>
+  </data>
+  <data name="Marketplace_SourceCount" xml:space="preserve">
+    <value>{0} 件のソース</value>
+  </data>
+  <data name="Marketplace_ThisNotebook" xml:space="preserve">
+    <value>このノートブック</value>
+  </data>
+  <data name="Metadata_Created" xml:space="preserve">
+    <value>作成日時</value>
+  </data>
+  <data name="Metadata_DefaultKernel" xml:space="preserve">
+    <value>既定のカーネル</value>
+  </data>
+  <data name="Metadata_FilePath" xml:space="preserve">
+    <value>ファイルパス</value>
+  </data>
+  <data name="Metadata_FormatVersion" xml:space="preserve">
+    <value>フォーマットバージョン</value>
+  </data>
+  <data name="Metadata_Modified" xml:space="preserve">
+    <value>更新日時</value>
+  </data>
+  <data name="Metadata_Title" xml:space="preserve">
+    <value>タイトル</value>
+  </data>
+  <data name="Metadata_Unsaved" xml:space="preserve">
+    <value>(未保存)</value>
+  </data>
+  <data name="NotFound_Message" xml:space="preserve">
+    <value>申し訳ありません。このアドレスには何もありません。</value>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <value>見つかりません</value>
+  </data>
+  <data name="Output_EmptyCsv" xml:space="preserve">
+    <value>空の CSV</value>
+  </data>
+  <data name="Output_Error" xml:space="preserve">
+    <value>エラー</value>
+  </data>
+  <data name="Output_JsonItems_One" xml:space="preserve">
+    <value>{0} 個の項目</value>
+  </data>
+  <data name="Output_JsonItems_Other" xml:space="preserve">
+    <value>{0} 個の項目</value>
+  </data>
+  <data name="Output_JsonKeys_One" xml:space="preserve">
+    <value>{0} 個のキー</value>
+  </data>
+  <data name="Output_JsonKeys_Other" xml:space="preserve">
+    <value>{0} 個のキー</value>
+  </data>
+  <data name="Output_RenderFailed" xml:space="preserve">
+    <value>この出力を表示できませんでした</value>
+  </data>
+  <data name="Output_RetryRender" xml:space="preserve">
+    <value>この出力の表示を再試行</value>
+  </data>
+  <data name="Output_StandardError" xml:space="preserve">
+    <value>標準エラー出力</value>
+  </data>
+  <data name="Output_Working" xml:space="preserve">
+    <value>処理中</value>
+  </data>
+  <data name="Panel_Collapse" xml:space="preserve">
+    <value>パネルを閉じる</value>
+  </data>
+  <data name="Panel_Compare" xml:space="preserve">
+    <value>比較</value>
+  </data>
+  <data name="Panel_Compare_Description" xml:space="preserve">
+    <value>保存したベースラインとこのノートブックを比べます。</value>
+  </data>
+  <data name="Panel_Extensions" xml:space="preserve">
+    <value>拡張機能</value>
+  </data>
+  <data name="Panel_Extensions_Description" xml:space="preserve">
+    <value>ここで読み込まれている拡張機能と、追加でインストールできる拡張機能。</value>
+  </data>
+  <data name="Panel_Metadata" xml:space="preserve">
+    <value>メタデータ</value>
+  </data>
+  <data name="Panel_Metadata_Description" xml:space="preserve">
+    <value>このノートブックのタイトル、カーネル、ファイルの詳細。</value>
+  </data>
+  <data name="Panel_NothingToShow" xml:space="preserve">
+    <value>このパネルに表示できるものはありません。</value>
+  </data>
+  <data name="Panel_Properties" xml:space="preserve">
+    <value>プロパティ</value>
+  </data>
+  <data name="Panel_PropertiesHeading" xml:space="preserve">
+    <value>セルのプロパティ</value>
+  </data>
+  <data name="Panel_Properties_Description" xml:space="preserve">
+    <value>選択したセルの設定。</value>
+  </data>
+  <data name="Panel_Settings" xml:space="preserve">
+    <value>設定</value>
+  </data>
+  <data name="Panel_Settings_Description" xml:space="preserve">
+    <value>有効な拡張機能が提供する設定。</value>
+  </data>
+  <data name="Panel_Variables" xml:space="preserve">
+    <value>変数</value>
+  </data>
+  <data name="Panel_Variables_Description" xml:space="preserve">
+    <value>カーネルが現在保持しているすべての値。</value>
+  </data>
+  <data name="Panel_View" xml:space="preserve">
+    <value>表示</value>
+  </data>
+  <data name="Panel_View_Description" xml:space="preserve">
+    <value>パネルを閉じずにレイアウトやテーマを切り替えます。</value>
+  </data>
+  <data name="Properties_AddTagPlaceholder" xml:space="preserve">
+    <value>タグを追加...</value>
+  </data>
+  <data name="Properties_None" xml:space="preserve">
+    <value>このセルに設定できるプロパティはありません。</value>
+  </data>
+  <data name="Properties_RemoveTag" xml:space="preserve">
+    <value>タグを削除</value>
+  </data>
+  <data name="Properties_SelectACell" xml:space="preserve">
+    <value>セルを選択すると、そのプロパティが表示されます。</value>
+  </data>
+  <data name="Reconnect_Message" xml:space="preserve">
+    <value>セッションは有効なままです。再接続を試みています。</value>
+  </data>
+  <data name="Reconnect_RecoveringMessage" xml:space="preserve">
+    <value>ノートブックを復元するために再読み込みしています。</value>
+  </data>
+  <data name="Reconnect_RecoveringTitle" xml:space="preserve">
+    <value>セッションを復元しています...</value>
+  </data>
+  <data name="Reconnect_Reload" xml:space="preserve">
+    <value>ページを再読み込み</value>
+  </data>
+  <data name="Reconnect_Title" xml:space="preserve">
+    <value>再接続しています...</value>
+  </data>
+  <data name="SaveDialog_PathHint" xml:space="preserve">
+    <value>ファイルの完全なパスを入力してください。{0} が付いていない場合は追加されます。</value>
+  </data>
+  <data name="SaveDialog_PathLabel" xml:space="preserve">
+    <value>保存先:</value>
+  </data>
+  <data name="SaveDialog_Title" xml:space="preserve">
+    <value>名前を付けてノートブックを保存</value>
+  </data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve">
+    <value>全般</value>
+  </data>
+  <data name="Settings_ListPlaceholder" xml:space="preserve">
+    <value>カンマ区切り</value>
+  </data>
+  <data name="Settings_NoConfigurableExtensions" xml:space="preserve">
+    <value>設定できる項目を持つ有効な拡張機能はありません。</value>
+  </data>
+  <data name="Status_KernelRestarted" xml:space="preserve">
+    <value>カーネルを再起動しました</value>
+  </data>
+  <data name="Status_KernelRestartedReload" xml:space="preserve">
+    <value>カーネルを再起動しました。#!nuget または #!extension を含むセルを再実行して読み込み直してください。</value>
+  </data>
+  <data name="Status_LayoutNotLoaded" xml:space="preserve">
+    <value>レイアウト '{0}' は読み込まれていません。#!extension または #!nuget を含むセルを実行して読み込んでください。</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_One" xml:space="preserve">
+    <value>必須の拡張機能 {0} を読み込めませんでした。利用できるようになるまで、一部のレイアウトやセルが動作しないことがあります。</value>
+  </data>
+  <data name="Status_RequiredExtensionUnavailable_Other" xml:space="preserve">
+    <value>必須の拡張機能 {0} 件を読み込めませんでした: {1}。利用できるようになるまで、一部のレイアウトやセルが動作しないことがあります。</value>
+  </data>
+  <data name="Status_RestartingKernel" xml:space="preserve">
+    <value>カーネルを再起動しています...</value>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>保存しました</value>
+  </data>
+  <data name="Status_SavedTo" xml:space="preserve">
+    <value>{0} に保存しました</value>
+  </data>
+  <data name="Toolbar_ActionFailed" xml:space="preserve">
+    <value>{0} に失敗しました: {1}</value>
+  </data>
+  <data name="Toolbar_Browse" xml:space="preserve">
+    <value>参照</value>
+  </data>
+  <data name="Toolbar_CellCount_One" xml:space="preserve">
+    <value>{0} 個のセル</value>
+  </data>
+  <data name="Toolbar_CellCount_Other" xml:space="preserve">
+    <value>{0} 個のセル</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>エクスポート</value>
+  </data>
+  <data name="Toolbar_ExportNotebook" xml:space="preserve">
+    <value>ノートブックをエクスポート</value>
+  </data>
+  <data name="Toolbar_Go" xml:space="preserve">
+    <value>移動</value>
+  </data>
+  <data name="Toolbar_KernelDisconnected" xml:space="preserve">
+    <value>切断されました</value>
+  </data>
+  <data name="Toolbar_KernelError" xml:space="preserve">
+    <value>カーネルエラー</value>
+  </data>
+  <data name="Toolbar_KernelIdle" xml:space="preserve">
+    <value>カーネル待機中</value>
+  </data>
+  <data name="Toolbar_KernelList" xml:space="preserve">
+    <value>カーネル: {0}</value>
+  </data>
+  <data name="Toolbar_KernelRestarting" xml:space="preserve">
+    <value>再起動中…</value>
+  </data>
+  <data name="Toolbar_KernelRunning" xml:space="preserve">
+    <value>実行中…</value>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>新規</value>
+  </data>
+  <data name="Toolbar_NewNotebook" xml:space="preserve">
+    <value>新しいノートブック</value>
+  </data>
+  <data name="Toolbar_NoKernel" xml:space="preserve">
+    <value>カーネルなし</value>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>開く</value>
+  </data>
+  <data name="Toolbar_OpenFile" xml:space="preserve">
+    <value>ファイルを開く</value>
+  </data>
+  <data name="Toolbar_OpenPathPlaceholder" xml:space="preserve">
+    <value>ファイルパスまたは URL...</value>
+  </data>
+  <data name="Toolbar_ReadFileFailed" xml:space="preserve">
+    <value>ファイルを読み取れませんでした: {0}</value>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Toolbar_SaveUnsavedChanges" xml:space="preserve">
+    <value>保存していない変更があります。</value>
+  </data>
+  <data name="Toolbar_StopExecution" xml:space="preserve">
+    <value>実行を停止</value>
+  </data>
+  <data name="Toolbar_StopFailed" xml:space="preserve">
+    <value>停止できませんでした: {0}</value>
+  </data>
+  <data name="Variables_ColumnName" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="Variables_ColumnType" xml:space="preserve">
+    <value>型</value>
+  </data>
+  <data name="Variables_ColumnValue" xml:space="preserve">
+    <value>値</value>
+  </data>
+  <data name="Variables_Empty" xml:space="preserve">
+    <value>変数は定義されていません。</value>
+  </data>
+  <data name="Variables_Refresh" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="Variables_RefreshFailed" xml:space="preserve">
+    <value>更新に失敗しました: {0}</value>
+  </data>
+  <data name="View_Layout" xml:space="preserve">
+    <value>レイアウト</value>
+  </data>
+  <data name="View_ReadOnly" xml:space="preserve">
+    <value>読み取り専用</value>
+  </data>
+  <data name="View_Theme" xml:space="preserve">
+    <value>テーマ</value>
+  </data>
+  <data name="Welcome_Intro" xml:space="preserve">
+    <value>新しいノートブックを作成するか、既存の {0}、{1}、{2} ファイルを開いて始めましょう。</value>
+  </data>
+  <data name="Welcome_WaitingForContent" xml:space="preserve">
+    <value>ノートブックの内容を待っています...</value>
+  </data>
+  <data name="Widget_FrameTitle" xml:space="preserve">
+    <value>ウィジェットの出力</value>
+  </data>
+</root>

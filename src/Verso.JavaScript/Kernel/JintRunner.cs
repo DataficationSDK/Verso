@@ -5,6 +5,7 @@ using Jint;
 using Jint.Native;
 using Jint.Runtime;
 using Verso.Abstractions;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.Kernel;
 
@@ -108,12 +109,12 @@ internal sealed class JintRunner : IJavaScriptRunner
             catch (TimeoutException)
             {
                 hasError = true;
-                errorMessage = "Execution timed out (15 second limit).";
+                errorMessage = Strings.Run_TimedOut;
             }
             catch (MemoryLimitExceededException)
             {
                 hasError = true;
-                errorMessage = "Memory limit exceeded (128 MB).";
+                errorMessage = Strings.Run_OutOfMemory;
             }
             catch (Exception ex)
             {

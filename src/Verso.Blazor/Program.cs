@@ -1,3 +1,4 @@
+using Verso.Blazor.Localization;
 using Verso.Blazor.Services;
 using Verso.Blazor.Shared.Services;
 using Verso.Extensions;
@@ -37,6 +38,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Before the components are mapped: a circuit takes its culture from the request that opened it.
+// --language pins the interface language; without it the browser's Accept-Language decides.
+app.UseVersoLocalization(builder.Configuration["language"]);
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 

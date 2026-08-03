@@ -12,6 +12,7 @@ import { hostRegistry } from "../host/hostRegistry";
 import { notebookRegistry } from "../host/notebookRegistry";
 import { BlazorBridge } from "./blazorBridge";
 import { log } from "../log";
+import { LANGUAGE_SETTING, resolveLanguage } from "../localization";
 import {
   CellAddParams,
   CellDto,
@@ -82,6 +83,19 @@ export class BlazorEditorProvider
             bridge.postEditorSettings(settings);
           }
         }
+
+        // A notebook already open keeps the language it started in. Its interface is a
+        // WebAssembly app, whose language is fixed when it boots, and its host process
+        // reads the language once on the command line; changing either means starting
+        // over, which would throw away whatever had not been saved. Say so, because a
+        // setting that appears to do nothing is worse than one that waits.
+        if (e.affectsConfiguration(LANGUAGE_SETTING) && this.bridges.size > 0) {
+          vscode.window.showInformationMessage(
+            vscode.l10n.t(
+              "Verso: the notebooks already open keep their current language. Reopen them to read them in the new one."
+            )
+          );
+        }
       })
     );
 
@@ -136,9 +150,10 @@ export class BlazorEditorProvider
       fs.mkdirSync(dir, { recursive: true });
     } catch (err) {
       vscode.window.showErrorMessage(
-        `Verso: Could not create a scratch notebook: ${
-          err instanceof Error ? err.message : err
-        }`
+        vscode.l10n.t(
+          "Verso: Could not create a scratch notebook: {0}",
+          err instanceof Error ? err.message : String(err)
+        )
       );
       return;
     }
@@ -155,9 +170,10 @@ export class BlazorEditorProvider
       fs.writeFileSync(tempPath, "");
     } catch (err) {
       vscode.window.showErrorMessage(
-        `Verso: Could not create a scratch notebook: ${
-          err instanceof Error ? err.message : err
-        }`
+        vscode.l10n.t(
+          "Verso: Could not create a scratch notebook: {0}",
+          err instanceof Error ? err.message : String(err)
+        )
       );
       return;
     }
@@ -199,7 +215,9 @@ export class BlazorEditorProvider
     // `dotnet ""` and mislabeling it as a runtime problem.
     if (!this.hostDllPath) {
       vscode.window.showErrorMessage(
-        'Verso: Could not find Verso.Host.dll. Set "verso.hostPath" in settings to the path of your built Verso.Host.dll.'
+        vscode.l10n.t(
+          'Verso: Could not find Verso.Host.dll. Set "verso.hostPath" in settings to the path of your built Verso.Host.dll.'
+        )
       );
       return;
     }
@@ -286,9 +304,10 @@ export class BlazorEditorProvider
       bridge.notify("notebook/opened", { filePath, ...result });
     } catch (err) {
       vscode.window.showErrorMessage(
-        `Verso: Failed to open notebook: ${
-          err instanceof Error ? err.message : err
-        }`
+        vscode.l10n.t(
+          "Verso: Failed to open notebook: {0}",
+          err instanceof Error ? err.message : String(err)
+        )
       );
     }
   }
@@ -411,12 +430,15 @@ export class BlazorEditorProvider
       );
       bridge.endRestart();
       bridge.notifyFaulted(
-        `Restart aborted: the notebook snapshot could not be captured (${
+        vscode.l10n.t(
+          "Restart aborted: the notebook snapshot could not be captured ({0}).",
           err instanceof Error ? err.message : String(err)
-        }).`
+        )
       );
       vscode.window.showErrorMessage(
-        "Verso: kernel restart aborted because the notebook snapshot could not be captured. Save and reopen the file."
+        vscode.l10n.t(
+          "Verso: kernel restart aborted because the notebook snapshot could not be captured. Save and reopen the file."
+        )
       );
       return;
     }
@@ -437,9 +459,10 @@ export class BlazorEditorProvider
       invalidateDotnetResolution(this.hostDllPath);
       bridge.endRestart();
       bridge.notifyFaulted(
-        `Kernel restart failed: the host process did not start (${
+        vscode.l10n.t(
+          "Kernel restart failed: the host process did not start ({0}). Close and reopen the notebook.",
           err instanceof Error ? err.message : String(err)
-        }). Close and reopen the notebook.`
+        )
       );
       // Route through the shared handler so a missing/incompatible .NET runtime
       // gets the same actionable "Install .NET Runtime" guidance as a fresh open.
@@ -463,14 +486,16 @@ export class BlazorEditorProvider
       );
       bridge.endRestart();
       bridge.notifyFaulted(
-        `Kernel restart failed: the notebook did not reopen (${
+        vscode.l10n.t(
+          "Kernel restart failed: the notebook did not reopen ({0}).",
           err instanceof Error ? err.message : String(err)
-        }).`
+        )
       );
       vscode.window.showErrorMessage(
-        `Verso: kernel restart failed (notebook did not reopen): ${
+        vscode.l10n.t(
+          "Verso: kernel restart failed (notebook did not reopen): {0}. Close and reopen the notebook.",
           err instanceof Error ? err.message : String(err)
-        }. Close and reopen the notebook.`
+        )
       );
       return;
     }
@@ -654,6 +679,8 @@ export class BlazorEditorProvider
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? os.homedir();
     const target = await vscode.window.showSaveDialog({
       defaultUri: vscode.Uri.file(path.join(defaultDir, "Untitled.verso")),
+      // Names the kind of file the box will accept. "Verso Notebook" is the
+      // product's name, so the label reads the same in every language.
       filters: { "Verso Notebook": ["verso"] },
     });
     if (!target) return;
@@ -757,6 +784,12 @@ export class BlazorEditorProvider
   private getWebviewHtml(webview: vscode.Webview): string {
     const wasmRoot = this.getWasmRoot();
     const version = this.getCacheBuster();
+
+    // Read once, into the page, because WebAssembly settles its culture while it boots:
+    // the translations for a language are a separate download that the runtime only knows
+    // to fetch if it is told the language before the app starts. Assigning a culture after
+    // that point leaves the app running in English and eventually faults.
+    const language = resolveLanguage();
 
     const toUri = (relativePath: string) =>
       webview.asWebviewUri(vscode.Uri.joinPath(wasmRoot, relativePath)).toString() + `?v=${version}`;
@@ -1036,16 +1069,29 @@ export class BlazorEditorProvider
     // The real webview resource base (used by loadBootResource to remap framework fetches).
     var frameworkBase = '${frameworkBase}/';
     var wasmVersion = '${version}';
+    // Undefined leaves the app on the browser's own language.
+    var versoLocale = ${language ? JSON.stringify(language) : "undefined"};
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof Blazor !== 'undefined') {
             var status = document.getElementById('loading-status');
             if (status) status.textContent = 'Starting Blazor runtime...';
             Blazor.start({
+                applicationCulture: versoLocale,
                 loadBootResource: function(type, name, defaultUri, integrity) {
                     // Remap all framework resource URIs to real webview URIs
                     // since <base href> is a synthetic localhost URI.
                     // Append version query param to bust stale caches on extension update.
-                    return frameworkBase + name + '?v=' + wasmVersion;
+                    //
+                    // The path comes from defaultUri rather than from name, because name is
+                    // only ever a file name and some resources sit in a subdirectory. A
+                    // satellite assembly is the case that matters: it lives under its culture,
+                    // at _framework/de/Verso.Blazor.Shared.resources.wasm, and rebuilding the
+                    // URI from name alone asks for it at the root, where it is not. That fetch
+                    // fails, and with it the only reason the app had to load a language.
+                    var marker = '_framework/';
+                    var at = defaultUri ? defaultUri.lastIndexOf(marker) : -1;
+                    var path = at >= 0 ? defaultUri.substring(at + marker.length) : name;
+                    return frameworkBase + path + '?v=' + wasmVersion;
                 }
             }).then(function() {
                 if (status) status.textContent = 'Blazor started.';

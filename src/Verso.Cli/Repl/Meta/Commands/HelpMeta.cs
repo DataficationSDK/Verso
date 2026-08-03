@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,11 +8,10 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class HelpMeta : IMetaCommand
 {
     public string Name => "help";
-    public string Summary => "Prints meta-command help.";
-    public string DetailedHelp =>
-        ".help [<name>]\n" +
-        "  With no argument, prints an overview of all meta-commands.\n" +
-        "  With a name, prints detailed help for that command.";
+    public string Summary => Strings.Meta_Help_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".help [<name>]\n" + Strings.Meta_Help_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -23,7 +24,9 @@ public sealed class HelpMeta : IMetaCommand
             }
             else
             {
-                context.Console.MarkupLine($"[red]Unknown meta-command '.{trimmed}'.[/] Type [bold].help[/] for the list.");
+                context.Console.MarkupLine(
+                    Messages.In("red", Messages.Say(Strings.Repl_UnknownMetaCommand, trimmed))
+                    + " " + Messages.Typed(Strings.Repl_TypeHelpForList, ".help"));
             }
             return Task.FromResult(true);
         }
@@ -31,17 +34,22 @@ public sealed class HelpMeta : IMetaCommand
         if (context.UseColor)
         {
             var table = new Table().Border(TableBorder.Rounded);
-            table.AddColumn("Command");
-            table.AddColumn("Description");
+            table.AddColumn(Strings.Table_Command);
+            table.AddColumn(Strings.Table_Description);
             foreach (var command in context.Registry.AllOrdered)
                 table.AddRow($"[bold].{command.Name}[/]", Markup.Escape(command.Summary));
             context.Console.Write(table);
         }
         else
         {
-            Console.Out.WriteLine($"{"COMMAND",-12}  DESCRIPTION");
+            // Read once into a local: a column is padded to the width of its own heading,
+            // and the heading is not the length it was in English.
+            var commandHeading = Strings.Table_Command;
+            var width = Math.Max(DisplayWidth.Measure(commandHeading),
+                context.Registry.AllOrdered.Max(c => c.Name.Length + 1));
+            Console.Out.WriteLine($"{DisplayWidth.PadRight(commandHeading, width)}  {Strings.Table_Description}");
             foreach (var command in context.Registry.AllOrdered)
-                Console.Out.WriteLine($"{"." + command.Name,-12}  {command.Summary}");
+                Console.Out.WriteLine($"{DisplayWidth.PadRight("." + command.Name, width)}  {command.Summary}");
         }
         return Task.FromResult(true);
     }

@@ -12,6 +12,9 @@ import {
 
 const PARTICIPANT_ID = "verso.copilot.notebook";
 
+// Read by the model, not by anyone. It stays in English because that is what it was
+// written and tested against, and translating it would change how well the model
+// follows it without changing anything a reader sees.
 const BASE_SYSTEM_PROMPT = `You are a Verso notebook assistant integrated into GitHub Copilot Chat.
 Verso is an interactive notebook environment for .NET, similar in spirit to Jupyter or Polyglot Notebooks. It is NOT built on .NET Interactive: kernel extensions written for Polyglot Notebooks are never loaded, and .NET Interactive idioms do not always transfer.
 
@@ -53,6 +56,50 @@ Guidelines:
 - Before modifying cells, call verso_listCells to understand the current notebook state.
 - Cell numbers are 1-based (cell 1 is the first cell).
 - After running cells, examine the output and help the user understand results or fix errors.`;
+
+// ── Wording shared by the replies below ─────────────────────────────
+
+/**
+ * Said whenever a command needs a notebook and there is not one. Written once so the
+ * four commands and the main handler cannot drift apart, in wording or in translation.
+ */
+function noNotebookOpen(): string {
+  return vscode.l10n.t("No Verso notebook is currently open.");
+}
+
+/**
+ * A count of cells, in words.
+ *
+ * Two entries rather than a "cell(s)" that no other language can copy. Which of them is
+ * used is decided here because whether a language has a plural form at all, and where the
+ * boundary falls, is a fact about that language: Japanese and Chinese have one form and
+ * translate both entries the same way. A language with more forms than two would need a
+ * real plural rule, and none of the languages Verso ships does.
+ */
+function cellCount(count: number): string {
+  return count === 1
+    ? vscode.l10n.t({
+        message: "{0} cell",
+        args: [count],
+        comment: ["Used when {0} is 1. Paired with the entry below."],
+      })
+    : vscode.l10n.t({
+        message: "{0} cells",
+        args: [count],
+        comment: [
+          "Used for every count other than 1. A language with one form for both translates this the same as the entry above.",
+        ],
+      });
+}
+
+/** Said when a cell number is outside the notebook. */
+function cellNotFound(cellNumber: number, total: number): string {
+  return vscode.l10n.t(
+    "Cell {0} not found. The notebook has {1}.",
+    cellNumber,
+    cellCount(total)
+  );
+}
 
 interface CellTypeInfo {
   id: string;
@@ -115,7 +162,7 @@ async function handleCellsCommand(
 ): Promise<vscode.ChatResult> {
   const ctx = await resolveNotebook();
   if (!ctx) {
-    stream.markdown("No Verso notebook is currently open.");
+    stream.markdown(noNotebookOpen());
     return {};
   }
 
@@ -125,18 +172,24 @@ async function handleCellsCommand(
   );
 
   if (result.cells.length === 0) {
-    stream.markdown("The notebook is empty.");
+    stream.markdown(vscode.l10n.t("The notebook is empty."));
     return {};
   }
 
   stream.markdown(
-    `**${path.basename(ctx.uri.fsPath)}** - ${result.cells.length} cell(s):\n\n`
+    `**${path.basename(ctx.uri.fsPath)}** - ${cellCount(result.cells.length)}:\n\n`
   );
 
   for (let i = 0; i < result.cells.length; i++) {
     const cell = result.cells[i];
     const lang = cell.language ?? cell.type;
-    stream.markdown(`**Cell ${i + 1}** [${lang}]\n`);
+    stream.markdown(
+      `**${vscode.l10n.t({
+        message: "Cell {0}",
+        args: [i + 1],
+        comment: ["A heading over one cell's code. {0} counts from 1."],
+      })}** [${lang}]\n`
+    );
     stream.markdown(`\`\`\`${lang}\n${cell.source}\n\`\`\`\n\n`);
   }
 
@@ -149,11 +202,11 @@ async function handleRunCommand(
 ): Promise<vscode.ChatResult> {
   const ctx = await resolveNotebook();
   if (!ctx) {
-    stream.markdown("No Verso notebook is currently open.");
+    stream.markdown(noNotebookOpen());
     return {};
   }
 
-  stream.progress("Running all cells...");
+  stream.progress(vscode.l10n.t("Running all cells..."));
   const result = await ctx.host.sendRequest<ExecutionRunAllResult>(
     "execution/runAll",
     { notebookId: ctx.notebookId }
@@ -164,10 +217,24 @@ async function handleRunCommand(
   ctx.bridge.markDirty();
 
   for (const r of result.results) {
-    const status = r.status === "completed" ? "completed" : `**${r.status}**`;
-    stream.markdown(`Cell (${r.elapsedMs}ms): ${status}\n`);
+    // A status other than "completed" is drawn in bold so a failed run stands out in a
+    // list of them. The status word itself comes from the host, in the host's language.
+    const status = r.status === "completed" ? r.status : `**${r.status}**`;
+    stream.markdown(
+      `${vscode.l10n.t({
+        message: "Cell ({0}ms)",
+        args: [r.elapsedMs],
+        comment: ["{0} is a number of milliseconds; ms is the unit and stays as written."],
+      })}: ${status}\n`
+    );
     if (r.errorMessage) {
-      stream.markdown(`> Error: ${r.errorMessage}\n`);
+      stream.markdown(
+        `> ${vscode.l10n.t({
+          message: "Error: {0}",
+          args: [r.errorMessage],
+          comment: ["{0} is what the cell reported, in the language the kernel reported it."],
+        })}\n`
+      );
     }
   }
 
@@ -180,7 +247,7 @@ async function handleVarsCommand(
 ): Promise<vscode.ChatResult> {
   const ctx = await resolveNotebook();
   if (!ctx) {
-    stream.markdown("No Verso notebook is currently open.");
+    stream.markdown(noNotebookOpen());
     return {};
   }
 
@@ -190,11 +257,24 @@ async function handleVarsCommand(
   );
 
   if (result.variables.length === 0) {
-    stream.markdown("No variables in scope. Run some cells first.");
+    stream.markdown(
+      vscode.l10n.t("No variables in scope. Run some cells first.")
+    );
     return {};
   }
 
-  stream.markdown("| Name | Type | Value |\n|---|---|---|\n");
+  stream.markdown(
+    `| ${vscode.l10n.t({
+      message: "Name",
+      comment: ["A table heading: what a variable is called."],
+    })} | ${vscode.l10n.t({
+      message: "Type",
+      comment: ["A table heading: what kind of value a variable holds."],
+    })} | ${vscode.l10n.t({
+      message: "Value",
+      comment: ["A table heading: what a variable currently holds."],
+    })} |\n|---|---|---|\n`
+  );
   for (const v of result.variables) {
     stream.markdown(`| \`${v.name}\` | ${v.typeName} | ${v.valuePreview} |\n`);
   }
@@ -209,14 +289,19 @@ async function handlePropsCommand(
 ): Promise<vscode.ChatResult> {
   const ctx = await resolveNotebook();
   if (!ctx) {
-    stream.markdown("No Verso notebook is currently open.");
+    stream.markdown(noNotebookOpen());
     return {};
   }
 
   const cellNumber = parseInt(prompt.trim(), 10);
   if (isNaN(cellNumber) || cellNumber < 1) {
     stream.markdown(
-      "Usage: `/props <cell number>` (1-based). Example: `/props 2`"
+      vscode.l10n.t({
+        message: "Usage: `/props <cell number>` (1-based). Example: `/props 2`",
+        comment: [
+          "Shown when /props was typed without a cell number. Everything in backticks is typed and stays as written.",
+        ],
+      })
     );
     return {};
   }
@@ -227,9 +312,7 @@ async function handlePropsCommand(
   );
   const cell = cellsResult.cells[cellNumber - 1];
   if (!cell) {
-    stream.markdown(
-      `Cell ${cellNumber} not found. The notebook has ${cellsResult.cells.length} cell(s).`
-    );
+    stream.markdown(cellNotFound(cellNumber, cellsResult.cells.length));
     return {};
   }
 
@@ -240,13 +323,15 @@ async function handlePropsCommand(
 
   if (result.sections.length === 0) {
     stream.markdown(
-      `Cell ${cellNumber} has no configurable properties.`
+      vscode.l10n.t("Cell {0} has no configurable properties.", cellNumber)
     );
     return {};
   }
 
   const lang = cell.language ?? cell.type;
-  stream.markdown(`**Cell ${cellNumber}** [${lang}] properties:\n\n`);
+  stream.markdown(
+    vscode.l10n.t("**Cell {0}** [{1}] properties:", cellNumber, lang) + "\n\n"
+  );
 
   for (const s of result.sections) {
     stream.markdown(`### ${s.section.title}\n`);
@@ -254,15 +339,49 @@ async function handlePropsCommand(
       stream.markdown(`${s.section.description}\n`);
     }
     stream.markdown(
-      "| Property | Type | Value | Read-only |\n|---|---|---|---|\n"
+      `| ${vscode.l10n.t({
+        message: "Property",
+        comment: ["A table heading: the name of one setting on a cell."],
+      })} | ${vscode.l10n.t({
+        message: "Type",
+        comment: ["A table heading: what kind of value a setting takes."],
+      })} | ${vscode.l10n.t({
+        message: "Value",
+        comment: ["A table heading: what a setting is currently set to."],
+      })} | ${vscode.l10n.t({
+        message: "Read-only",
+        comment: ["A table heading: whether a setting can be changed."],
+      })} |\n|---|---|---|---|\n`
     );
     for (const field of s.section.fields) {
-      const value = field.currentValue ?? "(not set)";
+      const value =
+        field.currentValue ??
+        vscode.l10n.t({
+          message: "(not set)",
+          comment: ["Stands in a table cell for a setting that has no value yet."],
+        });
+      const readOnly = field.isReadOnly
+        ? vscode.l10n.t({
+            message: "Yes",
+            comment: ["A table cell answering whether a setting is read-only."],
+          })
+        : vscode.l10n.t({
+            message: "No",
+            comment: [
+              "A table cell answering whether a setting is read-only. The answer to a question, not the word for a number.",
+            ],
+          });
       stream.markdown(
-        `| ${field.displayName} | ${field.fieldType} | ${value} | ${field.isReadOnly ? "Yes" : "No"} |\n`
+        `| ${field.displayName} | ${field.fieldType} | ${value} | ${readOnly} |\n`
       );
     }
-    stream.markdown(`\n*Provider: \`${s.providerExtensionId}\`*\n\n`);
+    stream.markdown(
+      `\n*${vscode.l10n.t({
+        message: "Provider: {0}",
+        args: ["`" + s.providerExtensionId + "`"],
+        comment: ["Names the extension a group of settings came from. {0} is its id."],
+      })}*\n\n`
+    );
   }
 
   return {};
@@ -293,7 +412,9 @@ const handler: vscode.ChatRequestHandler = async (
   // Check if any notebook is open
   if (hostRegistry.size === 0) {
     stream.markdown(
-      "No Verso notebook is currently open. Open a `.verso`, `.ipynb`, `.md`, or `.dib` file first."
+      vscode.l10n.t(
+        "No Verso notebook is currently open. Open a `.verso`, `.ipynb`, `.md`, or `.dib` file first."
+      )
     );
     return {};
   }
@@ -301,7 +422,7 @@ const handler: vscode.ChatRequestHandler = async (
   // Resolve the active notebook and build an enriched system prompt
   const ctx = await resolveNotebook();
   if (!ctx) {
-    stream.markdown("No Verso notebook is currently open.");
+    stream.markdown(noNotebookOpen());
     return {};
   }
 
@@ -352,7 +473,9 @@ const handler: vscode.ChatRequestHandler = async (
       );
     } catch (err) {
       if (err instanceof vscode.LanguageModelError) {
-        stream.markdown(`Model error: ${err.message}`);
+        // The message is the model service's own, and arrives in whatever language
+        // that service answered in.
+        stream.markdown(vscode.l10n.t("Model error: {0}", err.message));
       }
       return {};
     }
@@ -402,6 +525,8 @@ const handler: vscode.ChatRequestHandler = async (
         );
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        // Read by the model, which decides whether to retry or explain, so this one
+        // stays in English along with the rest of what the tools hand back.
         toolResults.push(
           new vscode.LanguageModelToolResultPart(call.callId, [
             new vscode.LanguageModelTextPart(`Tool error: ${message}`),

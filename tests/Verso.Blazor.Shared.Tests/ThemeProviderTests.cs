@@ -251,6 +251,39 @@ public sealed class ThemeProviderTests : BunitTestContext
         Assert.IsTrue(style.Contains("--verso-font-size-base: 16px;"));
     }
 
+    [TestMethod]
+    public void NumericTokens_AreWrittenTheWayCssReadsThem()
+    {
+        // The editor boots this app with a culture, and that moves how numbers are written as
+        // well as which language the interface is in. A stylesheet is not written in anyone's
+        // language: a length is always "1.4", never "1,4", whoever is reading it. Without this
+        // every notebook in German, Spanish, or any other comma-decimal language loses its
+        // line heights and font sizes, because the browser drops a declaration it cannot parse.
+        var original = System.Threading.Thread.CurrentThread.CurrentCulture;
+        try
+        {
+            System.Threading.Thread.CurrentThread.CurrentCulture =
+                new System.Globalization.CultureInfo("de-DE");
+
+            var themeData = new ThemeData(
+                new ThemeColorTokens(),
+                new ThemeTypography { FontSizeBase = 14.5 },
+                new ThemeSpacing());
+
+            var cut = RenderComponent<ThemeProvider>(p => p
+                .Add(t => t.Theme, themeData));
+
+            var style = cut.Find("style").TextContent;
+
+            StringAssert.Contains(style, "--verso-font-size-base: 14.5px;");
+            StringAssert.Contains(style, "--verso-editor-font-line-height: 1.4;");
+        }
+        finally
+        {
+            System.Threading.Thread.CurrentThread.CurrentCulture = original;
+        }
+    }
+
     private static ThemeData CreateDefaultThemeData()
     {
         return new ThemeData(

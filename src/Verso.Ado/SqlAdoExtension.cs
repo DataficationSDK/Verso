@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado;
 
@@ -14,7 +15,7 @@ public sealed class SqlAdoExtension : IExtension
     public string Name => "Verso.Ado";
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "SQL database connectivity extension for Verso notebooks.";
+    public string? Description => Strings.Extension_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>REST API へのリクエストを送るための HTTP リクエストセルタイプ。</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>HTTP セルタイプ</value>
+  </data>
+  <data name="Completion_Header_Accept" xml:space="preserve">
+    <value>Accept — クライアントが応答として扱えるメディアタイプ。</value>
+  </data>
+  <data name="Completion_Header_AcceptEncoding" xml:space="preserve">
+    <value>Accept-Encoding — 受け入れ可能なコンテンツエンコーディング (gzip、deflate など)。</value>
+  </data>
+  <data name="Completion_Header_AcceptLanguage" xml:space="preserve">
+    <value>Accept-Language — 応答に希望する自然言語。</value>
+  </data>
+  <data name="Completion_Header_Authorization" xml:space="preserve">
+    <value>Authorization — リクエストを認証するための資格情報 (Bearer トークンなど)。</value>
+  </data>
+  <data name="Completion_Header_CacheControl" xml:space="preserve">
+    <value>Cache-Control — キャッシュの動作を指定するディレクティブ。</value>
+  </data>
+  <data name="Completion_Header_ContentType" xml:space="preserve">
+    <value>Content-Type — リクエスト本文のメディアタイプ (application/json など)。</value>
+  </data>
+  <data name="Completion_Header_Cookie" xml:space="preserve">
+    <value>Cookie — サーバーが以前に送った HTTP クッキー。</value>
+  </data>
+  <data name="Completion_Header_IfModifiedSince" xml:space="preserve">
+    <value>If-Modified-Since — 最終更新日時に基づく条件付きリクエスト。</value>
+  </data>
+  <data name="Completion_Header_IfNoneMatch" xml:space="preserve">
+    <value>If-None-Match — ETag の値を使う条件付きリクエスト。</value>
+  </data>
+  <data name="Completion_Header_UserAgent" xml:space="preserve">
+    <value>User-Agent — リクエストを送るクライアントソフトウェアを示します。</value>
+  </data>
+  <data name="Completion_Header_XRequestId" xml:space="preserve">
+    <value>X-Request-Id — リクエストの追跡に使うカスタムヘッダー。</value>
+  </data>
+  <data name="Completion_Method_Delete" xml:space="preserve">
+    <value>DELETE — リソースを削除します。</value>
+  </data>
+  <data name="Completion_Method_Get" xml:space="preserve">
+    <value>GET — リソースを取得します。副作用があってはいけません。</value>
+  </data>
+  <data name="Completion_Method_Head" xml:space="preserve">
+    <value>HEAD — GET と同じですが、本文を返さずヘッダーだけを返します。</value>
+  </data>
+  <data name="Completion_Method_Options" xml:space="preserve">
+    <value>OPTIONS — 対象リソースに対する通信オプションを示します。</value>
+  </data>
+  <data name="Completion_Method_Patch" xml:space="preserve">
+    <value>PATCH — リソースの一部を更新します。</value>
+  </data>
+  <data name="Completion_Method_Post" xml:space="preserve">
+    <value>POST — リソースを作成または処理するためにデータを送信します。</value>
+  </data>
+  <data name="Completion_Method_Put" xml:space="preserve">
+    <value>PUT — リソース全体を置き換えます。</value>
+  </data>
+  <data name="Completion_Variable_Datetime" xml:space="preserve">
+    <value>現在の UTC 日時。使い方: $datetime [format] [offset unit]</value>
+  </data>
+  <data name="Completion_Variable_Guid" xml:space="preserve">
+    <value>新しい UUID/GUID を生成します。</value>
+  </data>
+  <data name="Completion_Variable_LocalDatetime" xml:space="preserve">
+    <value>現在のローカル日時。使い方: $localDatetime [format] [offset unit]</value>
+  </data>
+  <data name="Completion_Variable_ProcessEnv" xml:space="preserve">
+    <value>環境変数を読み取ります。使い方: $processEnv NAME</value>
+  </data>
+  <data name="Completion_Variable_RandomInt" xml:space="preserve">
+    <value>ランダムな整数を生成します。使い方: $randomInt [min max]</value>
+  </data>
+  <data name="Completion_Variable_Timestamp" xml:space="preserve">
+    <value>現在の Unix タイムスタンプ (秒)。使い方: $timestamp [offset unit]</value>
+  </data>
+  <data name="Diagnostic_MissingUrl" xml:space="preserve">
+    <value>URL がありません。</value>
+  </data>
+  <data name="Diagnostic_NoRequest" xml:space="preserve">
+    <value>有効な HTTP リクエストが見つかりません。メソッド (GET、POST など) に続けて URL を書いてください。</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>.http ファイルの記法で HTTP リクエストを実行します。</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>HTTP カーネル</value>
+  </data>
+  <data name="Magic_SetBase_Description" xml:space="preserve">
+    <value>相対的な HTTP リクエスト URL の基準となる URL を設定します。</value>
+  </data>
+  <data name="Magic_SetBase_Done" xml:space="preserve">
+    <value>HTTP の基準 URL を設定しました: {0}</value>
+  </data>
+  <data name="Magic_SetBase_Name" xml:space="preserve">
+    <value>HTTP Set Base マジックコマンド</value>
+  </data>
+  <data name="Magic_SetBase_Param_Url" xml:space="preserve">
+    <value>相対的なリクエスト URL の前に付ける基準 URL。</value>
+  </data>
+  <data name="Magic_SetBase_UrlRequired" xml:space="preserve">
+    <value>URL は必須です。使い方: #!http-set-base &lt;url&gt;</value>
+  </data>
+  <data name="Magic_SetHeader_BothRequired" xml:space="preserve">
+    <value>ヘッダーの名前と値の両方が必要です。使い方: #!http-set-header &lt;name&gt; &lt;value&gt;</value>
+  </data>
+  <data name="Magic_SetHeader_Description" xml:space="preserve">
+    <value>すべてのリクエストに付ける既定の HTTP ヘッダーを追加または更新します。</value>
+  </data>
+  <data name="Magic_SetHeader_Done" xml:space="preserve">
+    <value>既定のヘッダーを設定しました: {0}: {1}</value>
+  </data>
+  <data name="Magic_SetHeader_Name" xml:space="preserve">
+    <value>HTTP Set Header マジックコマンド</value>
+  </data>
+  <data name="Magic_SetHeader_Param_Name" xml:space="preserve">
+    <value>ヘッダーの名前。</value>
+  </data>
+  <data name="Magic_SetHeader_Param_Value" xml:space="preserve">
+    <value>ヘッダーの値。</value>
+  </data>
+  <data name="Magic_SetHeader_ValueRequired" xml:space="preserve">
+    <value>ヘッダーの値は空にできません。使い方: #!http-set-header &lt;name&gt; &lt;value&gt;</value>
+  </data>
+  <data name="Magic_SetTimeout_Description" xml:space="preserve">
+    <value>HTTP リクエストの既定のタイムアウト (秒) を設定します。</value>
+  </data>
+  <data name="Magic_SetTimeout_Done" xml:space="preserve">
+    <value>HTTP のタイムアウトを {0} 秒に設定しました。</value>
+  </data>
+  <data name="Magic_SetTimeout_Invalid" xml:space="preserve">
+    <value>正の整数が必要です。使い方: #!http-set-timeout &lt;seconds&gt;</value>
+  </data>
+  <data name="Magic_SetTimeout_Name" xml:space="preserve">
+    <value>HTTP Set Timeout マジックコマンド</value>
+  </data>
+  <data name="Magic_SetTimeout_Param_Seconds" xml:space="preserve">
+    <value>タイムアウトの秒数。</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>エラー: {0}</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>HTTP リクエストのセルを表示します。</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>HTTP レンダラー</value>
+  </data>
+  <data name="Response_Headers" xml:space="preserve">
+    <value>応答ヘッダー ({0})</value>
+  </data>
+  <data name="Response_Truncated" xml:space="preserve">
+    <value>応答を 100 KB で打ち切りました (全体: {0} KB)</value>
+  </data>
+  <data name="Run_Cancelled" xml:space="preserve">
+    <value>リクエストを中止しました。</value>
+  </data>
+  <data name="Run_NoRequest" xml:space="preserve">
+    <value>HTTP リクエストが見つかりません。</value>
+  </data>
+  <data name="Run_RelativeUrlNeedsBase" xml:space="preserve">
+    <value>相対 URL '{0}' には基準 URL が必要です。#!http-set-base を使ってください。</value>
+  </data>
+  <data name="Run_RequestFailed" xml:space="preserve">
+    <value>リクエストがステータス {0} {1} で失敗しました。</value>
+  </data>
+  <data name="Run_Sending" xml:space="preserve">
+    <value>{0} {1} を送信しています...</value>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>{0}s でリクエストがタイムアウトしました。</value>
+  </data>
+</root>

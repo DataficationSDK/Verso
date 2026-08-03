@@ -1,5 +1,6 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@using System.Globalization
 @using System.Text.Json
 
 <div class="verso-properties-field-control">
@@ -80,7 +81,7 @@
                         {
                             <button class="verso-properties-tag-remove"
                                     @onclick="() => RemoveTagAsync(t)"
-                                    aria-label="Remove tag" data-verso-tip="Remove tag">&#x2715;</button>
+                                    aria-label="@UI.Properties_RemoveTag" data-verso-tip="@UI.Properties_RemoveTag">&#x2715;</button>
                         }
                     </span>
                 }
@@ -88,7 +89,7 @@
                 {
                     <input type="text"
                            class="verso-properties-tag-input"
-                           placeholder="Add tag..."
+                           placeholder="@UI.Properties_AddTagPlaceholder"
                            @ref="_tagInputRef" />
                 }
             </div>
@@ -184,7 +185,15 @@
 
     private async Task HandleNumberChange(ChangeEventArgs e)
     {
-        if (double.TryParse(e.Value?.ToString(), out var d))
+        // A number field hands back what HTML calls a valid floating-point number, which is
+        // written with a full stop whatever language the page is in. Reading it in the
+        // reader's own culture would take "3.14" in German for three thousand one hundred and
+        // fourteen and write that into the notebook, with nothing on screen looking wrong.
+        if (double.TryParse(
+                e.Value?.ToString(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var d))
             await OnValueChanged.InvokeAsync(d);
         else
             await OnValueChanged.InvokeAsync(e.Value);

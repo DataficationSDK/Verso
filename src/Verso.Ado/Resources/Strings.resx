@@ -1,0 +1,593 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>Export CSV</value>
+    <comment>Name of the toolbar action that writes query results to a CSV file, as listed in the Extensions panel. CSV is a file format and stays as written.</comment>
+  </data>
+  <data name="Action_ExportCsv_Description" xml:space="preserve">
+    <value>Exports SQL result sets as CSV files.</value>
+    <comment>What this toolbar action does, shown as its tooltip.</comment>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>Export JSON</value>
+    <comment>Name of the toolbar action that writes query results to a JSON file, as listed in the Extensions panel. JSON is a file format and stays as written.</comment>
+  </data>
+  <data name="Action_ExportJson_Description" xml:space="preserve">
+    <value>Exports SQL result sets as JSON files.</value>
+    <comment>What this toolbar action does, shown as its tooltip.</comment>
+  </data>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>SQL cell type for querying databases via ADO.NET.</value>
+    <comment>What a SQL cell is, shown when choosing a cell type.</comment>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL Cell Type</value>
+    <comment>Name of the SQL cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Completion_Keyword_Alter" xml:space="preserve">
+    <value>ALTER — Modifies an existing database object.</value>
+    <comment>What the SQL keyword ALTER does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_And" xml:space="preserve">
+    <value>AND — Logical AND operator; both conditions must be true.</value>
+    <comment>What the SQL keyword AND does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Avg" xml:space="preserve">
+    <value>AVG — Aggregate function that returns the average of a numeric column.</value>
+    <comment>What the SQL keyword AVG does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Between" xml:space="preserve">
+    <value>BETWEEN — Tests whether a value is within a range.</value>
+    <comment>What the SQL keyword BETWEEN does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Case" xml:space="preserve">
+    <value>CASE — Conditional expression; returns a value based on conditions.</value>
+    <comment>What the SQL keyword CASE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Count" xml:space="preserve">
+    <value>COUNT — Aggregate function that returns the number of rows.</value>
+    <comment>What the SQL keyword COUNT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Create" xml:space="preserve">
+    <value>CREATE — Creates a new database object (table, view, index, etc.).</value>
+    <comment>What the SQL keyword CREATE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Delete" xml:space="preserve">
+    <value>DELETE — Removes rows from a table.</value>
+    <comment>What the SQL keyword DELETE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Distinct" xml:space="preserve">
+    <value>DISTINCT — Removes duplicate rows from the result set.</value>
+    <comment>What the SQL keyword DISTINCT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Drop" xml:space="preserve">
+    <value>DROP — Removes a database object.</value>
+    <comment>What the SQL keyword DROP does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Exists" xml:space="preserve">
+    <value>EXISTS — Tests for the existence of rows in a subquery.</value>
+    <comment>What the SQL keyword EXISTS does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_From" xml:space="preserve">
+    <value>FROM — Specifies the source tables or views for a query.</value>
+    <comment>What the SQL keyword FROM does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Group" xml:space="preserve">
+    <value>GROUP BY — Groups rows sharing a property for aggregate functions.</value>
+    <comment>What the SQL keyword GROUP does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Having" xml:space="preserve">
+    <value>HAVING — Filters groups created by GROUP BY.</value>
+    <comment>What the SQL keyword HAVING does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_In" xml:space="preserve">
+    <value>IN — Tests whether a value matches any value in a list or subquery.</value>
+    <comment>What the SQL keyword IN does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Inner" xml:space="preserve">
+    <value>INNER — Returns rows that have matching values in both tables.</value>
+    <comment>What the SQL keyword INNER does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Insert" xml:space="preserve">
+    <value>INSERT — Adds new rows to a table.</value>
+    <comment>What the SQL keyword INSERT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Into" xml:space="preserve">
+    <value>INTO — Specifies the target table for INSERT.</value>
+    <comment>What the SQL keyword INTO does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Join" xml:space="preserve">
+    <value>JOIN — Combines rows from two or more tables based on a related column.</value>
+    <comment>What the SQL keyword JOIN does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Left" xml:space="preserve">
+    <value>LEFT — Returns all rows from the left table and matching rows from the right.</value>
+    <comment>What the SQL keyword LEFT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Like" xml:space="preserve">
+    <value>LIKE — Pattern matching with wildcards (% and _).</value>
+    <comment>What the SQL keyword LIKE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Max" xml:space="preserve">
+    <value>MAX — Aggregate function that returns the maximum value.</value>
+    <comment>What the SQL keyword MAX does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Min" xml:space="preserve">
+    <value>MIN — Aggregate function that returns the minimum value.</value>
+    <comment>What the SQL keyword MIN does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Not" xml:space="preserve">
+    <value>NOT — Logical NOT operator; negates a condition.</value>
+    <comment>What the SQL keyword NOT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Null" xml:space="preserve">
+    <value>NULL — Represents a missing or unknown value.</value>
+    <comment>What the SQL keyword NULL does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Or" xml:space="preserve">
+    <value>OR — Logical OR operator; either condition must be true.</value>
+    <comment>What the SQL keyword OR does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Order" xml:space="preserve">
+    <value>ORDER BY — Sorts the result set by one or more columns.</value>
+    <comment>What the SQL keyword ORDER does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Right" xml:space="preserve">
+    <value>RIGHT — Returns all rows from the right table and matching rows from the left.</value>
+    <comment>What the SQL keyword RIGHT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Select" xml:space="preserve">
+    <value>SELECT — Retrieves rows from one or more tables or views.</value>
+    <comment>What the SQL keyword SELECT does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Set" xml:space="preserve">
+    <value>SET — Specifies columns and values for UPDATE.</value>
+    <comment>What the SQL keyword SET does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Sum" xml:space="preserve">
+    <value>SUM — Aggregate function that returns the total of a numeric column.</value>
+    <comment>What the SQL keyword SUM does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Table" xml:space="preserve">
+    <value>TABLE — Refers to a database table.</value>
+    <comment>What the SQL keyword TABLE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Union" xml:space="preserve">
+    <value>UNION — Combines result sets of two or more SELECT statements.</value>
+    <comment>What the SQL keyword UNION does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Update" xml:space="preserve">
+    <value>UPDATE — Modifies existing rows in a table.</value>
+    <comment>What the SQL keyword UPDATE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Values" xml:space="preserve">
+    <value>VALUES — Specifies literal values for INSERT.</value>
+    <comment>What the SQL keyword VALUES does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Completion_Keyword_Where" xml:space="preserve">
+    <value>WHERE — Filters rows based on a condition.</value>
+    <comment>What the SQL keyword WHERE does, offered while typing and shown on hover. The keyword at the start is part of the language and stays as written.</comment>
+  </data>
+  <data name="Directive_SpacedHint" xml:space="preserve">
+    <value>Hint: '--{0}' must have no space after '--'. This line was read as a SQL comment and ignored, so the cell used the default connection.</value>
+    <comment>A setting written at the top of a cell was spelled with a space and so did nothing. {0} is the setting's name, which stays as written.</comment>
+  </data>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>SQL database connectivity extension for Verso notebooks.</value>
+    <comment>What this extension is, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>Formats SQL result sets and DataTables as paginated HTML tables.</value>
+    <comment>What this formatter does, shown wherever extensions are listed. DataTable is a type name and stays as written.</comment>
+  </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>Result Set Formatter</value>
+    <comment>Name of the formatter that draws query results as a table, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>Converts Polyglot Notebooks SQL patterns to Verso SQL cells on Jupyter import.</value>
+    <comment>What this import hook does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter SQL Import Hook</value>
+    <comment>Name of the hook that turns SQL cells in an imported Jupyter notebook into Verso SQL cells, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Executes SQL queries against ADO.NET database connections.</value>
+    <comment>What the SQL kernel is, shown wherever kernels are listed. ADO.NET is the name of the library and stays as written.</comment>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL Kernel</value>
+    <comment>Name of the SQL kernel, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Magic_Connect_Connected" xml:space="preserve">
+    <value>Connected '{0}'{1} using {2}</value>
+    <comment>{0} is the connection's name, {1} is either empty or the default marker below, and {2} the driver in use.</comment>
+  </data>
+  <data name="Magic_Connect_ConnectionString" xml:space="preserve">
+    <value>
+  Connection string: {0}</value>
+    <comment>A line of its own under the message above, indented, with passwords already taken out. {0} is what is left of the connection string.</comment>
+  </data>
+  <data name="Magic_Connect_ConnectionStringRequired" xml:space="preserve">
+    <value>--connection-string is required. Usage: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+    <comment>Everything from '--connection-string' onwards is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Connect_CredentialFailed" xml:space="preserve">
+    <value>Error resolving connection string: {0}</value>
+    <comment>A placeholder in the connection string could not be filled in. {0} says which and why, and is itself translated.</comment>
+  </data>
+  <data name="Magic_Connect_Database" xml:space="preserve">
+    <value> — database: {0}</value>
+    <comment>Added to the end of the message above. It opens with a space and a dash because it continues the same line. {0} is the database's name.</comment>
+  </data>
+  <data name="Magic_Connect_DefaultLabel" xml:space="preserve">
+    <value> (default)</value>
+    <comment>Marks the connection cells will use when they name none. It opens with a space because it follows the connection's name.</comment>
+  </data>
+  <data name="Magic_Connect_Description" xml:space="preserve">
+    <value>Establishes a database connection for SQL cells.</value>
+    <comment>What #!sql-connect does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL Connect Magic Command</value>
+    <comment>Name of the #!sql-connect magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Connect_NameRequired" xml:space="preserve">
+    <value>--name is required. Usage: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+    <comment>Everything from '--name' onwards is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Connect_OpenFailed" xml:space="preserve">
+    <value>Error opening connection: {0}</value>
+    <comment>The database refused the connection. {0} is what it said, which arrives in whatever language the database is set to.</comment>
+  </data>
+  <data name="Magic_Connect_Param_CommandTimeout" xml:space="preserve">
+    <value>Default command timeout in seconds for SQL cells on this connection (0 = no limit).</value>
+    <comment>What --command-timeout is for.</comment>
+  </data>
+  <data name="Magic_Connect_Param_ConnectionString" xml:space="preserve">
+    <value>The ADO.NET connection string.</value>
+    <comment>What --connection-string is for.</comment>
+  </data>
+  <data name="Magic_Connect_Param_Default" xml:space="preserve">
+    <value>Set this connection as the default.</value>
+    <comment>What --default does.</comment>
+  </data>
+  <data name="Magic_Connect_Param_Name" xml:space="preserve">
+    <value>A friendly name for this connection.</value>
+    <comment>What --name is for.</comment>
+  </data>
+  <data name="Magic_Connect_Param_Provider" xml:space="preserve">
+    <value>The DbProviderFactory invariant name.</value>
+    <comment>What --provider is for. DbProviderFactory is a type name and stays as written.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
+    <value>Error resolving provider: {0}</value>
+    <comment>A placeholder in the provider name could not be filled in. {0} says why.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderUnknown" xml:space="preserve">
+    <value>unknown</value>
+    <comment>Stands in for the driver's name in the message above when it could not be read.</comment>
+  </data>
+  <data name="Magic_Connect_ProviderUnresolved" xml:space="preserve">
+    <value>Provider could not be resolved.</value>
+    <comment>Nothing installed can talk to that kind of database.</comment>
+  </data>
+  <data name="Magic_Connect_Timeout" xml:space="preserve">
+    <value>
+  Command timeout: {0}s</value>
+    <comment>The same when there is a limit. {0} is the number of seconds; the 's' after it is the unit and stays as written.</comment>
+  </data>
+  <data name="Magic_Connect_TimeoutInvalid" xml:space="preserve">
+    <value>--command-timeout must be a non-negative integer (seconds; 0 = no limit).</value>
+    <comment>The timeout given was not a whole number of seconds.</comment>
+  </data>
+  <data name="Magic_Connect_TimeoutNoLimit" xml:space="preserve">
+    <value>
+  Command timeout: no limit</value>
+    <comment>A line of its own under the message above, indented, when queries are allowed to run as long as they need.</comment>
+  </data>
+  <data name="Magic_Disconnect_Description" xml:space="preserve">
+    <value>Closes and removes a database connection.</value>
+    <comment>What #!sql-disconnect does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Disconnect_Done" xml:space="preserve">
+    <value>Disconnected '{0}'.</value>
+    <comment>{0} is the connection's name.</comment>
+  </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL Disconnect Magic Command</value>
+    <comment>Name of the #!sql-disconnect magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Disconnect_NoName" xml:space="preserve">
+    <value>No connection name specified and no default connection is set.</value>
+    <comment>Nothing was named, and there is nothing to fall back to.</comment>
+  </data>
+  <data name="Magic_Disconnect_NotFound" xml:space="preserve">
+    <value>Connection '{0}' not found.</value>
+    <comment>{0} is the name that was asked for.</comment>
+  </data>
+  <data name="Magic_Disconnect_Param_Name" xml:space="preserve">
+    <value>The connection name to disconnect. Defaults to the default connection.</value>
+    <comment>What the argument to #!sql-disconnect is.</comment>
+  </data>
+  <data name="Magic_Scaffold_ConnectionClosed" xml:space="preserve">
+    <value>Connection '{0}' is not open.</value>
+    <comment>{0} is the connection's name.</comment>
+  </data>
+  <data name="Magic_Scaffold_ConnectionRequired" xml:space="preserve">
+    <value>--connection is required. Usage: #!sql-scaffold --connection &lt;name&gt; [--tables "Table1,Table2"]</value>
+    <comment>Everything from '--connection' onwards is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Scaffold_Description" xml:space="preserve">
+    <value>Generates EF Core DbContext and entity classes from a database schema.</value>
+    <comment>What #!sql-scaffold does, shown in the list of magic commands. EF Core and DbContext are names and stay as written.</comment>
+  </data>
+  <data name="Magic_Scaffold_EfCoreHint" xml:space="preserve">
+    <value>Hint: ensure EF Core packages are installed in a prior C# cell:
+
+{0}</value>
+    <comment>The generated code would not compile, and a missing package looks like the reason. {0} is the lines to run, which are typed at a keyboard and stay as written.</comment>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_One" xml:space="preserve">
+    <value>{0} entity</value>
+    <comment>How many classes were generated, written for exactly one. Goes into the sentence below.</comment>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_Other" xml:space="preserve">
+    <value>{0} entities</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
+    <value>Generated C# code</value>
+    <comment>A heading the reader can open to see what was generated. Keep it short.</comment>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL Scaffold Magic Command</value>
+    <comment>Name of the #!sql-scaffold magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
+    <value>C# kernel not found. Cannot execute scaffolded code.</value>
+    <comment>The generated code has nothing to run in.</comment>
+  </data>
+  <data name="Magic_Scaffold_NoTables" xml:space="preserve">
+    <value>No tables found matching the specified criteria.</value>
+    <comment>The database holds nothing that matches what --tables or --schema asked for.</comment>
+  </data>
+  <data name="Magic_Scaffold_NotFound" xml:space="preserve">
+    <value>Connection '{0}' not found. Use #!sql-connect first.</value>
+    <comment>{0} is the name that was asked for.</comment>
+  </data>
+  <data name="Magic_Scaffold_Param_Connection" xml:space="preserve">
+    <value>The named connection to scaffold from.</value>
+    <comment>What --connection is for.</comment>
+  </data>
+  <data name="Magic_Scaffold_Param_Schema" xml:space="preserve">
+    <value>Database schema to filter by (e.g. dbo).</value>
+    <comment>What --schema is for. dbo is an example name and stays as written.</comment>
+  </data>
+  <data name="Magic_Scaffold_Param_Tables" xml:space="preserve">
+    <value>Comma-separated list of tables to include (default: all).</value>
+    <comment>What --tables is for.</comment>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_One" xml:space="preserve">
+    <value> ({0} relationship)</value>
+    <comment>How many links between classes were generated, written for exactly one. It opens with a space because it follows the entity count.</comment>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_Other" xml:space="preserve">
+    <value> ({0} relationships)</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Magic_Scaffold_Summary" xml:space="preserve">
+    <value>Scaffolded {0}{1} into {2}
+
+Entities: {3}
+Context variable: {4}
+
+Usage in C# cells:
+  var items = {4}.{5}.ToList();
+</value>
+    <comment>What #!sql-scaffold produced. {0} is a count of classes already written out, {1} is either empty or a count of links, {2} the generated class's name, {3} a comma-separated list of class names, {4} the variable holding it and {5} one table's name. The last line is C# and stays as written.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnCount" xml:space="preserve">
+    <value>({0} columns)</value>
+    <comment>Sits beside the name of one table. {0} is how many columns it has.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnDefault" xml:space="preserve">
+    <value>Default</value>
+    <comment>Column heading, meaning the value used when none is given. Keep it to one word.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnKey" xml:space="preserve">
+    <value>Key</value>
+    <comment>Column heading, meaning whether the column identifies the row. Keep it to one word.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnName" xml:space="preserve">
+    <value>Name</value>
+    <comment>Column heading. Keep it to one word.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnNullable" xml:space="preserve">
+    <value>Nullable</value>
+    <comment>Column heading, meaning whether the column is allowed to hold nothing. Keep it short.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnSchema" xml:space="preserve">
+    <value>Schema</value>
+    <comment>Column heading, meaning the grouping a table belongs to inside the database. Keep it short.</comment>
+  </data>
+  <data name="Magic_Schema_ColumnType" xml:space="preserve">
+    <value>Type</value>
+    <comment>Column heading. Keep it to one word.</comment>
+  </data>
+  <data name="Magic_Schema_ConnectionClosed" xml:space="preserve">
+    <value>Connection '{0}' is not open. Reconnect with #!sql-connect.</value>
+    <comment>{0} is the connection's name.</comment>
+  </data>
+  <data name="Magic_Schema_Description" xml:space="preserve">
+    <value>Displays database schema information (tables, views, columns).</value>
+    <comment>What #!sql-schema does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Schema_Heading" xml:space="preserve">
+    <value>Schema for connection: {0}</value>
+    <comment>Heading above the list of everything a database holds. {0} is the connection's name.</comment>
+  </data>
+  <data name="Magic_Schema_LoadFailed" xml:space="preserve">
+    <value>Error loading schema: {0}</value>
+    <comment>The database would not say what it holds. {0} is what it said.</comment>
+  </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL Schema Magic Command</value>
+    <comment>Name of the #!sql-schema magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Schema_NoConnection" xml:space="preserve">
+    <value>No database connection. Use #!sql-connect to establish a connection.</value>
+    <comment>Nothing was named, and nothing has been connected to yet.</comment>
+  </data>
+  <data name="Magic_Schema_NotFound" xml:space="preserve">
+    <value>Connection '{0}' not found. Use #!sql-connect to establish a connection.</value>
+    <comment>{0} is the name that was asked for.</comment>
+  </data>
+  <data name="Magic_Schema_Param_Connection" xml:space="preserve">
+    <value>Name of the connection to inspect.</value>
+    <comment>What --connection is for.</comment>
+  </data>
+  <data name="Magic_Schema_Param_Refresh" xml:space="preserve">
+    <value>Force refresh of the schema cache.</value>
+    <comment>What --refresh does.</comment>
+  </data>
+  <data name="Magic_Schema_Param_Table" xml:space="preserve">
+    <value>Show column details for a specific table.</value>
+    <comment>What --table is for.</comment>
+  </data>
+  <data name="Magic_Schema_TableCount" xml:space="preserve">
+    <value>({0} tables/views)</value>
+    <comment>Sits beside the heading above. {0} is how many there are altogether.</comment>
+  </data>
+  <data name="Magic_Schema_TableNotFound" xml:space="preserve">
+    <value>Table '{0}' not found in schema.</value>
+    <comment>{0} is the name that was asked for.</comment>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Error: {0}</value>
+    <comment>Written in front of a message a cell could not carry out. {0} is the message.</comment>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>Warning: {0}</value>
+    <comment>Written in front of a message about something that worked but is worth knowing. {0} is the message.</comment>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>Renders SQL cells with connection indicator badges.</value>
+    <comment>What this renderer does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL Renderer</value>
+    <comment>Name of the SQL result renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Run_ConnectionClosed" xml:space="preserve">
+    <value>Connection '{0}' is not open. Reconnect with `#!sql-connect`.</value>
+    <comment>The connection was made earlier and has since closed. {0} is its name.</comment>
+  </data>
+  <data name="Run_Failed" xml:space="preserve">
+    <value>SQL error: {0}</value>
+    <comment>The database refused the query. {0} is what it said, which arrives in whatever language the database is set to.</comment>
+  </data>
+  <data name="Run_NoConnection" xml:space="preserve">
+    <value>No database connection. Use `#!sql-connect` to establish a connection.</value>
+    <comment>Nothing has been connected to yet. The backticks mark a command typed at a keyboard, and both they and what is inside them stay as written.</comment>
+  </data>
+  <data name="Run_NoSql" xml:space="preserve">
+    <value>No SQL to execute.</value>
+    <comment>The cell holds nothing to run.</comment>
+  </data>
+  <data name="Run_UnsupportedParameterType" xml:space="preserve">
+    <value>Type '{0}' for '{1}' is not a supported DbType. Passing as-is.</value>
+    <comment>A variable used in a query has a type the driver has no mapping for. {0} is the type name and {1} the variable as written in the query. DbType is a type name and stays as written.</comment>
+  </data>
+  <data name="Table_Elapsed" xml:space="preserve">
+    <value>{0} ms</value>
+    <comment>How long a query took. {0} is a number of milliseconds.</comment>
+  </data>
+  <data name="Table_Next" xml:space="preserve">
+    <value>Next</value>
+    <comment>Button that steps forward a page of results. Keep it short.</comment>
+  </data>
+  <data name="Table_Previous" xml:space="preserve">
+    <value>Previous</value>
+    <comment>Button that steps back a page of results. Keep it short; it sits beside another button.</comment>
+  </data>
+  <data name="Table_RowsAffected_One" xml:space="preserve">
+    <value>{0} row affected</value>
+    <comment>What a query that changes data reports, written for exactly one row.</comment>
+  </data>
+  <data name="Table_RowsAffected_Other" xml:space="preserve">
+    <value>{0} rows affected</value>
+    <comment>The same for any other number, including none.</comment>
+  </data>
+  <data name="Table_ShowingRows" xml:space="preserve">
+    <value>Showing {0}-{1} of {2} rows</value>
+    <comment>Under a table of results. {0} and {1} are the first and last row on screen, {2} how many there are altogether.</comment>
+  </data>
+  <data name="Table_Statements" xml:space="preserve">
+    <value>{0} ({1} statements)</value>
+    <comment>Wraps the count above when the cell held more than one statement. {0} is that count and {1} how many statements ran.</comment>
+  </data>
+  <data name="Table_Truncated" xml:space="preserve">
+    <value>Results truncated at {0} of {1} total rows. Use WHERE or LIMIT to narrow your query.</value>
+    <comment>The query returned more than Verso will show. {0} is how many are on screen and {1} how many there were. WHERE and LIMIT are SQL keywords and stay as written.</comment>
+  </data>
+</root>

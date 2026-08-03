@@ -1,3 +1,4 @@
+@using System.Globalization
 <div class="verso-sidebar-panel">
     @if (Service.IsLoaded)
     {
@@ -12,7 +13,7 @@
         @if (visibleDefinitions.Count == 0)
         {
             <div class="verso-settings-empty">
-                <p>No enabled extensions with configurable settings.</p>
+                <p>@UI.Settings_NoConfigurableExtensions</p>
             </div>
         }
         else
@@ -34,7 +35,7 @@
                     </button>
                     @if (isOpen)
                     {
-                        var grouped = definitions.OrderBy(d => d.Order).GroupBy(d => d.Category ?? "General");
+                        var grouped = definitions.OrderBy(d => d.Order).GroupBy(d => d.Category ?? UI.Settings_CategoryGeneral);
                         @foreach (var category in grouped)
                         {
                             <div class="verso-settings-category">
@@ -89,7 +90,7 @@
                                                 case SettingType.StringList:
                                                     <input type="text"
                                                            value="@FormatList(currentValue)"
-                                                           placeholder="comma separated"
+                                                           placeholder="@UI.Settings_ListPlaceholder"
                                                            @onchange="e => HandleListChange(extId, d.Name, e.Value, d.Constraints?.MaxItems)" />
                                                     break;
 
@@ -113,7 +114,7 @@
     else
     {
         <div class="verso-settings-empty">
-            <p>No notebook is open.</p>
+            <p>@UI.Common_NoNotebookOpen</p>
         </div>
     }
 </div>
@@ -134,15 +135,26 @@
         await Service.UpdateSettingAsync(extensionId, settingName, value);
     }
 
+    // A number field hands back what HTML calls a valid floating-point number, written with a
+    // full stop whatever language the page is in, and the value is stored rather than shown. So
+    // both of these read it the way it was written and not the way the reader writes numbers.
     private async Task HandleIntChange(string extensionId, string settingName, object? value)
     {
-        if (int.TryParse(value?.ToString(), out var intVal))
+        if (int.TryParse(
+                value?.ToString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var intVal))
             await Service.UpdateSettingAsync(extensionId, settingName, intVal);
     }
 
     private async Task HandleDoubleChange(string extensionId, string settingName, object? value)
     {
-        if (double.TryParse(value?.ToString(), out var dblVal))
+        if (double.TryParse(
+                value?.ToString(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var dblVal))
             await Service.UpdateSettingAsync(extensionId, settingName, dblVal);
     }
 

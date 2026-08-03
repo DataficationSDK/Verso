@@ -1,3 +1,5 @@
+using Verso.Blazor.Shared.Resources;
+
 namespace Verso.Blazor.Shared.Tests;
 
 [TestClass]
@@ -35,8 +37,8 @@ public sealed class ExtensionPanelTests : BunitTestContext
             .Add(e => e.Service, _service));
 
         // Groups should be visible (collapsed)
-        Assert.IsTrue(cut.Markup.Contains("Language Kernels"));
-        Assert.IsTrue(cut.Markup.Contains("Themes"));
+        Assert.IsTrue(cut.Markup.Contains(UI.Capability_LanguageKernel_Plural));
+        Assert.IsTrue(cut.Markup.Contains(UI.Capability_Theme_Plural));
     }
 
     [TestMethod]
@@ -244,7 +246,7 @@ public sealed class ExtensionPanelTests : BunitTestContext
         var cut = RenderComponent<ExtensionPanel>(p => p
             .Add(e => e.Service, _service));
 
-        Assert.IsTrue(cut.Markup.Contains("Adds nothing"));
+        Assert.IsTrue(cut.Markup.Contains(UI.Marketplace_AddsNothing));
     }
 
     [TestMethod]
@@ -260,7 +262,7 @@ public sealed class ExtensionPanelTests : BunitTestContext
         var cut = RenderComponent<ExtensionPanel>(p => p
             .Add(e => e.Service, _service));
 
-        Assert.IsFalse(cut.Markup.Contains("Adds nothing"));
+        Assert.IsFalse(cut.Markup.Contains(UI.Marketplace_AddsNothing));
     }
 
     [TestMethod]
@@ -380,7 +382,7 @@ public sealed class ExtensionPanelTests : BunitTestContext
 
         var cut = RenderSearch("json");
 
-        Assert.IsFalse(cut.Markup.Contains("Adds nothing"));
+        Assert.IsFalse(cut.Markup.Contains(UI.Marketplace_AddsNothing));
         Assert.AreEqual(0, cut.FindAll(".verso-marketplace-add").Count);
     }
 
@@ -394,7 +396,7 @@ public sealed class ExtensionPanelTests : BunitTestContext
 
         var chips = cut.FindAll(".verso-marketplace-context-chip").Select(e => e.TextContent.Trim()).ToList();
         Assert.AreEqual(2, chips.Count);
-        Assert.IsTrue(chips[0].Contains("this notebook"));
+        Assert.IsTrue(chips[0].Contains(UI.Marketplace_ThisNotebook));
         Assert.IsTrue(chips[1].Contains("nuget.org"));
     }
 

@@ -1,5 +1,6 @@
 using Spectre.Console;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
@@ -8,13 +9,10 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class SaveMeta : IMetaCommand
 {
     public string Name => "save";
-    public string Summary => "Writes the session notebook to disk.";
-    public string DetailedHelp =>
-        ".save [<path>]\n" +
-        "  Serializes the session notebook. When <path> is omitted, saves to the original\n" +
-        "  loaded path (if any) or reports an error. Format is inferred from the extension.\n" +
-        "  Without --preserve-format, a .save with no arg against an .ipynb-loaded notebook\n" +
-        "  converts to a sibling .verso file; with --preserve-format the original format is kept.";
+    public string Summary => Strings.Meta_Save_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".save [<path>]\n" + Strings.Meta_Save_Details;
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -24,7 +22,9 @@ public sealed class SaveMeta : IMetaCommand
 
         if (string.IsNullOrEmpty(targetPath))
         {
-            context.Console.MarkupLine("[red].save requires a path when the session has no loaded notebook.[/] Usage: .save <path>");
+            context.Console.MarkupLine(
+                Messages.In("red", Messages.Say(Strings.Meta_Save_NeedsPath))
+                + " " + Messages.Typed(Strings.Repl_Usage, ".save <path>"));
             return true;
         }
 
@@ -40,8 +40,8 @@ public sealed class SaveMeta : IMetaCommand
             && !preservesByDefault
             && !targetPath.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
         {
-            context.Console.MarkupLine(
-                $"[yellow]Converting to .verso; use --preserve-format to keep[/] {Markup.Escape(Path.GetExtension(targetPath))}.");
+            context.Console.MarkupLine(Messages.In("yellow",
+                Messages.Say(Strings.Meta_Save_Converting, Path.GetExtension(targetPath))));
             targetPath = Path.ChangeExtension(targetPath, ".verso");
         }
 
@@ -52,7 +52,7 @@ public sealed class SaveMeta : IMetaCommand
         }
         catch (SerializerNotFoundException ex)
         {
-            context.Console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red", Markup.Escape(ex.Message)));
             return true;
         }
 
@@ -66,11 +66,13 @@ public sealed class SaveMeta : IMetaCommand
             await File.WriteAllTextAsync(targetPath, content, ct);
             context.Session.NotebookPath = targetPath;
             context.Session.MarkClean();
-            context.Console.MarkupLine($"[green]Saved[/] {context.Session.Notebook.Cells.Count} cell(s) to {Markup.Escape(targetPath)}");
+            context.Console.MarkupLine(Messages.In("green", Messages.Say(
+                Strings.Meta_Save_Done, CellCount.Describe(context.Session.Notebook.Cells.Count), targetPath)));
         }
         catch (Exception ex)
         {
-            context.Console.MarkupLine($"[red]Failed to save: {Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Meta_Save_Failed, ex.Message)));
         }
 
         return true;

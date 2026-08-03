@@ -2,6 +2,7 @@ using System.Text;
 using Verso.Abstractions;
 using Verso.Extensions.Layouts;
 using Verso.Extensions.Utilities;
+using Verso.Resources;
 
 namespace Verso.Export;
 
@@ -203,7 +204,10 @@ internal static class NotebookMarkdownExporter
                 sb.Append("> ").AppendLine(lines[i]);
             }
             var omitted = lines.Length - previewLineCount;
-            sb.Append("> ... (").Append(omitted).AppendLine(omitted == 1 ? " more line)" : " more lines)");
+            // The quote marker is Markdown rather than words, so it is written here and the sentence
+            // after it is the same one the HTML export uses.
+            sb.Append("> ").AppendLine(string.Format(
+                Plural.Of(omitted, Strings.Export_MoreLines_One, Strings.Export_MoreLines_Other), omitted));
         }
         else
         {

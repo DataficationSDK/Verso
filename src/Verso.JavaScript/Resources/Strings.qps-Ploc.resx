@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Npm_Description" xml:space="preserve">
+    <value>[!!Ïñštàllš ñpm pàçkàgéš fòr ùšé ïñ JàvàŠçrïpt çéllš.···!!]</value>
+  </data>
+  <data name="Kernel_JavaScript_Description" xml:space="preserve">
+    <value>[!!JàvàŠçrïpt làñgùàgé kérñél vïà Ñòdé.jš òr Jïñt.···!!]</value>
+  </data>
+  <data name="Kernel_TypeScript_Description" xml:space="preserve">
+    <value>[!!TÿpéŠçrïpt làñgùàgé kérñél vïà Ñòdé.jš wïth àùtòmàtïç tràñšpïlàtïòñ.···!!]</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_One" xml:space="preserve">
+    <value>[!!{0} ïš àlréàdÿ ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_Other" xml:space="preserve">
+    <value>[!!{0} àré àlréàdÿ ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Magic_Npm_Description" xml:space="preserve">
+    <value>[!!Ïñštàllš ñpm pàçkàgéš fòr ùšé ïñ šùbšéqùéñt JàvàŠçrïpt çéllš.···!!]</value>
+  </data>
+  <data name="Magic_Npm_Installing" xml:space="preserve">
+    <value>[!!Ïñštàllïñg {0}...···!!]</value>
+  </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>[!!Ñpm Màgïç Çòmmàñd···!!]</value>
+  </data>
+  <data name="Magic_Npm_NoKernel" xml:space="preserve">
+    <value>[!!Ñò JàvàŠçrïpt kérñél ïš lòàdéd. #!ñpm réqùïréš thé JàvàŠçrïpt kérñél.···!!]</value>
+  </data>
+  <data name="Magic_Npm_Param_Packages" xml:space="preserve">
+    <value>[!!Òñé òr mòré pàçkàgé ñàméš (é.g. lòdàšh àxïòš@1.6).···!!]</value>
+  </data>
+  <data name="Magic_Npm_Usage" xml:space="preserve">
+    <value>[!!Ùšàgé: #!ñpm &lt;pàçkàgé-ñàméš&gt;···!!]</value>
+  </data>
+  <data name="Node_NotReady" xml:space="preserve">
+    <value>[!!Ñòdé.jš brïdgé dïd ñòt šéñd réàdÿ šïgñàl wïthïñ 10 šéçòñdš.···!!]</value>
+  </data>
+  <data name="Node_NotRunning" xml:space="preserve">
+    <value>[!!Ñòdé.jš pròçéšš ïš ñòt rùññïñg.···!!]</value>
+  </data>
+  <data name="Node_Required" xml:space="preserve">
+    <value>[!!TÿpéŠçrïpt kérñél réqùïréš Ñòdé.jš. Ñòdé.jš wàš ñòt fòùñd òñ PÀTH òr ïñ wéll-kñòwñ lòçàtïòñš.···!!]</value>
+  </data>
+  <data name="Node_Terminated" xml:space="preserve">
+    <value>[!!Ñòdé.jš pròçéšš térmïñàtéd ùñéxpéçtédlÿ.···!!]</value>
+  </data>
+  <data name="Node_TranspileRequiresModule" xml:space="preserve">
+    <value>[!!TÿpéŠçrïpt tràñšpïlàtïòñ réqùïréš Ñòdé.jš wïth thé tÿpéšçrïpt mòdùlé ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Npm_AuditSummary" xml:space="preserve">
+    <value>[!!ñpm àùdït fòùñd {0} ïñ thé ïñštàlléd pàçkàgéš. Rùñ ñpm àùdït fòr détàïlš.···!!]</value>
+  </data>
+  <data name="Npm_AuditSummaryBySeverity" xml:space="preserve">
+    <value>[!!ñpm àùdït fòùñd {0} ({1}) ïñ thé ïñštàlléd pàçkàgéš. Rùñ ñpm àùdït fòr détàïlš.···!!]</value>
+  </data>
+  <data name="Npm_Dependencies" xml:space="preserve">
+    <value>[!!Dépéñdéñçïéš: {0}.···!!]</value>
+  </data>
+  <data name="Npm_DependencyCount_One" xml:space="preserve">
+    <value>[!!{0} dépéñdéñçÿ···!!]</value>
+  </data>
+  <data name="Npm_DependencyCount_Other" xml:space="preserve">
+    <value>[!!{0} dépéñdéñçïéš···!!]</value>
+  </data>
+  <data name="Npm_InstallFailed" xml:space="preserve">
+    <value>[!!Thé ñpm ïñštàll fàïléd.···!!]</value>
+  </data>
+  <data name="Npm_Installed" xml:space="preserve">
+    <value>[!!Ïñštàlléd {0}.···!!]</value>
+  </data>
+  <data name="Npm_InstalledAnd" xml:space="preserve">
+    <value>[!!Ïñštàlléd {0} àñd {1}.···!!]</value>
+  </data>
+  <data name="Npm_NotFound" xml:space="preserve">
+    <value>[!!ñpm ñòt fòùñd òñ PÀTH.···!!]</value>
+  </data>
+  <data name="Npm_NothingToDo" xml:space="preserve">
+    <value>[!!Évérÿthïñg réqùéštéd ïš àlréàdÿ ïñštàlléd.···!!]</value>
+  </data>
+  <data name="Npm_PackageCount_One" xml:space="preserve">
+    <value>[!!{0} pàçkàgé···!!]</value>
+  </data>
+  <data name="Npm_PackageCount_Other" xml:space="preserve">
+    <value>[!!{0} pàçkàgéš···!!]</value>
+  </data>
+  <data name="Npm_Packages" xml:space="preserve">
+    <value>[!!Pàçkàgéš: {0}.···!!]</value>
+  </data>
+  <data name="Npm_Replaced" xml:space="preserve">
+    <value>[!!Réplàçéd: {0}.···!!]</value>
+  </data>
+  <data name="Npm_Severity_Critical" xml:space="preserve">
+    <value>[!!{0} çrïtïçàl···!!]</value>
+  </data>
+  <data name="Npm_Severity_High" xml:space="preserve">
+    <value>[!!{0} hïgh···!!]</value>
+  </data>
+  <data name="Npm_Severity_Info" xml:space="preserve">
+    <value>[!!{0} ïñfò···!!]</value>
+  </data>
+  <data name="Npm_Severity_Low" xml:space="preserve">
+    <value>[!!{0} lòw···!!]</value>
+  </data>
+  <data name="Npm_Severity_Moderate" xml:space="preserve">
+    <value>[!!{0} mòdéràté···!!]</value>
+  </data>
+  <data name="Npm_StartFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò štàrt ñpm pròçéšš.···!!]</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_One" xml:space="preserve">
+    <value>[!!{0} vùlñéràbïlïtÿ···!!]</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_Other" xml:space="preserve">
+    <value>[!!{0} vùlñéràbïlïtïéš···!!]</value>
+  </data>
+  <data name="Run_NodeCrashed" xml:space="preserve">
+    <value>[!!Ñòdé.jš pròçéšš çràšhéd. Réštàrtïñg...···!!]</value>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>[!!Mémòrÿ lïmït éxçéédéd (128 MB).···!!]</value>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>[!!Éxéçùtïòñ tïméd òùt (15 šéçòñd lïmït).···!!]</value>
+  </data>
+  <data name="Run_TranspileFailed" xml:space="preserve">
+    <value>[!!Tràñšpïlàtïòñ fàïléd: {0}···!!]</value>
+  </data>
+  <data name="Run_UnknownError" xml:space="preserve">
+    <value>[!!Ùñkñòwñ JàvàŠçrïpt érròr···!!]</value>
+  </data>
+  <data name="Run_UnknownTranspileError" xml:space="preserve">
+    <value>[!!Ùñkñòwñ tràñšpïlàtïòñ érròr···!!]</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>[!!Répòrt àñ ñpm ïñštàll àš thé pàçkàgéš ït àddéd àñd thé véršïòñš théÿ çàmé ïñ àt, ràthér thàñ rélàÿïñg ñpm'š òwñ ñàrràtïòñ àñd ïtš fùñdïñg àñd àùdït fòòtérš. Ïñštàllïñg òñé pàçkàgé brïñgš ïñ ïtš dépéñdéñçïéš, àñd thàt blòçk ïš šàvéd ïñtò thé ñòtébòòk àlòñgšïdé thé òùtpùt thé çéll wàš àçtùàllÿ rùñ fòr. Àñ ïñštàll thàt fàïlš ïš àlwàÿš répòrtéd ïñ fùll, àš ïš àñÿthïñg ñpm'š àùdït fòùñd.···!!]</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>[!!Hïdé Ïñštàllàtïòñ Òùtpùt···!!]</value>
+  </data>
+  <data name="TypeScript_InstallFailed" xml:space="preserve">
+    <value>[!!Fàïléd tò ïñštàll thé {0} ñpm pàçkàgé.···!!]</value>
+  </data>
+  <data name="TypeScript_VerifyFailed" xml:space="preserve">
+    <value>[!!TÿpéŠçrïpt çòmpïlér ñòt wòrkïñg àftér ïñštàll (tÿpéšçrïpt {0}): {1}···!!]</value>
+  </data>
+  <data name="TypeScript_VersionUnknown" xml:space="preserve">
+    <value>[!!véršïòñ ùñkñòwñ···!!]</value>
+  </data>
+</root>

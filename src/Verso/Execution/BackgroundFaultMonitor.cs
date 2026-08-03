@@ -11,6 +11,12 @@ namespace Verso.Execution;
 /// they surfaced, which is not always the one that caused them, so the reported text says where
 /// they came from.
 /// </para>
+/// <para>
+/// Nothing here is translated. Every line it writes exists only because something went wrong, and
+/// what reaches the reader is mostly the exception's own text, which arrives in English however
+/// the interface is set. Wrapping that in a translated sentence would make an issue report harder
+/// to match against the code that produced it without making the fault any easier to understand.
+/// </para>
 /// </summary>
 public sealed class BackgroundFaultSink
 {

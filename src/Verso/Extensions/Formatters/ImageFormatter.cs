@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Formatters;
 
@@ -11,10 +12,10 @@ public sealed class ImageFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.formatter.image";
-    public string Name => "Image Formatter";
+    public string Name => Strings.Formatter_Image;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Formats byte arrays as inline base64 images.";
+    public string? Description => Strings.Formatter_Image_Description;
 
     // --- IDataFormatter ---
 

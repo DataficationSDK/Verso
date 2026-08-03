@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Verso.Cli.Execution;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 using Verso.Execution;
 
@@ -12,68 +13,52 @@ public static class RunCommand
 {
     public static Command Create()
     {
-        var notebookArg = new Argument<FileInfo>("notebook", "Path to a .verso, .ipynb, or .dib file.");
+        var notebookArg = new Argument<FileInfo>("notebook", Strings.Run_ArgNotebook);
 
-        var cellOption = new Option<string[]>("--cell", "Execute only the specified cell (index or GUID). May be repeated.")
+        var cellOption = new Option<string[]>("--cell", Strings.Run_OptCell)
         {
             AllowMultipleArgumentsPerToken = true,
             Arity = ArgumentArity.ZeroOrMore
         };
 
-        var kernelOption = new Option<string?>("--kernel", "Override the notebook's default kernel.");
+        var kernelOption = new Option<string?>("--kernel", Strings.Run_OptKernel);
 
-        var outputOption = new Option<OutputFormat>("--output", () => OutputFormat.Text,
-            "Output format: text, json, or none.");
+        var outputOption = new Option<OutputFormat>("--output", () => OutputFormat.Text, Strings.Run_OptOutput);
 
-        var outputFileOption = new Option<FileInfo?>("--output-file",
-            "Write output to a file instead of stdout. Implies --output json if no format specified.");
+        var outputFileOption = new Option<FileInfo?>("--output-file", Strings.Run_OptOutputFile);
 
-        var saveOption = new Option<bool>("--save", () => false,
-            "Save updated outputs back to the notebook file after execution.");
+        var saveOption = new Option<bool>("--save", () => false, Strings.Run_OptSave);
 
-        var timeoutOption = new Option<int>("--timeout", () => 300,
-            "Maximum total execution time in seconds.");
+        var timeoutOption = new Option<int>("--timeout", () => 300, Strings.Run_OptTimeout);
 
-        var extensionsOption = new Option<DirectoryInfo?>("--extensions",
-            "Additional directory to scan for extension assemblies.");
+        var extensionsOption = new Option<DirectoryInfo?>("--extensions", Strings.Option_Extensions);
 
-        var failFastOption = new Option<bool>("--fail-fast", () => false,
-            "Stop execution on the first cell failure.");
+        var failFastOption = new Option<bool>("--fail-fast", () => false, Strings.Run_OptFailFast);
 
-        var failOnStderrOption = new Option<bool>("--fail-on-stderr", () => false,
-            "Treat anything a cell writes to standard error as a failure. Off by default, because " +
-            "progress bars, logging, and warnings are normally written there by programs that are " +
-            "succeeding. Use this to make a pipeline strict about them.");
+        var failOnStderrOption = new Option<bool>("--fail-on-stderr", () => false, Strings.Run_OptFailOnStderr);
 
-        var verboseOption = new Option<bool>("--verbose", () => false,
-            "Print cell execution progress to stderr.");
+        var verboseOption = new Option<bool>("--verbose", () => false, Strings.Run_OptVerbose);
 
-        var paramOption = new Option<string[]>("--param",
-            "Set a notebook parameter (format: name=value). May be repeated.")
+        var paramOption = new Option<string[]>("--param", Strings.Run_OptParam)
         {
             AllowMultipleArgumentsPerToken = true,
             Arity = ArgumentArity.ZeroOrMore
         };
 
-        var interactiveOption = new Option<bool>("--interactive", () => false,
-            "Prompt for missing required parameters on stdin instead of failing.");
+        var interactiveOption = new Option<bool>("--interactive", () => false, Strings.Run_OptInteractive);
 
-        var includeMarkdownOption = new Option<bool>("--include-markdown", () => false,
-            "Include markdown and HTML cell content in terminal output.");
+        var includeMarkdownOption = new Option<bool>("--include-markdown", () => false, Strings.Run_OptIncludeMarkdown);
 
-        var showParametersOption = new Option<bool>("--show-parameters", () => false,
-            "Show resolved parameter values in terminal output.");
+        var showParametersOption = new Option<bool>("--show-parameters", () => false, Strings.Run_OptShowParameters);
 
-        var trustLocalOption = new Option<bool>("--trust-local-assemblies", () => false,
-            "Allow loading assemblies generated during the current session without consent.");
+        var trustLocalOption = new Option<bool>("--trust-local-assemblies", () => false, Strings.Run_OptTrustLocal);
 
-        var ignoreViewStateOption = new Option<bool>("--ignore-view-state", () => false,
-            "Ignore per-cell verso:ui.outputVisibility and verso:ui.inputCollapsed metadata; show all outputs in full.");
+        var ignoreViewStateOption = new Option<bool>("--ignore-view-state", () => false, Strings.Run_OptIgnoreViewState);
 
         var pythonOption = PythonInterpreterOption.Create();
         var autoInstallOption = PythonAutoInstallOption.Create();
 
-        var command = new Command("run", "Execute a notebook headlessly and stream cell outputs.")
+        var command = new Command("run", Strings.Run_Description)
         {
             notebookArg,
             cellOption,
@@ -132,7 +117,8 @@ public static class RunCommand
                     var eqIndex = pv.IndexOf('=');
                     if (eqIndex <= 0)
                     {
-                        Console.Error.WriteLine($"Error: Invalid --param format '{pv}'. Expected name=value.");
+                        Console.Error.WriteLine(Messages.Error(
+                            string.Format(Strings.Run_InvalidParamFormat, pv)));
                         context.ExitCode = ExitCodes.MissingParameters;
                         return;
                     }
@@ -176,7 +162,8 @@ public static class RunCommand
             // Handle file not found
             if (result.ExitCode == ExitCodes.FileNotFound)
             {
-                Console.Error.WriteLine($"Error: Notebook file not found: {notebook.FullName}");
+                Console.Error.WriteLine(Messages.Error(
+                    string.Format(Strings.Error_NotebookNotFound, notebook.FullName)));
                 context.ExitCode = ExitCodes.FileNotFound;
                 return;
             }
@@ -185,7 +172,8 @@ public static class RunCommand
             if (result.ExitCode == ExitCodes.SerializationError)
             {
                 var ext = Path.GetExtension(notebook.FullName);
-                Console.Error.WriteLine($"Error: Unsupported or invalid notebook format '{ext}'.");
+                Console.Error.WriteLine(Messages.Error(
+                    string.Format(Strings.Run_UnsupportedFormat, ext)));
                 context.ExitCode = ExitCodes.SerializationError;
                 return;
             }

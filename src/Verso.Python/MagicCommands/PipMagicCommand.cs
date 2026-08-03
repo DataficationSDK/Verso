@@ -1,6 +1,7 @@
 using Verso.Abstractions;
 using Verso.Python.Kernel;
 using Verso.Python.PackageManagement;
+using Verso.Python.Resources;
 
 namespace Verso.Python.MagicCommands;
 
@@ -15,19 +16,19 @@ public sealed class PipMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.pip";
-    string IExtension.Name => "Pip Magic Command";
+    string IExtension.Name => Strings.Magic_Pip_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 
     // --- IMagicCommand ---
 
     public string Name => "pip";
-    public string Description => "Installs Python packages via pip for use in subsequent code.";
+    public string Description => Strings.Magic_Pip_Description;
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("packages", "One or more package specifiers (e.g. pandas==2.0 numpy).", typeof(string), IsRequired: true),
-        new ParameterDefinition("options", "Additional pip options passed through to the install command.", typeof(string))
+        new ParameterDefinition("packages", Strings.Magic_Pip_Param_Packages, typeof(string), IsRequired: true),
+        new ParameterDefinition("options", Strings.Magic_Pip_Param_Options, typeof(string))
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -40,7 +41,7 @@ public sealed class PipMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(arguments))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Usage: #!pip <package> [package2 ...] [--options]", IsError: true))
+                "text/plain", Strings.Magic_Pip_Usage, IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
             return;
@@ -61,8 +62,7 @@ public sealed class PipMagicCommand : IMagicCommand
             // was never prepared.
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                "No Python interpreter is available, so there is nothing to install into. " +
-                "Install Python 3.8 or newer, or select an interpreter with #!python.",
+                Strings.Magic_Pip_NoInterpreter,
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
@@ -114,7 +114,7 @@ public sealed class PipMagicCommand : IMagicCommand
         if (packages.Count > 0)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Installing {string.Join(", ", packages)}..."))
+                "text/plain", string.Format(Strings.Magic_Pip_Installing, string.Join(", ", packages))))
                 .ConfigureAwait(false);
         }
 

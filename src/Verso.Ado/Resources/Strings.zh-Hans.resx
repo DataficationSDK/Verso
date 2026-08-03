@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>导出 CSV</value>
+  </data>
+  <data name="Action_ExportCsv_Description" xml:space="preserve">
+    <value>将 SQL 结果集导出为 CSV 文件。</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>导出 JSON</value>
+  </data>
+  <data name="Action_ExportJson_Description" xml:space="preserve">
+    <value>将 SQL 结果集导出为 JSON 文件。</value>
+  </data>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>通过 ADO.NET 查询数据库的 SQL 单元格类型。</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL 单元格类型</value>
+  </data>
+  <data name="Completion_Keyword_Alter" xml:space="preserve">
+    <value>ALTER — 修改现有的数据库对象。</value>
+  </data>
+  <data name="Completion_Keyword_And" xml:space="preserve">
+    <value>AND — 逻辑 AND 运算符；两个条件都必须为真。</value>
+  </data>
+  <data name="Completion_Keyword_Avg" xml:space="preserve">
+    <value>AVG — 返回数值列平均值的聚合函数。</value>
+  </data>
+  <data name="Completion_Keyword_Between" xml:space="preserve">
+    <value>BETWEEN — 测试值是否在某个范围内。</value>
+  </data>
+  <data name="Completion_Keyword_Case" xml:space="preserve">
+    <value>CASE — 条件表达式；根据条件返回一个值。</value>
+  </data>
+  <data name="Completion_Keyword_Count" xml:space="preserve">
+    <value>COUNT — 返回行数的聚合函数。</value>
+  </data>
+  <data name="Completion_Keyword_Create" xml:space="preserve">
+    <value>CREATE — 创建新的数据库对象（表、视图、索引等）。</value>
+  </data>
+  <data name="Completion_Keyword_Delete" xml:space="preserve">
+    <value>DELETE — 从表中删除行。</value>
+  </data>
+  <data name="Completion_Keyword_Distinct" xml:space="preserve">
+    <value>DISTINCT — 从结果集中去除重复行。</value>
+  </data>
+  <data name="Completion_Keyword_Drop" xml:space="preserve">
+    <value>DROP — 删除数据库对象。</value>
+  </data>
+  <data name="Completion_Keyword_Exists" xml:space="preserve">
+    <value>EXISTS — 测试子查询中是否存在行。</value>
+  </data>
+  <data name="Completion_Keyword_From" xml:space="preserve">
+    <value>FROM — 指定查询的源表或视图。</value>
+  </data>
+  <data name="Completion_Keyword_Group" xml:space="preserve">
+    <value>GROUP BY — 将具有相同属性的行分组，以供聚合函数使用。</value>
+  </data>
+  <data name="Completion_Keyword_Having" xml:space="preserve">
+    <value>HAVING — 筛选由 GROUP BY 创建的分组。</value>
+  </data>
+  <data name="Completion_Keyword_In" xml:space="preserve">
+    <value>IN — 测试值是否与列表或子查询中的任一值匹配。</value>
+  </data>
+  <data name="Completion_Keyword_Inner" xml:space="preserve">
+    <value>INNER — 返回两个表中都有匹配值的行。</value>
+  </data>
+  <data name="Completion_Keyword_Insert" xml:space="preserve">
+    <value>INSERT — 向表中添加新行。</value>
+  </data>
+  <data name="Completion_Keyword_Into" xml:space="preserve">
+    <value>INTO — 指定 INSERT 的目标表。</value>
+  </data>
+  <data name="Completion_Keyword_Join" xml:space="preserve">
+    <value>JOIN — 基于相关列合并两个或多个表中的行。</value>
+  </data>
+  <data name="Completion_Keyword_Left" xml:space="preserve">
+    <value>LEFT — 返回左表的所有行，以及右表中匹配的行。</value>
+  </data>
+  <data name="Completion_Keyword_Like" xml:space="preserve">
+    <value>LIKE — 使用通配符（% 和 _）进行模式匹配。</value>
+  </data>
+  <data name="Completion_Keyword_Max" xml:space="preserve">
+    <value>MAX — 返回最大值的聚合函数。</value>
+  </data>
+  <data name="Completion_Keyword_Min" xml:space="preserve">
+    <value>MIN — 返回最小值的聚合函数。</value>
+  </data>
+  <data name="Completion_Keyword_Not" xml:space="preserve">
+    <value>NOT — 逻辑 NOT 运算符；对条件取反。</value>
+  </data>
+  <data name="Completion_Keyword_Null" xml:space="preserve">
+    <value>NULL — 表示缺失或未知的值。</value>
+  </data>
+  <data name="Completion_Keyword_Or" xml:space="preserve">
+    <value>OR — 逻辑 OR 运算符；任一条件为真即可。</value>
+  </data>
+  <data name="Completion_Keyword_Order" xml:space="preserve">
+    <value>ORDER BY — 按一个或多个列对结果集排序。</value>
+  </data>
+  <data name="Completion_Keyword_Right" xml:space="preserve">
+    <value>RIGHT — 返回右表的所有行，以及左表中匹配的行。</value>
+  </data>
+  <data name="Completion_Keyword_Select" xml:space="preserve">
+    <value>SELECT — 从一个或多个表或视图中检索行。</value>
+  </data>
+  <data name="Completion_Keyword_Set" xml:space="preserve">
+    <value>SET — 为 UPDATE 指定列和值。</value>
+  </data>
+  <data name="Completion_Keyword_Sum" xml:space="preserve">
+    <value>SUM — 返回数值列总和的聚合函数。</value>
+  </data>
+  <data name="Completion_Keyword_Table" xml:space="preserve">
+    <value>TABLE — 指数据库中的表。</value>
+  </data>
+  <data name="Completion_Keyword_Union" xml:space="preserve">
+    <value>UNION — 合并两个或多个 SELECT 语句的结果集。</value>
+  </data>
+  <data name="Completion_Keyword_Update" xml:space="preserve">
+    <value>UPDATE — 修改表中现有的行。</value>
+  </data>
+  <data name="Completion_Keyword_Values" xml:space="preserve">
+    <value>VALUES — 为 INSERT 指定字面值。</value>
+  </data>
+  <data name="Completion_Keyword_Where" xml:space="preserve">
+    <value>WHERE — 根据条件筛选行。</value>
+  </data>
+  <data name="Directive_SpacedHint" xml:space="preserve">
+    <value>提示：“--{0}”的“--”后面不能有空格。此行被当作 SQL 注释而忽略，因此该单元格使用了默认连接。</value>
+  </data>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>适用于 Verso 笔记本的 SQL 数据库连接扩展。</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>将 SQL 结果集和 DataTable 格式化为分页的 HTML 表格。</value>
+  </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>结果集格式化程序</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>在导入 Jupyter 文件时，将 Polyglot Notebooks 的 SQL 模式转换为 Verso SQL 单元格。</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter SQL 导入挂钩</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>对 ADO.NET 数据库连接执行 SQL 查询。</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL 内核</value>
+  </data>
+  <data name="Magic_Connect_Connected" xml:space="preserve">
+    <value>已连接“{0}”{1}，使用 {2}</value>
+  </data>
+  <data name="Magic_Connect_ConnectionString" xml:space="preserve">
+    <value>
+  连接字符串：{0}</value>
+  </data>
+  <data name="Magic_Connect_ConnectionStringRequired" xml:space="preserve">
+    <value>必须指定 --connection-string。用法：#!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_CredentialFailed" xml:space="preserve">
+    <value>解析连接字符串时出错：{0}</value>
+  </data>
+  <data name="Magic_Connect_Database" xml:space="preserve">
+    <value> — 数据库：{0}</value>
+  </data>
+  <data name="Magic_Connect_DefaultLabel" xml:space="preserve">
+    <value>（默认）</value>
+  </data>
+  <data name="Magic_Connect_Description" xml:space="preserve">
+    <value>为 SQL 单元格建立数据库连接。</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL Connect 魔法命令</value>
+  </data>
+  <data name="Magic_Connect_NameRequired" xml:space="preserve">
+    <value>必须指定 --name。用法：#!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_OpenFailed" xml:space="preserve">
+    <value>打开连接时出错：{0}</value>
+  </data>
+  <data name="Magic_Connect_Param_CommandTimeout" xml:space="preserve">
+    <value>此连接上 SQL 单元格的默认命令超时，以秒为单位（0 表示不限）。</value>
+  </data>
+  <data name="Magic_Connect_Param_ConnectionString" xml:space="preserve">
+    <value>ADO.NET 连接字符串。</value>
+  </data>
+  <data name="Magic_Connect_Param_Default" xml:space="preserve">
+    <value>将此连接设为默认连接。</value>
+  </data>
+  <data name="Magic_Connect_Param_Name" xml:space="preserve">
+    <value>此连接的友好名称。</value>
+  </data>
+  <data name="Magic_Connect_Param_Provider" xml:space="preserve">
+    <value>DbProviderFactory 的固定名称。</value>
+  </data>
+  <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
+    <value>解析提供程序时出错：{0}</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnresolved" xml:space="preserve">
+    <value>无法解析提供程序。</value>
+  </data>
+  <data name="Magic_Connect_Timeout" xml:space="preserve">
+    <value>
+  命令超时：{0}s</value>
+  </data>
+  <data name="Magic_Connect_TimeoutInvalid" xml:space="preserve">
+    <value>--command-timeout 必须是非负整数（秒；0 表示不限）。</value>
+  </data>
+  <data name="Magic_Connect_TimeoutNoLimit" xml:space="preserve">
+    <value>
+  命令超时：不限</value>
+  </data>
+  <data name="Magic_Disconnect_Description" xml:space="preserve">
+    <value>关闭并移除数据库连接。</value>
+  </data>
+  <data name="Magic_Disconnect_Done" xml:space="preserve">
+    <value>已断开“{0}”。</value>
+  </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL Disconnect 魔法命令</value>
+  </data>
+  <data name="Magic_Disconnect_NoName" xml:space="preserve">
+    <value>未指定连接名称，也未设置默认连接。</value>
+  </data>
+  <data name="Magic_Disconnect_NotFound" xml:space="preserve">
+    <value>找不到连接“{0}”。</value>
+  </data>
+  <data name="Magic_Disconnect_Param_Name" xml:space="preserve">
+    <value>要断开的连接名称。默认为默认连接。</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionClosed" xml:space="preserve">
+    <value>连接“{0}”未打开。</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionRequired" xml:space="preserve">
+    <value>必须指定 --connection。用法：#!sql-scaffold --connection &lt;name&gt; [--tables "Table1,Table2"]</value>
+  </data>
+  <data name="Magic_Scaffold_Description" xml:space="preserve">
+    <value>从数据库架构生成 EF Core DbContext 和实体类。</value>
+  </data>
+  <data name="Magic_Scaffold_EfCoreHint" xml:space="preserve">
+    <value>提示：请确保已在前面的 C# 单元格中安装 EF Core 包：
+
+{0}</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_One" xml:space="preserve">
+    <value>{0} 个实体</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_Other" xml:space="preserve">
+    <value>{0} 个实体</value>
+  </data>
+  <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
+    <value>生成的 C# 代码</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL Scaffold 魔法命令</value>
+  </data>
+  <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
+    <value>找不到 C# 内核。无法执行生成的代码。</value>
+  </data>
+  <data name="Magic_Scaffold_NoTables" xml:space="preserve">
+    <value>找不到符合指定条件的表。</value>
+  </data>
+  <data name="Magic_Scaffold_NotFound" xml:space="preserve">
+    <value>找不到连接“{0}”。请先使用 #!sql-connect。</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Connection" xml:space="preserve">
+    <value>要从中生成的命名连接。</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Schema" xml:space="preserve">
+    <value>用于筛选的数据库架构（例如 dbo）。</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Tables" xml:space="preserve">
+    <value>要包含的表的逗号分隔列表（默认：全部）。</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_One" xml:space="preserve">
+    <value>（{0} 个关系）</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_Other" xml:space="preserve">
+    <value>（{0} 个关系）</value>
+  </data>
+  <data name="Magic_Scaffold_Summary" xml:space="preserve">
+    <value>已生成 {0}{1} 到 {2}
+
+实体：{3}
+上下文变量：{4}
+
+在 C# 单元格中的用法：
+  var items = {4}.{5}.ToList();
+</value>
+  </data>
+  <data name="Magic_Schema_ColumnCount" xml:space="preserve">
+    <value>（{0} 列）</value>
+  </data>
+  <data name="Magic_Schema_ColumnDefault" xml:space="preserve">
+    <value>默认值</value>
+  </data>
+  <data name="Magic_Schema_ColumnKey" xml:space="preserve">
+    <value>键</value>
+  </data>
+  <data name="Magic_Schema_ColumnName" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Magic_Schema_ColumnNullable" xml:space="preserve">
+    <value>可为 NULL</value>
+  </data>
+  <data name="Magic_Schema_ColumnSchema" xml:space="preserve">
+    <value>架构</value>
+  </data>
+  <data name="Magic_Schema_ColumnType" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Magic_Schema_ConnectionClosed" xml:space="preserve">
+    <value>连接“{0}”未打开。请使用 #!sql-connect 重新连接。</value>
+  </data>
+  <data name="Magic_Schema_Description" xml:space="preserve">
+    <value>显示数据库架构信息（表、视图、列）。</value>
+  </data>
+  <data name="Magic_Schema_Heading" xml:space="preserve">
+    <value>连接的架构：{0}</value>
+  </data>
+  <data name="Magic_Schema_LoadFailed" xml:space="preserve">
+    <value>加载架构时出错：{0}</value>
+  </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL Schema 魔法命令</value>
+  </data>
+  <data name="Magic_Schema_NoConnection" xml:space="preserve">
+    <value>没有数据库连接。请使用 #!sql-connect 建立连接。</value>
+  </data>
+  <data name="Magic_Schema_NotFound" xml:space="preserve">
+    <value>找不到连接“{0}”。请使用 #!sql-connect 建立连接。</value>
+  </data>
+  <data name="Magic_Schema_Param_Connection" xml:space="preserve">
+    <value>要检查的连接名称。</value>
+  </data>
+  <data name="Magic_Schema_Param_Refresh" xml:space="preserve">
+    <value>强制刷新架构缓存。</value>
+  </data>
+  <data name="Magic_Schema_Param_Table" xml:space="preserve">
+    <value>显示特定表的列详细信息。</value>
+  </data>
+  <data name="Magic_Schema_TableCount" xml:space="preserve">
+    <value>（{0} 个表/视图）</value>
+  </data>
+  <data name="Magic_Schema_TableNotFound" xml:space="preserve">
+    <value>在架构中找不到表“{0}”。</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>错误：{0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>警告：{0}</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>渲染带连接标识徽章的 SQL 单元格。</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL 渲染器</value>
+  </data>
+  <data name="Run_ConnectionClosed" xml:space="preserve">
+    <value>连接“{0}”未打开。请使用 `#!sql-connect` 重新连接。</value>
+  </data>
+  <data name="Run_Failed" xml:space="preserve">
+    <value>SQL 错误：{0}</value>
+  </data>
+  <data name="Run_NoConnection" xml:space="preserve">
+    <value>没有数据库连接。请使用 `#!sql-connect` 建立连接。</value>
+  </data>
+  <data name="Run_NoSql" xml:space="preserve">
+    <value>没有可执行的 SQL。</value>
+  </data>
+  <data name="Run_UnsupportedParameterType" xml:space="preserve">
+    <value>“{1}”的类型“{0}”不是受支持的 DbType。将按原样传递。</value>
+  </data>
+  <data name="Table_Elapsed" xml:space="preserve">
+    <value>{0} 毫秒</value>
+  </data>
+  <data name="Table_Next" xml:space="preserve">
+    <value>下一页</value>
+  </data>
+  <data name="Table_Previous" xml:space="preserve">
+    <value>上一页</value>
+  </data>
+  <data name="Table_RowsAffected_One" xml:space="preserve">
+    <value>影响了 {0} 行</value>
+  </data>
+  <data name="Table_RowsAffected_Other" xml:space="preserve">
+    <value>影响了 {0} 行</value>
+  </data>
+  <data name="Table_ShowingRows" xml:space="preserve">
+    <value>正在显示第 {0}-{1} 行，共 {2} 行</value>
+  </data>
+  <data name="Table_Statements" xml:space="preserve">
+    <value>{0}（{1} 条语句）</value>
+  </data>
+  <data name="Table_Truncated" xml:space="preserve">
+    <value>结果已截断，显示 {0} 行，共 {1} 行。请使用 WHERE 或 LIMIT 缩小查询范围。</value>
+  </data>
+</root>

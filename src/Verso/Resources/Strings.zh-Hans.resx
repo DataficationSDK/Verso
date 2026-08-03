@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ClearCellOutput" xml:space="preserve">
+    <value>清除单元格输出</value>
+  </data>
+  <data name="Action_ClearCellOutput_Description" xml:space="preserve">
+    <value>清除所选单元格的输出。</value>
+  </data>
+  <data name="Action_ClearCellOutput_Label" xml:space="preserve">
+    <value>清除输出</value>
+  </data>
+  <data name="Action_ClearOutputs" xml:space="preserve">
+    <value>清除全部输出</value>
+  </data>
+  <data name="Action_ClearOutputs_Description" xml:space="preserve">
+    <value>清除笔记本中所有单元格的输出。</value>
+  </data>
+  <data name="Action_ExportHtml" xml:space="preserve">
+    <value>导出 HTML</value>
+  </data>
+  <data name="Action_ExportHtml_Description" xml:space="preserve">
+    <value>将笔记本导出为自包含的 HTML 文档。</value>
+  </data>
+  <data name="Action_ExportMarkdown" xml:space="preserve">
+    <value>导出 Markdown</value>
+  </data>
+  <data name="Action_ExportMarkdown_Description" xml:space="preserve">
+    <value>将笔记本导出为 Markdown 文档。</value>
+  </data>
+  <data name="Action_ExportVerso" xml:space="preserve">
+    <value>导出 Verso</value>
+  </data>
+  <data name="Action_ExportVerso_Description" xml:space="preserve">
+    <value>将基于 Markdown 的笔记本导出为原生 .verso 文件。</value>
+  </data>
+  <data name="Action_RestartKernel" xml:space="preserve">
+    <value>重启内核</value>
+  </data>
+  <data name="Action_RestartKernel_Confirm" xml:space="preserve">
+    <value>重启内核会丢弃所有变量和执行状态。现在重启吗？</value>
+  </data>
+  <data name="Action_RestartKernel_Description" xml:space="preserve">
+    <value>重启活动的语言内核。</value>
+  </data>
+  <data name="Action_RunAll" xml:space="preserve">
+    <value>全部运行</value>
+  </data>
+  <data name="Action_RunAll_Description" xml:space="preserve">
+    <value>执行笔记本中的所有单元格。</value>
+  </data>
+  <data name="Action_RunCell" xml:space="preserve">
+    <value>运行单元格</value>
+  </data>
+  <data name="Action_RunCell_Description" xml:space="preserve">
+    <value>执行所选的单元格。</value>
+  </data>
+  <data name="Action_SwitchLayout" xml:space="preserve">
+    <value>切换布局</value>
+  </data>
+  <data name="Action_SwitchLayout_Description" xml:space="preserve">
+    <value>在可用的布局引擎之间循环切换。</value>
+  </data>
+  <data name="Action_SwitchTheme" xml:space="preserve">
+    <value>切换主题</value>
+  </data>
+  <data name="Action_SwitchTheme_Description" xml:space="preserve">
+    <value>在可用的主题之间循环切换。</value>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>代码</value>
+  </data>
+  <data name="CellType_Html" xml:space="preserve">
+    <value>HTML 单元格类型</value>
+  </data>
+  <data name="CellType_Html_Description" xml:space="preserve">
+    <value>用于编写带 @variable 替换的原始 HTML 的单元格类型。</value>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown 单元格类型</value>
+  </data>
+  <data name="CellType_Markdown_Description" xml:space="preserve">
+    <value>使用 Markdig 渲染为 HTML 的 Markdown 文本单元格。</value>
+  </data>
+  <data name="CellType_Mermaid" xml:space="preserve">
+    <value>Mermaid 单元格类型</value>
+  </data>
+  <data name="CellType_Mermaid_Description" xml:space="preserve">
+    <value>使用 mermaid.js 语法创建图表的 Mermaid 单元格类型。</value>
+  </data>
+  <data name="CellType_Parameters" xml:space="preserve">
+    <value>参数单元格类型</value>
+  </data>
+  <data name="CellType_Parameters_Description" xml:space="preserve">
+    <value>以交互式表单显示和管理笔记本的参数定义。</value>
+  </data>
+  <data name="CellType_Parameters_Label" xml:space="preserve">
+    <value>参数</value>
+  </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>单元格</value>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>本地文件：{0}</value>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>扩展市场</value>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>笔记本所需的扩展</value>
+  </data>
+  <data name="Error_DibExportUnsupported" xml:space="preserve">
+    <value>不支持导出为 Polyglot Notebook 的 .dib 格式。请使用 Verso 原生格式。</value>
+  </data>
+  <data name="Error_ExtensionAssemblyNotFound" xml:space="preserve">
+    <value>找不到扩展程序集：{0}</value>
+  </data>
+  <data name="Error_ExtensionDirectoryNotFound" xml:space="preserve">
+    <value>找不到扩展目录：{0}</value>
+  </data>
+  <data name="Error_InteractiveInputUnsupported" xml:space="preserve">
+    <value>此宿主不支持交互式输入。</value>
+  </data>
+  <data name="Error_JupyterParseFailed" xml:space="preserve">
+    <value>无法解析 Jupyter 笔记本。</value>
+  </data>
+  <data name="Error_LayoutNotFound" xml:space="preserve">
+    <value>找不到布局“{0}”。</value>
+  </data>
+  <data name="Error_NoKernelConfigured" xml:space="preserve">
+    <value>未指定内核 ID，也未配置默认内核。</value>
+  </data>
+  <data name="Error_NoKernelForLanguage" xml:space="preserve">
+    <value>没有为语言“{0}”注册内核。</value>
+  </data>
+  <data name="Error_PackageDownloadFailed" xml:space="preserve">
+    <value>下载包“{0}”v{1} 失败。</value>
+  </data>
+  <data name="Error_ThemeNotFound" xml:space="preserve">
+    <value>找不到主题“{0}”。</value>
+  </data>
+  <data name="Error_VersoParseFailed" xml:space="preserve">
+    <value>无法反序列化 .verso 文档。</value>
+  </data>
+  <data name="Export_MoreLines_One" xml:space="preserve">
+    <value>...（另有 {0} 行）</value>
+  </data>
+  <data name="Export_MoreLines_Other" xml:space="preserve">
+    <value>...（另有 {0} 行）</value>
+  </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>集合格式化程序</value>
+  </data>
+  <data name="Formatter_Collection_Description" xml:space="preserve">
+    <value>将集合格式化为 HTML 表格。</value>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>异常格式化程序</value>
+  </data>
+  <data name="Formatter_Exception_Description" xml:space="preserve">
+    <value>将异常格式化为结构化的 HTML。</value>
+  </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>HTML 格式化程序</value>
+  </data>
+  <data name="Formatter_Html_Description" xml:space="preserve">
+    <value>将带有 ToHtml() 方法的对象格式化为 HTML。</value>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>图像格式化程序</value>
+  </data>
+  <data name="Formatter_Image_Description" xml:space="preserve">
+    <value>将字节数组格式化为内联的 base64 图像。</value>
+  </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>对象格式化程序</value>
+  </data>
+  <data name="Formatter_Object_Description" xml:space="preserve">
+    <value>将对象格式化为显示公共属性和字段的 HTML 表格。</value>
+  </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>基元类型格式化程序</value>
+  </data>
+  <data name="Formatter_Primitive_Description" xml:space="preserve">
+    <value>将基元类型和常见值类型格式化为纯文本。</value>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>SVG 格式化程序</value>
+  </data>
+  <data name="Formatter_Svg_Description" xml:space="preserve">
+    <value>将 SVG 字符串格式化为内联 HTML。</value>
+  </data>
+  <data name="Kernel_CSharp_Description" xml:space="preserve">
+    <value>由 Roslyn 脚本驱动的 C# 语言内核。</value>
+  </data>
+  <data name="Kernel_Html" xml:space="preserve">
+    <value>HTML 内核</value>
+  </data>
+  <data name="Kernel_Html_Description" xml:space="preserve">
+    <value>执行带 @variable 替换的 HTML 单元格。</value>
+  </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>已安装的包</value>
+  </data>
+  <data name="Kernel_Mermaid" xml:space="preserve">
+    <value>Mermaid 内核</value>
+  </data>
+  <data name="Kernel_Mermaid_Description" xml:space="preserve">
+    <value>执行带 @variable 替换的 Mermaid 图表单元格。</value>
+  </data>
+  <data name="Kernel_UnresolvedVariable" xml:space="preserve">
+    <value>无法解析变量“@{0}”。在变量存储中找不到匹配的变量。</value>
+  </data>
+  <data name="Layout_AddCell" xml:space="preserve">
+    <value>{0} 单元格</value>
+  </data>
+  <data name="Layout_Dashboard" xml:space="preserve">
+    <value>仪表板布局</value>
+  </data>
+  <data name="Layout_Dashboard_Description" xml:space="preserve">
+    <value>基于网格、仅显示输出单元格的仪表板布局。</value>
+  </data>
+  <data name="Layout_Dashboard_Label" xml:space="preserve">
+    <value>仪表板</value>
+  </data>
+  <data name="Layout_DragToMove" xml:space="preserve">
+    <value>拖动以移动</value>
+  </data>
+  <data name="Layout_EmptySubtitle" xml:space="preserve">
+    <value>在下方添加第一个单元格。</value>
+  </data>
+  <data name="Layout_EmptyTitle" xml:space="preserve">
+    <value>此笔记本为空</value>
+  </data>
+  <data name="Layout_InsertCellHere" xml:space="preserve">
+    <value>在此处插入 {0} 单元格</value>
+  </data>
+  <data name="Layout_Notebook" xml:space="preserve">
+    <value>笔记本布局</value>
+  </data>
+  <data name="Layout_Notebook_Description" xml:space="preserve">
+    <value>自上而下的线性笔记本布局，单元格实时可编辑，置于浮起的卡片中。</value>
+  </data>
+  <data name="Layout_Notebook_Label" xml:space="preserve">
+    <value>笔记本</value>
+  </data>
+  <data name="Layout_Presentation" xml:space="preserve">
+    <value>演示布局</value>
+  </data>
+  <data name="Layout_Presentation_Description" xml:space="preserve">
+    <value>仅显示输出的演示布局，用于查看交互式笔记本。</value>
+  </data>
+  <data name="Layout_Presentation_Label" xml:space="preserve">
+    <value>演示</value>
+  </data>
+  <data name="Layout_RunCell" xml:space="preserve">
+    <value>运行</value>
+  </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>About 魔法命令</value>
+  </data>
+  <data name="Magic_About_Description" xml:space="preserve">
+    <value>显示 Verso 版本、运行时信息和已加载的扩展。</value>
+  </data>
+  <data name="Magic_About_LoadedExtensions" xml:space="preserve">
+    <value>已加载的扩展：</value>
+  </data>
+  <data name="Magic_About_NoExtensions" xml:space="preserve">
+    <value>未加载任何扩展。</value>
+  </data>
+  <data name="Magic_About_Os" xml:space="preserve">
+    <value>操作系统：{0}</value>
+  </data>
+  <data name="Magic_About_Runtime" xml:space="preserve">
+    <value>运行时：{0}</value>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>Extension 魔法命令</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
+    <value>扩展程序集“{0}”已加载。</value>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedPackage" xml:space="preserve">
+    <value>扩展包“{0}”已加载。</value>
+  </data>
+  <data name="Magic_Extension_AssemblyNotFound" xml:space="preserve">
+    <value>找不到扩展程序集：{0}</value>
+  </data>
+  <data name="Magic_Extension_ConsentReason_SessionGenerated" xml:space="preserve">
+    <value>会话生成的本地程序集</value>
+  </data>
+  <data name="Magic_Extension_Description" xml:space="preserve">
+    <value>安装 NuGet 包或加载包含 Verso 扩展的本地程序集。</value>
+  </data>
+  <data name="Magic_Extension_Installed_One" xml:space="preserve">
+    <value>已安装“{0}”{1}（注册了 {2} 个扩展）</value>
+  </data>
+  <data name="Magic_Extension_Installed_Other" xml:space="preserve">
+    <value>已安装“{0}”{1}（注册了 {2} 个扩展）</value>
+  </data>
+  <data name="Magic_Extension_LoadFailed" xml:space="preserve">
+    <value>从“{0}”加载扩展时出错：{1}</value>
+  </data>
+  <data name="Magic_Extension_LoadFailedGeneric" xml:space="preserve">
+    <value>加载“{0}”时出错：{1}</value>
+  </data>
+  <data name="Magic_Extension_Loaded_One" xml:space="preserve">
+    <value>已加载“{0}”（注册了 {1} 个扩展）</value>
+  </data>
+  <data name="Magic_Extension_Loaded_Other" xml:space="preserve">
+    <value>已加载“{0}”（注册了 {1} 个扩展）</value>
+  </data>
+  <data name="Magic_Extension_Loading" xml:space="preserve">
+    <value>正在从“{0}”加载扩展...</value>
+  </data>
+  <data name="Magic_Extension_NoTypes" xml:space="preserve">
+    <value>“{0}”已加载，但不包含任何 [VersoExtension] 类型。该程序集仍可作为引用使用。</value>
+  </data>
+  <data name="Magic_Extension_NotAnAssembly" xml:space="preserve">
+    <value>“{0}”不是有效的 .NET 程序集。</value>
+  </data>
+  <data name="Magic_Extension_NotApproved" xml:space="preserve">
+    <value>扩展“{0}”未获批准。正在跳过。</value>
+  </data>
+  <data name="Magic_Extension_Param_PackageIdOrPath" xml:space="preserve">
+    <value>NuGet 包 ID，或本地 .dll 文件的路径。</value>
+  </data>
+  <data name="Magic_Extension_Param_Version" xml:space="preserve">
+    <value>可选的包版本（仅限 NuGet）。</value>
+  </data>
+  <data name="Magic_Extension_ResolveFailed" xml:space="preserve">
+    <value>无法解析扩展包“{0}”：{1}</value>
+  </data>
+  <data name="Magic_Extension_Resolving" xml:space="preserve">
+    <value>正在解析扩展包“{0}”...</value>
+  </data>
+  <data name="Magic_Extension_ResolvingVersion" xml:space="preserve">
+    <value>正在解析扩展包“{0}”的版本“{1}”...</value>
+  </data>
+  <data name="Magic_Extension_Usage" xml:space="preserve">
+    <value>用法：#!extension &lt;PackageId&gt; [Version]  或  #!extension &lt;path/to/assembly.dll&gt;</value>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>Import 魔法命令</value>
+  </data>
+  <data name="Magic_Import_CellCount_One" xml:space="preserve">
+    <value>{0} 个单元格</value>
+  </data>
+  <data name="Magic_Import_CellCount_Other" xml:space="preserve">
+    <value>{0} 个单元格</value>
+  </data>
+  <data name="Magic_Import_ConsentReason" xml:space="preserve">
+    <value>从 {0} 导入</value>
+  </data>
+  <data name="Magic_Import_Description" xml:space="preserve">
+    <value>导入另一个笔记本文件并执行其中的单元格（markdown 和 raw 之外的任何单元格类型），可选择覆盖参数。传入 --show-output 可显示导入单元格的输出。</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_One" xml:space="preserve">
+    <value>提取了 {0} 条指令</value>
+  </data>
+  <data name="Magic_Import_DirectiveCount_Other" xml:space="preserve">
+    <value>提取了 {0} 条指令</value>
+  </data>
+  <data name="Magic_Import_ExecutionFailed" xml:space="preserve">
+    <value>{0}（执行失败）</value>
+  </data>
+  <data name="Magic_Import_Failed" xml:space="preserve">
+    <value>导入笔记本时出错：{0}</value>
+  </data>
+  <data name="Magic_Import_FileNotFound" xml:space="preserve">
+    <value>找不到文件：{0}</value>
+  </data>
+  <data name="Magic_Import_InvalidParameter" xml:space="preserve">
+    <value>参数“{0}”（{1}）的值无效：{2}</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_One" xml:space="preserve">
+    <value>导入的笔记本缺少必需的参数：
+{0}</value>
+  </data>
+  <data name="Magic_Import_MissingRequired_Other" xml:space="preserve">
+    <value>导入的笔记本缺少必需的参数：
+{0}</value>
+  </data>
+  <data name="Magic_Import_NoSerializer" xml:space="preserve">
+    <value>找不到用于“{0}”的序列化程序或内核。支持的格式：{1}</value>
+  </data>
+  <data name="Magic_Import_Param_Param" xml:space="preserve">
+    <value>以 name=value 格式覆盖参数。可重复使用。</value>
+  </data>
+  <data name="Magic_Import_Param_Path" xml:space="preserve">
+    <value>要导入的笔记本文件的路径。</value>
+  </data>
+  <data name="Magic_Import_Param_ShowOutput" xml:space="preserve">
+    <value>显示导入单元格产生的输出。默认关闭。</value>
+  </data>
+  <data name="Magic_Import_SourceSummary" xml:space="preserve">
+    <value>已导入 {0}</value>
+  </data>
+  <data name="Magic_Import_SourceSummaryDirectives" xml:space="preserve">
+    <value>已导入 {0}（{1}）</value>
+  </data>
+  <data name="Magic_Import_Summary" xml:space="preserve">
+    <value>已从 {1} 导入 {0}</value>
+  </data>
+  <data name="Magic_Import_SummaryWithFailures" xml:space="preserve">
+    <value>已从 {1} 导入 {0}（{2} 个失败）</value>
+  </data>
+  <data name="Magic_Import_Usage" xml:space="preserve">
+    <value>#!import 需要文件路径。用法：#!import &lt;path&gt; [--param name=value ...]</value>
+  </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>NuGet 魔法命令</value>
+  </data>
+  <data name="Magic_NuGet_Description" xml:space="preserve">
+    <value>下载并引用 NuGet 包，以供后续代码使用。</value>
+  </data>
+  <data name="Magic_NuGet_Installed" xml:space="preserve">
+    <value>已安装“{0}”，{1}</value>
+  </data>
+  <data name="Magic_NuGet_Param_PackageId" xml:space="preserve">
+    <value>NuGet 包 ID。</value>
+  </data>
+  <data name="Magic_NuGet_Param_Version" xml:space="preserve">
+    <value>可选的包版本。</value>
+  </data>
+  <data name="Magic_NuGet_ResolveFailed" xml:space="preserve">
+    <value>无法解析 NuGet 包“{0}”：{1}</value>
+  </data>
+  <data name="Magic_NuGet_Resolving" xml:space="preserve">
+    <value>正在解析 NuGet 包“{0}”...</value>
+  </data>
+  <data name="Magic_NuGet_ResolvingVersion" xml:space="preserve">
+    <value>正在解析 NuGet 包“{0}”的版本“{1}”...</value>
+  </data>
+  <data name="Magic_NuGet_Usage" xml:space="preserve">
+    <value>用法：#!nuget &lt;PackageId&gt; [Version]</value>
+  </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>Restart 魔法命令</value>
+  </data>
+  <data name="Magic_Restart_Description" xml:space="preserve">
+    <value>重启指定的内核；未提供参数时重启默认内核。</value>
+  </data>
+  <data name="Magic_Restart_Done" xml:space="preserve">
+    <value>内核“{0}”已重启。</value>
+  </data>
+  <data name="Magic_Restart_DoneDefault" xml:space="preserve">
+    <value>默认内核已重启。</value>
+  </data>
+  <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
+    <value>要重启的内核的语言 ID。</value>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>Time 魔法命令</value>
+  </data>
+  <data name="Magic_Time_Description" xml:space="preserve">
+    <value>在单元格执行后报告经过的实际时间。</value>
+  </data>
+  <data name="ObjectTree_EmptyCollection" xml:space="preserve">
+    <value>空集合</value>
+  </data>
+  <data name="ObjectTree_ItemCount" xml:space="preserve">
+    <value>（{0} 项）</value>
+  </data>
+  <data name="ObjectTree_MemberCount_One" xml:space="preserve">
+    <value>（{0} 个成员）</value>
+  </data>
+  <data name="ObjectTree_MemberCount_Other" xml:space="preserve">
+    <value>（{0} 个成员）</value>
+  </data>
+  <data name="ObjectTree_ShowingMore" xml:space="preserve">
+    <value>正在显示 {0} 项，还有更多</value>
+  </data>
+  <data name="Parameters_Add" xml:space="preserve">
+    <value>添加参数</value>
+  </data>
+  <data name="Parameters_Applied" xml:space="preserve">
+    <value>参数已成功应用。</value>
+  </data>
+  <data name="Parameters_CancelAdd" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Parameters_ColumnDefault" xml:space="preserve">
+    <value>默认值</value>
+  </data>
+  <data name="Parameters_ColumnDescription" xml:space="preserve">
+    <value>说明</value>
+  </data>
+  <data name="Parameters_ColumnName" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Parameters_ColumnRequired" xml:space="preserve">
+    <value>必需</value>
+  </data>
+  <data name="Parameters_ColumnType" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Parameters_ConfirmAdd" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="Parameters_DefaultPlaceholder" xml:space="preserve">
+    <value>默认值</value>
+  </data>
+  <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
+    <value>说明</value>
+  </data>
+  <data name="Parameters_ExpectedBoolean" xml:space="preserve">
+    <value>应为 true/false、yes/no 或 1/0，实际为“{0}”。</value>
+  </data>
+  <data name="Parameters_ExpectedDate" xml:space="preserve">
+    <value>应为 yyyy-MM-dd 格式的日期，实际为“{0}”。</value>
+  </data>
+  <data name="Parameters_ExpectedDateTime" xml:space="preserve">
+    <value>应为 ISO 8601 日期时间值，实际为“{0}”。</value>
+  </data>
+  <data name="Parameters_ExpectedInteger" xml:space="preserve">
+    <value>应为整数值，实际为“{0}”。</value>
+  </data>
+  <data name="Parameters_ExpectedNumber" xml:space="preserve">
+    <value>应为数值，实际为“{0}”。</value>
+  </data>
+  <data name="Parameters_InvalidValue" xml:space="preserve">
+    <value>值无效。</value>
+  </data>
+  <data name="Parameters_NamePlaceholder" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Parameters_None" xml:space="preserve">
+    <value>未定义任何参数。</value>
+  </data>
+  <data name="Parameters_NotFound" xml:space="preserve">
+    <value>找不到参数“{0}”。</value>
+  </data>
+  <data name="Parameters_Remove" xml:space="preserve">
+    <value>移除参数</value>
+  </data>
+  <data name="Parameters_Required" xml:space="preserve">
+    <value>必需</value>
+  </data>
+  <data name="Parameters_Title" xml:space="preserve">
+    <value>参数</value>
+  </data>
+  <data name="Parameters_UnknownType" xml:space="preserve">
+    <value>未知的参数类型“{0}”。</value>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>Jupyter Polyglot 魔法命令拆分器</value>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>将导入的 .ipynb 文件中 Polyglot Notebook 的语言切换指令拆分为独立的单元格。</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>错误：{0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>警告：{0}</value>
+  </data>
+  <data name="Properties_CollapseInput" xml:space="preserve">
+    <value>折叠输入</value>
+  </data>
+  <data name="Properties_DefaultIs" xml:space="preserve">
+    <value>默认值：{0}</value>
+  </data>
+  <data name="Properties_DisplaySection" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Properties_InputPreviewLines" xml:space="preserve">
+    <value>输入预览行数</value>
+  </data>
+  <data name="Properties_Output" xml:space="preserve">
+    <value>输出</value>
+  </data>
+  <data name="Properties_OutputFull" xml:space="preserve">
+    <value>完整</value>
+  </data>
+  <data name="Properties_OutputHidden" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="Properties_OutputPreview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="Properties_OutputPreviewLines" xml:space="preserve">
+    <value>输出预览行数</value>
+  </data>
+  <data name="Properties_PreviewStyle" xml:space="preserve">
+    <value>预览样式</value>
+  </data>
+  <data name="Properties_PreviewStyleLines" xml:space="preserve">
+    <value>行</value>
+  </data>
+  <data name="Properties_VisibilitySection" xml:space="preserve">
+    <value>可见性</value>
+  </data>
+  <data name="PropertyProvider_Display" xml:space="preserve">
+    <value>单元格显示属性</value>
+  </data>
+  <data name="PropertyProvider_Display_Description" xml:space="preserve">
+    <value>提供每个单元格的输入和输出显示设置。</value>
+  </data>
+  <data name="PropertyProvider_Visibility" xml:space="preserve">
+    <value>单元格可见性属性</value>
+  </data>
+  <data name="PropertyProvider_Visibility_Description" xml:space="preserve">
+    <value>在属性面板中提供每个布局的单元格可见性覆盖。</value>
+  </data>
+  <data name="Renderer_Fallback" xml:space="preserve">
+    <value>后备渲染器</value>
+  </data>
+  <data name="Renderer_Fallback_Label" xml:space="preserve">
+    <value>后备</value>
+  </data>
+  <data name="Renderer_Html" xml:space="preserve">
+    <value>HTML 渲染器</value>
+  </data>
+  <data name="Renderer_Html_Description" xml:space="preserve">
+    <value>渲染 HTML 单元格，执行时折叠输入。</value>
+  </data>
+  <data name="Renderer_Markdown" xml:space="preserve">
+    <value>Markdown 渲染器</value>
+  </data>
+  <data name="Renderer_Markdown_Description" xml:space="preserve">
+    <value>使用 Markdig 渲染 Markdown 单元格。</value>
+  </data>
+  <data name="Renderer_Mermaid" xml:space="preserve">
+    <value>Mermaid 渲染器</value>
+  </data>
+  <data name="Renderer_Mermaid_Description" xml:space="preserve">
+    <value>渲染 Mermaid 图表单元格，执行时折叠输入。</value>
+  </data>
+  <data name="Renderer_Parameters" xml:space="preserve">
+    <value>参数渲染器</value>
+  </data>
+  <data name="Renderer_Parameters_Description" xml:space="preserve">
+    <value>将参数定义渲染为带类型感知输入控件的交互式表单。</value>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>Polyglot Notebook 序列化程序</value>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>仅用于导入 Polyglot Notebooks 的 .dib 文件的序列化程序。</value>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>Jupyter 序列化程序</value>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>适用于 Jupyter .ipynb 笔记本（nbformat v4）的序列化程序。</value>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>Markdown 序列化程序</value>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>适用于 Markdown (.md) 笔记本的序列化程序，围栏代码块即单元格。</value>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>Verso 序列化程序</value>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>Verso 原生 .verso 文件格式的序列化程序。</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Verso 深色</value>
+  </data>
+  <data name="Theme_Dark_Description" xml:space="preserve">
+    <value>Verso 笔记本的默认深色主题。</value>
+  </data>
+  <data name="Theme_HighContrast" xml:space="preserve">
+    <value>Verso 高对比度</value>
+  </data>
+  <data name="Theme_HighContrast_Description" xml:space="preserve">
+    <value>高对比度辅助功能主题，颜色标记符合 WCAG 2.1 AA。</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Verso 浅色</value>
+  </data>
+  <data name="Theme_Light_Description" xml:space="preserve">
+    <value>Verso 笔记本的默认浅色主题。</value>
+  </data>
+  <data name="Visibility_Collapsed" xml:space="preserve">
+    <value>已折叠</value>
+  </data>
+  <data name="Visibility_Hidden" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="Visibility_OutputOnly" xml:space="preserve">
+    <value>仅输出</value>
+  </data>
+  <data name="Visibility_Visible" xml:space="preserve">
+    <value>可见</value>
+  </data>
+</root>

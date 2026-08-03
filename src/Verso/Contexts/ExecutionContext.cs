@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Display;
+using Verso.Resources;
 
 namespace Verso.Contexts;
 
@@ -97,7 +98,7 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
         CancellationToken cancellationToken = default)
     {
         if (_requestInput is null)
-            throw new NotSupportedException("Interactive input is not supported by this host.");
+            throw new NotSupportedException(Strings.Error_InteractiveInputUnsupported);
 
         return _requestInput(prompt, isPassword, cancellationToken);
     }

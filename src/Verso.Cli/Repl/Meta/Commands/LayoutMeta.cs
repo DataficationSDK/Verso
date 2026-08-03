@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,32 +8,30 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class LayoutMeta : IMetaCommand
 {
     public string Name => "layout";
-    public string Summary => "Prints or sets the default export layout.";
-    public string DetailedHelp =>
-        ".layout [<id>|none]\n" +
-        "  With no argument, prints the active layout id.\n" +
-        "  With an id, sets the default ActiveLayoutId for subsequent .export calls.\n" +
-        "  Pass 'none' to clear the layout.";
+    public string Summary => Strings.Meta_Layout_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".layout [<id>|none]\n" + Strings.Meta_Layout_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var arg = argumentText.Trim();
         if (string.IsNullOrEmpty(arg))
         {
-            var current = context.Session.ActiveLayoutId ?? "<none>";
-            context.Console.MarkupLine($"Active layout: [bold]{Markup.Escape(current)}[/]");
+            var current = context.Session.ActiveLayoutId ?? Strings.Repl_MarkerNone;
+            context.Console.MarkupLine(Messages.Typed(Strings.Meta_Layout_Active, current));
             return Task.FromResult(true);
         }
 
         if (string.Equals(arg, "none", StringComparison.OrdinalIgnoreCase))
         {
             context.Session.ActiveLayoutId = null;
-            context.Console.MarkupLine("[dim]Layout cleared.[/]");
+            context.Console.MarkupLine(Messages.In("dim", Messages.Say(Strings.Meta_Layout_Cleared)));
             return Task.FromResult(true);
         }
 
         context.Session.ActiveLayoutId = arg;
-        context.Console.MarkupLine($"Layout set to: [bold]{Markup.Escape(arg)}[/]");
+        context.Console.MarkupLine(Messages.Typed(Strings.Meta_Layout_Set, arg));
         return Task.FromResult(true);
     }
 }

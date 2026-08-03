@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Verso.Cli.Resources;
 
 namespace Verso.Cli.Utilities;
 
@@ -12,10 +13,7 @@ public static class PythonAutoInstallOption
     /// <summary>Environment variable the Python kernel reads for its install policy.</summary>
     private const string PolicyVariable = "VERSO_PYTHON_AUTO_INSTALL";
 
-    public static Option<bool> Create() => new(
-        "--auto-install",
-        "Install Python packages a cell imports but the environment does not have. Only packages " +
-        "whose distribution name is known are installed; anything else is reported.");
+    public static Option<bool> Create() => new("--auto-install", Strings.Option_AutoInstall);
 
     /// <summary>
     /// Publish the policy to the current process so the kernel picks it up when it starts. The

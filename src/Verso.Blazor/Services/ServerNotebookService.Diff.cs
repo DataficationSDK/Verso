@@ -2,6 +2,7 @@ using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
 using Verso.Diffing;
 using Verso.Serializers;
+using Verso.Blazor.Shared.Resources;
 
 namespace Verso.Blazor.Services;
 
@@ -18,15 +19,18 @@ public sealed partial class ServerNotebookService
             && Path.GetDirectoryName(Path.GetFullPath(_filePath!)) is { } directory
             && GitCliHelper.FindRepoRoot(directory) is not null;
 
+        // Named through DiffSources so this host and the embedded one offer the same four
+        // baselines under the same words, and a rename cannot reach one without the other.
+        static DiffSourceInfo Describe(string id, string kind, bool available) =>
+            new(id, DiffSources.NameOf(id)!, kind, available,
+                available ? null : DiffSources.UnavailableReason(id));
+
         IReadOnlyList<DiffSourceInfo> sources = new List<DiffSourceInfo>
         {
-            new("lastSaved", "Last Saved", "lastSaved", hasFilePath,
-                hasFilePath ? null : "The notebook has not been saved to a file yet."),
-            new("gitHead", "Git: HEAD", "git", inGitRepo,
-                inGitRepo ? null : "The notebook file is not inside a git repository."),
-            new("gitRef", "Git: Compare with Ref...", "git", inGitRepo,
-                inGitRepo ? null : "The notebook file is not inside a git repository."),
-            new("file", "Choose File...", "file", true),
+            Describe(DiffSources.LastSaved, "lastSaved", hasFilePath),
+            Describe(DiffSources.GitHead, "git", inGitRepo),
+            Describe(DiffSources.GitRef, "git", inGitRepo),
+            Describe(DiffSources.File, "file", true),
         };
         return Task.FromResult(sources);
     }
@@ -35,18 +39,18 @@ public sealed partial class ServerNotebookService
     {
         if (_scaffold is null)
         {
-            throw new InvalidOperationException("No notebook is open.");
+            throw new InvalidOperationException(UI.Common_NoNotebookOpen);
         }
 
         var (content, baselinePath, label) = sourceId switch
         {
-            "lastSaved" => await ReadLastSavedBaselineAsync(),
-            "gitHead" => ReadGitBaseline("HEAD"),
-            "gitRef" => ReadGitBaseline(
+            DiffSources.LastSaved => await ReadLastSavedBaselineAsync(),
+            DiffSources.GitHead => ReadGitBaseline("HEAD"),
+            DiffSources.GitRef => ReadGitBaseline(
                 !string.IsNullOrWhiteSpace(explicitInput)
                     ? explicitInput.Trim()
                     : throw new InvalidOperationException("A git ref is required to compare with a ref.")),
-            "file" => await ReadFileBaselineAsync(
+            DiffSources.File => await ReadFileBaselineAsync(
                 !string.IsNullOrWhiteSpace(explicitInput)
                     ? explicitInput.Trim()
                     : throw new InvalidOperationException("A file path is required to compare with a file.")),
@@ -73,23 +77,23 @@ public sealed partial class ServerNotebookService
     {
         if (string.IsNullOrEmpty(_filePath))
         {
-            throw new InvalidOperationException("The notebook has not been saved to a file yet.");
+            throw new InvalidOperationException(UI.Compare_NotSavedYet);
         }
 
         if (!File.Exists(_filePath))
         {
-            throw new InvalidOperationException($"'{_filePath}' does not exist on disk.");
+            throw new InvalidOperationException(string.Format(UI.Compare_FileMissing, _filePath));
         }
 
         var content = await File.ReadAllTextAsync(_filePath);
-        return (content, _filePath, "Last Saved");
+        return (content, _filePath, DiffSources.ResolvedName(DiffSources.LastSaved, null));
     }
 
     private (string Content, string BaselinePath, string Label) ReadGitBaseline(string refName)
     {
         if (string.IsNullOrEmpty(_filePath))
         {
-            throw new InvalidOperationException("The notebook has not been saved to a file yet.");
+            throw new InvalidOperationException(UI.Compare_NotSavedYet);
         }
 
         var (content, label) = GitCliHelper.Show(_filePath, refName);
@@ -100,11 +104,11 @@ public sealed partial class ServerNotebookService
     {
         if (!File.Exists(path))
         {
-            throw new InvalidOperationException($"'{path}' does not exist.");
+            throw new InvalidOperationException(string.Format(UI.Compare_FileMissing, path));
         }
 
         var content = await File.ReadAllTextAsync(path);
-        return (content, path, Path.GetFileName(path));
+        return (content, path, DiffSources.ResolvedName(DiffSources.File, Path.GetFileName(path)));
     }
 
     /// <summary>
@@ -127,7 +131,7 @@ public sealed partial class ServerNotebookService
         catch (Exception ex)
         {
             throw new InvalidOperationException(
-                $"Could not parse '{Path.GetFileName(baselinePath)}' as a notebook: {ex.Message}", ex);
+                string.Format(UI.Compare_ParseFailed, Path.GetFileName(baselinePath), ex.Message), ex);
         }
 
         if (_extensionHost is not null)

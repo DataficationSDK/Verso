@@ -5,6 +5,8 @@ using Verso.Abstractions;
 using Verso.Ado.Formatters;
 using Verso.Ado.Helpers;
 using Verso.Ado.Kernel;
+using Verso.Ado.Localization;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.MagicCommands;
 
@@ -17,19 +19,19 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-schema";
-    string IExtension.Name => "SQL Schema Magic Command";
+    string IExtension.Name => Strings.Magic_Schema_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Displays database schema information (tables, views, columns).";
+    public string Description => Strings.Magic_Schema_Description;
 
     // --- IMagicCommand ---
     public string Name => "sql-schema";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("connection", "Name of the connection to inspect.", typeof(string)),
-        new ParameterDefinition("table", "Show column details for a specific table.", typeof(string)),
-        new ParameterDefinition("refresh", "Force refresh of the schema cache.", typeof(bool)),
+        new ParameterDefinition("connection", Strings.Magic_Schema_Param_Connection, typeof(string)),
+        new ParameterDefinition("table", Strings.Magic_Schema_Param_Table, typeof(string)),
+        new ParameterDefinition("refresh", Strings.Magic_Schema_Param_Refresh, typeof(bool)),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -48,8 +50,8 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput("text/plain",
                 connectionName is not null
-                    ? $"Error: Connection '{connectionName}' not found. Use #!sql-connect to establish a connection."
-                    : "Error: No database connection. Use #!sql-connect to establish a connection.",
+                    ? CellText.Error(string.Format(Strings.Magic_Schema_NotFound, connectionName))
+                    : CellText.Error(Strings.Magic_Schema_NoConnection),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -57,7 +59,7 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
         if (connInfo.Connection is null || connInfo.Connection.State != ConnectionState.Open)
         {
             await context.WriteOutputAsync(new CellOutput("text/plain",
-                $"Error: Connection '{connInfo.Name}' is not open. Reconnect with #!sql-connect.",
+                CellText.Error(string.Format(Strings.Magic_Schema_ConnectionClosed, connInfo.Name)),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -79,7 +81,7 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
         catch (Exception ex)
         {
             await context.WriteOutputAsync(new CellOutput("text/plain",
-                $"Error loading schema: {ex.Message}", IsError: true)).ConfigureAwait(false);
+                string.Format(Strings.Magic_Schema_LoadFailed, ex.Message), IsError: true)).ConfigureAwait(false);
             return;
         }
 
@@ -90,7 +92,7 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
             if (!entry.Columns.TryGetValue(tableName, out var columns))
             {
                 await context.WriteOutputAsync(new CellOutput("text/plain",
-                    $"Error: Table '{tableName}' not found in schema.", IsError: true)).ConfigureAwait(false);
+                    CellText.Error(string.Format(Strings.Magic_Schema_TableNotFound, tableName)), IsError: true)).ConfigureAwait(false);
                 return;
             }
 
@@ -117,14 +119,17 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
         ResultSetFormatter.AppendStyles(sb, theme);
 
         sb.Append("<div class=\"verso-sql-result\">");
-        sb.Append("<div class=\"verso-sql-header\"><strong>Schema for connection: ")
-          .Append(WebUtility.HtmlEncode(connectionName))
-          .Append("</strong> <span class=\"verso-sql-badge\">(")
-          .Append(tables.Count)
-          .Append(" tables/views)</span></div>");
+        sb.Append("<div class=\"verso-sql-header\"><strong>")
+          .Append(WebUtility.HtmlEncode(string.Format(Strings.Magic_Schema_Heading, connectionName)))
+          .Append("</strong> <span class=\"verso-sql-badge\">")
+          .Append(WebUtility.HtmlEncode(string.Format(Strings.Magic_Schema_TableCount, tables.Count)))
+          .Append("</span></div>");
 
         sb.Append("<table><thead><tr>");
-        sb.Append("<th>Name</th><th>Schema</th><th>Type</th>");
+        sb.Append("<th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnName))
+          .Append("</th><th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnSchema))
+          .Append("</th><th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnType))
+          .Append("</th>");
         sb.Append("</tr></thead><tbody>");
 
         foreach (var table in tables)
@@ -148,12 +153,17 @@ public sealed class SqlSchemaMagicCommand : IMagicCommand
         sb.Append("<div class=\"verso-sql-result\">");
         sb.Append("<div class=\"verso-sql-header\"><strong>")
           .Append(WebUtility.HtmlEncode(tableLabel))
-          .Append("</strong> <span class=\"verso-sql-badge\">(")
-          .Append(columns.Count)
-          .Append(" columns)</span></div>");
+          .Append("</strong> <span class=\"verso-sql-badge\">")
+          .Append(WebUtility.HtmlEncode(string.Format(Strings.Magic_Schema_ColumnCount, columns.Count)))
+          .Append("</span></div>");
 
         sb.Append("<table><thead><tr>");
-        sb.Append("<th>Name</th><th>Type</th><th>Nullable</th><th>Default</th><th>Key</th>");
+        sb.Append("<th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnName))
+          .Append("</th><th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnType))
+          .Append("</th><th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnNullable))
+          .Append("</th><th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnDefault))
+          .Append("</th><th>").Append(WebUtility.HtmlEncode(Strings.Magic_Schema_ColumnKey))
+          .Append("</th>");
         sb.Append("</tr></thead><tbody>");
 
         foreach (var col in columns)

@@ -1,6 +1,8 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Rendering.Renderers;
 
@@ -36,19 +38,22 @@ internal static class ImagePlaceholderRenderer
         }
         catch (Exception ex)
         {
-            var msg = $"<image: {output.MimeType} — failed to decode: {ex.Message}>";
+            var msg = string.Format(Strings.Render_ImageFailed, output.MimeType, ex.Message);
             return useColor
-                ? new Markup($"[yellow]{Markup.Escape(msg)}[/]")
+                ? new Markup(Messages.In("yellow", Markup.Escape(msg)))
                 : new Text(msg);
         }
 
         var info = new FileInfo(path);
         var size = FormatSize(info.Length);
-        if (useColor)
-            return new Markup(
-                $"[dim]<image: {Markup.Escape(output.MimeType)}, {size} — saved to [/]" +
-                $"[cyan]{Markup.Escape(path)}[/][dim]>[/]");
-        return new Text($"<image: {output.MimeType}, {size} — saved to {path}>");
+        var described = string.Format(Strings.Render_Image, output.MimeType, size, path);
+
+        // The whole line is dimmed rather than the path picked out in another colour. Where the
+        // path falls in the sentence is the translator's to decide, so nothing here can know
+        // which part to colour.
+        return useColor
+            ? new Markup(Messages.In("dim", Markup.Escape(described)))
+            : new Text(described);
     }
 
     private static string FormatSize(long bytes)

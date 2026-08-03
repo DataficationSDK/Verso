@@ -53,3 +53,7 @@ vscode/blazor-wasm/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+## Translation handoff files — working files passed to and from a translator.
+## The finished translations live in the resource files and are committed.
+build/i18n/pending/

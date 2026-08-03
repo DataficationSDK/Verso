@@ -6,7 +6,7 @@
         <div class="verso-modal" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
             <div class="verso-modal-header">
                 <span class="verso-modal-title">@Title</span>
-                <button class="verso-modal-close" @onclick="HandleDeny" aria-label="Deny" data-verso-tip="Deny">
+                <button class="verso-modal-close" @onclick="HandleDeny" aria-label="@UI.Consent_Deny" data-verso-tip="@UI.Consent_Deny">
                     <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
                 </button>
             </div>
@@ -26,7 +26,7 @@
                 </ul>
                 @if (Target is not null)
                 {
-                    <p style="margin:0 0 12px 0; opacity:0.8;">Into @Target</p>
+                    <p style="margin:0 0 12px 0; opacity:0.8;">@(string.Format(UI.Consent_Target, Target))</p>
                 }
                 <div class="verso-modal-hint" style="color:var(--verso-status-warning, #b58900);">
                     @Warning
@@ -34,7 +34,7 @@
             </div>
             <div class="verso-modal-footer">
                 <button class="verso-modal-btn verso-modal-btn--secondary"
-                        @onclick="HandleDeny">Deny</button>
+                        @onclick="HandleDeny">@UI.Consent_Deny</button>
                 <button class="verso-modal-btn verso-modal-btn--primary"
                         @onclick="HandleApprove">@ApproveLabel</button>
             </div>
@@ -55,19 +55,17 @@
 
     private bool IsPackage => Kind == ConsentKind.Package;
 
-    private bool Plural => Extensions.Count != 1;
-
-    private string Title => IsPackage ? "Package Install Required" : "Extension Consent Required";
+    private string Title => IsPackage ? UI.Consent_TitlePackage : UI.Consent_TitleExtension;
 
     private string Introduction => IsPackage
-        ? $"This notebook needs the following Python package{(Plural ? "s" : "")} installed:"
-        : $"This notebook wants to load the following extension package{(Plural ? "s" : "")}:";
+        ? Plural.Of(Extensions.Count, UI.Consent_IntroPackage_One, UI.Consent_IntroPackage_Other)
+        : Plural.Of(Extensions.Count, UI.Consent_IntroExtension_One, UI.Consent_IntroExtension_Other);
 
     private string Warning => IsPackage
-        ? "Packages run code on your machine. Only install packages you trust."
-        : "Extensions run code on your machine. Only approve packages you trust.";
+        ? UI.Consent_WarningPackage
+        : UI.Consent_WarningExtension;
 
-    private string ApproveLabel => IsPackage ? "Install" : "Approve All";
+    private string ApproveLabel => IsPackage ? UI.Consent_ApproveInstall : UI.Consent_ApproveAll;
 
     /// <summary>Where the packages go, shown once for the request.</summary>
     private string? Target => Extensions

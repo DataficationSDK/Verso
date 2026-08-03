@@ -1,5 +1,7 @@
 using Spectre.Console;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Execution;
 
 namespace Verso.Cli.Repl.Meta.Commands;
@@ -8,13 +10,13 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class RerunMeta : IMetaCommand
 {
     public string Name => "rerun";
-    public string Summary => "Re-executes a prior cell (or a range) as new cells.";
-    public string DetailedHelp =>
-        ".rerun <n>[..<m>]|all [--fail-fast]\n" +
-        "  Re-executes cell n (or range n..m, or every cell with 'all') verbatim,\n" +
-        "  appending each as a new cell. Does not mutate prior cells. A range submits\n" +
-        "  cells individually so each renders its own outputs; failures within a range\n" +
-        "  do not stop the rest unless --fail-fast.";
+    public string Summary => Strings.Meta_Rerun_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => Usage + "\n" + Strings.Meta_Rerun_Details;
+
+    /// <summary>The shape a .rerun takes. Typed at a keyboard, so the same in every language.</summary>
+    private const string Usage = ".rerun <n>[..<m>]|all [--fail-fast]";
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -24,7 +26,7 @@ public sealed class RerunMeta : IMetaCommand
 
         if (string.IsNullOrEmpty(range))
         {
-            context.Console.MarkupLine("[red]Usage: .rerun <n>[[..<m>]]|all [[--fail-fast]][/]");
+            context.Console.MarkupLine(Messages.In("red", Messages.Typed(Strings.Repl_Usage, Usage)));
             return true;
         }
 
@@ -34,7 +36,7 @@ public sealed class RerunMeta : IMetaCommand
         {
             if (cells.Count == 0)
             {
-                context.Console.MarkupLine("[dim]No cells to rerun.[/]");
+                context.Console.MarkupLine(Messages.In("dim", Messages.Say(Strings.Meta_Rerun_Nothing)));
                 return true;
             }
             start = 1;
@@ -45,7 +47,8 @@ public sealed class RerunMeta : IMetaCommand
             var pieces = range.Split("..", 2);
             if (!int.TryParse(pieces[0], out start) || !int.TryParse(pieces[1], out end) || start <= 0 || end < start)
             {
-                context.Console.MarkupLine($"[red]Invalid range '{Markup.Escape(range)}'.[/] Expected <n>..<m> with m >= n.");
+                context.Console.MarkupLine(Messages.In("red",
+                    Messages.Say(Strings.Meta_Rerun_InvalidRange, range)));
                 return true;
             }
         }
@@ -53,7 +56,8 @@ public sealed class RerunMeta : IMetaCommand
         {
             if (!int.TryParse(range, out start) || start <= 0)
             {
-                context.Console.MarkupLine($"[red]Invalid cell index '{Markup.Escape(range)}'.[/]");
+                context.Console.MarkupLine(Messages.In("red",
+                    Messages.Say(Strings.Meta_Rerun_InvalidIndex, range)));
                 return true;
             }
             end = start;
@@ -61,7 +65,8 @@ public sealed class RerunMeta : IMetaCommand
 
         if (end > cells.Count)
         {
-            context.Console.MarkupLine($"[red]Range [[{start}..{end}]] exceeds history length ({cells.Count}).[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Meta_Rerun_RangeTooLong, start, end, cells.Count)));
             return true;
         }
 
@@ -95,12 +100,13 @@ public sealed class RerunMeta : IMetaCommand
             }
             catch (OperationCanceledException)
             {
-                context.Console.MarkupLine("[yellow]Cancelled.[/]");
+                context.Console.MarkupLine(Messages.In("yellow", Messages.Say(Strings.Repl_Cancelled)));
                 break;
             }
             catch (Exception ex)
             {
-                context.Console.MarkupLine($"[red]Execution error in rerun [[{i}]]:[/] {Markup.Escape(ex.Message)}");
+                context.Console.MarkupLine(Messages.In("red",
+                    Messages.Say(Strings.Meta_Rerun_ExecutionError, i, ex.Message)));
                 if (failFast) break;
                 continue;
             }

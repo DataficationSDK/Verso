@@ -2,16 +2,16 @@
     @if (Service.IsLoaded)
     {
         <div class="verso-metadata-field">
-            <label class="verso-metadata-label">Title</label>
+            <label class="verso-metadata-label">@UI.Metadata_Title</label>
             <input class="verso-metadata-input"
                    type="text"
                    value="@Service.Title"
                    @onchange="HandleTitleChanged"
-                   placeholder="Untitled" />
+                   placeholder="@UI.Common_Untitled" />
         </div>
 
         <div class="verso-metadata-field">
-            <label class="verso-metadata-label">Default Kernel</label>
+            <label class="verso-metadata-label">@UI.Metadata_DefaultKernel</label>
             <select class="verso-metadata-select"
                     value="@Service.DefaultKernelId"
                     @onchange="HandleKernelChanged">
@@ -25,22 +25,22 @@
         <hr class="verso-metadata-separator" />
 
         <div class="verso-metadata-field">
-            <span class="verso-metadata-label">File Path</span>
-            <span class="verso-metadata-value">@(Service.FilePath ?? "(unsaved)")</span>
+            <span class="verso-metadata-label">@UI.Metadata_FilePath</span>
+            <span class="verso-metadata-value">@(Service.FilePath ?? UI.Metadata_Unsaved)</span>
         </div>
 
         <div class="verso-metadata-field">
-            <span class="verso-metadata-label">Created</span>
+            <span class="verso-metadata-label">@UI.Metadata_Created</span>
             <span class="verso-metadata-value">@FormatDate(Service.Created)</span>
         </div>
 
         <div class="verso-metadata-field">
-            <span class="verso-metadata-label">Modified</span>
+            <span class="verso-metadata-label">@UI.Metadata_Modified</span>
             <span class="verso-metadata-value">@FormatDate(Service.Modified)</span>
         </div>
 
         <div class="verso-metadata-field">
-            <span class="verso-metadata-label">Format Version</span>
+            <span class="verso-metadata-label">@UI.Metadata_FormatVersion</span>
             <span class="verso-metadata-value">@Service.FormatVersion</span>
         </div>
     }

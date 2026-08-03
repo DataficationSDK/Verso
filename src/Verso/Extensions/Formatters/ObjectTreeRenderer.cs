@@ -2,6 +2,8 @@ using System.Collections;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Formatters;
 
@@ -176,7 +178,10 @@ internal static class ObjectTreeRenderer
         sb.Append($"<details class=\"verso-obj-node\"{openAttr}>");
         sb.Append("<summary class=\"verso-obj-summary\">");
         sb.Append($"<span class=\"verso-obj-type\">{typeName}</span>");
-        sb.Append($"<span class=\"verso-obj-count\"> ({members.Length} {(members.Length == 1 ? "member" : "members")})</span>");
+        var memberCount = string.Format(
+            Plural.Of(members.Length, Strings.ObjectTree_MemberCount_One, Strings.ObjectTree_MemberCount_Other),
+            members.Length);
+        sb.Append($"<span class=\"verso-obj-count\"> {memberCount}</span>");
         sb.Append("</summary>");
         sb.Append("<table class=\"verso-obj-table\"><tbody>");
 
@@ -201,7 +206,7 @@ internal static class ObjectTreeRenderer
 
         if (items.Count == 0)
         {
-            sb.Append("<span class=\"verso-obj-empty\">Empty collection</span>");
+            sb.Append($"<span class=\"verso-obj-empty\">{Strings.ObjectTree_EmptyCollection}</span>");
             return;
         }
 
@@ -211,7 +216,7 @@ internal static class ObjectTreeRenderer
         var firstNonNull = items.FirstOrDefault(i => i is not null);
         if (firstNonNull is null)
         {
-            sb.Append("<span class=\"verso-obj-empty\">Empty collection</span>");
+            sb.Append($"<span class=\"verso-obj-empty\">{Strings.ObjectTree_EmptyCollection}</span>");
             return;
         }
 
@@ -223,7 +228,8 @@ internal static class ObjectTreeRenderer
         sb.Append($"<details class=\"verso-obj-node\"{openAttr}>");
         sb.Append("<summary class=\"verso-obj-summary\">");
         sb.Append($"<span class=\"verso-obj-type\">{typeName}</span>");
-        sb.Append($"<span class=\"verso-obj-count\"> ({displayCount}{(truncated ? "+" : "")} items)</span>");
+        var itemCount = string.Format(Strings.ObjectTree_ItemCount, $"{displayCount}{(truncated ? "+" : "")}");
+        sb.Append($"<span class=\"verso-obj-count\"> {itemCount}</span>");
         sb.Append("</summary>");
         sb.Append("<table class=\"verso-obj-table\">");
 
@@ -281,7 +287,7 @@ internal static class ObjectTreeRenderer
         sb.Append("</tbody></table>");
 
         if (truncated)
-            sb.Append($"<div class=\"verso-obj-footer\">Showing {displayCount} of more items</div>");
+            sb.Append($"<div class=\"verso-obj-footer\">{string.Format(Strings.ObjectTree_ShowingMore, displayCount)}</div>");
 
         sb.Append("</details>");
     }

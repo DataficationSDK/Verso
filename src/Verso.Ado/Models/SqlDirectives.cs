@@ -1,3 +1,4 @@
+using Verso.Ado.Resources;
 namespace Verso.Ado.Models;
 
 internal sealed record SqlDirectives(
@@ -96,8 +97,7 @@ internal sealed record SqlDirectives(
             if (afterDashes.StartsWith(key, StringComparison.OrdinalIgnoreCase)
                 && (afterDashes.Length == key.Length || char.IsWhiteSpace(afterDashes[key.Length])))
             {
-                return $"Hint: '--{key}' must have no space after '--'. This line was read as a " +
-                       "SQL comment and ignored, so the cell used the default connection.";
+                return string.Format(Strings.Directive_SpacedHint, key);
             }
         }
 

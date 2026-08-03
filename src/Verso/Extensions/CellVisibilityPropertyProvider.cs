@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions;
 
@@ -19,10 +20,10 @@ public sealed class CellVisibilityPropertyProvider : ICellPropertyProvider
     // --- IExtension ---
 
     public string ExtensionId => "verso.propertyprovider.visibility";
-    public string Name => "Cell Visibility Properties";
+    public string Name => Strings.PropertyProvider_Visibility;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Provides per-layout cell visibility overrides in the properties panel.";
+    public string? Description => Strings.PropertyProvider_Visibility_Description;
 
     // --- ICellPropertyProvider ---
 
@@ -62,11 +63,11 @@ public sealed class CellVisibilityPropertyProvider : ICellPropertyProvider
                 continue;
 
             var currentValue = ReadOverride(cell, layout.LayoutId);
-            var defaultState = MapHintToDefaultStateName(defaultHint, supported);
+            var defaultState = DefaultState(defaultHint, supported);
 
             var options = supported
                 .OrderBy(s => s)
-                .Select(s => new PropertyFieldOption(s.ToString().ToLowerInvariant(), FormatStateName(s)))
+                .Select(s => new PropertyFieldOption(OptionValue(s), FormatStateName(s)))
                 .ToList();
 
             fields.Add(new PropertyField(
@@ -74,11 +75,11 @@ public sealed class CellVisibilityPropertyProvider : ICellPropertyProvider
                 DisplayName: layout.DisplayName,
                 FieldType: PropertyFieldType.Select,
                 CurrentValue: currentValue,
-                Description: $"Default: {defaultState}",
+                Description: string.Format(Strings.Properties_DefaultIs, FormatStateName(defaultState)),
                 Options: options));
         }
 
-        var section = new PropertySection("Visibility", null, fields);
+        var section = new PropertySection(Strings.Properties_VisibilitySection, null, fields);
         return Task.FromResult(section);
     }
 
@@ -99,10 +100,10 @@ public sealed class CellVisibilityPropertyProvider : ICellPropertyProvider
         var layout = layouts.FirstOrDefault(l => l.LayoutId == layoutId);
         var supported = layout?.SupportedVisibilityStates
             ?? new HashSet<CellVisibilityState> { CellVisibilityState.Visible };
-        var defaultStateName = MapHintToDefaultStateName(defaultHint, supported).ToLowerInvariant();
+        var defaultStateValue = OptionValue(DefaultState(defaultHint, supported));
 
         var isDefault = string.IsNullOrEmpty(stringValue) ||
-                        string.Equals(stringValue, defaultStateName, StringComparison.OrdinalIgnoreCase);
+                        string.Equals(stringValue, defaultStateValue, StringComparison.OrdinalIgnoreCase);
 
         // Get or create the visibility dictionary, handling all storage forms:
         // - Dictionary<string, string> from in-memory edits
@@ -172,25 +173,39 @@ public sealed class CellVisibilityPropertyProvider : ICellPropertyProvider
         }
     }
 
-    private static string MapHintToDefaultStateName(
+    /// <summary>
+    /// The state a cell falls back to under a layout when nothing has been chosen for it.
+    /// </summary>
+    /// <remarks>
+    /// Returns the state itself rather than a name for it. Deciding what the default is and
+    /// writing it out are two jobs: the first is compared against a stored value, the second
+    /// is read by a person. Answering both with one string meant comparing a stored
+    /// <c>outputonly</c> against the words <c>Output Only</c>, which never matched, so an
+    /// output-only cell kept an override it did not need.
+    /// </remarks>
+    private static CellVisibilityState DefaultState(
         CellVisibilityHint hint, IReadOnlySet<CellVisibilityState> supported)
     {
         return hint switch
         {
-            CellVisibilityHint.Infrastructure =>
-                supported.Contains(CellVisibilityState.Hidden) ? FormatStateName(CellVisibilityState.Hidden) : FormatStateName(CellVisibilityState.Visible),
-            CellVisibilityHint.OutputOnly =>
-                supported.Contains(CellVisibilityState.OutputOnly) ? FormatStateName(CellVisibilityState.OutputOnly) : FormatStateName(CellVisibilityState.Visible),
-            _ => FormatStateName(CellVisibilityState.Visible),
+            CellVisibilityHint.Infrastructure when supported.Contains(CellVisibilityState.Hidden) =>
+                CellVisibilityState.Hidden,
+            CellVisibilityHint.OutputOnly when supported.Contains(CellVisibilityState.OutputOnly) =>
+                CellVisibilityState.OutputOnly,
+            _ => CellVisibilityState.Visible,
         };
     }
 
+    // What a state is called on the wire and in cell metadata. Not a display name: this is
+    // stored in the notebook file and compared against, so it stays the same in every language.
+    private static string OptionValue(CellVisibilityState state) => state.ToString().ToLowerInvariant();
+
     private static string FormatStateName(CellVisibilityState state) => state switch
     {
-        CellVisibilityState.Visible => "Visible",
-        CellVisibilityState.Hidden => "Hidden",
-        CellVisibilityState.OutputOnly => "Output Only",
-        CellVisibilityState.Collapsed => "Collapsed",
+        CellVisibilityState.Visible => Strings.Visibility_Visible,
+        CellVisibilityState.Hidden => Strings.Visibility_Hidden,
+        CellVisibilityState.OutputOnly => Strings.Visibility_OutputOnly,
+        CellVisibilityState.Collapsed => Strings.Visibility_Collapsed,
         _ => state.ToString(),
     };
 }

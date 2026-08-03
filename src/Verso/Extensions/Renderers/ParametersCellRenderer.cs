@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Parameters;
 
 namespace Verso.Extensions.Renderers;
@@ -18,13 +19,13 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         PropertyNameCaseInsensitive = true
     };
     public string ExtensionId => "verso.renderer.parameters";
-    public string Name => "Parameters Renderer";
+    public string Name => Strings.Renderer_Parameters;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Renders parameter definitions as an interactive form with type-aware inputs.";
+    public string? Description => Strings.Renderer_Parameters_Description;
 
     public string CellTypeId => "parameters";
-    public string DisplayName => "Parameters";
+    public string DisplayName => Strings.CellType_Parameters_Label;
     public bool CollapsesInputOnExecute => false;
     public CellVisibilityHint DefaultVisibility => CellVisibilityHint.Infrastructure;
 
@@ -59,6 +60,12 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
     }
 
     // --- Interaction handlers ---
+    //
+    // The messages naming a malformed payload stay in English on purpose. They can only appear
+    // when the front end sends something this renderer cannot read, which is a fault in the
+    // code rather than anything the reader did, and the wording is what somebody searches for
+    // when they report it. Everything a reader can actually cause, such as a value that does
+    // not fit its type, is translated.
 
     private static string HandleParameterUpdate(CellInteractionContext context)
     {
@@ -68,10 +75,10 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         var parameters = context.NotebookModel?.Parameters;
         if (parameters is null || !parameters.TryGetValue(payload.Name, out var def))
-            return RenderError($"Parameter '{payload.Name}' not found.");
+            return RenderError(string.Format(Strings.Parameters_NotFound, payload.Name));
 
         if (!ParameterValueParser.TryParse(def.Type, payload.Value ?? "", out var typed, out var error))
-            return RenderErrorForField(payload.Name, error ?? "Invalid value.");
+            return RenderErrorForField(payload.Name, error ?? Strings.Parameters_InvalidValue);
 
         def.Default = typed;
         context.Variables?.Set(payload.Name, typed!);
@@ -130,7 +137,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         var parameters = context.NotebookModel?.Parameters;
         if (parameters is null)
-            return RenderError("No parameters defined.");
+            return RenderError(Strings.Parameters_None);
 
         parameters.Remove(payload.Name);
         context.Variables?.Remove(payload.Name);
@@ -147,7 +154,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         var parameters = context.NotebookModel?.Parameters;
         if (parameters is null)
-            return RenderError("No parameters defined.");
+            return RenderError(Strings.Parameters_None);
 
         var errors = new Dictionary<string, string>();
         var parsed = new Dictionary<string, object>();
@@ -163,7 +170,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
             if (!ParameterValueParser.TryParse(def.Type, value, out var typed, out var error))
             {
-                errors[name] = error ?? "Invalid value.";
+                errors[name] = error ?? Strings.Parameters_InvalidValue;
                 continue;
             }
 
@@ -190,7 +197,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         var parameters = context.NotebookModel?.Parameters;
         if (parameters is null || !parameters.TryGetValue(payload.Name, out var def))
-            return RenderError($"Parameter '{payload.Name}' not found.");
+            return RenderError(string.Format(Strings.Parameters_NotFound, payload.Name));
 
         def.Required = string.Equals(payload.Value, "true", StringComparison.OrdinalIgnoreCase);
         context.StateChanged = true;
@@ -233,7 +240,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
     {
         var sb = new StringBuilder();
         sb.Append("<div class=\"verso-parameters verso-parameters-empty\">");
-        sb.Append("<p>No parameters defined.</p>");
+        sb.Append("<p>").Append(Encode(Strings.Parameters_None)).Append("</p>");
 
         // Hidden inline form (same structure as RenderExpandedForm) so the
         // JS handler for data-action="parameter-add" can reveal it.
@@ -241,7 +248,8 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         sb.Append("<tbody>");
         sb.Append("<tr class=\"verso-parameter-row verso-parameter-add-row\">");
         sb.Append("<td class=\"verso-parameter-name\">");
-        sb.Append("<input type=\"text\" class=\"verso-add-name\" placeholder=\"name\" />");
+        sb.Append("<input type=\"text\" class=\"verso-add-name\" placeholder=\"")
+          .Append(Encode(Strings.Parameters_NamePlaceholder)).Append("\" />");
         sb.Append("</td>");
         sb.Append("<td>");
         sb.Append("<select class=\"verso-add-type\">");
@@ -254,22 +262,28 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         sb.Append("</select>");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-description\">");
-        sb.Append("<input type=\"text\" class=\"verso-add-description\" placeholder=\"description\" />");
+        sb.Append("<input type=\"text\" class=\"verso-add-description\" placeholder=\"")
+          .Append(Encode(Strings.Parameters_DescriptionPlaceholder)).Append("\" />");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-value\">");
-        sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"default value\" />");
+        sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"")
+          .Append(Encode(Strings.Parameters_DefaultPlaceholder)).Append("\" />");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-required-cell\">");
-        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /> required</label>");
+        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /> ")
+          .Append(Encode(Strings.Parameters_Required)).Append("</label>");
         sb.Append("</td>");
         sb.Append("<td>");
-        sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"Add\">&#x2713;</button>");
-        sb.Append("<button class=\"verso-btn verso-btn-cancel-add\" data-action=\"parameter-cancel-add\" title=\"Cancel\">&#x2715;</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"")
+          .Append(Encode(Strings.Parameters_ConfirmAdd)).Append("\">&#x2713;</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-cancel-add\" data-action=\"parameter-cancel-add\" title=\"")
+          .Append(Encode(Strings.Parameters_CancelAdd)).Append("\">&#x2715;</button>");
         sb.Append("</td>");
         sb.Append("</tr>");
         sb.Append("</tbody></table>");
 
-        sb.Append("<button class=\"verso-btn verso-btn-add\" data-action=\"parameter-add\">Add Parameter</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-add\" data-action=\"parameter-add\">")
+          .Append(Encode(Strings.Parameters_Add)).Append("</button>");
         sb.Append("</div>");
         return sb.ToString();
     }
@@ -283,7 +297,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         var sb = new StringBuilder();
         sb.Append("<div class=\"verso-parameters\">");
         sb.Append("<div class=\"verso-parameters-header\">");
-        sb.Append("<span class=\"verso-parameters-title\">Parameters</span>");
+        sb.Append("<span class=\"verso-parameters-title\">").Append(Encode(Strings.Parameters_Title)).Append("</span>");
         sb.Append("<span class=\"verso-parameters-count\">(");
         sb.Append(sorted.Count);
         sb.Append(")</span>");
@@ -291,12 +305,17 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
 
         if (submitted)
         {
-            sb.Append("<div class=\"verso-parameters-success\">Parameters applied successfully.</div>");
+            sb.Append("<div class=\"verso-parameters-success\">").Append(Encode(Strings.Parameters_Applied)).Append("</div>");
         }
 
         sb.Append("<table class=\"verso-parameters-table\">");
         sb.Append("<thead><tr>");
-        sb.Append("<th>Name</th><th>Type</th><th>Description</th><th>Default</th><th>Required</th><th></th>");
+        sb.Append("<th>").Append(Encode(Strings.Parameters_ColumnName))
+          .Append("</th><th>").Append(Encode(Strings.Parameters_ColumnType))
+          .Append("</th><th>").Append(Encode(Strings.Parameters_ColumnDescription))
+          .Append("</th><th>").Append(Encode(Strings.Parameters_ColumnDefault))
+          .Append("</th><th>").Append(Encode(Strings.Parameters_ColumnRequired))
+          .Append("</th><th></th>");
         sb.Append("</tr></thead>");
         sb.Append("<tbody>");
 
@@ -348,7 +367,7 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
             // Remove button
             sb.Append("<td><button class=\"verso-btn verso-btn-remove\" data-action=\"parameter-remove\" data-param=\"");
             sb.Append(Encode(name));
-            sb.Append("\" title=\"Remove parameter\">&#x2715;</button></td>");
+            sb.Append("\" title=\"").Append(Encode(Strings.Parameters_Remove)).Append("\">&#x2715;</button></td>");
 
             sb.Append("</tr>");
         }
@@ -356,7 +375,8 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         // Inline "add parameter" row (hidden by default, shown via JS)
         sb.Append("<tr class=\"verso-parameter-row verso-parameter-add-row\" style=\"display:none;\">");
         sb.Append("<td class=\"verso-parameter-name\">");
-        sb.Append("<input type=\"text\" class=\"verso-add-name\" placeholder=\"name\" />");
+        sb.Append("<input type=\"text\" class=\"verso-add-name\" placeholder=\"")
+          .Append(Encode(Strings.Parameters_NamePlaceholder)).Append("\" />");
         sb.Append("</td>");
         sb.Append("<td>");
         sb.Append("<select class=\"verso-add-type\">");
@@ -369,24 +389,30 @@ public sealed class ParametersCellRenderer : ICellRenderer, ICellInteractionHand
         sb.Append("</select>");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-description\">");
-        sb.Append("<input type=\"text\" class=\"verso-add-description\" placeholder=\"description\" />");
+        sb.Append("<input type=\"text\" class=\"verso-add-description\" placeholder=\"")
+          .Append(Encode(Strings.Parameters_DescriptionPlaceholder)).Append("\" />");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-value\">");
-        sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"default value\" />");
+        sb.Append("<input type=\"text\" class=\"verso-add-default\" placeholder=\"")
+          .Append(Encode(Strings.Parameters_DefaultPlaceholder)).Append("\" />");
         sb.Append("</td>");
         sb.Append("<td class=\"verso-parameter-required-cell\">");
-        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /> required</label>");
+        sb.Append("<label class=\"verso-parameter-bool\"><input type=\"checkbox\" class=\"verso-add-required\" /> ")
+          .Append(Encode(Strings.Parameters_Required)).Append("</label>");
         sb.Append("</td>");
         sb.Append("<td>");
-        sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"Add\">&#x2713;</button>");
-        sb.Append("<button class=\"verso-btn verso-btn-cancel-add\" data-action=\"parameter-cancel-add\" title=\"Cancel\">&#x2715;</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-confirm-add\" data-action=\"parameter-confirm-add\" title=\"")
+          .Append(Encode(Strings.Parameters_ConfirmAdd)).Append("\">&#x2713;</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-cancel-add\" data-action=\"parameter-cancel-add\" title=\"")
+          .Append(Encode(Strings.Parameters_CancelAdd)).Append("\">&#x2715;</button>");
         sb.Append("</td>");
         sb.Append("</tr>");
 
         sb.Append("</tbody></table>");
 
         sb.Append("<div class=\"verso-parameters-actions\">");
-        sb.Append("<button class=\"verso-btn verso-btn-add\" data-action=\"parameter-add\">Add Parameter</button>");
+        sb.Append("<button class=\"verso-btn verso-btn-add\" data-action=\"parameter-add\">")
+          .Append(Encode(Strings.Parameters_Add)).Append("</button>");
         sb.Append("</div>");
         sb.Append("</div>");
 

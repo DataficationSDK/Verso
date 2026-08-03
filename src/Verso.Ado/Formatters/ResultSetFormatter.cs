@@ -4,6 +4,9 @@ using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Ado.Models;
+using Verso.Ado.Resources;
+using System.Text.Json;
+using Verso.Abstractions;
 
 namespace Verso.Ado.Formatters;
 
@@ -18,10 +21,10 @@ public sealed class ResultSetFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.formatter.resultset";
-    public string Name => "Result Set Formatter";
+    public string Name => Strings.Formatter_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Formats SQL result sets and DataTables as paginated HTML tables.";
+    public string? Description => Strings.Formatter_Description;
 
     // --- IDataFormatter ---
 
@@ -106,21 +109,19 @@ public sealed class ResultSetFormatter : IDataFormatter
         }
         else
         {
-            sb.Append("<div class=\"verso-sql-footer\">Showing 1-")
-              .Append(totalRows.ToString("N0"))
-              .Append(" of ")
-              .Append(totalRows.ToString("N0"))
-              .Append(" rows</div>");
+            sb.Append("<div class=\"verso-sql-footer\">")
+              .Append(WebUtility.HtmlEncode(string.Format(Strings.Table_ShowingRows,
+                  1, totalRows.ToString("N0"), totalRows.ToString("N0"))))
+              .Append("</div>");
         }
 
         // Truncation warning
         if (resultSet.WasTruncated)
         {
-            sb.Append("<div class=\"verso-sql-truncation\">Results truncated at ")
-              .Append(resultSet.Rows.Count.ToString("N0"))
-              .Append(" of ")
-              .Append(resultSet.TotalRowCount.ToString("N0"))
-              .Append(" total rows. Use WHERE or LIMIT to narrow your query.</div>");
+            sb.Append("<div class=\"verso-sql-truncation\">")
+              .Append(WebUtility.HtmlEncode(string.Format(Strings.Table_Truncated,
+                  resultSet.Rows.Count.ToString("N0"), resultSet.TotalRowCount.ToString("N0"))))
+              .Append("</div>");
         }
 
         sb.Append("</div>");
@@ -171,10 +172,15 @@ public sealed class ResultSetFormatter : IDataFormatter
         AppendStyles(sb, theme);
         sb.Append("<div class=\"verso-sql-result\">");
         sb.Append("<div class=\"verso-sql-footer\">");
-        sb.Append(rowsAffected.ToString("N0")).Append(" row(s) affected");
+        var affected = string.Format(
+            Plural.Of(rowsAffected, Strings.Table_RowsAffected_One, Strings.Table_RowsAffected_Other),
+            rowsAffected.ToString("N0"));
         if (statementCount > 1)
-            sb.Append(" (").Append(statementCount).Append(" statements)");
-        sb.Append(" <span style=\"opacity:0.7;\">(").Append(elapsedMs).Append(" ms)</span>");
+            affected = string.Format(Strings.Table_Statements, affected, statementCount);
+        sb.Append(WebUtility.HtmlEncode(affected));
+        sb.Append(" <span style=\"opacity:0.7;\">(")
+          .Append(WebUtility.HtmlEncode(string.Format(Strings.Table_Elapsed, elapsedMs)))
+          .Append(")</span>");
         sb.Append("</div></div>");
         return sb.ToString();
     }
@@ -187,7 +193,7 @@ public sealed class ResultSetFormatter : IDataFormatter
     /// fallback chain so the same HTML adapts to any host environment:
     /// <list type="number">
     ///   <item><c>--vscode-*</c> — VS Code notebook output webview</item>
-    ///   <item><c>--verso-*</c>  — Blazor shell / HTML export (set by ThemeProvider / ThemeCssGenerator)</item>
+    ///   <item><c>--verso-*</c>  — Blazor shell / HTML export (set by <c>ThemeCss.BuildRootBlock</c>)</item>
     ///   <item>literal value     — safety net for isolated HTML</item>
     /// </list>
     /// The <paramref name="theme"/> parameter is retained for API compatibility but
@@ -242,12 +248,15 @@ public sealed class ResultSetFormatter : IDataFormatter
     private static void AppendPagingScript(StringBuilder sb, int totalRows, int pageSize)
     {
         sb.Append("<div class=\"verso-sql-pager\">");
-        sb.Append("<button id=\"verso-sql-prev\">Previous</button>");
-        sb.Append("<button id=\"verso-sql-next\">Next</button>");
+        sb.Append("<button id=\"verso-sql-prev\">")
+          .Append(WebUtility.HtmlEncode(Strings.Table_Previous)).Append("</button>");
+        sb.Append("<button id=\"verso-sql-next\">")
+          .Append(WebUtility.HtmlEncode(Strings.Table_Next)).Append("</button>");
         sb.Append("<span id=\"verso-sql-page-info\" class=\"verso-sql-footer\"></span>");
         sb.Append("</div>");
 
         sb.Append("<script>(function(){");
+        sb.Append("var SHOWING=").Append(JsonSerializer.Serialize(Strings.Table_ShowingRows)).Append(';');
         sb.Append("var pageSize=").Append(pageSize).Append(",totalRows=").Append(totalRows).Append(",page=0;");
         sb.Append("var maxPage=Math.ceil(totalRows/pageSize)-1;");
         sb.Append("var tbody=document.getElementById('verso-sql-tbody');");
@@ -257,7 +266,11 @@ public sealed class ResultSetFormatter : IDataFormatter
         sb.Append("var start=page*pageSize,end=Math.min(start+pageSize,totalRows);");
         sb.Append("for(var i=0;i<rows.length;i++){");
         sb.Append("rows[i].style.display=(i>=start&&i<end)?'':'none';}");
-        sb.Append("info.textContent='Showing '+(start+1)+'-'+end+' of '+totalRows.toLocaleString()+' rows';");
+        // The paging line is rewritten in the browser as the reader moves through the results,
+        // so the sentence is handed over as a template rather than assembled here. It is the same
+        // entry the static footer uses, and the placeholders are filled in on the other side.
+        sb.Append("info.textContent=SHOWING.replace('{0}',start+1).replace('{1}',end)")
+          .Append(".replace('{2}',totalRows.toLocaleString());");
         sb.Append("document.getElementById('verso-sql-prev').disabled=page===0;");
         sb.Append("document.getElementById('verso-sql-next').disabled=page>=maxPage;}");
         sb.Append("document.getElementById('verso-sql-prev').onclick=function(){if(page>0){page--;render();}};");

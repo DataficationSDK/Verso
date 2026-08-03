@@ -6,15 +6,15 @@
                 <div class="verso-marketplace-search-row">
                     <input class="verso-marketplace-input"
                            type="text"
-                           placeholder="Search extensions..."
+                           placeholder="@UI.Marketplace_SearchPlaceholder"
                            value="@_searchQuery"
                            @oninput="HandleSearchInput" />
                     @if (Service.LocalExtensionPickMode == LocalExtensionPickMode.Upload)
                     {
                         <label class="verso-marketplace-more @(_isBusy ? "verso-marketplace-more--disabled" : "")"
-                               aria-label="Install from a file"
-                               data-verso-tip="Install from a file"
-                               data-verso-tip-desc="Sideload a local .dll or .nupkg.">
+                               aria-label="@UI.Marketplace_InstallFromFile"
+                               data-verso-tip="@UI.Marketplace_InstallFromFile"
+                               data-verso-tip-desc="@UI.Marketplace_InstallFromFileDesc">
                             &#8943;
                             <InputFile class="verso-marketplace-file"
                                        OnChange="HandleLocalFileSelectedAsync"
@@ -26,15 +26,15 @@
                         <button class="verso-marketplace-more"
                                 type="button"
                                 disabled="@_isBusy"
-                                aria-label="Install from a file"
-                                data-verso-tip="Install from a file"
-                                data-verso-tip-desc="Sideload a local .dll or .nupkg."
+                                aria-label="@UI.Marketplace_InstallFromFile"
+                                data-verso-tip="@UI.Marketplace_InstallFromFile"
+                                data-verso-tip-desc="@UI.Marketplace_InstallFromFileDesc"
                                 @onclick="BrowseLocalAsync">&#8943;</button>
                     }
                 </div>
                 @if (_isSearching)
                 {
-                    <span class="verso-marketplace-status">Searching...</span>
+                    <span class="verso-marketplace-status">@UI.Marketplace_Searching</span>
                 }
             </div>
 
@@ -43,16 +43,16 @@
                statement rather than a control. *@
             <div class="verso-marketplace-context">
                 <span class="verso-marketplace-context-chip"
-                      data-verso-tip="Install scope"
-                      data-verso-tip-desc="Installing records the package in this notebook, not on this machine.">
-                    Installs into <b>this notebook</b>
+                      data-verso-tip="@UI.Marketplace_InstallScope"
+                      data-verso-tip-desc="@UI.Marketplace_InstallScopeDesc">
+                    @Emphasize(UI.Marketplace_InstallsInto, UI.Marketplace_ThisNotebook)
                 </span>
                 @if (SourceLabel is { Length: > 0 })
                 {
                     <span class="verso-marketplace-context-chip"
-                          data-verso-tip="Package sources"
+                          data-verso-tip="@UI.Marketplace_PackageSources"
                           data-verso-tip-desc="@string.Join(", ", Service.MarketplaceSources)">
-                        from <b>@SourceLabel</b>
+                        @Emphasize(UI.Marketplace_ResultsFrom, SourceLabel)
                     </span>
                 }
             </div>
@@ -67,7 +67,7 @@
                 @* There is no single-extension unload, so removal is only recorded now and
                    takes effect on the next open. Saying so beats implying it is gone. *@
                 <div class="verso-marketplace-notice">
-                    Removed from this notebook. What it loaded stays active until the notebook is reopened.
+                    @UI.Marketplace_RemovedNotice
                 </div>
             }
 
@@ -78,8 +78,8 @@
             {
                 <div class="verso-marketplace-empty">
                     @(string.IsNullOrWhiteSpace(_searchQuery)
-                        ? "No extensions installed. Search to add one."
-                        : "No packages found.")
+                        ? UI.Marketplace_NoneInstalled
+                        : UI.Marketplace_NoResults)
                 </div>
             }
             else
@@ -124,8 +124,8 @@
                                             {
                                                 <span class="verso-marketplace-row-dot">&#183;</span>
                                             }
-                                            <span data-verso-tip="Local"
-                                                  data-verso-tip-desc="Sideloaded from a local file.">local file</span>
+                                            <span data-verso-tip="@UI.Marketplace_Local"
+                                                  data-verso-tip-desc="@UI.Marketplace_LocalDesc">@UI.Marketplace_LocalFile</span>
                                         }
                                     </div>
                                 }
@@ -144,7 +144,7 @@
                                         @foreach (var cap in r.Capabilities)
                                         {
                                             <span class="verso-panel-chip verso-marketplace-add">
-                                                @CapabilityDisplayNames.GetValueOrDefault(cap, cap)
+                                                @CapabilityLabel(cap)
                                             </span>
                                         }
                                     </div>
@@ -153,9 +153,9 @@
                                 {
                                     <div class="verso-marketplace-row-adds">
                                         <span class="verso-panel-chip verso-panel-chip--warning"
-                                              data-verso-tip="Adds nothing"
-                                              data-verso-tip-desc="It loaded but contributed no extension point, so installing it changed nothing.">
-                                            Adds nothing
+                                              data-verso-tip="@UI.Marketplace_AddsNothing"
+                                              data-verso-tip-desc="@UI.Marketplace_AddsNothingDesc">
+                                            @UI.Marketplace_AddsNothing
                                         </span>
                                     </div>
                                 }
@@ -163,22 +163,22 @@
                                 <div class="verso-marketplace-row-foot">
                                     @if (FormatDownloads(r.DownloadCount) is { } downloads)
                                     {
-                                        <span class="verso-marketplace-row-meta">@downloads downloads</span>
+                                        <span class="verso-marketplace-row-meta">@string.Format(UI.Marketplace_Downloads, downloads)</span>
                                     }
                                     <div class="verso-marketplace-row-state">
                                         @if (r.UnavailableReason is not null)
                                         {
-                                            <span class="verso-panel-chip verso-panel-chip--error">Not loaded</span>
+                                            <span class="verso-panel-chip verso-panel-chip--error">@UI.Marketplace_NotLoaded</span>
                                             <button class="verso-marketplace-btn"
                                                     disabled="@_isBusy"
-                                                    @onclick="() => UninstallAsync(r.Id)">Remove</button>
+                                                    @onclick="() => UninstallAsync(r.Id)">@UI.Marketplace_Remove</button>
                                         }
                                         else if (r.IsInstalled)
                                         {
-                                            <span class="verso-panel-chip verso-panel-chip--success">Installed</span>
+                                            <span class="verso-panel-chip verso-panel-chip--success">@UI.Marketplace_Installed</span>
                                             <button class="verso-marketplace-btn"
                                                     disabled="@_isBusy"
-                                                    @onclick="() => UninstallAsync(r.Id)">Remove</button>
+                                                    @onclick="() => UninstallAsync(r.Id)">@UI.Marketplace_Remove</button>
                                         }
                                         else
                                         {
@@ -188,7 +188,7 @@
                                                 <div class="verso-marketplace-version-dropdown" @onfocusout="OnVersionDropdownFocusOut" tabindex="-1">
                                                     <button class="verso-marketplace-version-badge"
                                                             disabled="@_isBusy"
-                                                            data-verso-tip="Choose a version to install"
+                                                            data-verso-tip="@UI.Marketplace_ChooseVersion"
                                                             @onclick="() => ToggleVersionDropdown(r.Id, r.Version)">
                                                         @selected
                                                         <span class="verso-marketplace-version-chevron">&#9662;</span>
@@ -198,7 +198,7 @@
                                                         <div class="verso-marketplace-version-popup">
                                                             @if (_loadingVersionsId == r.Id)
                                                             {
-                                                                <div class="verso-marketplace-version-status">Loading...</div>
+                                                                <div class="verso-marketplace-version-status">@UI.Common_Loading</div>
                                                             }
                                                             else if (_versionCache.TryGetValue(r.Id, out var versions))
                                                             {
@@ -216,7 +216,7 @@
                                             }
                                             <button class="verso-marketplace-btn verso-marketplace-btn--install"
                                                     disabled="@_isBusy"
-                                                    @onclick="() => InstallAsync(r.Id, SelectedVersion(r.Id, r.Version))">Install</button>
+                                                    @onclick="() => InstallAsync(r.Id, SelectedVersion(r.Id, r.Version))">@UI.Marketplace_Install</button>
                                         }
                                     </div>
                                 </div>
@@ -240,7 +240,7 @@
         @if (grouped.Count > 0)
         {
             <div class="verso-extension-loaded">
-                <div class="verso-panel-section-title">Loaded</div>
+                <div class="verso-panel-section-title">@UI.Extensions_Loaded</div>
                 @foreach (var group in grouped)
                 {
                     var category = group.Key;
@@ -248,7 +248,7 @@
                     <div class="verso-extension-group">
                         <button class="verso-extension-group-header" @onclick="() => ToggleCategory(category)">
                             <span class="verso-extension-group-chevron @(isOpen ? "verso-extension-group-chevron--open" : "")">@Chevron</span>
-                            <span class="verso-extension-group-label">@Plural(category)</span>
+                            <span class="verso-extension-group-label">@CapabilityLabelPlural(category)</span>
                             <span class="verso-extension-group-count">@group.Value.Count</span>
                         </button>
                         @if (isOpen)
@@ -261,10 +261,10 @@
                                         <div class="verso-extension-name">@e.Name</div>
                                         <div class="verso-extension-version">@e.Version</div>
                                         <button class="verso-extension-toggle @(e.Status == ExtensionStatus.Enabled ? "verso-extension-toggle--enabled" : "")"
-                                                aria-label="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
-                                                data-verso-tip="@(e.Status == ExtensionStatus.Enabled ? "Disable" : "Enable")"
+                                                aria-label="@(e.Status == ExtensionStatus.Enabled ? UI.Extensions_Disable : UI.Extensions_Enable)"
+                                                data-verso-tip="@(e.Status == ExtensionStatus.Enabled ? UI.Extensions_Disable : UI.Extensions_Enable)"
                                                 @onclick="() => ToggleExtensionAsync(e.ExtensionId, e.Status)">
-                                            @(e.Status == ExtensionStatus.Enabled ? "On" : "Off")
+                                            @(e.Status == ExtensionStatus.Enabled ? UI.Extensions_On : UI.Extensions_Off)
                                         </button>
                                     </div>
                                     @if (e.Author is not null)
@@ -280,7 +280,7 @@
                                         <div class="verso-extension-caps">
                                             @foreach (var cap in e.Capabilities)
                                             {
-                                                <span class="verso-panel-chip verso-marketplace-add">@CapabilityDisplayNames.GetValueOrDefault(cap, cap)</span>
+                                                <span class="verso-panel-chip verso-marketplace-add">@CapabilityLabel(cap)</span>
                                             }
                                         </div>
                                     }
@@ -295,6 +295,7 @@
 </div>
 
 @using System.Globalization
+@using System.Net
 @using Microsoft.AspNetCore.Components.Forms
 @implements IDisposable
 
@@ -328,31 +329,6 @@
         "<svg viewBox=\"0 0 16 16\" width=\"11\" height=\"11\" fill=\"none\" stroke=\"currentColor\" "
         + "stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 3.5 10.5 8 6 12.5\"/></svg>");
 
-    // Singular, because a chip names one contribution. Group headers name a set of them and
-    // pluralize on the way out, which keeps one map for both.
-    private static readonly Dictionary<string, string> CapabilityDisplayNames = new()
-    {
-        ["LanguageKernel"] = "Language Kernel",
-        ["CellRenderer"] = "Cell Renderer",
-        ["DataFormatter"] = "Data Formatter",
-        ["CellType"] = "Cell Type",
-        ["NotebookSerializer"] = "Serializer",
-        ["Theme"] = "Theme",
-        ["LayoutEngine"] = "Layout Engine",
-        ["ToolbarAction"] = "Toolbar Action",
-        ["MagicCommand"] = "Magic Command",
-        ["NotebookPanel"] = "Panel",
-        // Capabilities with no entry here fall back to the raw name, which reads as
-        // one run-together word. Keep this map complete as capabilities are added.
-        ["NotebookPostProcessor"] = "Post-Processor",
-        ["CellPropertyProvider"] = "Cell Property Provider",
-        ["ExtensionSettings"] = "Settings Provider",
-        ["CellInteractionHandler"] = "Cell Interaction Handler",
-        ["LayoutInteractionHandler"] = "Layout Interaction Handler",
-        ["LayoutLifecycleHandler"] = "Layout Lifecycle Handler",
-        ["PanelInteractionHandler"] = "Panel Interaction Handler",
-    };
-
     private static readonly List<string> CategoryOrder = new()
     {
         "LanguageKernel", "Theme", "LayoutEngine", "CellType",
@@ -361,12 +337,75 @@
     };
 
     /// <summary>
-    /// Pluralizes a capability's display name for a group header. Everything takes an s except
-    /// a name that already ends in one, which takes es, so no header ever doubles an s.
+    /// What an extension adds, named for a chip on a package. A capability with no name here
+    /// falls back to its raw identifier, which reads as one run-together word, so keep this
+    /// complete as capabilities are added.
     /// </summary>
-    private static string Plural(string label)
-        => label.EndsWith('s') ? label + "es" : label + "s";
+    /// <remarks>
+    /// A switch rather than a lookup table, because a table built once would hold whichever
+    /// language happened to be current when the panel was first drawn.
+    /// </remarks>
+    private static string CapabilityLabel(string capability) => capability switch
+    {
+        "LanguageKernel" => UI.Capability_LanguageKernel,
+        "CellRenderer" => UI.Capability_CellRenderer,
+        "DataFormatter" => UI.Capability_DataFormatter,
+        "CellType" => UI.Capability_CellType,
+        "NotebookSerializer" => UI.Capability_NotebookSerializer,
+        "Theme" => UI.Capability_Theme,
+        "LayoutEngine" => UI.Capability_LayoutEngine,
+        "ToolbarAction" => UI.Capability_ToolbarAction,
+        "MagicCommand" => UI.Capability_MagicCommand,
+        "NotebookPanel" => UI.Capability_NotebookPanel,
+        "NotebookPostProcessor" => UI.Capability_NotebookPostProcessor,
+        "CellPropertyProvider" => UI.Capability_CellPropertyProvider,
+        "ExtensionSettings" => UI.Capability_ExtensionSettings,
+        "CellInteractionHandler" => UI.Capability_CellInteractionHandler,
+        "LayoutInteractionHandler" => UI.Capability_LayoutInteractionHandler,
+        "LayoutLifecycleHandler" => UI.Capability_LayoutLifecycleHandler,
+        "PanelInteractionHandler" => UI.Capability_PanelInteractionHandler,
+        "Other" => UI.Capability_Other,
+        _ => capability,
+    };
 
+    /// <summary>
+    /// The same names in the plural, for a group header covering several extensions. Written
+    /// out rather than derived, because a plural is not a singular with a letter on the end in
+    /// most of the languages Verso ships in.
+    /// </summary>
+    private static string CapabilityLabelPlural(string capability) => capability switch
+    {
+        "LanguageKernel" => UI.Capability_LanguageKernel_Plural,
+        "CellRenderer" => UI.Capability_CellRenderer_Plural,
+        "DataFormatter" => UI.Capability_DataFormatter_Plural,
+        "CellType" => UI.Capability_CellType_Plural,
+        "NotebookSerializer" => UI.Capability_NotebookSerializer_Plural,
+        "Theme" => UI.Capability_Theme_Plural,
+        "LayoutEngine" => UI.Capability_LayoutEngine_Plural,
+        "ToolbarAction" => UI.Capability_ToolbarAction_Plural,
+        "MagicCommand" => UI.Capability_MagicCommand_Plural,
+        "NotebookPanel" => UI.Capability_NotebookPanel_Plural,
+        "NotebookPostProcessor" => UI.Capability_NotebookPostProcessor_Plural,
+        "CellPropertyProvider" => UI.Capability_CellPropertyProvider_Plural,
+        "ExtensionSettings" => UI.Capability_ExtensionSettings_Plural,
+        "CellInteractionHandler" => UI.Capability_CellInteractionHandler_Plural,
+        "LayoutInteractionHandler" => UI.Capability_LayoutInteractionHandler_Plural,
+        "LayoutLifecycleHandler" => UI.Capability_LayoutLifecycleHandler_Plural,
+        "PanelInteractionHandler" => UI.Capability_PanelInteractionHandler_Plural,
+        "Other" => UI.Capability_Other_Plural,
+        _ => capability,
+    };
+
+    /// <summary>
+    /// Fills a sentence's single placeholder with emphasised text. The sentence is one resource
+    /// rather than the two fragments either side of the emphasis, because which words fall on
+    /// which side of it is a property of the language.
+    /// </summary>
+    private static MarkupString Emphasize(string sentence, string value)
+        => new(string.Format(sentence, $"<b>{WebUtility.HtmlEncode(value)}</b>"));
+
+    // Grouped by the raw capability rather than by its name, so which extensions land together
+    // and in what order does not depend on the language the panel is being read in.
     private static List<KeyValuePair<string, List<ExtensionInfo>>> GroupByCategory(
         IReadOnlyList<ExtensionInfo> infos)
     {
@@ -375,12 +414,11 @@
         foreach (var ext in infos)
         {
             var primary = ext.Capabilities.Count > 0 ? ext.Capabilities[0] : "Other";
-            var displayName = CapabilityDisplayNames.GetValueOrDefault(primary, primary);
 
-            if (!groups.TryGetValue(displayName, out var list))
+            if (!groups.TryGetValue(primary, out var list))
             {
                 list = new List<ExtensionInfo>();
-                groups[displayName] = list;
+                groups[primary] = list;
             }
             list.Add(ext);
         }
@@ -388,7 +426,7 @@
         return groups
             .OrderBy(g =>
             {
-                var idx = CategoryOrder.FindIndex(c => CapabilityDisplayNames.GetValueOrDefault(c, c) == g.Key);
+                var idx = CategoryOrder.IndexOf(g.Key);
                 return idx >= 0 ? idx : CategoryOrder.Count;
             })
             .ToList();
@@ -568,7 +606,7 @@
     {
         0 => string.Empty,
         1 => Service.MarketplaceSources[0],
-        var n => $"{n} sources"
+        var n => string.Format(UI.Marketplace_SourceCount, n)
     };
 
     // ── Marketplace ────────────────────────────────────────────────────
@@ -694,7 +732,7 @@
             var result = await Service.InstallExtensionAsync(packageId, version, CancellationToken.None);
             if (!result.Success)
             {
-                _installError = result.ErrorMessage ?? "Installation failed.";
+                _installError = result.ErrorMessage ?? UI.Marketplace_InstallFailed;
             }
             else
             {
@@ -754,7 +792,7 @@
             await using var stream = file.OpenReadStream(MaxLocalExtensionBytes);
             var result = await Service.InstallLocalExtensionAsync(file.Name, stream, CancellationToken.None);
             if (!result.Success)
-                _installError = result.ErrorMessage ?? "Installation failed.";
+                _installError = result.ErrorMessage ?? UI.Marketplace_InstallFailed;
             else
                 await RefreshSearchResultsAsync();
         }

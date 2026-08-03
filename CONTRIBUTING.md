@@ -73,6 +73,36 @@ By making a contribution to this project, I certify that:
     this project or the open source license(s) involved.
 ```
 
+## Writing a Message
+
+Verso's interface is translated, so a new string usually belongs in a resource file rather than
+in the code that shows it. `build/i18n/README.md` covers where each one goes and how to add it.
+
+The question worth asking first is who reads it. A message is translated when the person reading
+it can do something about it: a package that could not be downloaded, a parameter whose value does
+not fit its type, a connection that has closed. Those go in a resource file with a note saying
+where they appear.
+
+Four kinds stay in English wherever they appear, and each is marked with a comment in the code
+saying so:
+
+- **Guards against programmer error.** `ArgumentNullException`, an internal
+  `InvalidOperationException`, a check that a method was called before the one that sets it up.
+  Nobody reading one can act on it except by changing code, and a stack trace that matches an
+  issue report is worth more than a translated one that does not.
+- **Protocol shape.** The host answers the editor over a small JSON-RPC surface, and a request
+  missing a field it requires is a fault in the caller, not something a reader chose. Those read
+  the same in every language so a log from one machine matches a search from another.
+- **Anything a script reads rather than a person.** The tags a run writes on its error stream,
+  and the status values in the document `--output json` produces.
+- **Anything a model reads rather than a person.** The chat participant's prompt and the
+  descriptions of the tools it can call.
+
+Two shapes to avoid whatever the string says. Do not build a word from a stem and a letter
+(`cell(s)`, `row(s)`, `entit{y|ies}`); write the two forms as separate entries and pick between
+them with `Plural.Of`. Do not assemble a sentence from fragments; write it whole with numbered
+placeholders, because another language will not put the pieces in that order.
+
 ## Pull Requests
 
 - Target the `main` branch.

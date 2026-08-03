@@ -1,0 +1,975 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ClearCellOutput" xml:space="preserve">
+    <value>Clear Cell Output</value>
+    <comment>Name of the built-in extension that clears one cell's output, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ClearCellOutput_Description" xml:space="preserve">
+    <value>Clears the output of the selected cell.</value>
+    <comment>Second line of the Clear Output entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ClearCellOutput_Label" xml:space="preserve">
+    <value>Clear Output</value>
+    <comment>Cell toolbar button. Shorter than the extension's name because it sits on a cell, where the word 'cell' is already implied.</comment>
+  </data>
+  <data name="Action_ClearOutputs" xml:space="preserve">
+    <value>Clear Outputs</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ClearOutputs_Description" xml:space="preserve">
+    <value>Clears all cell outputs in the notebook.</value>
+    <comment>Second line of the Clear Outputs entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ExportHtml" xml:space="preserve">
+    <value>Export HTML</value>
+    <comment>Name of the built-in HTML export, as listed in the Extensions panel. Its menu entry reads only 'HTML' and is not translated.</comment>
+  </data>
+  <data name="Action_ExportHtml_Description" xml:space="preserve">
+    <value>Exports the notebook as a self-contained HTML document.</value>
+    <comment>Second line of the Export HTML entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ExportMarkdown" xml:space="preserve">
+    <value>Export Markdown</value>
+    <comment>Name of the built-in Markdown export, as listed in the Extensions panel. Its menu entry reads only 'Markdown' and is not translated.</comment>
+  </data>
+  <data name="Action_ExportMarkdown_Description" xml:space="preserve">
+    <value>Exports the notebook as a Markdown document.</value>
+    <comment>Second line of the Export Markdown entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_ExportVerso" xml:space="preserve">
+    <value>Export Verso</value>
+    <comment>Name of the built-in .verso export, as listed in the Extensions panel. Verso is a product name.</comment>
+  </data>
+  <data name="Action_ExportVerso_Description" xml:space="preserve">
+    <value>Exports a Markdown-backed notebook as a native .verso file.</value>
+    <comment>Second line of the Export Verso entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RestartKernel" xml:space="preserve">
+    <value>Restart Kernel</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RestartKernel_Confirm" xml:space="preserve">
+    <value>Restarting the kernel discards all variables and execution state. Restart now?</value>
+    <comment>Confirmation dialog shown before the kernel restarts, because the effect cannot be undone.</comment>
+  </data>
+  <data name="Action_RestartKernel_Description" xml:space="preserve">
+    <value>Restarts the active language kernel.</value>
+    <comment>Second line of the Restart Kernel entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RunAll" xml:space="preserve">
+    <value>Run All</value>
+    <comment>The toolbar's primary button, and the name of the same built-in extension in the Extensions panel. Keep it short: it sits next to the kernel status.</comment>
+  </data>
+  <data name="Action_RunAll_Description" xml:space="preserve">
+    <value>Executes all cells in the notebook.</value>
+    <comment>Second line of the Run All entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RunCell" xml:space="preserve">
+    <value>Run Cell</value>
+    <comment>Cell toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_RunCell_Description" xml:space="preserve">
+    <value>Executes the selected cells.</value>
+    <comment>Second line of the Run Cell entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchLayout" xml:space="preserve">
+    <value>Switch Layout</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchLayout_Description" xml:space="preserve">
+    <value>Cycles between available layout engines.</value>
+    <comment>Second line of the Switch Layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchTheme" xml:space="preserve">
+    <value>Switch Theme</value>
+    <comment>Toolbar button, and the name of the same built-in extension in the Extensions panel.</comment>
+  </data>
+  <data name="Action_SwitchTheme_Description" xml:space="preserve">
+    <value>Cycles between available themes.</value>
+    <comment>Second line of the Switch Theme entry in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>Code</value>
+    <comment>The kind of cell that holds code. Offered wherever a new cell can be added.</comment>
+  </data>
+  <data name="CellType_Html" xml:space="preserve">
+    <value>HTML Cell Type</value>
+    <comment>Name of the built-in HTML cell type, as listed in the Extensions panel. Its entry in the new-cell list reads only 'HTML' and is not translated.</comment>
+  </data>
+  <data name="CellType_Html_Description" xml:space="preserve">
+    <value>HTML cell type for authoring raw HTML with @variable substitution.</value>
+    <comment>Second line of the HTML cell type entry in the Extensions panel. '@variable' is typed by the reader and stays as written.</comment>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown Cell Type</value>
+    <comment>Name of the built-in Markdown cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Markdown_Description" xml:space="preserve">
+    <value>Markdown prose cells rendered to HTML with Markdig.</value>
+    <comment>Second line of the Markdown cell type entry in the Extensions panel. Markdig is a library name.</comment>
+  </data>
+  <data name="CellType_Mermaid" xml:space="preserve">
+    <value>Mermaid Cell Type</value>
+    <comment>Name of the built-in Mermaid cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Mermaid_Description" xml:space="preserve">
+    <value>Mermaid cell type for creating diagrams with mermaid.js syntax.</value>
+    <comment>Second line of the Mermaid cell type entry in the Extensions panel. mermaid.js is a library name.</comment>
+  </data>
+  <data name="CellType_Parameters" xml:space="preserve">
+    <value>Parameters Cell Type</value>
+    <comment>Name of the built-in parameters cell type, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Parameters_Description" xml:space="preserve">
+    <value>Displays and manages notebook parameter definitions as an interactive form.</value>
+    <comment>Second line of the parameters cell type entry in the Extensions panel.</comment>
+  </data>
+  <data name="CellType_Parameters_Label" xml:space="preserve">
+    <value>Parameters</value>
+    <comment>The parameters cell as offered in the new-cell list.</comment>
+  </data>
+  <data name="Consent_Source_Cell" xml:space="preserve">
+    <value>cell</value>
+    <comment>Why the consent dialog is asking: a cell in the notebook asked for this package. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_LocalFile" xml:space="preserve">
+    <value>local file: {0}</value>
+    <comment>Why the consent dialog is asking: the package was read from a file on this machine. {0} is the file name. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_Marketplace" xml:space="preserve">
+    <value>marketplace</value>
+    <comment>Why the consent dialog is asking: the package was chosen from the Extensions panel's search. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
+    <value>notebook required extensions</value>
+    <comment>Why the consent dialog is asking: the notebook declares this package as one it needs. Appears beside the package name, in brackets.</comment>
+  </data>
+  <data name="Error_DibExportUnsupported" xml:space="preserve">
+    <value>Polyglot Notebook .dib export is not supported. Use the Verso native format.</value>
+    <comment>Saving to .dib is not offered. The file extensions stay as written.</comment>
+  </data>
+  <data name="Error_ExtensionAssemblyNotFound" xml:space="preserve">
+    <value>Extension assembly not found: {0}</value>
+    <comment>{0} is the full path that was looked at.</comment>
+  </data>
+  <data name="Error_ExtensionDirectoryNotFound" xml:space="preserve">
+    <value>Extension directory not found: {0}</value>
+    <comment>{0} is the full path that was looked at.</comment>
+  </data>
+  <data name="Error_InteractiveInputUnsupported" xml:space="preserve">
+    <value>Interactive input is not supported by this host.</value>
+    <comment>A cell asked the reader a question somewhere that cannot ask one, such as a batch run.</comment>
+  </data>
+  <data name="Error_JupyterParseFailed" xml:space="preserve">
+    <value>Failed to parse Jupyter notebook.</value>
+    <comment>The file opened but is not a notebook Verso can read.</comment>
+  </data>
+  <data name="Error_LayoutNotFound" xml:space="preserve">
+    <value>Layout '{0}' not found.</value>
+    <comment>The notebook asks to be arranged by a layout nothing installed provides. {0} is its id.</comment>
+  </data>
+  <data name="Error_NoKernelConfigured" xml:space="preserve">
+    <value>No kernel ID specified and no default kernel is configured.</value>
+    <comment>A cell was run with nothing to run it. Shown as the cell's error.</comment>
+  </data>
+  <data name="Error_NoKernelForLanguage" xml:space="preserve">
+    <value>No kernel registered for language '{0}'.</value>
+    <comment>The notebook has a cell in a language nothing installed can run. {0} is a language id such as python, which stays as written.</comment>
+  </data>
+  <data name="Error_PackageDownloadFailed" xml:space="preserve">
+    <value>Failed to download package '{0}' v{1}.</value>
+    <comment>{0} is a package name, {1} a version number.</comment>
+  </data>
+  <data name="Error_ThemeNotFound" xml:space="preserve">
+    <value>Theme '{0}' not found.</value>
+    <comment>The notebook asks for a theme nothing installed provides. {0} is its id.</comment>
+  </data>
+  <data name="Error_VersoParseFailed" xml:space="preserve">
+    <value>Failed to deserialize .verso document.</value>
+    <comment>The file opened but is not a notebook Verso can read.</comment>
+  </data>
+  <data name="Export_MoreLines_One" xml:space="preserve">
+    <value>... ({0} more line)</value>
+    <comment>Written under output that was cut short in an exported document, for exactly one line. {0} is how many are missing.</comment>
+  </data>
+  <data name="Export_MoreLines_Other" xml:space="preserve">
+    <value>... ({0} more lines)</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Formatter_Collection" xml:space="preserve">
+    <value>Collection Formatter</value>
+    <comment>Name of the built-in collection formatter, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Collection_Description" xml:space="preserve">
+    <value>Formats collections as HTML tables.</value>
+    <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Exception" xml:space="preserve">
+    <value>Exception Formatter</value>
+    <comment>Name of the built-in exception formatter, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Exception_Description" xml:space="preserve">
+    <value>Formats exceptions as structured HTML.</value>
+    <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Html" xml:space="preserve">
+    <value>HTML Formatter</value>
+    <comment>Name of the built-in HTML formatter, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Html_Description" xml:space="preserve">
+    <value>Formats objects with a ToHtml() method as HTML.</value>
+    <comment>What this formatter does, shown wherever extensions are listed. ToHtml() is written in code and stays as it is.</comment>
+  </data>
+  <data name="Formatter_Image" xml:space="preserve">
+    <value>Image Formatter</value>
+    <comment>Name of the built-in image formatter, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Image_Description" xml:space="preserve">
+    <value>Formats byte arrays as inline base64 images.</value>
+    <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Object" xml:space="preserve">
+    <value>Object Formatter</value>
+    <comment>Name of the built-in object formatter, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Object_Description" xml:space="preserve">
+    <value>Formats objects as HTML tables showing public properties and fields.</value>
+    <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Primitive" xml:space="preserve">
+    <value>Primitive Formatter</value>
+    <comment>Name of the built-in formatter for numbers, strings and other single values, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Primitive_Description" xml:space="preserve">
+    <value>Formats primitive and common value types as plain text.</value>
+    <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Formatter_Svg" xml:space="preserve">
+    <value>SVG Formatter</value>
+    <comment>Name of the built-in SVG formatter, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Formatter_Svg_Description" xml:space="preserve">
+    <value>Formats SVG strings as inline HTML.</value>
+    <comment>What this formatter does, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Kernel_CSharp_Description" xml:space="preserve">
+    <value>C# language kernel powered by Roslyn scripting.</value>
+    <comment>What the C# kernel is, shown wherever kernels are listed.</comment>
+  </data>
+  <data name="Kernel_Html" xml:space="preserve">
+    <value>HTML Kernel</value>
+    <comment>Name of the built-in HTML kernel, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Kernel_Html_Description" xml:space="preserve">
+    <value>Executes HTML cells with @variable substitution.</value>
+    <comment>Second line of the HTML kernel entry in the Extensions panel. '@variable' is typed by the reader and stays as written.</comment>
+  </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>Installed Packages</value>
+    <comment>Heading above the list of packages a cell installed. Keep it short; it sits above a list.</comment>
+  </data>
+  <data name="Kernel_Mermaid" xml:space="preserve">
+    <value>Mermaid Kernel</value>
+    <comment>Name of the built-in Mermaid kernel, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Kernel_Mermaid_Description" xml:space="preserve">
+    <value>Executes Mermaid diagram cells with @variable substitution.</value>
+    <comment>Second line of the Mermaid kernel entry in the Extensions panel. '@variable' is typed by the reader and stays as written.</comment>
+  </data>
+  <data name="Kernel_UnresolvedVariable" xml:space="preserve">
+    <value>Unresolved variable '@{0}'. No matching variable found in the variable store.</value>
+    <comment>An HTML or Mermaid cell referred to a variable no cell has produced. {0} is the name it used; the @ in front is how it is written in the cell.</comment>
+  </data>
+  <data name="Layout_AddCell" xml:space="preserve">
+    <value>{0} Cell</value>
+    <comment>Button under the last cell that appends a new one. {0} is the kind of cell, such as Code or Markdown.</comment>
+  </data>
+  <data name="Layout_Dashboard" xml:space="preserve">
+    <value>Dashboard Layout</value>
+    <comment>Name of the built-in dashboard layout, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Dashboard_Description" xml:space="preserve">
+    <value>Grid-based dashboard layout showing output-only cells.</value>
+    <comment>Second line of the dashboard layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Dashboard_Label" xml:space="preserve">
+    <value>Dashboard</value>
+    <comment>The dashboard layout as offered in the layout picker.</comment>
+  </data>
+  <data name="Layout_DragToMove" xml:space="preserve">
+    <value>Drag to move</value>
+    <comment>Tooltip on the handle that repositions a cell on the dashboard.</comment>
+  </data>
+  <data name="Layout_EmptySubtitle" xml:space="preserve">
+    <value>Add your first cell below.</value>
+    <comment>Second line of the empty-notebook message, pointing at the row of buttons under it.</comment>
+  </data>
+  <data name="Layout_EmptyTitle" xml:space="preserve">
+    <value>This notebook is empty</value>
+    <comment>Shown in place of the cells when a notebook has none yet.</comment>
+  </data>
+  <data name="Layout_InsertCellHere" xml:space="preserve">
+    <value>Insert a {0} cell here</value>
+    <comment>Tooltip on a button that adds a cell between two others. {0} is the kind of cell, such as Code or Markdown.</comment>
+  </data>
+  <data name="Layout_Notebook" xml:space="preserve">
+    <value>Notebook Layout</value>
+    <comment>Name of the built-in notebook layout, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Notebook_Description" xml:space="preserve">
+    <value>Linear top-to-bottom notebook layout with live, editable cells in elevated cards.</value>
+    <comment>Second line of the notebook layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Notebook_Label" xml:space="preserve">
+    <value>Notebook</value>
+    <comment>The notebook layout as offered in the layout picker.</comment>
+  </data>
+  <data name="Layout_Presentation" xml:space="preserve">
+    <value>Presentation Layout</value>
+    <comment>Name of the built-in presentation layout, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Presentation_Description" xml:space="preserve">
+    <value>Output-only presentation layout for consuming interactive notebooks.</value>
+    <comment>Second line of the presentation layout entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_Presentation_Label" xml:space="preserve">
+    <value>Presentation</value>
+    <comment>The presentation layout as offered in the layout picker.</comment>
+  </data>
+  <data name="Layout_RunCell" xml:space="preserve">
+    <value>Run</value>
+    <comment>Tooltip on the button that runs one cell on the dashboard. Keep it to a word: the button holds only an icon.</comment>
+  </data>
+  <data name="Magic_About" xml:space="preserve">
+    <value>About Magic Command</value>
+    <comment>Name of the #!about magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_About_Description" xml:space="preserve">
+    <value>Displays Verso version, runtime information, and loaded extensions.</value>
+    <comment>What #!about does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_About_LoadedExtensions" xml:space="preserve">
+    <value>Loaded extensions:</value>
+    <comment>Heading above the list #!about prints. Each extension follows on its own line.</comment>
+  </data>
+  <data name="Magic_About_NoExtensions" xml:space="preserve">
+    <value>No extensions loaded.</value>
+    <comment>Printed by #!about in place of the list when nothing is loaded.</comment>
+  </data>
+  <data name="Magic_About_Os" xml:space="preserve">
+    <value>OS: {0}</value>
+    <comment>A line of #!about output. {0} is the operating system description, which stays as the system reports it.</comment>
+  </data>
+  <data name="Magic_About_Runtime" xml:space="preserve">
+    <value>Runtime: {0}</value>
+    <comment>A line of #!about output. {0} is the .NET runtime description, which stays as the runtime reports it.</comment>
+  </data>
+  <data name="Magic_Extension" xml:space="preserve">
+    <value>Extension Magic Command</value>
+    <comment>Name of the #!extension magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedAssembly" xml:space="preserve">
+    <value>Extension assembly '{0}' is already loaded.</value>
+    <comment>Nothing was done because the same file was loaded earlier in this session. {0} is a file name.</comment>
+  </data>
+  <data name="Magic_Extension_AlreadyLoadedPackage" xml:space="preserve">
+    <value>Extension package '{0}' is already loaded.</value>
+    <comment>Nothing was done because the same package was loaded earlier in this session. {0} is a package name.</comment>
+  </data>
+  <data name="Magic_Extension_AssemblyNotFound" xml:space="preserve">
+    <value>Extension assembly not found: {0}</value>
+    <comment>The path #!extension was given does not exist. {0} is the full path it looked at.</comment>
+  </data>
+  <data name="Magic_Extension_ConsentReason_SessionGenerated" xml:space="preserve">
+    <value>session-generated local assembly</value>
+    <comment>Why the reader is being asked to approve a file: an earlier cell in this notebook built it. Shown in the approval dialog beside the file name.</comment>
+  </data>
+  <data name="Magic_Extension_Description" xml:space="preserve">
+    <value>Installs a NuGet package or loads a local assembly containing Verso extensions.</value>
+    <comment>What #!extension does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Extension_Installed_One" xml:space="preserve">
+    <value>Installed '{0}' {1} ({2} extension registered)</value>
+    <comment>Written when exactly one extension came out of the package. {0} is a package name, {1} the version installed, {2} is 1.</comment>
+  </data>
+  <data name="Magic_Extension_Installed_Other" xml:space="preserve">
+    <value>Installed '{0}' {1} ({2} extensions registered)</value>
+    <comment>Written for any other number. {0} is a package name, {1} the version, {2} how many.</comment>
+  </data>
+  <data name="Magic_Extension_LoadFailed" xml:space="preserve">
+    <value>Error loading extensions from '{0}': {1}</value>
+    <comment>{0} is a file name, {1} is the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Magic_Extension_LoadFailedGeneric" xml:space="preserve">
+    <value>Error loading '{0}': {1}</value>
+    <comment>The same as the previous message for a failure that did not come from loading extensions. {0} is a file name, {1} is the underlying error.</comment>
+  </data>
+  <data name="Magic_Extension_Loaded_One" xml:space="preserve">
+    <value>Loaded '{0}' ({1} extension registered)</value>
+    <comment>Written when exactly one extension came out of the file. {0} is a file name, {1} is 1.</comment>
+  </data>
+  <data name="Magic_Extension_Loaded_Other" xml:space="preserve">
+    <value>Loaded '{0}' ({1} extensions registered)</value>
+    <comment>Written for any other number. {0} is a file name, {1} is how many.</comment>
+  </data>
+  <data name="Magic_Extension_Loading" xml:space="preserve">
+    <value>Loading extension from '{0}'...</value>
+    <comment>Printed before the work starts, so a slow load does not look like nothing happening. {0} is a file name.</comment>
+  </data>
+  <data name="Magic_Extension_NoTypes" xml:space="preserve">
+    <value>'{0}' loaded but contains no [VersoExtension] types. The assembly is still available as a reference.</value>
+    <comment>The file loaded but contributed nothing. {0} is a file name; [VersoExtension] is written in code and stays as it is.</comment>
+  </data>
+  <data name="Magic_Extension_NotAnAssembly" xml:space="preserve">
+    <value>'{0}' is not a valid .NET assembly.</value>
+    <comment>The file exists but is not something that can be loaded. {0} is a file name.</comment>
+  </data>
+  <data name="Magic_Extension_NotApproved" xml:space="preserve">
+    <value>Extension '{0}' was not approved. Skipping.</value>
+    <comment>The reader declined the approval dialog. {0} is the extension or file name.</comment>
+  </data>
+  <data name="Magic_Extension_Param_PackageIdOrPath" xml:space="preserve">
+    <value>A NuGet package ID or path to a local .dll file.</value>
+    <comment>What the first argument to #!extension is.</comment>
+  </data>
+  <data name="Magic_Extension_Param_Version" xml:space="preserve">
+    <value>Optional package version (NuGet only).</value>
+    <comment>What the second argument to #!extension is.</comment>
+  </data>
+  <data name="Magic_Extension_ResolveFailed" xml:space="preserve">
+    <value>Failed to resolve extension package '{0}': {1}</value>
+    <comment>{0} is a package name, {1} the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Magic_Extension_Resolving" xml:space="preserve">
+    <value>Resolving extension package '{0}'...</value>
+    <comment>The same, when no version was asked for. {0} is a package name.</comment>
+  </data>
+  <data name="Magic_Extension_ResolvingVersion" xml:space="preserve">
+    <value>Resolving extension package '{0}' version '{1}'...</value>
+    <comment>Printed before the download starts. {0} is a package name, {1} a version number.</comment>
+  </data>
+  <data name="Magic_Extension_Usage" xml:space="preserve">
+    <value>Usage: #!extension &lt;PackageId&gt; [Version]  or  #!extension &lt;path/to/assembly.dll&gt;</value>
+    <comment>Shown when #!extension is given nothing to install. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Import" xml:space="preserve">
+    <value>Import Magic Command</value>
+    <comment>Name of the #!import magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Import_CellCount_One" xml:space="preserve">
+    <value>{0} cell</value>
+    <comment>How many cells ran, written for exactly one. Goes into the sentence that reports what was imported.</comment>
+  </data>
+  <data name="Magic_Import_CellCount_Other" xml:space="preserve">
+    <value>{0} cells</value>
+    <comment>The same for any other number, including none.</comment>
+  </data>
+  <data name="Magic_Import_ConsentReason" xml:space="preserve">
+    <value>imported from {0}</value>
+    <comment>Why the reader is being asked to approve an extension: a notebook this one imports asks for it. Shown in the approval dialog beside the extension name. {0} is a file name.</comment>
+  </data>
+  <data name="Magic_Import_Description" xml:space="preserve">
+    <value>Imports another notebook file and executes its cells (any cell type other than markdown or raw), with optional parameter overrides. Pass --show-output to display the imported cells' output.</value>
+    <comment>What #!import does, shown in the list of magic commands. --show-output is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Import_DirectiveCount_One" xml:space="preserve">
+    <value>{0} directive extracted</value>
+    <comment>How many magic commands were lifted out of a source file, written for exactly one.</comment>
+  </data>
+  <data name="Magic_Import_DirectiveCount_Other" xml:space="preserve">
+    <value>{0} directives extracted</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Magic_Import_ExecutionFailed" xml:space="preserve">
+    <value>{0} (execution failed)</value>
+    <comment>Wraps the sentence reporting what was imported when the file did not run cleanly. {0} is that whole sentence.</comment>
+  </data>
+  <data name="Magic_Import_Failed" xml:space="preserve">
+    <value>Error importing notebook: {0}</value>
+    <comment>{0} is the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Magic_Import_FileNotFound" xml:space="preserve">
+    <value>File not found: {0}</value>
+    <comment>The path #!import was given does not exist. {0} is the full path it looked at.</comment>
+  </data>
+  <data name="Magic_Import_InvalidParameter" xml:space="preserve">
+    <value>Invalid value for parameter '{0}' ({1}): {2}</value>
+    <comment>A --param override the imported notebook cannot use. {0} is the parameter name, {1} the type it declares, {2} why the value does not fit.</comment>
+  </data>
+  <data name="Magic_Import_MissingRequired_One" xml:space="preserve">
+    <value>Missing required parameter for imported notebook:
+{0}</value>
+    <comment>Written for exactly one. {0} is an indented list, one parameter per line, which is not translated.</comment>
+  </data>
+  <data name="Magic_Import_MissingRequired_Other" xml:space="preserve">
+    <value>Missing required parameters for imported notebook:
+{0}</value>
+    <comment>The same for more than one.</comment>
+  </data>
+  <data name="Magic_Import_NoSerializer" xml:space="preserve">
+    <value>No serializer or kernel found for '{0}'. Supported formats: {1}</value>
+    <comment>Nothing installed can read this kind of file. {0} is a file name, {1} a list of file extensions such as '.verso, .ipynb'.</comment>
+  </data>
+  <data name="Magic_Import_Param_Param" xml:space="preserve">
+    <value>Parameter override in name=value format. May be repeated.</value>
+    <comment>What --param does. name=value is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Import_Param_Path" xml:space="preserve">
+    <value>Path to the notebook file to import.</value>
+    <comment>What the first argument to #!import is.</comment>
+  </data>
+  <data name="Magic_Import_Param_ShowOutput" xml:space="preserve">
+    <value>Display the output produced by the imported cells. Off by default.</value>
+    <comment>What --show-output does.</comment>
+  </data>
+  <data name="Magic_Import_SourceSummary" xml:space="preserve">
+    <value>Imported {0}</value>
+    <comment>What #!import did with a plain source file rather than a notebook. {0} is a file name.</comment>
+  </data>
+  <data name="Magic_Import_SourceSummaryDirectives" xml:space="preserve">
+    <value>Imported {0} ({1})</value>
+    <comment>{0} is a file name, {1} the count of directives already written out.</comment>
+  </data>
+  <data name="Magic_Import_Summary" xml:space="preserve">
+    <value>Imported {0} from {1}</value>
+    <comment>What #!import did. {0} is a count of cells already written out, {1} is a file name.</comment>
+  </data>
+  <data name="Magic_Import_SummaryWithFailures" xml:space="preserve">
+    <value>Imported {0} from {1} ({2} failed)</value>
+    <comment>The same when some cells did not run. {0} is a count of cells already written out, {1} is a file name, {2} how many failed.</comment>
+  </data>
+  <data name="Magic_Import_Usage" xml:space="preserve">
+    <value>#!import requires a file path. Usage: #!import &lt;path&gt; [--param name=value ...]</value>
+    <comment>Shown when #!import is given nothing to import. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_NuGet" xml:space="preserve">
+    <value>NuGet Magic Command</value>
+    <comment>Name of the #!nuget magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_NuGet_Description" xml:space="preserve">
+    <value>Downloads and references a NuGet package for use in subsequent code.</value>
+    <comment>What #!nuget does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_NuGet_Installed" xml:space="preserve">
+    <value>Installed '{0}', {1}</value>
+    <comment>{0} is a package name, {1} the version installed.</comment>
+  </data>
+  <data name="Magic_NuGet_Param_PackageId" xml:space="preserve">
+    <value>The NuGet package ID.</value>
+    <comment>What the first argument to #!nuget is.</comment>
+  </data>
+  <data name="Magic_NuGet_Param_Version" xml:space="preserve">
+    <value>Optional package version.</value>
+    <comment>What the second argument to #!nuget is.</comment>
+  </data>
+  <data name="Magic_NuGet_ResolveFailed" xml:space="preserve">
+    <value>Failed to resolve NuGet package '{0}': {1}</value>
+    <comment>{0} is a package name, {1} the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Magic_NuGet_Resolving" xml:space="preserve">
+    <value>Resolving NuGet package '{0}'...</value>
+    <comment>The same, when no version was asked for. {0} is a package name.</comment>
+  </data>
+  <data name="Magic_NuGet_ResolvingVersion" xml:space="preserve">
+    <value>Resolving NuGet package '{0}' version '{1}'...</value>
+    <comment>Printed before the download starts. {0} is a package name, {1} a version number.</comment>
+  </data>
+  <data name="Magic_NuGet_Usage" xml:space="preserve">
+    <value>Usage: #!nuget &lt;PackageId&gt; [Version]</value>
+    <comment>Shown when #!nuget is given nothing to install. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Restart" xml:space="preserve">
+    <value>Restart Magic Command</value>
+    <comment>Name of the #!restart magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Restart_Description" xml:space="preserve">
+    <value>Restarts the specified kernel, or the default kernel if no argument is given.</value>
+    <comment>What #!restart does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Restart_Done" xml:space="preserve">
+    <value>Kernel '{0}' restarted.</value>
+    <comment>{0} is a language id such as python, which is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Magic_Restart_DoneDefault" xml:space="preserve">
+    <value>Default kernel restarted.</value>
+    <comment>The same when #!restart was given no argument.</comment>
+  </data>
+  <data name="Magic_Restart_Param_KernelId" xml:space="preserve">
+    <value>The language ID of the kernel to restart.</value>
+    <comment>What the argument to #!restart is.</comment>
+  </data>
+  <data name="Magic_Time" xml:space="preserve">
+    <value>Time Magic Command</value>
+    <comment>Name of the #!time magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Time_Description" xml:space="preserve">
+    <value>Reports elapsed wall-clock time after cell execution.</value>
+    <comment>What #!time does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="ObjectTree_EmptyCollection" xml:space="preserve">
+    <value>Empty collection</value>
+    <comment>Shown in place of the entries when a collection has none.</comment>
+  </data>
+  <data name="ObjectTree_ItemCount" xml:space="preserve">
+    <value>({0} items)</value>
+    <comment>How many entries a collection has. Sits beside the type name. {0} may end in a plus sign when the collection was too long to count, so it is a number written out rather than a count.</comment>
+  </data>
+  <data name="ObjectTree_MemberCount_One" xml:space="preserve">
+    <value>({0} member)</value>
+    <comment>How many properties and fields an object has, written for exactly one. Sits beside the type name.</comment>
+  </data>
+  <data name="ObjectTree_MemberCount_Other" xml:space="preserve">
+    <value>({0} members)</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="ObjectTree_ShowingMore" xml:space="preserve">
+    <value>Showing {0} of more items</value>
+    <comment>Shown under a collection that was cut short. {0} is how many are on screen.</comment>
+  </data>
+  <data name="Parameters_Add" xml:space="preserve">
+    <value>Add Parameter</value>
+    <comment>Button that opens the row for entering a new parameter.</comment>
+  </data>
+  <data name="Parameters_Applied" xml:space="preserve">
+    <value>Parameters applied successfully.</value>
+    <comment>Shown after the values in a parameters cell have been handed to the kernel.</comment>
+  </data>
+  <data name="Parameters_CancelAdd" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Tooltip on the cross that abandons the new parameter.</comment>
+  </data>
+  <data name="Parameters_ColumnDefault" xml:space="preserve">
+    <value>Default</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnDescription" xml:space="preserve">
+    <value>Description</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnName" xml:space="preserve">
+    <value>Name</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnRequired" xml:space="preserve">
+    <value>Required</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ColumnType" xml:space="preserve">
+    <value>Type</value>
+    <comment>Column heading in the parameters table.</comment>
+  </data>
+  <data name="Parameters_ConfirmAdd" xml:space="preserve">
+    <value>Add</value>
+    <comment>Tooltip on the tick that saves the new parameter.</comment>
+  </data>
+  <data name="Parameters_DefaultPlaceholder" xml:space="preserve">
+    <value>default value</value>
+    <comment>Grey prompt inside the empty default-value box. Lower case, matching the other prompts in the row.</comment>
+  </data>
+  <data name="Parameters_DescriptionPlaceholder" xml:space="preserve">
+    <value>description</value>
+    <comment>Grey prompt inside the empty description box. Lower case, matching the other prompts in the row.</comment>
+  </data>
+  <data name="Parameters_ExpectedBoolean" xml:space="preserve">
+    <value>Expected true/false, yes/no, or 1/0, got '{0}'.</value>
+    <comment>The value does not fit the type the parameter declares. The six words listed are typed at a keyboard and stay as written. {0} is what was typed.</comment>
+  </data>
+  <data name="Parameters_ExpectedDate" xml:space="preserve">
+    <value>Expected a date in yyyy-MM-dd format, got '{0}'.</value>
+    <comment>The value does not fit the type the parameter declares. yyyy-MM-dd is a date pattern and stays as written. {0} is what was typed.</comment>
+  </data>
+  <data name="Parameters_ExpectedDateTime" xml:space="preserve">
+    <value>Expected an ISO 8601 datetime value, got '{0}'.</value>
+    <comment>The value does not fit the type the parameter declares. ISO 8601 is a standard's number and stays as written. {0} is what was typed.</comment>
+  </data>
+  <data name="Parameters_ExpectedInteger" xml:space="preserve">
+    <value>Expected an integer value, got '{0}'.</value>
+    <comment>The value does not fit the type the parameter declares. {0} is what was typed.</comment>
+  </data>
+  <data name="Parameters_ExpectedNumber" xml:space="preserve">
+    <value>Expected a numeric value, got '{0}'.</value>
+    <comment>The value does not fit the type the parameter declares. {0} is what was typed.</comment>
+  </data>
+  <data name="Parameters_InvalidValue" xml:space="preserve">
+    <value>Invalid value.</value>
+    <comment>Shown beside a parameter whose value does not fit its type.</comment>
+  </data>
+  <data name="Parameters_NamePlaceholder" xml:space="preserve">
+    <value>name</value>
+    <comment>Grey prompt inside the empty name box. Lower case, matching the other prompts in the row.</comment>
+  </data>
+  <data name="Parameters_None" xml:space="preserve">
+    <value>No parameters defined.</value>
+    <comment>Shown in a parameters cell that has nothing in it yet.</comment>
+  </data>
+  <data name="Parameters_NotFound" xml:space="preserve">
+    <value>Parameter '{0}' not found.</value>
+    <comment>Shown when a parameter has been removed under the reader's feet. {0} is the parameter's name.</comment>
+  </data>
+  <data name="Parameters_Remove" xml:space="preserve">
+    <value>Remove parameter</value>
+    <comment>Tooltip on the cross that deletes a parameter.</comment>
+  </data>
+  <data name="Parameters_Required" xml:space="preserve">
+    <value>required</value>
+    <comment>Checkbox beside a new parameter, marking it as one the notebook cannot run without. Lower case, matching the prompts in the same row.</comment>
+  </data>
+  <data name="Parameters_Title" xml:space="preserve">
+    <value>Parameters</value>
+    <comment>Heading of the parameters cell.</comment>
+  </data>
+  <data name="Parameters_UnknownType" xml:space="preserve">
+    <value>Unknown parameter type '{0}'.</value>
+    <comment>The notebook declares a parameter of a type Verso does not have. {0} is the type it named.</comment>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot" xml:space="preserve">
+    <value>Jupyter Polyglot Magic Splitter</value>
+    <comment>Name of the built-in import hook that splits Polyglot Notebook language directives into separate cells, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="PostProcessor_JupyterPolyglot_Description" xml:space="preserve">
+    <value>Splits Polyglot Notebook language-switching directives in imported .ipynb files into separate cells.</value>
+    <comment>What this import hook does, shown wherever extensions are listed. The file extension stays as written.</comment>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Error: {0}</value>
+    <comment>Written in front of a message a cell could not carry out. {0} is the message.</comment>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>Warning: {0}</value>
+    <comment>Written in front of a message about something that worked but is worth knowing. {0} is the message.</comment>
+  </data>
+  <data name="Properties_CollapseInput" xml:space="preserve">
+    <value>Collapse input</value>
+    <comment>Switch that hides a cell's source and leaves its output showing.</comment>
+  </data>
+  <data name="Properties_DefaultIs" xml:space="preserve">
+    <value>Default: {0}</value>
+    <comment>Note under a cell visibility setting saying what it falls back to. {0} is one of the visibility states.</comment>
+  </data>
+  <data name="Properties_DisplaySection" xml:space="preserve">
+    <value>Display</value>
+    <comment>Heading over the settings that control how a cell is drawn.</comment>
+  </data>
+  <data name="Properties_InputPreviewLines" xml:space="preserve">
+    <value>Input preview lines</value>
+    <comment>How many lines of source a collapsed cell shows.</comment>
+  </data>
+  <data name="Properties_Output" xml:space="preserve">
+    <value>Output</value>
+    <comment>Label on the control choosing how much of a cell's output is shown.</comment>
+  </data>
+  <data name="Properties_OutputFull" xml:space="preserve">
+    <value>Full</value>
+    <comment>Output setting: show all of it.</comment>
+  </data>
+  <data name="Properties_OutputHidden" xml:space="preserve">
+    <value>Hidden</value>
+    <comment>Output setting: show none of it.</comment>
+  </data>
+  <data name="Properties_OutputPreview" xml:space="preserve">
+    <value>Preview</value>
+    <comment>Output setting: show the first few lines.</comment>
+  </data>
+  <data name="Properties_OutputPreviewLines" xml:space="preserve">
+    <value>Output preview lines</value>
+    <comment>How many lines of output a previewed cell shows.</comment>
+  </data>
+  <data name="Properties_PreviewStyle" xml:space="preserve">
+    <value>Preview style</value>
+    <comment>Label on the control choosing how a preview is drawn.</comment>
+  </data>
+  <data name="Properties_PreviewStyleLines" xml:space="preserve">
+    <value>Lines</value>
+    <comment>Preview style: the first few lines, as written.</comment>
+  </data>
+  <data name="Properties_VisibilitySection" xml:space="preserve">
+    <value>Visibility</value>
+    <comment>Heading over the settings that control which layouts a cell appears in.</comment>
+  </data>
+  <data name="PropertyProvider_Display" xml:space="preserve">
+    <value>Cell Display Properties</value>
+    <comment>Name of the built-in provider of the Display settings, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="PropertyProvider_Display_Description" xml:space="preserve">
+    <value>Provides per-cell input and output display settings.</value>
+    <comment>Second line of the Cell Display Properties entry in the Extensions panel.</comment>
+  </data>
+  <data name="PropertyProvider_Visibility" xml:space="preserve">
+    <value>Cell Visibility Properties</value>
+    <comment>Name of the built-in provider of the Visibility settings, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="PropertyProvider_Visibility_Description" xml:space="preserve">
+    <value>Provides per-layout cell visibility overrides in the properties panel.</value>
+    <comment>Second line of the Cell Visibility Properties entry in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Fallback" xml:space="preserve">
+    <value>Fallback Renderer</value>
+    <comment>Name of the renderer used when a cell type has no renderer of its own, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Fallback_Label" xml:space="preserve">
+    <value>Fallback</value>
+    <comment>Short name of the fallback renderer.</comment>
+  </data>
+  <data name="Renderer_Html" xml:space="preserve">
+    <value>HTML Renderer</value>
+    <comment>Name of the built-in HTML renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Html_Description" xml:space="preserve">
+    <value>Renders HTML cells with input collapse on execute.</value>
+    <comment>Second line of the HTML renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Markdown" xml:space="preserve">
+    <value>Markdown Renderer</value>
+    <comment>Name of the built-in Markdown renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Markdown_Description" xml:space="preserve">
+    <value>Renders Markdown cells using Markdig.</value>
+    <comment>Second line of the Markdown renderer entry in the Extensions panel. Markdig is a library name.</comment>
+  </data>
+  <data name="Renderer_Mermaid" xml:space="preserve">
+    <value>Mermaid Renderer</value>
+    <comment>Name of the built-in Mermaid renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Mermaid_Description" xml:space="preserve">
+    <value>Renders Mermaid diagram cells with input collapse on execute.</value>
+    <comment>Second line of the Mermaid renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Parameters" xml:space="preserve">
+    <value>Parameters Renderer</value>
+    <comment>Name of the built-in parameters renderer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Renderer_Parameters_Description" xml:space="preserve">
+    <value>Renders parameter definitions as an interactive form with type-aware inputs.</value>
+    <comment>Second line of the parameters renderer entry in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Dib" xml:space="preserve">
+    <value>Polyglot Notebook Serializer</value>
+    <comment>Name of the built-in Polyglot Notebook reader, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Dib_Description" xml:space="preserve">
+    <value>Import-only serializer for Polyglot Notebooks .dib files.</value>
+    <comment>What this serializer does, shown wherever extensions are listed. It reads that format but never writes it. The file extension stays as written.</comment>
+  </data>
+  <data name="Serializer_Jupyter" xml:space="preserve">
+    <value>Jupyter Serializer</value>
+    <comment>Name of the built-in Jupyter serializer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Jupyter_Description" xml:space="preserve">
+    <value>Serializer for Jupyter .ipynb notebooks (nbformat v4).</value>
+    <comment>What this serializer does, shown wherever extensions are listed. The file extension and the format version stay as written.</comment>
+  </data>
+  <data name="Serializer_Markdown" xml:space="preserve">
+    <value>Markdown Serializer</value>
+    <comment>Name of the built-in Markdown serializer, as listed in the Extensions panel.</comment>
+  </data>
+  <data name="Serializer_Markdown_Description" xml:space="preserve">
+    <value>Serializer for Markdown (.md) notebooks with fenced code cells.</value>
+    <comment>What this serializer does, shown wherever extensions are listed. The file extension stays as written.</comment>
+  </data>
+  <data name="Serializer_Verso" xml:space="preserve">
+    <value>Verso Serializer</value>
+    <comment>Name of the serializer for Verso's own format, as listed in the Extensions panel. Verso is a product name.</comment>
+  </data>
+  <data name="Serializer_Verso_Description" xml:space="preserve">
+    <value>Native .verso file format serializer.</value>
+    <comment>What this serializer does, shown wherever extensions are listed. The file extension stays as written.</comment>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Verso Dark</value>
+    <comment>The built-in dark theme. Verso is a product name and stays as written; the word describing the theme is translated.</comment>
+  </data>
+  <data name="Theme_Dark_Description" xml:space="preserve">
+    <value>Default dark theme for Verso notebooks.</value>
+    <comment>Second line of the dark theme entry in the Extensions panel.</comment>
+  </data>
+  <data name="Theme_HighContrast" xml:space="preserve">
+    <value>Verso High Contrast</value>
+    <comment>The built-in high-contrast theme. Verso is a product name and stays as written; the words describing the theme are translated.</comment>
+  </data>
+  <data name="Theme_HighContrast_Description" xml:space="preserve">
+    <value>High-contrast accessibility theme with WCAG 2.1 AA compliant color tokens.</value>
+    <comment>Second line of the high-contrast theme entry in the Extensions panel. WCAG 2.1 AA is the name of a standard.</comment>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Verso Light</value>
+    <comment>The built-in light theme. Verso is a product name and stays as written; the word describing the theme is translated.</comment>
+  </data>
+  <data name="Theme_Light_Description" xml:space="preserve">
+    <value>Default light theme for Verso notebooks.</value>
+    <comment>Second line of the light theme entry in the Extensions panel.</comment>
+  </data>
+  <data name="Visibility_Collapsed" xml:space="preserve">
+    <value>Collapsed</value>
+    <comment>Cell visibility state: the cell is drawn folded shut.</comment>
+  </data>
+  <data name="Visibility_Hidden" xml:space="preserve">
+    <value>Hidden</value>
+    <comment>Cell visibility state: the cell is not drawn at all.</comment>
+  </data>
+  <data name="Visibility_OutputOnly" xml:space="preserve">
+    <value>Output Only</value>
+    <comment>Cell visibility state: the output is drawn and the source is not.</comment>
+  </data>
+  <data name="Visibility_Visible" xml:space="preserve">
+    <value>Visible</value>
+    <comment>Cell visibility state: the whole cell is drawn.</comment>
+  </data>
+</root>

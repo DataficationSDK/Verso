@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Ado.Kernel;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.CellType;
 
@@ -13,10 +14,10 @@ public sealed class SqlCellType : ICellType
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.celltype.sql";
-    public string Name => "SQL Cell Type";
+    public string Name => Strings.CellType_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "SQL cell type for querying databases via ADO.NET.";
+    public string? Description => Strings.CellType_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

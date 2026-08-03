@@ -4,6 +4,7 @@
 @using Microsoft.JSInterop
 @using Verso.Abstractions
 @using Verso.Blazor.Shared.Models
+@using Verso.Blazor.Shared.Resources
 @using Verso.Blazor.Shared.Services
 @implements IAsyncDisposable
 @inject IJSRuntime JS
@@ -12,7 +13,7 @@
 {
     <div class="verso-layout-error">
         <span class="verso-layout-error-message">@_errorMessage</span>
-        <button type="button" class="verso-layout-error-retry" @onclick="RetryAsync">Retry</button>
+        <button type="button" class="verso-layout-error-retry" @onclick="RetryAsync">@UI.Common_Retry</button>
     </div>
 }
 else if (_srcdoc is not null)
@@ -66,7 +67,7 @@ else if (_srcdoc is not null)
     {
         if (Service.ActiveLayout is not { } active || string.IsNullOrEmpty(active.LayoutId))
         {
-            _errorMessage = "Layout failed to load: no active isolated layout.";
+            _errorMessage = UI.Layout_ErrorNoActive;
             return;
         }
 
@@ -79,7 +80,7 @@ else if (_srcdoc is not null)
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Layout failed to load: could not allocate frame instance ({ex.Message}).";
+            _errorMessage = string.Format(UI.Layout_ErrorAllocateFrame, ex.Message);
             return;
         }
 
@@ -90,21 +91,21 @@ else if (_srcdoc is not null)
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Layout failed to load: renderer package fetch failed ({ex.Message}).";
+            _errorMessage = string.Format(UI.Layout_ErrorPackageFetch, ex.Message);
             return;
         }
 
         if (package is null)
         {
-            _errorMessage = "Layout failed to load: renderer package is empty.";
+            _errorMessage = UI.Layout_ErrorPackageEmpty;
             return;
         }
 
         _rendererProtocolVersion = package.RendererProtocolVersion;
 
-        if (!TryComposeContentSecurityPolicy(package.ContentSecurityPolicy, out var composedCsp, out var cspError))
+        if (!TryComposeContentSecurityPolicy(package.ContentSecurityPolicy, out var composedCsp, out var rejectedSource))
         {
-            _errorMessage = $"Layout failed to load: {cspError}";
+            _errorMessage = string.Format(UI.Layout_ErrorDisallowedSource, rejectedSource);
             return;
         }
 
@@ -115,7 +116,7 @@ else if (_srcdoc is not null)
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Layout failed to load: bridge script unavailable ({ex.Message}).";
+            _errorMessage = string.Format(UI.Layout_ErrorBridgeScript, ex.Message);
             return;
         }
 
@@ -200,7 +201,7 @@ else if (_srcdoc is not null)
             await InvokeAsync(() =>
             {
                 if (_disposed || _readyReceived) return;
-                _errorMessage = $"Layout failed to load: ready signal not received within {ReadyTimeoutMs / 1000}s.";
+                _errorMessage = string.Format(UI.Layout_ErrorNotReady, ReadyTimeoutMs / 1000);
                 _srcdoc = null;
                 StateHasChanged();
             });
@@ -515,10 +516,12 @@ else if (_srcdoc is not null)
         return script;
     }
 
+    // Reports the offending source rather than a finished sentence, so the message the reader
+    // sees is composed once, in one resource, by the caller.
     private static bool TryComposeContentSecurityPolicy(
-        string? packageCsp, out string composed, out string error)
+        string? packageCsp, out string composed, out string rejectedSource)
     {
-        error = string.Empty;
+        rejectedSource = string.Empty;
         // The renderer package's files are exposed to the frame as blob: URLs and the
         // entry module is loaded with a dynamic import(blobUrl), so script-src must allow
         // blob: in addition to the inline bootstrap. 'unsafe-inline' alone blocks the
@@ -549,7 +552,7 @@ else if (_srcdoc is not null)
                 if (token != "'none'" && token != "blob:" && token != "'self'")
                 {
                     composed = string.Empty;
-                    error = $"CSP rejected: package declares a disallowed connect-src source ('{token}').";
+                    rejectedSource = token;
                     return false;
                 }
             }

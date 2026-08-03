@@ -1,5 +1,7 @@
 using System.CommandLine;
 using System.Reflection;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Extensions;
 
 namespace Verso.Cli.Commands;
@@ -12,7 +14,7 @@ public static class InfoCommand
 {
     public static Command Create()
     {
-        var command = new Command("info", "Display Verso CLI version, runtime, and extension information.");
+        var command = new Command("info", Strings.Info_Description);
         command.SetHandler(ExecuteAsync);
         return command;
     }
@@ -34,14 +36,20 @@ public static class InfoCommand
         {
             await extensionHost.LoadBuiltInExtensionsAsync();
 
+            // Padded from the labels themselves rather than by counting spaces into each line,
+            // because a translated label is not the length the English one was.
+            var labelWidth = Math.Max(
+                DisplayWidth.Measure(Strings.Info_LabelRuntime),
+                DisplayWidth.Measure(Strings.Info_LabelEngine)) + 4;
+
             Console.WriteLine($"Verso CLI {cliVersion}");
-            Console.WriteLine($"Runtime:    .NET {Environment.Version}");
-            Console.WriteLine($"Engine:     Verso {engineVersion}");
+            Console.WriteLine($"{DisplayWidth.PadRight(Strings.Info_LabelRuntime, labelWidth)}.NET {Environment.Version}");
+            Console.WriteLine($"{DisplayWidth.PadRight(Strings.Info_LabelEngine, labelWidth)}Verso {engineVersion}");
 
             var kernels = extensionHost.GetKernels();
             if (kernels.Count > 0)
             {
-                Console.WriteLine("Extensions:");
+                Console.WriteLine(Strings.Info_HeadingExtensions);
                 foreach (var kernel in kernels)
                 {
                     Console.WriteLine($"  {kernel.ExtensionId,-28} {kernel.Name,-24} {kernel.Version}");
@@ -51,7 +59,7 @@ public static class InfoCommand
             var serializers = extensionHost.GetSerializers();
             if (serializers.Count > 0)
             {
-                Console.WriteLine("Serializers:");
+                Console.WriteLine(Strings.Info_HeadingSerializers);
                 foreach (var serializer in serializers)
                 {
                     var extensions = string.Join(", ", serializer.FileExtensions);
@@ -62,7 +70,7 @@ public static class InfoCommand
             var formatters = extensionHost.GetFormatters();
             if (formatters.Count > 0)
             {
-                Console.WriteLine("Formatters:");
+                Console.WriteLine(Strings.Info_HeadingFormatters);
                 foreach (var formatter in formatters)
                 {
                     Console.WriteLine($"  {formatter.ExtensionId,-28} {formatter.Name,-24} {formatter.Version}");

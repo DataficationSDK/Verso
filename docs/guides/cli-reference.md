@@ -16,6 +16,14 @@ dotnet tool update -g Verso.Cli
 
 It requires the .NET 8.0 SDK or later. After installing, `verso --help` lists the commands, and every command has its own `--help`.
 
+## Global options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--language <tag>` | system | Interface language: `en`, `de`, `es`, `ja`, or `zh-Hans` |
+
+`--language` is accepted by every command and before the command name as well, so `verso --language de --help` prints the help in German. With no option the language comes from the `VERSO_LANGUAGE` environment variable, then from the operating system, then English. Only the words change: numbers and dates are written the way the machine writes them, and the `[error]` tags and `--output json` status values stay in English so a pipeline that reads them cannot break. See [Interface Language](interface-language.md).
+
 ## verso serve
 
 Launches the editor as a local web app and opens it in your browser.

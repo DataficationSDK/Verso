@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.ToolbarActions;
 
@@ -11,10 +12,10 @@ public sealed class RunAllAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.action.run-all";
-    public string Name => "Run All";
+    public string Name => Strings.Action_RunAll;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Executes all cells in the notebook.";
+    public string? Description => Strings.Action_RunAll_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -22,7 +23,7 @@ public sealed class RunAllAction : IToolbarAction
     // --- IToolbarAction ---
 
     public string ActionId => "verso.action.run-all";
-    public string DisplayName => "Run All";
+    public string DisplayName => Strings.Action_RunAll;
     public string? Icon => "<svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"currentColor\"><path d=\"M2 3v10l5-5z\"/><path d=\"M8 3v10l5-5z\"/></svg>";
     public bool IsPrimary => true;
     public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;

@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Formatters;
 
@@ -26,10 +27,10 @@ public sealed class PrimitiveFormatter : IDataFormatter
     // --- IExtension ---
 
     public string ExtensionId => "verso.formatter.primitive";
-    public string Name => "Primitive Formatter";
+    public string Name => Strings.Formatter_Primitive;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Formats primitive and common value types as plain text.";
+    public string? Description => Strings.Formatter_Primitive_Description;
 
     // --- IDataFormatter ---
 

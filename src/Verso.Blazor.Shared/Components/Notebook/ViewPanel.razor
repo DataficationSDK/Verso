@@ -11,7 +11,7 @@
         @if (Service.AvailableLayouts.Count > 1)
         {
             <div class="verso-panel-section">
-                <div class="verso-panel-section-title">Layout</div>
+                <div class="verso-panel-section-title">@UI.View_Layout</div>
                 @foreach (var layout in Service.AvailableLayouts)
                 {
                     var l = layout;
@@ -27,7 +27,7 @@
                             @* Worth saying outright: these layouts show the notebook rather than
                                letting you work in it, and that surprises people who switch to one
                                and find they cannot type. *@
-                            <span class="verso-panel-chip">Read only</span>
+                            <span class="verso-panel-chip">@UI.View_ReadOnly</span>
                         }
                         @if (isActive)
                         {
@@ -41,7 +41,7 @@
         @if (ShowThemeSection)
         {
             <div class="verso-panel-section">
-                <div class="verso-panel-section-title">Theme</div>
+                <div class="verso-panel-section-title">@UI.View_Theme</div>
                 @foreach (var theme in Service.AvailableThemes)
                 {
                     var t = theme;

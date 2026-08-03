@@ -2,6 +2,7 @@ using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
 using Verso.Extensions;
 using Verso.Extensions.Marketplace;
+using Verso.Blazor.Shared.Resources;
 
 namespace Verso.Blazor.Services;
 
@@ -48,16 +49,16 @@ public sealed partial class ServerNotebookService
         string packageId, string? version, CancellationToken ct)
     {
         if (_scaffold is null || _extensionHost is null)
-            return new PackageInstallResultDto(false, null, "No notebook is open.", 0);
+            return new PackageInstallResultDto(false, null, UI.Common_NoNotebookOpen, 0);
 
         try
         {
             if (!_trustStore.IsApproved(packageId, version))
             {
-                var consent = new List<ExtensionConsentInfo> { new(packageId, version, "marketplace") };
+                var consent = new List<ExtensionConsentInfo> { new(packageId, version, Verso.Resources.Strings.Consent_Source_Marketplace) };
                 var approved = await _extensionHost.RequestExtensionConsentAsync(consent, ct);
                 if (!approved)
-                    return new PackageInstallResultDto(false, null, "Installation was not approved.", 0);
+                    return new PackageInstallResultDto(false, null, UI.Marketplace_InstallNotApproved, 0);
 
                 _trustStore.Approve(packageId, version);
                 _trustStore.Save();
@@ -106,7 +107,7 @@ public sealed partial class ServerNotebookService
         string fileName, Stream content, CancellationToken ct)
     {
         if (_scaffold is null || _extensionHost is null)
-            return new PackageInstallResultDto(false, null, "No notebook is open.", 0);
+            return new PackageInstallResultDto(false, null, UI.Common_NoNotebookOpen, 0);
 
         var tempDir = Directory.CreateTempSubdirectory("verso-sideload");
         try

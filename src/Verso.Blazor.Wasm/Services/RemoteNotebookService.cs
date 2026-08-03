@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
 using Verso.Blazor.Shared.Services;
+using Verso.Blazor.Shared.Resources;
 
 namespace Verso.Blazor.Wasm.Services;
 
@@ -292,12 +293,32 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         return (response.Sources ?? new List<DiffSourceItem>())
             .Select(s => new DiffSourceInfo(
                 s.Id ?? "",
-                s.Label ?? s.Id ?? "",
+                SourceLabel(s),
                 s.Kind ?? "",
                 s.Available,
-                s.Description))
+                SourceDescription(s)))
             .ToList();
     }
+
+    /// <summary>
+    /// Names one of the baselines a notebook can be compared against.
+    /// </summary>
+    /// <remarks>
+    /// The name the editor sent is a fallback, not the answer. It wrote it in the language
+    /// its workbench is set to, and this panel is written in the language the notebook
+    /// interface is set to. Anything the editor offers beyond the four built-in sources is
+    /// used as it arrived, since nothing here knows what it is.
+    /// </remarks>
+    private static string SourceLabel(DiffSourceItem source)
+        => DiffSources.NameOf(source.Id) ?? source.Label ?? source.Id ?? "";
+
+    /// <summary>
+    /// Why a baseline cannot be used, for the two reasons the panel knows how to explain.
+    /// </summary>
+    private static string? SourceDescription(DiffSourceItem source)
+        => source.Available || source.Description is null
+            ? source.Description
+            : DiffSources.UnavailableReason(source.Id) ?? source.Description;
 
     public async Task<NotebookDiffResult?> ComputeDiffAsync(string sourceId, string? explicitInput = null)
     {
@@ -316,9 +337,21 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         {
             baselineContent = baseline.Content,
             baselineFilePath = baseline.FilePath,
-            baselineLabel = baseline.Label ?? "Baseline",
+            baselineLabel = BaselineLabel(baseline),
         });
     }
+
+    /// <summary>
+    /// Names the baseline a comparison ran against, for the heading over the change list.
+    /// </summary>
+    /// <remarks>
+    /// The editor picked the baseline and says which one it is; the words for it are
+    /// chosen here, in the notebook interface language. What travels across is only what
+    /// no language can change: the git ref that was typed, and the name of a file that was
+    /// chosen.
+    /// </remarks>
+    private static string BaselineLabel(DiffBaselineResponse baseline)
+        => DiffSources.ResolvedName(baseline.LabelKind, baseline.LabelArg);
 
     public async Task SaveAsync(string filePath)
     {
@@ -1430,7 +1463,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var detail = TryReadStringProperty(paramsJson, "detail");
         OnKernelHealthChanged?.Invoke(new KernelHealthChangedEventArgs(
             KernelHealth.Disconnected,
-            detail ?? "The kernel host process exited."));
+            detail ?? UI.Kernel_HostExited));
     }
 
     private void HandleKernelFaulted(string? paramsJson)
@@ -2747,6 +2780,13 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public bool? Cancelled { get; set; }
         public string? Content { get; set; }
         public string? FilePath { get; set; }
-        public string? Label { get; set; }
+
+        /// <summary>Which of the baselines this is, so it can be named here.</summary>
+        public string? LabelKind { get; set; }
+
+        /// <summary>
+        /// The part of the name that is not a word: a git ref, or a file name.
+        /// </summary>
+        public string? LabelArg { get; set; }
     }
 }

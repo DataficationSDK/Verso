@@ -14,13 +14,13 @@
         @if (ShowSourceList)
         {
             <div class="verso-panel-section">
-                <div class="verso-panel-section-title">Compare with</div>
+                <div class="verso-panel-section-title">@UI.Compare_CompareWith</div>
 
                 @if (Comparison.Sources is null)
                 {
                     <div class="verso-panel-row verso-panel-secondary">
                         <span class="verso-spinner"></span>
-                        <span>Looking for baselines...</span>
+                        <span>@UI.Compare_LookingForBaselines</span>
                     </div>
                 }
                 else
@@ -52,20 +52,20 @@
             @if (Comparison.Result is not null)
             {
                 <div class="verso-panel-actions">
-                    <button class="verso-panel-action" @onclick="() => _showSourceList = false">Back to changes</button>
+                    <button class="verso-panel-action" @onclick="() => _showSourceList = false">@UI.Compare_BackToChanges</button>
                 </div>
             }
             else
             {
                 <div class="verso-panel-secondary verso-compare-hint">
-                    Nothing is being compared yet. The notebook is untouched either way.
+                    @UI.Compare_NothingYet
                 </div>
             }
         }
         else if (Comparison.Result is { } diff)
         {
             <div class="verso-panel-section">
-                <div class="verso-panel-section-title">Baseline</div>
+                <div class="verso-panel-section-title">@UI.Compare_Baseline</div>
                 <div class="verso-panel-row">
                     <div class="verso-compare-row-main">
                         <span>@diff.BaselineLabel</span>
@@ -74,23 +74,23 @@
                 <div class="verso-compare-chips">
                     @if (diff.Summary.Added > 0)
                     {
-                        <span class="verso-panel-chip verso-panel-chip--success">@diff.Summary.Added added</span>
+                        <span class="verso-panel-chip verso-panel-chip--success">@(string.Format(UI.Compare_SummaryAdded, diff.Summary.Added))</span>
                     }
                     @if (diff.Summary.Removed > 0)
                     {
-                        <span class="verso-panel-chip verso-panel-chip--error">@diff.Summary.Removed removed</span>
+                        <span class="verso-panel-chip verso-panel-chip--error">@(string.Format(UI.Compare_SummaryRemoved, diff.Summary.Removed))</span>
                     }
                     @if (diff.Summary.Modified > 0)
                     {
-                        <span class="verso-panel-chip verso-panel-chip--warning">@diff.Summary.Modified modified</span>
+                        <span class="verso-panel-chip verso-panel-chip--warning">@(string.Format(UI.Compare_SummaryModified, diff.Summary.Modified))</span>
                     }
                     @if (diff.Summary.Moved > 0)
                     {
-                        <span class="verso-panel-chip verso-panel-chip--info">@diff.Summary.Moved moved</span>
+                        <span class="verso-panel-chip verso-panel-chip--info">@(string.Format(UI.Compare_SummaryMoved, diff.Summary.Moved))</span>
                     }
                     @if (diff.Summary.Unchanged > 0)
                     {
-                        <span class="verso-panel-chip">@diff.Summary.Unchanged unchanged</span>
+                        <span class="verso-panel-chip">@(string.Format(UI.Compare_SummaryUnchanged, diff.Summary.Unchanged))</span>
                     }
                 </div>
             </div>
@@ -98,7 +98,7 @@
             @if (Changes.Count > 0)
             {
                 <div class="verso-panel-section">
-                    <div class="verso-panel-section-title">Changes</div>
+                    <div class="verso-panel-section-title">@UI.Compare_Changes</div>
                     @foreach (var change in Changes)
                     {
                         var c = change;
@@ -128,7 +128,7 @@
             {
                 <div class="verso-panel-section">
                     <div class="verso-panel-row verso-panel-secondary">
-                        No cell changed against this baseline.
+                        @UI.Compare_NoCellChanged
                     </div>
                 </div>
             }
@@ -136,14 +136,14 @@
             @if (diff.MetadataChanges.Count > 0)
             {
                 <div class="verso-panel-section">
-                    <div class="verso-panel-section-title">Notebook settings</div>
+                    <div class="verso-panel-section-title">@UI.Compare_NotebookSettings</div>
                     @foreach (var change in diff.MetadataChanges)
                     {
                         <div class="verso-panel-row">
                             <div class="verso-compare-row-main">
                                 <span>@change.Field</span>
                                 <span class="verso-panel-secondary">
-                                    @(change.BaselineValue ?? "(not set)") &#8594; @(change.CurrentValue ?? "(not set)")
+                                    @(change.BaselineValue ?? UI.Compare_NotSet) &#8594; @(change.CurrentValue ?? UI.Compare_NotSet)
                                 </span>
                             </div>
                         </div>
@@ -153,9 +153,9 @@
 
             <div class="verso-panel-actions">
                 <button class="verso-panel-action verso-panel-action--primary"
-                        @onclick="() => OnOpenFullDiff.InvokeAsync()">Open full diff</button>
-                <button class="verso-panel-action" @onclick="ShowSourcesAsync">Change baseline</button>
-                <button class="verso-panel-action" @onclick="StopAsync">Stop</button>
+                        @onclick="() => OnOpenFullDiff.InvokeAsync()">@UI.Compare_OpenFullDiff</button>
+                <button class="verso-panel-action" @onclick="ShowSourcesAsync">@UI.Compare_ChangeBaseline</button>
+                <button class="verso-panel-action" @onclick="StopAsync">@UI.Common_Stop</button>
             </div>
         }
 
@@ -251,18 +251,18 @@
 
     private static string KindLabel(CellDiffKind kind) => kind switch
     {
-        CellDiffKind.Added => "Added",
-        CellDiffKind.Removed => "Removed",
-        CellDiffKind.Modified => "Modified",
-        CellDiffKind.Moved => "Moved",
-        _ => "Unchanged"
+        CellDiffKind.Added => UI.Diff_Added,
+        CellDiffKind.Removed => UI.Diff_Removed,
+        CellDiffKind.Modified => UI.Diff_Modified,
+        CellDiffKind.Moved => UI.Diff_Moved,
+        _ => UI.Diff_Unchanged
     };
 
     private static string PositionLabel(CellDiffEntry entry) => entry.Kind switch
     {
-        CellDiffKind.Removed => $"was cell {entry.BaselineIndex + 1}",
-        CellDiffKind.Moved => $"cell {entry.BaselineIndex + 1} → {entry.CurrentIndex + 1}",
-        _ => $"cell {entry.CurrentIndex + 1}"
+        CellDiffKind.Removed => string.Format(UI.Compare_WasCell, entry.BaselineIndex + 1),
+        CellDiffKind.Moved => string.Format(UI.Compare_CellMoved, entry.BaselineIndex + 1, entry.CurrentIndex + 1),
+        _ => string.Format(UI.Compare_CellAt, entry.CurrentIndex + 1)
     };
 
     // The first line with anything on it, which is what identifies a cell to someone
@@ -274,7 +274,7 @@
     {
         var source = (entry.CurrentCell ?? entry.BaselineCell)?.Source;
         if (string.IsNullOrWhiteSpace(source))
-            return "(empty cell)";
+            return UI.Compare_EmptyCell;
 
         var line = source
             .Split('\n')

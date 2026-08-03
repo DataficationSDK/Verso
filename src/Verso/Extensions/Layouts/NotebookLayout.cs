@@ -1,5 +1,6 @@
 using System.Text;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Layouts;
 
@@ -23,10 +24,10 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
     // --- IExtension ---
 
     public string ExtensionId => "verso.layout.notebook";
-    public string Name => "Notebook Layout";
+    public string Name => Strings.Layout_Notebook;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Linear top-to-bottom notebook layout with live, editable cells in elevated cards.";
+    public string? Description => Strings.Layout_Notebook_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -34,7 +35,7 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
     // --- ILayoutEngine ---
 
     public string LayoutId => "notebook";
-    public string DisplayName => "Notebook";
+    public string DisplayName => Strings.Layout_Notebook_Label;
     public string? Icon => null;
     public bool RequiresCustomRenderer => true;
 
@@ -107,8 +108,8 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
         if (cells.Count == 0)
         {
             sb.Append("<div class=\"vmd-empty\">")
-              .Append("<p class=\"vmd-empty-title\">This notebook is empty</p>")
-              .Append("<p class=\"vmd-empty-sub\">Add your first cell below.</p>")
+              .Append("<p class=\"vmd-empty-title\">").Append(Escape(Strings.Layout_EmptyTitle)).Append("</p>")
+              .Append("<p class=\"vmd-empty-sub\">").Append(Escape(Strings.Layout_EmptySubtitle)).Append("</p>")
               .Append("</div>");
         }
 
@@ -160,7 +161,8 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
               .Append(cells.Count)
               .Append("\" data-type=\"").Append(ct.Id).Append("\">")
               .Append("<span class=\"vmd-add-glyph\">&#x2B;</span> ")
-              .Append(ct.DisplayName).Append(" Cell</button>");
+              .Append(Escape(string.Format(Strings.Layout_AddCell, ct.DisplayName)))
+              .Append("</button>");
         }
         sb.Append("</div>");
 
@@ -214,6 +216,11 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
 
     // --- HTML helpers ---
 
+    // Text drawn into the layout's own markup passes through here first. Cell type names reach
+    // this file from extensions, and the words around them from a resource file, so neither is
+    // guaranteed to be free of characters that would otherwise close a tag or an attribute.
+    private static string Escape(string value) => System.Net.WebUtility.HtmlEncode(value);
+
     private static void AppendInsertRail(StringBuilder sb, int index, IReadOnlyList<CellTypeOption> cellTypes)
     {
         sb.Append("<div class=\"vmd-insert\"><div class=\"vmd-insert-buttons\">");
@@ -222,9 +229,11 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
             sb.Append("<button type=\"button\" class=\"vmd-insert-btn\" data-action=\"insert-cell\" data-index=\"")
               .Append(index)
               .Append("\" data-type=\"").Append(ct.Id)
-              .Append("\" title=\"Insert a ").Append(ct.DisplayName).Append(" cell here\">")
+              .Append("\" title=\"")
+              .Append(Escape(string.Format(Strings.Layout_InsertCellHere, ct.DisplayName)))
+              .Append("\">")
               .Append("<span class=\"vmd-insert-glyph\">&#x2B;</span>")
-              .Append(ct.DisplayName).Append("</button>");
+              .Append(Escape(ct.DisplayName)).Append("</button>");
         }
         sb.Append("</div></div>");
     }
@@ -236,7 +245,9 @@ public sealed class NotebookLayout : ILayoutEngine, ILayoutInteractionHandler
     /// </summary>
     private static IReadOnlyList<CellTypeOption> GetAvailableCellTypes(IVersoContext context)
     {
-        var types = new List<CellTypeOption> { new("code", "Code") };
+        // Code has no ICellType of its own: it is what a cell is when nothing else claims it,
+        // so the engine has to name it here rather than reading the name off a registration.
+        var types = new List<CellTypeOption> { new("code", Strings.CellType_Code) };
         var host = context.ExtensionHost;
 
         var registeredTypes = host.GetCellTypes();

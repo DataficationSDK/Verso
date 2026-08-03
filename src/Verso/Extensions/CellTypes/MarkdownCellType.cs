@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Renderers;
 
 namespace Verso.Extensions.CellTypes;
@@ -14,10 +15,10 @@ public sealed class MarkdownCellType : ICellType
     // --- IExtension ---
 
     public string ExtensionId => "verso.celltype.markdown";
-    public string Name => "Markdown Cell Type";
+    public string Name => Strings.CellType_Markdown;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Markdown prose cells rendered to HTML with Markdig.";
+    public string? Description => Strings.CellType_Markdown_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -25,6 +26,7 @@ public sealed class MarkdownCellType : ICellType
     // --- ICellType ---
 
     public string CellTypeId => "markdown";
+    // Format and product names read the same in every language.
     public string DisplayName => "Markdown";
 
     public string? Icon => "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"currentColor\">"

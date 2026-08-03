@@ -1,6 +1,6 @@
 <div class="verso-sidebar-panel">
     <div class="verso-variable-toolbar">
-        <button class="verso-cell-btn" aria-label="Refresh" data-verso-tip="Refresh" @onclick="RefreshFromHostAsync">&#8635;</button>
+        <button class="verso-cell-btn" aria-label="@UI.Variables_Refresh" data-verso-tip="@UI.Variables_Refresh" @onclick="RefreshFromHostAsync">&#8635;</button>
     </div>
 
     @if (_refreshError is not null)
@@ -10,16 +10,16 @@
 
     @if (_entries.Count == 0 && _refreshError is null)
     {
-        <div class="verso-variable-empty">No variables defined.</div>
+        <div class="verso-variable-empty">@UI.Variables_Empty</div>
     }
     else if (_entries.Count > 0)
     {
         <table class="verso-variable-table">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Value</th>
+                    <th>@UI.Variables_ColumnName</th>
+                    <th>@UI.Variables_ColumnType</th>
+                    <th>@UI.Variables_ColumnValue</th>
                 </tr>
             </thead>
             <tbody>
@@ -109,7 +109,7 @@
         }
         catch (Exception ex)
         {
-            _refreshError = $"Refresh failed: {ex.Message}";
+            _refreshError = string.Format(UI.Variables_RefreshFailed, ex.Message);
         }
     }
 

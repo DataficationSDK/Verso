@@ -23,9 +23,13 @@ export async function activate(
   if (hostDllPath) {
     log.info(`Resolved Verso.Host.dll: ${hostDllPath}`);
   } else {
+    // The log line stays in English: it is read alongside stack traces and is what
+    // somebody searches for when they report a problem.
     log.error('Could not find Verso.Host.dll. Set "verso.hostPath" in settings to the path of your built Verso.Host.dll.');
     vscode.window.showErrorMessage(
-      'Verso: Could not find Verso.Host.dll. Set "verso.hostPath" in settings to the path of your built Verso.Host.dll.'
+      vscode.l10n.t(
+        'Verso: Could not find Verso.Host.dll. Set "verso.hostPath" in settings to the path of your built Verso.Host.dll.'
+      )
     );
   }
 
@@ -80,7 +84,7 @@ export async function activate(
       const notebook = await resolveNotebook();
       if (!notebook) {
         vscode.window.showInformationMessage(
-          "Verso: Open a notebook to compare it with a baseline."
+          vscode.l10n.t("Verso: Open a notebook to compare it with a baseline.")
         );
         return;
       }
@@ -89,18 +93,28 @@ export async function activate(
       const picked = await vscode.window.showQuickPick(
         sources.map((s) => ({
           label: s.label,
-          description: s.available ? "" : s.description ?? "unavailable",
+          description: s.available
+            ? ""
+            : s.description ?? vscode.l10n.t({
+              message: "unavailable",
+              comment: [
+                "Said of a baseline that cannot be compared against, for a reason nothing here knows.",
+              ],
+            }),
           sourceId: s.id,
           available: s.available,
         })),
-        { placeHolder: "Compare notebook with..." }
+        { placeHolder: vscode.l10n.t("Compare notebook with...") }
       );
       if (!picked) {
         return;
       }
       if (!picked.available) {
         vscode.window.showInformationMessage(
-          `Verso: ${picked.description || "This comparison source is not available."}`
+          `Verso: ${
+            picked.description ||
+            vscode.l10n.t("This comparison source is not available.")
+          }`
         );
         return;
       }

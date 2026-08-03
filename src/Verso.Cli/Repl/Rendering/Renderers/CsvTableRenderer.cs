@@ -1,6 +1,8 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Rendering.Renderers;
 
@@ -41,7 +43,11 @@ internal static class CsvTableRenderer
         }
 
         if (body.Count > rowCap)
-            return new Rows(table, new Markup($"[dim]… {body.Count - rowCap} more rows[/]"));
+        {
+            var omitted = body.Count - rowCap;
+            return new Rows(table, new Markup(Messages.In("dim", Messages.Say(
+                Plural.Of(omitted, Strings.Render_MoreRows_One, Strings.Render_MoreRows_Other), omitted))));
+        }
         return table;
     }
 

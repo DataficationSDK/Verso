@@ -2,6 +2,8 @@ using Verso.Abstractions;
 using Verso.Ado.Helpers;
 using Verso.Ado.Kernel;
 using Verso.Ado.Scaffold;
+using Verso.Ado.Localization;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.MagicCommands;
 
@@ -14,19 +16,19 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-scaffold";
-    string IExtension.Name => "SQL Scaffold Magic Command";
+    string IExtension.Name => Strings.Magic_Scaffold_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Generates EF Core DbContext and entity classes from a database schema.";
+    public string Description => Strings.Magic_Scaffold_Description;
 
     // --- IMagicCommand ---
     public string Name => "sql-scaffold";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("connection", "The named connection to scaffold from.", typeof(string), IsRequired: true),
-        new ParameterDefinition("tables", "Comma-separated list of tables to include (default: all).", typeof(string)),
-        new ParameterDefinition("schema", "Database schema to filter by (e.g. dbo).", typeof(string)),
+        new ParameterDefinition("connection", Strings.Magic_Scaffold_Param_Connection, typeof(string), IsRequired: true),
+        new ParameterDefinition("tables", Strings.Magic_Scaffold_Param_Tables, typeof(string)),
+        new ParameterDefinition("schema", Strings.Magic_Scaffold_Param_Schema, typeof(string)),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -43,7 +45,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                "Error: --connection is required. Usage: #!sql-scaffold --connection <name> [--tables \"Table1,Table2\"]",
+                CellText.Error(Strings.Magic_Scaffold_ConnectionRequired),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -54,7 +56,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Error: Connection '{connectionName}' not found. Use #!sql-connect first.",
+                CellText.Error(string.Format(Strings.Magic_Scaffold_NotFound, connectionName)),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -64,7 +66,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Error: Connection '{connectionName}' is not open.",
+                CellText.Error(string.Format(Strings.Magic_Scaffold_ConnectionClosed, connectionName)),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -97,7 +99,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         if (tables.Count == 0)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "No tables found matching the specified criteria.",
+                "text/plain", Strings.Magic_Scaffold_NoTables,
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -160,7 +162,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
                 {
                     var hint = EfCorePrerequisiteChecker.GetInstallHint(connInfo.ProviderName);
                     await context.WriteOutputAsync(new CellOutput("text/plain",
-                        $"Hint: ensure EF Core packages are installed in a prior C# cell:\n\n{hint}",
+                        string.Format(Strings.Magic_Scaffold_EfCoreHint, hint),
                         IsError: true)).ConfigureAwait(false);
                 }
             }
@@ -169,7 +171,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         {
             compilationSucceeded = false;
             await context.WriteOutputAsync(new CellOutput("text/plain",
-                "Error: C# kernel not found. Cannot execute scaffolded code.",
+                CellText.Error(Strings.Magic_Scaffold_NoCSharpKernel),
                 IsError: true)).ConfigureAwait(false);
         }
 
@@ -185,15 +187,22 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         var contextVarName = char.ToLowerInvariant(connectionName[0]) + connectionName.Substring(1) + "Context";
 
         var relSuffix = result.RelationshipCount > 0
-            ? $" ({result.RelationshipCount} relationship{(result.RelationshipCount != 1 ? "s" : "")})"
+            ? string.Format(
+                Plural.Of(result.RelationshipCount,
+                    Strings.Magic_Scaffold_RelationshipCount_One,
+                    Strings.Magic_Scaffold_RelationshipCount_Other),
+                result.RelationshipCount)
             : "";
 
-        var summaryText =
-            $"Scaffolded {result.EntityCount} entit{(result.EntityCount != 1 ? "ies" : "y")}{relSuffix} into {result.ContextClassName}\n\n" +
-            $"Entities: {entityList}\n" +
-            $"Context variable: {contextVarName}\n\n" +
-            $"Usage in C# cells:\n" +
-            $"  var items = {contextVarName}.{tables[0].Name}.ToList();\n";
+        // The counts are written out on their own and go in as arguments, so the report is
+        // one entry a translator can reorder rather than six fragments glued together.
+        var entities = string.Format(
+            Plural.Of(result.EntityCount,
+                Strings.Magic_Scaffold_EntityCount_One, Strings.Magic_Scaffold_EntityCount_Other),
+            result.EntityCount);
+
+        var summaryText = string.Format(Strings.Magic_Scaffold_Summary,
+            entities, relSuffix, result.ContextClassName, entityList, contextVarName, tables[0].Name);
 
         // Output the summary as text
         await context.WriteOutputAsync(new CellOutput("text/plain", summaryText)).ConfigureAwait(false);
@@ -202,7 +211,7 @@ public sealed class SqlScaffoldMagicCommand : IMagicCommand
         var escapedCode = System.Net.WebUtility.HtmlEncode(result.GeneratedCode);
         var detailsHtml =
             "<details>\n" +
-            "<summary>Generated C# code</summary>\n\n" +
+            $"<summary>{System.Net.WebUtility.HtmlEncode(Strings.Magic_Scaffold_GeneratedCode)}</summary>\n\n" +
             $"<pre><code>{escapedCode}</code></pre>\n" +
             "</details>";
 

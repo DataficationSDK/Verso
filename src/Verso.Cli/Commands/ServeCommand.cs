@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Verso.Cli.Hosting;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Commands;
@@ -11,33 +12,26 @@ public static class ServeCommand
 {
     public static Command Create()
     {
-        var notebookArg = new Argument<FileInfo?>("notebook", () => null,
-            "Optional notebook to open on startup.")
+        var notebookArg = new Argument<FileInfo?>("notebook", () => null, Strings.Serve_ArgNotebook)
         {
             Arity = ArgumentArity.ZeroOrOne
         };
 
-        var portOption = new Option<int>("--port", () => 5050,
-            "HTTP port to listen on.");
+        var portOption = new Option<int>("--port", () => 5050, Strings.Serve_OptPort);
 
-        var noBrowserOption = new Option<bool>("--no-browser", () => false,
-            "Do not open a browser tab on startup.");
+        var noBrowserOption = new Option<bool>("--no-browser", () => false, Strings.Serve_OptNoBrowser);
 
-        var noHttpsOption = new Option<bool>("--no-https", () => false,
-            "Disable HTTPS (HTTP only).");
+        var noHttpsOption = new Option<bool>("--no-https", () => false, Strings.Serve_OptNoHttps);
 
-        var extensionsOption = new Option<DirectoryInfo?>("--extensions",
-            "Directory to scan for additional extension assemblies.");
+        var extensionsOption = new Option<DirectoryInfo?>("--extensions", Strings.Option_Extensions);
 
-        var verboseOption = new Option<bool>("--verbose", () => false,
-            "Print startup details to stderr.");
+        var verboseOption = new Option<bool>("--verbose", () => false, Strings.Serve_OptVerbose);
 
-        var preserveFormatOption = new Option<bool>("--preserve-format", () => false,
-            "When a loaded .ipynb notebook is saved, write back to .ipynb instead of converting to .verso. Cell outputs are preserved.");
+        var preserveFormatOption = new Option<bool>("--preserve-format", () => false, Strings.Serve_OptPreserveFormat);
 
         var pythonOption = PythonInterpreterOption.Create();
 
-        var command = new Command("serve", "Launch the Verso Blazor application as a local web server.")
+        var command = new Command("serve", Strings.Serve_Description)
         {
             notebookArg,
             portOption,
@@ -58,6 +52,7 @@ public static class ServeCommand
             var extensions = context.ParseResult.GetValueForOption(extensionsOption);
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
             var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
+            var language = context.ParseResult.GetValueForOption(LanguageOption.Instance);
 
             PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
 
@@ -68,7 +63,8 @@ public static class ServeCommand
                 notebookPath = Path.GetFullPath(notebook.FullName);
                 if (!File.Exists(notebookPath))
                 {
-                    Console.Error.WriteLine($"Error: Notebook file not found: {notebookPath}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Error_NotebookNotFound, notebookPath)));
                     context.ExitCode = ExitCodes.FileNotFound;
                     return;
                 }
@@ -82,7 +78,8 @@ public static class ServeCommand
                     NoHttps = noHttps,
                     Verbose = verbose,
                     ExtensionsDirectory = extensions?.FullName,
-                    PreserveFormat = preserveFormat
+                    PreserveFormat = preserveFormat,
+                    Language = language
                 };
 
                 var app = BlazorHostBuilder.Build(options);
@@ -93,17 +90,17 @@ public static class ServeCommand
                     ? $"{baseUrl}/?recover={Uri.EscapeDataString(notebookPath)}"
                     : baseUrl;
 
-                Console.WriteLine($"Verso is running at {baseUrl}");
-                Console.WriteLine("Press Ctrl+C to stop.");
+                Console.WriteLine(string.Format(Strings.Serve_Running, baseUrl));
+                Console.WriteLine(Strings.Serve_PressCtrlC);
 
                 if (verbose)
                 {
                     if (!noHttps)
                         Console.Error.WriteLine($"  HTTPS: https://localhost:{port + 1}");
                     if (extensions is not null)
-                        Console.Error.WriteLine($"  Extensions: {extensions.FullName}");
+                        Console.Error.WriteLine("  " + string.Format(Strings.Serve_VerboseExtensions, extensions.FullName));
                     if (notebookPath is not null)
-                        Console.Error.WriteLine($"  Notebook: {notebookPath}");
+                        Console.Error.WriteLine("  " + string.Format(Strings.Serve_VerboseNotebook, notebookPath));
                 }
 
                 // Open the browser after Kestrel has bound its ports to
@@ -123,7 +120,8 @@ public static class ServeCommand
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error: Failed to start server: {ex.Message}");
+                Console.Error.WriteLine(Messages.Error(
+                    string.Format(Strings.Serve_StartFailed, ex.Message)));
                 context.ExitCode = ExitCodes.CellFailure;
             }
         });

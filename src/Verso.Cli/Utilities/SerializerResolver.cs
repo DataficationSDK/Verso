@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Cli.Resources;
 using Verso.Extensions;
 
 namespace Verso.Cli.Utilities;
@@ -22,8 +23,8 @@ public static class SerializerResolver
         if (serializer is null)
         {
             var extension = Path.GetExtension(filePath);
-            throw new SerializerNotFoundException(
-                $"Unsupported notebook format '{extension}'. Supported formats: .verso, .ipynb, .md, .dib");
+            throw new SerializerNotFoundException(string.Format(
+                Strings.Error_UnsupportedNotebookFormat, extension, ".verso, .ipynb, .md, .dib"));
         }
 
         return serializer;
@@ -48,8 +49,8 @@ public static class SerializerResolver
 
         if (serializer is null)
         {
-            throw new SerializerNotFoundException(
-                $"Unsupported output format '{format}'. Supported formats: verso, ipynb, md, dib");
+            throw new SerializerNotFoundException(string.Format(
+                Strings.Error_UnsupportedOutputFormat, format, "verso, ipynb, md, dib"));
         }
 
         return serializer;

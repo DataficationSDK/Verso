@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Npm_Description" xml:space="preserve">
+    <value>Installs npm packages for use in JavaScript cells.</value>
+    <comment>What the #!npm extension is, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Kernel_JavaScript_Description" xml:space="preserve">
+    <value>JavaScript language kernel via Node.js or Jint.</value>
+    <comment>What the JavaScript kernel is, shown wherever kernels are listed.</comment>
+  </data>
+  <data name="Kernel_TypeScript_Description" xml:space="preserve">
+    <value>TypeScript language kernel via Node.js with automatic transpilation.</value>
+    <comment>What the TypeScript kernel is, shown wherever kernels are listed.</comment>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} is already installed.</value>
+    <comment>Nothing was done. {0} is one package name, with its version after it when that is known.</comment>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} are already installed.</value>
+    <comment>The same for more than one. {0} is a comma-separated list.</comment>
+  </data>
+  <data name="Magic_Npm_Description" xml:space="preserve">
+    <value>Installs npm packages for use in subsequent JavaScript cells.</value>
+    <comment>What #!npm does, shown in the list of magic commands.</comment>
+  </data>
+  <data name="Magic_Npm_Installing" xml:space="preserve">
+    <value>Installing {0}...</value>
+    <comment>Printed before the install starts, so a slow one does not look like nothing happening. {0} is a comma-separated list of package names.</comment>
+  </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Npm Magic Command</value>
+    <comment>Name of the #!npm magic command as an extension, as listed in the Extensions panel. The command word itself is typed into a cell and is not translated.</comment>
+  </data>
+  <data name="Magic_Npm_NoKernel" xml:space="preserve">
+    <value>No JavaScript kernel is loaded. #!npm requires the JavaScript kernel.</value>
+    <comment>#!npm installs for the JavaScript kernel, and there is not one to install for.</comment>
+  </data>
+  <data name="Magic_Npm_Param_Packages" xml:space="preserve">
+    <value>One or more package names (e.g. lodash axios@1.6).</value>
+    <comment>What the argument to #!npm is. The two package names are examples and stay as written.</comment>
+  </data>
+  <data name="Magic_Npm_Usage" xml:space="preserve">
+    <value>Usage: #!npm &lt;package-names&gt;</value>
+    <comment>Shown when #!npm is given nothing to install. Everything after 'Usage:' is typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Node_NotReady" xml:space="preserve">
+    <value>Node.js bridge did not send ready signal within 10 seconds.</value>
+    <comment>Node.js started but never answered, so the cell cannot run.</comment>
+  </data>
+  <data name="Node_NotRunning" xml:space="preserve">
+    <value>Node.js process is not running.</value>
+    <comment>A cell was run after the process behind it had stopped.</comment>
+  </data>
+  <data name="Node_Required" xml:space="preserve">
+    <value>TypeScript kernel requires Node.js. Node.js was not found on PATH or in well-known locations.</value>
+    <comment>TypeScript cells cannot run without Node.js installed. PATH is the name of an environment variable and stays as written.</comment>
+  </data>
+  <data name="Node_Terminated" xml:space="preserve">
+    <value>Node.js process terminated unexpectedly.</value>
+    <comment>The process running the cell stopped part-way through.</comment>
+  </data>
+  <data name="Node_TranspileRequiresModule" xml:space="preserve">
+    <value>TypeScript transpilation requires Node.js with the typescript module installed.</value>
+    <comment>The built-in engine cannot compile TypeScript. 'typescript' is a package name and stays as written.</comment>
+  </data>
+  <data name="Npm_AuditSummary" xml:space="preserve">
+    <value>npm audit found {0} in the installed packages. Run npm audit for details.</value>
+    <comment>{0} is a count already written out. 'npm audit' is a command typed at a keyboard and stays as written.</comment>
+  </data>
+  <data name="Npm_AuditSummaryBySeverity" xml:space="preserve">
+    <value>npm audit found {0} ({1}) in the installed packages. Run npm audit for details.</value>
+    <comment>{0} is a count already written out, {1} a comma-separated breakdown such as '2 high, 1 low'.</comment>
+  </data>
+  <data name="Npm_Dependencies" xml:space="preserve">
+    <value>Dependencies: {0}.</value>
+    <comment>Names what came along with the request. {0} is a comma-separated list with versions.</comment>
+  </data>
+  <data name="Npm_DependencyCount_One" xml:space="preserve">
+    <value>{0} dependency</value>
+    <comment>How many packages came along with what was asked for, written for exactly one. Goes into the sentence above.</comment>
+  </data>
+  <data name="Npm_DependencyCount_Other" xml:space="preserve">
+    <value>{0} dependencies</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Npm_InstallFailed" xml:space="preserve">
+    <value>The npm install failed.</value>
+    <comment>Shown when the install failed and npm said nothing about why.</comment>
+  </data>
+  <data name="Npm_Installed" xml:space="preserve">
+    <value>Installed {0}.</value>
+    <comment>{0} is a list of packages with their versions, or a count already written out.</comment>
+  </data>
+  <data name="Npm_InstalledAnd" xml:space="preserve">
+    <value>Installed {0} and {1}.</value>
+    <comment>{0} is what was asked for, {1} a count of what came along with it, already written out.</comment>
+  </data>
+  <data name="Npm_NotFound" xml:space="preserve">
+    <value>npm not found on PATH.</value>
+    <comment>npm is not installed, or not where it can be found. PATH is the name of an environment variable and stays as written.</comment>
+  </data>
+  <data name="Npm_NothingToDo" xml:space="preserve">
+    <value>Everything requested is already installed.</value>
+    <comment>The install ran and added nothing, because it was all there.</comment>
+  </data>
+  <data name="Npm_PackageCount_One" xml:space="preserve">
+    <value>{0} package</value>
+    <comment>How many packages were installed, written for exactly one.</comment>
+  </data>
+  <data name="Npm_PackageCount_Other" xml:space="preserve">
+    <value>{0} packages</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Npm_Packages" xml:space="preserve">
+    <value>Packages: {0}.</value>
+    <comment>Names what was installed when none of it matches what was asked for by name. {0} is a comma-separated list with versions.</comment>
+  </data>
+  <data name="Npm_Replaced" xml:space="preserve">
+    <value>Replaced: {0}.</value>
+    <comment>Names what the install took out. {0} is a comma-separated list with versions.</comment>
+  </data>
+  <data name="Npm_Severity_Critical" xml:space="preserve">
+    <value>{0} critical</value>
+    <comment>How many of npm's audit findings were rated critical. {0} is the count. Goes into the breakdown in the sentence above.</comment>
+  </data>
+  <data name="Npm_Severity_High" xml:space="preserve">
+    <value>{0} high</value>
+    <comment>How many of npm's audit findings were rated high. {0} is the count. Goes into the breakdown in the sentence above.</comment>
+  </data>
+  <data name="Npm_Severity_Info" xml:space="preserve">
+    <value>{0} info</value>
+    <comment>How many of npm's audit findings were rated info. {0} is the count. Goes into the breakdown in the sentence above.</comment>
+  </data>
+  <data name="Npm_Severity_Low" xml:space="preserve">
+    <value>{0} low</value>
+    <comment>How many of npm's audit findings were rated low. {0} is the count. Goes into the breakdown in the sentence above.</comment>
+  </data>
+  <data name="Npm_Severity_Moderate" xml:space="preserve">
+    <value>{0} moderate</value>
+    <comment>How many of npm's audit findings were rated moderate. {0} is the count. Goes into the breakdown in the sentence above.</comment>
+  </data>
+  <data name="Npm_StartFailed" xml:space="preserve">
+    <value>Failed to start npm process.</value>
+    <comment>npm was found but would not run.</comment>
+  </data>
+  <data name="Npm_VulnerabilityCount_One" xml:space="preserve">
+    <value>{0} vulnerability</value>
+    <comment>How many problems npm's audit found, written for exactly one. Goes into the sentence below.</comment>
+  </data>
+  <data name="Npm_VulnerabilityCount_Other" xml:space="preserve">
+    <value>{0} vulnerabilities</value>
+    <comment>The same for any other number.</comment>
+  </data>
+  <data name="Run_NodeCrashed" xml:space="preserve">
+    <value>Node.js process crashed. Restarting...</value>
+    <comment>The process running the cell stopped on its own and is being started again.</comment>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>Memory limit exceeded (128 MB).</value>
+    <comment>A cell asked the built-in engine for more memory than it is allowed.</comment>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>Execution timed out (15 second limit).</value>
+    <comment>A cell ran on the built-in engine for longer than it is allowed to.</comment>
+  </data>
+  <data name="Run_TranspileFailed" xml:space="preserve">
+    <value>Transpilation failed: {0}</value>
+    <comment>TypeScript could not be turned into JavaScript. {0} is the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="Run_UnknownError" xml:space="preserve">
+    <value>Unknown JavaScript error</value>
+    <comment>Shown in place of an error message when the engine reported a failure without saying what it was.</comment>
+  </data>
+  <data name="Run_UnknownTranspileError" xml:space="preserve">
+    <value>Unknown transpilation error</value>
+    <comment>Shown in place of an error message when TypeScript would not compile and said nothing about why.</comment>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>Report an npm install as the packages it added and the versions they came in at, rather than relaying npm's own narration and its funding and audit footers. Installing one package brings in its dependencies, and that block is saved into the notebook alongside the output the cell was actually run for. An install that fails is always reported in full, as is anything npm's audit found.</value>
+    <comment>What the setting above does, shown under its name in the settings panel.</comment>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>Hide Installation Output</value>
+    <comment>Name of a setting, shown in the settings panel. Keep it short; it sits on one line beside a switch.</comment>
+  </data>
+  <data name="TypeScript_InstallFailed" xml:space="preserve">
+    <value>Failed to install the {0} npm package.</value>
+    <comment>{0} is the package and version being installed, such as typescript@5, which stays as written.</comment>
+  </data>
+  <data name="TypeScript_VerifyFailed" xml:space="preserve">
+    <value>TypeScript compiler not working after install (typescript {0}): {1}</value>
+    <comment>The compiler installed but will not compile anything. {0} is the version that installed, {1} the underlying error, which arrives in English.</comment>
+  </data>
+  <data name="TypeScript_VersionUnknown" xml:space="preserve">
+    <value>version unknown</value>
+    <comment>Stands in for the version number in the message above when it could not be read.</comment>
+  </data>
+</root>

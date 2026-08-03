@@ -15,6 +15,23 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!--
+    Everything an F# cell writes for somebody to read is reached through the generated Strings
+    class, so a renamed or deleted key breaks the build instead of silently falling back to the
+    key name.
+    Each property reads its resource on access, which is what lets one process answer in the
+    language it was asked for.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator>MSBuild:Compile</Generator>
+      <StronglyTypedFileName>$(IntermediateOutputPath)Strings.Designer.cs</StronglyTypedFileName>
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedNamespace>Verso.FSharp.Resources</StronglyTypedNamespace>
+      <StronglyTypedClassName>Strings</StronglyTypedClassName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Verso.FSharp.Tests" />
   </ItemGroup>

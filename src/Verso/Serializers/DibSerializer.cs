@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -17,10 +18,10 @@ public sealed class DibSerializer : INotebookSerializer
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.dib";
-    public string Name => "Polyglot Notebook Serializer";
+    public string Name => Strings.Serializer_Dib;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Import-only serializer for Polyglot Notebooks .dib files.";
+    public string? Description => Strings.Serializer_Dib_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -38,7 +39,7 @@ public sealed class DibSerializer : INotebookSerializer
 
     public Task<string> SerializeAsync(NotebookModel notebook)
     {
-        throw new NotSupportedException("Polyglot Notebook .dib export is not supported. Use the Verso native format.");
+        throw new NotSupportedException(Strings.Error_DibExportUnsupported);
     }
 
     public Task<NotebookModel> DeserializeAsync(string content)

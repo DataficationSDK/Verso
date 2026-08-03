@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions;
 
@@ -7,10 +8,10 @@ namespace Verso.Extensions;
 public sealed class CellDisplayPropertyProvider : ICellPropertyProvider
 {
     public string ExtensionId => CellViewStateMetadata.ProviderExtensionId;
-    public string Name => "Cell Display Properties";
+    public string Name => Strings.PropertyProvider_Display;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Provides per-cell input and output display settings.";
+    public string? Description => Strings.PropertyProvider_Display_Description;
 
     public int Order => 10;
 
@@ -27,28 +28,28 @@ public sealed class CellDisplayPropertyProvider : ICellPropertyProvider
         {
             fields.Add(new(
                 CellViewStateMetadata.InputCollapsedProperty,
-                "Collapse input",
+                Strings.Properties_CollapseInput,
                 PropertyFieldType.Toggle,
                 ReadBool(cell, CellViewStateMetadata.InputCollapsedKey)));
         }
 
         fields.Add(new(
             CellViewStateMetadata.OutputVisibilityProperty,
-            "Output",
+            Strings.Properties_Output,
             PropertyFieldType.Select,
             ReadOutputVisibility(cell),
             Options: new[]
             {
-                new PropertyFieldOption(CellViewStateMetadata.OutputExpanded, "Full"),
-                new PropertyFieldOption(CellViewStateMetadata.OutputPreview, "Preview"),
-                new PropertyFieldOption(CellViewStateMetadata.OutputHidden, "Hidden"),
+                new PropertyFieldOption(CellViewStateMetadata.OutputExpanded, Strings.Properties_OutputFull),
+                new PropertyFieldOption(CellViewStateMetadata.OutputPreview, Strings.Properties_OutputPreview),
+                new PropertyFieldOption(CellViewStateMetadata.OutputHidden, Strings.Properties_OutputHidden),
             }));
 
         if (SupportsInputCollapse(cell))
         {
             fields.Add(new(
                 CellViewStateMetadata.InputPreviewLineCountProperty,
-                "Input preview lines",
+                Strings.Properties_InputPreviewLines,
                 PropertyFieldType.Number,
                 ReadPositiveInt(
                     cell,
@@ -58,7 +59,7 @@ public sealed class CellDisplayPropertyProvider : ICellPropertyProvider
 
         fields.Add(new(
             CellViewStateMetadata.OutputPreviewLineCountProperty,
-            "Output preview lines",
+            Strings.Properties_OutputPreviewLines,
             PropertyFieldType.Number,
             ReadPositiveInt(
                 cell,
@@ -67,15 +68,15 @@ public sealed class CellDisplayPropertyProvider : ICellPropertyProvider
 
         fields.Add(new(
             CellViewStateMetadata.PreviewStyleProperty,
-            "Preview style",
+            Strings.Properties_PreviewStyle,
             PropertyFieldType.Select,
             ReadPreviewStyle(cell),
             Options: new[]
             {
-                new PropertyFieldOption(CellViewStateMetadata.PreviewStyleLines, "Lines"),
+                new PropertyFieldOption(CellViewStateMetadata.PreviewStyleLines, Strings.Properties_PreviewStyleLines),
             }));
 
-        return Task.FromResult(new PropertySection("Display", null, fields));
+        return Task.FromResult(new PropertySection(Strings.Properties_DisplaySection, null, fields));
     }
 
     // Matches Cell.razor's SupportsInputCollapse: only code cells render the gutter chevron

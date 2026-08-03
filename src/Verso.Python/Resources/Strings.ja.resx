@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Auto_Installing" xml:space="preserve">
+    <value>{0} を {1} にインストールしています。</value>
+  </data>
+  <data name="Auto_RefusedOptions" xml:space="preserve">
+    <value>インストールしませんでした: {0}。依存関係にはパッケージ名を指定してください。これらはインストーラーのオプションで、ノートブックから渡すことはできません。取り除くか、意図したものであれば #!pip で自分でインストールしてください。</value>
+  </data>
+  <data name="Auto_RefusedSources" xml:space="preserve">
+    <value>インストールしませんでした: {0}。依存関係にはパッケージ名を指定してください。これらはインストール元の場所を指しており、設定されたインデックスではなくノートブックが選んだ場所からコードを取得することになります。代わりにパッケージ名を指定するか、意図したものであれば #!pip で自分でインストールしてください。</value>
+  </data>
+  <data name="Auto_UnknownDistribution" xml:space="preserve">
+    <value>'{0}' はインストールされておらず、どのディストリビューションが提供しているか Verso にはわかりません。自動インストールの対象は既知のパッケージだけです。その名前で正しければ #!pip {0} でインストールしてください。</value>
+  </data>
+  <data name="Consent_Source_DeclaredDependency" xml:space="preserve">
+    <value>宣言された依存関係</value>
+  </data>
+  <data name="Consent_Source_Import" xml:space="preserve">
+    <value>import {0}</value>
+  </data>
+  <data name="Install_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} は既にインストールされています。</value>
+  </data>
+  <data name="Install_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} は既にインストールされています。</value>
+  </data>
+  <data name="Install_AlreadyPresent" xml:space="preserve">
+    <value>既にあったもの: {0}。</value>
+  </data>
+  <data name="Install_Completed" xml:space="preserve">
+    <value>インストールが完了しました。</value>
+  </data>
+  <data name="Install_Dependencies" xml:space="preserve">
+    <value>依存関係: {0}。</value>
+  </data>
+  <data name="Install_DependencyCount_One" xml:space="preserve">
+    <value>{0} 件の依存関係</value>
+  </data>
+  <data name="Install_DependencyCount_Other" xml:space="preserve">
+    <value>{0} 件の依存関係</value>
+  </data>
+  <data name="Install_ExitedWithCode" xml:space="preserve">
+    <value>パッケージのインストールに失敗しました (終了コード {0})。</value>
+  </data>
+  <data name="Install_Installed" xml:space="preserve">
+    <value>{0} をインストールしました。</value>
+  </data>
+  <data name="Install_InstalledAnd" xml:space="preserve">
+    <value>{0} と {1} をインストールしました。</value>
+  </data>
+  <data name="Install_NothingToDo" xml:space="preserve">
+    <value>要求されたものはすべてインストール済みです。</value>
+  </data>
+  <data name="Install_PackageCount_One" xml:space="preserve">
+    <value>{0} 個のパッケージ</value>
+  </data>
+  <data name="Install_PackageCount_Other" xml:space="preserve">
+    <value>{0} 個のパッケージ</value>
+  </data>
+  <data name="Install_Packages" xml:space="preserve">
+    <value>パッケージ: {0}。</value>
+  </data>
+  <data name="Install_RunFailed" xml:space="preserve">
+    <value>パッケージインストーラーを実行できませんでした: {0}</value>
+  </data>
+  <data name="Install_StartFailed" xml:space="preserve">
+    <value>パッケージインストーラーを開始できませんでした。</value>
+  </data>
+  <data name="InterpreterSource_CondaPrefix" xml:space="preserve">
+    <value>conda</value>
+  </data>
+  <data name="InterpreterSource_DerivedEnvironment" xml:space="preserve">
+    <value>管理された環境</value>
+  </data>
+  <data name="InterpreterSource_Explicit" xml:space="preserve">
+    <value>設定済み</value>
+  </data>
+  <data name="InterpreterSource_Path" xml:space="preserve">
+    <value>検索パス</value>
+  </data>
+  <data name="InterpreterSource_SessionSelection" xml:space="preserve">
+    <value>セッション</value>
+  </data>
+  <data name="InterpreterSource_VirtualEnv" xml:space="preserve">
+    <value>仮想環境</value>
+  </data>
+  <data name="InterpreterSource_WellKnown" xml:space="preserve">
+    <value>既知の場所</value>
+  </data>
+  <data name="InterpreterSource_WorkspaceVenv" xml:space="preserve">
+    <value>ワークスペースの venv</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>このマシンにインストールされたインタープリターで動く Python 言語カーネル。</value>
+  </data>
+  <data name="Magic_Pip_Description" xml:space="preserve">
+    <value>以降のコードで使う Python パッケージを pip でインストールします。</value>
+  </data>
+  <data name="Magic_Pip_Installing" xml:space="preserve">
+    <value>{0} をインストールしています...</value>
+  </data>
+  <data name="Magic_Pip_Name" xml:space="preserve">
+    <value>Pip マジックコマンド</value>
+  </data>
+  <data name="Magic_Pip_NoInterpreter" xml:space="preserve">
+    <value>使用できる Python インタープリターがないため、インストール先がありません。Python 3.8 以降をインストールするか、#!python でインタープリターを選択してください。</value>
+  </data>
+  <data name="Magic_Pip_Param_Options" xml:space="preserve">
+    <value>インストールコマンドにそのまま渡す pip の追加オプション。</value>
+  </data>
+  <data name="Magic_Pip_Param_Packages" xml:space="preserve">
+    <value>1 つ以上のパッケージ指定 (例: pandas==2.0 numpy)。</value>
+  </data>
+  <data name="Magic_Pip_Usage" xml:space="preserve">
+    <value>使い方: #!pip &lt;package&gt; [package2 ...] [--options]</value>
+  </data>
+  <data name="Magic_Python_Active" xml:space="preserve">
+    <value>使用中のインタープリター: {0}
+Python {1} ({2}、{3})</value>
+  </data>
+  <data name="Magic_Python_Description" xml:space="preserve">
+    <value>現在のセッションで使う Python インタープリターを表示または選択します。</value>
+  </data>
+  <data name="Magic_Python_DiscoveredHeading" xml:space="preserve">
+    <value>検出されたインタープリター:</value>
+  </data>
+  <data name="Magic_Python_ExternallyManaged" xml:space="preserve">
+    <value>
+このインタープリターは外部で管理されているため、インストールには Verso が管理する環境を使います。</value>
+  </data>
+  <data name="Magic_Python_Name" xml:space="preserve">
+    <value>Python インタープリターマジックコマンド</value>
+  </data>
+  <data name="Magic_Python_NoneFound" xml:space="preserve">
+    <value>Python インタープリターは検出されませんでした。</value>
+  </data>
+  <data name="Magic_Python_NotFoundFor" xml:space="preserve">
+    <value>'{0}' に一致する Python インタープリターが見つかりませんでした。</value>
+  </data>
+  <data name="Magic_Python_Param_Target" xml:space="preserve">
+    <value>選択するパスまたは名前。--list を指定すると検出されたインタープリターを表示します。省略すると使用中のインタープリターを表示します。</value>
+  </data>
+  <data name="Magic_Python_RestartFailed" xml:space="preserve">
+    <value>カーネルを自動で再起動できませんでした ({0})。選択を反映するには #!restart を実行してください。</value>
+  </data>
+  <data name="Magic_Python_Selected" xml:space="preserve">
+    <value>{0} (Python {1}) を選択しました。 </value>
+  </data>
+  <data name="Magic_Python_SelectedAppliesLater" xml:space="preserve">
+    <value>次に Python カーネルが起動したときに反映されます。</value>
+  </data>
+  <data name="Magic_Python_SelectedRestarting" xml:space="preserve">
+    <value>反映するためにカーネルを再起動しています。</value>
+  </data>
+  <data name="Setting_Dependencies_Description" xml:space="preserve">
+    <value>最初のセルが実行される前に、ノートブックの Python 環境へインストールされる要件文字列。import と同じ同意のしくみが適用されます。1 行に 1 つ、pip が受け付ける形式で書いてください (例: "pandas&gt;=2")。各項目にはパッケージ名を指定してください。インストーラーのオプションや、URL、バージョン管理の参照、パスといった場所の指定は拒否されます。パッケージの取得元をノートブックが選ぶことはできないためです。</value>
+  </data>
+  <data name="Setting_Dependencies_Label" xml:space="preserve">
+    <value>依存関係</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>インストールを、追加されたパッケージとそれぞれのバージョンとして報告し、インストーラーが途中で表示した内容は中継しません。パッケージを 1 つインストールすると依存関係も入り、その大量のテキストが、セルを実行して本来得たかった出力と一緒にノートブックへ保存されます。失敗したインストールは常に全体を報告します。</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>インストール出力を隠す</value>
+  </data>
+</root>

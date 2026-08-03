@@ -1,5 +1,7 @@
 using Verso.Abstractions;
 using Verso.Http.Kernel;
+using Verso.Http.Localization;
+using Verso.Http.Resources;
 
 namespace Verso.Http.MagicCommands;
 
@@ -11,17 +13,17 @@ public sealed class HttpSetBaseMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.http.magic.http-set-base";
-    string IExtension.Name => "HTTP Set Base Magic Command";
+    string IExtension.Name => Strings.Magic_SetBase_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Sets the base URL for relative HTTP request URLs.";
+    public string Description => Strings.Magic_SetBase_Description;
 
     // --- IMagicCommand ---
     public string Name => "http-set-base";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("url", "The base URL to prepend to relative request URLs.", typeof(string), IsRequired: true),
+        new ParameterDefinition("url", Strings.Magic_SetBase_Param_Url, typeof(string), IsRequired: true),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -35,7 +37,7 @@ public sealed class HttpSetBaseMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(url))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: URL is required. Usage: #!http-set-base <url>",
+                "text/plain", CellText.Error(Strings.Magic_SetBase_UrlRequired),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -43,6 +45,6 @@ public sealed class HttpSetBaseMagicCommand : IMagicCommand
         context.Variables.Set(HttpKernel.BaseUrlStoreKey, url);
 
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"HTTP base URL set to: {url}")).ConfigureAwait(false);
+            "text/plain", string.Format(Strings.Magic_SetBase_Done, url))).ConfigureAwait(false);
     }
 }

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>Verso ノートブック向けの F# Interactive 言語カーネル拡張機能。</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>F# の型を、見やすい HTML の表とスタイル付きの出力として整形します。</value>
+  </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>F# データフォーマッター</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>Jupyter のインポート時に、Polyglot Notebooks の F# の書き方を Verso の F# セルに変換します。</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter F# インポートフック</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>FSharp.Compiler.Service を利用した F# 言語カーネル。</value>
+  </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>インストールされたパッケージ</value>
+  </data>
+  <data name="NuGet_DownloadFailed" xml:space="preserve">
+    <value>nuget.org からパッケージ '{0}' v{1} をダウンロードできませんでした。</value>
+  </data>
+  <data name="NuGet_DownloadUnreachable" xml:space="preserve">
+    <value>パッケージ '{0}' v{1} をダウンロードできません。ネットワーク接続を確認して、もう一度試してください。({2}: {3})</value>
+  </data>
+  <data name="NuGet_PackageNotFound" xml:space="preserve">
+    <value>パッケージ '{0}'{1} は、設定されているどのソースにも見つかりませんでした。試したソース: {2}</value>
+  </data>
+  <data name="NuGet_PackageNotFound_LastError" xml:space="preserve">
+    <value> 最後のエラー: {0}: {1}</value>
+  </data>
+  <data name="Run_CompilationError" xml:space="preserve">
+    <value>コンパイルエラー</value>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>メモリが不足しました。計算に使えるメモリを超えています。カーネルの再起動を検討してください。</value>
+  </data>
+  <data name="Run_StackOverflow" xml:space="preserve">
+    <value>スタックオーバーフローが発生しました。計算がスタックサイズの上限を超えています。カーネルの再起動を検討してください。</value>
+  </data>
+  <data name="Setting_LangVersion_Description" xml:space="preserve">
+    <value>このセッションで使う F# の言語バージョン。</value>
+  </data>
+  <data name="Setting_LangVersion_Label" xml:space="preserve">
+    <value>言語バージョン</value>
+  </data>
+  <data name="Setting_MaxCollectionDisplay_Description" xml:space="preserve">
+    <value>整形された出力に表示するコレクションの要素数の上限。</value>
+  </data>
+  <data name="Setting_MaxCollectionDisplay_Label" xml:space="preserve">
+    <value>コレクションの表示上限</value>
+  </data>
+  <data name="Setting_PublishPrivateBindings_Description" xml:space="preserve">
+    <value>アンダースコアで始まる束縛を変数ストアに公開するかどうか。</value>
+  </data>
+  <data name="Setting_PublishPrivateBindings_Label" xml:space="preserve">
+    <value>プライベートな束縛を公開</value>
+  </data>
+  <data name="Setting_WarningLevel_Description" xml:space="preserve">
+    <value>F# コンパイラの警告レベル (0–5)。</value>
+  </data>
+  <data name="Setting_WarningLevel_Label" xml:space="preserve">
+    <value>警告レベル</value>
+  </data>
+</root>

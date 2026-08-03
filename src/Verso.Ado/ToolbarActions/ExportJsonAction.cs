@@ -2,6 +2,7 @@ using System.Data;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.ToolbarActions;
 
@@ -14,10 +15,10 @@ public sealed class ExportJsonAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.action.export-json";
-    public string Name => "Export JSON";
+    public string Name => Strings.Action_ExportJson;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Exports SQL result sets as JSON files.";
+    public string? Description => Strings.Action_ExportJson_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

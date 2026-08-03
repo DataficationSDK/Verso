@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text;
 using Verso.Abstractions;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.ToolbarActions;
 
@@ -13,10 +14,10 @@ public sealed class ExportCsvAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.ado.action.export-csv";
-    public string Name => "Export CSV";
+    public string Name => Strings.Action_ExportCsv;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Exports SQL result sets as CSV files.";
+    public string? Description => Strings.Action_ExportCsv_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Layouts;
@@ -16,15 +17,15 @@ public sealed class PresentationLayout : ILayoutEngine
     // --- IExtension ---
 
     public string ExtensionId => "verso.layout.presentation";
-    public string Name => "Presentation Layout";
+    public string Name => Strings.Layout_Presentation;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Output-only presentation layout for consuming interactive notebooks.";
+    public string? Description => Strings.Layout_Presentation_Description;
 
     // --- ILayoutEngine ---
 
     public string LayoutId => "presentation";
-    public string DisplayName => "Presentation";
+    public string DisplayName => Strings.Layout_Presentation_Label;
     public string? Icon => null;
 
     public LayoutCapabilities Capabilities => LayoutCapabilities.None;

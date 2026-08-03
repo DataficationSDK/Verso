@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Verso.Abstractions;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.MagicCommands;
 
@@ -52,7 +53,7 @@ internal static class NpmManager
         if (npmExe is null)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "npm not found on PATH.", IsError: true, ErrorName: "NpmError"));
+                "text/plain", Strings.Npm_NotFound, IsError: true, ErrorName: "NpmError"));
             return false;
         }
 
@@ -74,7 +75,7 @@ internal static class NpmManager
         if (proc is null)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Failed to start npm process.", IsError: true, ErrorName: "NpmError"));
+                "text/plain", Strings.Npm_StartFailed, IsError: true, ErrorName: "NpmError"));
             return false;
         }
 
@@ -124,7 +125,7 @@ internal static class NpmManager
         }
 
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", "The npm install failed.", IsError: true, ErrorName: "NpmError"));
+            "text/plain", Strings.Npm_InstallFailed, IsError: true, ErrorName: "NpmError"));
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.ToolbarActions;
 
@@ -11,10 +12,10 @@ public sealed class SwitchLayoutAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.action.switch-layout";
-    public string Name => "Switch Layout";
+    public string Name => Strings.Action_SwitchLayout;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Cycles between available layout engines.";
+    public string? Description => Strings.Action_SwitchLayout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -22,7 +23,7 @@ public sealed class SwitchLayoutAction : IToolbarAction
     // --- IToolbarAction ---
 
     public string ActionId => "verso.switchLayout";
-    public string DisplayName => "Switch Layout";
+    public string DisplayName => Strings.Action_SwitchLayout;
     public string? Icon => null;
     public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;
     public int Order => 50;

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Verso.Blazor.Localization;
 using Verso.Blazor.Services;
 using Verso.Blazor.Shared.Services;
 using Verso.Extensions;
@@ -21,6 +22,11 @@ public sealed record ServeOptions
     public bool Verbose { get; init; }
     public string? ExtensionsDirectory { get; init; }
     public bool PreserveFormat { get; init; }
+
+    /// <summary>
+    /// Interface language to serve, or <c>null</c> to let each browser negotiate one.
+    /// </summary>
+    public string? Language { get; init; }
 }
 
 /// <summary>
@@ -112,6 +118,10 @@ public static class BlazorHostBuilder
 
         if (!options.NoHttps)
             app.UseHttpsRedirection();
+
+        // Before the components are mapped: a circuit takes its culture from the request that
+        // opened it. Shared with Verso.Blazor/Program.cs so the two hosts cannot drift apart.
+        app.UseVersoLocalization(options.Language);
 
         app.UseStaticFiles();
         app.UseAntiforgery();

@@ -1,6 +1,7 @@
 using System.CommandLine;
 using Verso.Abstractions;
 using Verso.Cli.Execution;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 using Verso.Contexts;
 using Verso.Execution;
@@ -19,36 +20,28 @@ public static class ExportCommand
 {
     public static Command Create()
     {
-        var inputArg = new Argument<FileInfo?>("input", "Path to the source notebook file.")
+        var inputArg = new Argument<FileInfo?>("input", Strings.Arg_InputNotebook)
         {
             Arity = ArgumentArity.ZeroOrOne
         };
 
-        var formatOption = new Option<string?>(new[] { "--format", "-f" },
-            "Export format, matched against the DisplayName of a registered IToolbarAction whose placement is ExportMenu. Case-insensitive. Quote values containing whitespace. Use --list to see installed formats.");
+        var formatOption = new Option<string?>(new[] { "--format", "-f" }, Strings.Export_OptFormat);
 
-        var outputOption = new Option<FileInfo?>(new[] { "--output", "-o" },
-            "Output file path. If omitted, the exporter's suggested filename is written to the current directory.");
+        var outputOption = new Option<FileInfo?>(new[] { "--output", "-o" }, Strings.Export_OptOutput);
 
-        var executeOption = new Option<bool>(new[] { "--execute", "-x" }, () => false,
-            "Execute the notebook before exporting so stored outputs are refreshed.");
+        var executeOption = new Option<bool>(new[] { "--execute", "-x" }, () => false, Strings.Export_OptExecute);
 
-        var layoutOption = new Option<string?>("--layout",
-            "Layout id to apply during export, exposed as ActiveLayoutId on the action context.");
+        var layoutOption = new Option<string?>("--layout", Strings.Export_OptLayout);
 
-        var themeOption = new Option<string?>("--theme",
-            "DisplayName of a registered theme, matched case-insensitively. Quote values with whitespace. ThemeId is accepted as a fallback to disambiguate display-name collisions. Use --list-themes to see installed themes.");
+        var themeOption = new Option<string?>("--theme", Strings.Export_OptTheme);
 
-        var extensionsOption = new Option<DirectoryInfo?>("--extensions",
-            "Directory to scan for additional extension assemblies.");
+        var extensionsOption = new Option<DirectoryInfo?>("--extensions", Strings.Option_Extensions);
 
-        var listOption = new Option<bool>("--list", () => false,
-            "List registered export actions (DisplayName, ActionId, Description) and exit.");
+        var listOption = new Option<bool>("--list", () => false, Strings.Export_OptList);
 
-        var listThemesOption = new Option<bool>("--list-themes", () => false,
-            "List registered themes (DisplayName, Kind, Description) and exit.");
+        var listThemesOption = new Option<bool>("--list-themes", () => false, Strings.Export_OptListThemes);
 
-        var command = new Command("export", "Export a notebook via an ExportMenu toolbar action.")
+        var command = new Command("export", Strings.Export_Description)
         {
             inputArg,
             formatOption,
@@ -105,14 +98,15 @@ public static class ExportCommand
 
                 if (input is null)
                 {
-                    Console.Error.WriteLine("Error: <input> is required unless --list is specified.");
+                    Console.Error.WriteLine(Messages.Error(Strings.Export_InputRequired));
                     context.ExitCode = ExitCodes.FileNotFound;
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(format))
                 {
-                    Console.Error.WriteLine("Error: --format is required. Use 'verso export --list' to see available formats.");
+                    Console.Error.WriteLine(Messages.Error(Strings.Export_FormatRequired) + " "
+                        + string.Format(Strings.Hint_RunForFormats, ListFormatsCommand));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -120,7 +114,8 @@ public static class ExportCommand
                 var inputPath = Path.GetFullPath(input.FullName);
                 if (!File.Exists(inputPath))
                 {
-                    Console.Error.WriteLine($"Error: Input file not found: {inputPath}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Error_InputNotFound, inputPath)));
                     context.ExitCode = ExitCodes.FileNotFound;
                     return;
                 }
@@ -132,7 +127,7 @@ public static class ExportCommand
                 }
                 catch (SerializerNotFoundException ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(ex.Message));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -145,7 +140,8 @@ public static class ExportCommand
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: Failed to deserialize '{inputPath}': {ex.Message}");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Error_DeserializeFailed, inputPath, ex.Message)));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -164,7 +160,7 @@ public static class ExportCommand
 
                     if (HasAnyFailure(notebook, results))
                     {
-                        Console.Error.WriteLine("Error: Notebook execution reported errors. Aborting export.");
+                        Console.Error.WriteLine(Messages.Error(Strings.Export_ExecutionErrors));
                         context.ExitCode = ExitCodes.CellFailure;
                         return;
                     }
@@ -172,7 +168,8 @@ public static class ExportCommand
 
                 if (!ToolbarActionResolver.TryResolveAction(extensionHost, format, out var action, out var resolveError))
                 {
-                    Console.Error.WriteLine(resolveError + " Run 'verso export --list' to see available formats.");
+                    Console.Error.WriteLine(resolveError + " "
+                        + string.Format(Strings.Hint_RunForFormats, ListFormatsCommand));
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
@@ -182,7 +179,8 @@ public static class ExportCommand
                 {
                     if (!ToolbarActionResolver.TryResolveTheme(extensionHost, themeText, out selectedTheme, out var themeError))
                     {
-                        Console.Error.WriteLine(themeError + " Run 'verso export --list-themes' for details.");
+                        Console.Error.WriteLine(themeError + " "
+                            + string.Format(Strings.Hint_RunForDetails, ListThemesCommand));
                         context.ExitCode = ExitCodes.SerializationError;
                         return;
                     }
@@ -204,17 +202,18 @@ public static class ExportCommand
 
                 if (ctx.WrittenPath is null)
                 {
-                    Console.Error.WriteLine($"Error: Export action '{action.ActionId}' did not produce a file.");
+                    Console.Error.WriteLine(Messages.Error(
+                        string.Format(Strings.Export_NoFileProduced, action.ActionId)));
                     context.ExitCode = ExitCodes.CellFailure;
                     return;
                 }
 
-                Console.WriteLine($"Exported '{inputPath}' -> '{ctx.WrittenPath}'");
+                Console.WriteLine(string.Format(Strings.Export_Done, inputPath, ctx.WrittenPath));
                 context.ExitCode = ExitCodes.Success;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error: {ex.Message}");
+                Console.Error.WriteLine(Messages.Error(ex.Message));
                 context.ExitCode = ExitCodes.CellFailure;
             }
             finally
@@ -232,6 +231,12 @@ public static class ExportCommand
         return command;
     }
 
+    /// <summary>What to type to see the formats that are installed. The same in every language.</summary>
+    private const string ListFormatsCommand = "verso export --list";
+
+    /// <summary>What to type to see the themes that are installed. The same in every language.</summary>
+    private const string ListThemesCommand = "verso export --list-themes";
+
     private static void PrintExportActions(ExtensionHost extensionHost)
     {
         var actions = extensionHost.GetToolbarActions()
@@ -242,17 +247,20 @@ public static class ExportCommand
 
         if (actions.Count == 0)
         {
-            Console.WriteLine("No export actions are registered.");
+            Console.WriteLine(Strings.Export_NoActions);
             return;
         }
 
-        var nameWidth = Math.Max("FORMAT".Length, actions.Max(a => a.DisplayName.Length));
+        // Read once into a local: a column is padded to the width of its own heading, and the
+        // heading is not the length it was in English.
+        var formatHeading = Strings.Table_Format;
+        var nameWidth = Math.Max(DisplayWidth.Measure(formatHeading), actions.Max(a => DisplayWidth.Measure(a.DisplayName)));
 
-        Console.WriteLine($"{"FORMAT".PadRight(nameWidth)}  DESCRIPTION");
+        Console.WriteLine($"{DisplayWidth.PadRight(formatHeading, nameWidth)}  {Strings.Table_Description}");
         foreach (var action in actions)
         {
             var description = action.Description ?? string.Empty;
-            Console.WriteLine($"{action.DisplayName.PadRight(nameWidth)}  {description}");
+            Console.WriteLine($"{DisplayWidth.PadRight(action.DisplayName, nameWidth)}  {description}");
         }
     }
 
@@ -264,18 +272,20 @@ public static class ExportCommand
 
         if (themes.Count == 0)
         {
-            Console.WriteLine("No themes are registered.");
+            Console.WriteLine(Strings.List_NoThemes);
             return;
         }
 
-        var nameWidth = Math.Max("THEME".Length, themes.Max(t => t.DisplayName.Length));
-        var kindWidth = Math.Max("KIND".Length, themes.Max(t => t.ThemeKind.ToString().Length));
+        var themeHeading = Strings.Table_Theme;
+        var kindHeading = Strings.Table_Kind;
+        var nameWidth = Math.Max(DisplayWidth.Measure(themeHeading), themes.Max(t => DisplayWidth.Measure(t.DisplayName)));
+        var kindWidth = Math.Max(DisplayWidth.Measure(kindHeading), themes.Max(t => t.ThemeKind.ToString().Length));
 
-        Console.WriteLine($"{"THEME".PadRight(nameWidth)}  {"KIND".PadRight(kindWidth)}  DESCRIPTION");
+        Console.WriteLine($"{DisplayWidth.PadRight(themeHeading, nameWidth)}  {DisplayWidth.PadRight(kindHeading, kindWidth)}  {Strings.Table_Description}");
         foreach (var theme in themes)
         {
             var description = theme.Description ?? string.Empty;
-            Console.WriteLine($"{theme.DisplayName.PadRight(nameWidth)}  {theme.ThemeKind.ToString().PadRight(kindWidth)}  {description}");
+            Console.WriteLine($"{DisplayWidth.PadRight(theme.DisplayName, nameWidth)}  {theme.ThemeKind.ToString().PadRight(kindWidth)}  {description}");
         }
     }
 

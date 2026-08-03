@@ -1,6 +1,7 @@
 using Markdig;
 using Markdig.Syntax;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -29,10 +30,10 @@ public sealed class MarkdownSerializer : INotebookSerializer
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.markdown";
-    public string Name => "Markdown Serializer";
+    public string Name => Strings.Serializer_Markdown;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Serializer for Markdown (.md) notebooks with fenced code cells.";
+    public string? Description => Strings.Serializer_Markdown_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;

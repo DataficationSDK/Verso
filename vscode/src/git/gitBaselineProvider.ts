@@ -49,7 +49,9 @@ export class GitBaselineProvider {
   async showAtRef(uri: vscode.Uri, ref: string): Promise<string> {
     const repo = this.getRepo(uri);
     if (!repo) {
-      throw new Error("This notebook is not inside a git repository.");
+      throw new Error(
+        vscode.l10n.t("This notebook is not inside a git repository.")
+      );
     }
     try {
       return await repo.show(ref, uri.fsPath);
@@ -71,16 +73,51 @@ export class GitBaselineProvider {
     }
 
     const describe = (kind: string) => (r: Ref) => ({
-      label: r.name ?? r.commit ?? "(unnamed)",
+      label:
+        r.name ??
+        r.commit ??
+        vscode.l10n.t({
+          message: "(unnamed)",
+          comment: ["Stands in for a branch or tag that has no name to show."],
+        }),
       description: `${kind}${r.commit ? ` ${r.commit.substring(0, 8)}` : ""}`,
       ref: r.name ?? r.commit ?? "",
     });
 
     const refs = repo.state.refs;
     return [
-      ...refs.filter((r) => r.type === RefType.Head && r.name).map(describe("branch")),
-      ...refs.filter((r) => r.type === RefType.RemoteHead && r.name).map(describe("remote branch")),
-      ...refs.filter((r) => r.type === RefType.Tag && r.name).map(describe("tag")),
+      ...refs
+        .filter((r) => r.type === RefType.Head && r.name)
+        .map(
+          describe(
+            vscode.l10n.t({
+              message: "branch",
+              comment: [
+                "Says what kind of thing is listed, shown beside its name. A line of work in version control.",
+              ],
+            })
+          )
+        ),
+      ...refs
+        .filter((r) => r.type === RefType.RemoteHead && r.name)
+        .map(
+          describe(
+            vscode.l10n.t({
+              message: "remote branch",
+              comment: ["A branch that lives on the server rather than on this machine."],
+            })
+          )
+        ),
+      ...refs
+        .filter((r) => r.type === RefType.Tag && r.name)
+        .map(
+          describe(
+            vscode.l10n.t({
+              message: "tag",
+              comment: ["A name pinned to one point in a project's history."],
+            })
+          )
+        ),
     ].filter((item) => item.ref.length > 0);
   }
 
@@ -99,17 +136,27 @@ export class GitBaselineProvider {
       // repository's ENTIRE file listing appended. Never surface that raw message.
       raw.includes("relative path not found")
     ) {
-      return `'${fileName}' is not tracked at '${ref}'. Commit the file first, or pick a different ref.`;
+      return vscode.l10n.t(
+        "'{0}' is not tracked at '{1}'. Commit the file first, or pick a different ref.",
+        fileName,
+        ref
+      );
     }
     if (raw.includes("unknown revision") || raw.includes("invalid object name")) {
-      return `'${ref}' is not a known branch, tag, or commit.`;
+      return vscode.l10n.t("'{0}' is not a known branch, tag, or commit.", ref);
     }
 
     // Fallback: keep only the first line, capped, so an unexpected git failure stays a
-    // sentence rather than a wall of output.
+    // sentence rather than a wall of output. The detail itself is whatever git said,
+    // which git says in its own language and this cannot translate.
     const firstLine = raw.split("\n", 1)[0] ?? "";
     const detail =
       firstLine.length > 200 ? `${firstLine.substring(0, 200)}...` : firstLine;
-    return `git could not read '${fileName}' at '${ref}': ${detail}`;
+    return vscode.l10n.t(
+      "git could not read '{0}' at '{1}': {2}",
+      fileName,
+      ref,
+      detail
+    );
   }
 }

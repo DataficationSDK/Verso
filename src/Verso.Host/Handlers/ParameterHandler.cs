@@ -3,11 +3,17 @@ using Verso.Abstractions;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
 using Verso.Parameters;
+using Verso.Host.Resources;
 
 namespace Verso.Host.Handlers;
 
 public static class ParameterHandler
 {
+    // Two kinds of message live here. A request arriving without the fields it declares is a
+    // fault in the caller and reads the same in every language, so a log matches a search. A name
+    // the reader already used, or a default that does not fit the type they chose, is something
+    // they can act on, and is translated.
+
     public static ParameterListResult HandleList(NotebookSession ns)
     {
         var parameters = ns.Scaffold.Notebook.Parameters;
@@ -29,20 +35,20 @@ public static class ParameterHandler
             ?? throw new JsonException("Missing params for parameter/add");
 
         if (string.IsNullOrEmpty(p.Name))
-            throw new JsonException("Parameter name is required.");
+            throw new JsonException(Strings.Parameter_NameRequired);
 
         var notebook = ns.Scaffold.Notebook;
         notebook.Parameters ??= new Dictionary<string, NotebookParameterDefinition>();
 
         if (notebook.Parameters.ContainsKey(p.Name))
-            throw new InvalidOperationException($"Parameter '{p.Name}' already exists.");
+            throw new InvalidOperationException(string.Format(Strings.Parameter_AlreadyExists, p.Name));
 
         var typeId = p.Type ?? "string";
         object? defaultValue = null;
         if (!string.IsNullOrEmpty(p.DefaultValue))
         {
             if (!ParameterValueParser.TryParse(typeId, p.DefaultValue, out var parsed, out var error))
-                throw new InvalidOperationException($"Invalid default value: {error}");
+                throw new InvalidOperationException(string.Format(Strings.Parameter_InvalidDefault, error));
             defaultValue = parsed;
         }
 
@@ -76,11 +82,11 @@ public static class ParameterHandler
             ?? throw new JsonException("Missing params for parameter/update");
 
         if (string.IsNullOrEmpty(p.Name))
-            throw new JsonException("Parameter name is required.");
+            throw new JsonException(Strings.Parameter_NameRequired);
 
         var parameters = ns.Scaffold.Notebook.Parameters;
         if (parameters is null || !parameters.TryGetValue(p.Name, out var def))
-            throw new InvalidOperationException($"Parameter '{p.Name}' not found.");
+            throw new InvalidOperationException(string.Format(Strings.Parameter_NotFound, p.Name));
 
         if (p.Type is not null)
             def.Type = p.Type;
@@ -94,7 +100,7 @@ public static class ParameterHandler
         if (p.DefaultValue is not null)
         {
             if (!ParameterValueParser.TryParse(def.Type, p.DefaultValue, out var parsed, out var error))
-                throw new InvalidOperationException($"Invalid default value: {error}");
+                throw new InvalidOperationException(string.Format(Strings.Parameter_InvalidDefault, error));
 
             def.Default = parsed;
             ns.Scaffold.Variables.Set(p.Name, parsed!);
@@ -111,11 +117,11 @@ public static class ParameterHandler
             ?? throw new JsonException("Missing params for parameter/remove");
 
         if (string.IsNullOrEmpty(p.Name))
-            throw new JsonException("Parameter name is required.");
+            throw new JsonException(Strings.Parameter_NameRequired);
 
         var parameters = ns.Scaffold.Notebook.Parameters;
         if (parameters is null || !parameters.Remove(p.Name))
-            throw new InvalidOperationException($"Parameter '{p.Name}' not found.");
+            throw new InvalidOperationException(string.Format(Strings.Parameter_NotFound, p.Name));
 
         ns.Scaffold.Variables.Remove(p.Name);
         InvalidateParametersCell(ns);

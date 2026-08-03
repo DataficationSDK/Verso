@@ -2,6 +2,8 @@ using System.Text.RegularExpressions;
 using Verso.Abstractions;
 using Verso.Extensions;
 using Verso.Parameters;
+using Verso.Localization;
+using Verso.Resources;
 
 namespace Verso.MagicCommands;
 
@@ -32,20 +34,20 @@ public sealed class ImportMagicCommand : IMagicCommand
     // --- IExtension ---
 
     public string ExtensionId => "verso.magic.import";
-    string IExtension.Name => "Import Magic Command";
+    string IExtension.Name => Strings.Magic_Import;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 
     // --- IMagicCommand ---
 
     public string Name => "import";
-    public string Description => "Imports another notebook file and executes its cells (any cell type other than markdown or raw), with optional parameter overrides. Pass --show-output to display the imported cells' output.";
+    public string Description => Strings.Magic_Import_Description;
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("path", "Path to the notebook file to import.", typeof(string), IsRequired: true),
-        new ParameterDefinition("--param", "Parameter override in name=value format. May be repeated.", typeof(string), IsRequired: false),
-        new ParameterDefinition("--show-output", "Display the output produced by the imported cells. Off by default.", typeof(bool), IsRequired: false)
+        new ParameterDefinition("path", Strings.Magic_Import_Param_Path, typeof(string), IsRequired: true),
+        new ParameterDefinition("--param", Strings.Magic_Import_Param_Param, typeof(string), IsRequired: false),
+        new ParameterDefinition("--show-output", Strings.Magic_Import_Param_ShowOutput, typeof(bool), IsRequired: false)
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -58,7 +60,7 @@ public sealed class ImportMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(arguments))
         {
             await context.WriteOutputAsync(new CellOutput("text/plain",
-                "Error: #!import requires a file path. Usage: #!import <path> [--param name=value ...]",
+                CellText.Error(Strings.Magic_Import_Usage),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -72,7 +74,7 @@ public sealed class ImportMagicCommand : IMagicCommand
             if (!File.Exists(resolvedPath))
             {
                 await context.WriteOutputAsync(new CellOutput("text/plain",
-                    $"Error: File not found: {resolvedPath}", IsError: true))
+                    CellText.Error(string.Format(Strings.Magic_Import_FileNotFound, resolvedPath)), IsError: true))
                     .ConfigureAwait(false);
                 return;
             }
@@ -99,8 +101,8 @@ public sealed class ImportMagicCommand : IMagicCommand
 
             var supportedExtensions = GetSupportedExtensions(context.ExtensionHost);
             await context.WriteOutputAsync(CellOutput.Error(
-                $"No serializer or kernel found for '{Path.GetFileName(resolvedPath)}'. " +
-                $"Supported formats: {supportedExtensions}")).ConfigureAwait(false);
+                string.Format(Strings.Magic_Import_NoSerializer,
+                    Path.GetFileName(resolvedPath), supportedExtensions))).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -109,7 +111,7 @@ public sealed class ImportMagicCommand : IMagicCommand
         catch (Exception ex)
         {
             await context.WriteOutputAsync(new CellOutput("text/plain",
-                $"Error importing notebook: {ex.Message}", IsError: true))
+                string.Format(Strings.Magic_Import_Failed, ex.Message), IsError: true))
                 .ConfigureAwait(false);
         }
     }
@@ -134,7 +136,7 @@ public sealed class ImportMagicCommand : IMagicCommand
         {
             var importedDirectives = directives
                 .Select(e => new ExtensionConsentInfo(e.PackageId, e.Version,
-                    $"imported from {Path.GetFileName(resolvedPath)}"))
+                    string.Format(Strings.Magic_Import_ConsentReason, Path.GetFileName(resolvedPath))))
                 .ToList();
 
             var approved = await context.ExtensionHost.RequestExtensionConsentAsync(
@@ -182,9 +184,15 @@ public sealed class ImportMagicCommand : IMagicCommand
             executedCount++;
         }
 
-        var summary = $"Imported {executedCount} cell{(executedCount == 1 ? "" : "s")} from {Path.GetFileName(resolvedPath)}";
-        if (failedCount > 0)
-            summary += $" ({failedCount} failed)";
+        // The count is written out on its own and goes in as one argument, so the sentence
+        // around it needs one entry rather than a singular and a plural of the whole thing.
+        var cells = string.Format(
+            Plural.Of(executedCount, Strings.Magic_Import_CellCount_One, Strings.Magic_Import_CellCount_Other),
+            executedCount);
+        var fileName = Path.GetFileName(resolvedPath);
+        var summary = failedCount > 0
+            ? string.Format(Strings.Magic_Import_SummaryWithFailures, cells, fileName, failedCount)
+            : string.Format(Strings.Magic_Import_Summary, cells, fileName);
 
         await context.WriteOutputAsync(new CellOutput("text/plain", summary, IsError: failedCount > 0))
             .ConfigureAwait(false);
@@ -268,10 +276,12 @@ public sealed class ImportMagicCommand : IMagicCommand
         var fileName = Path.GetFileName(resolvedPath);
         var magicCount = magicLines.Count;
         var summary = magicCount > 0
-            ? $"Imported {fileName} ({magicCount} directive{(magicCount == 1 ? "" : "s")} extracted)"
-            : $"Imported {fileName}";
+            ? string.Format(Strings.Magic_Import_SourceSummaryDirectives, fileName, string.Format(
+                Plural.Of(magicCount, Strings.Magic_Import_DirectiveCount_One, Strings.Magic_Import_DirectiveCount_Other),
+                magicCount))
+            : string.Format(Strings.Magic_Import_SourceSummary, fileName);
         if (failed)
-            summary += " (execution failed)";
+            summary = string.Format(Strings.Magic_Import_ExecutionFailed, summary);
 
         await context.WriteOutputAsync(new CellOutput("text/plain", summary, IsError: failed))
             .ConfigureAwait(false);
@@ -422,7 +432,8 @@ public sealed class ImportMagicCommand : IMagicCommand
                 if (ParameterValueParser.TryParse(def.Type, raw, out var typed, out var error) && typed is not null)
                     variables.Set(name, typed);
                 else
-                    return $"Error: Invalid value for parameter '{name}' ({def.Type}): {error}";
+                    return CellText.Error(string.Format(
+                        Strings.Magic_Import_InvalidParameter, name, def.Type, error));
             }
             else
             {
@@ -460,8 +471,9 @@ public sealed class ImportMagicCommand : IMagicCommand
         }
 
         if (missing.Count > 0)
-            return $"Error: Missing required parameter{(missing.Count > 1 ? "s" : "")} " +
-                   $"for imported notebook:\n{string.Join("\n", missing)}";
+            return CellText.Error(string.Format(
+                Plural.Of(missing.Count, Strings.Magic_Import_MissingRequired_One, Strings.Magic_Import_MissingRequired_Other),
+                string.Join("\n", missing)));
 
         return null;
     }

@@ -5,8 +5,8 @@
     <div class="verso-modal-overlay" @onclick="HandleCancel">
         <div class="verso-modal" @onclick:stopPropagation="true">
             <div class="verso-modal-header">
-                <span class="verso-modal-title">Notebook Input</span>
-                <button type="button" class="verso-modal-close" @onclick="HandleCancel" aria-label="Cancel" data-verso-tip="Cancel">
+                <span class="verso-modal-title">@UI.InputDialog_Title</span>
+                <button type="button" class="verso-modal-close" @onclick="HandleCancel" aria-label="@UI.Common_Cancel" data-verso-tip="@UI.Common_Cancel">
                     <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
                 </button>
             </div>
@@ -24,10 +24,10 @@
             <div class="verso-modal-footer">
                 <button type="button"
                         class="verso-modal-btn verso-modal-btn--secondary"
-                        @onclick="HandleCancel">Cancel</button>
+                        @onclick="HandleCancel">@UI.Common_Cancel</button>
                 <button type="button"
                         class="verso-modal-btn verso-modal-btn--primary"
-                        @onclick="HandleSubmit">Submit</button>
+                        @onclick="HandleSubmit">@UI.Common_Submit</button>
             </div>
         </div>
     </div>
@@ -43,7 +43,7 @@
     [Parameter] public EventCallback OnCancel { get; set; }
 
     private string PromptText =>
-        string.IsNullOrWhiteSpace(Request?.Prompt) ? "Input" : Request.Prompt;
+        string.IsNullOrWhiteSpace(Request?.Prompt) ? UI.InputDialog_DefaultPrompt : Request.Prompt;
 
     private string InputType => Request?.IsPassword == true ? "password" : "text";
 

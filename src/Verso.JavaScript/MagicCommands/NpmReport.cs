@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using Verso.Abstractions;
+using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.MagicCommands;
 
@@ -152,21 +154,30 @@ internal sealed class NpmReport
         if (total <= 0)
             return null;
 
+        // npm names the ratings in its own report; each is written out here so the breakdown
+        // reads in the same language as the sentence it sits inside.
         var severities = new List<string>();
-        foreach (var severity in new[] { "critical", "high", "moderate", "low", "info" })
+        foreach (var (severity, phrase) in new[]
+        {
+            ("critical", Strings.Npm_Severity_Critical),
+            ("high", Strings.Npm_Severity_High),
+            ("moderate", Strings.Npm_Severity_Moderate),
+            ("low", Strings.Npm_Severity_Low),
+            ("info", Strings.Npm_Severity_Info),
+        })
         {
             var found = Number(counts, severity);
             if (found > 0)
-                severities.Add($"{found} {severity}");
+                severities.Add(string.Format(phrase, found));
         }
 
-        var summary = new StringBuilder("npm audit found ")
-            .Append(total == 1 ? "1 vulnerability" : $"{total} vulnerabilities");
+        var counted = string.Format(
+            Plural.Of(total, Strings.Npm_VulnerabilityCount_One, Strings.Npm_VulnerabilityCount_Other),
+            total);
 
-        if (severities.Count > 0)
-            summary.Append(" (").Append(string.Join(", ", severities)).Append(')');
-
-        return summary.Append(" in the installed packages. Run npm audit for details.").ToString();
+        return severities.Count > 0
+            ? string.Format(Strings.Npm_AuditSummaryBySeverity, counted, string.Join(", ", severities))
+            : string.Format(Strings.Npm_AuditSummary, counted);
     }
 
     private static string? DescribeError(JsonElement failure)
@@ -237,12 +248,12 @@ internal sealed class NpmReport
             return lines;
 
         if (named.Count > 0 && rest.Count > 0)
-            lines.Add("Dependencies: " + Describe(rest) + ".");
+            lines.Add(string.Format(Strings.Npm_Dependencies, Describe(rest)));
         else if (named.Count == 0 && Added.Count > 0)
-            lines.Add("Packages: " + Describe(Added) + ".");
+            lines.Add(string.Format(Strings.Npm_Packages, Describe(Added)));
 
         if (Removed.Count > 0)
-            lines.Add("Replaced: " + Describe(Removed) + ".");
+            lines.Add(string.Format(Strings.Npm_Replaced, Describe(Removed)));
 
         lines.AddRange(Deprecations);
         return lines;
@@ -254,7 +265,7 @@ internal sealed class NpmReport
         IReadOnlyList<string>? requested)
     {
         if (Added.Count == 0)
-            return "Everything requested is already installed.";
+            return Strings.Npm_NothingToDo;
 
         // Nothing added matches what was asked for, which is what installing from a package file
         // rather than by name looks like from here.
@@ -265,23 +276,26 @@ internal sealed class NpmReport
                 : null;
 
             return packages is not null
-                ? $"Installed {packages} and {Count(rest.Count, "dependency", "dependencies")}."
-                : $"Installed {Count(rest.Count, "package")}.";
+                ? string.Format(Strings.Npm_InstalledAnd, packages, Dependencies(rest.Count))
+                : string.Format(Strings.Npm_Installed, string.Format(
+                    Plural.Of(rest.Count, Strings.Npm_PackageCount_One, Strings.Npm_PackageCount_Other),
+                    rest.Count));
         }
 
-        var headline = new StringBuilder("Installed ").Append(Describe(named));
-
-        if (rest.Count > 0)
-            headline.Append(" and ").Append(Count(rest.Count, "dependency", "dependencies"));
-
-        return headline.Append('.').ToString();
+        // The counts are written out on their own and go in as one argument each, so the
+        // sentence around them needs one entry rather than a singular and a plural of the whole.
+        return rest.Count > 0
+            ? string.Format(Strings.Npm_InstalledAnd, Describe(named), Dependencies(rest.Count))
+            : string.Format(Strings.Npm_Installed, Describe(named));
     }
+
+    private static string Dependencies(int count)
+        => string.Format(
+            Plural.Of(count, Strings.Npm_DependencyCount_One, Strings.Npm_DependencyCount_Other),
+            count);
 
     private static string Describe(IReadOnlyList<NpmPackage> packages)
         => string.Join(", ", packages.OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => p.ToString()));
-
-    private static string Count(int count, string singular, string? plural = null)
-        => count == 1 ? $"1 {singular}" : $"{count} {plural ?? singular + "s"}";
 
     private static string Text(JsonElement element, string property)
         => element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String

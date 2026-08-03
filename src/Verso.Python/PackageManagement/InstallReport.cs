@@ -1,4 +1,6 @@
 using System.Text;
+using Verso.Abstractions;
+using Verso.Python.Resources;
 
 namespace Verso.Python.PackageManagement;
 
@@ -236,12 +238,12 @@ internal sealed class InstallReport
             return lines;
 
         if (named.Count > 0 && rest.Count > 0)
-            lines.Add("Dependencies: " + Describe(rest) + ".");
+            lines.Add(string.Format(Strings.Install_Dependencies, Describe(rest)));
         else if (named.Count == 0 && Installed.Count > 0)
-            lines.Add("Packages: " + Describe(Installed) + ".");
+            lines.Add(string.Format(Strings.Install_Packages, Describe(Installed)));
 
         if (AlreadyPresent.Count > 0)
-            lines.Add("Already present: " + Describe(AlreadyPresent) + ".");
+            lines.Add(string.Format(Strings.Install_AlreadyPresent, Describe(AlreadyPresent)));
 
         lines.AddRange(Warnings);
         return lines;
@@ -253,24 +255,27 @@ internal sealed class InstallReport
         // Nothing installed matches what was asked for, which is what a requirements file or an
         // installer option that resolves to something else looks like from here.
         if (named.Count == 0)
-            return $"Installed {Count(rest.Count, "package")}.";
+            return string.Format(Strings.Install_Installed, string.Format(
+                Plural.Of(rest.Count, Strings.Install_PackageCount_One, Strings.Install_PackageCount_Other),
+                rest.Count));
 
-        var headline = new StringBuilder("Installed ").Append(Describe(named));
-
-        if (rest.Count > 0)
-            headline.Append(" and ").Append(Count(rest.Count, "dependency", "dependencies"));
-
-        return headline.Append('.').ToString();
+        // The count is written out on its own and goes in as one argument, so the sentence
+        // around it needs one entry rather than a singular and a plural of the whole thing.
+        return rest.Count > 0
+            ? string.Format(Strings.Install_InstalledAnd, Describe(named), string.Format(
+                Plural.Of(rest.Count, Strings.Install_DependencyCount_One, Strings.Install_DependencyCount_Other),
+                rest.Count))
+            : string.Format(Strings.Install_Installed, Describe(named));
     }
 
     private static string PresentHeadline(IReadOnlyList<InstalledPackage> named)
     {
         if (named.Count == 0)
-            return "Everything requested is already installed.";
+            return Strings.Install_NothingToDo;
 
-        return named.Count == 1
-            ? $"{Describe(named)} is already installed."
-            : $"{Describe(named)} are already installed.";
+        return string.Format(
+            Plural.Of(named.Count, Strings.Install_AlreadyInstalled_One, Strings.Install_AlreadyInstalled_Other),
+            Describe(named));
     }
 
     /// <summary>
@@ -286,8 +291,8 @@ internal sealed class InstallReport
             .ToList();
 
         return packages.Count > 0
-            ? $"Installed {string.Join(", ", packages)}."
-            : "Install completed.";
+            ? string.Format(Strings.Install_Installed, string.Join(", ", packages))
+            : Strings.Install_Completed;
     }
 
     /// <summary>
@@ -375,6 +380,4 @@ internal sealed class InstallReport
         => string.Join(", ", packages.Select(p =>
             p.Version.Length > 0 ? $"{p.Name} {p.Version}" : p.Name));
 
-    private static string Count(int count, string singular, string? plural = null)
-        => count == 1 ? $"1 {singular}" : $"{count} {plural ?? singular + "s"}";
 }

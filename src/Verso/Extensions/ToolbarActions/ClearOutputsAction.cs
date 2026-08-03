@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.ToolbarActions;
 
@@ -11,10 +12,10 @@ public sealed class ClearOutputsAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.action.clear-outputs";
-    public string Name => "Clear Outputs";
+    public string Name => Strings.Action_ClearOutputs;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Clears all cell outputs in the notebook.";
+    public string? Description => Strings.Action_ClearOutputs_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -22,7 +23,7 @@ public sealed class ClearOutputsAction : IToolbarAction
     // --- IToolbarAction ---
 
     public string ActionId => "verso.action.clear-outputs";
-    public string DisplayName => "Clear Outputs";
+    public string DisplayName => Strings.Action_ClearOutputs;
     public string? Icon => "<svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\"><line x1=\"1\" y1=\"3.5\" x2=\"8.5\" y2=\"3.5\"/><line x1=\"1\" y1=\"8\" x2=\"8.5\" y2=\"8\"/><line x1=\"1\" y1=\"12.5\" x2=\"6.5\" y2=\"12.5\"/><path d=\"M11 5.5l4 4m0-4l-4 4\"/></svg>";
     public bool IconOnly => true;
     public ToolbarPlacement Placement => ToolbarPlacement.MainToolbar;

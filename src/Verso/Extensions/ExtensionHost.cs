@@ -4,6 +4,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions;
 
@@ -612,7 +613,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(path);
 
         if (!Directory.Exists(path))
-            throw new DirectoryNotFoundException($"Extension directory not found: {path}");
+            throw new DirectoryNotFoundException(string.Format(Strings.Error_ExtensionDirectoryNotFound, path));
 
         foreach (var dll in Directory.GetFiles(path, "*.dll"))
         {
@@ -630,7 +631,7 @@ public sealed class ExtensionHost : IExtensionHostContext, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(path);
 
         if (!File.Exists(path))
-            throw new FileNotFoundException($"Extension assembly not found: {path}", path);
+            throw new FileNotFoundException(string.Format(Strings.Error_ExtensionAssemblyNotFound, path), path);
 
         var loadContext = new ExtensionLoadContext(path);
         var assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath(path));

@@ -1,4 +1,6 @@
 using Verso.Abstractions;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Parameters;
 
@@ -75,7 +77,8 @@ public sealed class ParameterResolver
             else
             {
                 // Unknown parameter: inject as string with warning
-                _error.WriteLine($"Warning: Unknown parameter '{name}' not defined in notebook metadata. Injecting as string.");
+                _error.WriteLine(Messages.Warning(
+                    string.Format(Strings.Param_UnknownParameter, name)));
                 resolved[name] = rawValue;
             }
         }
@@ -84,7 +87,7 @@ public sealed class ParameterResolver
         if (errors.Count > 0)
         {
             return ParameterResolutionResult.Failure(
-                "Error: Invalid parameter values:\n" + string.Join("\n", errors));
+                Messages.Error(Strings.Param_InvalidValues) + "\n" + string.Join("\n", errors));
         }
 
         // 2. Apply defaults for unspecified parameters
@@ -122,9 +125,9 @@ public sealed class ParameterResolver
                 });
 
             return ParameterResolutionResult.Failure(
-                "Error: Missing required notebook parameters:\n\n" +
+                Messages.Error(Strings.Param_MissingRequired) + "\n\n" +
                 string.Join("\n", lines) +
-                "\n\nSupply values with --param or use --interactive to be prompted.");
+                "\n\n" + Strings.Param_SupplyHint);
         }
 
         // 5. Sort by Order then alphabetically
@@ -139,7 +142,7 @@ public sealed class ParameterResolver
             return ParameterResolutionResult.Success(new Dictionary<string, object>());
         }
 
-        _error.WriteLine("Warning: Parameter definitions are only supported for .verso files. Injecting all --param values as untyped strings.");
+        _error.WriteLine(Messages.Warning(Strings.Param_UntypedOnly));
 
         var resolved = new Dictionary<string, object>();
         foreach (var (name, value) in _cliParams)
@@ -159,7 +162,7 @@ public sealed class ParameterResolver
             .ToList();
 
         _output.WriteLine();
-        _output.WriteLine("Notebook parameters:");
+        _output.WriteLine(Strings.Param_Heading);
         _output.WriteLine();
 
         foreach (var (name, def) in sortedDefs)
@@ -167,8 +170,10 @@ public sealed class ParameterResolver
             // Skip parameters already resolved via CLI
             if (resolved.ContainsKey(name)) continue;
 
-            var typeLabel = def.Required ? $"{def.Type}, required" : def.Type;
-            var defaultLabel = def.Default is not null ? $", default: {def.Default}" : "";
+            var typeLabel = def.Required ? $"{def.Type}, {Strings.Param_Required}" : def.Type;
+            var defaultLabel = def.Default is not null
+                ? ", " + string.Format(Strings.Param_Default, def.Default)
+                : "";
             var desc = def.Description is not null ? $" {def.Description}" : "";
 
             _output.WriteLine($"  {name} ({typeLabel}{defaultLabel}){desc}");
@@ -191,7 +196,7 @@ public sealed class ParameterResolver
                     {
                         break; // Optional with no default, skip
                     }
-                    _output.WriteLine("    Value is required.");
+                    _output.WriteLine("    " + Strings.Param_ValueRequired);
                     continue;
                 }
 

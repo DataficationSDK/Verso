@@ -3,9 +3,21 @@ using Verso.Abstractions;
 using Verso.Host.Dto;
 using Verso.Host.Layouts;
 using Verso.Host.Protocol;
+using Verso.Host.Resources;
 
 namespace Verso.Host.Handlers;
 
+/// <summary>
+/// Answers the layout half of the protocol: which layouts exist, which one is active, and what an
+/// isolated one needs in order to draw.
+/// </summary>
+/// <remarks>
+/// The messages naming a missing field or an unknown identifier stay in English on purpose. They
+/// can only appear when a caller sends a request this cannot read, which is a fault in the code
+/// rather than anything the reader did, and a log from one machine has to match a search made on
+/// another. The same goes for the messages an extension gets back when it uses a layout the wrong
+/// way: the person who can act on one is writing code, not reading a notebook.
+/// </remarks>
 public static class LayoutHandler
 {
     public static LayoutsResult HandleGetLayouts(NotebookSession ns)
@@ -575,7 +587,7 @@ public static class LayoutHandler
             // Reuse the same file/download path the toolbar export actions use, so a layout
             // interaction (e.g. export PNG) gets a native save dialog in the VS Code host.
             if (_ns is null)
-                throw new NotSupportedException("File download is not supported by this host context.");
+                throw new NotSupportedException(Strings.Download_Unsupported);
 
             _ns.SendNotification(MethodNames.FileDownload, new
             {

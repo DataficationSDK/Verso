@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Layouts;
 
@@ -10,13 +11,13 @@ namespace Verso.Extensions.Layouts;
 internal sealed class ContentFallbackRenderer : ICellRenderer
 {
     public string ExtensionId => "verso.internal.fallback-renderer";
-    public string Name => "Fallback Renderer";
+    public string Name => Strings.Renderer_Fallback;
     public string Version => "1.0.0";
     public string? Author => null;
     public string? Description => null;
 
     public string CellTypeId => "";
-    public string DisplayName => "Fallback";
+    public string DisplayName => Strings.Renderer_Fallback_Label;
     public bool CollapsesInputOnExecute => false;
     public CellVisibilityHint DefaultVisibility => CellVisibilityHint.Content;
 

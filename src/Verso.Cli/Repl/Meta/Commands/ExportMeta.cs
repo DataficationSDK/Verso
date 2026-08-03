@@ -1,6 +1,8 @@
 using Spectre.Console;
 using Verso.Abstractions;
 using Verso.Cli.Execution;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Contexts;
 
 namespace Verso.Cli.Repl.Meta.Commands;
@@ -13,32 +15,37 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class ExportMeta : IMetaCommand
 {
     public string Name => "export";
-    public string Summary => "Exports the session notebook via an ExportMenu toolbar action.";
+    public string Summary => Strings.Meta_Export_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
     public string DetailedHelp =>
-        ".export --format <name> [--output <path>] [--layout <id>] [--theme <name>]\n" +
-        "  Dispatches to an IToolbarAction registered with ToolbarPlacement.ExportMenu.\n" +
-        "  Format is matched by DisplayName (case-insensitive), ActionId as fallback.\n" +
-        "  Theme is matched by DisplayName (case-insensitive), ThemeId as fallback.\n" +
-        "  Without --output, writes the action's suggested filename to the current directory.\n" +
-        "  Identical to 'verso export'.";
+        ".export --format <name> [--output <path>] [--layout <id>] [--theme <name>]\n"
+        + Strings.Meta_Export_Details;
+
+    /// <summary>What to type to see the formats installed. The same in every language.</summary>
+    private const string ListExportersCommand = ".list exporters";
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         if (!TryParseArgs(argumentText, out var format, out var outputPath, out var layoutId, out var themeName, out var parseError))
         {
-            context.Console.MarkupLine($"[red]{Markup.Escape(parseError)}[/]");
+            context.Console.MarkupLine(Messages.In("red", Markup.Escape(parseError)));
             return true;
         }
 
         if (string.IsNullOrEmpty(format))
         {
-            context.Console.MarkupLine("[red]--format is required.[/] Run [bold].list exporters[/] to see available formats.");
+            context.Console.MarkupLine(
+                Messages.In("red", Messages.Say(Strings.Export_FormatRequired))
+                + " " + Messages.Typed(Strings.Hint_RunForFormats, ListExportersCommand));
             return true;
         }
 
         if (!ToolbarActionResolver.TryResolveAction(context.Session.ExtensionHost, format, out var action, out var actionError))
         {
-            context.Console.MarkupLine($"[red]{Markup.Escape(actionError)}[/] Run [bold].list exporters[/] to see available formats.");
+            context.Console.MarkupLine(
+                Messages.In("red", Markup.Escape(actionError))
+                + " " + Messages.Typed(Strings.Hint_RunForFormats, ListExportersCommand));
             return true;
         }
 
@@ -47,7 +54,7 @@ public sealed class ExportMeta : IMetaCommand
         {
             if (!ToolbarActionResolver.TryResolveTheme(context.Session.ExtensionHost, themeName, out selectedTheme, out var themeError))
             {
-                context.Console.MarkupLine($"[red]{Markup.Escape(themeError)}[/]");
+                context.Console.MarkupLine(Messages.In("red", Markup.Escape(themeError)));
                 return true;
             }
         }
@@ -70,17 +77,20 @@ public sealed class ExportMeta : IMetaCommand
         }
         catch (Exception ex)
         {
-            context.Console.MarkupLine($"[red]Export action '{Markup.Escape(action.ActionId)}' threw: {Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Export_ActionThrew, action.ActionId, ex.Message)));
             return true;
         }
 
         if (ctx.WrittenPath is null)
         {
-            context.Console.MarkupLine($"[red]Export action '{Markup.Escape(action.ActionId)}' did not produce a file.[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Export_NoFileProduced, action.ActionId)));
             return true;
         }
 
-        context.Console.MarkupLine($"[green]Exported[/] session notebook → {Markup.Escape(ctx.WrittenPath)} ({context.Session.Notebook.Cells.Count} cells)");
+        context.Console.MarkupLine(Messages.In("green", Messages.Say(
+            Strings.Meta_Export_Done, ctx.WrittenPath, CellCount.Describe(context.Session.Notebook.Cells.Count))));
         return true;
     }
 
@@ -105,24 +115,24 @@ public sealed class ExportMeta : IMetaCommand
             {
                 case "--format":
                 case "-f":
-                    if (i + 1 >= tokens.Count) { error = "Missing value for --format."; return false; }
+                    if (i + 1 >= tokens.Count) { error = string.Format(Strings.Meta_Export_MissingValue, "--format"); return false; }
                     format = tokens[++i];
                     break;
                 case "--output":
                 case "-o":
-                    if (i + 1 >= tokens.Count) { error = "Missing value for --output."; return false; }
+                    if (i + 1 >= tokens.Count) { error = string.Format(Strings.Meta_Export_MissingValue, "--output"); return false; }
                     outputPath = Path.GetFullPath(tokens[++i]);
                     break;
                 case "--layout":
-                    if (i + 1 >= tokens.Count) { error = "Missing value for --layout."; return false; }
+                    if (i + 1 >= tokens.Count) { error = string.Format(Strings.Meta_Export_MissingValue, "--layout"); return false; }
                     layoutId = tokens[++i];
                     break;
                 case "--theme":
-                    if (i + 1 >= tokens.Count) { error = "Missing value for --theme."; return false; }
+                    if (i + 1 >= tokens.Count) { error = string.Format(Strings.Meta_Export_MissingValue, "--theme"); return false; }
                     themeName = tokens[++i];
                     break;
                 default:
-                    error = $"Unknown argument: {tokens[i]}";
+                    error = string.Format(Strings.Meta_Export_UnknownArgument, tokens[i]);
                     return false;
             }
         }

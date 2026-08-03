@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Kernels;
 using Verso.Extensions.Renderers;
 
@@ -14,10 +15,10 @@ public sealed class HtmlCellType : ICellType
     // --- IExtension ---
 
     public string ExtensionId => "verso.celltype.html";
-    public string Name => "HTML Cell Type";
+    public string Name => Strings.CellType_Html;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "HTML cell type for authoring raw HTML with @variable substitution.";
+    public string? Description => Strings.CellType_Html_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -25,6 +26,7 @@ public sealed class HtmlCellType : ICellType
     // --- ICellType ---
 
     public string CellTypeId => "html";
+    // Format and product names read the same in every language.
     public string DisplayName => "HTML";
 
     public string? Icon => "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"currentColor\">"
@@ -35,5 +37,8 @@ public sealed class HtmlCellType : ICellType
     public ILanguageKernel? Kernel { get; } = new HtmlKernel();
     public bool IsEditable => true;
 
+    // Starter text, not interface text. What this returns is written into the cell and
+    // saved with the notebook, so it stays as one language rather than depending on who
+    // happened to add the cell.
     public string GetDefaultContent() => "<!-- Write your HTML here -->\n<h1>Hello World</h1>";
 }

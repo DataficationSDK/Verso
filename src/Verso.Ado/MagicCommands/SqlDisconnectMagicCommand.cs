@@ -1,6 +1,8 @@
 using Verso.Abstractions;
 using Verso.Ado.Helpers;
 using Verso.Ado.Models;
+using Verso.Ado.Localization;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.MagicCommands;
 
@@ -13,17 +15,17 @@ public sealed class SqlDisconnectMagicCommand : IMagicCommand
 {
     // --- IExtension ---
     public string ExtensionId => "verso.ado.magic.sql-disconnect";
-    string IExtension.Name => "SQL Disconnect Magic Command";
+    string IExtension.Name => Strings.Magic_Disconnect_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string Description => "Closes and removes a database connection.";
+    public string Description => Strings.Magic_Disconnect_Description;
 
     // --- IMagicCommand ---
     public string Name => "sql-disconnect";
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("name", "The connection name to disconnect. Defaults to the default connection.", typeof(string)),
+        new ParameterDefinition("name", Strings.Magic_Disconnect_Param_Name, typeof(string)),
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -45,7 +47,7 @@ public sealed class SqlDisconnectMagicCommand : IMagicCommand
         if (string.IsNullOrWhiteSpace(connectionName))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", "Error: No connection name specified and no default connection is set.",
+                "text/plain", CellText.Error(Strings.Magic_Disconnect_NoName),
                 IsError: true)).ConfigureAwait(false);
             return;
         }
@@ -56,7 +58,7 @@ public sealed class SqlDisconnectMagicCommand : IMagicCommand
         if (connections is null || !connections.TryGetValue(connectionName, out var connInfo))
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Error: Connection '{connectionName}' not found.", IsError: true))
+                "text/plain", CellText.Error(string.Format(Strings.Magic_Disconnect_NotFound, connectionName)), IsError: true))
                 .ConfigureAwait(false);
             return;
         }
@@ -94,6 +96,6 @@ public sealed class SqlDisconnectMagicCommand : IMagicCommand
         }
 
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"Disconnected '{connectionName}'.")).ConfigureAwait(false);
+            "text/plain", string.Format(Strings.Magic_Disconnect_Done, connectionName))).ConfigureAwait(false);
     }
 }

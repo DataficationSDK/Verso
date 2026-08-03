@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Export;
 
 namespace Verso.Extensions.ToolbarActions;
@@ -12,10 +13,10 @@ public sealed class ExportMarkdownAction : IToolbarAction
     // --- IExtension ---
 
     public string ExtensionId => "verso.action.export-markdown";
-    public string Name => "Export Markdown";
+    public string Name => Strings.Action_ExportMarkdown;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Exports the notebook as a Markdown document.";
+    public string? Description => Strings.Action_ExportMarkdown_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -23,6 +24,7 @@ public sealed class ExportMarkdownAction : IToolbarAction
     // --- IToolbarAction ---
 
     public string ActionId => "verso.action.export-markdown";
+    // The export menu names formats, and a format name reads the same in every language.
     public string DisplayName => "Markdown";
     public string? Icon => null;
     public ToolbarPlacement Placement => ToolbarPlacement.ExportMenu;

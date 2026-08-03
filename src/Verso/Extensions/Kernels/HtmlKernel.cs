@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Resources;
 using Verso.Extensions.Utilities;
 
 namespace Verso.Extensions.Kernels;
@@ -18,10 +19,10 @@ public sealed class HtmlKernel : ILanguageKernel
     // --- IExtension ---
 
     public string ExtensionId => "verso.kernel.html";
-    public string Name => "HTML Kernel";
+    public string Name => Strings.Kernel_Html;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Executes HTML cells with @variable substitution.";
+    public string? Description => Strings.Kernel_Html_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -29,6 +30,7 @@ public sealed class HtmlKernel : ILanguageKernel
     // --- ILanguageKernel ---
 
     public string LanguageId => "html";
+    // Format and product names read the same in every language.
     public string DisplayName => "HTML";
     public IReadOnlyList<string> FileExtensions { get; } = new[] { ".html", ".htm" };
 
@@ -91,7 +93,7 @@ public sealed class HtmlKernel : ILanguageKernel
 
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Warning,
-                $"Unresolved variable '@{name}'. No matching variable found in the variable store.",
+                string.Format(Strings.Kernel_UnresolvedVariable, name),
                 startLine, startCol, endLine, endCol));
         }
 

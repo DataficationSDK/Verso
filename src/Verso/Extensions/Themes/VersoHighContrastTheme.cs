@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Themes;
 
@@ -12,15 +13,15 @@ public sealed class VersoHighContrastTheme : ITheme
     // --- IExtension ---
 
     public string ExtensionId => "verso.theme.highcontrast";
-    public string Name => "Verso High Contrast";
+    public string Name => Strings.Theme_HighContrast;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "High-contrast accessibility theme with WCAG 2.1 AA compliant color tokens.";
+    public string? Description => Strings.Theme_HighContrast_Description;
 
     // --- ITheme ---
 
     public string ThemeId => "verso-highcontrast";
-    public string DisplayName => "Verso High Contrast";
+    public string DisplayName => Strings.Theme_HighContrast;
     public ThemeKind ThemeKind => ThemeKind.HighContrast;
 
     public ThemeColorTokens Colors { get; } = new ThemeColorTokens

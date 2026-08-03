@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Execution;
 using Verso.Extensions.Utilities;
 
@@ -56,8 +58,8 @@ public sealed partial class OutputRenderer
 
         if (cell.Type is "code")
         {
-            var language = cell.Language ?? "unknown";
-            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} ({language}) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+            var language = cell.Language ?? HeadlessRunner.UnknownLanguage;
+            WriteRule($"{string.Format(Strings.Render_CellLabel, index)} ({language})");
 
             if (!hideOutputs)
             {
@@ -71,26 +73,26 @@ public sealed partial class OutputRenderer
         }
         else if (_showParameters && cell.Type is "parameters")
         {
-            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} (parameters) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+            WriteRule($"{string.Format(Strings.Render_CellLabel, index)} ({cell.Type})");
 
             if (resolvedParameters is { Count: > 0 })
             {
-                var maxKey = resolvedParameters.Keys.Max(k => k.Length);
+                var maxKey = resolvedParameters.Keys.Max(DisplayWidth.Measure);
                 foreach (var (name, value) in resolvedParameters)
                 {
-                    _stdout.WriteLine($"  {name.PadRight(maxKey)}  {value}");
+                    _stdout.WriteLine($"  {DisplayWidth.PadRight(name, maxKey)}  {value}");
                 }
             }
             else
             {
-                _stdout.WriteLine("  (no parameters)");
+                _stdout.WriteLine("  " + Strings.Render_NoParameters);
             }
 
             _stdout.WriteLine();
         }
         else if (_includeMarkdown && cell.Type is "markdown")
         {
-            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} (markdown) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+            WriteRule($"{string.Format(Strings.Render_CellLabel, index)} ({cell.Type})");
 
             if (!inputCollapsed && !string.IsNullOrWhiteSpace(cell.Source))
                 _stdout.WriteLine(cell.Source);
@@ -99,7 +101,7 @@ public sealed partial class OutputRenderer
         }
         else if (_includeMarkdown && cell.Type is "html")
         {
-            _stdout.WriteLine($"\u2500\u2500\u2500 Cell {index} (html) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+            WriteRule($"{string.Format(Strings.Render_CellLabel, index)} ({cell.Type})");
 
             if (!inputCollapsed)
             {
@@ -135,9 +137,24 @@ public sealed partial class OutputRenderer
         var failed = results.Count(r => CellOutcome.Failed(CellOutcome.Find(cells, r.CellId), r));
         var total = results.Count;
 
-        _stdout.WriteLine($"\u2500\u2500\u2500 Summary \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
-        _stdout.WriteLine($"Cells: {total} total, {succeeded} succeeded, {failed} failed");
-        _stdout.WriteLine($"Time:  {totalElapsed.TotalSeconds:F1}s");
+        WriteRule(Strings.Render_SummaryLabel);
+        _stdout.WriteLine(string.Format(Strings.Render_SummaryCells, total, succeeded, failed));
+        _stdout.WriteLine(string.Format(Strings.Render_SummaryTime, totalElapsed.TotalSeconds.ToString("F1")));
+    }
+
+    /// <summary>
+    /// Writes the rule that heads a block of output.
+    /// </summary>
+    /// <remarks>
+    /// The trailing rule is drawn to fill whatever the label left, rather than written out as a
+    /// fixed run of dashes per kind of cell. A translated label is not the length the English one
+    /// was, and headings that no longer line up read as a rendering fault.
+    /// </remarks>
+    private void WriteRule(string label)
+    {
+        const int Width = 42;
+        var head = $"\u2500\u2500\u2500 {label} ";
+        _stdout.WriteLine(head + new string('\u2500', Math.Max(3, Width - DisplayWidth.Measure(head))));
     }
 
     private void RenderOutput(CellOutput output, bool preview, int previewLineCount)
@@ -220,7 +237,8 @@ public sealed partial class OutputRenderer
             _stdout.WriteLine(lines[i]);
 
         var omitted = lines.Length - previewLineCount;
-        _stdout.WriteLine($"... ({omitted} more {(omitted == 1 ? "line" : "lines")})");
+        _stdout.WriteLine(string.Format(
+            Plural.Of(omitted, Strings.Render_MoreLines_One, Strings.Render_MoreLines_Other), omitted));
     }
 
     /// <summary>
@@ -229,6 +247,13 @@ public sealed partial class OutputRenderer
     /// because it did not fail anything. The tag is still textual rather than colour alone, so the
     /// distinction survives being piped to a file.
     /// </summary>
+    /// <remarks>
+    /// The two tags below stay in English. They are the one part of a run's output a script reads
+    /// rather than a person: piping a run through something that looks for them is the reason
+    /// they are written at all, and a build that answered in a different language on a different
+    /// machine would break every one of those pipelines. Everything after the tag is the cell's
+    /// own words, and those were never Verso's to translate.
+    /// </remarks>
     private void WriteStandardError(string content)
     {
         if (_supportsAnsi)

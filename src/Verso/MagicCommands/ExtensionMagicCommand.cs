@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using Verso.Abstractions;
 using Verso.Extensions;
 using Verso.Kernels;
+using Verso.Localization;
+using Verso.Resources;
 
 namespace Verso.MagicCommands;
 
@@ -21,19 +23,19 @@ public sealed class ExtensionMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.extension";
-    string IExtension.Name => "Extension Magic Command";
+    string IExtension.Name => Strings.Magic_Extension;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 
     // --- IMagicCommand ---
 
     public string Name => "extension";
-    public string Description => "Installs a NuGet package or loads a local assembly containing Verso extensions.";
+    public string Description => Strings.Magic_Extension_Description;
 
     public IReadOnlyList<ParameterDefinition> Parameters { get; } = new[]
     {
-        new ParameterDefinition("packageIdOrPath", "A NuGet package ID or path to a local .dll file.", typeof(string), IsRequired: true),
-        new ParameterDefinition("version", "Optional package version (NuGet only).", typeof(string))
+        new ParameterDefinition("packageIdOrPath", Strings.Magic_Extension_Param_PackageIdOrPath, typeof(string), IsRequired: true),
+        new ParameterDefinition("version", Strings.Magic_Extension_Param_Version, typeof(string))
     };
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
@@ -47,7 +49,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                "Usage: #!extension <PackageId> [Version]  or  #!extension <path/to/assembly.dll>",
+                Strings.Magic_Extension_Usage,
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
@@ -79,7 +81,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         if (extensionHost?.IsExtensionPackageLoaded(resolvedPath) == true)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Extension assembly '{Path.GetFileName(resolvedPath)}' is already loaded."))
+                "text/plain", string.Format(Strings.Magic_Extension_AlreadyLoadedAssembly, Path.GetFileName(resolvedPath))))
                 .ConfigureAwait(false);
             return;
         }
@@ -88,7 +90,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Error: Extension assembly not found: {resolvedPath}",
+                CellText.Error(string.Format(Strings.Magic_Extension_AssemblyNotFound, resolvedPath)),
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
@@ -109,7 +111,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
             {
                 var consentInfo = new List<ExtensionConsentInfo>
                 {
-                    new(Path.GetFileName(resolvedPath), null, "session-generated local assembly")
+                    new(Path.GetFileName(resolvedPath), null, Strings.Magic_Extension_ConsentReason_SessionGenerated)
                 };
 
                 var approved = await extensionHost.RequestExtensionConsentAsync(
@@ -119,7 +121,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
                 {
                     await context.WriteOutputAsync(new CellOutput(
                         "text/plain",
-                        $"Extension '{Path.GetFileName(resolvedPath)}' was not approved. Skipping."))
+                        string.Format(Strings.Magic_Extension_NotApproved, Path.GetFileName(resolvedPath))))
                         .ConfigureAwait(false);
                     return;
                 }
@@ -127,7 +129,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         }
 
         await context.WriteOutputAsync(new CellOutput(
-            "text/plain", $"Loading extension from '{Path.GetFileName(resolvedPath)}'..."))
+            "text/plain", string.Format(Strings.Magic_Extension_Loading, Path.GetFileName(resolvedPath))))
             .ConfigureAwait(false);
 
         try
@@ -153,15 +155,17 @@ public sealed class ExtensionMagicCommand : IMagicCommand
             {
                 await context.WriteOutputAsync(new CellOutput(
                     "text/plain",
-                    $"Warning: '{Path.GetFileName(resolvedPath)}' loaded but contains no [VersoExtension] types. " +
-                    "The assembly is still available as a reference."))
+                    CellText.Warning(string.Format(
+                        Strings.Magic_Extension_NoTypes, Path.GetFileName(resolvedPath)))))
                     .ConfigureAwait(false);
             }
             else
             {
                 await context.WriteOutputAsync(new CellOutput(
                     "text/plain",
-                    $"Loaded '{Path.GetFileName(resolvedPath)}' ({extensionsRegistered} extension{(extensionsRegistered == 1 ? "" : "s")} registered)"))
+                    string.Format(
+                        Plural.Of(extensionsRegistered, Strings.Magic_Extension_Loaded_One, Strings.Magic_Extension_Loaded_Other),
+                        Path.GetFileName(resolvedPath), extensionsRegistered)))
                     .ConfigureAwait(false);
             }
         }
@@ -169,7 +173,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Error: '{Path.GetFileName(resolvedPath)}' is not a valid .NET assembly.",
+                CellText.Error(string.Format(Strings.Magic_Extension_NotAnAssembly, Path.GetFileName(resolvedPath))),
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
@@ -178,7 +182,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Error loading extensions from '{Path.GetFileName(resolvedPath)}': {ex.Message}",
+                string.Format(Strings.Magic_Extension_LoadFailed, Path.GetFileName(resolvedPath), ex.Message),
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
@@ -191,7 +195,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Error loading '{Path.GetFileName(resolvedPath)}': {ex.Message}",
+                string.Format(Strings.Magic_Extension_LoadFailedGeneric, Path.GetFileName(resolvedPath), ex.Message),
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;
@@ -215,7 +219,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         if (extensionHost?.IsExtensionPackageLoaded(packageId) == true)
         {
             await context.WriteOutputAsync(new CellOutput(
-                "text/plain", $"Extension package '{packageId}' is already loaded."))
+                "text/plain", string.Format(Strings.Magic_Extension_AlreadyLoadedPackage, packageId)))
                 .ConfigureAwait(false);
             return;
         }
@@ -234,7 +238,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
             if (!approved)
             {
                 await context.WriteOutputAsync(new CellOutput(
-                    "text/plain", $"Extension '{packageId}' was not approved. Skipping."))
+                    "text/plain", string.Format(Strings.Magic_Extension_NotApproved, packageId)))
                     .ConfigureAwait(false);
                 return;
             }
@@ -245,8 +249,8 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         await context.WriteOutputAsync(new CellOutput(
             "text/plain",
             version is not null
-                ? $"Resolving extension package '{packageId}' version '{version}'..."
-                : $"Resolving extension package '{packageId}'..."))
+                ? string.Format(Strings.Magic_Extension_ResolvingVersion, packageId, version)
+                : string.Format(Strings.Magic_Extension_Resolving, packageId)))
             .ConfigureAwait(false);
 
         try
@@ -297,7 +301,9 @@ public sealed class ExtensionMagicCommand : IMagicCommand
 
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Installed '{result.PackageId}' {result.ResolvedVersion} ({extensionsRegistered} extension{(extensionsRegistered == 1 ? "" : "s")} registered)"))
+                string.Format(
+                    Plural.Of(extensionsRegistered, Strings.Magic_Extension_Installed_One, Strings.Magic_Extension_Installed_Other),
+                    result.PackageId, result.ResolvedVersion, extensionsRegistered)))
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -308,7 +314,7 @@ public sealed class ExtensionMagicCommand : IMagicCommand
         {
             await context.WriteOutputAsync(new CellOutput(
                 "text/plain",
-                $"Failed to resolve extension package '{packageId}': {ex.Message}",
+                string.Format(Strings.Magic_Extension_ResolveFailed, packageId, ex.Message),
                 IsError: true))
                 .ConfigureAwait(false);
             context.SuppressExecution = true;

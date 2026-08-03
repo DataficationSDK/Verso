@@ -4,6 +4,7 @@ using Verso.Diffing;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
 using Verso.Serializers;
+using Verso.Host.Resources;
 
 namespace Verso.Host.Handlers;
 
@@ -22,7 +23,7 @@ public static class DiffHandler
 
         if (string.IsNullOrWhiteSpace(p.BaselineContent))
         {
-            throw new InvalidOperationException("The baseline notebook is empty.");
+            throw new InvalidOperationException(Strings.Diff_BaselineEmpty);
         }
 
         // Serializer selection mirrors notebook/open: file-path extension first, then a
@@ -48,7 +49,7 @@ public static class DiffHandler
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Could not parse the baseline as a notebook: {ex.Message}", ex);
+            throw new InvalidOperationException(string.Format(Strings.Diff_BaselineUnreadable, ex.Message), ex);
         }
 
         var postProcessors = ns.ExtensionHost.GetPostProcessors()

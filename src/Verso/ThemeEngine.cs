@@ -1,5 +1,6 @@
 using System.Reflection;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso;
 
@@ -64,7 +65,7 @@ public sealed class ThemeEngine : IThemeContext
         ArgumentNullException.ThrowIfNull(themeId);
         var theme = _availableThemes.FirstOrDefault(
             t => string.Equals(t.ThemeId, themeId, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"Theme '{themeId}' not found.");
+            ?? throw new InvalidOperationException(string.Format(Strings.Error_ThemeNotFound, themeId));
         _activeTheme = theme;
         OnThemeChanged?.Invoke(theme);
     }

@@ -4,3 +4,4 @@ out/
 out-test/
 /host/
 *.vsix
+.vscode-test/

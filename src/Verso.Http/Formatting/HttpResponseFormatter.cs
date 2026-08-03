@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using Verso.Http.Models;
+using Verso.Http.Resources;
 
 namespace Verso.Http.Formatting;
 
@@ -76,7 +77,9 @@ internal static class HttpResponseFormatter
         if (response.Headers.Count > 0)
         {
             sb.Append("<details class=\"verso-http-headers\">");
-            sb.Append("<summary>Response Headers (").Append(response.Headers.Count).Append(")</summary>");
+            sb.Append("<summary>")
+              .Append(WebUtility.HtmlEncode(string.Format(Strings.Response_Headers, response.Headers.Count)))
+              .Append("</summary>");
             sb.Append("<table>");
             foreach (var (name, value) in response.Headers)
             {
@@ -108,9 +111,10 @@ internal static class HttpResponseFormatter
 
             if (truncated)
             {
-                sb.Append("<div class=\"verso-http-truncation\">Response truncated at 100 KB (total: ")
-                  .Append((response.Body.Length / 1024).ToString("N0"))
-                  .Append(" KB)</div>");
+                sb.Append("<div class=\"verso-http-truncation\">")
+                  .Append(WebUtility.HtmlEncode(string.Format(
+                      Strings.Response_Truncated, (response.Body.Length / 1024).ToString("N0"))))
+                  .Append("</div>");
             }
 
             sb.Append("</div>");

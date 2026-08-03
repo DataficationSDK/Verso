@@ -130,6 +130,10 @@ Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support
 
 Three built-in themes (Light, Dark, High Contrast) are hot-swappable at runtime. The High Contrast theme meets WCAG 2.1 AA contrast requirements. In VS Code, the notebook theme automatically follows your editor theme.
 
+### Interface Language
+
+The notebook interface, the toolbar and panels, the kernel messages that land in cell output, and the CLI are translated into German, Spanish, Japanese, and Simplified Chinese. Verso follows the system or the editor on its own; `verso.language` and `--language` override it, and `VERSO_LANGUAGE` sets it once for a container or a pipeline. Only the words change: numbers and dates keep the machine's own formatting, so a language never alters what a cell computes. See the [interface language guide](docs/guides/interface-language.md).
+
 ### GitHub Copilot Integration
 
 In VS Code, a `@verso` chat participant answers questions about the notebook in front of you, and twenty language model tools let agent mode create, edit, run, and inspect cells directly. Copilot works against the real notebook rather than a text approximation of it.

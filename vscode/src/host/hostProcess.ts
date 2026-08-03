@@ -7,6 +7,7 @@ import {
   JsonRpcNotification,
 } from "./protocol";
 import { log } from "../log";
+import { resolveLanguage } from "../localization";
 
 type NotificationHandler = (params: unknown) => void;
 
@@ -67,6 +68,22 @@ function buildHostEnvironment(): NodeJS.ProcessEnv {
   }
 
   return env;
+}
+
+/**
+ * The command line the host is started with. The language travels here rather than in the
+ * environment because the environment is inherited by the tools the host launches in turn,
+ * and a Python interpreter has no business being told what language the notebook chrome is in.
+ */
+function buildHostArguments(hostDllPath: string): string[] {
+  const args = [hostDllPath];
+
+  const language = resolveLanguage();
+  if (language) {
+    args.push("--language", language);
+  }
+
+  return args;
 }
 
 export class HostProcess implements vscode.Disposable {
@@ -133,8 +150,9 @@ export class HostProcess implements vscode.Disposable {
         30000
       );
 
-      log.info(`Spawning Verso.Host: ${this.dotnetCommand} ${this.hostDllPath}`);
-      this.process = spawn(this.dotnetCommand, [this.hostDllPath], {
+      const hostArgs = buildHostArguments(this.hostDllPath);
+      log.info(`Spawning Verso.Host: ${this.dotnetCommand} ${hostArgs.join(" ")}`);
+      this.process = spawn(this.dotnetCommand, hostArgs, {
         stdio: ["pipe", "pipe", "pipe"],
         env: buildHostEnvironment(),
       });
@@ -172,8 +190,10 @@ export class HostProcess implements vscode.Disposable {
                 `for the faulting stack; on Linux, see your distro's coredump location.`
             );
           }
+          // The detail is a signal name or an exit code, which reads the same
+          // whatever language the sentence around it is in.
           vscode.window.showWarningMessage(
-            `Verso host process exited (${detail.toast})`
+            vscode.l10n.t("Verso host process exited ({0})", detail.toast)
           );
           this.onUnexpectedExit?.(detail.toast);
         } else {

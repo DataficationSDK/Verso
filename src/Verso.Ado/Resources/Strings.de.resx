@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Action_ExportCsv" xml:space="preserve">
+    <value>CSV exportieren</value>
+  </data>
+  <data name="Action_ExportCsv_Description" xml:space="preserve">
+    <value>Exportiert SQL-Ergebnismengen als CSV-Dateien.</value>
+  </data>
+  <data name="Action_ExportJson" xml:space="preserve">
+    <value>JSON exportieren</value>
+  </data>
+  <data name="Action_ExportJson_Description" xml:space="preserve">
+    <value>Exportiert SQL-Ergebnismengen als JSON-Dateien.</value>
+  </data>
+  <data name="CellType_Description" xml:space="preserve">
+    <value>SQL-Zellentyp zum Abfragen von Datenbanken über ADO.NET.</value>
+  </data>
+  <data name="CellType_Name" xml:space="preserve">
+    <value>SQL-Zellentyp</value>
+  </data>
+  <data name="Completion_Keyword_Alter" xml:space="preserve">
+    <value>ALTER — Ändert ein vorhandenes Datenbankobjekt.</value>
+  </data>
+  <data name="Completion_Keyword_And" xml:space="preserve">
+    <value>AND — Logischer UND-Operator; beide Bedingungen müssen wahr sein.</value>
+  </data>
+  <data name="Completion_Keyword_Avg" xml:space="preserve">
+    <value>AVG — Aggregatfunktion, die den Durchschnitt einer numerischen Spalte zurückgibt.</value>
+  </data>
+  <data name="Completion_Keyword_Between" xml:space="preserve">
+    <value>BETWEEN — Prüft, ob ein Wert in einem Bereich liegt.</value>
+  </data>
+  <data name="Completion_Keyword_Case" xml:space="preserve">
+    <value>CASE — Bedingter Ausdruck; gibt je nach Bedingung einen Wert zurück.</value>
+  </data>
+  <data name="Completion_Keyword_Count" xml:space="preserve">
+    <value>COUNT — Aggregatfunktion, die die Anzahl der Zeilen zurückgibt.</value>
+  </data>
+  <data name="Completion_Keyword_Create" xml:space="preserve">
+    <value>CREATE — Erstellt ein neues Datenbankobjekt (Tabelle, Sicht, Index usw.).</value>
+  </data>
+  <data name="Completion_Keyword_Delete" xml:space="preserve">
+    <value>DELETE — Entfernt Zeilen aus einer Tabelle.</value>
+  </data>
+  <data name="Completion_Keyword_Distinct" xml:space="preserve">
+    <value>DISTINCT — Entfernt doppelte Zeilen aus der Ergebnismenge.</value>
+  </data>
+  <data name="Completion_Keyword_Drop" xml:space="preserve">
+    <value>DROP — Entfernt ein Datenbankobjekt.</value>
+  </data>
+  <data name="Completion_Keyword_Exists" xml:space="preserve">
+    <value>EXISTS — Prüft, ob eine Unterabfrage Zeilen liefert.</value>
+  </data>
+  <data name="Completion_Keyword_From" xml:space="preserve">
+    <value>FROM — Gibt die Quelltabellen oder -sichten einer Abfrage an.</value>
+  </data>
+  <data name="Completion_Keyword_Group" xml:space="preserve">
+    <value>GROUP BY — Gruppiert Zeilen mit gemeinsamer Eigenschaft für Aggregatfunktionen.</value>
+  </data>
+  <data name="Completion_Keyword_Having" xml:space="preserve">
+    <value>HAVING — Filtert die von GROUP BY erzeugten Gruppen.</value>
+  </data>
+  <data name="Completion_Keyword_In" xml:space="preserve">
+    <value>IN — Prüft, ob ein Wert einem Wert in einer Liste oder Unterabfrage entspricht.</value>
+  </data>
+  <data name="Completion_Keyword_Inner" xml:space="preserve">
+    <value>INNER — Gibt Zeilen zurück, die in beiden Tabellen übereinstimmende Werte haben.</value>
+  </data>
+  <data name="Completion_Keyword_Insert" xml:space="preserve">
+    <value>INSERT — Fügt einer Tabelle neue Zeilen hinzu.</value>
+  </data>
+  <data name="Completion_Keyword_Into" xml:space="preserve">
+    <value>INTO — Gibt die Zieltabelle für INSERT an.</value>
+  </data>
+  <data name="Completion_Keyword_Join" xml:space="preserve">
+    <value>JOIN — Verknüpft Zeilen aus zwei oder mehr Tabellen anhand einer zusammengehörenden Spalte.</value>
+  </data>
+  <data name="Completion_Keyword_Left" xml:space="preserve">
+    <value>LEFT — Gibt alle Zeilen der linken Tabelle und die passenden Zeilen der rechten zurück.</value>
+  </data>
+  <data name="Completion_Keyword_Like" xml:space="preserve">
+    <value>LIKE — Mustervergleich mit Platzhaltern (% und _).</value>
+  </data>
+  <data name="Completion_Keyword_Max" xml:space="preserve">
+    <value>MAX — Aggregatfunktion, die den größten Wert zurückgibt.</value>
+  </data>
+  <data name="Completion_Keyword_Min" xml:space="preserve">
+    <value>MIN — Aggregatfunktion, die den kleinsten Wert zurückgibt.</value>
+  </data>
+  <data name="Completion_Keyword_Not" xml:space="preserve">
+    <value>NOT — Logischer NICHT-Operator; negiert eine Bedingung.</value>
+  </data>
+  <data name="Completion_Keyword_Null" xml:space="preserve">
+    <value>NULL — Steht für einen fehlenden oder unbekannten Wert.</value>
+  </data>
+  <data name="Completion_Keyword_Or" xml:space="preserve">
+    <value>OR — Logischer ODER-Operator; eine der Bedingungen muss wahr sein.</value>
+  </data>
+  <data name="Completion_Keyword_Order" xml:space="preserve">
+    <value>ORDER BY — Sortiert die Ergebnismenge nach einer oder mehreren Spalten.</value>
+  </data>
+  <data name="Completion_Keyword_Right" xml:space="preserve">
+    <value>RIGHT — Gibt alle Zeilen der rechten Tabelle und die passenden Zeilen der linken zurück.</value>
+  </data>
+  <data name="Completion_Keyword_Select" xml:space="preserve">
+    <value>SELECT — Ruft Zeilen aus einer oder mehreren Tabellen oder Sichten ab.</value>
+  </data>
+  <data name="Completion_Keyword_Set" xml:space="preserve">
+    <value>SET — Gibt Spalten und Werte für UPDATE an.</value>
+  </data>
+  <data name="Completion_Keyword_Sum" xml:space="preserve">
+    <value>SUM — Aggregatfunktion, die die Summe einer numerischen Spalte zurückgibt.</value>
+  </data>
+  <data name="Completion_Keyword_Table" xml:space="preserve">
+    <value>TABLE — Bezeichnet eine Datenbanktabelle.</value>
+  </data>
+  <data name="Completion_Keyword_Union" xml:space="preserve">
+    <value>UNION — Vereinigt die Ergebnismengen von zwei oder mehr SELECT-Anweisungen.</value>
+  </data>
+  <data name="Completion_Keyword_Update" xml:space="preserve">
+    <value>UPDATE — Ändert vorhandene Zeilen in einer Tabelle.</value>
+  </data>
+  <data name="Completion_Keyword_Values" xml:space="preserve">
+    <value>VALUES — Gibt literale Werte für INSERT an.</value>
+  </data>
+  <data name="Completion_Keyword_Where" xml:space="preserve">
+    <value>WHERE — Filtert Zeilen anhand einer Bedingung.</value>
+  </data>
+  <data name="Directive_SpacedHint" xml:space="preserve">
+    <value>Hinweis: Bei '--{0}' darf nach '--' kein Leerzeichen stehen. Diese Zeile wurde als SQL-Kommentar gelesen und ignoriert, daher hat die Zelle die Standardverbindung verwendet.</value>
+  </data>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>Erweiterung für die Anbindung von SQL-Datenbanken an Verso-Notebooks.</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>Formatiert SQL-Ergebnismengen und DataTables als seitenweise HTML-Tabellen.</value>
+  </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>Ergebnismengen-Formatierer</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>Wandelt beim Jupyter-Import die SQL-Muster von Polyglot Notebooks in Verso-SQL-Zellen um.</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Jupyter-SQL-Import-Hook</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Führt SQL-Abfragen über ADO.NET-Datenbankverbindungen aus.</value>
+  </data>
+  <data name="Kernel_Name" xml:space="preserve">
+    <value>SQL-Kernel</value>
+  </data>
+  <data name="Magic_Connect_Connected" xml:space="preserve">
+    <value>'{0}'{1} über {2} verbunden</value>
+  </data>
+  <data name="Magic_Connect_ConnectionString" xml:space="preserve">
+    <value>
+  Verbindungszeichenfolge: {0}</value>
+  </data>
+  <data name="Magic_Connect_ConnectionStringRequired" xml:space="preserve">
+    <value>--connection-string ist erforderlich. Verwendung: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_CredentialFailed" xml:space="preserve">
+    <value>Fehler beim Auflösen der Verbindungszeichenfolge: {0}</value>
+  </data>
+  <data name="Magic_Connect_Database" xml:space="preserve">
+    <value> — Datenbank: {0}</value>
+  </data>
+  <data name="Magic_Connect_DefaultLabel" xml:space="preserve">
+    <value> (Standard)</value>
+  </data>
+  <data name="Magic_Connect_Description" xml:space="preserve">
+    <value>Stellt eine Datenbankverbindung für SQL-Zellen her.</value>
+  </data>
+  <data name="Magic_Connect_Name" xml:space="preserve">
+    <value>SQL-Connect-Magic-Command</value>
+  </data>
+  <data name="Magic_Connect_NameRequired" xml:space="preserve">
+    <value>--name ist erforderlich. Verwendung: #!sql-connect --name &lt;name&gt; --connection-string &lt;cs&gt;</value>
+  </data>
+  <data name="Magic_Connect_OpenFailed" xml:space="preserve">
+    <value>Fehler beim Öffnen der Verbindung: {0}</value>
+  </data>
+  <data name="Magic_Connect_Param_CommandTimeout" xml:space="preserve">
+    <value>Standard-Befehlszeitlimit in Sekunden für SQL-Zellen dieser Verbindung (0 = kein Limit).</value>
+  </data>
+  <data name="Magic_Connect_Param_ConnectionString" xml:space="preserve">
+    <value>Die ADO.NET-Verbindungszeichenfolge.</value>
+  </data>
+  <data name="Magic_Connect_Param_Default" xml:space="preserve">
+    <value>Diese Verbindung als Standard festlegen.</value>
+  </data>
+  <data name="Magic_Connect_Param_Name" xml:space="preserve">
+    <value>Ein sprechender Name für diese Verbindung.</value>
+  </data>
+  <data name="Magic_Connect_Param_Provider" xml:space="preserve">
+    <value>Der invariante Name der DbProviderFactory.</value>
+  </data>
+  <data name="Magic_Connect_ProviderResolveFailed" xml:space="preserve">
+    <value>Fehler beim Auflösen des Anbieters: {0}</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnknown" xml:space="preserve">
+    <value>unbekannt</value>
+  </data>
+  <data name="Magic_Connect_ProviderUnresolved" xml:space="preserve">
+    <value>Der Anbieter konnte nicht aufgelöst werden.</value>
+  </data>
+  <data name="Magic_Connect_Timeout" xml:space="preserve">
+    <value>
+  Befehlszeitlimit: {0}s</value>
+  </data>
+  <data name="Magic_Connect_TimeoutInvalid" xml:space="preserve">
+    <value>--command-timeout muss eine nicht negative ganze Zahl sein (Sekunden; 0 = kein Limit).</value>
+  </data>
+  <data name="Magic_Connect_TimeoutNoLimit" xml:space="preserve">
+    <value>
+  Befehlszeitlimit: kein Limit</value>
+  </data>
+  <data name="Magic_Disconnect_Description" xml:space="preserve">
+    <value>Schließt und entfernt eine Datenbankverbindung.</value>
+  </data>
+  <data name="Magic_Disconnect_Done" xml:space="preserve">
+    <value>'{0}' getrennt.</value>
+  </data>
+  <data name="Magic_Disconnect_Name" xml:space="preserve">
+    <value>SQL-Disconnect-Magic-Command</value>
+  </data>
+  <data name="Magic_Disconnect_NoName" xml:space="preserve">
+    <value>Es wurde kein Verbindungsname angegeben und es ist keine Standardverbindung festgelegt.</value>
+  </data>
+  <data name="Magic_Disconnect_NotFound" xml:space="preserve">
+    <value>Die Verbindung '{0}' wurde nicht gefunden.</value>
+  </data>
+  <data name="Magic_Disconnect_Param_Name" xml:space="preserve">
+    <value>Der Name der zu trennenden Verbindung. Standardmäßig die Standardverbindung.</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionClosed" xml:space="preserve">
+    <value>Die Verbindung '{0}' ist nicht geöffnet.</value>
+  </data>
+  <data name="Magic_Scaffold_ConnectionRequired" xml:space="preserve">
+    <value>--connection ist erforderlich. Verwendung: #!sql-scaffold --connection &lt;name&gt; [--tables "Table1,Table2"]</value>
+  </data>
+  <data name="Magic_Scaffold_Description" xml:space="preserve">
+    <value>Erzeugt EF Core DbContext und Entitätsklassen aus einem Datenbankschema.</value>
+  </data>
+  <data name="Magic_Scaffold_EfCoreHint" xml:space="preserve">
+    <value>Hinweis: Stellen Sie sicher, dass die EF Core-Pakete in einer vorherigen C#-Zelle installiert wurden:
+
+{0}</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_One" xml:space="preserve">
+    <value>{0} Entität</value>
+  </data>
+  <data name="Magic_Scaffold_EntityCount_Other" xml:space="preserve">
+    <value>{0} Entitäten</value>
+  </data>
+  <data name="Magic_Scaffold_GeneratedCode" xml:space="preserve">
+    <value>Erzeugter C#-Code</value>
+  </data>
+  <data name="Magic_Scaffold_Name" xml:space="preserve">
+    <value>SQL-Scaffold-Magic-Command</value>
+  </data>
+  <data name="Magic_Scaffold_NoCSharpKernel" xml:space="preserve">
+    <value>C#-Kernel nicht gefunden. Der erzeugte Code kann nicht ausgeführt werden.</value>
+  </data>
+  <data name="Magic_Scaffold_NoTables" xml:space="preserve">
+    <value>Es wurden keine Tabellen gefunden, die den angegebenen Kriterien entsprechen.</value>
+  </data>
+  <data name="Magic_Scaffold_NotFound" xml:space="preserve">
+    <value>Die Verbindung '{0}' wurde nicht gefunden. Verwenden Sie zuerst #!sql-connect.</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Connection" xml:space="preserve">
+    <value>Die benannte Verbindung, aus der erzeugt wird.</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Schema" xml:space="preserve">
+    <value>Datenbankschema, nach dem gefiltert wird (z. B. dbo).</value>
+  </data>
+  <data name="Magic_Scaffold_Param_Tables" xml:space="preserve">
+    <value>Durch Kommas getrennte Liste der einzubeziehenden Tabellen (Standard: alle).</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_One" xml:space="preserve">
+    <value> ({0} Beziehung)</value>
+  </data>
+  <data name="Magic_Scaffold_RelationshipCount_Other" xml:space="preserve">
+    <value> ({0} Beziehungen)</value>
+  </data>
+  <data name="Magic_Scaffold_Summary" xml:space="preserve">
+    <value>{0}{1} in {2} erzeugt
+
+Entitäten: {3}
+Kontextvariable: {4}
+
+Verwendung in C#-Zellen:
+  var items = {4}.{5}.ToList();
+</value>
+  </data>
+  <data name="Magic_Schema_ColumnCount" xml:space="preserve">
+    <value>({0} Spalten)</value>
+  </data>
+  <data name="Magic_Schema_ColumnDefault" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Magic_Schema_ColumnKey" xml:space="preserve">
+    <value>Schlüssel</value>
+  </data>
+  <data name="Magic_Schema_ColumnName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Magic_Schema_ColumnNullable" xml:space="preserve">
+    <value>NULL-fähig</value>
+  </data>
+  <data name="Magic_Schema_ColumnSchema" xml:space="preserve">
+    <value>Schema</value>
+  </data>
+  <data name="Magic_Schema_ColumnType" xml:space="preserve">
+    <value>Typ</value>
+  </data>
+  <data name="Magic_Schema_ConnectionClosed" xml:space="preserve">
+    <value>Die Verbindung '{0}' ist nicht geöffnet. Stellen Sie sie mit #!sql-connect wieder her.</value>
+  </data>
+  <data name="Magic_Schema_Description" xml:space="preserve">
+    <value>Zeigt Informationen zum Datenbankschema an (Tabellen, Sichten, Spalten).</value>
+  </data>
+  <data name="Magic_Schema_Heading" xml:space="preserve">
+    <value>Schema der Verbindung: {0}</value>
+  </data>
+  <data name="Magic_Schema_LoadFailed" xml:space="preserve">
+    <value>Fehler beim Laden des Schemas: {0}</value>
+  </data>
+  <data name="Magic_Schema_Name" xml:space="preserve">
+    <value>SQL-Schema-Magic-Command</value>
+  </data>
+  <data name="Magic_Schema_NoConnection" xml:space="preserve">
+    <value>Keine Datenbankverbindung. Stellen Sie mit #!sql-connect eine Verbindung her.</value>
+  </data>
+  <data name="Magic_Schema_NotFound" xml:space="preserve">
+    <value>Die Verbindung '{0}' wurde nicht gefunden. Stellen Sie mit #!sql-connect eine Verbindung her.</value>
+  </data>
+  <data name="Magic_Schema_Param_Connection" xml:space="preserve">
+    <value>Name der zu untersuchenden Verbindung.</value>
+  </data>
+  <data name="Magic_Schema_Param_Refresh" xml:space="preserve">
+    <value>Die Aktualisierung des Schemacaches erzwingen.</value>
+  </data>
+  <data name="Magic_Schema_Param_Table" xml:space="preserve">
+    <value>Spaltendetails zu einer bestimmten Tabelle anzeigen.</value>
+  </data>
+  <data name="Magic_Schema_TableCount" xml:space="preserve">
+    <value>({0} Tabellen/Sichten)</value>
+  </data>
+  <data name="Magic_Schema_TableNotFound" xml:space="preserve">
+    <value>Die Tabelle '{0}' wurde im Schema nicht gefunden.</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Fehler: {0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>Warnung: {0}</value>
+  </data>
+  <data name="Renderer_Description" xml:space="preserve">
+    <value>Stellt SQL-Zellen mit Kennzeichen für die Verbindung dar.</value>
+  </data>
+  <data name="Renderer_Name" xml:space="preserve">
+    <value>SQL-Renderer</value>
+  </data>
+  <data name="Run_ConnectionClosed" xml:space="preserve">
+    <value>Die Verbindung '{0}' ist nicht geöffnet. Stellen Sie sie mit `#!sql-connect` wieder her.</value>
+  </data>
+  <data name="Run_Failed" xml:space="preserve">
+    <value>SQL-Fehler: {0}</value>
+  </data>
+  <data name="Run_NoConnection" xml:space="preserve">
+    <value>Keine Datenbankverbindung. Stellen Sie mit `#!sql-connect` eine Verbindung her.</value>
+  </data>
+  <data name="Run_NoSql" xml:space="preserve">
+    <value>Kein SQL zum Ausführen.</value>
+  </data>
+  <data name="Run_UnsupportedParameterType" xml:space="preserve">
+    <value>Der Typ '{0}' für '{1}' ist kein unterstützter DbType. Er wird unverändert übergeben.</value>
+  </data>
+  <data name="Table_Elapsed" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Table_Next" xml:space="preserve">
+    <value>Weiter</value>
+  </data>
+  <data name="Table_Previous" xml:space="preserve">
+    <value>Zurück</value>
+  </data>
+  <data name="Table_RowsAffected_One" xml:space="preserve">
+    <value>{0} Zeile betroffen</value>
+  </data>
+  <data name="Table_RowsAffected_Other" xml:space="preserve">
+    <value>{0} Zeilen betroffen</value>
+  </data>
+  <data name="Table_ShowingRows" xml:space="preserve">
+    <value>{0}-{1} von {2} Zeilen werden angezeigt</value>
+  </data>
+  <data name="Table_Statements" xml:space="preserve">
+    <value>{0} ({1} Anweisungen)</value>
+  </data>
+  <data name="Table_Truncated" xml:space="preserve">
+    <value>Die Ergebnisse wurden bei {0} von insgesamt {1} Zeilen abgeschnitten. Grenzen Sie die Abfrage mit WHERE oder LIMIT ein.</value>
+  </data>
+</root>

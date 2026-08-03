@@ -1,5 +1,6 @@
 using Spectre.Console;
 using Verso.Abstractions;
+using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
@@ -11,19 +12,17 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class ConvertMeta : IMetaCommand
 {
     public string Name => "convert";
-    public string Summary => "Writes the session notebook to <path> using the serializer matching its extension.";
-    public string DetailedHelp =>
-        ".convert <path>\n" +
-        "  Serializes the current session notebook to <path> using the serializer whose\n" +
-        "  FileExtensions include the target extension. Does not change the session's\n" +
-        "  loaded path. Identical resolution to 'verso convert'.";
+    public string Summary => Strings.Meta_Convert_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".convert <path>\n" + Strings.Meta_Convert_Details;
 
     public async Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
         var arg = argumentText.Trim();
         if (string.IsNullOrEmpty(arg))
         {
-            context.Console.MarkupLine("[red]Usage: .convert <path>[/]");
+            context.Console.MarkupLine(Messages.In("red", Messages.Typed(Strings.Repl_Usage, ".convert <path>")));
             return true;
         }
 
@@ -36,7 +35,7 @@ public sealed class ConvertMeta : IMetaCommand
         }
         catch (SerializerNotFoundException ex)
         {
-            context.Console.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red", Markup.Escape(ex.Message)));
             return true;
         }
 
@@ -48,11 +47,13 @@ public sealed class ConvertMeta : IMetaCommand
                 Directory.CreateDirectory(directory);
 
             await File.WriteAllTextAsync(targetPath, content, ct);
-            context.Console.MarkupLine($"[green]Converted[/] session notebook → {Markup.Escape(targetPath)} ({context.Session.Notebook.Cells.Count} cells)");
+            context.Console.MarkupLine(Messages.In("green", Messages.Say(
+                Strings.Meta_Convert_Done, targetPath, CellCount.Describe(context.Session.Notebook.Cells.Count))));
         }
         catch (Exception ex)
         {
-            context.Console.MarkupLine($"[red]Convert failed: {Markup.Escape(ex.Message)}[/]");
+            context.Console.MarkupLine(Messages.In("red",
+                Messages.Say(Strings.Meta_Convert_Failed, ex.Message)));
         }
 
         return true;

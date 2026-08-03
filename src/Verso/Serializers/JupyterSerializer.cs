@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Serializers;
 
@@ -24,10 +25,10 @@ public sealed class JupyterSerializer : INotebookSerializer
     // --- IExtension ---
 
     public string ExtensionId => "verso.serializer.jupyter";
-    public string Name => "Jupyter Serializer";
+    public string Name => Strings.Serializer_Jupyter;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Serializer for Jupyter .ipynb notebooks (nbformat v4).";
+    public string? Description => Strings.Serializer_Jupyter_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -63,7 +64,7 @@ public sealed class JupyterSerializer : INotebookSerializer
         ArgumentNullException.ThrowIfNull(content);
 
         var jupyterDoc = JsonSerializer.Deserialize<JupyterNotebook>(content, ReadOptions)
-            ?? throw new JsonException("Failed to parse Jupyter notebook.");
+            ?? throw new JsonException(Strings.Error_JupyterParseFailed);
 
         if (jupyterDoc.NbFormat < 4)
             throw new NotSupportedException(

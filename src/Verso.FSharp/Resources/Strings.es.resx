@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Description" xml:space="preserve">
+    <value>Extensión del kernel de lenguaje F# Interactive para los cuadernos de Verso.</value>
+  </data>
+  <data name="Formatter_Description" xml:space="preserve">
+    <value>Da formato a los tipos de F# como tablas HTML enriquecidas y salida con estilo.</value>
+  </data>
+  <data name="Formatter_Name" xml:space="preserve">
+    <value>Formateador de datos de F#</value>
+  </data>
+  <data name="Import_Description" xml:space="preserve">
+    <value>Convierte los patrones F# de Polyglot Notebooks en celdas F# de Verso al importar desde Jupyter.</value>
+  </data>
+  <data name="Import_Name" xml:space="preserve">
+    <value>Enlace de importación de F# para Jupyter</value>
+  </data>
+  <data name="Kernel_Description" xml:space="preserve">
+    <value>Kernel del lenguaje F# basado en FSharp.Compiler.Service.</value>
+  </data>
+  <data name="Kernel_InstalledPackages" xml:space="preserve">
+    <value>Paquetes instalados</value>
+  </data>
+  <data name="NuGet_DownloadFailed" xml:space="preserve">
+    <value>No se pudo descargar el paquete '{0}' v{1} desde nuget.org.</value>
+  </data>
+  <data name="NuGet_DownloadUnreachable" xml:space="preserve">
+    <value>No se puede descargar el paquete '{0}' v{1}. Compruebe la conexión de red e inténtelo de nuevo. ({2}: {3})</value>
+  </data>
+  <data name="NuGet_PackageNotFound" xml:space="preserve">
+    <value>No se encontró el paquete '{0}'{1} en ningún origen configurado. Orígenes probados: {2}</value>
+  </data>
+  <data name="NuGet_PackageNotFound_LastError" xml:space="preserve">
+    <value> Último error: {0}: {1}</value>
+  </data>
+  <data name="Run_CompilationError" xml:space="preserve">
+    <value>Error de compilación</value>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>Memoria insuficiente. El cálculo superó la memoria disponible. Considere reiniciar el kernel.</value>
+  </data>
+  <data name="Run_StackOverflow" xml:space="preserve">
+    <value>Desbordamiento de pila. El cálculo superó el límite de tamaño de la pila. Considere reiniciar el kernel.</value>
+  </data>
+  <data name="Setting_LangVersion_Description" xml:space="preserve">
+    <value>Versión del lenguaje F# de la sesión.</value>
+  </data>
+  <data name="Setting_LangVersion_Label" xml:space="preserve">
+    <value>Versión del lenguaje</value>
+  </data>
+  <data name="Setting_MaxCollectionDisplay_Description" xml:space="preserve">
+    <value>Número máximo de elementos de una colección que se muestran en la salida con formato.</value>
+  </data>
+  <data name="Setting_MaxCollectionDisplay_Label" xml:space="preserve">
+    <value>Máximo de colección</value>
+  </data>
+  <data name="Setting_PublishPrivateBindings_Description" xml:space="preserve">
+    <value>Si se publican en el almacén de variables los enlaces cuyo nombre empieza por guion bajo.</value>
+  </data>
+  <data name="Setting_PublishPrivateBindings_Label" xml:space="preserve">
+    <value>Publicar enlaces privados</value>
+  </data>
+  <data name="Setting_WarningLevel_Description" xml:space="preserve">
+    <value>Nivel de advertencia del compilador de F# (0–5).</value>
+  </data>
+  <data name="Setting_WarningLevel_Label" xml:space="preserve">
+    <value>Nivel de advertencia</value>
+  </data>
+</root>

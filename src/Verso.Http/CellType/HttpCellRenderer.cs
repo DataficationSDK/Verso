@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Http.Resources;
 
 namespace Verso.Http.CellType;
 
@@ -11,10 +12,10 @@ public sealed class HttpCellRenderer : ICellRenderer
     // --- IExtension ---
 
     public string ExtensionId => "verso.http.renderer.http";
-    public string Name => "HTTP Renderer";
+    public string Name => Strings.Renderer_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Renders HTTP request cells.";
+    public string? Description => Strings.Renderer_Description;
 
     // --- ICellRenderer ---
 

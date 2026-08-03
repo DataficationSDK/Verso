@@ -53,9 +53,17 @@ html, body {
     box-shadow: var(--verso-elevation-1, none);
     position: relative;
     z-index: 2;
-    /* Nothing may spill past the edge unreachable. Which element gives way when the bar
-       runs out of room is decided below, deliberately, rather than by DOM order. */
-    overflow: hidden;
+    /* Nothing may spill past the edge unreachable. Which element gives way when the bar runs
+       out of room is decided below, deliberately, rather than by DOM order; once they have all
+       given way the bar scrolls, so the last buttons are still reached rather than cut off.
+       The width at which that happens cannot be written down here: the same labels are a tenth
+       wider in German than in English, so where the room runs out moves with the language.
+       `auto` shows nothing until there is something to scroll. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* The bar is 40px tall; a full-weight scrollbar across it reads as a second border
+       rather than as a control. */
+    scrollbar-width: thin;
 }
 
 .verso-toolbar-group {
@@ -65,9 +73,15 @@ html, body {
 }
 
 /* The panel rail is the one cluster that must survive every width: it is the only way to
-   reach the panels at all. Everything else yields before it does. */
+   reach the panels at all. Everything else yields before it does, and when the bar finally
+   scrolls the rail stays pinned to the right edge so the scroll cannot take it away. Sticky
+   does nothing at all while everything still fits. */
 .verso-toolbar-group--panels {
     flex: none;
+    position: sticky;
+    right: 0;
+    padding-left: 8px;
+    background: var(--verso-toolbar-background, #F3F3F3);
 }
 
 
@@ -2366,12 +2380,15 @@ html, body {
     gap: 6px;
 }
 
+/* Wraps rather than ending in an ellipsis. Names here run long in every language, English
+   included: "HTTP Set Timeout Magic Command" is already wider than the column, and a
+   translation of it is wider still. The row carries a wrapped description underneath, so a
+   name on two lines costs nothing, where an ellipsis hides the part that distinguishes one
+   entry from the next. */
 .verso-extension-name {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     font-size: 12px;
     font-weight: 600;
 }
@@ -3640,27 +3657,6 @@ html, body {
        this is when several are open. */
     .verso-doc-info-text {
         min-width: 64px;
-    }
-}
-
-@media (max-width: 880px) {
-    /* Past here the buttons themselves have nowhere left to go, and a horizontally
-       scrolling bar is the honest answer: everything stays reachable, at the cost of a
-       scroll. The rail is pinned to the right edge so the scroll never takes away the
-       one cluster that is the only route to the panels. */
-    .verso-toolbar {
-        overflow-x: auto;
-        overflow-y: hidden;
-        /* The bar is 40px tall; a full-weight scrollbar across it reads as a second
-           border rather than as a control. */
-        scrollbar-width: thin;
-    }
-
-    .verso-toolbar-group--panels {
-        position: sticky;
-        right: 0;
-        padding-left: 8px;
-        background: var(--verso-toolbar-background, #F3F3F3);
     }
 }
 

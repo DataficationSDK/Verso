@@ -15,4 +15,8 @@ builder.Services.AddSingleton<NavigationManager>(new WebviewNavigationManager())
 builder.Services.AddSingleton<VsCodeBridge>();
 builder.Services.AddSingleton<INotebookService, RemoteNotebookService>();
 
+// The interface language is not set here. WebAssembly fetches satellite assemblies and picks
+// its globalization data while the runtime boots, and changing culture afterwards is rejected
+// unless the whole ICU dataset is downloaded. So the host page passes the language to
+// Blazor.start as applicationCulture instead, and a language change reloads the app.
 await builder.Build().RunAsync();

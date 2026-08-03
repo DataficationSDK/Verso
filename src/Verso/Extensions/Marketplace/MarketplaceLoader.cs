@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Resources;
 
 namespace Verso.Extensions.Marketplace;
 
@@ -142,7 +143,7 @@ public static class MarketplaceLoader
         {
             var needConsent = plans
                 .Where(p => p.EffectiveVersion is not null && !trustStore.IsApproved(p.Id, p.EffectiveVersion))
-                .Select(p => new ExtensionConsentInfo(p.Id, p.EffectiveVersion, "notebook required extensions"))
+                .Select(p => new ExtensionConsentInfo(p.Id, p.EffectiveVersion, Strings.Consent_Source_RequiredExtensions))
                 .ToList();
 
             if (needConsent.Count > 0)
@@ -278,7 +279,8 @@ public static class MarketplaceLoader
 
         if (!trustStore.IsApproved(id, version))
         {
-            var consent = new[] { new ExtensionConsentInfo(id, version, $"local file: {Path.GetFileName(localFilePath)}") };
+            var consent = new[] { new ExtensionConsentInfo(id, version,
+                string.Format(Strings.Consent_Source_LocalFile, Path.GetFileName(localFilePath))) };
             var approved = await extensionHost.RequestExtensionConsentAsync(consent, ct);
             if (!approved)
                 return new LocalInstallOutcome(false, id, version, "Installation was not approved.", 0);

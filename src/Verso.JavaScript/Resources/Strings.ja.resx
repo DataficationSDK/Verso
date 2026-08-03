@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Npm_Description" xml:space="preserve">
+    <value>JavaScript セルで使う npm パッケージをインストールします。</value>
+  </data>
+  <data name="Kernel_JavaScript_Description" xml:space="preserve">
+    <value>Node.js または Jint による JavaScript 言語カーネル。</value>
+  </data>
+  <data name="Kernel_TypeScript_Description" xml:space="preserve">
+    <value>Node.js で自動的にトランスパイルを行う TypeScript 言語カーネル。</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} は既にインストールされています。</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} は既にインストールされています。</value>
+  </data>
+  <data name="Magic_Npm_Description" xml:space="preserve">
+    <value>以降の JavaScript セルで使う npm パッケージをインストールします。</value>
+  </data>
+  <data name="Magic_Npm_Installing" xml:space="preserve">
+    <value>{0} をインストールしています...</value>
+  </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Npm マジックコマンド</value>
+  </data>
+  <data name="Magic_Npm_NoKernel" xml:space="preserve">
+    <value>JavaScript カーネルが読み込まれていません。#!npm には JavaScript カーネルが必要です。</value>
+  </data>
+  <data name="Magic_Npm_Param_Packages" xml:space="preserve">
+    <value>1 つ以上のパッケージ名 (例: lodash axios@1.6)。</value>
+  </data>
+  <data name="Magic_Npm_Usage" xml:space="preserve">
+    <value>使い方: #!npm &lt;package-names&gt;</value>
+  </data>
+  <data name="Node_NotReady" xml:space="preserve">
+    <value>Node.js のブリッジが 10 秒以内に準備完了を通知しませんでした。</value>
+  </data>
+  <data name="Node_NotRunning" xml:space="preserve">
+    <value>Node.js のプロセスが実行されていません。</value>
+  </data>
+  <data name="Node_Required" xml:space="preserve">
+    <value>TypeScript カーネルには Node.js が必要です。Node.js が PATH にも既知の場所にも見つかりませんでした。</value>
+  </data>
+  <data name="Node_Terminated" xml:space="preserve">
+    <value>Node.js のプロセスが予期せず終了しました。</value>
+  </data>
+  <data name="Node_TranspileRequiresModule" xml:space="preserve">
+    <value>TypeScript のトランスパイルには、typescript モジュールがインストールされた Node.js が必要です。</value>
+  </data>
+  <data name="Npm_AuditSummary" xml:space="preserve">
+    <value>npm audit がインストール済みのパッケージに {0} を検出しました。詳しくは npm audit を実行してください。</value>
+  </data>
+  <data name="Npm_AuditSummaryBySeverity" xml:space="preserve">
+    <value>npm audit がインストール済みのパッケージに {0} ({1}) を検出しました。詳しくは npm audit を実行してください。</value>
+  </data>
+  <data name="Npm_Dependencies" xml:space="preserve">
+    <value>依存関係: {0}。</value>
+  </data>
+  <data name="Npm_DependencyCount_One" xml:space="preserve">
+    <value>{0} 件の依存関係</value>
+  </data>
+  <data name="Npm_DependencyCount_Other" xml:space="preserve">
+    <value>{0} 件の依存関係</value>
+  </data>
+  <data name="Npm_InstallFailed" xml:space="preserve">
+    <value>npm のインストールに失敗しました。</value>
+  </data>
+  <data name="Npm_Installed" xml:space="preserve">
+    <value>{0} をインストールしました。</value>
+  </data>
+  <data name="Npm_InstalledAnd" xml:space="preserve">
+    <value>{0} と {1} をインストールしました。</value>
+  </data>
+  <data name="Npm_NotFound" xml:space="preserve">
+    <value>npm が PATH に見つかりません。</value>
+  </data>
+  <data name="Npm_NothingToDo" xml:space="preserve">
+    <value>要求されたものはすべてインストール済みです。</value>
+  </data>
+  <data name="Npm_PackageCount_One" xml:space="preserve">
+    <value>{0} 個のパッケージ</value>
+  </data>
+  <data name="Npm_PackageCount_Other" xml:space="preserve">
+    <value>{0} 個のパッケージ</value>
+  </data>
+  <data name="Npm_Packages" xml:space="preserve">
+    <value>パッケージ: {0}。</value>
+  </data>
+  <data name="Npm_Replaced" xml:space="preserve">
+    <value>置き換え: {0}。</value>
+  </data>
+  <data name="Npm_Severity_Critical" xml:space="preserve">
+    <value>緊急 {0} 件</value>
+  </data>
+  <data name="Npm_Severity_High" xml:space="preserve">
+    <value>高 {0} 件</value>
+  </data>
+  <data name="Npm_Severity_Info" xml:space="preserve">
+    <value>情報 {0} 件</value>
+  </data>
+  <data name="Npm_Severity_Low" xml:space="preserve">
+    <value>低 {0} 件</value>
+  </data>
+  <data name="Npm_Severity_Moderate" xml:space="preserve">
+    <value>中 {0} 件</value>
+  </data>
+  <data name="Npm_StartFailed" xml:space="preserve">
+    <value>npm のプロセスを開始できませんでした。</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_One" xml:space="preserve">
+    <value>{0} 件の脆弱性</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_Other" xml:space="preserve">
+    <value>{0} 件の脆弱性</value>
+  </data>
+  <data name="Run_NodeCrashed" xml:space="preserve">
+    <value>Node.js のプロセスがクラッシュしました。再起動しています...</value>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>メモリの上限 (128 MB) を超えました。</value>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>実行が制限時間 (15 秒) を超えました。</value>
+  </data>
+  <data name="Run_TranspileFailed" xml:space="preserve">
+    <value>トランスパイルに失敗しました: {0}</value>
+  </data>
+  <data name="Run_UnknownError" xml:space="preserve">
+    <value>不明な JavaScript エラー</value>
+  </data>
+  <data name="Run_UnknownTranspileError" xml:space="preserve">
+    <value>不明なトランスパイルエラー</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>npm のインストールを、追加されたパッケージとそれぞれのバージョンとして報告し、npm 自身の経過表示や funding と audit のフッターは中継しません。パッケージを 1 つインストールすると依存関係も入り、その一連の出力が、セルを実行して本来得たかった出力と一緒にノートブックへ保存されます。失敗したインストールは常に全体を報告します。npm audit が検出した内容も同じです。</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>インストール出力を隠す</value>
+  </data>
+  <data name="TypeScript_InstallFailed" xml:space="preserve">
+    <value>npm パッケージ {0} をインストールできませんでした。</value>
+  </data>
+  <data name="TypeScript_VerifyFailed" xml:space="preserve">
+    <value>インストール後も TypeScript コンパイラが動作しません (typescript {0}): {1}</value>
+  </data>
+  <data name="TypeScript_VersionUnknown" xml:space="preserve">
+    <value>バージョン不明</value>
+  </data>
+</root>

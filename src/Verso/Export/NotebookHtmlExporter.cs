@@ -4,6 +4,7 @@ using Markdig;
 using Verso.Abstractions;
 using Verso.Extensions.Layouts;
 using Verso.Extensions.Utilities;
+using Verso.Resources;
 
 namespace Verso.Export;
 
@@ -121,7 +122,7 @@ internal static class NotebookHtmlExporter
         sb.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />");
         sb.Append("<title>").Append(WebUtility.HtmlEncode(displayTitle)).AppendLine("</title>");
         sb.AppendLine("<style>");
-        sb.Append(ThemeCssGenerator.BuildCss(theme));
+        sb.Append(ThemeCss.BuildRootBlock(theme));
         sb.Append(EmbeddedStylesheet);
         sb.AppendLine("</style>");
         if (hasMermaid)
@@ -306,7 +307,8 @@ internal static class NotebookHtmlExporter
                 sb.AppendLine(WebUtility.HtmlEncode(lines[i]));
             }
             var omitted = lines.Length - previewLineCount;
-            sb.Append("... (").Append(omitted).AppendLine(omitted == 1 ? " more line)" : " more lines)");
+            sb.AppendLine(string.Format(
+                Plural.Of(omitted, Strings.Export_MoreLines_One, Strings.Export_MoreLines_Other), omitted));
         }
         else
         {

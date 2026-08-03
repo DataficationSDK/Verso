@@ -4,6 +4,8 @@ using Verso.Cli.Repl.Meta;
 using Verso.Cli.Repl.Meta.Commands;
 using Verso.Cli.Repl.Prompt;
 using Verso.Cli.Repl.Rendering;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 using Verso.Execution;
 
 namespace Verso.Cli.Repl;
@@ -39,30 +41,46 @@ public sealed class ReplLoop
         _useColor = useColor;
         _elapsedThreshold = elapsedThreshold;
 
-        _metaRegistry = new MetaCommandRegistry();
-        _metaRegistry.Register(new HelpMeta());
-        _metaRegistry.Register(new ExitMeta());
-        _metaRegistry.Register(new ClearMeta());
-        _metaRegistry.Register(new ResetMeta());
-        _metaRegistry.Register(new KernelMeta());
-        _metaRegistry.Register(new VarsMeta());
-        _metaRegistry.Register(new ListMeta());
-        _metaRegistry.Register(new ThemeMeta());
-        _metaRegistry.Register(new LayoutMeta());
-        _metaRegistry.Register(new MdMeta());
-        _metaRegistry.Register(new HistoryMeta());
-        _metaRegistry.Register(new RecallMeta());
-        _metaRegistry.Register(new RerunMeta());
-        _metaRegistry.Register(new SetMeta());
-        _metaRegistry.Register(new ViewMeta());
-        _metaRegistry.Register(new SaveMeta());
-        _metaRegistry.Register(new LoadMeta());
-        _metaRegistry.Register(new ConvertMeta());
-        _metaRegistry.Register(new ExportMeta());
+        _metaRegistry = CreateDefaultRegistry();
+    }
+
+    /// <summary>
+    /// The meta-commands a session starts with, in the order <c>.help</c> lists them.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the constructor so the set can be read without a running session behind it,
+    /// which is how the tests reach every command's help text.
+    /// </remarks>
+    public static MetaCommandRegistry CreateDefaultRegistry()
+    {
+        var registry = new MetaCommandRegistry();
+        registry.Register(new HelpMeta());
+        registry.Register(new ExitMeta());
+        registry.Register(new ClearMeta());
+        registry.Register(new ResetMeta());
+        registry.Register(new KernelMeta());
+        registry.Register(new VarsMeta());
+        registry.Register(new ListMeta());
+        registry.Register(new ThemeMeta());
+        registry.Register(new LayoutMeta());
+        registry.Register(new MdMeta());
+        registry.Register(new HistoryMeta());
+        registry.Register(new RecallMeta());
+        registry.Register(new RerunMeta());
+        registry.Register(new SetMeta());
+        registry.Register(new ViewMeta());
+        registry.Register(new SaveMeta());
+        registry.Register(new LoadMeta());
+        registry.Register(new ConvertMeta());
+        registry.Register(new ExportMeta());
+        return registry;
     }
 
     /// <summary>Exposed for tests and future phases to register additional meta-commands.</summary>
     public MetaCommandRegistry MetaRegistry => _metaRegistry;
+
+    /// <summary>What the reader types to see the REPL's commands. The same in every language.</summary>
+    private const string HelpCommand = ".help";
 
     public async Task<int> RunAsync(CancellationToken ct)
     {
@@ -115,7 +133,9 @@ public sealed class ReplLoop
 
                 if (!_metaRegistry.TryResolve(name, out var metaCommand))
                 {
-                    _console.MarkupLine($"[red]Unknown meta-command '.{Markup.Escape(name)}'.[/] Type [bold].help[/] for the list.");
+                    _console.MarkupLine(
+                        Messages.In("red", Messages.Say(Strings.Repl_UnknownMetaCommand, name))
+                        + " " + Messages.Typed(Strings.Repl_TypeHelpForList, HelpCommand));
                     await _prompt.AddHistoryAsync(text);
                     continue;
                 }
@@ -128,7 +148,8 @@ public sealed class ReplLoop
                 }
                 catch (Exception ex)
                 {
-                    _console.MarkupLine($"[red]Error in meta-command '.{Markup.Escape(name)}':[/] {Markup.Escape(ex.Message)}");
+                    _console.MarkupLine(Messages.In("red",
+                        Messages.Say(Strings.Repl_MetaCommandError, name, ex.Message)));
                     continue;
                 }
                 if (!keepRunning)
@@ -172,12 +193,12 @@ public sealed class ReplLoop
         }
         catch (OperationCanceledException)
         {
-            _console.MarkupLine("[yellow]Cancelled.[/]");
+            _console.MarkupLine(Messages.In("yellow", Messages.Say(Strings.Repl_Cancelled)));
             return;
         }
         catch (Exception ex)
         {
-            _console.MarkupLine($"[red]Execution error:[/] {Markup.Escape(ex.Message)}");
+            _console.MarkupLine(Messages.In("red", Messages.Say(Strings.Repl_ExecutionError, ex.Message)));
             return;
         }
 

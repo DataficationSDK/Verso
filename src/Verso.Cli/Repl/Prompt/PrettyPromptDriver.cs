@@ -2,6 +2,8 @@ using PrettyPrompt.Highlighting;
 using PpPrompt = PrettyPrompt.Prompt;
 using PpConfiguration = PrettyPrompt.PromptConfiguration;
 
+using Verso.Cli.Resources;
+
 namespace Verso.Cli.Repl.Prompt;
 
 /// <summary>
@@ -39,7 +41,7 @@ public sealed class PrettyPromptDriver : IReplPrompt
         if (!string.IsNullOrEmpty(initialText))
         {
             Console.WriteLine();
-            Console.WriteLine("(recalled — copy and paste or edit below)");
+            Console.WriteLine(Strings.Prompt_Recalled);
             foreach (var line in initialText.Split('\n'))
                 Console.WriteLine("  " + line.TrimEnd('\r'));
             Console.WriteLine();

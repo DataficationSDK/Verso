@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
 using Verso.Ado.Helpers;
+using Verso.Ado.Resources;
 
 namespace Verso.Ado.Import;
 
@@ -60,10 +61,10 @@ public sealed class JupyterSqlImportHook : INotebookPostProcessor
 
     // --- IExtension ---
     public string ExtensionId => "verso.ado.postprocessor.jupyter-sql";
-    string IExtension.Name => "Jupyter SQL Import Hook";
+    string IExtension.Name => Strings.Import_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description => "Converts Polyglot Notebooks SQL patterns to Verso SQL cells on Jupyter import.";
+    public string? Description => Strings.Import_Description;
 
     // --- INotebookPostProcessor ---
     public int Priority => 100;

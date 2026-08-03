@@ -1,5 +1,6 @@
 using Verso.Abstractions;
 using Verso.Contexts;
+using Verso.Resources;
 
 namespace Verso.MagicCommands;
 
@@ -12,14 +13,14 @@ public sealed class TimeMagicCommand : IMagicCommand
     // --- IExtension (explicit for descriptive Name) ---
 
     public string ExtensionId => "verso.magic.time";
-    string IExtension.Name => "Time Magic Command";
+    string IExtension.Name => Strings.Magic_Time;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
 
     // --- IMagicCommand ---
 
     public string Name => "time";
-    public string Description => "Reports elapsed wall-clock time after cell execution.";
+    public string Description => Strings.Magic_Time_Description;
     public IReadOnlyList<ParameterDefinition> Parameters => Array.Empty<ParameterDefinition>();
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;

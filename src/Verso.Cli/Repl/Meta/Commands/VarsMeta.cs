@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Verso.Cli.Resources;
+using Verso.Cli.Utilities;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -6,10 +8,10 @@ namespace Verso.Cli.Repl.Meta.Commands;
 public sealed class VarsMeta : IMetaCommand
 {
     public string Name => "vars";
-    public string Summary => "Lists variables from IVariableStore.";
-    public string DetailedHelp =>
-        ".vars\n" +
-        "  Lists variables from the shared IVariableStore. Columns: Name, Type, Preview.";
+    public string Summary => Strings.Meta_Vars_Summary;
+
+    // The first line is what the reader types, so it is written here rather than translated.
+    public string DetailedHelp => ".vars\n" + Strings.Meta_Vars_Details;
 
     public Task<bool> ExecuteAsync(string argumentText, MetaContext context, CancellationToken ct)
     {
@@ -17,16 +19,16 @@ public sealed class VarsMeta : IMetaCommand
 
         if (variables.Count == 0)
         {
-            context.Console.MarkupLine("[dim]No variables.[/]");
+            context.Console.MarkupLine(Messages.In("dim", Messages.Say(Strings.Meta_Vars_Empty)));
             return Task.FromResult(true);
         }
 
         if (context.UseColor)
         {
             var table = new Table().Border(TableBorder.Rounded);
-            table.AddColumn("Name");
-            table.AddColumn("Type");
-            table.AddColumn("Preview");
+            table.AddColumn(Strings.Table_Name);
+            table.AddColumn(Strings.Table_Type);
+            table.AddColumn(Strings.Table_Preview);
             foreach (var v in variables)
             {
                 table.AddRow(
@@ -38,7 +40,8 @@ public sealed class VarsMeta : IMetaCommand
         }
         else
         {
-            Console.Out.WriteLine($"{"NAME",-20}  {"TYPE",-24}  PREVIEW");
+            Console.Out.WriteLine(
+                $"{Truncate(Strings.Table_Name, 20),-20}  {Truncate(Strings.Table_Type, 24),-24}  {Strings.Table_Preview}");
             foreach (var v in variables)
             {
                 Console.Out.WriteLine(

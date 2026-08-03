@@ -1,4 +1,6 @@
+using Verso.Abstractions;
 using Verso.Cli.Repl.Settings;
+using Verso.Cli.Resources;
 
 namespace Verso.Cli.Repl.Rendering;
 
@@ -24,6 +26,8 @@ public readonly record struct TruncationPolicy(int MaxRows, int MaxLines, int Ma
         var lines = text.Split('\n');
         if (lines.Length <= MaxLines) return text;
         var kept = lines.Take(MaxLines);
-        return string.Join('\n', kept) + $"\n… {lines.Length - MaxLines} more lines";
+        var omitted = lines.Length - MaxLines;
+        return string.Join('\n', kept) + "\n" + string.Format(
+            Plural.Of(omitted, Strings.Render_ClippedLines_One, Strings.Render_ClippedLines_Other), omitted);
     }
 }

@@ -1,0 +1,851 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Arg_InputNotebook" xml:space="preserve">
+    <value>Ruta al archivo del cuaderno de origen.</value>
+  </data>
+  <data name="Convert_Description" xml:space="preserve">
+    <value>Convierte entre formatos de cuaderno.</value>
+  </data>
+  <data name="Convert_Done" xml:space="preserve">
+    <value>Se convirtió '{0}' en '{1}'</value>
+  </data>
+  <data name="Convert_InvalidTarget" xml:space="preserve">
+    <value>Formato '{0}' no admitido. Admitidos: {1}</value>
+  </data>
+  <data name="Convert_NotSupported" xml:space="preserve">
+    <value>Todavía no se admite la conversión al formato '{0}'.</value>
+  </data>
+  <data name="Convert_OptOutput" xml:space="preserve">
+    <value>Ruta del archivo de salida. De forma predeterminada, el nombre del archivo de entrada con la nueva extensión.</value>
+  </data>
+  <data name="Convert_OptStripOutputs" xml:space="preserve">
+    <value>Quita todas las salidas de las celdas del cuaderno convertido.</value>
+  </data>
+  <data name="Convert_OptTo" xml:space="preserve">
+    <value>Formato de destino: verso, ipynb, md o dib.</value>
+  </data>
+  <data name="Convert_PostProcessingFailed" xml:space="preserve">
+    <value>El posprocesamiento falló: {0}</value>
+  </data>
+  <data name="Convert_SerializationFailed" xml:space="preserve">
+    <value>La serialización falló: {0}</value>
+  </data>
+  <data name="Error_AvailableKernels" xml:space="preserve">
+    <value>Kernels disponibles: {0}.</value>
+  </data>
+  <data name="Error_AvailableThemes" xml:space="preserve">
+    <value>Temas disponibles: {0}.</value>
+  </data>
+  <data name="Error_DeserializeFailed" xml:space="preserve">
+    <value>No se pudo deserializar '{0}': {1}</value>
+  </data>
+  <data name="Error_ExportFormatNotRegistered" xml:space="preserve">
+    <value>El formato de exportación '{0}' no está registrado.</value>
+  </data>
+  <data name="Error_InputNotFound" xml:space="preserve">
+    <value>No se encontró el archivo de entrada: {0}</value>
+  </data>
+  <data name="Error_KernelNotRegistered" xml:space="preserve">
+    <value>El kernel '{0}' no está registrado.</value>
+  </data>
+  <data name="Error_MultipleExportActions" xml:space="preserve">
+    <value>Varias acciones de exportación comparten el nombre '{0}'. Distíngalas por ActionId: {1}.</value>
+  </data>
+  <data name="Error_MultipleThemes" xml:space="preserve">
+    <value>Varios temas comparten el nombre '{0}'. Distíngalos por ThemeId: {1}.</value>
+  </data>
+  <data name="Error_NotebookNotFound" xml:space="preserve">
+    <value>No se encontró el archivo del cuaderno: {0}</value>
+  </data>
+  <data name="Error_ThemeNotRegistered" xml:space="preserve">
+    <value>El tema '{0}' no está registrado.</value>
+  </data>
+  <data name="Error_UnsupportedNotebookFormat" xml:space="preserve">
+    <value>Formato de cuaderno '{0}' no admitido. Formatos admitidos: {1}</value>
+  </data>
+  <data name="Error_UnsupportedOutputFormat" xml:space="preserve">
+    <value>Formato de salida '{0}' no admitido. Formatos admitidos: {1}</value>
+  </data>
+  <data name="Export_ActionThrew" xml:space="preserve">
+    <value>La acción de exportación '{0}' produjo un error: {1}</value>
+  </data>
+  <data name="Export_Description" xml:space="preserve">
+    <value>Exporta un cuaderno mediante una acción de barra de herramientas de ExportMenu.</value>
+  </data>
+  <data name="Export_Done" xml:space="preserve">
+    <value>Se exportó '{0}' a '{1}'</value>
+  </data>
+  <data name="Export_ExecutionErrors" xml:space="preserve">
+    <value>La ejecución del cuaderno informó de errores. Se cancela la exportación.</value>
+  </data>
+  <data name="Export_FormatRequired" xml:space="preserve">
+    <value>--format es obligatorio.</value>
+  </data>
+  <data name="Export_InputRequired" xml:space="preserve">
+    <value>&lt;input&gt; es obligatorio salvo que se indique --list.</value>
+  </data>
+  <data name="Export_NoActions" xml:space="preserve">
+    <value>No hay ninguna acción de exportación registrada.</value>
+  </data>
+  <data name="Export_NoFileProduced" xml:space="preserve">
+    <value>La acción de exportación '{0}' no generó ningún archivo.</value>
+  </data>
+  <data name="Export_OptExecute" xml:space="preserve">
+    <value>Ejecuta el cuaderno antes de exportarlo para que las salidas almacenadas se actualicen.</value>
+  </data>
+  <data name="Export_OptFormat" xml:space="preserve">
+    <value>Formato de exportación, comparado con el DisplayName de un IToolbarAction registrado cuya ubicación sea ExportMenu. No distingue mayúsculas de minúsculas. Entrecomille los valores que contengan espacios. Use --list para ver los formatos instalados.</value>
+  </data>
+  <data name="Export_OptLayout" xml:space="preserve">
+    <value>Id del diseño que se aplica durante la exportación, expuesto como ActiveLayoutId en el contexto de la acción.</value>
+  </data>
+  <data name="Export_OptList" xml:space="preserve">
+    <value>Enumera las acciones de exportación registradas (DisplayName, ActionId, Description) y sale.</value>
+  </data>
+  <data name="Export_OptListThemes" xml:space="preserve">
+    <value>Enumera los temas registrados (DisplayName, Kind, Description) y sale.</value>
+  </data>
+  <data name="Export_OptOutput" xml:space="preserve">
+    <value>Ruta del archivo de salida. Si se omite, el nombre de archivo sugerido por el exportador se escribe en el directorio actual.</value>
+  </data>
+  <data name="Export_OptTheme" xml:space="preserve">
+    <value>DisplayName de un tema registrado, comparado sin distinguir mayúsculas de minúsculas. Entrecomille los valores con espacios. Se acepta ThemeId como alternativa para distinguir nombres que coincidan. Use --list-themes para ver los temas instalados.</value>
+  </data>
+  <data name="Hint_RunForDetails" xml:space="preserve">
+    <value>Ejecute '{0}' para ver los detalles.</value>
+  </data>
+  <data name="Hint_RunForFormats" xml:space="preserve">
+    <value>Ejecute '{0}' para ver los formatos disponibles.</value>
+  </data>
+  <data name="Info_Description" xml:space="preserve">
+    <value>Muestra la versión de Verso CLI, el runtime y la información de las extensiones.</value>
+  </data>
+  <data name="Info_HeadingExtensions" xml:space="preserve">
+    <value>Extensiones:</value>
+  </data>
+  <data name="Info_HeadingFormatters" xml:space="preserve">
+    <value>Formateadores:</value>
+  </data>
+  <data name="Info_HeadingSerializers" xml:space="preserve">
+    <value>Serializadores:</value>
+  </data>
+  <data name="Info_LabelEngine" xml:space="preserve">
+    <value>Motor:</value>
+  </data>
+  <data name="Info_LabelRuntime" xml:space="preserve">
+    <value>Runtime:</value>
+  </data>
+  <data name="List_NoKernels" xml:space="preserve">
+    <value>No hay ningún kernel registrado.</value>
+  </data>
+  <data name="List_NoThemes" xml:space="preserve">
+    <value>No hay ningún tema registrado.</value>
+  </data>
+  <data name="Meta_Clear_Details" xml:space="preserve">
+    <value>  Borra la pantalla del terminal. El estado de la sesión (variables del kernel,
+  celdas del cuaderno) se conserva; solo se borra el historial de desplazamiento.</value>
+  </data>
+  <data name="Meta_Clear_Summary" xml:space="preserve">
+    <value>Borra el terminal.</value>
+  </data>
+  <data name="Meta_Convert_Details" xml:space="preserve">
+    <value>  Serializa el cuaderno de la sesión en &lt;path&gt; usando el serializador cuyas
+  FileExtensions incluyan la extensión de destino. No cambia la ruta cargada de la
+  sesión. Resolución idéntica a la de 'verso convert'.</value>
+  </data>
+  <data name="Meta_Convert_Done" xml:space="preserve">
+    <value>Se convirtió el cuaderno de la sesión en {0} ({1})</value>
+  </data>
+  <data name="Meta_Convert_Failed" xml:space="preserve">
+    <value>La conversión falló: {0}</value>
+  </data>
+  <data name="Meta_Convert_Summary" xml:space="preserve">
+    <value>Escribe el cuaderno de la sesión en &lt;path&gt; usando el serializador que coincida con su extensión.</value>
+  </data>
+  <data name="Meta_Exit_Details" xml:space="preserve">
+    <value>  Sale del REPL. Cuando hay celdas sin guardar, pide confirmación
+  salvo que confirmOnExit esté deshabilitado en la configuración del usuario.</value>
+  </data>
+  <data name="Meta_Exit_Summary" xml:space="preserve">
+    <value>Sale del REPL.</value>
+  </data>
+  <data name="Meta_Export_Details" xml:space="preserve">
+    <value>  Delega en un IToolbarAction registrado con ToolbarPlacement.ExportMenu.
+  El formato se compara por DisplayName (sin distinguir mayúsculas), con ActionId como alternativa.
+  El tema se compara por DisplayName (sin distinguir mayúsculas), con ThemeId como alternativa.
+  Sin --output, escribe el nombre de archivo sugerido por la acción en el directorio actual.
+  Idéntico a 'verso export'.</value>
+  </data>
+  <data name="Meta_Export_Done" xml:space="preserve">
+    <value>Se exportó el cuaderno de la sesión a {0} ({1})</value>
+  </data>
+  <data name="Meta_Export_MissingValue" xml:space="preserve">
+    <value>Falta el valor de {0}.</value>
+  </data>
+  <data name="Meta_Export_Summary" xml:space="preserve">
+    <value>Exporta el cuaderno de la sesión mediante una acción de barra de herramientas de ExportMenu.</value>
+  </data>
+  <data name="Meta_Export_UnknownArgument" xml:space="preserve">
+    <value>Argumento desconocido: {0}</value>
+  </data>
+  <data name="Meta_Help_Details" xml:space="preserve">
+    <value>  Sin argumento, imprime un resumen de todos los metacomandos.
+  Con un nombre, imprime la ayuda detallada de ese comando.</value>
+  </data>
+  <data name="Meta_Help_Summary" xml:space="preserve">
+    <value>Imprime la ayuda de los metacomandos.</value>
+  </data>
+  <data name="Meta_History_Details" xml:space="preserve">
+    <value>  Imprime las últimas n celdas enviadas (20 de forma predeterminada). Cada entrada muestra
+  el contador de entrada y una vista previa de la primera línea no vacía del código.</value>
+  </data>
+  <data name="Meta_History_Empty" xml:space="preserve">
+    <value>No hay historial.</value>
+  </data>
+  <data name="Meta_History_InvalidCount" xml:space="preserve">
+    <value>Recuento '{0}' no válido.</value>
+  </data>
+  <data name="Meta_History_Summary" xml:space="preserve">
+    <value>Imprime los envíos de celdas recientes.</value>
+  </data>
+  <data name="Meta_Kernel_Active" xml:space="preserve">
+    <value>Kernel activo: {0}</value>
+  </data>
+  <data name="Meta_Kernel_Details" xml:space="preserve">
+    <value>  Sin argumento, imprime el kernel activo.
+  Con un id (LanguageId, comparado sin distinguir mayúsculas), cambia el kernel activo
+  para las celdas siguientes. Las variables ya declaradas en el kernel anterior siguen
+  en el ámbito de ese kernel.</value>
+  </data>
+  <data name="Meta_Kernel_Summary" xml:space="preserve">
+    <value>Imprime o cambia el kernel activo.</value>
+  </data>
+  <data name="Meta_Kernel_Switched" xml:space="preserve">
+    <value>Se cambió al kernel: {0} ({1})</value>
+  </data>
+  <data name="Meta_Kernel_WarmUpFailed" xml:space="preserve">
+    <value>El precalentamiento del kernel falló: {0}</value>
+  </data>
+  <data name="Meta_Layout_Active" xml:space="preserve">
+    <value>Diseño activo: {0}</value>
+  </data>
+  <data name="Meta_Layout_Cleared" xml:space="preserve">
+    <value>Diseño borrado.</value>
+  </data>
+  <data name="Meta_Layout_Details" xml:space="preserve">
+    <value>  Sin argumento, imprime el id del diseño activo.
+  Con un id, establece el ActiveLayoutId predeterminado para las llamadas a .export siguientes.
+  Pase 'none' para borrar el diseño.</value>
+  </data>
+  <data name="Meta_Layout_Set" xml:space="preserve">
+    <value>Diseño establecido en: {0}</value>
+  </data>
+  <data name="Meta_Layout_Summary" xml:space="preserve">
+    <value>Imprime o establece el diseño de exportación predeterminado.</value>
+  </data>
+  <data name="Meta_List_Details" xml:space="preserve">
+    <value>  Donde &lt;kind&gt; es uno de:
+    kernels, themes, formatters, renderers, serializers, extensions, exporters
+  Imprime una tabla de los elementos registrados para esa capacidad.</value>
+  </data>
+  <data name="Meta_List_Empty" xml:space="preserve">
+    <value>No hay ningún elemento registrado.</value>
+  </data>
+  <data name="Meta_List_Summary" xml:space="preserve">
+    <value>Enumera las capacidades registradas de las extensiones.</value>
+  </data>
+  <data name="Meta_List_UnknownKind" xml:space="preserve">
+    <value>Tipo de lista '{0}' desconocido.</value>
+  </data>
+  <data name="Meta_List_ValidKinds" xml:space="preserve">
+    <value>Tipos válidos: {0}.</value>
+  </data>
+  <data name="Meta_Load_Details" xml:space="preserve">
+    <value>  Deserializa el archivo de &lt;path&gt; con el serializador correspondiente y lo instala
+  como cuaderno de la sesión. Antes pide guardar los cambios pendientes. El estado del
+  kernel (las variables) se conserva: ejecute .reset primero para empezar de cero.</value>
+  </data>
+  <data name="Meta_Load_Done" xml:space="preserve">
+    <value>Cargado {0} desde {1}</value>
+  </data>
+  <data name="Meta_Load_Failed" xml:space="preserve">
+    <value>No se pudo cargar: {0}</value>
+  </data>
+  <data name="Meta_Load_FileNotFound" xml:space="preserve">
+    <value>No se encontró el archivo: {0}</value>
+  </data>
+  <data name="Meta_Load_Summary" xml:space="preserve">
+    <value>Carga un cuaderno del disco y reemplaza el cuaderno de la sesión.</value>
+  </data>
+  <data name="Meta_Md_Details" xml:space="preserve">
+    <value>  De un solo uso: el siguiente envío se añade como celda markdown en lugar de celda de código.
+  Una vez añadida la celda, el REPL vuelve al modo de código.</value>
+  </data>
+  <data name="Meta_Md_Next" xml:space="preserve">
+    <value>La siguiente celda será markdown.</value>
+  </data>
+  <data name="Meta_Md_Summary" xml:space="preserve">
+    <value>Marca el siguiente envío como celda markdown.</value>
+  </data>
+  <data name="Meta_Recall_Details" xml:space="preserve">
+    <value>  Carga el código de la celda n en el búfer del prompt como si se hubiera escrito.
+  Al pulsar Enter se envía como una celda nueva; la celda original queda intacta.
+  Los índices fuera de rango producen un error sin vaciar el búfer.</value>
+  </data>
+  <data name="Meta_Recall_HistoryContains" xml:space="preserve">
+    <value>El historial contiene {0}.</value>
+  </data>
+  <data name="Meta_Recall_OutOfRange" xml:space="preserve">
+    <value>La celda [{0}] está fuera de rango.</value>
+  </data>
+  <data name="Meta_Recall_Recalled" xml:space="preserve">
+    <value>Se recuperó la celda [{0}]. Edítela y luego pulse Enter y una línea en blanco (o ;;) para enviarla.</value>
+  </data>
+  <data name="Meta_Recall_Summary" xml:space="preserve">
+    <value>Carga el código de una celda anterior en el prompt para editarlo.</value>
+  </data>
+  <data name="Meta_Recall_Usage" xml:space="preserve">
+    <value>Uso: {0}, donde &lt;n&gt; es un índice de celda contado desde uno, tal como lo muestra {1}.</value>
+  </data>
+  <data name="Meta_Rerun_Details" xml:space="preserve">
+    <value>  Vuelve a ejecutar la celda n (o el rango n..m, o todas las celdas con 'all') tal cual,
+  añadiendo cada una como celda nueva. No modifica las celdas anteriores. Un rango envía
+  las celdas por separado para que cada una muestre sus propias salidas; los errores dentro
+  de un rango no detienen el resto salvo con --fail-fast.</value>
+  </data>
+  <data name="Meta_Rerun_ExecutionError" xml:space="preserve">
+    <value>Error de ejecución al volver a ejecutar [{0}]: {1}</value>
+  </data>
+  <data name="Meta_Rerun_InvalidIndex" xml:space="preserve">
+    <value>Índice de celda '{0}' no válido.</value>
+  </data>
+  <data name="Meta_Rerun_InvalidRange" xml:space="preserve">
+    <value>Rango '{0}' no válido. Se esperaba &lt;n&gt;..&lt;m&gt; con m &gt;= n.</value>
+  </data>
+  <data name="Meta_Rerun_Nothing" xml:space="preserve">
+    <value>No hay celdas que volver a ejecutar.</value>
+  </data>
+  <data name="Meta_Rerun_RangeTooLong" xml:space="preserve">
+    <value>El rango [{0}..{1}] supera la longitud del historial ({2}).</value>
+  </data>
+  <data name="Meta_Rerun_Summary" xml:space="preserve">
+    <value>Vuelve a ejecutar una celda anterior (o un rango) como celdas nuevas.</value>
+  </data>
+  <data name="Meta_Reset_Details" xml:space="preserve">
+    <value>  Reconstruye la sesión del kernel y borra todas las variables y el estado de ejecución.
+  El historial de celdas del cuaderno (las celdas ya escritas) se conserva, así que .save
+  las sigue capturando. Las variables declaradas antes de .reset desaparecen.</value>
+  </data>
+  <data name="Meta_Reset_Done" xml:space="preserve">
+    <value>Estado del kernel restablecido.</value>
+  </data>
+  <data name="Meta_Reset_Summary" xml:space="preserve">
+    <value>Restablece el estado del kernel; conserva el historial de celdas.</value>
+  </data>
+  <data name="Meta_Save_Converting" xml:space="preserve">
+    <value>Convirtiendo a .verso; use --preserve-format para conservar {0}.</value>
+  </data>
+  <data name="Meta_Save_Details" xml:space="preserve">
+    <value>  Serializa el cuaderno de la sesión. Cuando se omite &lt;path&gt;, guarda en la ruta original
+  cargada (si la hay) o informa de un error. El formato se deduce de la extensión.
+  Sin --preserve-format, un .save sin argumento sobre un cuaderno cargado desde .ipynb
+  se convierte en un archivo .verso hermano; con --preserve-format se conserva el formato original.</value>
+  </data>
+  <data name="Meta_Save_Done" xml:space="preserve">
+    <value>Guardado {0} en {1}</value>
+  </data>
+  <data name="Meta_Save_Failed" xml:space="preserve">
+    <value>No se pudo guardar: {0}</value>
+  </data>
+  <data name="Meta_Save_NeedsPath" xml:space="preserve">
+    <value>Se necesita una ruta cuando la sesión no tiene ningún cuaderno cargado.</value>
+  </data>
+  <data name="Meta_Save_Summary" xml:space="preserve">
+    <value>Escribe el cuaderno de la sesión en el disco.</value>
+  </data>
+  <data name="Meta_Set_Details" xml:space="preserve">
+    <value>  Actualiza una de las opciones del REPL en tiempo de ejecución.
+  Claves conocidas: preview.rows, preview.lines, preview.elapsedThresholdMs, confirmOnExit.</value>
+  </data>
+  <data name="Meta_Set_HelpHint" xml:space="preserve">
+    <value>Pruebe {0} para ver la lista de claves.</value>
+  </data>
+  <data name="Meta_Set_InvalidBoolean" xml:space="preserve">
+    <value>Valor true o false no válido para {0}: '{1}'</value>
+  </data>
+  <data name="Meta_Set_InvalidInteger" xml:space="preserve">
+    <value>Número entero no válido para {0}: '{1}'</value>
+  </data>
+  <data name="Meta_Set_InvalidNonNegative" xml:space="preserve">
+    <value>Número entero no negativo no válido para {0}: '{1}'</value>
+  </data>
+  <data name="Meta_Set_KnownKeys" xml:space="preserve">
+    <value>Claves conocidas: {0}.</value>
+  </data>
+  <data name="Meta_Set_Summary" xml:space="preserve">
+    <value>Establece una opción del REPL en tiempo de ejecución (preview.rows, preview.lines, preview.elapsedThresholdMs).</value>
+  </data>
+  <data name="Meta_Set_UnknownKey" xml:space="preserve">
+    <value>Clave de configuración '{0}' desconocida.</value>
+  </data>
+  <data name="Meta_Theme_Active" xml:space="preserve">
+    <value>Tema activo: {0}</value>
+  </data>
+  <data name="Meta_Theme_Details" xml:space="preserve">
+    <value>  Sin argumento, imprime el tema activo.
+  Con un nombre, cambia el tema activo. Se compara por DisplayName sin distinguir mayúsculas,
+  con ThemeId como alternativa.</value>
+  </data>
+  <data name="Meta_Theme_Summary" xml:space="preserve">
+    <value>Imprime o cambia el tema activo.</value>
+  </data>
+  <data name="Meta_Theme_Switched" xml:space="preserve">
+    <value>Se cambió al tema: {0}</value>
+  </data>
+  <data name="Meta_Vars_Details" xml:space="preserve">
+    <value>  Enumera las variables del IVariableStore compartido. Columnas: Nombre, Tipo, Vista previa.</value>
+  </data>
+  <data name="Meta_Vars_Empty" xml:space="preserve">
+    <value>No hay variables.</value>
+  </data>
+  <data name="Meta_Vars_Summary" xml:space="preserve">
+    <value>Enumera las variables del IVariableStore.</value>
+  </data>
+  <data name="Meta_View_Details" xml:space="preserve">
+    <value>  Imprime al completo las salidas de la última celda (o de la celda n si se indica),
+  sin aplicar los límites de filas y líneas del renderizado normal.</value>
+  </data>
+  <data name="Meta_View_InvalidIndex" xml:space="preserve">
+    <value>Índice de celda '{0}' no válido o fuera de rango.</value>
+  </data>
+  <data name="Meta_View_NoOutputs" xml:space="preserve">
+    <value>La celda [{0}] no tiene salidas.</value>
+  </data>
+  <data name="Meta_View_Nothing" xml:space="preserve">
+    <value>No hay celdas que ver.</value>
+  </data>
+  <data name="Meta_View_Summary" xml:space="preserve">
+    <value>Imprime la salida de la última celda sin recortarla.</value>
+  </data>
+  <data name="Option_AutoInstall" xml:space="preserve">
+    <value>Instala los paquetes de Python que una celda importa pero el entorno no tiene. Solo se instalan los paquetes cuyo nombre de distribución se conoce; del resto se informa.</value>
+  </data>
+  <data name="Option_Extensions" xml:space="preserve">
+    <value>Directorio en el que buscar ensamblados de extensión adicionales.</value>
+  </data>
+  <data name="Option_Language" xml:space="preserve">
+    <value>Idioma de los mensajes y de la ayuda, uno de: {0}. De forma predeterminada, el idioma del sistema, con inglés como alternativa.</value>
+  </data>
+  <data name="Option_Python" xml:space="preserve">
+    <value>Ruta al intérprete de Python que usan las celdas de Python. Prevalece sobre la detección automática.</value>
+  </data>
+  <data name="Param_Default" xml:space="preserve">
+    <value>predeterminado: {0}</value>
+  </data>
+  <data name="Param_Heading" xml:space="preserve">
+    <value>Parámetros del cuaderno:</value>
+  </data>
+  <data name="Param_InvalidValues" xml:space="preserve">
+    <value>Valores de parámetro no válidos:</value>
+  </data>
+  <data name="Param_MissingRequired" xml:space="preserve">
+    <value>Faltan parámetros obligatorios del cuaderno:</value>
+  </data>
+  <data name="Param_Required" xml:space="preserve">
+    <value>obligatorio</value>
+  </data>
+  <data name="Param_SupplyHint" xml:space="preserve">
+    <value>Indique los valores con --param, o use --interactive para que se le pregunten.</value>
+  </data>
+  <data name="Param_UnknownParameter" xml:space="preserve">
+    <value>El parámetro desconocido '{0}' no está definido en los metadatos del cuaderno. Se inyecta como cadena.</value>
+  </data>
+  <data name="Param_UntypedOnly" xml:space="preserve">
+    <value>Las definiciones de parámetros solo se admiten en los archivos .verso. Se inyectan todos los valores de --param como cadenas sin tipo.</value>
+  </data>
+  <data name="Param_ValueRequired" xml:space="preserve">
+    <value>Se necesita un valor.</value>
+  </data>
+  <data name="Prefix_Error" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Prefix_Fatal" xml:space="preserve">
+    <value>Error grave: {0}</value>
+  </data>
+  <data name="Prefix_Warning" xml:space="preserve">
+    <value>Advertencia: {0}</value>
+  </data>
+  <data name="Prompt_Recalled" xml:space="preserve">
+    <value>(recuperada: copie y pegue o edite abajo)</value>
+  </data>
+  <data name="Render_BinaryOutput" xml:space="preserve">
+    <value>&lt;salida: {0}, {1} caracteres, binaria&gt;</value>
+  </data>
+  <data name="Render_CellLabel" xml:space="preserve">
+    <value>Celda {0}</value>
+  </data>
+  <data name="Render_ClippedLines_One" xml:space="preserve">
+    <value>… {0} línea más</value>
+  </data>
+  <data name="Render_ClippedLines_Other" xml:space="preserve">
+    <value>… {0} líneas más</value>
+  </data>
+  <data name="Render_ExecutedIn" xml:space="preserve">
+    <value>(ejecutada en {0})</value>
+  </data>
+  <data name="Render_ExecutionFailed" xml:space="preserve">
+    <value>La ejecución falló.</value>
+  </data>
+  <data name="Render_Image" xml:space="preserve">
+    <value>&lt;imagen: {0}, {1}, guardada en {2}&gt;</value>
+  </data>
+  <data name="Render_ImageFailed" xml:space="preserve">
+    <value>&lt;imagen: {0}, no se pudo descodificar: {1}&gt;</value>
+  </data>
+  <data name="Render_MoreLines_One" xml:space="preserve">
+    <value>... ({0} línea más)</value>
+  </data>
+  <data name="Render_MoreLines_Other" xml:space="preserve">
+    <value>... ({0} líneas más)</value>
+  </data>
+  <data name="Render_MoreRows_One" xml:space="preserve">
+    <value>… {0} fila más</value>
+  </data>
+  <data name="Render_MoreRows_Other" xml:space="preserve">
+    <value>… {0} filas más</value>
+  </data>
+  <data name="Render_NoParameters" xml:space="preserve">
+    <value>(sin parámetros)</value>
+  </data>
+  <data name="Render_SummaryCells" xml:space="preserve">
+    <value>Celdas: {0} en total, {1} correctas, {2} con errores</value>
+  </data>
+  <data name="Render_SummaryLabel" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="Render_SummaryTime" xml:space="preserve">
+    <value>Tiempo: {0}s</value>
+  </data>
+  <data name="Render_UnknownOutput" xml:space="preserve">
+    <value>&lt;salida: {0}&gt;</value>
+  </data>
+  <data name="Render_WidgetPlaceholder" xml:space="preserve">
+    <value>[salida de widget, se muestra al abrir el cuaderno]</value>
+  </data>
+  <data name="Repl_ArgNotebook" xml:space="preserve">
+    <value>Ruta a un archivo .verso, .ipynb o .dib. Si se omite, empieza con un cuaderno de borrador vacío.</value>
+  </data>
+  <data name="Repl_Cancelled" xml:space="preserve">
+    <value>Cancelada.</value>
+  </data>
+  <data name="Repl_CellCount_One" xml:space="preserve">
+    <value>{0} celda</value>
+  </data>
+  <data name="Repl_CellCount_Other" xml:space="preserve">
+    <value>{0} celdas</value>
+  </data>
+  <data name="Repl_Description" xml:space="preserve">
+    <value>Inicia un REPL interactivo de Verso en el terminal.</value>
+  </data>
+  <data name="Repl_ExecutionError" xml:space="preserve">
+    <value>Error de ejecución: {0}</value>
+  </data>
+  <data name="Repl_HeaderExtensionCount" xml:space="preserve">
+    <value>{0} cargadas</value>
+  </data>
+  <data name="Repl_HeaderExtensions" xml:space="preserve">
+    <value>extensiones:</value>
+  </data>
+  <data name="Repl_HeaderHint" xml:space="preserve">
+    <value>Escriba {0} para ver los comandos, {1} para salir.</value>
+  </data>
+  <data name="Repl_HeaderKernel" xml:space="preserve">
+    <value>kernel:</value>
+  </data>
+  <data name="Repl_HeaderNotebook" xml:space="preserve">
+    <value>cuaderno:</value>
+  </data>
+  <data name="Repl_HeaderTheme" xml:space="preserve">
+    <value>tema:</value>
+  </data>
+  <data name="Repl_MarkerDefault" xml:space="preserve">
+    <value>&lt;predeterminado&gt;</value>
+  </data>
+  <data name="Repl_MarkerNone" xml:space="preserve">
+    <value>&lt;ninguno&gt;</value>
+  </data>
+  <data name="Repl_MarkerScratch" xml:space="preserve">
+    <value>*borrador*</value>
+  </data>
+  <data name="Repl_MetaCommandError" xml:space="preserve">
+    <value>Error en el metacomando '.{0}': {1}</value>
+  </data>
+  <data name="Repl_OptExecute" xml:space="preserve">
+    <value>Combinado con &lt;notebook&gt;, ejecuta todas las celdas cargadas antes de ceder el control al prompt.</value>
+  </data>
+  <data name="Repl_OptHistory" xml:space="preserve">
+    <value>Ruta al archivo de historial del prompt. Use 'none' para deshabilitar el historial persistente.</value>
+  </data>
+  <data name="Repl_OptKernel" xml:space="preserve">
+    <value>Kernel activo para la primera celda. Se compara con ILanguageKernel.KernelId sin distinguir mayúsculas de minúsculas. Se puede cambiar en tiempo de ejecución con .kernel.</value>
+  </data>
+  <data name="Repl_OptLayout" xml:space="preserve">
+    <value>Id del diseño predeterminado, que se pasa a .export como ActiveLayoutId salvo que el comando lo sobrescriba.</value>
+  </data>
+  <data name="Repl_OptListKernels" xml:space="preserve">
+    <value>Imprime los kernels disponibles y sale.</value>
+  </data>
+  <data name="Repl_OptListThemes" xml:space="preserve">
+    <value>Imprime los temas registrados y sale.</value>
+  </data>
+  <data name="Repl_OptNoColor" xml:space="preserve">
+    <value>Deshabilita el estilo ANSI. La salida es texto UTF-8 sin formato.</value>
+  </data>
+  <data name="Repl_OptPlain" xml:space="preserve">
+    <value>Fuerza el prompt alternativo orientado a líneas, sin usar PrettyPrompt aunque el terminal lo admita.</value>
+  </data>
+  <data name="Repl_OptPreserveFormat" xml:space="preserve">
+    <value>Cuando el cuaderno cargado es .ipynb, .save (sin argumento) vuelve a escribir en .ipynb en lugar de convertir a .verso. Las salidas de las celdas se conservan.</value>
+  </data>
+  <data name="Repl_OptTheme" xml:space="preserve">
+    <value>Tema activo para representar la salida. DisplayName sin distinguir mayúsculas de minúsculas, con ThemeId como alternativa.</value>
+  </data>
+  <data name="Repl_PriorExecutionFailed" xml:space="preserve">
+    <value>La ejecución anterior falló.</value>
+  </data>
+  <data name="Repl_ScratchTitle" xml:space="preserve">
+    <value>Verso REPL {0}</value>
+  </data>
+  <data name="Repl_TypeHelpForList" xml:space="preserve">
+    <value>Escriba {0} para ver la lista.</value>
+  </data>
+  <data name="Repl_UnknownMetaCommand" xml:space="preserve">
+    <value>Metacomando '.{0}' desconocido.</value>
+  </data>
+  <data name="Repl_UnsavedCells" xml:space="preserve">
+    <value>La sesión tiene celdas sin guardar.</value>
+  </data>
+  <data name="Repl_UnsavedHint" xml:space="preserve">
+    <value>Ejecute {0} primero, o {1} de nuevo para descartarlas.</value>
+  </data>
+  <data name="Repl_Usage" xml:space="preserve">
+    <value>Uso: {0}</value>
+  </data>
+  <data name="Root_Description" xml:space="preserve">
+    <value>Verso CLI: ejecuta, sirve y convierte cuadernos de Verso.</value>
+  </data>
+  <data name="Root_UnhandledError" xml:space="preserve">
+    <value>Error no controlado: {0}</value>
+  </data>
+  <data name="Run_ArgNotebook" xml:space="preserve">
+    <value>Ruta a un archivo .verso, .ipynb o .dib.</value>
+  </data>
+  <data name="Run_CellCompleted" xml:space="preserve">
+    <value>[{0}/{1}] La celda {0} terminó en {2}s ({3})</value>
+  </data>
+  <data name="Run_Description" xml:space="preserve">
+    <value>Ejecuta un cuaderno sin interfaz y transmite las salidas de las celdas.</value>
+  </data>
+  <data name="Run_ExecutingCell" xml:space="preserve">
+    <value>[{0}/{1}] Ejecutando la celda {0} ({2})...</value>
+  </data>
+  <data name="Run_InvalidCellSelector" xml:space="preserve">
+    <value>Selector de celda '{0}' no válido. Use un índice basado en cero o un GUID de celda.</value>
+  </data>
+  <data name="Run_InvalidParamFormat" xml:space="preserve">
+    <value>Formato de --param '{0}' no válido. Se esperaba name=value.</value>
+  </data>
+  <data name="Run_LoadingThirdParty" xml:space="preserve">
+    <value>Cargando extensiones de terceros desde '{0}'. Estas extensiones se aprueban automáticamente para la ejecución sin interfaz.</value>
+  </data>
+  <data name="Run_OptCell" xml:space="preserve">
+    <value>Ejecuta solo la celda indicada (índice o GUID). Se puede repetir.</value>
+  </data>
+  <data name="Run_OptFailFast" xml:space="preserve">
+    <value>Detiene la ejecución en el primer error de celda.</value>
+  </data>
+  <data name="Run_OptFailOnStderr" xml:space="preserve">
+    <value>Trata como error todo lo que una celda escriba en la salida de error estándar. Deshabilitado de forma predeterminada, porque las barras de progreso, el registro y las advertencias se escriben ahí normalmente desde programas que funcionan bien. Use esta opción para que una canalización sea estricta con ellas.</value>
+  </data>
+  <data name="Run_OptIgnoreViewState" xml:space="preserve">
+    <value>Omite los metadatos verso:ui.outputVisibility y verso:ui.inputCollapsed de cada celda; muestra todas las salidas completas.</value>
+  </data>
+  <data name="Run_OptIncludeMarkdown" xml:space="preserve">
+    <value>Incluye el contenido de las celdas markdown y HTML en la salida del terminal.</value>
+  </data>
+  <data name="Run_OptInteractive" xml:space="preserve">
+    <value>Pide por la entrada estándar los parámetros obligatorios que falten en lugar de fallar.</value>
+  </data>
+  <data name="Run_OptKernel" xml:space="preserve">
+    <value>Sobrescribe el kernel predeterminado del cuaderno.</value>
+  </data>
+  <data name="Run_OptOutput" xml:space="preserve">
+    <value>Formato de salida: text, json o none.</value>
+  </data>
+  <data name="Run_OptOutputFile" xml:space="preserve">
+    <value>Escribe la salida en un archivo en lugar de en la salida estándar. Implica --output json si no se indica ningún formato.</value>
+  </data>
+  <data name="Run_OptParam" xml:space="preserve">
+    <value>Establece un parámetro del cuaderno (formato: name=value). Se puede repetir.</value>
+  </data>
+  <data name="Run_OptSave" xml:space="preserve">
+    <value>Guarda las salidas actualizadas en el archivo del cuaderno después de la ejecución.</value>
+  </data>
+  <data name="Run_OptShowParameters" xml:space="preserve">
+    <value>Muestra los valores de los parámetros resueltos en la salida del terminal.</value>
+  </data>
+  <data name="Run_OptTimeout" xml:space="preserve">
+    <value>Tiempo total máximo de ejecución, en segundos.</value>
+  </data>
+  <data name="Run_OptTrustLocal" xml:space="preserve">
+    <value>Permite cargar sin consentimiento los ensamblados generados durante la sesión actual.</value>
+  </data>
+  <data name="Run_OptVerbose" xml:space="preserve">
+    <value>Imprime el progreso de ejecución de las celdas en la salida de error estándar.</value>
+  </data>
+  <data name="Run_RefusingSessionExtension" xml:space="preserve">
+    <value>Se rechaza la extensión '{0}' generada en la sesión. Use --trust-local-assemblies para permitirla.</value>
+  </data>
+  <data name="Run_UnsupportedFormat" xml:space="preserve">
+    <value>Formato de cuaderno '{0}' no admitido o no válido.</value>
+  </data>
+  <data name="Serve_ArgNotebook" xml:space="preserve">
+    <value>Cuaderno opcional que se abre al iniciar.</value>
+  </data>
+  <data name="Serve_Description" xml:space="preserve">
+    <value>Inicia la aplicación Blazor de Verso como servidor web local.</value>
+  </data>
+  <data name="Serve_OptNoBrowser" xml:space="preserve">
+    <value>No abre ninguna pestaña del navegador al iniciar.</value>
+  </data>
+  <data name="Serve_OptNoHttps" xml:space="preserve">
+    <value>Deshabilita HTTPS (solo HTTP).</value>
+  </data>
+  <data name="Serve_OptPort" xml:space="preserve">
+    <value>Puerto HTTP en el que escuchar.</value>
+  </data>
+  <data name="Serve_OptPreserveFormat" xml:space="preserve">
+    <value>Cuando se guarda un cuaderno .ipynb cargado, vuelve a escribir en .ipynb en lugar de convertir a .verso. Las salidas de las celdas se conservan.</value>
+  </data>
+  <data name="Serve_OptVerbose" xml:space="preserve">
+    <value>Imprime los detalles de inicio en la salida de error estándar.</value>
+  </data>
+  <data name="Serve_PressCtrlC" xml:space="preserve">
+    <value>Pulse Ctrl+C para detenerlo.</value>
+  </data>
+  <data name="Serve_Running" xml:space="preserve">
+    <value>Verso se está ejecutando en {0}</value>
+  </data>
+  <data name="Serve_StartFailed" xml:space="preserve">
+    <value>No se pudo iniciar el servidor: {0}</value>
+  </data>
+  <data name="Serve_VerboseExtensions" xml:space="preserve">
+    <value>Extensiones: {0}</value>
+  </data>
+  <data name="Serve_VerboseNotebook" xml:space="preserve">
+    <value>Cuaderno: {0}</value>
+  </data>
+  <data name="Table_Command" xml:space="preserve">
+    <value>Comando</value>
+  </data>
+  <data name="Table_Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Table_DisplayName" xml:space="preserve">
+    <value>Nombre visible</value>
+  </data>
+  <data name="Table_Extensions" xml:space="preserve">
+    <value>Extensiones</value>
+  </data>
+  <data name="Table_Format" xml:space="preserve">
+    <value>Formato</value>
+  </data>
+  <data name="Table_Id" xml:space="preserve">
+    <value>Id</value>
+  </data>
+  <data name="Table_Kind" xml:space="preserve">
+    <value>Clase</value>
+  </data>
+  <data name="Table_Language" xml:space="preserve">
+    <value>Lenguaje</value>
+  </data>
+  <data name="Table_Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Table_Preview" xml:space="preserve">
+    <value>Vista previa</value>
+  </data>
+  <data name="Table_Priority" xml:space="preserve">
+    <value>Prioridad</value>
+  </data>
+  <data name="Table_Status" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="Table_Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="Table_Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Table_Version" xml:space="preserve">
+    <value>Versión</value>
+  </data>
+</root>

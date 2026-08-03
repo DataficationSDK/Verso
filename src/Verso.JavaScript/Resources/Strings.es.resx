@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Npm_Description" xml:space="preserve">
+    <value>Instala paquetes de npm para usarlos en las celdas de JavaScript.</value>
+  </data>
+  <data name="Kernel_JavaScript_Description" xml:space="preserve">
+    <value>Kernel del lenguaje JavaScript mediante Node.js o Jint.</value>
+  </data>
+  <data name="Kernel_TypeScript_Description" xml:space="preserve">
+    <value>Kernel del lenguaje TypeScript mediante Node.js, con transpilación automática.</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_One" xml:space="preserve">
+    <value>{0} ya está instalado.</value>
+  </data>
+  <data name="Magic_Npm_AlreadyInstalled_Other" xml:space="preserve">
+    <value>{0} ya están instalados.</value>
+  </data>
+  <data name="Magic_Npm_Description" xml:space="preserve">
+    <value>Instala paquetes de npm para usarlos en las celdas de JavaScript siguientes.</value>
+  </data>
+  <data name="Magic_Npm_Installing" xml:space="preserve">
+    <value>Instalando {0}...</value>
+  </data>
+  <data name="Magic_Npm_Name" xml:space="preserve">
+    <value>Comando mágico Npm</value>
+  </data>
+  <data name="Magic_Npm_NoKernel" xml:space="preserve">
+    <value>No hay ningún kernel de JavaScript cargado. #!npm necesita el kernel de JavaScript.</value>
+  </data>
+  <data name="Magic_Npm_Param_Packages" xml:space="preserve">
+    <value>Uno o más nombres de paquete (por ejemplo, lodash axios@1.6).</value>
+  </data>
+  <data name="Magic_Npm_Usage" xml:space="preserve">
+    <value>Uso: #!npm &lt;package-names&gt;</value>
+  </data>
+  <data name="Node_NotReady" xml:space="preserve">
+    <value>El puente de Node.js no envió la señal de listo en 10 segundos.</value>
+  </data>
+  <data name="Node_NotRunning" xml:space="preserve">
+    <value>El proceso de Node.js no se está ejecutando.</value>
+  </data>
+  <data name="Node_Required" xml:space="preserve">
+    <value>El kernel de TypeScript necesita Node.js. No se encontró Node.js en PATH ni en las ubicaciones habituales.</value>
+  </data>
+  <data name="Node_Terminated" xml:space="preserve">
+    <value>El proceso de Node.js terminó de forma inesperada.</value>
+  </data>
+  <data name="Node_TranspileRequiresModule" xml:space="preserve">
+    <value>La transpilación de TypeScript necesita Node.js con el módulo typescript instalado.</value>
+  </data>
+  <data name="Npm_AuditSummary" xml:space="preserve">
+    <value>npm audit encontró {0} en los paquetes instalados. Ejecute npm audit para ver los detalles.</value>
+  </data>
+  <data name="Npm_AuditSummaryBySeverity" xml:space="preserve">
+    <value>npm audit encontró {0} ({1}) en los paquetes instalados. Ejecute npm audit para ver los detalles.</value>
+  </data>
+  <data name="Npm_Dependencies" xml:space="preserve">
+    <value>Dependencias: {0}.</value>
+  </data>
+  <data name="Npm_DependencyCount_One" xml:space="preserve">
+    <value>{0} dependencia</value>
+  </data>
+  <data name="Npm_DependencyCount_Other" xml:space="preserve">
+    <value>{0} dependencias</value>
+  </data>
+  <data name="Npm_InstallFailed" xml:space="preserve">
+    <value>La instalación de npm falló.</value>
+  </data>
+  <data name="Npm_Installed" xml:space="preserve">
+    <value>Se instaló {0}.</value>
+  </data>
+  <data name="Npm_InstalledAnd" xml:space="preserve">
+    <value>Se instaló {0} y {1}.</value>
+  </data>
+  <data name="Npm_NotFound" xml:space="preserve">
+    <value>No se encontró npm en PATH.</value>
+  </data>
+  <data name="Npm_NothingToDo" xml:space="preserve">
+    <value>Todo lo solicitado ya está instalado.</value>
+  </data>
+  <data name="Npm_PackageCount_One" xml:space="preserve">
+    <value>{0} paquete</value>
+  </data>
+  <data name="Npm_PackageCount_Other" xml:space="preserve">
+    <value>{0} paquetes</value>
+  </data>
+  <data name="Npm_Packages" xml:space="preserve">
+    <value>Paquetes: {0}.</value>
+  </data>
+  <data name="Npm_Replaced" xml:space="preserve">
+    <value>Reemplazados: {0}.</value>
+  </data>
+  <data name="Npm_Severity_Critical" xml:space="preserve">
+    <value>críticas: {0}</value>
+  </data>
+  <data name="Npm_Severity_High" xml:space="preserve">
+    <value>altas: {0}</value>
+  </data>
+  <data name="Npm_Severity_Info" xml:space="preserve">
+    <value>informativas: {0}</value>
+  </data>
+  <data name="Npm_Severity_Low" xml:space="preserve">
+    <value>bajas: {0}</value>
+  </data>
+  <data name="Npm_Severity_Moderate" xml:space="preserve">
+    <value>moderadas: {0}</value>
+  </data>
+  <data name="Npm_StartFailed" xml:space="preserve">
+    <value>No se pudo iniciar el proceso de npm.</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_One" xml:space="preserve">
+    <value>{0} vulnerabilidad</value>
+  </data>
+  <data name="Npm_VulnerabilityCount_Other" xml:space="preserve">
+    <value>{0} vulnerabilidades</value>
+  </data>
+  <data name="Run_NodeCrashed" xml:space="preserve">
+    <value>El proceso de Node.js se bloqueó. Reiniciando...</value>
+  </data>
+  <data name="Run_OutOfMemory" xml:space="preserve">
+    <value>Se superó el límite de memoria (128 MB).</value>
+  </data>
+  <data name="Run_TimedOut" xml:space="preserve">
+    <value>Se agotó el tiempo de ejecución (límite de 15 segundos).</value>
+  </data>
+  <data name="Run_TranspileFailed" xml:space="preserve">
+    <value>La transpilación falló: {0}</value>
+  </data>
+  <data name="Run_UnknownError" xml:space="preserve">
+    <value>Error de JavaScript desconocido</value>
+  </data>
+  <data name="Run_UnknownTranspileError" xml:space="preserve">
+    <value>Error de transpilación desconocido</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Description" xml:space="preserve">
+    <value>Informa de una instalación de npm indicando los paquetes que añadió y las versiones con las que llegaron, en lugar de repetir la narración de npm y sus notas de financiación y auditoría. Instalar un paquete arrastra sus dependencias, y ese bloque se guarda en el cuaderno junto a la salida por la que realmente se ejecutó la celda. Una instalación que falla siempre se informa al completo, igual que lo que encuentre la auditoría de npm.</value>
+  </data>
+  <data name="Setting_HideInstallOutput_Label" xml:space="preserve">
+    <value>Ocultar la salida de instalación</value>
+  </data>
+  <data name="TypeScript_InstallFailed" xml:space="preserve">
+    <value>No se pudo instalar el paquete npm {0}.</value>
+  </data>
+  <data name="TypeScript_VerifyFailed" xml:space="preserve">
+    <value>El compilador de TypeScript no funciona después de instalarlo (typescript {0}): {1}</value>
+  </data>
+  <data name="TypeScript_VersionUnknown" xml:space="preserve">
+    <value>versión desconocida</value>
+  </data>
+</root>

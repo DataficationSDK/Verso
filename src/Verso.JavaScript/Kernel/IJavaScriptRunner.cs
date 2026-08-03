@@ -1,3 +1,4 @@
+using Verso.JavaScript.Resources;
 namespace Verso.JavaScript.Kernel;
 
 /// <summary>
@@ -30,7 +31,7 @@ internal interface IJavaScriptRunner : IAsyncDisposable
     /// Only supported by Node.js runner when the typescript module is installed.
     /// </summary>
     Task<TranspileResult> TranspileAsync(string code, CancellationToken ct) =>
-        Task.FromResult(new TranspileResult(null, "TypeScript transpilation requires Node.js with the typescript module installed."));
+        Task.FromResult(new TranspileResult(null, Strings.Node_TranspileRequiresModule));
 
     /// <summary>
     /// True if the backend is still operational. For Node.js, false after a process crash.
