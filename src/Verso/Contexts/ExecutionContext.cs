@@ -83,29 +83,11 @@ public sealed class ExecutionContext : VersoContext, IExecutionContext
         ArgumentNullException.ThrowIfNull(value);
 
         IFormatterContext formatterContext = new DisplayFormatterContext(this);
-        if (acceptableMimeTypes is null)
-        {
-            return await FormatterResolver.TryFormatAsync(
-                value,
-                formatterContext,
-                includeFallback: false).ConfigureAwait(false);
-        }
-
-        foreach (var mimeType in acceptableMimeTypes)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(mimeType);
-
-            var output = await FormatterResolver.TryFormatAsync(
-                value,
-                new HintedFormatterContext(formatterContext, mimeType),
-                includeFallback: false,
-                requiredMimeType: mimeType).ConfigureAwait(false);
-
-            if (output is not null)
-                return output;
-        }
-
-        return null;
+        return await FormatterResolver.TryFormatAsync(
+            value,
+            formatterContext,
+            includeFallback: false,
+            acceptableMimeTypes: acceptableMimeTypes).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

@@ -26,7 +26,8 @@ public sealed class ImageFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return value is byte[];
+        return string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+               value is byte[];
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)

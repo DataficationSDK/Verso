@@ -8,7 +8,7 @@ namespace Verso.Tests.Extensions;
 public sealed class PrimitiveFormatterTests
 {
     private readonly PrimitiveFormatter _formatter = new();
-    private readonly StubFormatterContext _context = new();
+    private readonly StubFormatterContext _context = new() { MimeType = "text/plain" };
 
     [TestMethod]
     public void ExtensionId_IsCorrect()

@@ -42,7 +42,8 @@ public sealed class PrimitiveFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return PrimitiveTypes.Contains(value.GetType());
+        return string.Equals(context.MimeType, "text/plain", StringComparison.OrdinalIgnoreCase) &&
+               PrimitiveTypes.Contains(value.GetType());
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)

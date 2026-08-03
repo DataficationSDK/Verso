@@ -117,8 +117,9 @@ public sealed class ExecutionContextTests
         Assert.IsNotNull(output);
         Assert.AreEqual("image/png", output.MimeType);
         CollectionAssert.AreEqual(
-            new[] { "image/svg+xml", "image/png" },
+            new[] { "image/svg+xml", "image/png", "text/plain" },
             formatter.ProbedMimeTypes);
+        Assert.AreEqual(1, formatter.FormatCallCount);
     }
 
     [TestMethod]
@@ -182,6 +183,21 @@ public sealed class ExecutionContextTests
         Assert.AreEqual(0, formatter.ProbedMimeTypes.Count);
     }
 
+    [TestMethod]
+    public async Task TryFormatAsync_CellOutputWithUnacceptableMimeTypeReturnsNull()
+    {
+        var context = CreateContext(
+            Guid.NewGuid(), 1,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask);
+
+        var output = await context.TryFormatAsync(
+            CellOutput.Html("<strong>value</strong>"),
+            new[] { "image/png" });
+
+        Assert.IsNull(output);
+    }
+
     private static ExecutionCtx CreateContext(
         Guid cellId, int executionCount,
         Func<CellOutput, Task> writeOutput,
@@ -243,6 +259,7 @@ public sealed class ExecutionContextTests
         public int Priority { get; }
         public bool IsFallback => false;
         public List<string> ProbedMimeTypes { get; } = new();
+        public int FormatCallCount { get; private set; }
         public Task OnLoadedAsync(Verso.Abstractions.IExtensionHostContext context) => Task.CompletedTask;
         public Task OnUnloadedAsync() => Task.CompletedTask;
 
@@ -255,6 +272,9 @@ public sealed class ExecutionContextTests
         public Task<CellOutput> FormatAsync(
             object value,
             Verso.Abstractions.IFormatterContext context)
-            => Task.FromResult(new CellOutput(context.MimeType, context.MimeType));
+        {
+            FormatCallCount++;
+            return Task.FromResult(new CellOutput(context.MimeType, context.MimeType));
+        }
     }
 }

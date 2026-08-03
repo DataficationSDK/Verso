@@ -41,7 +41,9 @@ public sealed class FakeDataFormatter : IDataFormatter
         return Task.CompletedTask;
     }
 
-    public bool CanFormat(object value, IFormatterContext context) => value is string;
+    public bool CanFormat(object value, IFormatterContext context)
+        => string.Equals(context.MimeType, "text/plain", StringComparison.OrdinalIgnoreCase) &&
+           value is string;
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
         => Task.FromResult(new CellOutput("text/plain", value?.ToString() ?? ""));

@@ -91,8 +91,8 @@ return new[] { FormatWithNativeRuntime(runtimeValue) };
 
 Hosts that support multiple representations can pass their acceptable MIME types in descending
 order of preference. Formatter priority resolves conflicts within each MIME type; MIME type order
-takes precedence across representations. The first representation a specialized formatter can
-produce is returned:
+takes precedence across representations. The host probes `CanFormat` with each MIME-specific
+context, then invokes `FormatAsync` only for the selected formatter and representation:
 
 ```csharp
 var formatted = await context.TryFormatAsync(

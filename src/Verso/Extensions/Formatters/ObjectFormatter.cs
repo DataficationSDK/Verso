@@ -36,6 +36,9 @@ public sealed class ObjectFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
+        if (!string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase))
+            return false;
+
         var type = value.GetType();
         if (type.IsPrimitive || type.IsEnum || ExcludedTypes.Contains(type))
             return false;
