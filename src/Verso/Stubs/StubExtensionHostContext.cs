@@ -10,13 +10,16 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
 {
     private readonly Func<IReadOnlyList<ILanguageKernel>> _getKernels;
     private readonly Func<IReadOnlyList<ICellRenderer>> _getRenderers;
+    private readonly Func<IReadOnlyList<IDataFormatter>> _getFormatters;
 
     public StubExtensionHostContext(
         Func<IReadOnlyList<ILanguageKernel>> getKernels,
-        Func<IReadOnlyList<ICellRenderer>>? getRenderers = null)
+        Func<IReadOnlyList<ICellRenderer>>? getRenderers = null,
+        Func<IReadOnlyList<IDataFormatter>>? getFormatters = null)
     {
         _getKernels = getKernels ?? throw new ArgumentNullException(nameof(getKernels));
         _getRenderers = getRenderers ?? (() => Array.Empty<ICellRenderer>());
+        _getFormatters = getFormatters ?? (() => Array.Empty<IDataFormatter>());
     }
 
     /// <summary>
@@ -41,7 +44,7 @@ public sealed class StubExtensionHostContext : IExtensionHostContext
     public IReadOnlyList<ICellRenderer> GetRenderers() => _getRenderers();
 
     /// <inheritdoc />
-    public IReadOnlyList<IDataFormatter> GetFormatters() => Array.Empty<IDataFormatter>();
+    public IReadOnlyList<IDataFormatter> GetFormatters() => _getFormatters();
 
     /// <inheritdoc />
     public IReadOnlyList<ICellType> GetCellTypes() => Array.Empty<ICellType>();

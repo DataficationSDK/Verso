@@ -20,7 +20,16 @@ public interface IDataFormatter : IExtension
     int Priority { get; }
 
     /// <summary>
+    /// Whether this formatter is a generic fallback rather than a specialized representation.
+    /// Language kernels can skip fallback formatters when they have a richer native formatter
+    /// for values not claimed by an extension.
+    /// </summary>
+    bool IsFallback => false;
+
+    /// <summary>
     /// Returns whether this formatter can produce output for the given value in the current context.
+    /// When <see cref="IFormatterContext.MimeType"/> specifies a target representation, this
+    /// method must return <see langword="false"/> unless <see cref="FormatAsync"/> will emit it.
     /// </summary>
     /// <param name="value">The object to format.</param>
     /// <param name="context">Formatter context providing MIME preferences and display options.</param>
@@ -29,6 +38,8 @@ public interface IDataFormatter : IExtension
 
     /// <summary>
     /// Formats the given value into a cell output suitable for display.
+    /// The returned MIME type must match <see cref="IFormatterContext.MimeType"/> when the
+    /// formatter claimed a MIME-constrained context in <see cref="CanFormat"/>.
     /// </summary>
     /// <param name="value">The object to format.</param>
     /// <param name="context">Formatter context providing MIME preferences and display options.</param>

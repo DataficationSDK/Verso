@@ -49,6 +49,10 @@ public sealed class ObjectFormatterTests
     public void Priority_Is5()
         => Assert.AreEqual(5, _formatter.Priority);
 
+    [TestMethod]
+    public void IsFallback_IsTrue()
+        => Assert.IsTrue(_formatter.IsFallback);
+
     // --- CanFormat ---
 
     [TestMethod]

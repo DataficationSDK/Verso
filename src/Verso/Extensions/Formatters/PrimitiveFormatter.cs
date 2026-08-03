@@ -35,13 +35,15 @@ public sealed class PrimitiveFormatter : IDataFormatter
 
     public IReadOnlyList<Type> SupportedTypes { get; } = PrimitiveTypes.ToList();
     public int Priority => 0;
+    public bool IsFallback => true;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return PrimitiveTypes.Contains(value.GetType());
+        return string.Equals(context.MimeType, "text/plain", StringComparison.OrdinalIgnoreCase) &&
+               PrimitiveTypes.Contains(value.GetType());
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)

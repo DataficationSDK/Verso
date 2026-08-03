@@ -146,12 +146,24 @@ Formats runtime objects into display outputs. The host selects the best formatte
 |---|---|---|
 | `SupportedTypes` | `IReadOnlyList<Type>` | CLR types this formatter handles. Used for fast pre-filtering. |
 | `Priority` | `int` | Conflict resolution priority. Higher values win. |
-| `CanFormat(object, IFormatterContext)` | `bool` | Fine-grained check for whether this formatter can handle the value. |
+| `IsFallback` | `bool` | Whether this is a generic fallback formatter. Defaults to `false`; kernels may skip fallbacks in favor of native runtime formatting. |
+| `CanFormat(object, IFormatterContext)` | `bool` | Fine-grained check for whether this formatter can handle the value and emit the requested `context.MimeType`. |
 | `FormatAsync(object, IFormatterContext)` | `Task<CellOutput>` | Produces a `CellOutput` for the given value. |
 
 ### Lifecycle
 
-Formatters are stateless and invoked on-demand. When a kernel produces an object result, the host iterates registered formatters, filters by `SupportedTypes`, sorts by `Priority` (descending), and calls `CanFormat` then `FormatAsync` on the first match.
+Formatters are stateless and invoked on-demand. When a kernel produces an object result, the host
+filters registered formatters by `SupportedTypes`, probes `CanFormat` for the host's acceptable MIME
+types, and calls `FormatAsync` only for the winning formatter and representation. MIME preference
+takes precedence over formatter `Priority`; priority resolves conflicts within one MIME type.
+
+`CanFormat` must return `false` when the formatter cannot emit `context.MimeType`. A formatter that
+claims a MIME type but returns a different one is skipped so the host never receives a representation
+it did not declare as renderable.
+
+Generic catch-all formatters should return `true` from `IsFallback`. Explicit display operations
+include them, while language kernels can request only specialized formatters and retain their own
+native formatting when none matches.
 
 ### Example Implementation
 
@@ -165,7 +177,9 @@ public sealed class DiceFormatter : IDataFormatter
     public IReadOnlyList<Type> SupportedTypes => new[] { typeof(DiceResult) };
     public int Priority => 10;
 
-    public bool CanFormat(object value, IFormatterContext context) => value is DiceResult;
+    public bool CanFormat(object value, IFormatterContext context)
+        => context.MimeType.Equals("text/html", StringComparison.OrdinalIgnoreCase) &&
+           value is DiceResult;
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     {

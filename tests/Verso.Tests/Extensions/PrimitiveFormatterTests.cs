@@ -8,7 +8,7 @@ namespace Verso.Tests.Extensions;
 public sealed class PrimitiveFormatterTests
 {
     private readonly PrimitiveFormatter _formatter = new();
-    private readonly StubFormatterContext _context = new();
+    private readonly StubFormatterContext _context = new() { MimeType = "text/plain" };
 
     [TestMethod]
     public void ExtensionId_IsCorrect()
@@ -17,6 +17,10 @@ public sealed class PrimitiveFormatterTests
     [TestMethod]
     public void Priority_IsZero()
         => Assert.AreEqual(0, _formatter.Priority);
+
+    [TestMethod]
+    public void IsFallback_IsTrue()
+        => Assert.IsTrue(_formatter.IsFallback);
 
     [TestMethod]
     [DataRow(typeof(string))]

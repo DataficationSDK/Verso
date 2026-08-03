@@ -27,7 +27,8 @@ public sealed class HtmlFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return GetToHtmlMethod(value.GetType()) is not null;
+        return string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+               GetToHtmlMethod(value.GetType()) is not null;
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)

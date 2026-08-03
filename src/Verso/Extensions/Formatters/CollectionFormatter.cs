@@ -21,13 +21,15 @@ public sealed class CollectionFormatter : IDataFormatter
 
     public IReadOnlyList<Type> SupportedTypes { get; } = new[] { typeof(IEnumerable) };
     public int Priority => 10;
+    public bool IsFallback => true;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return value is IEnumerable && value is not string;
+        return string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+               value is IEnumerable && value is not string;
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)

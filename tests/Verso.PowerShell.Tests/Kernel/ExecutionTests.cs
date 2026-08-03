@@ -288,4 +288,33 @@ public class ExecutionTests
         Assert.IsTrue(allText.Contains("first"), $"Expected 'first', got: {allText}");
         Assert.IsTrue(allText.Contains("second"), $"Expected 'second', got: {allText}");
     }
+
+    [TestMethod]
+    public async Task ImplicitOutput_UsesSpecializedFormatter()
+    {
+        _context.FormatHandler = (value, _) => Task.FromResult<CellOutput?>(
+            value is Uri ? CellOutput.Html("<strong>formatted URI</strong>") : null);
+
+        var outputs = await _kernel.ExecuteAsync("[uri]'https://example.com'", _context);
+
+        Assert.AreEqual(1, outputs.Count);
+        Assert.AreEqual("text/html", outputs[0].MimeType);
+        Assert.AreEqual("<strong>formatted URI</strong>", outputs[0].Content);
+    }
+
+    [TestMethod]
+    public async Task ImplicitOutput_PreservesNativeAndSpecializedOutputOrder()
+    {
+        _context.FormatHandler = (value, _) => Task.FromResult<CellOutput?>(
+            value is Uri ? CellOutput.Html("<strong>formatted URI</strong>") : null);
+
+        var outputs = await _kernel.ExecuteAsync(
+            "'before'\n[uri]'https://example.com'\n'after'",
+            _context);
+
+        Assert.AreEqual(3, outputs.Count);
+        Assert.AreEqual("before", outputs[0].Content);
+        Assert.AreEqual("<strong>formatted URI</strong>", outputs[1].Content);
+        Assert.AreEqual("after", outputs[2].Content);
+    }
 }

@@ -33,7 +33,8 @@ public sealed class ResultSetFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return value is DataTable or SqlResultSet;
+        return string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+               value is DataTable or SqlResultSet;
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
