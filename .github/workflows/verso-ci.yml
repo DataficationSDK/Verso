@@ -228,6 +228,18 @@ jobs:
       - name: Run host script tests
         run: python -m pytest tests/versohost -q
 
+      # The widget tests that need a real ipywidgets skip themselves without one, and it cannot
+      # be installed alongside the suite: importing ipywidgets requires IPython, and the tests
+      # covering the stand-in for IPython.display assert what happens when no real one exists.
+      # An environment of its own keeps both covered. One interpreter is enough, because what is
+      # being checked is what the embedder writes, which does not vary by Python version.
+      - name: Run widget tests against a real ipywidgets
+        if: matrix.python-version == '3.13'
+        run: |
+          python -m venv .widget-env
+          .widget-env/bin/python -m pip install --quiet --upgrade pip pytest ipywidgets
+          .widget-env/bin/python -m pytest tests/versohost/test_display.py -q
+
   vscode-extension:
     name: VS Code Extension
     runs-on: ubuntu-latest

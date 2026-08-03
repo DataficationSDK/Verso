@@ -138,12 +138,13 @@ def _from_widget(value):
         return SUPPRESS
 
     try:
+        from ipywidgets import Widget
         from ipywidgets.embed import embed_snippet
     except Exception:
         return None
 
     try:
-        snippet = embed_snippet(views=[value])
+        snippet = embed_snippet(views=[value], state=_embedded_state(Widget))
     except Exception:
         return None
 
@@ -159,6 +160,49 @@ def _from_widget(value):
         }
 
     return {"mime": WIDGET_OUTPUT_MIME, "data": document}
+
+
+def _embedded_state(widget_class):
+    """
+    The widget state to put in the page, read twice and reconciled.
+
+    Left to itself the embedder writes only the synchronized values that differ from their
+    class defaults, which saves a good deal but gives up more than it can afford: some widgets
+    keep the very thing the page needs in a trait nobody ever assigned to. A widget built on
+    anywidget carries its module source and its styling that way, and without them the page
+    loads with nothing to run and the cell shows a broken control.
+
+    Asking for everything instead would also write out every trait that was never set to
+    anything, as an explicit null where the page had no entry at all before. A front end is
+    free to read those two differently, and none of them were written against a document that
+    carries the first. Those are dropped again here, so the one thing this changes about a
+    document is the defaults that actually hold something.
+    """
+    full = widget_class.get_manager_state(drop_defaults=False)["state"]
+    trimmed = widget_class.get_manager_state(drop_defaults=True)["state"]
+    return _without_unset_values(full, trimmed)
+
+
+def _without_unset_values(full, trimmed):
+    """
+    Drop every null from ``full`` that ``trimmed`` also left out, and keep the rest.
+
+    A null the trimmed reading kept is one the author assigned, which is a decision worth
+    carrying. A null it left out is a trait still holding a default that happens to be null,
+    which is the pair this is here to separate.
+    """
+    for model_id, entry in full.items():
+        state = entry.get("state")
+        if not isinstance(state, dict):
+            continue
+
+        assigned = trimmed.get(model_id, {}).get("state", {})
+        entry["state"] = {
+            name: held for name, held in state.items()
+            if held is not None or name in assigned
+        }
+
+    return full
 
 
 def _is_empty_output_widget(value):

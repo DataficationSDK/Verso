@@ -184,28 +184,68 @@ class FakeWidget:
         return "%s(antialias=3)" % self._name
 
 
+# What the two readings of a widget's state look like, covering the four cases that decide
+# whether a value reaches the page: a default nobody assigned that the page cannot do without,
+# a default nobody assigned that holds nothing, an assigned value, and an assigned nothing.
+FULL_STATE = {
+    "model-1": {
+        "model_name": "AnyModel",
+        "state": {
+            "_esm": "export default { render() {} };",
+            "tooltip": None,
+            "description": "count",
+            "value": None,
+        },
+    },
+}
+
+ASSIGNED_STATE = {
+    "model-1": {
+        "model_name": "AnyModel",
+        "state": {
+            "description": "count",
+            "value": None,
+        },
+    },
+}
+
+
 @pytest.fixture
 def embedding(monkeypatch):
     """
-    Stand in for ipywidgets' embedder, which is not installed here.
+    Stand in for ipywidgets' embedder and its widget registry, neither of which is installed
+    here.
 
     Returns a setter taking whatever embed_snippet should do, so a test can make it produce a
-    snippet, produce an enormous one, or fail.
+    snippet, produce an enormous one, or fail. The keyword arguments of each call are recorded
+    on ``calls``, so a test can assert on how the embedder was asked as well as what it gave
+    back.
     """
+    import copy
     import types
+
+    class Widget:
+        """The one thing the display path asks of the registry."""
+
+        @staticmethod
+        def get_manager_state(drop_defaults=True, **kwargs):
+            return {"state": copy.deepcopy(ASSIGNED_STATE if drop_defaults else FULL_STATE)}
 
     def install(behaviour):
         package = types.ModuleType("ipywidgets")
         module = types.ModuleType("ipywidgets.embed")
 
         def embed_snippet(views, **kwargs):
+            install.calls.append(kwargs)
             return behaviour(views)
 
         module.embed_snippet = embed_snippet
         package.embed = module
+        package.Widget = Widget
         monkeypatch.setitem(sys.modules, "ipywidgets", package)
         monkeypatch.setitem(sys.modules, "ipywidgets.embed", module)
 
+    install.calls = []
     return install
 
 
@@ -227,6 +267,67 @@ def test_the_widget_being_shown_is_the_one_handed_over(embedding):
     display_support.render_value(widget)
 
     assert seen == [[widget]]
+
+
+def test_the_page_gets_the_defaults_it_needs_and_not_the_ones_holding_nothing(embedding):
+    # The embedder's own reading leaves out every value still equal to its class default, which
+    # takes with it the module source a widget built on anywidget keeps there. Asking for all of
+    # it instead writes traits nobody assigned as an explicit null, where the page saw no entry
+    # at all before, which is a difference no front end was written against.
+    embedding(lambda views: "<script></script>")
+
+    display_support.render_value(FakeWidget())
+
+    assert embedding.calls[0]["state"]["model-1"]["state"] == {
+        "_esm": "export default { render() {} };",
+        "description": "count",
+        "value": None,
+    }
+
+
+def test_a_synchronized_trait_at_its_default_reaches_the_document():
+    """
+    The property the previous test asserts indirectly, against the real embedder.
+
+    Written against a trait that holds its declared default, because that is the only case the
+    two settings disagree about: a trait carrying anything else survives either way, so a widget
+    built to have one would pass whichever setting was in force.
+    """
+    ipywidgets = pytest.importorskip("ipywidgets")
+    traitlets = pytest.importorskip("traitlets")
+
+    marker = "kept-although-it-equals-the-default"
+
+    class Marked(ipywidgets.DOMWidget):
+        _model_name = traitlets.Unicode("IntSliderModel").tag(sync=True)
+        _view_name = traitlets.Unicode("IntSliderView").tag(sync=True)
+        keepsake = traitlets.Unicode(marker).tag(sync=True)
+
+    payload = display_support.render_value(Marked())
+
+    assert payload["mime"] == display_support.WIDGET_OUTPUT_MIME, (
+        "Expected a widget document, got %r. The rest of this test says nothing until it does."
+        % payload["mime"])
+    assert marker in payload["data"]
+
+
+def test_a_trait_holding_nothing_is_left_out_of_the_real_state():
+    """
+    The other half, also against the real thing: a trait nobody assigned, whose default is
+    nothing at all, stays out of the page. Writing it would put an explicit null where the
+    document used to carry no entry, which is a distinction a front end is free to act on.
+    """
+    ipywidgets = pytest.importorskip("ipywidgets")
+
+    slider = ipywidgets.IntSlider(description="threshold")
+
+    # Found by its own id rather than by model name: the registry holds every widget any test in
+    # this file has made, and more than one of them can answer to the same name.
+    entry = display_support._embedded_state(ipywidgets.Widget)[slider.model_id]
+
+    assert slider.tooltip is None, "The trait under test has to be the one nobody assigned."
+    assert "tooltip" not in entry["state"]
+    assert entry["state"]["description"] == "threshold"
 
 
 def test_a_widget_falls_back_to_its_repr_without_ipywidgets(monkeypatch):
