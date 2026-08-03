@@ -68,6 +68,17 @@ public sealed class ImportMagicCommand : IMagicCommand
     /// </remarks>
     private static readonly AsyncLocal<ImmutableHashSet<string>?> InProgress = new();
 
+    /// <summary>
+    /// The directory holding the file currently being imported, so a path written inside it is
+    /// read the way the two files sit on disk.
+    /// </summary>
+    /// <remarks>
+    /// Carried beside the import rather than written into the directive text. A resolved path
+    /// can hold spaces and the directive would be read back by a parser that splits on them,
+    /// so rewriting the line loses every path under a directory whose name has a space in it.
+    /// </remarks>
+    private static readonly AsyncLocal<string?> ImportingDirectory = new();
+
     public async Task ExecuteAsync(string arguments, IMagicCommandContext context)
     {
         // Deliberately not asking for the rest of the cell to be skipped. An import is a prelude
@@ -87,7 +98,8 @@ public sealed class ImportMagicCommand : IMagicCommand
 
         try
         {
-            var resolvedPath = ResolvePath(path, context.NotebookMetadata.FilePath);
+            var resolvedPath = ResolveImportPath(
+                path, ImportingDirectory.Value, context.NotebookMetadata.FilePath);
 
             if (!File.Exists(resolvedPath))
             {
@@ -104,7 +116,12 @@ public sealed class ImportMagicCommand : IMagicCommand
             if (inProgress.Contains(resolvedPath))
                 return;
 
+            // Both are restored to what the frame above held rather than cleared, so a second
+            // import written under the first still reads from the file that wrote it.
+            var outerDirectory = ImportingDirectory.Value;
+
             InProgress.Value = inProgress.Add(resolvedPath);
+            ImportingDirectory.Value = Path.GetDirectoryName(resolvedPath);
 
             try
             {
@@ -136,6 +153,7 @@ public sealed class ImportMagicCommand : IMagicCommand
             finally
             {
                 InProgress.Value = inProgress;
+                ImportingDirectory.Value = outerDirectory;
             }
         }
         catch (OperationCanceledException)
@@ -281,14 +299,12 @@ public sealed class ImportMagicCommand : IMagicCommand
         var importLines = new List<string>();
         var otherMagicLines = new List<string>();
 
-        var importingDirectory = Path.GetDirectoryName(resolvedPath)!;
-
         foreach (var line in magicLines)
         {
             if (IsPackageDirective(line))
                 packageLines.Add(line);
             else if (line.StartsWith("#!import", StringComparison.OrdinalIgnoreCase))
-                importLines.Add(RebaseImportLine(line, importingDirectory));
+                importLines.Add(line);
             else
                 otherMagicLines.Add(line);
         }
@@ -349,35 +365,39 @@ public sealed class ImportMagicCommand : IMagicCommand
     }
 
     /// <summary>
-    /// Rewrites the path in a nested <c>#!import</c> so it is read relative to the file that
-    /// wrote the directive rather than to the notebook.
+    /// Resolves the path an <c>#!import</c> names, preferring the file beside the one that wrote
+    /// the directive and falling back to the notebook.
     /// </summary>
     /// <remarks>
-    /// A helper that sits beside another helper names it the way it sits on disk, which is what
-    /// somebody editing that file expects and what makes a folder of helpers movable. Only
-    /// rewritten where the sibling is really there, so a path already written relative to the
-    /// notebook keeps working.
+    /// <para>
+    /// A helper sitting beside another helper names it the way the two sit on disk, which is what
+    /// somebody editing that file expects and what keeps a folder of helpers movable. The
+    /// neighbour only wins where it is really there, so a path written relative to the notebook
+    /// goes on meaning what it did.
+    /// </para>
+    /// <para>
+    /// Kept apart from <see cref="ResolvePath"/>, which other commands share and which answers
+    /// for the notebook's directory alone. Widening that one would quietly move where every
+    /// command resolves from, including a <c>#!extension</c> naming a local assembly.
+    /// </para>
     /// </remarks>
-    /// <param name="line">The <c>#!import</c> line as the imported file wrote it.</param>
-    /// <param name="importingFileDirectory">The directory holding the file that wrote it.</param>
-    internal static string RebaseImportLine(string line, string importingFileDirectory)
+    /// <param name="path">The path as the directive wrote it.</param>
+    /// <param name="importingDirectory">
+    /// The directory holding the file being imported, or <c>null</c> at the top level.
+    /// </param>
+    /// <param name="notebookFilePath">The notebook's own path, used when nothing sits beside.</param>
+    internal static string ResolveImportPath(
+        string path, string? importingDirectory, string? notebookFilePath)
     {
-        const string directive = "#!import";
+        if (!string.IsNullOrEmpty(importingDirectory) && !string.IsNullOrEmpty(path)
+            && !Path.IsPathRooted(path))
+        {
+            var beside = Path.GetFullPath(Path.Combine(importingDirectory, path));
+            if (File.Exists(beside))
+                return beside;
+        }
 
-        var arguments = line.Length > directive.Length ? line[directive.Length..] : "";
-        var (path, _, _) = ParseArguments(arguments);
-
-        if (string.IsNullOrEmpty(path) || Path.IsPathRooted(path))
-            return line;
-
-        var sibling = Path.GetFullPath(Path.Combine(importingFileDirectory, path));
-        if (!File.Exists(sibling))
-            return line;
-
-        var start = line.IndexOf(path, directive.Length, StringComparison.Ordinal);
-        return start < 0
-            ? line
-            : string.Concat(line.AsSpan(0, start), sibling, line.AsSpan(start + path.Length));
+        return ResolvePath(path, notebookFilePath);
     }
 
     /// <summary>
@@ -575,6 +595,11 @@ public sealed class ImportMagicCommand : IMagicCommand
     /// Resolves a file path relative to the notebook's directory, or the current working directory
     /// if no notebook path is available.
     /// </summary>
+    /// <remarks>
+    /// Shared with other commands that promise their users the notebook's directory, so it answers
+    /// for that and nothing else. An import prefers whatever sits beside the importing file, and
+    /// asks for that through <see cref="ResolveImportPath"/> instead of widening this.
+    /// </remarks>
     internal static string ResolvePath(string path, string? notebookFilePath)
     {
         if (Path.IsPathRooted(path))

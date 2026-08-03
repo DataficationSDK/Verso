@@ -943,17 +943,18 @@ public sealed class ImportMagicCommandTests
     }
 
     [TestMethod]
-    public void RebaseImportLine_ResolvesAgainstTheImportingFile()
+    public void ResolveImportPath_PrefersTheFileBesideTheImporter()
     {
         var directory = Directory.CreateTempSubdirectory("verso_import_");
         try
         {
-            var sibling = Path.Combine(directory.FullName, "Keys.cs");
-            File.WriteAllText(sibling, "public static class Keys { }");
+            var beside = Path.Combine(directory.FullName, "Keys.cs");
+            File.WriteAllText(beside, "public static class Keys { }");
 
-            var rebased = ImportMagicCommand.RebaseImportLine("#!import Keys.cs", directory.FullName);
+            var resolved = ImportMagicCommand.ResolveImportPath(
+                "Keys.cs", directory.FullName, "/somewhere/else/notebook.verso");
 
-            Assert.AreEqual($"#!import {sibling}", rebased);
+            Assert.AreEqual(beside, resolved);
         }
         finally
         {
@@ -962,16 +963,67 @@ public sealed class ImportMagicCommandTests
     }
 
     [TestMethod]
-    public void RebaseImportLine_LeavesPathAloneWhenNoSiblingExists()
+    public void ResolveImportPath_UnderADirectoryWhoseNameHasASpace()
+    {
+        // The path a nested import resolves to is never written back into the directive, so a
+        // space in it cannot be read as the end of the path. Rewriting the line lost everything
+        // from the space onward.
+        var root = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            var spaced = Directory.CreateDirectory(Path.Combine(root.FullName, "my helpers"));
+            var beside = Path.Combine(spaced.FullName, "Keys.cs");
+            File.WriteAllText(beside, "public static class Keys { }");
+
+            var resolved = ImportMagicCommand.ResolveImportPath(
+                "Keys.cs", spaced.FullName, Path.Combine(root.FullName, "notebook.verso"));
+
+            Assert.AreEqual(beside, resolved);
+            Assert.IsTrue(File.Exists(resolved), "The resolved path must still name a real file.");
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void ResolveImportPath_FallsBackToTheNotebookWhenNothingSitsBeside()
+    {
+        var root = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            // The importing file has no shared/Common.cs beside it, but the notebook does, so
+            // a path written against the notebook goes on meaning what it did.
+            var importer = Directory.CreateDirectory(Path.Combine(root.FullName, "helpers"));
+            var shared = Directory.CreateDirectory(Path.Combine(root.FullName, "shared"));
+            var target = Path.Combine(shared.FullName, "Common.cs");
+            File.WriteAllText(target, "public static class Common { }");
+
+            var resolved = ImportMagicCommand.ResolveImportPath(
+                "shared/Common.cs", importer.FullName, Path.Combine(root.FullName, "notebook.verso"));
+
+            Assert.AreEqual(target, resolved);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void ResolveImportPath_RootedPathIsTakenAsWritten()
     {
         var directory = Directory.CreateTempSubdirectory("verso_import_");
         try
         {
-            // Nothing beside the importing file answers to this, so it stays as written and is
-            // resolved against the notebook, which is what it meant before nesting was fixed.
-            var rebased = ImportMagicCommand.RebaseImportLine("#!import helpers/Keys.cs", directory.FullName);
+            var rooted = Path.Combine(directory.FullName, "Absolute.cs");
+            File.WriteAllText(rooted, "public static class Absolute { }");
 
-            Assert.AreEqual("#!import helpers/Keys.cs", rebased);
+            var resolved = ImportMagicCommand.ResolveImportPath(
+                rooted, "/some/other/place", "/somewhere/else/notebook.verso");
+
+            Assert.AreEqual(rooted, resolved);
         }
         finally
         {
@@ -980,23 +1032,15 @@ public sealed class ImportMagicCommandTests
     }
 
     [TestMethod]
-    public void RebaseImportLine_KeepsFlagsAfterThePath()
+    public void ResolveImportPath_TopLevelImportResolvesAgainstTheNotebook()
     {
-        var directory = Directory.CreateTempSubdirectory("verso_import_");
-        try
-        {
-            var sibling = Path.Combine(directory.FullName, "Setup.verso");
-            File.WriteAllText(sibling, "{}");
+        // Nothing is being imported yet, so there is no importing directory and the notebook
+        // answers, exactly as it did before nesting was addressed.
+        var resolved = ImportMagicCommand.ResolveImportPath(
+            "helpers/setup.verso", null, "/notebooks/main.verso");
 
-            var rebased = ImportMagicCommand.RebaseImportLine(
-                "#!import Setup.verso --show-output", directory.FullName);
-
-            Assert.AreEqual($"#!import {sibling} --show-output", rebased);
-        }
-        finally
-        {
-            directory.Delete(recursive: true);
-        }
+        Assert.AreEqual(
+            Path.GetFullPath(Path.Combine("/notebooks", "helpers/setup.verso")), resolved);
     }
 
     [TestMethod]
