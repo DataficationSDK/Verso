@@ -367,7 +367,8 @@ var content = await File.ReadAllTextAsync(path, context.CancellationToken);
 // Good
 public bool CanFormat(object value, IFormatterContext context)
 {
-    return value is DiceResult;
+    return context.MimeType.Equals("text/html", StringComparison.OrdinalIgnoreCase) &&
+           value is DiceResult;
 }
 
 // Bad - may throw on unexpected types
@@ -376,6 +377,9 @@ public bool CanFormat(object value, IFormatterContext context)
     return ((DiceResult)value).Rolls.Count > 0; // InvalidCastException risk
 }
 ```
+
+`CanFormat` is also a MIME capability probe. Return `false` if `FormatAsync` cannot emit
+`context.MimeType`; the host may probe several acceptable representations before selecting one.
 
 ### Do Not Assume a Specific Host
 

@@ -39,7 +39,12 @@ public sealed class FSharpDataFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        if (value is null) return false;
+        if (!string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) ||
+            value is null)
+        {
+            return false;
+        }
+
         var type = value.GetType();
         return IsFSharpType(type);
     }

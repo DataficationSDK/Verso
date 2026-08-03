@@ -30,12 +30,16 @@ public sealed class ObjectFormatter : IDataFormatter
 
     public IReadOnlyList<Type> SupportedTypes { get; } = new[] { typeof(object) };
     public int Priority => 5;
+    public bool IsFallback => true;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public bool CanFormat(object value, IFormatterContext context)
     {
+        if (!string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase))
+            return false;
+
         var type = value.GetType();
         if (type.IsPrimitive || type.IsEnum || ExcludedTypes.Contains(type))
             return false;

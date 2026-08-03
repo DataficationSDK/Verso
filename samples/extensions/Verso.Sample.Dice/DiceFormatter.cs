@@ -23,7 +23,9 @@ public sealed class DiceFormatter : IDataFormatter
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
-    public bool CanFormat(object value, IFormatterContext context) => value is DiceResult;
+    public bool CanFormat(object value, IFormatterContext context)
+        => string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+           value is DiceResult;
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     {

@@ -29,7 +29,8 @@ public sealed class ExceptionFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
-        return value is Exception;
+        return string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+               value is Exception;
     }
 
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)

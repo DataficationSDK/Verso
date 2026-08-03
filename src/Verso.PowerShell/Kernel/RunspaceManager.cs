@@ -10,8 +10,7 @@ using Verso.PowerShell.Kernel.Host;
 namespace Verso.PowerShell.Kernel;
 
 internal sealed record InvokeResult(
-    IReadOnlyList<string> OutputLines,
-    string OutputMimeType,
+    IReadOnlyList<PSObject> OutputObjects,
     IReadOnlyList<string> ErrorLines,
     IReadOnlyList<string> InformationLines,
     Exception? Exception);
@@ -61,8 +60,7 @@ internal sealed class RunspaceManager : IDisposable
             catch { /* best effort */ }
         });
 
-        var outputLines = new List<string>();
-        var outputMimeType = "text/plain";
+        IReadOnlyList<PSObject> outputObjects = Array.Empty<PSObject>();
         var errorLines = new List<string>();
         var informationLines = new List<string>();
         Exception? exception = null;
@@ -72,62 +70,7 @@ internal sealed class RunspaceManager : IDisposable
         try
         {
             Collection<PSObject> results = ps.Invoke();
-
-            if (results.Count > 0 && HasFormatObjects(results))
-            {
-                // Explicit Format-Table / Format-List: render through Out-String
-                // then parse the text table into HTML for consistent display.
-                using var renderer = System.Management.Automation.PowerShell.Create();
-                renderer.Runspace = runspace;
-                renderer.AddCommand("Out-String").AddParameter("Width", 200);
-                var rendered = renderer.Invoke(results);
-                // Out-String returns a single multi-line string; split into individual lines.
-                var lines = rendered
-                    .SelectMany(r => (r?.ToString() ?? "").Split('\n'))
-                    .Select(s => s.TrimEnd())
-                    .Where(s => s.Length > 0)
-                    .ToList();
-                if (lines.Count > 0)
-                {
-                    var html = ParseTextTableToHtml(lines);
-                    if (html is not null)
-                    {
-                        outputLines.Add(html);
-                        outputMimeType = "text/html";
-                    }
-                    else
-                    {
-                        // Not a parseable table (e.g. Format-List) - wrap as styled <pre>
-                        var sb = new StringBuilder();
-                        AppendPreStyles(sb);
-                        sb.Append("<div class=\"verso-ps-result\">");
-                        sb.Append("<pre class=\"verso-ps-pre\">")
-                          .Append(WebUtility.HtmlEncode(string.Join(Environment.NewLine, lines)))
-                          .Append("</pre>");
-                        sb.Append("</div>");
-                        outputLines.Add(sb.ToString());
-                        outputMimeType = "text/html";
-                    }
-                }
-            }
-            else if (results.Count > 0 && HasComplexObjects(results))
-            {
-                // Complex objects: render as HTML table using Select-Object for
-                // reliable property resolution through PowerShell's ETS.
-                var html = RenderObjectsAsHtml(results, runspace);
-                outputLines.Add(html);
-                outputMimeType = "text/html";
-            }
-            else
-            {
-                foreach (var obj in results)
-                {
-                    if (obj is not null)
-                    {
-                        outputLines.Add(obj.BaseObject is string s ? s : obj.ToString() ?? string.Empty);
-                    }
-                }
-            }
+            outputObjects = results.Where(result => result is not null).ToArray();
 
             foreach (var err in ps.Streams.Error)
             {
@@ -164,7 +107,63 @@ internal sealed class RunspaceManager : IDisposable
             _currentHostInput = null;
         }
 
-        return new InvokeResult(outputLines, outputMimeType, errorLines, informationLines, exception);
+        return new InvokeResult(outputObjects, errorLines, informationLines, exception);
+    }
+
+    /// <summary>
+    /// Applies PowerShell's native formatting fallback to a contiguous group of pipeline objects.
+    /// Specialized extension formatters get the first opportunity to handle each object in
+    /// <see cref="PowerShellKernel"/> before this method is called.
+    /// </summary>
+    public CellOutput? FormatOutput(IReadOnlyList<PSObject> objects)
+    {
+        ThrowIfDisposed();
+        var runspace = _runspace ?? throw new InvalidOperationException("RunspaceManager not initialized.");
+
+        if (objects.Count == 0)
+            return null;
+
+        if (HasFormatObjects(objects))
+        {
+            // Explicit Format-Table / Format-List: render through Out-String
+            // then parse the text table into HTML for consistent display.
+            using var renderer = System.Management.Automation.PowerShell.Create();
+            renderer.Runspace = runspace;
+            renderer.AddCommand("Out-String").AddParameter("Width", 200);
+            var rendered = renderer.Invoke(objects);
+            var lines = rendered
+                .SelectMany(result => (result?.ToString() ?? "").Split('\n'))
+                .Select(line => line.TrimEnd())
+                .Where(line => line.Length > 0)
+                .ToList();
+
+            if (lines.Count == 0)
+                return null;
+
+            var html = ParseTextTableToHtml(lines);
+            if (html is not null)
+                return CellOutput.Html(html);
+
+            var sb = new StringBuilder();
+            AppendPreStyles(sb);
+            sb.Append("<div class=\"verso-ps-result\">");
+            sb.Append("<pre class=\"verso-ps-pre\">")
+              .Append(WebUtility.HtmlEncode(string.Join(Environment.NewLine, lines)))
+              .Append("</pre>");
+            sb.Append("</div>");
+            return CellOutput.Html(sb.ToString());
+        }
+
+        if (HasComplexObjects(objects))
+            return CellOutput.Html(RenderObjectsAsHtml(objects, runspace));
+
+        var text = string.Join(
+            Environment.NewLine,
+            objects.Select(obj => obj.BaseObject is string value
+                ? value
+                : obj.ToString() ?? string.Empty));
+
+        return string.IsNullOrEmpty(text) ? null : CellOutput.Plain(text);
     }
 
     private static bool IsPowerShellHostInformation(InformationRecord record) =>
@@ -488,7 +487,7 @@ function Display {
         sb.Append("</style>");
     }
 
-    private static bool HasFormatObjects(Collection<PSObject> results)
+    private static bool HasFormatObjects(IReadOnlyList<PSObject> results)
     {
         foreach (var obj in results)
         {
@@ -499,7 +498,7 @@ function Display {
         return false;
     }
 
-    private static bool HasComplexObjects(Collection<PSObject> results)
+    private static bool HasComplexObjects(IReadOnlyList<PSObject> results)
     {
         foreach (var obj in results)
         {
@@ -518,7 +517,7 @@ function Display {
     /// <c>DefaultDisplayPropertySet</c> when available to select columns, falling
     /// back to the object's public properties.
     /// </summary>
-    private static string RenderObjectsAsHtml(Collection<PSObject> results, Runspace runspace)
+    private static string RenderObjectsAsHtml(IReadOnlyList<PSObject> results, Runspace runspace)
     {
         // Resolve display properties: use DefaultDisplayPropertySet if defined,
         // otherwise fall back to the properties of the first non-null object.
@@ -602,7 +601,7 @@ function Display {
     /// default table/list column selection), then falls back to the properties
     /// of the first non-null object.
     /// </summary>
-    private static IReadOnlyList<string> GetDisplayProperties(Collection<PSObject> results)
+    private static IReadOnlyList<string> GetDisplayProperties(IReadOnlyList<PSObject> results)
     {
         foreach (var obj in results)
         {

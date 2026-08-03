@@ -346,7 +346,7 @@ internal sealed class ExecutionPipeline
 
         // Set up the ambient display handler so user code can call .Display()
         var displayFormatterContext = new DisplayFormatterContext(context);
-        var displayHandler = new DisplayHandler(AppendOutput, _extensionHost, displayFormatterContext);
+        var displayHandler = new DisplayHandler(AppendOutput, displayFormatterContext);
         using var _ = DisplayContext.SetHandler(displayHandler.DisplayAsync);
 
         // Marks this notebook as the one running while the cell is in flight. A background failure

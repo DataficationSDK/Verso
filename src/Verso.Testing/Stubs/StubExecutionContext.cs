@@ -20,6 +20,7 @@ public sealed class StubExecutionContext : IExecutionContext
     public Guid CellId { get; set; } = Guid.NewGuid();
     public int ExecutionCount { get; set; } = 1;
     public Func<string, bool, CancellationToken, Task<string?>>? InputHandler { get; set; }
+    public Func<object, IReadOnlyList<string>?, Task<CellOutput?>>? FormatHandler { get; set; }
 
     public List<CellOutput> WrittenOutputs { get; } = new();
     public List<CellOutput> DisplayedOutputs { get; } = new();
@@ -35,6 +36,11 @@ public sealed class StubExecutionContext : IExecutionContext
         DisplayedOutputs.Add(output);
         return Task.CompletedTask;
     }
+
+    public Task<CellOutput?> TryFormatAsync(
+        object value,
+        IReadOnlyList<string>? acceptableMimeTypes = null)
+        => FormatHandler?.Invoke(value, acceptableMimeTypes) ?? Task.FromResult<CellOutput?>(null);
 
     public Task<string?> RequestInputAsync(
         string prompt,
