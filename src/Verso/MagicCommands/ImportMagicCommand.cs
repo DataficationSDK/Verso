@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 using Verso.Abstractions;
 using Verso.Extensions;
@@ -22,10 +23,14 @@ namespace Verso.MagicCommands;
 /// <list type="bullet">
 /// <item>Notebook files (<c>.verso</c>, <c>.ipynb</c>, <c>.dib</c>) -- deserialized and executed cell-by-cell.</item>
 /// <item>Source files (<c>.cs</c>, <c>.csx</c>, <c>.fs</c>, <c>.fsx</c>, <c>.py</c>, <c>.ps1</c>, <c>.psm1</c>,
-/// <c>.js</c>, <c>.mjs</c>, <c>.ts</c>, <c>.tsx</c>, <c>.sql</c>, etc.) -- magic commands are extracted,
-/// sorted by priority (NuGet/pip first, then imports, then remaining directives), and the file is executed
-/// in the kernel that owns the file extension.</item>
+/// <c>.js</c>, <c>.mjs</c>, <c>.ts</c>, <c>.tsx</c>, <c>.sql</c>, etc.) -- magic commands are extracted and run
+/// in priority order (NuGet/pip first, then imports, then remaining directives), and the file's own code is
+/// then run in the kernel that owns the file extension.</item>
 /// </list>
+/// </para>
+/// <para>
+/// An imported file may itself import another, and names it the way the two sit on disk: a path in a
+/// nested <c>#!import</c> is read relative to the file that wrote it, falling back to the notebook.
 /// </para>
 /// </summary>
 [VersoExtension]
@@ -53,9 +58,22 @@ public sealed class ImportMagicCommand : IMagicCommand
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
+    /// <summary>
+    /// The files part way through being imported on the current path through the notebook, so
+    /// that two that name each other do not import one another forever.
+    /// </summary>
+    /// <remarks>
+    /// Held per execution flow rather than per instance: one command object serves every
+    /// notebook open in a host, and a nested import runs inside the flow of the one above it.
+    /// </remarks>
+    private static readonly AsyncLocal<ImmutableHashSet<string>?> InProgress = new();
+
     public async Task ExecuteAsync(string arguments, IMagicCommandContext context)
     {
-        context.SuppressExecution = true;
+        // Deliberately not asking for the rest of the cell to be skipped. An import is a prelude
+        // to whatever is written under it, not a setup-only cell like a connection or a package
+        // install, so code following the directive still has to run. A cell holding nothing but
+        // the directive is already finished by the caller and never reaches a kernel.
 
         if (string.IsNullOrWhiteSpace(arguments))
         {
@@ -79,30 +97,46 @@ public sealed class ImportMagicCommand : IMagicCommand
                 return;
             }
 
-            var serializer = context.ExtensionHost.GetSerializers()
-                .FirstOrDefault(s => s.CanImport(resolvedPath));
-
-            if (serializer is not null)
-            {
-                await ImportNotebookAsync(resolvedPath, serializer, paramOverrides, showOutput, context)
-                    .ConfigureAwait(false);
+            // A file already part way through being imported is not imported again, or two that
+            // name each other never finish. Passing over it quietly is what an include guard
+            // does: whatever it defines arrives when the import already under way gets there.
+            var inProgress = InProgress.Value ?? ImmutableHashSet.Create<string>(StringComparer.OrdinalIgnoreCase);
+            if (inProgress.Contains(resolvedPath))
                 return;
-            }
 
-            // No serializer -- try to match the file extension to a registered kernel.
-            var extension = Path.GetExtension(resolvedPath);
-            var kernel = FindKernelByFileExtension(extension, context.ExtensionHost);
+            InProgress.Value = inProgress.Add(resolvedPath);
 
-            if (kernel is not null)
+            try
             {
-                await ImportSourceFileAsync(resolvedPath, kernel, showOutput, context).ConfigureAwait(false);
-                return;
-            }
+                var serializer = context.ExtensionHost.GetSerializers()
+                    .FirstOrDefault(s => s.CanImport(resolvedPath));
 
-            var supportedExtensions = GetSupportedExtensions(context.ExtensionHost);
-            await context.WriteOutputAsync(CellOutput.Error(
-                string.Format(Strings.Magic_Import_NoSerializer,
-                    Path.GetFileName(resolvedPath), supportedExtensions))).ConfigureAwait(false);
+                if (serializer is not null)
+                {
+                    await ImportNotebookAsync(resolvedPath, serializer, paramOverrides, showOutput, context)
+                        .ConfigureAwait(false);
+                    return;
+                }
+
+                // No serializer -- try to match the file extension to a registered kernel.
+                var extension = Path.GetExtension(resolvedPath);
+                var kernel = FindKernelByFileExtension(extension, context.ExtensionHost);
+
+                if (kernel is not null)
+                {
+                    await ImportSourceFileAsync(resolvedPath, kernel, showOutput, context).ConfigureAwait(false);
+                    return;
+                }
+
+                var supportedExtensions = GetSupportedExtensions(context.ExtensionHost);
+                await context.WriteOutputAsync(CellOutput.Error(
+                    string.Format(Strings.Magic_Import_NoSerializer,
+                        Path.GetFileName(resolvedPath), supportedExtensions))).ConfigureAwait(false);
+            }
+            finally
+            {
+                InProgress.Value = inProgress;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -216,10 +250,18 @@ public sealed class ImportMagicCommand : IMagicCommand
     }
 
     /// <summary>
-    /// Imports a source file by extracting magic commands, sorting them by priority
-    /// (package directives first, then imports, then other directives), and executing the
-    /// reassembled content in the kernel that owns the file extension.
+    /// Imports a source file by extracting its magic commands, running them in priority order
+    /// (package directives first, then imports, then other directives), and then running the
+    /// file's own code in the kernel that owns the file extension.
     /// </summary>
+    /// <remarks>
+    /// Each directive is run on its own, and the code after them separately again, rather than
+    /// the whole file being handed over as one piece. A directive is only acted on where it
+    /// leads what it was given, so sent together the first would run and the rest would reach
+    /// the kernel as code and be ignored. Running the code last is what lets a file both bring
+    /// something in and declare something, because a directive that asks for the rest of its own
+    /// submission to be skipped can no longer take the file's contents with it.
+    /// </remarks>
     private async Task ImportSourceFileAsync(
         string resolvedPath,
         ILanguageKernel kernel,
@@ -239,38 +281,29 @@ public sealed class ImportMagicCommand : IMagicCommand
         var importLines = new List<string>();
         var otherMagicLines = new List<string>();
 
+        var importingDirectory = Path.GetDirectoryName(resolvedPath)!;
+
         foreach (var line in magicLines)
         {
             if (IsPackageDirective(line))
                 packageLines.Add(line);
             else if (line.StartsWith("#!import", StringComparison.OrdinalIgnoreCase))
-                importLines.Add(line);
+                importLines.Add(RebaseImportLine(line, importingDirectory));
             else
                 otherMagicLines.Add(line);
         }
 
-        // Reassemble: magic commands (priority-ordered) followed by remaining code
-        var reassembled = new List<string>();
-        reassembled.AddRange(packageLines);
-        reassembled.AddRange(importLines);
-        reassembled.AddRange(otherMagicLines);
-        reassembled.AddRange(codeLines);
-
-        var code = string.Join(Environment.NewLine, reassembled);
         var failed = false;
 
+        foreach (var directive in packageLines.Concat(importLines).Concat(otherMagicLines))
+        {
+            failed |= await RunAsync(directive, kernel, showOutput, context).ConfigureAwait(false);
+        }
+
+        var code = string.Join(Environment.NewLine, codeLines);
         if (!string.IsNullOrWhiteSpace(code))
         {
-            // Always capture outputs so failures are visible. Without --show-output only
-            // error outputs are surfaced; successful execution stays silent.
-            var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
-                code, kernel.LanguageId, context.CancellationToken).ConfigureAwait(false);
-            foreach (var output in outputs)
-            {
-                failed |= output.IsError;
-                if (showOutput || output.IsError)
-                    await context.WriteOutputAsync(output).ConfigureAwait(false);
-            }
+            failed |= await RunAsync(code, kernel, showOutput, context).ConfigureAwait(false);
         }
 
         var fileName = Path.GetFileName(resolvedPath);
@@ -285,6 +318,66 @@ public sealed class ImportMagicCommand : IMagicCommand
 
         await context.WriteOutputAsync(new CellOutput("text/plain", summary, IsError: failed))
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs one piece of an imported source file and surfaces whatever it produced.
+    /// </summary>
+    /// <remarks>
+    /// Outputs are always captured so a failure inside an imported file is visible. Without
+    /// <c>--show-output</c> only errors are surfaced and successful work stays silent.
+    /// </remarks>
+    /// <returns><c>true</c> if anything it produced was an error.</returns>
+    private static async Task<bool> RunAsync(
+        string source,
+        ILanguageKernel kernel,
+        bool showOutput,
+        IMagicCommandContext context)
+    {
+        var outputs = await context.Notebook.ExecuteCodeCaptureOutputsAsync(
+            source, kernel.LanguageId, context.CancellationToken).ConfigureAwait(false);
+
+        var failed = false;
+        foreach (var output in outputs)
+        {
+            failed |= output.IsError;
+            if (showOutput || output.IsError)
+                await context.WriteOutputAsync(output).ConfigureAwait(false);
+        }
+
+        return failed;
+    }
+
+    /// <summary>
+    /// Rewrites the path in a nested <c>#!import</c> so it is read relative to the file that
+    /// wrote the directive rather than to the notebook.
+    /// </summary>
+    /// <remarks>
+    /// A helper that sits beside another helper names it the way it sits on disk, which is what
+    /// somebody editing that file expects and what makes a folder of helpers movable. Only
+    /// rewritten where the sibling is really there, so a path already written relative to the
+    /// notebook keeps working.
+    /// </remarks>
+    /// <param name="line">The <c>#!import</c> line as the imported file wrote it.</param>
+    /// <param name="importingFileDirectory">The directory holding the file that wrote it.</param>
+    internal static string RebaseImportLine(string line, string importingFileDirectory)
+    {
+        const string directive = "#!import";
+
+        var arguments = line.Length > directive.Length ? line[directive.Length..] : "";
+        var (path, _, _) = ParseArguments(arguments);
+
+        if (string.IsNullOrEmpty(path) || Path.IsPathRooted(path))
+            return line;
+
+        var sibling = Path.GetFullPath(Path.Combine(importingFileDirectory, path));
+        if (!File.Exists(sibling))
+            return line;
+
+        var start = line.IndexOf(path, directive.Length, StringComparison.Ordinal);
+        return start < 0
+            ? line
+            : string.Concat(line.AsSpan(0, start), sibling, line.AsSpan(start + path.Length));
     }
 
     /// <summary>

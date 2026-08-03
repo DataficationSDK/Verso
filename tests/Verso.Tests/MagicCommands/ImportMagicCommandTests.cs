@@ -33,28 +33,28 @@ public sealed class ImportMagicCommandTests
     // --- Argument validation ---
 
     [TestMethod]
-    public async Task EmptyArguments_SuppressesAndWritesError()
+    public async Task EmptyArguments_WritesError()
     {
         var command = new ImportMagicCommand();
         var context = new StubMagicCommandContext();
 
         await command.ExecuteAsync("", context);
 
-        Assert.IsTrue(context.SuppressExecution);
+        Assert.IsFalse(context.SuppressExecution);
         Assert.AreEqual(1, context.WrittenOutputs.Count);
         Assert.IsTrue(context.WrittenOutputs[0].IsError);
         Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("#!import"));
     }
 
     [TestMethod]
-    public async Task WhitespaceArguments_SuppressesAndWritesError()
+    public async Task WhitespaceArguments_WritesError()
     {
         var command = new ImportMagicCommand();
         var context = new StubMagicCommandContext();
 
         await command.ExecuteAsync("   ", context);
 
-        Assert.IsTrue(context.SuppressExecution);
+        Assert.IsFalse(context.SuppressExecution);
         Assert.IsTrue(context.WrittenOutputs[0].IsError);
     }
 
@@ -68,7 +68,7 @@ public sealed class ImportMagicCommandTests
 
         await command.ExecuteAsync("/nonexistent/path/notebook.verso", context);
 
-        Assert.IsTrue(context.SuppressExecution);
+        Assert.IsFalse(context.SuppressExecution);
         Assert.AreEqual(1, context.WrittenOutputs.Count);
         Assert.IsTrue(context.WrittenOutputs[0].IsError);
         Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("File not found"));
@@ -90,7 +90,7 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            Assert.IsTrue(context.SuppressExecution);
+            Assert.IsFalse(context.SuppressExecution);
             Assert.AreEqual(1, context.WrittenOutputs.Count);
             Assert.IsTrue(context.WrittenOutputs[0].IsError);
             Assert.IsTrue(context.WrittenOutputs[0].Content.Contains("No serializer or kernel"));
@@ -127,7 +127,7 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            Assert.IsTrue(context.SuppressExecution);
+            Assert.IsFalse(context.SuppressExecution);
             Assert.AreEqual(2, notebookOps.ExecutedCodeCalls.Count);
             Assert.AreEqual("var x = 1;", notebookOps.ExecutedCodeCalls[0].Code);
             Assert.AreEqual("csharp", notebookOps.ExecutedCodeCalls[0].Language);
@@ -746,7 +746,7 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            Assert.IsTrue(context.SuppressExecution);
+            Assert.IsFalse(context.SuppressExecution);
             Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
             Assert.AreEqual("csharp", notebookOps.ExecutedCodeCalls[0].Language);
             Assert.IsTrue(notebookOps.ExecutedCodeCalls[0].Code.Contains("var x = 1;"));
@@ -773,7 +773,7 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            Assert.IsTrue(context.SuppressExecution);
+            Assert.IsFalse(context.SuppressExecution);
             Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
             Assert.AreEqual("python", notebookOps.ExecutedCodeCalls[0].Language);
         }
@@ -798,7 +798,7 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            Assert.IsTrue(context.SuppressExecution);
+            Assert.IsFalse(context.SuppressExecution);
             Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
             Assert.AreEqual("javascript", notebookOps.ExecutedCodeCalls[0].Language);
         }
@@ -824,19 +824,22 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            Assert.AreEqual(1, notebookOps.ExecutedCodeCalls.Count);
-            var executedCode = notebookOps.ExecutedCodeCalls[0].Code;
+            // Each directive is submitted on its own, and the file's own code last, so that a
+            // directive behind another is still acted on rather than reaching the kernel as code.
+            var submissions = notebookOps.ExecutedCodeCalls.Select(c => c.Code).ToList();
+            Assert.AreEqual(3, submissions.Count);
 
-            // NuGet should come before import
-            var nugetPos = executedCode.IndexOf("#r \"nuget:", StringComparison.Ordinal);
-            var importPos = executedCode.IndexOf("#!import", StringComparison.Ordinal);
-            Assert.IsTrue(nugetPos >= 0, "NuGet directive should be present");
-            Assert.IsTrue(importPos >= 0, "Import directive should be present");
-            Assert.IsTrue(nugetPos < importPos, "NuGet should appear before import");
+            var nugetIndex = submissions.FindIndex(s => s.StartsWith("#r \"nuget:", StringComparison.Ordinal));
+            var importIndex = submissions.FindIndex(s => s.StartsWith("#!import", StringComparison.Ordinal));
+            Assert.IsTrue(nugetIndex >= 0, "NuGet directive should be submitted");
+            Assert.IsTrue(importIndex >= 0, "Import directive should be submitted");
+            Assert.IsTrue(nugetIndex < importIndex, "NuGet should be submitted before import");
 
-            // Code should come after directives
-            var codePos = executedCode.IndexOf("using Microsoft", StringComparison.Ordinal);
-            Assert.IsTrue(codePos > importPos, "Code should appear after directives");
+            // The code follows the directives, and carries none of them.
+            var code = submissions[^1];
+            Assert.IsTrue(code.Contains("using Microsoft", StringComparison.Ordinal));
+            Assert.IsFalse(code.Contains("#!import", StringComparison.Ordinal));
+            Assert.IsFalse(code.Contains("#r \"nuget:", StringComparison.Ordinal));
 
             // Summary should mention extracted directives
             Assert.IsTrue(context.WrittenOutputs.Any(o => o.Content.Contains("2 directives extracted")));
@@ -863,10 +866,12 @@ public sealed class ImportMagicCommandTests
 
             await command.ExecuteAsync(tempFile, context);
 
-            var executedCode = notebookOps.ExecutedCodeCalls[0].Code;
-            var pipPos = executedCode.IndexOf("#!pip", StringComparison.Ordinal);
-            var importPos = executedCode.IndexOf("#!import", StringComparison.Ordinal);
-            Assert.IsTrue(pipPos < importPos, "pip should appear before import");
+            var submissions = notebookOps.ExecutedCodeCalls.Select(c => c.Code).ToList();
+            var pipIndex = submissions.FindIndex(s => s.StartsWith("#!pip", StringComparison.Ordinal));
+            var importIndex = submissions.FindIndex(s => s.StartsWith("#!import", StringComparison.Ordinal));
+            Assert.IsTrue(pipIndex >= 0, "pip directive should be submitted");
+            Assert.IsTrue(importIndex >= 0, "Import directive should be submitted");
+            Assert.IsTrue(pipIndex < importIndex, "pip should be submitted before import");
         }
         finally
         {
@@ -895,6 +900,129 @@ public sealed class ImportMagicCommandTests
         finally
         {
             File.Delete(tempFile);
+        }
+    }
+
+    // --- Nested imports ---
+
+    [TestMethod]
+    public async Task ImportSourceFile_NestedImportBehindPackageDirective_IsStillRun()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var csharpKernel = new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { csharpKernel });
+
+        var directory = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            var nested = Path.Combine(directory.FullName, "Keys.cs");
+            await File.WriteAllTextAsync(nested, "public static class Keys { }");
+
+            var importer = Path.Combine(directory.FullName, "Fetcher.cs");
+            await File.WriteAllTextAsync(importer,
+                "#!import Keys.cs\n#r \"nuget: Newtonsoft.Json, 13.0.3\"\npublic static class Fetcher { }");
+
+            await command.ExecuteAsync(importer, context);
+
+            // The package directive sorts ahead of the import, which is what used to hide the
+            // import from the reader of the reassembled content.
+            var submissions = notebookOps.ExecutedCodeCalls.Select(c => c.Code).ToList();
+            Assert.IsTrue(submissions.Any(s => s.StartsWith("#r \"nuget:", StringComparison.Ordinal)));
+            Assert.IsTrue(
+                submissions.Any(s => s.StartsWith("#!import", StringComparison.Ordinal)),
+                "The nested import must be submitted, not swallowed behind the package directive.");
+            Assert.IsTrue(
+                submissions.Any(s => s.Contains("public static class Fetcher", StringComparison.Ordinal)),
+                "The file's own code must run after its directives.");
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void RebaseImportLine_ResolvesAgainstTheImportingFile()
+    {
+        var directory = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            var sibling = Path.Combine(directory.FullName, "Keys.cs");
+            File.WriteAllText(sibling, "public static class Keys { }");
+
+            var rebased = ImportMagicCommand.RebaseImportLine("#!import Keys.cs", directory.FullName);
+
+            Assert.AreEqual($"#!import {sibling}", rebased);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void RebaseImportLine_LeavesPathAloneWhenNoSiblingExists()
+    {
+        var directory = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            // Nothing beside the importing file answers to this, so it stays as written and is
+            // resolved against the notebook, which is what it meant before nesting was fixed.
+            var rebased = ImportMagicCommand.RebaseImportLine("#!import helpers/Keys.cs", directory.FullName);
+
+            Assert.AreEqual("#!import helpers/Keys.cs", rebased);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void RebaseImportLine_KeepsFlagsAfterThePath()
+    {
+        var directory = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            var sibling = Path.Combine(directory.FullName, "Setup.verso");
+            File.WriteAllText(sibling, "{}");
+
+            var rebased = ImportMagicCommand.RebaseImportLine(
+                "#!import Setup.verso --show-output", directory.FullName);
+
+            Assert.AreEqual($"#!import {sibling} --show-output", rebased);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task ImportSourceFile_CircularImport_Terminates()
+    {
+        var command = new ImportMagicCommand();
+        var notebookOps = new StubNotebookOperations();
+        var csharpKernel = new FakeLanguageKernel("csharp", "C#", fileExtensions: new[] { ".cs" });
+        var context = CreateContextWithSerializer(notebookOps, kernels: new[] { csharpKernel });
+
+        // The stub does not run the directives it is handed, so drive the cycle directly:
+        // importing the same file from inside itself must be passed over rather than recur.
+        var directory = Directory.CreateTempSubdirectory("verso_import_");
+        try
+        {
+            var first = Path.Combine(directory.FullName, "First.cs");
+            await File.WriteAllTextAsync(first, "#!import First.cs\npublic static class First { }");
+
+            await command.ExecuteAsync(first, context);
+
+            Assert.IsTrue(context.WrittenOutputs.Any(o => o.Content.Contains("Imported")));
+            Assert.IsFalse(context.WrittenOutputs.Any(o => o.IsError));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
         }
     }
 
