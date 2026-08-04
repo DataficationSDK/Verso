@@ -153,6 +153,20 @@ def _build_comm_class(base_comm):
     class VersoComm(base_comm):
         """A comm whose messages travel over the host's own socket."""
 
+        def __init__(self, *args, **keys):
+            super().__init__(*args, **keys)
+
+            # The first widget to be built is the earliest moment an output area can exist,
+            # and so the last moment before one could be entered. Imported here rather than
+            # at module scope because the display module imports this one.
+            try:
+                import _versohost_display as display_support
+
+                display_support.install_output_capture()
+            except Exception:
+                # A widget still works without it; only collecting inside one is lost.
+                pass
+
         def publish_msg(self, msg_type, data=None, metadata=None, buffers=None, **keys):
             frame = {
                 "type": "comm",

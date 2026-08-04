@@ -15,7 +15,10 @@ import io
 import json
 import os
 import sys
+import threading
+import traceback
 import types
+import weakref
 
 import _versohost_comm as comm_support
 
@@ -149,7 +152,214 @@ def display(obj, mime_type=None):
         if payload is None:
             return
 
+    if capture_display(payload["mime"], payload["data"]):
+        return
+
     emit(payload["mime"], payload["data"], payload.get("widget_id"))
+
+
+# --- output areas -------------------------------------------------------------------------
+
+# Which output areas are collecting on this thread, innermost last. A stack because the blocks
+# nest, and per-thread because a background thread writing while another thread sits inside a
+# block is not what that block was opened to collect.
+_capture = threading.local()
+_capture_installed = False
+
+# Areas asked to clear once something arrives to replace what they hold. That is what
+# ``clear_output(wait=True)`` means, and it is what keeps an area driven by a callback from
+# blinking empty between one write and the next.
+_pending_clear = weakref.WeakSet()
+
+
+def _capture_stack():
+    stack = getattr(_capture, "stack", None)
+    if stack is None:
+        stack = []
+        _capture.stack = stack
+    return stack
+
+
+def _capture_target():
+    stack = _capture_stack()
+    return stack[-1] if stack else None
+
+
+def _record(widget, change):
+    """
+    Change what an area holds, guarding against the change itself producing output.
+
+    Assigning the trait sends a message, and a message that cannot be sent is reported on
+    standard error. Without the guard that report arrives back here and recurses. Answers
+    whether the change was made, so a caller told no can fall back rather than lose the text.
+    """
+    if getattr(_capture, "recording", False):
+        return False
+
+    _capture.recording = True
+    try:
+        change(widget)
+        return True
+    except Exception:
+        return False
+    finally:
+        _capture.recording = False
+
+
+def _append(area, output):
+    """Add one output, honoring a clear that was asked to wait for it."""
+    if area in _pending_clear:
+        _pending_clear.discard(area)
+        area.outputs = (output,)
+    else:
+        area.outputs += (output,)
+
+
+def capture_stream(name, text):
+    """
+    Offer stream text to whichever output area is collecting on this thread.
+
+    Answers whether it was taken. Told no, a caller sends the text the way it otherwise
+    would, which is what keeps a failure here from losing output rather than misplacing it.
+    """
+    widget = _capture_target()
+    if widget is None:
+        return False
+
+    return _record(widget, lambda area: _append(
+        area, {"output_type": "stream", "name": name, "text": text}))
+
+
+def capture_display(mime, data):
+    """
+    Offer a rendered payload to the area collecting on this thread.
+
+    A widget's own document is left alone: it is a whole page with a front end in it, which
+    is not something an output area inside another widget can draw, so those go on reaching
+    the cell as they did before.
+    """
+    if mime in (WIDGET_OUTPUT_MIME, WIDGET_LIVE_MIME):
+        return False
+
+    widget = _capture_target()
+    if widget is None:
+        return False
+
+    return _record(widget, lambda area: _append(
+        area, {"output_type": "display_data", "data": {mime: data}, "metadata": {}}))
+
+
+def capture_clear(wait=False):
+    """
+    Empty the area collecting on this thread. Answers whether there was one.
+
+    Asked to wait, the area keeps what it holds until something arrives to replace it, so a
+    callback that clears and writes on every keystroke never shows an empty area in between.
+    """
+    widget = _capture_target()
+    if widget is None:
+        return False
+
+    if wait:
+        _pending_clear.add(widget)
+        return True
+
+    _pending_clear.discard(widget)
+    return _record(widget, lambda area: setattr(area, "outputs", ()))
+
+
+def _flush_streams():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except Exception:
+            pass
+
+
+def install_output_capture():
+    """
+    Make ``ipywidgets.Output`` collect what is written inside it.
+
+    The library's own implementation asks a kernel to route messages by the id of the request
+    being served, and collects nothing when there is no kernel to ask. That is this host, so
+    ``with area:`` and ``@area.capture()`` run the block and leave the area empty, which is
+    the worst of the available failures: the pattern is in most of the widget examples an
+    author will copy, and it fails without saying anything.
+
+    The same contract is kept here by the only means this host has, redirecting while a block
+    is open. ``msg_id`` is deliberately left alone: a view reads it to decide whether a kernel
+    is feeding the area, and nothing here is.
+
+    Installed once, when the first widget opens its comm. That is early enough, because an
+    area has to be built before it can be entered, and building one opens a comm.
+    """
+    global _capture_installed
+
+    if _capture_installed:
+        return True
+
+    try:
+        from ipywidgets import Output
+    except Exception:
+        return False
+
+    def enter(self):
+        # What was written before the block belongs to what came before it, and goes on its
+        # own way first so the two do not arrive interleaved.
+        _flush_streams()
+        _capture_stack().append(self)
+        return self
+
+    def leave(self, etype, evalue, tb):
+        _flush_streams()
+
+        stack = _capture_stack()
+        if stack and stack[-1] is self:
+            stack.pop()
+        elif self in stack:
+            # Left in an order it was not entered in. Dropping the entry is better than
+            # leaving text going to an area the author has stopped collecting into.
+            stack.remove(self)
+
+        if etype is None:
+            return False
+
+        # Reported where the block's own output went rather than raised, which is what the
+        # library does when a kernel is present and the only useful answer here: a callback
+        # running between cells has nothing to raise into.
+        _record(self, lambda area: _append(area, {
+            "output_type": "stream",
+            "name": "stderr",
+            "text": "".join(traceback.format_exception(etype, evalue, tb)),
+        }))
+        return True
+
+    def clear(self, wait=False, **keys):
+        """
+        Empty this area.
+
+        Replaces the library's own, which asks whichever ``IPython.display.clear_output`` it
+        imported to publish a message to a kernel. In an environment with IPython installed
+        that is the real one, which answers nothing outside a shell, so an area could not be
+        cleared even from inside a block. This is also what ``capture(clear_output=True)``
+        calls, and that is the shape a callback firing on every keystroke needs.
+        """
+        if wait:
+            _pending_clear.add(self)
+            return
+
+        _pending_clear.discard(self)
+        _record(self, lambda area: setattr(area, "outputs", ()))
+
+    try:
+        Output.__enter__ = enter
+        Output.__exit__ = leave
+        Output.clear_output = clear
+    except Exception:
+        return False
+
+    _capture_installed = True
+    return True
 
 
 # --- the repr chain ---------------------------------------------------------------------
@@ -377,11 +587,10 @@ def _is_empty_output_widget(value):
     """
     Whether this is an output area with nothing in it.
 
-    ``ipywidgets.Output`` captures what is displayed inside a ``with`` block, and it does that
-    by talking to an IPython shell. There is no shell here, so the block captures nothing and
-    the widget is always empty. Libraries still use the pattern and then display the empty
-    area alongside the real figure, which would otherwise put a second, blank frame under
-    every plot. An area that somehow does hold something is left alone and rendered normally.
+    ``ipywidgets.Output`` collects what is written inside a ``with`` block. Libraries also
+    build one, collect nothing into it, and display it alongside the real figure, which would
+    otherwise put a second, blank frame under every plot. An area holding anything is left
+    alone and rendered normally, which is what an area that did collect something reaches.
     """
     if type(value).__name__ != "Output":
         return False
@@ -644,9 +853,15 @@ class Image(object):
 
 def clear_output(wait=False):
     """
-    Accepted for compatibility and does nothing. Verso has no way to retract output that
-    has already been written to a cell, so clearing would be a claim the host cannot honor.
+    Empty the output area collecting on this thread, when there is one.
+
+    Called inside ``with area:`` it does what it says, which is also what makes
+    ``area.capture(clear_output=True)`` work: that is how a callback that fires on every
+    keystroke keeps its area from growing without end. Anywhere else it is accepted and does
+    nothing, because Verso has no way to retract output already written to a cell and
+    clearing would be a claim the host cannot honor.
     """
+    capture_clear(wait)
     return None
 
 

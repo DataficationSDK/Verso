@@ -256,6 +256,13 @@ class StreamWriter:
     def write(self, text):
         if not isinstance(text, str):
             raise TypeError("write() argument must be str, not " + type(text).__name__)
+
+        # An output area open on this thread claims what is written inside it. It answers
+        # whether it took the text, and text it did not take is sent the ordinary way, so a
+        # refusal misplaces nothing.
+        if text and display_support.capture_stream(self._name, text):
+            return len(text)
+
         self._router.write(self._name, text)
         return len(text)
 
