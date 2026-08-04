@@ -111,6 +111,12 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     // ── State ──────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// The session this service is driving, for tests that need to reach past the interface at
+    /// something the interface has no reason to expose.
+    /// </summary>
+    internal Scaffold? Scaffold => _scaffold;
+
     public bool IsLoaded => _scaffold is not null;
     public bool IsEmbedded => false;
     public string? FilePath => _filePath;
@@ -810,6 +816,90 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         return response;
     }
 
+    // ── Output channels ────────────────────────────────────────────────
+
+    /// <summary>
+    /// A view reporting that it has mounted and can receive, which releases anything its channel
+    /// held for it. A report naming a channel that is not open does nothing: a view that outlived
+    /// its channel is the ordinary case after a cell is re-run.
+    /// </summary>
+    public Task OutputChannelReadyAsync(string channelId, string? protocolVersion)
+    {
+        var channels = _scaffold?.OutputChannels;
+        return channels is null
+            ? Task.CompletedTask
+            : channels.HandleReadyAsync(channelId, protocolVersion);
+    }
+
+    /// <summary>
+    /// A message from a view on its way to whoever owns the channel. Buffers arrive base64-encoded,
+    /// because that is the one representation both this boundary and the editor's carry as ordinary
+    /// JSON, and are decoded here so the owner is handed bytes.
+    /// </summary>
+    public Task OutputChannelMessageAsync(
+        string channelId, string messageType, string? payloadJson, IReadOnlyList<string>? buffers)
+    {
+        var channels = _scaffold?.OutputChannels;
+        if (channels is null) return Task.CompletedTask;
+
+        return channels.HandleMessageAsync(channelId, messageType, payloadJson, DecodeBuffers(buffers));
+    }
+
+    /// <summary>
+    /// Decodes the base64 buffers of one message, or returns null when there are none. A buffer
+    /// that will not decode is dropped rather than failing the message: the rest of it is still
+    /// worth delivering, and an owner reading a buffer it did not get fails where it can say so.
+    /// </summary>
+    private static IReadOnlyList<byte[]>? DecodeBuffers(IReadOnlyList<string>? buffers)
+    {
+        if (buffers is null || buffers.Count == 0) return null;
+
+        var decoded = new List<byte[]>(buffers.Count);
+        foreach (var buffer in buffers)
+        {
+            try { decoded.Add(Convert.FromBase64String(buffer)); }
+            catch (FormatException) { }
+        }
+
+        return decoded.Count == 0 ? null : decoded;
+    }
+
+    /// <summary>
+    /// Carries a channel's traffic to the frame drawing it, by calling into the page. The engine
+    /// addresses a channel and this hands that to the interop, which is the only part that knows
+    /// which element on the page is currently drawing one.
+    /// </summary>
+    private sealed class BrowserOutputChannelTransport : IOutputChannelTransport
+    {
+        private readonly IJSRuntime _jsRuntime;
+
+        public BrowserOutputChannelTransport(IJSRuntime jsRuntime) => _jsRuntime = jsRuntime;
+
+        public async Task PostAsync(string channelId, string messageType, object? payload, CancellationToken ct)
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync(
+                    "versoOutputChannel.post", ct, channelId, messageType, payload).ConfigureAwait(false);
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser is gone. Nothing is drawing the channel, and the session is on its
+                // way out behind this.
+            }
+        }
+
+        public async Task CloseAsync(string channelId, string reason, CancellationToken ct)
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync(
+                    "versoOutputChannel.closed", ct, channelId, reason).ConfigureAwait(false);
+            }
+            catch (JSDisconnectedException) { }
+        }
+    }
+
     // ── Editor intelligence ────────────────────────────────────────────
 
     public async Task<HoverResultDto?> GetHoverInfoAsync(Guid cellId, string code, int position)
@@ -1461,6 +1551,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.OnKernelRestarted += HandleScaffoldKernelRestarted;
             _scaffold.OnKernelRestartFailed += HandleScaffoldKernelRestartFailed;
             _scaffold.InputRequester = RequestInputFromUIAsync;
+
+            // Attaching this is what tells kernels that live output is worth producing at all: a
+            // session whose channels have nowhere to go reports none, and a kernel that finds none
+            // writes ordinary static output instead.
+            _scaffold.OutputChannels.Transport = new BrowserOutputChannelTransport(_jsRuntime);
         }
 
         if (_scaffold?.Variables is VariableStore vs)
@@ -1484,6 +1579,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.OnKernelRestarted -= HandleScaffoldKernelRestarted;
             _scaffold.OnKernelRestartFailed -= HandleScaffoldKernelRestartFailed;
             _scaffold.InputRequester = null;
+            _scaffold.OutputChannels.Transport = null;
         }
 
         if (_scaffold?.Variables is VariableStore vs)

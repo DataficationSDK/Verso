@@ -17,7 +17,9 @@ public interface IOutputChannelTransport
 {
     /// <summary>
     /// Delivers one message to the channel's view. <paramref name="messageType"/> already carries
-    /// its <c>ext/</c> prefix; the shell wraps it rather than renaming it.
+    /// its <c>ext/</c> prefix, which marks it as an owner's message rather than one of the
+    /// framework's own. A shell whose own envelope already says that much may drop the prefix on
+    /// the last hop, as long as what the view sees is the type the owner posted.
     /// </summary>
     Task PostAsync(string channelId, string messageType, object? payload, CancellationToken ct);
 
@@ -109,11 +111,28 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
     /// in the order it was posted. A view that unmounts and mounts again reports itself ready
     /// again, and a second report on a channel with nothing queued does nothing.
     /// </summary>
-    public Task HandleReadyAsync(string channelId, CancellationToken ct = default)
+    /// <param name="channelId">The channel the view claims to be drawing.</param>
+    /// <param name="viewProtocolVersion">
+    /// The protocol version the view declares, or null when it declares none. A view whose major
+    /// version differs from the host's is reported and then mounted regardless, because a view one
+    /// version out usually still works and refusing it would replace a warning with a blank output.
+    /// </param>
+    /// <param name="ct">Cancels the flush.</param>
+    public Task HandleReadyAsync(string channelId, string? viewProtocolVersion = null, CancellationToken ct = default)
     {
-        return _channels.TryGetValue(channelId, out var channel)
-            ? channel.FlushAsync(ct)
-            : Task.CompletedTask;
+        if (!_channels.TryGetValue(channelId, out var channel))
+            return Task.CompletedTask;
+
+        var declared = OutputChannelProtocol.MajorOf(viewProtocolVersion);
+        if (declared is not null && declared != OutputChannelProtocol.MajorOf(OutputChannelProtocol.Version))
+        {
+            Report(
+                $"A view for cell {channel.CellId} declares output-channel protocol '{viewProtocolVersion}' " +
+                $"but this host speaks '{OutputChannelProtocol.Version}'. It was mounted anyway, and messages " +
+                $"may be misinterpreted if the versions are incompatible.");
+        }
+
+        return channel.FlushAsync(ct);
     }
 
     /// <summary>

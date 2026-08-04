@@ -16,6 +16,15 @@
     var handles = new Map();
     var nextId = 1;
 
+    // Which frame is drawing which channel. Only frames given a channel id at mount appear here,
+    // so a lookup that misses is the ordinary case of a message for an output that has since been
+    // re-run or scrolled away, not an error.
+    var framesByChannel = new Map();
+
+    // Set by a host that receives channel traffic through Blazor interop. A host that talks to its
+    // engine over the editor bridge leaves it null and the bridge is used instead.
+    var channelHostRef = null;
+
     // Theme values a framed document may want, named as the host page names them.
     //
     // A framed document is on an opaque origin and gets no part of the page's cascade, so a
@@ -301,8 +310,86 @@
         '</script>'
     ].join('\n');
 
-    function compose(html, theme) {
-        var injected = themeStyleTag(theme) + FRAME_SCRIPT;
+    // Spliced in alongside the script above, and only for a document whose output has a channel.
+    //
+    // The channel id is injected here rather than written into the document, which matters for two
+    // separate reasons. A document is what gets saved, so an id inside it would be written to a
+    // file and would name a channel that no longer exists the next time the file is opened. And a
+    // document that never learns its own id cannot be rewritten to claim a different one, so the
+    // only channel a frame can reach is the one it was mounted for.
+    //
+    // What the document gets is an object rather than a message vocabulary, because the vocabulary
+    // is this file's business and an author writing a view should not have to reproduce it. The
+    // handshake is left to the document to send: only the document knows when whatever it loaded
+    // is able to receive, and the queue on the other side exists precisely to cover the gap.
+    function channelScript(channelId) {
+        return [
+            '<script>',
+            '(function () {',
+            '    var channelId = ' + JSON.stringify(String(channelId)) + ';',
+            '    var live = true;',
+            '    var root = document.documentElement;',
+            '    try { root.setAttribute("data-verso-live", "true"); } catch (e) { }',
+            '',
+            '    function fire(name, detail) {',
+            '        try { window.dispatchEvent(new CustomEvent(name, { detail: detail })); }',
+            '        catch (e) { }',
+            '    }',
+            '',
+            '    window.versoChannel = {',
+            '        id: channelId,',
+            '        get isLive() { return live; },',
+            // Announces that the view can receive, which flushes anything sent before it could.
+            // The version is what the view was built against, and the host reports a mismatch
+            // rather than refusing to draw.
+            '        ready: function (protocolVersion) {',
+            '            if (!live) { return false; }',
+            '            parent.postMessage({',
+            '                type: "verso/channel-ready",',
+            '                channelId: channelId,',
+            '                protocolVersion: protocolVersion || null',
+            '            }, "*");',
+            '            return true;',
+            '        },',
+            '        post: function (type, payload, buffers) {',
+            '            if (!live || !type) { return false; }',
+            '            parent.postMessage({',
+            '                type: "verso/channel-message",',
+            '                channelId: channelId,',
+            '                messageType: String(type),',
+            '                payload: payload === undefined ? null : payload,',
+            '                buffers: buffers || null',
+            '            }, "*");',
+            '            return true;',
+            '        }',
+            '    };',
+            '',
+            '    window.addEventListener("message", function (event) {',
+            '        var data = event.data;',
+            '        if (!data || data.channelId !== channelId) { return; }',
+            '',
+            '        if (data.type === "verso/channel-post") {',
+            '            fire("verso:channelmessage", {',
+            '                type: data.messageType,',
+            '                payload: data.payload === undefined ? null : data.payload,',
+            '                buffers: data.buffers || null',
+            '            });',
+            '            return;',
+            '        }',
+            '',
+            '        if (data.type === "verso/channel-closed") {',
+            '            live = false;',
+            '            try { root.setAttribute("data-verso-live", "false"); } catch (e) { }',
+            '            fire("verso:channelclosed", { reason: data.reason || null });',
+            '        }',
+            '    });',
+            '})();',
+            '</script>'
+        ].join('\n');
+    }
+
+    function compose(html, theme, channelId) {
+        var injected = themeStyleTag(theme) + FRAME_SCRIPT + (channelId ? channelScript(channelId) : '');
         var head = /<head[^>]*>/i.exec(html);
         if (!head) return injected + html;
 
@@ -343,10 +430,69 @@
         }
     }
 
-    function mount(iframeElem, html, themeKind) {
+    // A channel's traffic on its way to whoever owns the channel, which is somewhere in the engine
+    // rather than on this page. The two routes are the two ways a page reaches its engine, and are
+    // the same two the cell-interaction bridge already chooses between.
+    //
+    // Nothing here is allowed to throw. A view that loses a message is worse off than one that
+    // never sent it, but a rejected promise escaping a message listener takes the page's console
+    // with it and tells the user nothing.
+    function routeToOwner(method, bridgeMethod, params, args) {
+        if (window.vscodeBridge && typeof window.vscodeBridge.sendRequest === 'function') {
+            try {
+                var sent = window.vscodeBridge.sendRequest(bridgeMethod, JSON.stringify(params));
+                if (sent && typeof sent.catch === 'function') {
+                    sent.catch(function (error) { warn(bridgeMethod, error); });
+                }
+            } catch (e) {
+                warn(bridgeMethod, e);
+            }
+            return;
+        }
+
+        if (!channelHostRef) return;
+
+        try {
+            var invoked = channelHostRef.invokeMethodAsync.apply(
+                channelHostRef, [method].concat(args));
+            if (invoked && typeof invoked.catch === 'function') {
+                invoked.catch(function (error) { warn(method, error); });
+            }
+        } catch (e) {
+            warn(method, e);
+        }
+    }
+
+    function warn(what, error) {
+        try { console.error('verso: an output channel could not reach the host through ' + what, error); }
+        catch (e) { }
+    }
+
+    // The document hands over whatever shape it likes and the owner is given JSON text, because the
+    // owner knows what it expects back and nothing in between does.
+    function payloadText(payload) {
+        if (payload === null || payload === undefined) return null;
+        try { return JSON.stringify(payload); }
+        catch (e) { return null; }
+    }
+
+    // Binary travels as base64 strings, which both the editor bridge and the Blazor boundary carry
+    // as ordinary JSON. Anything that is not a string is dropped rather than sent as something the
+    // other side would have to guess at.
+    function bufferList(buffers) {
+        if (!buffers || !buffers.length) return null;
+        var out = [];
+        for (var i = 0; i < buffers.length; i++) {
+            if (typeof buffers[i] === 'string') out.push(buffers[i]);
+        }
+        return out.length ? out : null;
+    }
+
+    function mount(iframeElem, html, themeKind, channelId) {
         if (!iframeElem || typeof html !== 'string') return null;
 
         var handleId = nextId++;
+        var channel = channelId ? String(channelId) : null;
 
         var onMessage = function (event) {
             if (event.source !== iframeElem.contentWindow) return;
@@ -358,6 +504,37 @@
                 return;
             }
 
+            // A frame speaks only for the channel it was mounted with. It was never told any other
+            // id, so this is a consistency check rather than a defence: it is here so a document
+            // that gets its own bookkeeping wrong stops here instead of quietly addressing an
+            // output belonging to someone else.
+            if (data.type === 'verso/channel-ready') {
+                if (channel && data.channelId === channel) {
+                    routeToOwner(
+                        'OnOutputChannelReady', 'channel/ready',
+                        { channelId: channel, protocolVersion: data.protocolVersion || null },
+                        [channel, data.protocolVersion || null]);
+                }
+                return;
+            }
+
+            if (data.type === 'verso/channel-message') {
+                if (channel && data.channelId === channel && data.messageType) {
+                    var text = payloadText(data.payload);
+                    var buffers = bufferList(data.buffers);
+                    routeToOwner(
+                        'OnOutputChannelMessage', 'channel/message',
+                        {
+                            channelId: channel,
+                            messageType: String(data.messageType),
+                            payload: text,
+                            buffers: buffers
+                        },
+                        [channel, String(data.messageType), text, buffers]);
+                }
+                return;
+            }
+
             if (data.type !== 'verso/widget-height') return;
 
             var height = Number(data.height);
@@ -366,12 +543,72 @@
         };
 
         window.addEventListener('message', onMessage);
-        handles.set(handleId, { listener: onMessage, frame: iframeElem, kind: themeKind });
+        handles.set(handleId, { listener: onMessage, frame: iframeElem, kind: themeKind, channelId: channel });
+        // Last mount wins. A view that unmounts and mounts again keeps its channel, and the entry
+        // left by the frame it replaced would otherwise point at an iframe that is no longer drawn.
+        if (channel) framesByChannel.set(channel, handleId);
 
         iframeElem.style.height = DEFAULT_HEIGHT + 'px';
-        iframeElem.srcdoc = compose(html, readTheme(iframeElem, themeKind));
+        iframeElem.srcdoc = compose(html, readTheme(iframeElem, themeKind), channel);
 
         return handleId;
+    }
+
+    function frameForChannel(channelId) {
+        var handleId = framesByChannel.get(String(channelId));
+        if (handleId === undefined) return null;
+
+        var entry = handles.get(handleId);
+        var frame = entry && entry.frame;
+        return (frame && frame.contentWindow) ? frame : null;
+    }
+
+    // Delivers one of the channel owner's messages into the frame drawing it. Returns whether there
+    // was a frame to deliver it to, which is what tells the host a view has gone without saying so.
+    //
+    // The ext/ prefix comes off here, which is the last hop it is useful on. It exists to keep the
+    // framework's own namespace unmistakable on the way through the host, and inside a message
+    // already typed verso/channel-post there is nothing left for it to disambiguate. Taking it off
+    // is what makes both ends see the type the other sent: the owner is handed back what the view
+    // posted, and the view is handed what the owner posted.
+    function postToChannel(channelId, messageType, payload, buffers) {
+        var frame = frameForChannel(channelId);
+        if (!frame || !messageType) return false;
+
+        var type = String(messageType);
+        if (type.indexOf('ext/') === 0) type = type.slice(4);
+
+        try {
+            frame.contentWindow.postMessage({
+                type: 'verso/channel-post',
+                channelId: String(channelId),
+                messageType: type,
+                payload: payload === undefined ? null : payload,
+                buffers: buffers || null
+            }, '*');
+            return true;
+        } catch (e) {
+            // The frame went away between the lookup and the post.
+            return false;
+        }
+    }
+
+    // Tells a frame its channel is gone, so it can stop expecting answers and show that it is no
+    // longer live. The binding is kept: the frame is still on the page and still its own view.
+    function closeChannel(channelId, reason) {
+        var frame = frameForChannel(channelId);
+        if (!frame) return false;
+
+        try {
+            frame.contentWindow.postMessage({
+                type: 'verso/channel-closed',
+                channelId: String(channelId),
+                reason: reason || null
+            }, '*');
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 
     // Re-reads the theme where the frame sits and posts it in. Called when the notebook's theme
@@ -400,6 +637,12 @@
         if (!entry) return;
         window.removeEventListener('message', entry.listener);
         handles.delete(handleId);
+
+        // Only if this frame is still the one drawing the channel. A view that remounted has
+        // already claimed it, and its own entry must survive the old frame being torn down.
+        if (entry.channelId && framesByChannel.get(entry.channelId) === handleId) {
+            framesByChannel.delete(entry.channelId);
+        }
     }
 
     // A VS Code webview restates the theme on the body when the editor theme changes, and swaps
@@ -425,5 +668,15 @@
         retheme: retheme,
         rethemeAll: rethemeAll,
         detach: detach
+    };
+
+    // The host's half of an output channel. Kept apart from versoWidget because it is addressed by
+    // channel rather than by frame: the engine knows which conversation it is having and not which
+    // element on the page happens to be drawing it.
+    window.versoOutputChannel = {
+        // Called once by a host that receives channel traffic through Blazor interop.
+        register: function (dotNetRef) { channelHostRef = dotNetRef; },
+        post: postToChannel,
+        closed: closeChannel
     };
 })();

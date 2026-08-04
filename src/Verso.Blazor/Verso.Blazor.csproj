@@ -19,4 +19,12 @@
     <ProjectReference Include="..\Verso.JavaScript\Verso.JavaScript.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Lets the tests reach the session behind the service without that session becoming public API.
+      Verso.Blazor.Shared already grants the same project the same access for the same reason.
+    -->
+    <InternalsVisibleTo Include="Verso.Blazor.Shared.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -59,7 +59,7 @@
                    branch so a re-run builds a new frame rather than refilling this one, which
                    would leave the previous widget's code running inside it. *@
                 <div class="verso-output verso-output--widget">
-                    <WidgetFrame @key="(index, output)" Document="@output.Content" />
+                    <WidgetFrame @key="(index, output)" Document="@output.Content" ChannelId="@output.LiveChannelId" />
                 </div>
             }
             else if (ExtendedMimeTypes && output.MimeType == "text/x-verso-mermaid")

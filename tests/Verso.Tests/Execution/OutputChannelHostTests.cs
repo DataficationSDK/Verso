@@ -346,6 +346,44 @@ public sealed class OutputChannelHostTests
         Assert.AreEqual(OutputChannelHost.MaxQueuedMessages + 1, transport.Posts.Count);
     }
 
+    // --- The ready handshake's version claim ---
+
+    [TestMethod]
+    public async Task AViewOnADifferentMajorVersionIsReportedAndMountedAnyway()
+    {
+        var (host, transport) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+        await channel.PostMessageAsync("queued", 1);
+
+        var diagnostic = await CaptureStandardErrorAsync(
+            () => host.HandleReadyAsync(channel.ChannelId, "99.0"));
+
+        StringAssert.Contains(diagnostic, "99.0");
+        StringAssert.Contains(diagnostic, OutputChannelProtocol.Version);
+
+        // Reported, not refused. A view one version out usually still works, and refusing it would
+        // replace a warning nobody has to act on with an output that never draws.
+        Assert.AreEqual(1, transport.Posts.Count);
+        Assert.IsTrue(channel.IsAlive);
+    }
+
+    [TestMethod]
+    public async Task AViewOnTheSameMajorVersionIsNotReported()
+    {
+        var (host, _) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+
+        // A later minor is a backward-compatible addition, so it is not something to say anything
+        // about. Declaring nothing at all is not a mismatch either.
+        var diagnostic = await CaptureStandardErrorAsync(async () =>
+        {
+            await host.HandleReadyAsync(channel.ChannelId, "1.7");
+            await host.HandleReadyAsync(channel.ChannelId, null);
+        });
+
+        Assert.AreEqual(string.Empty, diagnostic);
+    }
+
     // --- The capability signal ---
 
     [TestMethod]
