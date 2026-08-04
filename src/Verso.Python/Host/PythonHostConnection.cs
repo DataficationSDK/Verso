@@ -179,7 +179,8 @@ internal sealed class PythonHostConnection : IAsyncDisposable
 
     /// <summary>
     /// Raised for every message that is not a reply to a pending request: the <c>stream</c>,
-    /// <c>display</c>, and <c>input_request</c> events. Handlers must not block the pump.
+    /// <c>display</c>, and <c>input_request</c> events, and a reply whose request was abandoned
+    /// before it arrived. Handlers must not block the pump.
     /// </summary>
     public event Action<JsonObject>? EventReceived;
 

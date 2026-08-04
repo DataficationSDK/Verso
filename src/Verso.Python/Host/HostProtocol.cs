@@ -205,6 +205,16 @@ internal static class HostProtocol
     public static bool IsReply(string? messageType)
         => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply or ScanReply;
 
+    /// <summary>
+    /// Whether a message belongs to the cell that is running rather than to the session. Two
+    /// handlers split the traffic between them: the per-execution handler answers these and lives
+    /// only as long as a cell, and the session handler, attached whether or not a cell is running,
+    /// answers everything else. This is the one place the split is written down, so a type named
+    /// here has to be answered there, and a type answered there but missing here reaches neither.
+    /// </summary>
+    public static bool IsExecutionScoped(string? messageType)
+        => messageType is Stream or Display or InputRequest;
+
     /// <summary>Read a string property without throwing when it is absent or not a string.</summary>
     public static string? TryGetString(JsonObject obj, string name)
         => obj.TryGetPropertyValue(name, out var node)

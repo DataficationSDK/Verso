@@ -40,6 +40,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private string _workingDirectory = "";
     private string? _sessionSelection;
     private volatile bool _executing;
+
+    /// <summary>
+    /// Whether the running cell's event handler is attached. Read by the session handler to tell a
+    /// message that cell owns from one that arrived with no cell to own it.
+    /// </summary>
+    private volatile bool _executionAttached;
+
+    /// <summary>Message types already reported as undelivered, so each is mentioned once.</summary>
+    private readonly HashSet<string> _unclaimedReported = new(StringComparer.Ordinal);
     private bool _boundToNotebook;
     private bool _dependenciesRequested;
     private bool _requiresPythonReported;
@@ -176,6 +185,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
             events.Writer.TryWrite(message);
         }
 
+        // Set before the subscription and cleared after it, so the window it describes is never
+        // narrower than the window the handler is attached for. The session handler runs first for
+        // the same message, and reading a flag that had not caught up yet would have it report a
+        // message as undelivered that the line below is about to deliver.
+        _executionAttached = true;
         connection.EventReceived += OnEvent;
 
         // Editor requests are answered as empty while this is set: they read the same namespace
@@ -230,6 +244,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
         {
             _executing = false;
             connection.EventReceived -= OnEvent;
+            _executionAttached = false;
         }
 
         return outputs;
@@ -569,6 +584,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
         if (_process is not null)
         {
+            _process.EventReceived -= OnSessionEvent;
             await _process.DisposeAsync().ConfigureAwait(false);
             _process = null;
         }
@@ -616,6 +632,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
         var process = new PythonHostProcess(executable, workingDirectory, BuildBootstrap());
         process.Exited += OnProcessExited;
+        process.EventReceived += OnSessionEvent;
 
         // The new interpreter has an empty scope, so nothing counts as already injected, and
         // anything explained about a name earlier is worth explaining again to the new scope.
@@ -770,6 +787,67 @@ internal sealed class PythonHostSession : IAsyncDisposable
         return false;
     }
 
+    // --- session-scoped events ---
+
+    /// <summary>
+    /// Raised for a message from the subprocess that nothing took: a type no handler answers, or
+    /// one belonging to a running cell that arrived when no cell was running. Every message that
+    /// does not conclude a request passes through a handler or through here, so one that goes
+    /// nowhere can be seen rather than inferred from the absence of what it would have produced.
+    /// </summary>
+    internal event Action<JsonObject>? EventUnclaimed;
+
+    /// <summary>
+    /// The session's own event handler, attached for as long as the subprocess lives rather than
+    /// for the length of a cell. It answers the types the per-execution handler does not, and
+    /// reports what neither of them takes. Runs on the read pump, so it does no work of its own.
+    /// </summary>
+    private void OnSessionEvent(JsonObject message)
+    {
+        var messageType = HostProtocol.GetMessageType(message);
+
+        if (HostProtocol.IsExecutionScoped(messageType))
+        {
+            // The running cell owns this one. Answering it here as well would put the same output
+            // in the notebook twice.
+            if (_executionAttached)
+                return;
+
+            ReportUnclaimed(message, messageType, "with no cell running");
+            return;
+        }
+
+        // A reply whose request was abandoned, which is what an editor request that passed its
+        // deadline leaves behind. The caller has long since moved on and said so; expected.
+        if (HostProtocol.IsReply(messageType))
+            return;
+
+        ReportUnclaimed(message, messageType, "which no handler answers");
+    }
+
+    /// <summary>
+    /// Note a message nothing took. Written out once per type per session: a background thread
+    /// writing in a loop would otherwise repeat one line without adding anything to it.
+    /// </summary>
+    private void ReportUnclaimed(JsonObject message, string? messageType, string reason)
+    {
+        bool first;
+        lock (_unclaimedReported)
+        {
+            first = _unclaimedReported.Add(messageType ?? "");
+        }
+
+        if (first)
+        {
+            Console.Error.WriteLine(
+                $"[Verso] The Python host sent a '{messageType}' message {reason}. " +
+                "It was not delivered.");
+        }
+
+        try { EventUnclaimed?.Invoke(message); }
+        catch { /* a subscriber must not stop the messages that follow it */ }
+    }
+
     private async Task ConsumeEventsAsync(
         ChannelReader<JsonObject> reader, IExecutionContext context, List<CellOutput> outputs)
     {
@@ -787,7 +865,14 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
     private async Task HandleEventAsync(JsonObject message, IExecutionContext context, List<CellOutput> outputs)
     {
-        switch (HostProtocol.GetMessageType(message))
+        var messageType = HostProtocol.GetMessageType(message);
+
+        // The half of the traffic this handler owns. Anything else belongs to the session handler,
+        // and turning a type away here that the switch below answers would drop it from both.
+        if (!HostProtocol.IsExecutionScoped(messageType))
+            return;
+
+        switch (messageType)
         {
             case HostProtocol.Stream:
             {
