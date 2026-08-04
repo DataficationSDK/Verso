@@ -944,6 +944,16 @@ def _redirect_ipython_display(module):
     except Exception:
         pass
 
+    try:
+        # Redirected for the same reason as display, and with more at stake. Asked outside a
+        # shell, the real one writes the terminal escape that erases a line, which is meant for
+        # a console and reaches a notebook as text. Every ipywidgets interaction helper calls
+        # this one inside an output area, so the version that clears the area is the version
+        # those helpers need to behave as they read.
+        module.clear_output = clear_output
+    except Exception:
+        pass
+
 
 class ShimLoader(object):
     """Hands back an already-assembled module, so there is nothing to execute."""
