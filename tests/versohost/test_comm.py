@@ -47,6 +47,17 @@ def wired():
         except Exception:
             pass
 
+    # Then every comm opened directly. A comm nobody closes is closed by the collector instead,
+    # whenever it happens to run, and closing publishes a comm_close as it goes. Left to chance
+    # that lands in a later test's frames and fails an assertion that has nothing to do with it.
+    # Closing here spends it on the test that opened it, which is already done reading its own.
+    manager = comm_support._manager
+    for opened in list(getattr(manager, "comms", {}).values()) if manager else []:
+        try:
+            opened.close()
+        except Exception:
+            pass
+
     comm_support.reset()
 
 
@@ -106,6 +117,31 @@ def test_an_answer_carries_the_channel_of_the_message_it_answers(wired):
 
     assert wired.frames[0]["channel_id"] == "channel-7"
     assert wired.frames[0]["data"] == {"answered": {"asked": True}}
+
+
+def test_a_side_effect_on_another_comm_names_no_channel(wired):
+    """
+    A message that is not on the comm being answered goes out unaddressed.
+
+    Handling one view's message runs the observers the author registered, and those can change
+    any widget in the interpreter, including widgets drawn in another cell entirely. Addressing
+    those to the view that happened to trigger them is what would leave the second drawing of a
+    widget frozen, so only a reply on the same comm is addressed.
+    """
+    asked = new_comm()
+    elsewhere = new_comm()
+    asked.on_msg(lambda msg: elsewhere.send({"method": "update", "state": {"value": 2}}))
+    wired.frames.clear()
+
+    comm_support.dispatch({
+        "type": "comm_msg",
+        "channel_id": "channel-7",
+        "comm_id": asked.comm_id,
+        "data": {"asked": True},
+    })
+
+    raised = [f for f in wired.frames if f["comm_id"] == elsewhere.comm_id]
+    assert raised and all("channel_id" not in f for f in raised)
 
 
 def test_a_reply_stops_being_addressed_once_the_message_is_answered(wired):

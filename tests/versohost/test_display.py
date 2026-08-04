@@ -227,7 +227,7 @@ def embedding(monkeypatch):
     import types
 
     class Widget:
-        """The one thing the display path asks of the registry."""
+        """What the fallback reading asks of the registry, for a library without the closure."""
 
         @staticmethod
         def get_manager_state(drop_defaults=True, **kwargs):
@@ -241,7 +241,12 @@ def embedding(monkeypatch):
             install.calls.append(kwargs)
             return behaviour(views)
 
+        def dependency_state(widgets, drop_defaults=True):
+            """The view's own closure, which here is the whole of the stand-in registry."""
+            return copy.deepcopy(ASSIGNED_STATE if drop_defaults else FULL_STATE)
+
         module.embed_snippet = embed_snippet
+        module.dependency_state = dependency_state
         package.embed = module
         package.Widget = Widget
         monkeypatch.setitem(sys.modules, "ipywidgets", package)
@@ -324,6 +329,26 @@ def test_a_synchronized_trait_at_its_default_reaches_the_document():
     assert marker in payload["data"]
 
 
+def test_a_document_carries_the_view_and_not_the_rest_of_the_session():
+    """
+    A page holds what its own view draws from, not every widget the interpreter is holding.
+
+    There is one document per widget shown and each is saved with the notebook, so state read
+    session-wide is written once for every widget a notebook draws, and the file grows with the
+    square of how many there are. It is also what a page has to stay under: a document past the
+    limit is refused and the cell shows a line of text instead of a control.
+    """
+    ipywidgets = pytest.importorskip("ipywidgets")
+
+    elsewhere = ipywidgets.IntSlider(description="drawn-by-another-cell")
+    shown = ipywidgets.IntSlider(description="drawn-here")
+
+    state = display_support._embedded_state(shown)
+
+    assert shown.model_id in state
+    assert elsewhere.model_id not in state
+
+
 def test_a_trait_holding_nothing_is_left_out_of_the_real_state():
     """
     The other half, also against the real thing: a trait nobody assigned, whose default is
@@ -334,9 +359,9 @@ def test_a_trait_holding_nothing_is_left_out_of_the_real_state():
 
     slider = ipywidgets.IntSlider(description="threshold")
 
-    # Found by its own id rather than by model name: the registry holds every widget any test in
-    # this file has made, and more than one of them can answer to the same name.
-    entry = display_support._embedded_state(ipywidgets.Widget)[slider.model_id]
+    # Found by its own id rather than by model name: the closure holds the widget's layout and
+    # style alongside it, and more than one of those can answer to the same name.
+    entry = display_support._embedded_state(slider)[slider.model_id]
 
     assert slider.tooltip is None, "The trait under test has to be the one nobody assigned."
     assert "tooltip" not in entry["state"]

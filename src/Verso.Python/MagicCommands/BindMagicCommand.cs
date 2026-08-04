@@ -182,7 +182,11 @@ public sealed class BindMagicCommand : IMagicCommand
         if (separator >= 0)
         {
             target = argument[..separator].TrimEnd();
-            name = argument[(separator + 4)..].Trim();
+
+            // The keyword can be the last thing on the line, which leaves nothing after it to
+            // read and is reported below as the missing name it is.
+            var after = separator + 4;
+            name = after >= argument.Length ? "" : argument[after..].Trim();
 
             if (name.Length == 0)
             {
@@ -221,9 +225,14 @@ public sealed class BindMagicCommand : IMagicCommand
     /// expression that merely contains the letters, such as <c>things["gas"].value</c>, is left
     /// alone, and taken from the right so the last one wins.
     /// </summary>
+    /// <remarks>
+    /// A keyword at the very end counts, even though nothing follows it to make a name. Read as
+    /// the last word of the expression instead, it would leave the author being told that
+    /// <c>b as</c> is not a trait, which is true and is not what they got wrong.
+    /// </remarks>
     private static int FindAsSeparator(string argument)
     {
-        for (var index = argument.Length - 4; index >= 1; index--)
+        for (var index = argument.Length - 3; index >= 1; index--)
         {
             if (argument[index] is not ' ' and not '\t')
                 continue;
@@ -231,7 +240,8 @@ public sealed class BindMagicCommand : IMagicCommand
             if (argument[index + 1] is not 'a' || argument[index + 2] is not 's')
                 continue;
 
-            if (argument[index + 3] is not ' ' and not '\t')
+            var after = index + 3;
+            if (after < argument.Length && argument[after] is not ' ' and not '\t')
                 continue;
 
             return index;

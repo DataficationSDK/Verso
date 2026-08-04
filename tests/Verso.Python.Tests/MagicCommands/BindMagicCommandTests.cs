@@ -115,6 +115,17 @@ public sealed class BindMagicCommandTests
     }
 
     [TestMethod]
+    public void AKeywordWithNoNameAfterItIsRefused()
+    {
+        // Read as part of the expression instead, this would tell the author that 'value as' is
+        // not a trait, which is true and is not the thing they left out.
+        Assert.IsFalse(BindMagicCommand.TryParse(
+            "slider.value as", out _, out _, out _, out var problem));
+
+        Assert.IsNotNull(problem);
+    }
+
+    [TestMethod]
     public void AnUnderscoreIsAUsableName()
     {
         Assert.IsTrue(BindMagicCommand.TryParse(

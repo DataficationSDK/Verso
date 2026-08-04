@@ -362,6 +362,14 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
         private readonly List<QueuedMessage> _opening = new();
 
         private long _queuedBytes;
+
+        /// <summary>
+        /// How much of the queue is a replay for a view that mounted before. Held so the bound on
+        /// what a channel keeps for a view is charged against what is new rather than against what
+        /// this channel already accepted once.
+        /// </summary>
+        private int _replayHeld;
+
         private volatile bool _mounted;
         private volatile bool _isAlive = true;
 
@@ -395,16 +403,28 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
             // unnecessary and cannot cost one that was needed.
             var size = _mounted ? 0L : MeasurePayload(payload);
 
+            var overflowed = false;
+            var heldMessages = 0;
+            var heldBytes = 0L;
+
             lock (_gate)
             {
                 if (!_mounted)
                 {
-                    if (_queue.Count + 1 > MaxQueuedMessages || _queuedBytes + size > MaxQueuedBytes)
+                    // What is being replayed to a view that mounted once already does not count:
+                    // it was within the bound when it was first held, and charging it again would
+                    // close a channel that is working for holding what it was asked to hold.
+                    var held = _queue.Count - _replayHeld;
+
+                    if (held + 1 > MaxQueuedMessages || _queuedBytes + size > MaxQueuedBytes)
                     {
                         // Deliberately not trimmed to fit. A caller past the bound is talking to a
                         // view that is not going to mount, and dropping the oldest messages would
                         // hand it a conversation with a hole in it instead of an answer.
-                        FailOverflow(_queue.Count, _queuedBytes);
+                        heldMessages = held;
+                        heldBytes = _queuedBytes;
+                        overflowed = true;
+                        MarkOverflowed();
                     }
                     else
                     {
@@ -414,6 +434,9 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
                     }
                 }
             }
+
+            if (overflowed)
+                FailOverflow(heldMessages, heldBytes);
 
             return _host.SendAsync(ChannelId, messageType, payload, ct);
         }
@@ -432,26 +455,24 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
         /// conversation is not something a channel can bound, so a view needing more than the
         /// opening asks its owner for it.
         /// </para>
+        /// <para>
+        /// The replay goes back through the queue rather than straight down the wire, which is
+        /// what puts anything posted during it behind rather than beside it. A view generally
+        /// asks its owner for current state as it mounts, and that answer arriving before the
+        /// opening messages it supersedes would leave the view holding the older of the two.
+        /// </para>
         /// </summary>
         internal async Task FlushAsync(CancellationToken ct)
         {
-            if (_mounted)
+            lock (_gate)
             {
-                QueuedMessage[] opening;
-                lock (_gate)
+                if (_mounted)
                 {
-                    opening = _opening.ToArray();
+                    _queue.InsertRange(0, _opening);
+                    _replayHeld = _opening.Count;
+                    _opening.Clear();
+                    _mounted = false;
                 }
-
-                foreach (var queued in opening)
-                {
-                    if (!_isAlive)
-                        return;
-
-                    await _host.SendAsync(ChannelId, queued.MessageType, queued.Payload, ct).ConfigureAwait(false);
-                }
-
-                return;
             }
 
             while (_isAlive)
@@ -464,13 +485,19 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
                     {
                         _mounted = true;
                         _queuedBytes = 0;
+                        _replayHeld = 0;
                         return;
                     }
 
                     batch = _queue.ToArray();
                     _queue.Clear();
                     _queuedBytes = 0;
-                    _opening.AddRange(batch);
+                    _replayHeld = 0;
+
+                    // Recorded up to the bound and no further. Past it a view is better served by
+                    // asking its owner than by a replay this channel cannot promise to hold.
+                    if (_opening.Count + batch.Length <= MaxQueuedMessages)
+                        _opening.AddRange(batch);
                 }
 
                 foreach (var queued in batch)
@@ -514,6 +541,7 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
                 _queue.Clear();
                 _opening.Clear();
                 _queuedBytes = 0;
+                _replayHeld = 0;
             }
 
             return notifyView ? _host.NotifyClosedAsync(ChannelId, reason) : Task.CompletedTask;
@@ -529,16 +557,34 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
         }
 
         /// <summary>
-        /// Closes the channel for holding more than the host will hold, and tells the caller why.
-        /// Called while the queue lock is held, so the close is arranged and the throw carries the
-        /// numbers that were read under it.
+        /// Shut the channel for holding more than the host will hold. Called while the queue lock
+        /// is held, and kept apart from the reporting below so that nothing reaching outside this
+        /// object runs underneath the lock.
         /// </summary>
-        private void FailOverflow(int queuedMessages, long queuedBytes)
+        private void MarkOverflowed()
         {
             _isAlive = false;
             _queue.Clear();
+            _opening.Clear();
             _queuedBytes = 0;
+            _replayHeld = 0;
             _host._channels.TryRemove(ChannelId, out _);
+        }
+
+        /// <summary>
+        /// Report a channel closed for overflow, tell its view, and tell the caller why. The view
+        /// is told for the same reason every other close tells it: it is still on the page, and a
+        /// view that hears nothing goes on presenting controls that answer to nobody.
+        /// </summary>
+        private void FailOverflow(int queuedMessages, long queuedBytes)
+        {
+            var reason =
+                $"it held more than the {MaxQueuedMessages} message or {MaxQueuedBytes} byte limit " +
+                "for a view that had not become ready";
+
+            // Not awaited: the channel is closed either way, and the caller is about to be told
+            // what happened by the exception below rather than by whether the view heard.
+            _ = _host.NotifyClosedAsync(ChannelId, reason);
 
             Report(
                 $"An output channel for cell {CellId} was closed after holding {queuedMessages} messages " +

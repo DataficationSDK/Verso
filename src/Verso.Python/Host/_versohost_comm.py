@@ -42,9 +42,9 @@ _manager = None
 _comm_class = None
 _targets_registered = False
 
-# The channel whose message is being answered, held per thread. A reply belongs to the view that
-# asked for it, and a widget updated from a background thread is answering nobody, so a plain
-# global would let one thread address the other thread's message.
+# The message being answered on this thread: which comm it arrived on and which channel it came
+# from. Held per thread because a widget updated from a background thread is answering nobody, so
+# a plain global would let one thread address the other thread's message.
 _answering = threading.local()
 
 
@@ -179,16 +179,35 @@ def _build_comm_class(base_comm):
                 "target_name": keys.get("target_name"),
             }
 
-            # Present only when this message answers one that arrived on a channel. Without it
-            # the message belongs to the session rather than to any one view, which is what an
-            # ordinary trait assignment in a cell produces, and the host decides who sees it.
-            channel_id = getattr(_answering, "channel_id", None)
+            # Present only when this message answers one that arrived on this same comm, which
+            # is what a view asking for state gets back. Anything else raised while that message
+            # was being handled belongs to the session rather than to the view that happened to
+            # trigger it: an observer the author registered can change any widget in the
+            # interpreter, and the widgets it changes may well be drawn somewhere else. Those go
+            # out unaddressed and every view sees them, which is the only way a widget drawn
+            # twice stays in step.
+            channel_id = _answering_channel(self.comm_id)
             if channel_id is not None:
                 frame["channel_id"] = channel_id
 
             _send(frame, self.comm_id, data)
 
     return VersoComm
+
+
+def _answering_channel(comm_id):
+    """
+    The channel a message from ``comm_id`` should be addressed to, or None to leave it open.
+
+    Addressed only when this comm is the one being answered. The comparison is what separates a
+    reply from a side effect: a view asking for the state of every widget is answered over the
+    comm it asked on, while a trait some observer changed along the way reaches every view that
+    might be drawing it.
+    """
+    if getattr(_answering, "comm_id", None) != comm_id:
+        return None
+
+    return getattr(_answering, "channel_id", None)
 
 
 # --- sending ------------------------------------------------------------------------------
@@ -364,6 +383,7 @@ def dispatch(message):
     msg_type = message.get("msg_type") or "comm_msg"
     channel_id = message.get("channel_id")
     _answering.channel_id = channel_id
+    _answering.comm_id = comm_id
     try:
         if msg_type == "comm_open":
             _manager.comm_open(None, None, envelope)
@@ -377,6 +397,7 @@ def dispatch(message):
         _report("A message for a widget could not be delivered: %s" % error)
     finally:
         _answering.channel_id = None
+        _answering.comm_id = None
         _acknowledge(channel_id, comm_id, message.get("msg_id"))
 
 

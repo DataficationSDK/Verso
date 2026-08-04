@@ -449,14 +449,13 @@ def _document_for(widget):
     and nothing downstream has to tell them apart.
     """
     try:
-        from ipywidgets import Widget
         from ipywidgets.embed import embed_snippet
     except Exception:
         return None
 
     try:
         snippet = embed_snippet(
-            views=[widget], state=_embedded_state(Widget), embed_url=_embed_script_url())
+            views=[widget], state=_embedded_state(widget), embed_url=_embed_script_url())
     except Exception:
         return None
 
@@ -540,9 +539,10 @@ def _wants_a_channel():
     return bool(comm_support.ensure_targets())
 
 
-def _embedded_state(widget_class):
+def _embedded_state(widget):
     """
-    The widget state to put in the page, read twice and reconciled.
+    The widget state to put in the page: this view and what it depends on, read twice and
+    reconciled.
 
     Left to itself the embedder writes only the synchronized values that differ from their
     class defaults, which saves a good deal but gives up more than it can afford: some widgets
@@ -555,9 +555,26 @@ def _embedded_state(widget_class):
     free to read those two differently, and none of them were written against a document that
     carries the first. Those are dropped again here, so the one thing this changes about a
     document is the defaults that actually hold something.
+
+    Scoped to this view's own dependencies rather than to every widget the interpreter holds.
+    A document is saved with the notebook and there is one per widget shown, so state read
+    session-wide is written once per widget and grows with the square of how many a notebook
+    draws. The closure is what the page actually needs, and reading it this way costs less than
+    the session-wide reading did before defaults were kept.
     """
-    full = widget_class.get_manager_state(drop_defaults=False)["state"]
-    trimmed = widget_class.get_manager_state(drop_defaults=True)["state"]
+    try:
+        from ipywidgets.embed import dependency_state
+    except Exception:
+        # A release without the closure helper falls back to the session-wide reading, which is
+        # larger than it needs to be and still correct.
+        from ipywidgets import Widget
+
+        full = Widget.get_manager_state(drop_defaults=False)["state"]
+        trimmed = Widget.get_manager_state(drop_defaults=True)["state"]
+        return _without_unset_values(full, trimmed)
+
+    full = dependency_state([widget], drop_defaults=False)
+    trimmed = dependency_state([widget], drop_defaults=True)
     return _without_unset_values(full, trimmed)
 
 

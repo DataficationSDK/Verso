@@ -485,34 +485,46 @@ public sealed class Scaffold : IAsyncDisposable
     /// widgets costs what one does. An output that declines, fails, or has not answered when the
     /// deadline passes keeps the content it already had, which is the state it was last known to
     /// be in and always something a file can hold. A save is never blocked and never fails here.
+    /// <para>
+    /// A cell's output list has no lock shared with the executions that rebuild it, so this reads
+    /// each list defensively and finds its way back by channel id rather than by remembering a
+    /// position. A save arriving while a cell is running therefore refreshes what it can and
+    /// leaves the rest as it was, which is the same outcome as an output that did not answer.
+    /// </para>
     /// </remarks>
     public async Task RefreshLiveOutputsAsync(TimeSpan? bound = null, CancellationToken ct = default)
     {
         List<CellModel> cells;
         lock (_cellLock)
         {
-            cells = _notebook.Cells.Where(c => c.Outputs.Any(IsLive)).ToList();
+            cells = _notebook.Cells.ToList();
         }
 
-        if (cells.Count == 0)
-            return;
-
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        deadline.CancelAfter(bound ?? LiveOutputSnapshotBound);
+        var started = false;
 
-        var asks = new List<(CellModel Cell, int Index, Task<string?> Snapshot)>();
+        var asks = new List<(CellModel Cell, string ChannelId, Task<string?> Snapshot)>();
         foreach (var cell in cells)
         {
-            for (var i = 0; i < cell.Outputs.Count; i++)
+            foreach (var output in ReadOutputs(cell))
             {
-                if (!IsLive(cell.Outputs[i]))
+                if (!IsLive(output))
                     continue;
 
-                var channel = _outputChannels.Find(cell.Outputs[i].LiveChannelId!);
+                var channel = _outputChannels.Find(output.LiveChannelId!);
                 if (channel is null)
                     continue;
 
-                asks.Add((cell, i, OutputChannelHost.RequestSnapshotAsync(channel, deadline.Token)));
+                // Started on the first output worth asking, so a notebook with none of them does
+                // not set a timer it will never use.
+                if (!started)
+                {
+                    deadline.CancelAfter(bound ?? LiveOutputSnapshotBound);
+                    started = true;
+                }
+
+                asks.Add((cell, output.LiveChannelId!,
+                    OutputChannelHost.RequestSnapshotAsync(channel, deadline.Token)));
             }
         }
 
@@ -528,21 +540,53 @@ public sealed class Scaffold : IAsyncDisposable
             // Each ask reports its own failure and answers null. This only catches the aggregate.
         }
 
-        foreach (var (cell, index, snapshot) in asks)
+        foreach (var (cell, channelId, snapshot) in asks)
         {
             if (snapshot.Status != TaskStatus.RanToCompletion || snapshot.Result is not { Length: > 0 } fresh)
                 continue;
 
-            // Under the cell lock so a save racing an execution cannot write into a list the
-            // execution is rebuilding, and re-checked because the output may have moved since.
-            lock (_cellLock)
+            // Found again by channel rather than written back to where it was read from: a cell
+            // that ran while the snapshot was in flight has a different list by now, and the
+            // channel id is the one thing that still says which output this answer belongs to.
+            try
             {
-                if (index < cell.Outputs.Count && IsLive(cell.Outputs[index]))
-                    cell.Outputs[index] = cell.Outputs[index] with { Content = fresh };
+                for (var i = 0; i < cell.Outputs.Count; i++)
+                {
+                    if (!string.Equals(cell.Outputs[i].LiveChannelId, channelId, StringComparison.Ordinal))
+                        continue;
+
+                    cell.Outputs[i] = cell.Outputs[i] with { Content = fresh };
+                    break;
+                }
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // The cell was rebuilt underneath this. The output being refreshed went with it,
+                // so there is nothing left to write the answer into.
             }
         }
 
         static bool IsLive(CellOutput output) => !string.IsNullOrEmpty(output.LiveChannelId);
+    }
+
+    /// <summary>
+    /// A cell's outputs as they stood, or nothing when the cell was being rebuilt as they were
+    /// read. Copying is what makes the read safe to walk: the list belongs to whatever execution
+    /// last touched it, and nothing here holds a lock that execution takes.
+    /// </summary>
+    private static IReadOnlyList<CellOutput> ReadOutputs(CellModel cell)
+    {
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            try { return cell.Outputs.ToArray(); }
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+            {
+                // Mutated mid-copy. Worth one more go, because the window is a single execution
+                // writing one output and the second read usually lands between two of them.
+            }
+        }
+
+        return Array.Empty<CellOutput>();
     }
 
     /// <summary>
