@@ -62,7 +62,7 @@ Verso's C# kernel is powered by Roslyn, giving you the latest language features,
 
 Python cells run the interpreter installed on your machine, with `#!pip` for packages and automatic offers to install an import the environment lacks. Anything that knows how to render itself displays directly: HTML, Markdown, SVG, images, JSON, and matplotlib figures.
 
-Libraries that draw only as `ipywidgets` models are handled too, among them k3d, ipyleaflet, pythreejs, bqplot, and ipyvolume. Verso packages the widget's state into a self-contained frame in the cell, so a 3D plot renders instead of printing its object description.
+Libraries that draw only as `ipywidgets` models are handled too, among them k3d, ipyleaflet, pythreejs, bqplot, and ipyvolume, and so is anything built with `anywidget`. Verso gives the widget a frame of its own in the cell, so a 3D plot renders instead of printing its object description, and keeps the interpreter behind it, so moving a control runs the Python wired to it. `#!bind slider.value as threshold` shares a control's value with the notebook's other languages, and writing that variable from a C# cell moves the control. Reopening a file draws each widget from the state its reader last saw, quietly and without a kernel, until the cell is run again.
 
 Verso passes the active theme's colors into the widget frame, so a widget that styles itself from CSS matches the editor. A library that paints its own background, as k3d and matplotlib both do, keeps its own default until you tell it otherwise, with `plt.style.use("dark_background")` or a `background_color` argument.
 

@@ -108,7 +108,7 @@ A parameters cell declares typed inputs with defaults, rendered as a form at the
 
 ### Python on Your Own Interpreter
 
-Python cells run in a separate process against a CPython installation already on your machine, 3.8 or newer, so an active virtual environment or conda environment is picked up and its packages are simply there. `#!python` reports what was found and switches interpreters for the session, and `--python <path>` pins one for `verso run`, `verso repl`, and `verso serve`. matplotlib figures and ipywidgets-based visualizations render inline. See the [Python interpreters guide](docs/guides/python-interpreters.md) and the [Python packages guide](docs/guides/python-packages.md).
+Python cells run in a separate process against a CPython installation already on your machine, 3.8 or newer, so an active virtual environment or conda environment is picked up and its packages are simply there. `#!python` reports what was found and switches interpreters for the session, and `--python <path>` pins one for `verso run`, `verso repl`, and `verso serve`. matplotlib figures render inline, and widgets built on `ipywidgets` or `anywidget` are live: moving a control reaches the interpreter, and `#!bind` shares a control's value with the notebook's other languages. See the [Python interpreters guide](docs/guides/python-interpreters.md), the [Python packages guide](docs/guides/python-packages.md), and the [interactive widgets guide](docs/guides/interactive-widgets.md).
 
 ### Database Connectivity
 
