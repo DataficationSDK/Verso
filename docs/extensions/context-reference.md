@@ -24,6 +24,7 @@ The base context available to all extension operations. Every specialized contex
 | `WriteOutputAsync(CellOutput)` | `Task` | Writes a cell output to the notebook output stream. |
 | `RequestFileDownloadAsync(string, string, byte[])` | `Task` | Requests the host to deliver a file download to the user. Default implementation throws `NotSupportedException` -- only available on hosts that support downloads. |
 | `UpdateOutputAsync(string, CellOutput)` | `Task` | Updates an existing output block in place, replacing its content. The first argument is the `outputBlockId`. Default implementation throws `NotSupportedException` -- only available on hosts that support in-place updates. |
+| `OutputChannels` | `IOutputChannelHost?` | Two-way message channels between an output and the view drawing it, open for as long as the session lasts rather than for the length of a cell. `null` on a host with nothing drawing its output, which is the signal to write ordinary static output instead. |
 
 ### When Available
 

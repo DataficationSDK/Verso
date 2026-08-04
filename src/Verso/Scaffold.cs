@@ -38,6 +38,14 @@ public sealed class Scaffold : IAsyncDisposable
     /// </summary>
     private readonly BackgroundFaultSink _backgroundFaults = new();
     private readonly IDisposable _backgroundFaultRegistration;
+
+    /// <summary>
+    /// Channels between this notebook's outputs and whatever is drawing them. Held here rather
+    /// than by an execution because that is the only lifetime long enough to be useful: a channel
+    /// matters most when no cell is running and someone is interacting with what the last one drew.
+    /// </summary>
+    private readonly OutputChannelHost _outputChannels = new();
+
     private bool _disposed;
 
     public Scaffold() : this(new NotebookModel()) { }
@@ -107,6 +115,13 @@ public sealed class Scaffold : IAsyncDisposable
     /// Gets the <see cref="INotebookOperations"/> implementation for this scaffold.
     /// </summary>
     public INotebookOperations NotebookOps => _notebookOps;
+
+    /// <summary>
+    /// Gets this notebook's output channels. A host that can route messages to a rendered output
+    /// attaches an <see cref="IOutputChannelTransport"/> here; one that cannot leaves it alone, and
+    /// the contexts handed to kernels report no channels at all so they write static output.
+    /// </summary>
+    public OutputChannelHost OutputChannels => _outputChannels;
 
     /// <summary>
     /// Optional external handler invoked instead of the in-process kernel restart.
@@ -770,6 +785,10 @@ public sealed class Scaffold : IAsyncDisposable
         // to be reported against.
         _backgroundFaultRegistration.Dispose();
 
+        // Before the kernels, which own the channels: closing first means a kernel tearing down
+        // finds every channel of its own already dead rather than posting into one.
+        await _outputChannels.DisposeAsync().ConfigureAwait(false);
+
         foreach (var kernel in _kernels.Values)
         {
             await kernel.DisposeAsync().ConfigureAwait(false);
@@ -902,6 +921,7 @@ public sealed class Scaffold : IAsyncDisposable
             ResolveMagicCommand,
             id => OnCellOutputUpdated?.Invoke(id),
             InputRequester,
-            _backgroundFaults);
+            _backgroundFaults,
+            _outputChannels);
     }
 }
