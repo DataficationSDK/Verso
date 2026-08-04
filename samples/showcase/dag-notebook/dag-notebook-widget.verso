@@ -1,0 +1,83 @@
+{
+  "verso": "1.0",
+  "metadata": {
+    "title": "A control at the top of the graph",
+    "defaultKernel": "csharp",
+    "activeLayout": {
+      "extensionId": "com.verso.showcase.dag-notebook",
+      "layoutId": "dag-notebook"
+    },
+    "extensions": {
+      "required": [
+        "Verso.Showcase.DagNotebook"
+      ]
+    }
+  },
+  "cells": [
+    {
+      "id": "da610000-0001-4000-8000-000000000001",
+      "type": "markdown",
+      "source": "# A control at the top of the graph\n\nThis notebook uses the **DAG Notebook** layout. Cells that share variables are linked with chips,\nand running a cell re-runs the cells that depend on it.\n\nA widget is the other way a value changes. A Python cell shares one of its widget's traits as a\nnotebook variable, which puts that variable at the top of the dependency graph with a control\nbehind it rather than a computation. Move the control and the cells below it run, in order,\nwithout anything being clicked.\n\nThe `↻` chip marks the variable that follows the control.\n\n**The re-running is the layout's doing, not the widget's.** `#!bind` shares the value in any\nlayout; it is this one that treats the control as a producer and runs what depends on it. If the\nheader above does not read **DAG Notebook** and the cells carry no chips, the layout is not\nactive and moving the slider will correctly do nothing. The package is not published yet, so\nload the local build with a first cell reading\n`#!extension ./src/Verso.Showcase.DagNotebook/bin/Debug/net8.0/Verso.Showcase.DagNotebook.dll`,\nor start the host with `--extensions ./src/Verso.Showcase.DagNotebook/bin/Debug/net8.0`, then\npick **DAG Notebook** from the layout picker."
+    },
+    {
+      "id": "da610000-0002-4000-8000-000000000002",
+      "type": "markdown",
+      "source": "## The data\n\nAn ordinary C# cell. Nothing here knows a widget exists."
+    },
+    {
+      "id": "da610000-0003-4000-8000-000000000003",
+      "type": "code",
+      "language": "csharp",
+      "source": "var readings = new[] { 41, 78, 55, 92, 63, 12, 87, 70, 34, 59, 81, 66 };\nConsole.WriteLine($\"{readings.Length} readings, {readings.Min()} to {readings.Max()}.\");"
+    },
+    {
+      "id": "da610000-0004-4000-8000-000000000004",
+      "type": "markdown",
+      "source": "## The control\n\n`ipywidgets` builds the slider; Verso keeps the interpreter behind it, so the widget is live as\nsoon as the cell has run. `continuous_update=False` holds the value until the handle is released,\nwhich is what makes one drag one run rather than one per step."
+    },
+    {
+      "id": "da610000-0005-4000-8000-000000000005",
+      "type": "code",
+      "language": "python",
+      "source": "#!pip ipywidgets\nimport ipywidgets as widgets\n\ncutoff = widgets.IntSlider(value=60, min=0, max=100, description=\"Cutoff\", continuous_update=False)\ncutoff"
+    },
+    {
+      "id": "da610000-0006-4000-8000-000000000006",
+      "type": "markdown",
+      "source": "## One line puts it in the graph\n\n`#!bind` shares a widget trait as a notebook variable. It runs before the rest of its own cell, so\nit names a widget an earlier cell built rather than one alongside it."
+    },
+    {
+      "id": "da610000-0007-4000-8000-000000000007",
+      "type": "code",
+      "language": "python",
+      "source": "#!bind cutoff.value as threshold"
+    },
+    {
+      "id": "da610000-0008-4000-8000-000000000008",
+      "type": "markdown",
+      "source": "## C# reads it as a variable\n\n`threshold` is now an ordinary shared variable, so this cell is written the way any cell reading\nany variable is written. The chips say where both of its inputs come from."
+    },
+    {
+      "id": "da610000-0009-4000-8000-000000000009",
+      "type": "code",
+      "language": "csharp",
+      "source": "var atOrAbove = Variables.Get<long>(\"threshold\");\nvar passing = readings.Where(r => r >= atOrAbove).ToArray();\nConsole.WriteLine($\"{passing.Length} readings at or above {atOrAbove}: {string.Join(\", \", passing)}\");"
+    },
+    {
+      "id": "da610000-0010-4000-8000-000000000010",
+      "type": "markdown",
+      "source": "## And the cell after it follows"
+    },
+    {
+      "id": "da610000-0011-4000-8000-000000000011",
+      "type": "code",
+      "language": "csharp",
+      "source": "var share = 100.0 * passing.Length / readings.Length;\nConsole.WriteLine($\"That is {share:F0}% of the run.\");"
+    },
+    {
+      "id": "da610000-0012-4000-8000-000000000012",
+      "type": "markdown",
+      "source": "## Things to try\n\n- **Run DAG**, then drag the slider and let go. The two C# cells re-run on their own, in order,\n  with the summary always seeing the filter's new answer rather than the old one.\n- Turn **Auto-run dependents** off and drag again: the same two cells mark themselves stale and\n  wait for you.\n- Write the variable from a cell instead of moving the slider (`Variables.Set(\"threshold\", 80L);`)\n  and the slider moves on the page. The link runs both ways.\n- Bind a second trait (`#!bind cutoff.max as ceiling`) and a second chip appears. `#!bind --list`\n  says what is currently shared.\n\nThe dependency scan reads `#!bind` and `Variables.Get(\"name\")` as well as ordinary assignments,\nwhich is what lets a Python control link to a C# cell. Like the rest of the scan it is a strong\nhint rather than a proof."
+    }
+  ]
+}

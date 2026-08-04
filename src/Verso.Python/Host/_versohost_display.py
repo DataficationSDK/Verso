@@ -454,6 +454,16 @@ def _from_json(value):
 # styling come with the snippet, and the surface showing this gives it its own frame, so
 # anything added here would only compete with both. The background is left transparent so
 # the notebook's own background shows through in either theme.
+#
+# The one thing it does say is what colour things are. The widget stylesheet arrives with a
+# light theme written into it, black text on white, which is unreadable on a dark page and is
+# not a value the widget author chose. The block below points those names at the colours the
+# host puts on this document, so a widget follows the notebook the way everything else does.
+# Two things make it work. The selector is doubled because the widget stylesheet is added to
+# the page after this one and claims the same names at the strength of a single ':root'. And
+# the values are read rather than copied, so when the host restates its colours on a theme
+# change these follow with no further help. Each has a fallback that matches the stylesheet's
+# own light theme, so a frame that is given no colours looks exactly as it did before.
 WIDGET_DOCUMENT = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -461,6 +471,36 @@ WIDGET_DOCUMENT = """<!DOCTYPE html>
 <title>Widget</title>
 <style>
 html, body { margin: 0; padding: 0; background: transparent; }
+:root:root {
+  --jp-content-font-color0: var(--verso-cell-output-foreground, var(--verso-fg-default, black));
+  --jp-content-font-color1: var(--verso-cell-output-foreground, var(--verso-fg-default, black));
+  --jp-content-font-color2: var(--verso-fg-muted, rgba(0, 0, 0, 0.54));
+  --jp-content-font-color3: var(--verso-fg-muted, rgba(0, 0, 0, 0.38));
+  --jp-ui-font-color0: var(--verso-cell-output-foreground, var(--verso-fg-default, black));
+  --jp-ui-font-color1: var(--verso-cell-output-foreground, var(--verso-fg-default, rgba(0, 0, 0, 0.8)));
+  --jp-ui-font-color2: var(--verso-fg-muted, rgba(0, 0, 0, 0.54));
+  --jp-ui-font-color3: var(--verso-fg-muted, rgba(0, 0, 0, 0.38));
+  --jp-inverse-ui-font-color0: var(--verso-cell-output-background, var(--verso-bg-default, white));
+  --jp-inverse-ui-font-color1: var(--verso-cell-output-background, var(--verso-bg-default, white));
+  --jp-layout-color0: var(--verso-cell-output-background, var(--verso-bg-default, white));
+  --jp-layout-color1: var(--verso-cell-output-background, var(--verso-bg-default, white));
+  /* Not the page colour. These two are the face of a button, a tag, a progress bar, and the
+     unfilled part of a slider track, so they have to stand off the surface behind them rather
+     than match it. The border colour is the one value the host offers that is a step of
+     contrast in both themes, which is exactly what these need to be. */
+  --jp-layout-color2: var(--verso-border-default, #eeeeee);
+  --jp-layout-color3: var(--verso-border-default, #e0e0e0);
+  --jp-ui-layout-color1: var(--verso-cell-output-background, var(--verso-bg-default, white));
+  --jp-border-color0: var(--verso-border-default, #bdbdbd);
+  --jp-border-color1: var(--verso-border-default, #9e9e9e);
+  --jp-border-color2: var(--verso-border-default, #e0e0e0);
+  --jp-border-color3: var(--verso-border-default, #eeeeee);
+  --jp-brand-color0: var(--verso-accent-primary, #1976d2);
+  --jp-brand-color1: var(--verso-accent-primary, #2196f3);
+  --jp-ui-font-family: var(--verso-ui-font-family, sans-serif);
+  --jp-content-font-family: var(--verso-ui-font-family, sans-serif);
+  --jp-code-font-family: var(--verso-font-family-mono, monospace);
+}
 </style>
 </head>
 <body>

@@ -53,6 +53,53 @@ public sealed class NotebookSession : IAsyncDisposable
         // static output instead. A notebook is only open in this host because a client asked for
         // it, so there is always something on the other end of the notification.
         Scaffold.OutputChannels.Transport = new SessionOutputChannelTransport(this);
+
+        // Every other announcement that variables changed is made by whoever finished running
+        // something. A widget trait shared as a notebook variable changes it with nothing having
+        // run, so without this the client's picture of the store stands still until the next cell
+        // does: the variables panel keeps the old reading, and a layout watching for the change
+        // never hears it. Coalesced, because a kernel publishing its scope raises this once per
+        // name and a control being dragged raises it many times a second.
+        Scaffold.Variables.OnVariablesChanged += HandleVariablesChanged;
+    }
+
+    /// <summary>How long the store has to be quiet before the client is told it changed.</summary>
+    private static readonly TimeSpan VariableNotifyQuietPeriod = TimeSpan.FromMilliseconds(100);
+
+    private readonly object _variableNotifyGate = new();
+    private int _variableNotifyGeneration;
+    private bool _disposed;
+
+    /// <summary>
+    /// Counted rather than cancelled. A superseded wait wakes once and finds it is no longer the
+    /// latest, which costs a timer; cancelling would mean a token source per change, disposed
+    /// while another thread is still waiting on it, and anything thrown in there surfaces to the
+    /// notebook as a background failure rather than staying where it happened.
+    /// </summary>
+    private void HandleVariablesChanged()
+    {
+        int generation;
+        lock (_variableNotifyGate)
+        {
+            if (_disposed) return;
+            generation = ++_variableNotifyGeneration;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(VariableNotifyQuietPeriod).ConfigureAwait(false);
+
+                lock (_variableNotifyGate)
+                {
+                    if (_disposed || generation != _variableNotifyGeneration) return;
+                }
+
+                SendNotification(Protocol.MethodNames.VariableChanged);
+            }
+            catch { /* the client has gone; the session tears down on its own */ }
+        });
     }
 
     private void HandleKernelRestartFailed(string? kernelId, Exception ex)
@@ -222,6 +269,13 @@ public sealed class NotebookSession : IAsyncDisposable
         Scaffold.OnCellOutputUpdated -= HandleCellOutputUpdated;
         Scaffold.OnKernelRestartFailed -= HandleKernelRestartFailed;
         Scaffold.InputRequester = null;
+        Scaffold.Variables.OnVariablesChanged -= HandleVariablesChanged;
+
+        lock (_variableNotifyGate)
+        {
+            _disposed = true;
+            _variableNotifyGeneration++;
+        }
 
         // Detached before the scaffold is disposed below, so the channels it closes on the way out
         // do not write notifications for a session the client has already let go of.
