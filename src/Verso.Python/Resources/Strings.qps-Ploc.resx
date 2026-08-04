@@ -187,11 +187,11 @@
   <data name="Magic_Bind_Param_Target" xml:space="preserve">
     <value>[!!Thé wïdgét àñd thé tràït tò šhàré, wrïttéñ àš àñ éxpréššïòñ fòllòwéd bÿ thé tràït ñàmé.···!!]</value>
   </data>
-  <data name="Magic_Bind_Removed" xml:space="preserve">
-    <value>[!!'{0}' ñò lòñgér fòllòwš à wïdgét tràït. Ït kéépš thé vàlùé ït làšt héld.···!!]</value>
-  </data>
   <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
     <value>[!!Ùšàgé: #!bïñd --rémòvé &lt;ñàmé&gt;···!!]</value>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>[!!'{0}' ñò lòñgér fòllòwš à wïdgét tràït. Ït kéépš thé vàlùé ït làšt héld.···!!]</value>
   </data>
   <data name="Magic_Bind_Replaced" xml:space="preserve">
     <value>[!!Ït réplàçéš '{0}', whïçh šhàréd thé šàmé tràït.···!!]</value>
