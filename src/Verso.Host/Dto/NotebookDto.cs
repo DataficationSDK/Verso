@@ -131,6 +131,14 @@ public sealed class CellOutputDto
     /// it will not survive the round trip.
     /// </summary>
     public string? Channel { get; set; }
+
+    /// <summary>
+    /// The output channel keeping this output in conversation with the view that draws it, absent
+    /// for an output that is finished the moment it is written. Sent so the client can mount the
+    /// frame against the right channel, and never written to a file: a saved notebook holds the
+    /// last drawn state of a live output and no claim that it is still live.
+    /// </summary>
+    public string? LiveChannelId { get; set; }
 }
 
 public sealed class CellAddParams

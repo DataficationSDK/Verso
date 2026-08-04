@@ -1436,6 +1436,12 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "layout/frameMessage":
                 HandleLayoutFrameMessage(paramsJson);
                 break;
+            case "channel/post":
+                HandleOutputChannelPost(paramsJson);
+                break;
+            case "channel/closed":
+                HandleOutputChannelClosed(paramsJson);
+                break;
             case "theme/vscodeKindChanged":
                 HandleVsCodeThemeKindChanged(paramsJson);
                 break;
@@ -1516,6 +1522,77 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 payload));
         }
         catch (JsonException) { }
+    }
+
+    /// <summary>
+    /// A message from a channel's owner on its way to the view drawing it. Handed straight to the
+    /// interop, which is the only part that knows which frame is currently drawing a given channel,
+    /// so nothing on the page has to be involved and no component has to be alive to receive one.
+    /// </summary>
+    private void HandleOutputChannelPost(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(paramsJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("channelId", out var idEl)
+                || idEl.ValueKind != JsonValueKind.String)
+                return;
+            if (!root.TryGetProperty("messageType", out var typeEl)
+                || typeEl.ValueKind != JsonValueKind.String)
+                return;
+
+            // Cloned because the document is disposed when this method returns and the call into
+            // JS outlives it.
+            JsonElement? payload = root.TryGetProperty("payload", out var p)
+                ? p.Clone()
+                : null;
+
+            _ = PostToOutputChannelAsync(
+                idEl.GetString() ?? string.Empty,
+                typeEl.GetString() ?? string.Empty,
+                payload);
+        }
+        catch (JsonException) { }
+    }
+
+    /// <summary>
+    /// The channel behind a view is gone. The view is told so it can stop expecting answers and
+    /// show itself as no longer live.
+    /// </summary>
+    private void HandleOutputChannelClosed(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        var channelId = TryReadStringProperty(paramsJson, "channelId");
+        if (string.IsNullOrEmpty(channelId)) return;
+
+        _ = CloseOutputChannelAsync(
+            channelId, TryReadStringProperty(paramsJson, "reason") ?? string.Empty);
+    }
+
+    private async Task PostToOutputChannelAsync(string channelId, string messageType, JsonElement? payload)
+    {
+        try
+        {
+            await _js.InvokeVoidAsync(
+                "versoOutputChannel.post", channelId, messageType, payload);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+
+    private async Task CloseOutputChannelAsync(string channelId, string reason)
+    {
+        try
+        {
+            await _js.InvokeVoidAsync("versoOutputChannel.closed", channelId, reason);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     private void HandleKernelRestarting(string? paramsJson)
@@ -2100,7 +2177,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 "stdout" => OutputChannel.Stdout,
                 "stderr" => OutputChannel.Stderr,
                 _ => null
-            }
+            },
+            LiveChannelId = dto.LiveChannelId
         };
     }
 
@@ -2346,6 +2424,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? ErrorName { get; set; }
         public string? ErrorStackTrace { get; set; }
         public string? Channel { get; set; }
+        public string? LiveChannelId { get; set; }
     }
 
     private sealed class CellListResponse

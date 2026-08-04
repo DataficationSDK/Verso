@@ -58,6 +58,14 @@ public static class MethodNames
     // Cell interaction
     public const string CellInteract = "cell/interact";
 
+    // Output channels. The first two are requests a view sends when it mounts and when it has
+    // something to say; the last two are notifications carrying the other direction. A channel
+    // outlives the execution that opened it, so none of these belong with execution.
+    public const string ChannelReady = "channel/ready";
+    public const string ChannelMessage = "channel/message";
+    public const string ChannelPost = "channel/post";
+    public const string ChannelClosed = "channel/closed";
+
     // Layout
     public const string LayoutGetLayouts = "layout/getLayouts";
     public const string LayoutSwitch = "layout/switch";

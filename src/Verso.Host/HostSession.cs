@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Verso.Extensions;
+using Verso.Host.Channels;
 using Verso.Host.Dto;
 using Verso.Host.Handlers;
 using Verso.Host.Layouts;
@@ -46,6 +47,12 @@ public sealed class NotebookSession : IAsyncDisposable
         Scaffold.OnCellOutputUpdated += HandleCellOutputUpdated;
         Scaffold.OnKernelRestartFailed += HandleKernelRestartFailed;
         Scaffold.InputRequester = RequestInputAsync;
+
+        // Attaching this is what tells kernels that live output is worth producing: a session whose
+        // channels have nowhere to go reports none, and a kernel that finds none writes ordinary
+        // static output instead. A notebook is only open in this host because a client asked for
+        // it, so there is always something on the other end of the notification.
+        Scaffold.OutputChannels.Transport = new SessionOutputChannelTransport(this);
     }
 
     private void HandleKernelRestartFailed(string? kernelId, Exception ex)
@@ -216,6 +223,10 @@ public sealed class NotebookSession : IAsyncDisposable
         Scaffold.OnKernelRestartFailed -= HandleKernelRestartFailed;
         Scaffold.InputRequester = null;
 
+        // Detached before the scaffold is disposed below, so the channels it closes on the way out
+        // do not write notifications for a session the client has already let go of.
+        Scaffold.OutputChannels.Transport = null;
+
         // Cancel any pending consent requests
         foreach (var tcs in _pendingConsents.Values)
             tcs.TrySetResult(false);
@@ -352,6 +363,8 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.KernelGetHoverInfo => await KernelHandler.HandleGetHoverInfoAsync(ns, @params),
             MethodNames.OutputClearAll => OutputHandler.HandleClearAll(ns),
             MethodNames.CellInteract => await InteractionHandler.HandleInteractAsync(ns, @params),
+            MethodNames.ChannelReady => await OutputChannelHandler.HandleReadyAsync(ns, @params),
+            MethodNames.ChannelMessage => await OutputChannelHandler.HandleMessageAsync(ns, @params),
             MethodNames.NotebookGetCellTypes => NotebookHandler.HandleGetCellTypes(ns),
             MethodNames.LayoutGetLayouts => LayoutHandler.HandleGetLayouts(ns),
             MethodNames.LayoutSwitch => LayoutHandler.HandleSwitch(ns, @params),
