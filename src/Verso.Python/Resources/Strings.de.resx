@@ -151,6 +151,54 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>Python-Sprachkernel, der den auf diesem Rechner installierten Interpreter verwendet.</value>
   </data>
+  <data name="Magic_Bind_BadName" xml:space="preserve">
+    <value>'{0}' kann nicht als Variablenname verwendet werden. Verwenden Sie Buchstaben, Ziffern und Unterstriche, beginnend mit einem Buchstaben oder Unterstrich.</value>
+  </data>
+  <data name="Magic_Bind_Bound" xml:space="preserve">
+    <value>'{0}' folgt jetzt {1}.{2}. Jeder Kernel kann den Wert lesen, und ein Schreibzugriff bewegt das Widget.</value>
+  </data>
+  <data name="Magic_Bind_Description" xml:space="preserve">
+    <value>Teilt ein Merkmal eines Widgets als Notebook-Variable, sodass jeder Kernel es lesen kann und ein Schreibzugriff das Widget bewegt.</value>
+  </data>
+  <data name="Magic_Bind_Failed" xml:space="preserve">
+    <value>Das Merkmal konnte nicht geteilt werden: {0}</value>
+  </data>
+  <data name="Magic_Bind_Heading" xml:space="preserve">
+    <value>Als Variablen geteilte Widget-Merkmale:</value>
+  </data>
+  <data name="Magic_Bind_Name" xml:space="preserve">
+    <value>Widget-Merkmal teilen</value>
+  </data>
+  <data name="Magic_Bind_NeedsTrait" xml:space="preserve">
+    <value>'{0}' benennt kein Merkmal. Schreiben Sie Widget und Merkmal zusammen, etwa #!bind slider.value.</value>
+  </data>
+  <data name="Magic_Bind_NoSession" xml:space="preserve">
+    <value>Der Python-Kernel läuft nicht, daher gibt es kein Widget, dessen Merkmal geteilt werden könnte.</value>
+  </data>
+  <data name="Magic_Bind_None" xml:space="preserve">
+    <value>Es sind keine Widget-Merkmale als Variablen geteilt.</value>
+  </data>
+  <data name="Magic_Bind_NotFound" xml:space="preserve">
+    <value>'{0}' wird nicht aus einem Widget-Merkmal geteilt.</value>
+  </data>
+  <data name="Magic_Bind_Param_Name" xml:space="preserve">
+    <value>Der Variablenname, unter dem das Merkmal geteilt wird. Standard ist der Name des Merkmals.</value>
+  </data>
+  <data name="Magic_Bind_Param_Target" xml:space="preserve">
+    <value>Das Widget und das Merkmal, geschrieben als Ausdruck gefolgt vom Namen des Merkmals.</value>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>'{0}' folgt keinem Widget-Merkmal mehr und behält den zuletzt gehaltenen Wert.</value>
+  </data>
+  <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
+    <value>Verwendung: #!bind --remove &lt;name&gt;</value>
+  </data>
+  <data name="Magic_Bind_Replaced" xml:space="preserve">
+    <value>Es ersetzt '{0}', das dasselbe Merkmal geteilt hat.</value>
+  </data>
+  <data name="Magic_Bind_Usage" xml:space="preserve">
+    <value>Verwendung: #!bind &lt;expression&gt;.&lt;trait&gt; [as &lt;name&gt;], #!bind --list oder #!bind --remove &lt;name&gt;</value>
+  </data>
   <data name="Magic_Pip_Description" xml:space="preserve">
     <value>Installiert Python-Pakete über pip zur Verwendung in nachfolgendem Code.</value>
   </data>

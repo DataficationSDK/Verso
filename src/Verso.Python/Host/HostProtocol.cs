@@ -61,6 +61,25 @@ internal static class HostProtocol
 
     public const string WidgetSnapshotReply = "widget_snapshot_reply";
 
+    // Message types: cross-kernel projection. A projection is set up and taken down by request,
+    // and once it exists a value crosses in either direction as an event with nothing to answer:
+    // both sides already know which name changed, and neither waits on the other.
+
+    /// <summary>Asks for a trait to be projected into the shared variables under a name.</summary>
+    public const string Bind = "bind";
+
+    /// <summary>Asks for a projection to stop, named by <see cref="NameField"/>.</summary>
+    public const string Unbind = "unbind";
+
+    /// <summary>Answers either of the two, carrying the outcome under <see cref="BindingField"/>.</summary>
+    public const string BindReply = "bind_reply";
+
+    /// <summary>Carries a value another kernel wrote onto the trait it was projected from.</summary>
+    public const string BindSet = "bind_set";
+
+    /// <summary>Carries a changed trait out to the shared variables. Raised, never asked for.</summary>
+    public const string BindUpdate = "bind_update";
+
     // Field names: envelope.
     public const string TypeField = "type";
     public const string TokenField = "token";
@@ -172,6 +191,30 @@ internal static class HostProtocol
     public const string BuffersField = "buffers";
     public const string TargetNameField = "target_name";
 
+    // Field names: cross-kernel projection.
+
+    /// <summary>The expression naming the object a trait belongs to, read in the cell namespace.</summary>
+    public const string ExpressionField = "expression";
+
+    /// <summary>The trait being projected.</summary>
+    public const string TraitField = "trait";
+
+    /// <summary>The outcome of a bind or unbind request, carried on the reply.</summary>
+    public const string BindingField = "binding";
+
+    /// <summary>
+    /// The name of a projection this one supersedes. The same trait of the same object is only
+    /// ever projected once, so binding it again under a second name moves it rather than
+    /// doubling it, and this is what lets the managing side drop the entry it held.
+    /// </summary>
+    public const string ReplacedField = "replaced";
+
+    /// <summary>Whether an unbind request found a projection to stop.</summary>
+    public const string RemovedField = "removed";
+
+    /// <summary>Why a bind request was refused, written for the author of the cell.</summary>
+    public const string ReasonField = "reason";
+
     /// <summary>
     /// The <see cref="MsgTypeField"/> value of an acknowledgement. Not one of the three comm
     /// messages: it belongs to this transport, and it exists because the front end is waiting for
@@ -235,6 +278,13 @@ internal static class HostProtocol
     public const string CommCapability = "comm";
 
     /// <summary>
+    /// Advertised in the handshake when the subprocess can project a trait into the shared
+    /// variables. A host script predating this ignores the request, so this is what keeps a
+    /// magic command from waiting out a deadline for a reply that will never come.
+    /// </summary>
+    public const string BindCapability = "bind";
+
+    /// <summary>
     /// Nesting ceiling for a frame. Both sides reduce a variable to at most 100 levels, and the
     /// message envelope wraps that, so the transport has to allow more than the default 64 or a
     /// legitimately deep value would be rejected as a malformed frame. Frames come from this
@@ -290,7 +340,7 @@ internal static class HostProtocol
     /// </summary>
     public static bool IsReply(string? messageType)
         => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply
-            or ScanReply or WidgetSnapshotReply;
+            or ScanReply or WidgetSnapshotReply or BindReply;
 
     /// <summary>
     /// Whether a message belongs to the cell that is running rather than to the session. Two

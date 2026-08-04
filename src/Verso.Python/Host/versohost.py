@@ -32,6 +32,7 @@ from collections import deque
 
 # Siblings of this script, extracted alongside it. Imported before the working directory
 # joins sys.path so a file in the notebook's folder cannot stand in for either.
+import _versohost_bind as bind_support
 import _versohost_comm as comm_support
 import _versohost_display as display_support
 import _versohost_intel as intel_support
@@ -543,6 +544,10 @@ class HostSession:
         # stand-in that discards what it is given, and nothing would put that right.
         comm_support.install(self.channel.write, self._report_comm_refusal)
 
+        # Nothing is watched until a cell asks for it, so this only hands over the writer a
+        # trait change travels on and the way a refusal is explained.
+        bind_support.install(self.channel.write, self._report_bind_problem)
+
         builtins.input = self._input
         builtins.display = display_support.display
         builtins.__verso_shell__ = self._shell
@@ -575,6 +580,14 @@ class HostSession:
         stopped agreeing about what a widget holds.
         """
         self.router.write_error("stderr", text + "\n", "WidgetMessageRefused")
+
+    def _report_bind_problem(self, text):
+        """
+        Report a projected value that did not cross. Written as a failure for the reason a
+        refused widget message is: nothing else in the notebook shows that a shared name and the
+        widget behind it have stopped agreeing.
+        """
+        self.router.write_error("stderr", text + "\n", "BindRefused")
 
     def handle_comm(self, message):
         """Hand an inbound comm message to the widget it names, on this thread."""
@@ -854,6 +867,54 @@ class HostSession:
 
         self._write_reply("widget_snapshot_reply", request_id, "data", document)
 
+    # --- cross-kernel projection ---
+
+    def bind(self, message):
+        """
+        Start projecting one trait into the shared variables, and report the outcome.
+
+        Answered on the main thread because the expression naming the widget is resolved in the
+        cell namespace, which is only settled between cells. It is also where the trait's current
+        value is read, and that value travels back with the reply so the name is readable from
+        another kernel straight away rather than only after the next change.
+        """
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        try:
+            outcome = bind_support.bind(
+                self.scope,
+                message.get("expression"),
+                message.get("trait"),
+                message.get("name"))
+        except Exception as error:
+            outcome = {"status": "error", "reason": str(error)}
+
+        self._write_reply("bind_reply", request_id, "binding", outcome)
+
+    def unbind(self, message):
+        """Stop projecting one name, and report whether there was one to stop."""
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        try:
+            removed = bind_support.unbind(message.get("name"))
+            outcome = {"status": "ok", "removed": removed}
+        except Exception as error:
+            outcome = {"status": "error", "reason": str(error)}
+
+        self._write_reply("bind_reply", request_id, "binding", outcome)
+
+    def apply_bind(self, message):
+        """
+        Set a value another kernel wrote onto the trait it was projected from. Nothing is sent
+        back: the assignment raises the trait's own notification, which travels the ordinary way.
+        """
+        try:
+            bind_support.apply(message.get("name"), message.get("value"))
+        except Exception:
+            # Every way this can fail is already explained where it happens, and the loop that
+            # called this has messages after this one to get to.
+            pass
+
     def _write_reply(self, reply_type, request_id, field, payload):
         try:
             self.channel.write({"type": reply_type, "req_id": request_id, field: payload})
@@ -970,7 +1031,7 @@ def _has_jedi():
 def _hello_payload(token):
     capabilities = [
         "execute", "stream", "display", "input", "interrupt",
-        "complete", "hover", "diagnostics", "scan_imports", "comm",
+        "complete", "hover", "diagnostics", "scan_imports", "comm", "bind",
     ]
     if _has_jedi():
         capabilities.append("jedi")
@@ -1073,6 +1134,15 @@ def _run(channel, session):
             # settled between cells. A save that arrives mid-cell waits, and the asking side
             # gives up rather than holding the save open.
             session.widget_snapshot(message)
+        elif kind == "bind":
+            session.bind(message)
+        elif kind == "unbind":
+            session.unbind(message)
+        elif kind == "bind_set":
+            # On this thread for the reason a comm message is: setting a trait runs the observers
+            # the author registered, which is their own code, and it belongs on the thread their
+            # cells run on rather than beside them on the one reading the socket.
+            session.apply_bind(message)
         # Other message types are handled by later layers; ignore them here.
 
 

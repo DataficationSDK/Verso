@@ -151,6 +151,54 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>このマシンにインストールされたインタープリターで動く Python 言語カーネル。</value>
   </data>
+  <data name="Magic_Bind_BadName" xml:space="preserve">
+    <value>'{0}' は変数名として使えません。英字またはアンダースコアで始め、英数字とアンダースコアを使ってください。</value>
+  </data>
+  <data name="Magic_Bind_Bound" xml:space="preserve">
+    <value>'{0}' は {1}.{2} に追従するようになりました。どのカーネルからも読め、書き込むとウィジェットが動きます。</value>
+  </data>
+  <data name="Magic_Bind_Description" xml:space="preserve">
+    <value>ウィジェットのトレイトをノートブックの変数として共有します。どのカーネルからも読め、書き込むとウィジェットが動きます。</value>
+  </data>
+  <data name="Magic_Bind_Failed" xml:space="preserve">
+    <value>トレイトを共有できませんでした: {0}</value>
+  </data>
+  <data name="Magic_Bind_Heading" xml:space="preserve">
+    <value>変数として共有されているウィジェットのトレイト:</value>
+  </data>
+  <data name="Magic_Bind_Name" xml:space="preserve">
+    <value>ウィジェットのトレイトを共有</value>
+  </data>
+  <data name="Magic_Bind_NeedsTrait" xml:space="preserve">
+    <value>'{0}' はトレイトを指していません。#!bind slider.value のようにウィジェットとトレイトを続けて書いてください。</value>
+  </data>
+  <data name="Magic_Bind_NoSession" xml:space="preserve">
+    <value>Python カーネルが動いていないため、トレイトを共有できるウィジェットがありません。</value>
+  </data>
+  <data name="Magic_Bind_None" xml:space="preserve">
+    <value>変数として共有されているウィジェットのトレイトはありません。</value>
+  </data>
+  <data name="Magic_Bind_NotFound" xml:space="preserve">
+    <value>'{0}' はウィジェットのトレイトから共有されていません。</value>
+  </data>
+  <data name="Magic_Bind_Param_Name" xml:space="preserve">
+    <value>トレイトを共有する変数名。既定ではトレイト自身の名前です。</value>
+  </data>
+  <data name="Magic_Bind_Param_Target" xml:space="preserve">
+    <value>共有するウィジェットとトレイト。式に続けてトレイト名を書きます。</value>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>'{0}' はウィジェットのトレイトに追従しなくなりました。最後の値はそのまま残ります。</value>
+  </data>
+  <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
+    <value>使い方: #!bind --remove &lt;name&gt;</value>
+  </data>
+  <data name="Magic_Bind_Replaced" xml:space="preserve">
+    <value>同じトレイトを共有していた '{0}' を置き換えます。</value>
+  </data>
+  <data name="Magic_Bind_Usage" xml:space="preserve">
+    <value>使い方: #!bind &lt;expression&gt;.&lt;trait&gt; [as &lt;name&gt;]、#!bind --list、または #!bind --remove &lt;name&gt;</value>
+  </data>
   <data name="Magic_Pip_Description" xml:space="preserve">
     <value>以降のコードで使う Python パッケージを pip でインストールします。</value>
   </data>

@@ -151,6 +151,54 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>[!!Pÿthòñ làñgùàgé kérñél rùññïñg thé ïñtérprétér ïñštàlléd òñ thïš màçhïñé.···!!]</value>
   </data>
+  <data name="Magic_Bind_BadName" xml:space="preserve">
+    <value>[!!'{0}' çàññòt bé ùšéd àš à vàrïàblé ñàmé. Ùšé léttérš, dïgïtš, àñd ùñdéršçòréš, štàrtïñg wïth à léttér òr àñ ùñdéršçòré.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Bound" xml:space="preserve">
+    <value>[!!'{0}' ñòw fòllòwš {1}.{2}. Àñÿ kérñél çàñ réàd ït, àñd wrïtïñg ït mòvéš thé wïdgét.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Description" xml:space="preserve">
+    <value>[!!Šhàréš à wïdgét'š tràït àš à ñòtébòòk vàrïàblé, šò àñÿ kérñél çàñ réàd ït àñd wrïtïñg ït mòvéš thé wïdgét.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Failed" xml:space="preserve">
+    <value>[!!Thé tràït çòùld ñòt bé šhàréd: {0}···!!]</value>
+  </data>
+  <data name="Magic_Bind_Heading" xml:space="preserve">
+    <value>[!!Wïdgét tràïtš šhàréd àš vàrïàbléš:···!!]</value>
+  </data>
+  <data name="Magic_Bind_Name" xml:space="preserve">
+    <value>[!!Šhàré wïdgét tràït···!!]</value>
+  </data>
+  <data name="Magic_Bind_NeedsTrait" xml:space="preserve">
+    <value>[!!'{0}' dòéš ñòt ñàmé à tràït. Wrïté thé wïdgét àñd thé tràït tògéthér, šùçh àš #!bïñd šlïdér.vàlùé.···!!]</value>
+  </data>
+  <data name="Magic_Bind_NoSession" xml:space="preserve">
+    <value>[!!Thé Pÿthòñ kérñél ïš ñòt rùññïñg, šò théré ïš ñò wïdgét tò šhàré à tràït fròm.···!!]</value>
+  </data>
+  <data name="Magic_Bind_None" xml:space="preserve">
+    <value>[!!Ñò wïdgét tràïtš àré šhàréd àš vàrïàbléš.···!!]</value>
+  </data>
+  <data name="Magic_Bind_NotFound" xml:space="preserve">
+    <value>[!!'{0}' ïš ñòt šhàréd fròm à wïdgét tràït.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Param_Name" xml:space="preserve">
+    <value>[!!Thé vàrïàblé ñàmé tò šhàré thé tràït ùñdér. Défàùltš tò thé tràït'š òwñ ñàmé.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Param_Target" xml:space="preserve">
+    <value>[!!Thé wïdgét àñd thé tràït tò šhàré, wrïttéñ àš àñ éxpréššïòñ fòllòwéd bÿ thé tràït ñàmé.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>[!!'{0}' ñò lòñgér fòllòwš à wïdgét tràït. Ït kéépš thé vàlùé ït làšt héld.···!!]</value>
+  </data>
+  <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
+    <value>[!!Ùšàgé: #!bïñd --rémòvé &lt;ñàmé&gt;···!!]</value>
+  </data>
+  <data name="Magic_Bind_Replaced" xml:space="preserve">
+    <value>[!!Ït réplàçéš '{0}', whïçh šhàréd thé šàmé tràït.···!!]</value>
+  </data>
+  <data name="Magic_Bind_Usage" xml:space="preserve">
+    <value>[!!Ùšàgé: #!bïñd &lt;éxpréššïòñ&gt;.&lt;tràït&gt; [àš &lt;ñàmé&gt;], #!bïñd --lïšt, òr #!bïñd --rémòvé &lt;ñàmé&gt;···!!]</value>
+  </data>
   <data name="Magic_Pip_Description" xml:space="preserve">
     <value>[!!Ïñštàllš Pÿthòñ pàçkàgéš vïà pïp fòr ùšé ïñ šùbšéqùéñt çòdé.···!!]</value>
   </data>

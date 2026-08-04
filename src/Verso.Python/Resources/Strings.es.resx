@@ -151,6 +151,54 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>Kernel del lenguaje Python que ejecuta el intérprete instalado en este equipo.</value>
   </data>
+  <data name="Magic_Bind_BadName" xml:space="preserve">
+    <value>'{0}' no puede usarse como nombre de variable. Use letras, dígitos y guiones bajos, empezando por una letra o un guion bajo.</value>
+  </data>
+  <data name="Magic_Bind_Bound" xml:space="preserve">
+    <value>'{0}' ahora sigue a {1}.{2}. Cualquier kernel puede leerlo, y escribirlo mueve el widget.</value>
+  </data>
+  <data name="Magic_Bind_Description" xml:space="preserve">
+    <value>Comparte un rasgo de un widget como variable del cuaderno, de modo que cualquier kernel puede leerlo y escribirlo mueve el widget.</value>
+  </data>
+  <data name="Magic_Bind_Failed" xml:space="preserve">
+    <value>No se pudo compartir el rasgo: {0}</value>
+  </data>
+  <data name="Magic_Bind_Heading" xml:space="preserve">
+    <value>Rasgos de widget compartidos como variables:</value>
+  </data>
+  <data name="Magic_Bind_Name" xml:space="preserve">
+    <value>Compartir rasgo de widget</value>
+  </data>
+  <data name="Magic_Bind_NeedsTrait" xml:space="preserve">
+    <value>'{0}' no nombra ningún rasgo. Escriba el widget y el rasgo juntos, por ejemplo #!bind slider.value.</value>
+  </data>
+  <data name="Magic_Bind_NoSession" xml:space="preserve">
+    <value>El kernel de Python no está en ejecución, así que no hay ningún widget del que compartir un rasgo.</value>
+  </data>
+  <data name="Magic_Bind_None" xml:space="preserve">
+    <value>No hay rasgos de widget compartidos como variables.</value>
+  </data>
+  <data name="Magic_Bind_NotFound" xml:space="preserve">
+    <value>'{0}' no se comparte desde un rasgo de widget.</value>
+  </data>
+  <data name="Magic_Bind_Param_Name" xml:space="preserve">
+    <value>El nombre de variable con el que compartir el rasgo. De forma predeterminada, el nombre del propio rasgo.</value>
+  </data>
+  <data name="Magic_Bind_Param_Target" xml:space="preserve">
+    <value>El widget y el rasgo que compartir, escritos como una expresión seguida del nombre del rasgo.</value>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>'{0}' ya no sigue a un rasgo de widget y conserva el último valor que tuvo.</value>
+  </data>
+  <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
+    <value>Uso: #!bind --remove &lt;name&gt;</value>
+  </data>
+  <data name="Magic_Bind_Replaced" xml:space="preserve">
+    <value>Reemplaza a '{0}', que compartía el mismo rasgo.</value>
+  </data>
+  <data name="Magic_Bind_Usage" xml:space="preserve">
+    <value>Uso: #!bind &lt;expression&gt;.&lt;trait&gt; [as &lt;name&gt;], #!bind --list o #!bind --remove &lt;name&gt;</value>
+  </data>
   <data name="Magic_Pip_Description" xml:space="preserve">
     <value>Instala paquetes de Python con pip para usarlos en el código posterior.</value>
   </data>

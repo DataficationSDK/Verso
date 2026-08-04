@@ -238,7 +238,7 @@ jobs:
         run: |
           python -m venv .widget-env
           .widget-env/bin/python -m pip install --quiet --upgrade pip pytest ipywidgets
-          .widget-env/bin/python -m pytest tests/versohost/test_display.py tests/versohost/test_comm.py -q
+          .widget-env/bin/python -m pytest tests/versohost/test_display.py tests/versohost/test_comm.py tests/versohost/test_bind.py -q
 
   vscode-extension:
     name: VS Code Extension

@@ -126,6 +126,35 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
         return session.Interpreter?.Executable;
     }
 
+    /// <summary>
+    /// The running session, bound to the notebook first so a command in the very first cell acts
+    /// on the same interpreter the cell below it will run in. Null when none could be started.
+    /// </summary>
+    internal async Task<PythonHostSession?> GetBoundSessionAsync(
+        IVersoContext context, CancellationToken cancellationToken)
+    {
+        if (!_initialized)
+            await InitializeAsync().ConfigureAwait(false);
+
+        var session = _session;
+        if (session is null)
+            return null;
+
+        try
+        {
+            await session.EnsureBoundAsync(PythonHostSession.NotebookDirectory(context), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // No interpreter, or one that will not start. The session reports that itself the
+            // first time a cell runs; here it simply means there is nothing to act on.
+            return null;
+        }
+
+        return session;
+    }
+
     // --- IExtension ---
 
     public string ExtensionId => "verso.kernel.python";

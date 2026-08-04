@@ -361,4 +361,21 @@ public sealed class DisplayMappingTests
         // its whole deadline for one that already arrived and then writes the page it had.
         Assert.IsTrue(HostProtocol.IsReply(HostProtocol.WidgetSnapshotReply));
     }
+
+    [TestMethod]
+    public void BindReply_CompletesItsRequest()
+    {
+        // The same trap: without this the answer goes to the event stream, the magic command
+        // waits out its whole deadline, and the only sign is one line on standard error.
+        Assert.IsTrue(HostProtocol.IsReply(HostProtocol.BindReply));
+    }
+
+    [TestMethod]
+    public void BindUpdate_IsNotOwnedByARunningCell()
+    {
+        // A trait changes when the widget is touched, which is most often between cells. Marking
+        // it execution-scoped would have the session handler ignore it and report it undelivered.
+        Assert.IsFalse(HostProtocol.IsExecutionScoped(HostProtocol.BindUpdate));
+        Assert.IsFalse(HostProtocol.IsReply(HostProtocol.BindUpdate));
+    }
 }
