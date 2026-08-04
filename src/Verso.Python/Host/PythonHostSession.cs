@@ -58,6 +58,12 @@ internal sealed class PythonHostSession : IAsyncDisposable
     /// <summary>Assembles streamed text into terminal-like lines. Replaced for each cell.</summary>
     private StreamLineAssembler _lines = new();
 
+    /// <summary>
+    /// Carries widget comm traffic in both directions. Held for the session rather than for a
+    /// cell, because a widget is interacted with after the cell that drew it has finished.
+    /// </summary>
+    private readonly PythonCommRouter _comms;
+
     /// <summary>Where each revisable block sits in the outputs this cell will return.</summary>
     private readonly Dictionary<string, int> _blockIndexes = new(StringComparer.Ordinal);
     private bool _crashed;
@@ -79,6 +85,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
             options.EnableShellEscapes,
             options.VariablePublishLimitBytes);
         _autoInstall = new AutoInstallService(options);
+        _comms = new PythonCommRouter(SendToSubprocessAsync);
     }
 
     /// <summary>
@@ -582,6 +589,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
+        _comms.Clear();
+
         if (_process is not null)
         {
             _process.EventReceived -= OnSessionEvent;
@@ -640,6 +649,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
         _unavailable.Clear();
         _statusChanges.Clear();
         _oversizeReported.Clear();
+
+        // Every widget the old interpreter held is gone with it, so the views still drawing them
+        // have nothing left to talk to. They are told separately that their channels have closed;
+        // what this does is stop the new interpreter from being handed the old one's conversations.
+        _comms.Clear();
 
         await process.StartAsync(cancellationToken).ConfigureAwait(false);
 
@@ -780,6 +794,9 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 "within the grace period and was stopped, so interpreter state was reset."),
             context, outputs).ConfigureAwait(false);
 
+        // The interpreter that held them is being replaced, so its widgets are gone too.
+        _comms.Clear();
+
         try { await process.RespawnAsync(CancellationToken.None).ConfigureAwait(false); }
         catch { /* the next execution retries the restart and reports its own failure */ }
 
@@ -798,6 +815,29 @@ internal sealed class PythonHostSession : IAsyncDisposable
     internal event Action<JsonObject>? EventUnclaimed;
 
     /// <summary>
+    /// Starts carrying a widget's comm traffic over a channel. Called by whatever opened the
+    /// channel for a live output, once, as soon as it has one.
+    /// </summary>
+    internal void TrackCommChannel(IOutputChannel channel) => _comms.Track(channel);
+
+    /// <summary>
+    /// Writes one frame to the subprocess without expecting an answer. A connection that has
+    /// gone is not reported: the parts of the session that own it already say so, and a widget
+    /// update is not where a user should first hear that their kernel died.
+    /// </summary>
+    private async Task SendToSubprocessAsync(JsonObject frame)
+    {
+        var connection = _process?.Connection;
+        if (connection is null)
+            return;
+
+        try { await connection.SendAsync(frame, CancellationToken.None).ConfigureAwait(false); }
+        catch (PythonHostException) { }
+        catch (IOException) { }
+        catch (ObjectDisposedException) { }
+    }
+
+    /// <summary>
     /// The session's own event handler, attached for as long as the subprocess lives rather than
     /// for the length of a cell. It answers the types the per-execution handler does not, and
     /// reports what neither of them takes. Runs on the read pump, so it does no work of its own.
@@ -805,6 +845,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private void OnSessionEvent(JsonObject message)
     {
         var messageType = HostProtocol.GetMessageType(message);
+
+        if (messageType == HostProtocol.Comm)
+        {
+            // Started rather than awaited, because this runs on the read pump and delivering to a
+            // view can mean a round trip of its own. The router puts each frame behind the one
+            // before it, so handing them over without waiting does not reorder them.
+            _ = _comms.RouteAsync(message);
+            return;
+        }
 
         if (HostProtocol.IsExecutionScoped(messageType))
         {

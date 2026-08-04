@@ -32,6 +32,7 @@ from collections import deque
 
 # Siblings of this script, extracted alongside it. Imported before the working directory
 # joins sys.path so a file in the notebook's folder cannot stand in for either.
+import _versohost_comm as comm_support
 import _versohost_display as display_support
 import _versohost_intel as intel_support
 import _versohost_scan as scan_support
@@ -537,6 +538,11 @@ class HostSession:
 
         display_support.install(self._emit_display)
 
+        # Before any user code runs, because a widget opens its comm while it is being built.
+        # Installed later, every widget constructed in the meantime would already hold the
+        # stand-in that discards what it is given, and nothing would put that right.
+        comm_support.install(self.channel.write, self._report_comm_refusal)
+
         builtins.input = self._input
         builtins.display = display_support.display
         builtins.__verso_shell__ = self._shell
@@ -561,6 +567,23 @@ class HostSession:
                 signal.signal(sigbreak, _raise_keyboard_interrupt)
             except (ValueError, OSError):
                 pass  # no console attached; the interrupt message path still applies
+
+    def _report_comm_refusal(self, text):
+        """
+        Report a widget message the host would not send. Written as a failure rather than as
+        ordinary output: nothing else in the notebook will show that the browser and Python have
+        stopped agreeing about what a widget holds.
+        """
+        self.router.write_error("stderr", text + "\n", "WidgetMessageRefused")
+
+    def handle_comm(self, message):
+        """Hand an inbound comm message to the widget it names, on this thread."""
+        try:
+            comm_support.dispatch(message)
+        except Exception:
+            # A widget's own handler failing is the widget's problem to report, and the loop
+            # that called this has messages after this one to get to.
+            pass
 
     def _thread_excepthook(self, args):
         """Report an unhandled background-thread exception as a failure rather than as text."""
@@ -915,7 +938,7 @@ def _has_jedi():
 def _hello_payload(token):
     capabilities = [
         "execute", "stream", "display", "input", "interrupt",
-        "complete", "hover", "diagnostics", "scan_imports",
+        "complete", "hover", "diagnostics", "scan_imports", "comm",
     ]
     if _has_jedi():
         capabilities.append("jedi")
@@ -1006,6 +1029,13 @@ def _run(channel, session):
             # scan is always sequenced immediately before its own cell's execute, so this
             # thread is between cells when it arrives.
             session.scan_imports(message)
+        elif kind == "comm_msg":
+            # Here rather than on the reader thread, which handles only the two kinds that run
+            # no user code of their own. Setting a trait runs every observer the author
+            # registered, so it belongs on the thread the author's own cell runs on. The cost is
+            # that a message arriving mid-cell waits for the cell, which is the same ordering a
+            # Jupyter kernel gives it.
+            session.handle_comm(message)
         # Other message types are handled by later layers; ignore them here.
 
 

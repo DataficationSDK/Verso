@@ -47,6 +47,12 @@ internal static class HostProtocol
     public const string ScanImports = "scan_imports";
     public const string ScanReply = "scan_reply";
 
+    // Message types: widget comms. Both directions carry the same body; only the envelope
+    // differs, because one is an event the subprocess raises and the other is something the
+    // host tells it. Neither concludes a request.
+    public const string Comm = "comm";
+    public const string CommMsg = "comm_msg";
+
     // Field names: envelope.
     public const string TypeField = "type";
     public const string TokenField = "token";
@@ -100,6 +106,28 @@ internal static class HostProtocol
     public const string ValueField = "value";
     public const string DisplayIdField = "display_id";
 
+    // Field names: widget comms.
+
+    /// <summary>
+    /// The output channel a comm message belongs to. Absent on a message the subprocess raised
+    /// without being asked, which belongs to the session rather than to any one view.
+    /// </summary>
+    public const string ChannelIdField = "channel_id";
+
+    /// <summary>The widget model a comm message is about, which is also the comm's own id.</summary>
+    public const string CommIdField = "comm_id";
+
+    /// <summary>
+    /// Which of the three comm messages this is: <c>comm_open</c>, <c>comm_msg</c>, or
+    /// <c>comm_close</c>. Carried inside the frame rather than as its type, so the host relays
+    /// the body without reading it.
+    /// </summary>
+    public const string MsgTypeField = "msg_type";
+
+    public const string MetadataField = "metadata";
+    public const string BuffersField = "buffers";
+    public const string TargetNameField = "target_name";
+
     // Field names: completion, hover, and diagnostic requests and replies.
     public const string CursorField = "cursor";
     public const string HistoryField = "history";
@@ -147,6 +175,13 @@ internal static class HostProtocol
     /// side from waiting out a deadline for a reply that will never come.
     /// </summary>
     public const string ScanCapability = "scan_imports";
+
+    /// <summary>
+    /// Advertised in the handshake when the subprocess can carry widget comm traffic. A host
+    /// script predating this exchanges nothing and drops what it is sent, so this is what lets
+    /// the managing side offer a live view only when there is something on the other end of it.
+    /// </summary>
+    public const string CommCapability = "comm";
 
     /// <summary>
     /// Nesting ceiling for a frame. Both sides reduce a variable to at most 100 levels, and the

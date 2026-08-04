@@ -33,6 +33,33 @@ public sealed class HostScriptExtractorTests
         StringAssert.Contains(content, "def main");
     }
 
+    /// <summary>
+    /// Every embedded host script has to be written out, and the list of what to write is kept by
+    /// hand. A module packed but not listed is missing only when the script that imports it runs,
+    /// which is a failed session rather than a failed build, so the two lists are compared here.
+    /// </summary>
+    [TestMethod]
+    public void EnsureExtracted_WritesEveryEmbeddedHostScript()
+    {
+        const string prefix = "Verso.Python.Host.";
+
+        var packed = typeof(HostScriptExtractor).Assembly
+            .GetManifestResourceNames()
+            .Where(name => name.StartsWith(prefix, StringComparison.Ordinal) && name.EndsWith(".py", StringComparison.Ordinal))
+            .Select(name => name.Substring(prefix.Length))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var directory = Path.GetDirectoryName(HostScriptExtractor.EnsureExtracted(_root))!;
+
+        var written = Directory.GetFiles(directory, "*.py")
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        CollectionAssert.AreEqual(packed, written);
+    }
+
     [TestMethod]
     public void EnsureExtracted_IsIdempotent()
     {
