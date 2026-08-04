@@ -289,11 +289,21 @@
         // The body's own height is what the content actually came to. Both readings of it are
         // taken because a widget that positions a part of itself out of the normal flow is taller
         // than its layout box says, and neither reading alone catches both.
+        //
+        // The children's own bottoms are a third reading, for the box neither of the others can
+        // see: a margin that collapses through the body belongs to no box the body measures, and
+        // the content it offsets paints below everything the body claims to hold. An output area
+        // opens with exactly that shape, so without this reading a document holding only one is
+        // sized to a fraction of itself and shows as a blank strip.
         '    function report() {',
         '        var body = document.body;',
         '        if (!body) { return; }',
         '',
         '        var height = Math.max(body.scrollHeight, body.offsetHeight);',
+        '        for (var i = 0; i < body.children.length; i++) {',
+        '            var edge = body.children[i].getBoundingClientRect().bottom + (window.pageYOffset || 0);',
+        '            if (edge > height) { height = Math.ceil(edge); }',
+        '        }',
         '        if (height > 0 && height !== last) {',
         '            last = height;',
         '            parent.postMessage({ type: "verso/widget-height", height: height }, "*");',
@@ -452,6 +462,15 @@
             '    var comms = Object.create(null);',
             '    var counter = 0;',
             '',
+            // Kernel-initiated messages held until the state snapshot has been applied, and null
+            // once it has. A channel opened while its cell was still running receives the tail of
+            // a conversation whose beginning predates it: comm_opens whose dependencies never
+            // arrived, updates the snapshot supersedes. Applied as they arrive they build models
+            // from partial graphs, and a model that fails to build poisons its id for the real
+            // state that follows. Held instead, they wait for the snapshot, which is newer than
+            // all of them and complete.
+            '    var pending = [];',
+            '',
             // What each message in flight is waiting to be told. The front end sends one change
             // at a time and merges everything that accumulates behind it into a single later
             // message, and what releases the next one is being told the last has been applied.
@@ -600,6 +619,31 @@
             '        if (comm._onMessage) { comm._onMessage(message); }',
             '    }',
             '',
+            // Whether the manager holds a model under this id, without the exception get_model
+            // raises for an id it has never seen. Absence is an ordinary answer here, not a fault.
+            '    function hasModel(manager, modelId) {',
+            '        try { return !!manager.has_model(modelId); }',
+            '        catch (e) { return false; }',
+            '    }',
+            '',
+            // Applies what was held once the snapshot is in. The snapshot was taken after every
+            // one of these was sent, so anything it covers is delivered already and newer: a held
+            // open for a model it built is the old telling of a state it told better, and a held
+            // update likewise. What it does not cover is a widget born while the snapshot was in
+            // flight, and those are applied in the order they arrived. A close is applied
+            // regardless, because nothing supersedes being told a conversation is over.
+            '    function drainPending(manager) {',
+            '        var held = pending;',
+            '        pending = null;',
+            '        held.forEach(function (body) {',
+            '            if (!body || !body.comm_id) { return; }',
+            '            var msgType = body.msg_type || "comm_msg";',
+            '            if (msgType !== "comm_close" && hasModel(manager, body.comm_id)) { return; }',
+            '            try { deliver(manager, body); }',
+            '            catch (e) { complain("a widget message could not be applied", e); }',
+            '        });',
+            '    }',
+            '',
             // Taken before the loader looks for it, so the saved state is this view's fallback
             // rather than a second widget drawn under the live one.
             '    function claimState() {',
@@ -676,7 +720,16 @@
             '            window.addEventListener("verso:channelmessage", function (event) {',
             '                var detail = event.detail || {};',
             '                if (detail.type !== "comm") { return; }',
-            '                try { deliver(manager, detail.payload); }',
+            '                var body = detail.payload;',
+            // A conversation this view opened for itself answers now: the snapshot the
+            // bootstrap below waits on travels over one of those. Everything the kernel
+            // starts is held until the snapshot has landed, because it can be older than
+            // the snapshot and never says more.
+            '                if (pending !== null && !(body && body.comm_id && comms[body.comm_id])) {',
+            '                    pending.push(body);',
+            '                    return;',
+            '                }',
+            '                try { deliver(manager, body); }',
             '                catch (e) { complain("a widget message could not be applied", e); }',
             '            });',
             '',
@@ -689,11 +742,14 @@
             '            }).then(function () {',
             // Checked rather than caught. An interpreter that has gone away is reported as a
             // timeout by one path and as an empty answer by another, and only one of the two
-            // arrives as a rejection, so what matters is whether the models turned up.
-            '                var missing = slots.filter(function (slot) { return !manager.get_model(slot.modelId); });',
+            // arrives as a rejection, so what matters is whether the models turned up. The
+            // check goes through hasModel because get_model raises for an unknown id, and an
+            // id being unknown is precisely the case being tested for.
+            '                var missing = slots.filter(function (slot) { return !hasModel(manager, slot.modelId); });',
             '                if (!missing.length || !saved) { return; }',
             '                return manager.set_state(saved);',
             '            }).then(function () {',
+            '                drainPending(manager);',
             '                return draw(manager, slots);',
             '            }).catch(function (error) {',
             '                complain("a widget could not be drawn", error);',
@@ -705,9 +761,10 @@
             '',
             '    function draw(manager, slots) {',
             '        return Promise.all(slots.map(function (slot) {',
-            '            var model = manager.get_model(slot.modelId);',
-            '            if (!model) { return null; }',
-            '            return Promise.resolve(model).then(function (resolved) {',
+            // Guarded by hasModel because get_model raises for an id it has never seen, and a
+            // slot whose model never turned up should draw nothing rather than stop the rest.
+            '            if (!hasModel(manager, slot.modelId)) { return null; }',
+            '            return Promise.resolve(manager.get_model(slot.modelId)).then(function (resolved) {',
             '                return manager.create_view(resolved);',
             '            }).then(function (view) {',
             '                return manager.display_view(view, slot.host);',
