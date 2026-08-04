@@ -409,9 +409,36 @@ public sealed class CommRoutingTests
         await harness.Router.RouteAsync(harness.Frame("widget-1"));
 
         Assert.AreEqual(0, harness.Transport.Posted.Count);
+    }
 
-        // And the channel itself is untouched, because a restart is not a reason to tell a view
-        // something its own host has not decided yet.
-        Assert.IsTrue(channel.IsAlive);
+    [TestMethod]
+    public async Task ClearingTellsEveryViewThatItIsNoLongerLive()
+    {
+        var harness = new Harness();
+        var channel = await harness.MountedChannelAsync();
+
+        // What a restart, a crash, and the session ending all come to. The view is still on the
+        // page in every one of them, and a control that goes on answering its own drags while
+        // changing nothing is the failure the whole treatment exists to prevent.
+        harness.Router.Clear();
+
+        await WaitUntilAsync(() => !channel.IsAlive);
+        await WaitUntilAsync(() => !harness.Transport.Closed.IsEmpty);
+
+        Assert.IsTrue(harness.Transport.Closed.TryDequeue(out var closed));
+        Assert.AreEqual(channel.ChannelId, closed);
+    }
+
+    /// <summary>
+    /// Waits briefly for something the close path does without being awaited. Clearing runs from
+    /// a crash handler, which has nothing to await it with.
+    /// </summary>
+    private static async Task WaitUntilAsync(Func<bool> settled)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (!settled() && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+
+        Assert.IsTrue(settled(), "The close never took effect.");
     }
 }

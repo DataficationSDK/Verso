@@ -835,6 +835,25 @@ class HostSession:
         except Exception:
             pass  # the connection has gone; the request's own deadline covers it
 
+    def widget_snapshot(self, message):
+        """
+        Answer with a current page for one widget, so a save records what a reader is looking
+        at rather than what the cell drew.
+
+        Answered on the main thread for the same reason a comm message is applied there: a
+        widget's state is only coherent between the statements that change it. The cost is
+        that a request arriving during a cell waits for the cell, which the asking side bounds
+        and answers by keeping the page it already had.
+        """
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        try:
+            document = display_support.snapshot(message.get("widget_id"))
+        except Exception:
+            document = None
+
+        self._write_reply("widget_snapshot_reply", request_id, "data", document)
+
     def _write_reply(self, reply_type, request_id, field, payload):
         try:
             self.channel.write({"type": reply_type, "req_id": request_id, field: payload})
@@ -851,15 +870,22 @@ class HostSession:
     def _getpass(self, prompt="Password: ", stream=None):
         return self.input_bridge.request(str(prompt), True, self.request_id)
 
-    def _emit_display(self, mime, data):
+    def _emit_display(self, mime, data, widget_id=None):
         # Output written before this call belongs above it.
         self.router.flush()
-        self.channel.write({
+        frame = {
             "type": "display",
             "req_id": self.request_id,
             "mime": mime,
             "data": data,
-        })
+        }
+
+        # Only a widget asking to be live has one, and it is what a later request for a fresh
+        # page names, so it travels with the payload rather than being looked up afterwards.
+        if widget_id is not None:
+            frame["widget_id"] = widget_id
+
+        self.channel.write(frame)
 
     def _shell(self, command):
         """Run a shell command for a ``!`` line, streaming its output into the cell."""
@@ -1042,6 +1068,11 @@ def _run(channel, session):
             # that a message arriving mid-cell waits for the cell, which is the same ordering a
             # Jupyter kernel gives it.
             session.handle_comm(message)
+        elif kind == "widget_snapshot":
+            # Here for the same reason a comm message is: it reads widget state, which is only
+            # settled between cells. A save that arrives mid-cell waits, and the asking side
+            # gives up rather than holding the save open.
+            session.widget_snapshot(message)
         # Other message types are handled by later layers; ignore them here.
 
 

@@ -53,6 +53,14 @@ internal static class HostProtocol
     public const string Comm = "comm";
     public const string CommMsg = "comm_msg";
 
+    /// <summary>
+    /// Asks for a current page for one widget, named by <see cref="WidgetIdField"/>. Answered
+    /// between cells, so an answer is bounded by the asking side rather than waited on.
+    /// </summary>
+    public const string WidgetSnapshot = "widget_snapshot";
+
+    public const string WidgetSnapshotReply = "widget_snapshot_reply";
+
     // Field names: envelope.
     public const string TypeField = "type";
     public const string TokenField = "token";
@@ -82,6 +90,13 @@ internal static class HostProtocol
     /// the same interpreter answers a notebook being edited and a file being baked.
     /// </summary>
     public const string LiveWidgetsField = "live_widgets";
+
+    /// <summary>
+    /// Names the widget a display payload was made from, carried only when that widget asked to
+    /// be live. It is what a later request for a fresh page names, and it is the same model id
+    /// the view already addresses the widget by, so nothing is invented to carry it.
+    /// </summary>
+    public const string WidgetIdField = "widget_id";
 
     public const string StatusField = "status";
     public const string ResultField = "result";
@@ -274,7 +289,8 @@ internal static class HostProtocol
     /// concluding the request, so type is what distinguishes the two.
     /// </summary>
     public static bool IsReply(string? messageType)
-        => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply or ScanReply;
+        => messageType is ExecuteResult or CompleteReply or HoverReply or DiagnosticsReply
+            or ScanReply or WidgetSnapshotReply;
 
     /// <summary>
     /// Whether a message belongs to the cell that is running rather than to the session. Two

@@ -120,9 +120,21 @@ def _embed_script_url():
     return CDN_EMBED_URL
 
 
-def emit(mime, data):
-    if _emitter is not None:
+def emit(mime, data, widget_id=None):
+    """
+    Hand one payload to the managing side.
+
+    ``widget_id`` names the widget a payload was made from, and is carried only for the one
+    payload kind that has one. It is passed on only when there is one, so an emitter written
+    against the two the rest of this module produces goes on working.
+    """
+    if _emitter is None:
+        return
+
+    if widget_id is None:
         _emitter(mime, data)
+    else:
+        _emitter(mime, data, widget_id)
 
 
 def display(obj, mime_type=None):
@@ -137,7 +149,7 @@ def display(obj, mime_type=None):
         if payload is None:
             return
 
-    emit(payload["mime"], payload["data"])
+    emit(payload["mime"], payload["data"], payload.get("widget_id"))
 
 
 # --- the repr chain ---------------------------------------------------------------------
@@ -194,19 +206,10 @@ def _from_widget(value):
     if _is_empty_output_widget(value):
         return SUPPRESS
 
-    try:
-        from ipywidgets import Widget
-        from ipywidgets.embed import embed_snippet
-    except Exception:
+    document = _document_for(value)
+    if document is None:
         return None
 
-    try:
-        snippet = embed_snippet(
-            views=[value], state=_embedded_state(Widget), embed_url=_embed_script_url())
-    except Exception:
-        return None
-
-    document = WIDGET_DOCUMENT.replace("{snippet}", snippet)
     if len(document.encode("utf-8", "replace")) > WIDGET_LIMIT_BYTES:
         return {
             "mime": "text/plain",
@@ -217,8 +220,98 @@ def _from_widget(value):
             ),
         }
 
-    return {"mime": WIDGET_LIVE_MIME if _wants_a_channel() else WIDGET_OUTPUT_MIME,
-            "data": document}
+    if not _wants_a_channel():
+        return {"mime": WIDGET_OUTPUT_MIME, "data": document}
+
+    # Named so the managing side can ask for this widget's page again later, which is what lets a
+    # save record the state a reader is looking at rather than the state the cell drew. The name
+    # is the model id the view already addresses the widget by, so nothing new is invented for it.
+    return {"mime": WIDGET_LIVE_MIME, "data": document,
+            "widget_id": _model_id_of(value)}
+
+
+def _document_for(widget):
+    """
+    The self-contained page one widget draws itself from, or None when it cannot be built.
+
+    Shared by the page written when a widget is first shown and the one asked for when the
+    notebook is being saved, so a refreshed page and the original are the same kind of thing
+    and nothing downstream has to tell them apart.
+    """
+    try:
+        from ipywidgets import Widget
+        from ipywidgets.embed import embed_snippet
+    except Exception:
+        return None
+
+    try:
+        snippet = embed_snippet(
+            views=[widget], state=_embedded_state(Widget), embed_url=_embed_script_url())
+    except Exception:
+        return None
+
+    return WIDGET_DOCUMENT.replace("{snippet}", snippet)
+
+
+def _model_id_of(widget):
+    try:
+        return widget.model_id
+    except Exception:
+        return None
+
+
+def snapshot(widget_id):
+    """
+    A current page for one widget, named by the model id its view was addressed by.
+
+    Answered on the thread the author's own cells run on, so what it reads is a widget nothing
+    is in the middle of changing, and so a request arriving during a cell waits for the cell
+    rather than reading a half-applied state. Everything that can go wrong answers None and the
+    page already written stands: the widget may have been discarded, the interpreter may no
+    longer have ipywidgets, or the state may have grown past what a notebook will hold.
+    """
+    if not widget_id:
+        return None
+
+    widget = _widget_by_id(widget_id)
+    if widget is None:
+        return None
+
+    document = _document_for(widget)
+    if document is None:
+        return None
+
+    if len(document.encode("utf-8", "replace")) > WIDGET_LIMIT_BYTES:
+        return None
+
+    return document
+
+
+def _widget_by_id(widget_id):
+    """
+    The live widget behind a model id, read from whichever register this ipywidgets keeps.
+
+    The register moved from the widget class to the module that defines it, and the old name is
+    kept as an alias that warns when it is read, so the module is asked first and the class only
+    when there is nothing there. A release keeping neither leaves the page already written in
+    place rather than raising.
+    """
+    try:
+        from ipywidgets.widgets import widget as widget_module
+    except Exception:
+        widget_module = None
+
+    register = getattr(widget_module, "_instances", None)
+    if isinstance(register, dict):
+        return register.get(widget_id)
+
+    try:
+        from ipywidgets import Widget
+    except Exception:
+        return None
+
+    register = getattr(Widget, "widgets", None)
+    return register.get(widget_id) if isinstance(register, dict) else None
 
 
 def _wants_a_channel():

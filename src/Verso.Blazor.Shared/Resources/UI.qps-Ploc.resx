@@ -919,4 +919,7 @@
   <data name="Widget_FrameTitle" xml:space="preserve">
     <value>[!!Wïdgét òùtpùt···!!]</value>
   </data>
+  <data name="Widget_InertNotice" xml:space="preserve">
+    <value>[!!Shówïng sávéd stàté· Rùn thé céll tó máké thïs wïdgét lívé····!!]</value>
+  </data>
 </root>

@@ -353,4 +353,12 @@ public sealed class DisplayMappingTests
 
         Assert.AreEqual("cdn", config["widget_asset_source"]!.GetValue<string>());
     }
+
+    [TestMethod]
+    public void WidgetSnapshotReply_CompletesItsRequest()
+    {
+        // Without this the read pump routes the answer to the event stream, and a save waits out
+        // its whole deadline for one that already arrived and then writes the page it had.
+        Assert.IsTrue(HostProtocol.IsReply(HostProtocol.WidgetSnapshotReply));
+    }
 }

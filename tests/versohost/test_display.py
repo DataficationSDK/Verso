@@ -172,13 +172,14 @@ def test_display_of_none_emits_nothing(emitted):
 class FakeWidget:
     """Offers what a widget offers: a model reference and a repr, and no rendering."""
 
-    def __init__(self, name="Plot"):
+    def __init__(self, name="Plot", model_id="abc123"):
         self._name = name
+        self.model_id = model_id
 
     def _repr_mimebundle_(self, **kwargs):
         return {
             "text/plain": "%s(antialias=3)" % self._name,
-            display_support.WIDGET_MIME: {"model_id": "abc123", "version_major": 2},
+            display_support.WIDGET_MIME: {"model_id": self.model_id, "version_major": 2},
         }
 
     def __repr__(self):
@@ -220,7 +221,7 @@ def embedding(monkeypatch):
     Returns a setter taking whatever embed_snippet should do, so a test can make it produce a
     snippet, produce an enormous one, or fail. The keyword arguments of each call are recorded
     on ``calls``, so a test can assert on how the embedder was asked as well as what it gave
-    back.
+    back, and a widget put in ``instances`` is one the library would say it is still holding.
     """
     import copy
     import types
@@ -246,7 +247,18 @@ def embedding(monkeypatch):
         monkeypatch.setitem(sys.modules, "ipywidgets", package)
         monkeypatch.setitem(sys.modules, "ipywidgets.embed", module)
 
+        # Where the library keeps the widgets it is still holding, which is what a request for
+        # one widget's current page is answered from.
+        widgets_package = types.ModuleType("ipywidgets.widgets")
+        widget_module = types.ModuleType("ipywidgets.widgets.widget")
+        widget_module._instances = install.instances
+        widgets_package.widget = widget_module
+        package.widgets = widgets_package
+        monkeypatch.setitem(sys.modules, "ipywidgets.widgets", widgets_package)
+        monkeypatch.setitem(sys.modules, "ipywidgets.widgets.widget", widget_module)
+
     install.calls = []
+    install.instances = {}
     return install
 
 
@@ -438,6 +450,122 @@ def test_a_widget_asks_for_nothing_when_a_view_would_have_nothing_to_ask(embeddi
     embedding(lambda views: "<script></script>")
 
     assert display_support.render_value(FakeWidget())["mime"] == display_support.WIDGET_OUTPUT_MIME
+
+
+def test_a_live_widget_says_which_widget_it_is(embedding, live):
+    # What a later request for a fresh page names. Without it a save could only write the page
+    # the cell drew, however long ago that was.
+    live()
+    embedding(lambda views: "<script></script>")
+
+    payload = display_support.render_value(FakeWidget(model_id="model-7"))
+
+    assert payload["widget_id"] == "model-7"
+
+
+def test_a_still_widget_names_no_widget(embedding, live):
+    # Nothing is going to ask, because nothing opened a channel for it.
+    live(wanted=False)
+    embedding(lambda views: "<script></script>")
+
+    assert "widget_id" not in display_support.render_value(FakeWidget())
+
+
+def test_a_widget_that_cannot_say_which_it_is_still_draws(embedding, live):
+    # An id is what makes a saved page refreshable, and a widget without one is still worth
+    # showing. The managing side finds no name and asks nothing.
+    live()
+    embedding(lambda views: "<script></script>")
+
+    class Anonymous(FakeWidget):
+        """Draws like any other widget and will not say which one it is."""
+
+        def __init__(self):
+            super().__init__()
+            del self.model_id
+
+        def _repr_mimebundle_(self, **kwargs):
+            return {
+                "text/plain": "Plot(antialias=3)",
+                display_support.WIDGET_MIME: {"model_id": "abc123", "version_major": 2},
+            }
+
+    payload = display_support.render_value(Anonymous())
+
+    assert payload["mime"] == display_support.WIDGET_LIVE_MIME
+    assert payload["widget_id"] is None
+
+
+# --- what a save asks for -----------------------------------------------------------------
+
+
+def test_a_widget_still_held_reports_a_current_page(embedding):
+    embedding(lambda views: "<script>the widget now</script>")
+    widget = FakeWidget(model_id="model-7")
+    embedding.instances["model-7"] = widget
+
+    document = display_support.snapshot("model-7")
+
+    assert document.lstrip().startswith("<!DOCTYPE html>")
+    assert "<script>the widget now</script>" in document
+    assert embedding.calls[-1]["embed_url"] == display_support.CDN_EMBED_URL
+
+
+def test_the_page_asked_for_is_the_one_the_widget_draws(embedding):
+    seen = []
+    embedding(lambda views: seen.append(views) or "<script></script>")
+    widget = FakeWidget(model_id="model-7")
+    embedding.instances["model-7"] = widget
+
+    display_support.snapshot("model-7")
+
+    assert seen == [[widget]]
+
+
+def test_a_widget_nothing_is_holding_reports_nothing(embedding):
+    # The widget was discarded, or the interpreter was restarted under a notebook that still
+    # names it. The page already written stands.
+    embedding(lambda views: "<script></script>")
+
+    assert display_support.snapshot("model-7") is None
+
+
+def test_no_widget_is_asked_for_when_none_is_named(embedding):
+    embedding(lambda views: "<script></script>")
+
+    assert display_support.snapshot(None) is None
+    assert display_support.snapshot("") is None
+    assert embedding.calls == []
+
+
+def test_a_current_page_holding_too_much_data_is_not_written(embedding):
+    # The same ceiling the first page was charged against. A widget that has grown past it
+    # keeps the smaller page it already had rather than replacing it with one nothing will
+    # hold.
+    embedding(lambda views: "x" * (display_support.WIDGET_LIMIT_BYTES + 1))
+    embedding.instances["model-7"] = FakeWidget(model_id="model-7")
+
+    assert display_support.snapshot("model-7") is None
+
+
+def test_a_page_that_cannot_be_built_reports_nothing(embedding):
+    embedding(lambda views: (_ for _ in ()).throw(RuntimeError("the embedder failed")))
+    embedding.instances["model-7"] = FakeWidget(model_id="model-7")
+
+    assert display_support.snapshot("model-7") is None
+
+
+def test_a_widget_is_looked_for_where_older_releases_kept_it(embedding, monkeypatch):
+    # The register moved from the widget class to the module defining it, and the old name warns
+    # when it is read, so it is only reached for when the module has nothing.
+    embedding(lambda views: "<script>from the older register</script>")
+    widget = FakeWidget(model_id="model-7")
+
+    import ipywidgets
+    monkeypatch.delattr(sys.modules["ipywidgets.widgets.widget"], "_instances")
+    monkeypatch.setattr(ipywidgets.Widget, "widgets", {"model-7": widget}, raising=False)
+
+    assert "from the older register" in display_support.snapshot("model-7")
 
 
 def test_the_document_names_where_the_front_end_is_loaded_from(embedding):

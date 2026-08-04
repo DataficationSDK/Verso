@@ -176,6 +176,56 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
             await CloseAsync(channel.ChannelId, reason).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Closes every channel belonging to one cell without telling the views, for the cases where
+    /// the output the view was drawing is going away with the channel: the cell is being re-run,
+    /// its outputs cleared, or the cell itself deleted.
+    /// </summary>
+    /// <remarks>
+    /// Telling a view is what the asynchronous form is for, and it is what a kernel restart needs,
+    /// because there the view stays on the page and has to learn that it is no longer live. Here
+    /// there is nobody left to tell, which is also what makes this callable from the ordinary
+    /// synchronous notebook operations rather than only from something already asynchronous.
+    /// </remarks>
+    public void CloseForCell(Guid cellId, string reason)
+    {
+        foreach (var channel in _channels.Values.Where(c => c.CellId == cellId).ToList())
+        {
+            if (_channels.TryRemove(channel.ChannelId, out var removed))
+            {
+                // Nothing to await: closing without notifying a view is entirely local.
+                _ = removed.CloseAsync(reason, notifyView: false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Asks a channel's owner for a current document for the output it belongs to, giving up when
+    /// <paramref name="ct"/> is cancelled. Null means there was no provider, it declined, or it did
+    /// not answer, and in every one of those the content already written is what stands.
+    /// </summary>
+    public static async Task<string?> RequestSnapshotAsync(IOutputChannel channel, CancellationToken ct)
+    {
+        var provider = channel.SnapshotProvider;
+        if (provider is null || !channel.IsAlive)
+            return null;
+
+        try
+        {
+            var snapshot = await provider(ct).ConfigureAwait(false);
+            return string.IsNullOrEmpty(snapshot) ? null : snapshot;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Report($"A live output could not be asked for its current state and was written as it was: {ex.Message}");
+            return null;
+        }
+    }
+
     /// <summary>Closes every open channel. What a kernel restart or a crash comes to.</summary>
     public async Task CloseAllAsync(string reason)
     {
@@ -302,6 +352,15 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
         private readonly OutputChannelHost _host;
         private readonly object _gate = new();
         private readonly List<QueuedMessage> _queue = new();
+
+        /// <summary>
+        /// What was held for a view that had not mounted, kept after it was sent rather than
+        /// dropped. A view announcing itself when one already has is a second view: the frame's
+        /// content was replaced, and the instance these were flushed to is gone without having
+        /// drawn them. What that new instance needs is exactly what was held for the first one.
+        /// </summary>
+        private readonly List<QueuedMessage> _opening = new();
+
         private long _queuedBytes;
         private volatile bool _mounted;
         private volatile bool _isAlive = true;
@@ -320,6 +379,8 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
         public bool IsAlive => _isAlive;
 
         public event Func<OutputChannelMessage, Task>? MessageReceived;
+
+        public Func<CancellationToken, Task<string?>>? SnapshotProvider { get; set; }
 
         public Task PostMessageAsync(string type, object? payload, CancellationToken ct = default)
         {
@@ -363,9 +424,36 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
         /// Sends what was queued, in order, and only then counts the view as mounted. Setting the
         /// flag last is what keeps a message posted mid-flush behind the ones already waiting:
         /// while anything is queued a new post joins the queue rather than overtaking it.
+        /// <para>
+        /// A view that announces itself when the channel is already mounted is sent the opening
+        /// messages again and nothing else. Those were produced for a view that did not exist yet,
+        /// so a replacement needs them as much as the first instance did. What came after them was
+        /// posted to a view that was there to receive it, and re-sending an arbitrary length of
+        /// conversation is not something a channel can bound, so a view needing more than the
+        /// opening asks its owner for it.
+        /// </para>
         /// </summary>
         internal async Task FlushAsync(CancellationToken ct)
         {
+            if (_mounted)
+            {
+                QueuedMessage[] opening;
+                lock (_gate)
+                {
+                    opening = _opening.ToArray();
+                }
+
+                foreach (var queued in opening)
+                {
+                    if (!_isAlive)
+                        return;
+
+                    await _host.SendAsync(ChannelId, queued.MessageType, queued.Payload, ct).ConfigureAwait(false);
+                }
+
+                return;
+            }
+
             while (_isAlive)
             {
                 QueuedMessage[] batch;
@@ -382,6 +470,7 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
                     batch = _queue.ToArray();
                     _queue.Clear();
                     _queuedBytes = 0;
+                    _opening.AddRange(batch);
                 }
 
                 foreach (var queued in batch)
@@ -423,6 +512,7 @@ public sealed class OutputChannelHost : IOutputChannelHost, IAsyncDisposable
             lock (_gate)
             {
                 _queue.Clear();
+                _opening.Clear();
                 _queuedBytes = 0;
             }
 

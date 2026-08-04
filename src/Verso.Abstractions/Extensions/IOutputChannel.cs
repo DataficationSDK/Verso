@@ -63,6 +63,19 @@ public interface IOutputChannel : IAsyncDisposable
     /// throws is reported and does not stop the handlers after it or the messages after this one.
     /// </summary>
     event Func<OutputChannelMessage, Task>? MessageReceived;
+
+    /// <summary>
+    /// Asked for a current document for the output this channel belongs to, when something is
+    /// about to write the notebook out and wants the file to hold what the view is showing rather
+    /// than what the cell drew. Set by the channel's owner, and left null by an owner with nothing
+    /// better to offer than what is already written, in which case nothing asks.
+    /// </summary>
+    /// <remarks>
+    /// A provider returning null means it could not produce one and the existing content stands.
+    /// The bound is the caller's rather than the provider's, and a provider that has not answered
+    /// within it is abandoned rather than waited on, so a save is never held up by one.
+    /// </remarks>
+    Func<CancellationToken, Task<string?>>? SnapshotProvider { get; set; }
 }
 
 /// <summary>

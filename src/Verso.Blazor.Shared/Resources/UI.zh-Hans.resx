@@ -919,4 +919,7 @@
   <data name="Widget_FrameTitle" xml:space="preserve">
     <value>小组件输出</value>
   </data>
+  <data name="Widget_InertNotice" xml:space="preserve">
+    <value>正在显示已保存的状态。运行单元格可使此小组件恢复交互。</value>
+  </data>
 </root>

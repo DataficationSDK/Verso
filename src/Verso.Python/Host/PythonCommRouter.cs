@@ -56,7 +56,17 @@ internal sealed class PythonCommRouter
         channel.MessageReceived += OnChannelMessageAsync;
     }
 
-    /// <summary>Stops carrying traffic over every channel. What a restart or a crash comes to.</summary>
+    /// <summary>
+    /// Stops carrying traffic over every channel and closes each one, so a view still drawing a
+    /// widget learns that what it was talking to has gone. What a restart, a crash, and the
+    /// session ending all come to.
+    /// </summary>
+    /// <remarks>
+    /// The widgets themselves are left alone, as they are whenever a view departs: the usual way
+    /// to lose one is to re-run its cell, which displays the same widget again, and a comm that
+    /// has been closed can never be drawn anywhere. Here the interpreter holding them is the
+    /// thing that has gone, so there is nothing left to leave alone either way.
+    /// </remarks>
     public void Clear()
     {
         List<Tracked> dropped;
@@ -67,7 +77,27 @@ internal sealed class PythonCommRouter
         }
 
         foreach (var entry in dropped)
+        {
             entry.Channel.MessageReceived -= OnChannelMessageAsync;
+
+            // Not awaited. This runs from a crash handler and from teardown, neither of which has
+            // anywhere to report a failed notification, and the channel is closed to any further
+            // posting before the returned task does anything at all.
+            _ = CloseQuietlyAsync(entry.Channel);
+        }
+    }
+
+    private static async Task CloseQuietlyAsync(IOutputChannel channel)
+    {
+        try
+        {
+            await channel.DisposeAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            // A view that cannot be reached stays drawn as it was, which is wrong but not worth
+            // failing a teardown over. The channel is closed regardless.
+        }
     }
 
     // --- subprocess to views ---

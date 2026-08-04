@@ -243,6 +243,9 @@ public sealed class Scaffold : IAsyncDisposable
             var cell = _notebook.Cells.FirstOrDefault(c => c.Id == cellId);
             if (cell is null) return false;
             _notebook.Cells.Remove(cell);
+
+            // The view went with the cell, so there is nothing to tell and nothing left to route to.
+            _outputChannels.CloseForCell(cellId, "the cell was deleted");
             return true;
         }
     }
@@ -302,6 +305,9 @@ public sealed class Scaffold : IAsyncDisposable
                 cell.ExecutionCount = null;
                 cell.LastElapsed = null;
                 cell.LastStatus = null;
+
+                // A live output is gone with the rest, so whatever was still talking to it stops.
+                _outputChannels.CloseForCell(cell.Id, "the cell's outputs were cleared");
             }
         }
     }
@@ -402,6 +408,12 @@ public sealed class Scaffold : IAsyncDisposable
     {
         if (HostRestartHandler is { } handler)
         {
+            // Told before the supervisor takes the process down. The surface holding the views
+            // outlives a respawn, so a view left believing it is live would go on offering
+            // controls that nothing is there to answer.
+            await CloseChannelsForKernelAsync(kernelId ?? _notebook.DefaultKernelId, RestartClosedReason)
+                .ConfigureAwait(false);
+
             await handler(kernelId).ConfigureAwait(false);
             return;
         }
@@ -413,6 +425,7 @@ public sealed class Scaffold : IAsyncDisposable
             ?? throw new InvalidOperationException(string.Format(Strings.Error_NoKernelForLanguage, id));
 
         OnKernelRestarting?.Invoke(id);
+        await CloseChannelsForKernelAsync(id, RestartClosedReason).ConfigureAwait(false);
         try
         {
             await kernel.DisposeAsync().ConfigureAwait(false);
@@ -429,6 +442,109 @@ public sealed class Scaffold : IAsyncDisposable
         OnKernelRestarted?.Invoke(id);
     }
 
+    /// <summary>What a view is told when the kernel behind it went away and it stayed.</summary>
+    private const string RestartClosedReason = "the kernel was restarted";
+
+    /// <summary>
+    /// How long a live output is given to report its current state before a save writes what it
+    /// already had. Short on purpose: the interpreter answers this between cells in well under a
+    /// second, and the case the bound exists for is one that is not going to answer at all.
+    /// </summary>
+    private static readonly TimeSpan LiveOutputSnapshotBound = TimeSpan.FromSeconds(3);
+
+    /// <summary>
+    /// Closes the live output channels of the cells belonging to one kernel and tells their views.
+    /// Scoped by cell language rather than closing everything, because a kernel restarting says
+    /// nothing about an output another kernel is keeping alive.
+    /// </summary>
+    private async Task CloseChannelsForKernelAsync(string? kernelId, string reason)
+    {
+        if (string.IsNullOrEmpty(kernelId))
+            return;
+
+        List<Guid> cellIds;
+        lock (_cellLock)
+        {
+            cellIds = _notebook.Cells
+                .Where(c => string.Equals(c.Language, kernelId, StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Id)
+                .ToList();
+        }
+
+        foreach (var cellId in cellIds)
+            await _outputChannels.CloseForCellAsync(cellId, reason).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks every live output for its current state and writes what comes back into the notebook,
+    /// so that saving records what the reader is looking at rather than what the cell drew. Called
+    /// by a host on its way into serialization.
+    /// </summary>
+    /// <remarks>
+    /// Every output is asked at once and they share one deadline, so a notebook with ten live
+    /// widgets costs what one does. An output that declines, fails, or has not answered when the
+    /// deadline passes keeps the content it already had, which is the state it was last known to
+    /// be in and always something a file can hold. A save is never blocked and never fails here.
+    /// </remarks>
+    public async Task RefreshLiveOutputsAsync(TimeSpan? bound = null, CancellationToken ct = default)
+    {
+        List<CellModel> cells;
+        lock (_cellLock)
+        {
+            cells = _notebook.Cells.Where(c => c.Outputs.Any(IsLive)).ToList();
+        }
+
+        if (cells.Count == 0)
+            return;
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(bound ?? LiveOutputSnapshotBound);
+
+        var asks = new List<(CellModel Cell, int Index, Task<string?> Snapshot)>();
+        foreach (var cell in cells)
+        {
+            for (var i = 0; i < cell.Outputs.Count; i++)
+            {
+                if (!IsLive(cell.Outputs[i]))
+                    continue;
+
+                var channel = _outputChannels.Find(cell.Outputs[i].LiveChannelId!);
+                if (channel is null)
+                    continue;
+
+                asks.Add((cell, i, OutputChannelHost.RequestSnapshotAsync(channel, deadline.Token)));
+            }
+        }
+
+        if (asks.Count == 0)
+            return;
+
+        try
+        {
+            await Task.WhenAll(asks.Select(a => a.Snapshot)).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Each ask reports its own failure and answers null. This only catches the aggregate.
+        }
+
+        foreach (var (cell, index, snapshot) in asks)
+        {
+            if (snapshot.Status != TaskStatus.RanToCompletion || snapshot.Result is not { Length: > 0 } fresh)
+                continue;
+
+            // Under the cell lock so a save racing an execution cannot write into a list the
+            // execution is rebuilding, and re-checked because the output may have moved since.
+            lock (_cellLock)
+            {
+                if (index < cell.Outputs.Count && IsLive(cell.Outputs[index]))
+                    cell.Outputs[index] = cell.Outputs[index] with { Content = fresh };
+            }
+        }
+
+        static bool IsLive(CellOutput output) => !string.IsNullOrEmpty(output.LiveChannelId);
+    }
+
     /// <summary>
     /// Disposes and re-initializes all active kernels and clears the variable store.
     /// Used by <see cref="ExecuteAllAsync"/> to ensure a clean slate without visible
@@ -436,6 +552,9 @@ public sealed class Scaffold : IAsyncDisposable
     /// </summary>
     private async Task ResetAllKernelsAsync()
     {
+        // Every kernel goes, so every live output loses whatever was behind it.
+        await _outputChannels.CloseAllAsync(RestartClosedReason).ConfigureAwait(false);
+
         // Preserve parameter values across the reset so that explicitly
         // set parameters (e.g. via --param or the Parameters cell) survive.
         var parameterNames = _notebook.Parameters?.Keys;

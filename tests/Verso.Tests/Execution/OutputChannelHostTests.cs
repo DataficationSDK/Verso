@@ -284,6 +284,166 @@ public sealed class OutputChannelHostTests
         Assert.IsTrue(other.IsAlive);
     }
 
+    [TestMethod]
+    public async Task ClosingACellsChannelsSilentlyLeavesTheViewUntold()
+    {
+        var (host, transport) = NewHost();
+        var cell = Guid.NewGuid();
+        var channel = await host.OpenAsync(cell);
+        await host.HandleReadyAsync(channel.ChannelId);
+
+        // What a re-run, a clear, and a delete all come to: the output the view was drawing goes
+        // with the channel, so there is nobody left to tell.
+        host.CloseForCell(cell, "the cell was run again");
+
+        Assert.IsFalse(channel.IsAlive);
+        Assert.IsNull(host.Find(channel.ChannelId));
+        Assert.AreEqual(0, transport.Closes.Count);
+    }
+
+    [TestMethod]
+    public async Task ClosingOneCellsChannelsSilentlyLeavesOtherCellsAlone()
+    {
+        var (host, _) = NewHost();
+        var cell = Guid.NewGuid();
+        var mine = await host.OpenAsync(cell);
+        var other = await host.OpenAsync(Guid.NewGuid());
+
+        host.CloseForCell(cell, "the cell was deleted");
+
+        Assert.IsFalse(mine.IsAlive);
+        Assert.IsTrue(other.IsAlive);
+    }
+
+    // --- A view that announces itself twice ---
+
+    [TestMethod]
+    public async Task ASecondViewIsSentWhatWasHeldForTheFirst()
+    {
+        var (host, transport) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+
+        // Produced before any view existed, which is the ordinary case for an output's opening
+        // messages.
+        await channel.PostMessageAsync("opening", 1);
+        await channel.PostMessageAsync("opening", 2);
+
+        await host.HandleReadyAsync(channel.ChannelId);
+        Assert.AreEqual(2, transport.Posts.Count);
+
+        // The frame's content was replaced. The instance those were flushed to is gone without
+        // having drawn them, and the one that took its place announces itself in turn.
+        await host.HandleReadyAsync(channel.ChannelId);
+
+        var delivered = transport.Posts.Select(p => p.Payload).ToList();
+        CollectionAssert.AreEqual(new object[] { 1, 2, 1, 2 }, delivered);
+    }
+
+    [TestMethod]
+    public async Task ASecondViewIsNotSentWhatWasPostedToTheFirst()
+    {
+        var (host, transport) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+
+        await channel.PostMessageAsync("opening", 1);
+        await host.HandleReadyAsync(channel.ChannelId);
+
+        // Posted to a view that was there to receive it. Re-sending an arbitrary length of
+        // conversation is not something a channel can bound, so a view needing more than the
+        // opening asks its owner rather than being told again.
+        await channel.PostMessageAsync("live", 2);
+
+        await host.HandleReadyAsync(channel.ChannelId);
+
+        var delivered = transport.Posts.Select(p => p.Payload).ToList();
+        CollectionAssert.AreEqual(new object[] { 1, 2, 1 }, delivered);
+    }
+
+    [TestMethod]
+    public async Task AViewAnnouncingItselfTwiceWithNothingHeldIsSentNothing()
+    {
+        var (host, transport) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+
+        await host.HandleReadyAsync(channel.ChannelId);
+        await host.HandleReadyAsync(channel.ChannelId);
+
+        Assert.AreEqual(0, transport.Posts.Count);
+    }
+
+    // --- Asking a live output what it is showing now ---
+
+    [TestMethod]
+    public async Task AChannelWithNoProviderReportsNoSnapshot()
+    {
+        var (host, _) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+
+        Assert.IsNull(await OutputChannelHost.RequestSnapshotAsync(channel, CancellationToken.None));
+    }
+
+    [TestMethod]
+    public async Task AProviderIsAskedAndItsAnswerReported()
+    {
+        var (host, _) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+        channel.SnapshotProvider = _ => Task.FromResult<string?>("<html>current</html>");
+
+        Assert.AreEqual(
+            "<html>current</html>",
+            await OutputChannelHost.RequestSnapshotAsync(channel, CancellationToken.None));
+    }
+
+    [TestMethod]
+    public async Task AProviderThatThrowsIsReportedAndAnswersNothing()
+    {
+        var (host, _) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+        channel.SnapshotProvider = _ => throw new InvalidOperationException("the interpreter went away");
+
+        string? snapshot = null;
+        var complaint = await CaptureStandardErrorAsync(async () =>
+            snapshot = await OutputChannelHost.RequestSnapshotAsync(channel, CancellationToken.None));
+
+        Assert.IsNull(snapshot);
+        StringAssert.Contains(complaint, "the interpreter went away");
+    }
+
+    [TestMethod]
+    public async Task AProviderThatDoesNotAnswerInTimeAnswersNothing()
+    {
+        var (host, _) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+        channel.SnapshotProvider = async ct =>
+        {
+            await Task.Delay(Timeout.Infinite, ct);
+            return "never";
+        };
+
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        Assert.IsNull(await OutputChannelHost.RequestSnapshotAsync(channel, deadline.Token));
+    }
+
+    [TestMethod]
+    public async Task AClosedChannelIsNotAskedWhatItIsShowing()
+    {
+        var (host, _) = NewHost();
+        var channel = await host.OpenAsync(Guid.NewGuid());
+
+        var asked = false;
+        channel.SnapshotProvider = _ =>
+        {
+            asked = true;
+            return Task.FromResult<string?>("current");
+        };
+
+        await host.CloseAsync(channel.ChannelId, "the kernel was restarted");
+
+        Assert.IsNull(await OutputChannelHost.RequestSnapshotAsync(channel, CancellationToken.None));
+        Assert.IsFalse(asked, "A view with nothing behind it has nothing current to report.");
+    }
+
     // --- Bounds ---
 
     [TestMethod]

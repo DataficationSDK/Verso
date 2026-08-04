@@ -321,6 +321,10 @@ public static class NotebookHandler
         }
         format ??= "verso";
 
+        // Asked before anything is written, so the file holds what a live output is showing now
+        // rather than what its cell drew. Bounded, and never a reason for a save to fail.
+        await ns.Scaffold.RefreshLiveOutputsAsync();
+
         // Flush layout metadata (grid positions, etc.) and extension settings into the
         // notebook model; both live in their managers until saved.
         if (ns.Scaffold.LayoutManager is { } lm)

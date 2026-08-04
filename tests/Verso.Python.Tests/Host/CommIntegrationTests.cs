@@ -275,6 +275,82 @@ slider
         StringAssert.Contains(widget.Content, "application/vnd.jupyter.widget-view+json");
     }
 
+    [TestMethod]
+    [Timeout(180_000)]
+    public async Task ASaveAsksTheWidgetWhatItIsShowingNow()
+    {
+        await using var session = await StartedSessionAsync();
+        var (context, channels, _) = LiveContext();
+        await RequireWidgetsAsync(session, context);
+
+        var setup = await session.ExecuteAsync(
+            "import ipywidgets\nslider = ipywidgets.IntSlider(value=3)\nslider", context);
+
+        var widget = setup.First(o => o.MimeType == CellOutput.WidgetMimeType);
+        var channelId = ChannelOf(setup);
+        await channels.HandleReadyAsync(channelId, "1.0");
+
+        var modelId = await ReadAsync(session, context, "slider.model_id");
+        StringAssert.Contains(widget.Content, "\"value\": 3", "The page the cell drew holds the value it drew.");
+
+        // The interaction a save is supposed to record. Nothing rewrites the output when this
+        // happens: the view moves itself and the trait follows, and the page in the notebook
+        // still says 3 until something asks.
+        await channels.HandleMessageAsync(channelId, "ext/comm", new JsonObject
+        {
+            ["comm_id"] = modelId,
+            ["data"] = new JsonObject
+            {
+                ["method"] = "update",
+                ["state"] = new JsonObject { ["value"] = 61 },
+            },
+        }.ToJsonString());
+
+        var applied = await session.ExecuteAsync("slider.value", context);
+        Assert.AreEqual("61", TextOf(applied).Trim());
+
+        var channel = channels.Find(channelId);
+        Assert.IsNotNull(channel);
+
+        var refreshed = await OutputChannelHost.RequestSnapshotAsync(channel!, CancellationToken.None);
+
+        Assert.IsNotNull(refreshed, "A live widget was asked what it is showing and answered nothing.");
+        StringAssert.Contains(refreshed!, "\"value\": 61");
+        StringAssert.Contains(refreshed!, "application/vnd.jupyter.widget-state+json");
+    }
+
+    [TestMethod]
+    [Timeout(180_000)]
+    public async Task ASaveDuringALongCellCompletesWithoutTheWidgetsAnswer()
+    {
+        await using var session = await StartedSessionAsync();
+        var (context, channels, _) = LiveContext();
+        await RequireWidgetsAsync(session, context);
+
+        var setup = await session.ExecuteAsync(
+            "import ipywidgets, time\nslider = ipywidgets.IntSlider(value=3)\nslider", context);
+
+        var channelId = ChannelOf(setup);
+        var channel = channels.Find(channelId);
+        Assert.IsNotNull(channel);
+
+        // The interpreter answers this on the thread it runs cells on, so a cell in flight is
+        // exactly what a save cannot wait for. Started and left running.
+        var busy = session.ExecuteAsync("time.sleep(8)", context);
+
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var refreshed = await OutputChannelHost.RequestSnapshotAsync(channel!, deadline.Token);
+
+        Assert.IsNull(refreshed, "A save is never held open by a widget whose kernel is busy.");
+        Assert.IsFalse(busy.IsCompleted, "The cell was supposed to still be running.");
+
+        await busy;
+
+        // And once the cell is out of the way the same ask is answered, which is what shows the
+        // deadline was the only thing in the way.
+        Assert.IsNotNull(await OutputChannelHost.RequestSnapshotAsync(channel!, CancellationToken.None));
+    }
+
     private static async Task<string> ReadAsync(
         PythonHostSession session, StubExecutionContext context, string expression)
     {

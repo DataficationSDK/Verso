@@ -1128,6 +1128,32 @@ html, body {
     line-height: var(--verso-code-output-font-line-height, 1.4);
 }
 
+/* A widget with nothing behind it. Two states reach this: a notebook opened from a file, whose
+   widgets have never had a kernel, and a widget whose kernel went away while it was on screen.
+   Both draw from the state saved in their own document, both still move when dragged because the
+   front end handles that locally, and neither changes anything. The treatment exists so that is
+   not mistaken for a working control. */
+
+.verso-widget-frame[data-verso-live="false"] {
+    opacity: 0.68;
+    filter: saturate(0.5);
+}
+
+.verso-widget-inert {
+    margin: 2px 0 0;
+    padding: 0 var(--verso-output-padding, 8px);
+    font-family: var(--verso-prose-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+/* Live is the ordinary case, so the note is absent rather than hidden: display:none keeps it out
+   of the accessibility tree too, which is what makes the same element serve as the label. */
+.verso-widget-frame[data-verso-live="true"] + .verso-widget-inert {
+    display: none;
+}
+
 .verso-output--html {
     padding: var(--verso-output-padding, 8px);
     font-family: var(--verso-prose-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif);

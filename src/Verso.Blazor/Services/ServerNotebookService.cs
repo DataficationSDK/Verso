@@ -507,7 +507,11 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     private async Task<string> PrepareSerializedContentAsync(string? targetPath)
     {
-        if (_scaffold!.LayoutManager is { } lm)
+        // Asked before anything is written, so the file holds what a live output is showing now
+        // rather than what its cell drew. Bounded, and never a reason for a save to fail.
+        await _scaffold!.RefreshLiveOutputsAsync();
+
+        if (_scaffold.LayoutManager is { } lm)
             await lm.SaveMetadataAsync(_scaffold.Notebook);
 
         if (_scaffold.SettingsManager is { } sm)
@@ -606,6 +610,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         cell.Type = newType;
         cell.Language = effectiveLanguage;
         cell.Outputs.Clear();
+        _scaffold.OutputChannels.CloseForCell(cellId, "the cell's outputs were cleared");
 
         SetDirty(true);
         OnNotebookChanged?.Invoke();
@@ -624,6 +629,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
         cell.Language = newLanguage;
         cell.Outputs.Clear();
+        _scaffold.OutputChannels.CloseForCell(cellId, "the cell's outputs were cleared");
 
         // Eagerly warm up the target kernel so IntelliSense is ready immediately
         var scaffold = _scaffold;

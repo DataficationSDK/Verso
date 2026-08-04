@@ -919,4 +919,7 @@
   <data name="Widget_FrameTitle" xml:space="preserve">
     <value>Salida del widget</value>
   </data>
+  <data name="Widget_InertNotice" xml:space="preserve">
+    <value>Se muestra el estado guardado. Ejecute la celda para activar este widget.</value>
+  </data>
 </root>

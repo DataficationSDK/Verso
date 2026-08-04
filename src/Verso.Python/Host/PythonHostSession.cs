@@ -705,6 +705,10 @@ internal sealed class PythonHostSession : IAsyncDisposable
     {
         _crashExitCode = exitCode;
         _crashed = true;
+
+        // Every widget the interpreter held went with it, and the views drawing them are still on
+        // the page. Told here rather than at the next execution, because there may not be one.
+        _comms.Clear();
     }
 
     /// <summary>
@@ -1046,7 +1050,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
         if (mime != HostProtocol.LiveWidgetMime)
             return MapPayload(mime, data);
 
-        var channelId = await OpenWidgetChannelAsync(context).ConfigureAwait(false);
+        var widgetId = HostProtocol.TryGetString(payload, HostProtocol.WidgetIdField);
+        var channelId = await OpenWidgetChannelAsync(context, widgetId).ConfigureAwait(false);
         return CellOutput.Widget(data, channelId);
     }
 
@@ -1055,7 +1060,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
     /// Returns null when there is nowhere to send, which is what a baked file and a terminal both
     /// look like from here.
     /// </summary>
-    private async Task<string?> OpenWidgetChannelAsync(IExecutionContext context)
+    private async Task<string?> OpenWidgetChannelAsync(IExecutionContext context, string? widgetId)
     {
         var channels = context.OutputChannels;
         if (channels is null)
@@ -1070,12 +1075,74 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 .ConfigureAwait(false);
 
             _comms.Track(channel);
+
+            // What lets a save write the state the reader is looking at. Set here rather than at
+            // save time because this is the only place that knows which widget the channel was
+            // opened for, and a widget shown by an interpreter that has since gone answers
+            // nothing, which leaves the page already written in place.
+            if (!string.IsNullOrEmpty(widgetId))
+                channel.SnapshotProvider = ct => RequestWidgetSnapshotAsync(widgetId!, ct);
+
             return channel.ChannelId;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine(
                 $"[Verso] A widget could not be given a channel and was drawn from its saved state: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Asks the interpreter for a current page for one widget. Null for every way this can fail,
+    /// because the caller's fallback is the page already written, which is always something a
+    /// file can hold.
+    /// </summary>
+    /// <remarks>
+    /// Answered on the thread the interpreter runs cells on, so a request made while a cell is
+    /// running waits for it. That is deliberate, and it is why the caller carries a deadline: a
+    /// widget mid-change is not a state worth saving, and a save is not worth holding for one.
+    /// </remarks>
+    private async Task<string?> RequestWidgetSnapshotAsync(string widgetId, CancellationToken ct)
+    {
+        if (_disposed)
+            return null;
+
+        var process = _process is { IsAlive: true } alive ? alive : null;
+        var connection = process?.Connection;
+        if (process is null || connection is null)
+            return null;
+
+        // A host script from an earlier release ignores the request rather than answering it,
+        // which would cost the save its whole deadline for nothing.
+        if (process.Handshake?.Capabilities.Contains(HostProtocol.CommCapability) != true)
+            return null;
+
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.WidgetSnapshot,
+            [HostProtocol.WidgetIdField] = widgetId,
+        };
+
+        try
+        {
+            var reply = await connection.SendRequestAsync(request, ct).ConfigureAwait(false);
+            return HostProtocol.TryGetString(reply, HostProtocol.DataField);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (PythonHostException)
+        {
+            return null;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
             return null;
         }
     }

@@ -965,6 +965,11 @@
         var frame = frameForChannel(channelId);
         if (!frame) return false;
 
+        // Marked on the frame as well as inside the document. The page around it styles itself
+        // from this attribute and reveals the note explaining that the widget is showing saved
+        // state, so the whole visible treatment follows from one attribute changing.
+        try { frame.setAttribute('data-verso-live', 'false'); } catch (e) { }
+
         try {
             frame.contentWindow.postMessage({
                 type: 'verso/channel-closed',

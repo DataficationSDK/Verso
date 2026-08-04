@@ -80,6 +80,11 @@ internal sealed class ExecutionPipeline
         var executionCount = _getExecutionCount(cellId);
         var stopwatch = Stopwatch.StartNew();
 
+        // Whatever the last run left live is about to be replaced. The view goes with the outputs
+        // it was drawn from, so there is nobody to tell, and closing here rather than after the
+        // run is what keeps a cell from accumulating a channel per execution.
+        _outputChannels?.CloseForCell(cellId, "the cell was run again");
+
         try
         {
             // Check the ICellType registry first: cell types declare whether they have a kernel.
