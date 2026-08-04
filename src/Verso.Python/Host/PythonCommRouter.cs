@@ -77,9 +77,15 @@ internal sealed class PythonCommRouter
     /// </summary>
     /// <remarks>
     /// A frame naming a channel is an answer to something that view asked, and goes only there.
-    /// A frame naming none was raised by a trait changing in a cell, so it goes to every view
-    /// already holding that widget's model, and to every view at all when no view holds it yet,
-    /// which is how a model first reaches the front ends that will need it.
+    /// A frame naming none was raised by a trait changing in a cell, and every view sees it.
+    /// <para>
+    /// Sending it only to the views known to hold that model would be narrower and would be
+    /// wrong. A view learns which models it holds by asking for all of them as it mounts, and
+    /// that exchange is one message on the channel like any other, so nothing out here can tell
+    /// a view that took a model from one that never heard of it. A view that does not draw a
+    /// model ignores what it is sent, which costs a message; the other way costs a widget that
+    /// stops updating in the second place it is drawn.
+    /// </para>
     /// </remarks>
     public Task RouteAsync(JsonObject frame)
     {
@@ -104,10 +110,8 @@ internal sealed class PythonCommRouter
         var channelId = HostProtocol.TryGetString(frame, HostProtocol.ChannelIdField);
         var payload = BuildPayload(frame);
 
-        foreach (var entry in Recipients(channelId, commId!))
+        foreach (var entry in Recipients(channelId))
         {
-            entry.Remember(commId!);
-
             try
             {
                 await entry.Channel.PostMessageAsync(ChannelMessageType, payload).ConfigureAwait(false);
@@ -128,20 +132,17 @@ internal sealed class PythonCommRouter
         }
     }
 
-    private List<Tracked> Recipients(string? channelId, string commId)
+    private List<Tracked> Recipients(string? channelId)
     {
         lock (_gate)
         {
             PruneClosed();
 
-            if (!string.IsNullOrEmpty(channelId))
-            {
-                var named = _tracked.FirstOrDefault(t => t.Channel.ChannelId == channelId);
-                return named is null ? new List<Tracked>() : new List<Tracked> { named };
-            }
+            if (string.IsNullOrEmpty(channelId))
+                return _tracked.ToList();
 
-            var holders = _tracked.Where(t => t.Holds(commId)).ToList();
-            return holders.Count > 0 ? holders : _tracked.ToList();
+            var named = _tracked.FirstOrDefault(t => t.Channel.ChannelId == channelId);
+            return named is null ? new List<Tracked>() : new List<Tracked> { named };
         }
     }
 
@@ -194,8 +195,6 @@ internal sealed class PythonCommRouter
         if (string.IsNullOrEmpty(commId))
             return Task.CompletedTask;
 
-        RememberOn(message.ChannelId, commId!);
-
         var frame = new JsonObject
         {
             [HostProtocol.TypeField] = HostProtocol.CommMsg,
@@ -203,6 +202,10 @@ internal sealed class PythonCommRouter
             [HostProtocol.CommIdField] = commId,
             [HostProtocol.MsgTypeField] =
                 HostProtocol.TryGetString(body, HostProtocol.MsgTypeField) ?? "comm_msg",
+
+            // The view's own name for this message, which comes back on the acknowledgement.
+            // Absent for a view that does not wait to be told, and absent then on the way back.
+            [HostProtocol.MsgIdField] = body[HostProtocol.MsgIdField]?.DeepClone(),
             [HostProtocol.DataField] = body[HostProtocol.DataField]?.DeepClone(),
             [HostProtocol.MetadataField] = body[HostProtocol.MetadataField]?.DeepClone(),
             [HostProtocol.TargetNameField] = body[HostProtocol.TargetNameField]?.DeepClone(),
@@ -237,15 +240,6 @@ internal sealed class PythonCommRouter
 
     // --- bookkeeping ---
 
-    private void RememberOn(string channelId, string commId)
-    {
-        lock (_gate)
-        {
-            PruneClosed();
-            _tracked.FirstOrDefault(t => t.Channel.ChannelId == channelId)?.Remember(commId);
-        }
-    }
-
     private void Untrack(Tracked entry)
     {
         lock (_gate)
@@ -258,10 +252,10 @@ internal sealed class PythonCommRouter
     }
 
     /// <summary>
-    /// Drops the channels whose views have gone, and with them the record of which widgets those
-    /// views held. The widgets themselves are left alone: a cell that is re-run displays the same
-    /// widget again, and closing its comm would leave the author holding one that can no longer
-    /// be drawn anywhere.
+    /// Drops the channels whose views have gone, so a departed view stops being written to. The
+    /// widgets themselves are left alone: a cell that is re-run displays the same widget again,
+    /// and closing its comm would leave the author holding one that can no longer be drawn
+    /// anywhere.
     /// </summary>
     private void PruneClosed()
     {
@@ -276,25 +270,11 @@ internal sealed class PythonCommRouter
         }
     }
 
-    /// <summary>One channel and the widget models its view is known to hold.</summary>
+    /// <summary>One channel this router carries traffic over.</summary>
     private sealed class Tracked
     {
-        private readonly HashSet<string> _comms = new(StringComparer.Ordinal);
-
         public Tracked(IOutputChannel channel) => Channel = channel;
 
         public IOutputChannel Channel { get; }
-
-        public bool Holds(string commId)
-        {
-            lock (_comms)
-                return _comms.Contains(commId);
-        }
-
-        public void Remember(string commId)
-        {
-            lock (_comms)
-                _comms.Add(commId);
-        }
     }
 }

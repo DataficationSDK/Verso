@@ -348,7 +348,8 @@ def dispatch(message):
     }
 
     msg_type = message.get("msg_type") or "comm_msg"
-    _answering.channel_id = message.get("channel_id")
+    channel_id = message.get("channel_id")
+    _answering.channel_id = channel_id
     try:
         if msg_type == "comm_open":
             _manager.comm_open(None, None, envelope)
@@ -362,6 +363,42 @@ def dispatch(message):
         _report("A message for a widget could not be delivered: %s" % error)
     finally:
         _answering.channel_id = None
+        _acknowledge(channel_id, comm_id, message.get("msg_id"))
+
+
+def _acknowledge(channel_id, comm_id, msg_id):
+    """
+    Tell the view its message has been applied.
+
+    A front end sends one change at a time and holds the rest until it hears that the one in
+    flight has landed, merging everything that accumulates meanwhile into a single later
+    message. Without this it hears nothing, holds everything after the first, and a widget
+    stops reaching Python after one interaction.
+
+    Sent after the message has been handled rather than when it arrived, so a view dragging a
+    control while a long cell runs waits for the cell instead of filling the queue in front of
+    it. That is the throttle doing what it is for.
+    """
+    if channel_id is None or msg_id is None:
+        return
+
+    writer = _writer
+    if writer is None:
+        return
+
+    try:
+        writer({
+            "type": "comm",
+            "req_id": UNSOLICITED_REQUEST_ID,
+            "channel_id": channel_id,
+            "comm_id": comm_id,
+            "msg_type": "comm_ack",
+            "msg_id": msg_id,
+        })
+    except Exception:
+        # The connection is gone. The view stops being told, which stops it sending, which is
+        # the right way round: there is nothing left to send to.
+        pass
 
 
 def _report(text):

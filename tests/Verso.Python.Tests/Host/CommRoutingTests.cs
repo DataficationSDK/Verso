@@ -149,33 +149,34 @@ public sealed class CommRoutingTests
     }
 
     [TestMethod]
-    public async Task AnUnaddressedMessageGoesToTheViewsAlreadyHoldingThatWidget()
+    public async Task AnUnaddressedMessageGoesToEveryView()
     {
         var harness = new Harness();
-        var holding = await harness.MountedChannelAsync();
-        await harness.MountedChannelAsync();
+        var first = await harness.MountedChannelAsync();
+        var second = await harness.MountedChannelAsync();
 
-        // Answering this view is how the router learns which widget it holds.
-        await harness.Router.RouteAsync(harness.Frame("widget-1", holding.ChannelId));
+        // A view took this widget's model by asking for it, which is one message on its own
+        // channel and indistinguishable out here from any other. Narrowing to the views seen to
+        // answer about a widget would therefore leave out every view that only ever listened.
+        await harness.Router.RouteAsync(harness.Frame("widget-1", first.ChannelId));
         harness.Transport.Posted.Clear();
 
-        // A trait assigned in a cell names no channel, and only one view can draw the result.
+        // A trait assigned in a cell names no channel: it is not an answer to anybody.
         await harness.Router.RouteAsync(harness.Frame("widget-1"));
 
-        Assert.AreEqual(1, harness.Transport.Posted.Count);
-        Assert.IsTrue(harness.Transport.Posted.TryDequeue(out var post));
-        Assert.AreEqual(holding.ChannelId, post.ChannelId);
+        var reached = harness.Transport.Posted.Select(p => p.ChannelId).ToList();
+        CollectionAssert.AreEquivalent(new[] { first.ChannelId, second.ChannelId }, reached);
     }
 
     [TestMethod]
-    public async Task AWidgetNoViewHoldsYetIsOfferedToEveryView()
+    public async Task AWidgetsOpeningIsOfferedToEveryView()
     {
         var harness = new Harness();
         var first = await harness.MountedChannelAsync();
         var second = await harness.MountedChannelAsync();
 
         // A widget's first message is its own opening, sent while it is being constructed and
-        // before anything has been drawn. Withholding it would leave every view without a model.
+        // before anything has been drawn. Withholding it would leave a view without a model.
         await harness.Router.RouteAsync(harness.Frame("widget-1", msgType: "comm_open"));
 
         var reached = harness.Transport.Posted.Select(p => p.ChannelId).ToList();
@@ -258,6 +259,52 @@ public sealed class CommRoutingTests
         Assert.AreEqual("widget-1", frame["comm_id"]!.GetValue<string>());
         Assert.AreEqual("comm_msg", frame["msg_type"]!.GetValue<string>());
         Assert.AreEqual(42, frame["data"]!["state"]!["value"]!.GetValue<int>());
+    }
+
+    [TestMethod]
+    public async Task AViewsNameForItsMessageTravelsWithIt()
+    {
+        var harness = new Harness();
+        var channel = await harness.MountedChannelAsync();
+
+        // The name comes back on the answer, and a front end holds every later change until it
+        // hears about the one in flight. Losing the name here would leave a widget that stops
+        // sending after its first change.
+        await harness.DeliverFromViewAsync(channel.ChannelId, new JsonObject
+        {
+            ["comm_id"] = "widget-1",
+            ["msg_id"] = "from-the-view-1",
+            ["data"] = new JsonObject(),
+        });
+
+        Assert.IsTrue(harness.Sent.TryDequeue(out var named));
+        Assert.AreEqual("from-the-view-1", named!["msg_id"]!.GetValue<string>());
+
+        // And a view expecting no answer says so by sending no name, which is most messages.
+        await harness.DeliverFromViewAsync(
+            channel.ChannelId, new JsonObject { ["comm_id"] = "widget-1" });
+
+        Assert.IsTrue(harness.Sent.TryDequeue(out var unnamed));
+        Assert.IsNull(unnamed!["msg_id"]);
+    }
+
+    [TestMethod]
+    public async Task AnAnswerFromTheSubprocessReachesTheViewThatIsWaiting()
+    {
+        var harness = new Harness();
+        var waiting = await harness.MountedChannelAsync();
+        await harness.MountedChannelAsync();
+
+        var ack = harness.Frame("widget-1", waiting.ChannelId, msgType: "comm_ack");
+        ack["msg_id"] = "from-the-view-1";
+
+        await harness.Router.RouteAsync(ack);
+
+        Assert.AreEqual(1, harness.Transport.Posted.Count);
+        Assert.IsTrue(harness.Transport.Posted.TryDequeue(out var post));
+        Assert.AreEqual(waiting.ChannelId, post.ChannelId);
+        Assert.AreEqual("comm_ack", PayloadOf(post)["msg_type"]!.GetValue<string>());
+        Assert.AreEqual("from-the-view-1", PayloadOf(post)["msg_id"]!.GetValue<string>());
     }
 
     [TestMethod]

@@ -5,6 +5,7 @@ import sys
 
 import pytest
 
+import _versohost_comm as comm_support
 import _versohost_display as display_support
 
 
@@ -360,6 +361,116 @@ def test_a_widget_holding_too_much_data_says_so_rather_than_embedding_it(embeddi
 
     assert payload["mime"] == "text/plain"
     assert "too much data" in payload["data"]
+
+
+# --- live widgets -------------------------------------------------------------------------
+
+# Whether a widget is going to be live is decided here and acted on elsewhere: the document is
+# the same either way, and what differs is the type it is offered under, which is what asks the
+# managing side to open a channel for it. These cover the decision, since the two things it
+# depends on are known in two different places and neither is this module's own.
+
+
+@pytest.fixture
+def live(monkeypatch):
+    """
+    Ask for live widgets, with the comm substitution reported as in place.
+
+    Both are stood in for. Whether there is a view to talk to is the managing side's answer and
+    arrives with each cell, and whether the comm targets are registered depends on a library
+    that is not installed in the environment these tests usually run in.
+    """
+    def arrange(wanted=True, comms=True, targets=True):
+        display_support.set_live_widgets(wanted)
+        monkeypatch.setattr(comm_support, "is_installed", lambda: comms)
+        monkeypatch.setattr(comm_support, "ensure_targets", lambda: targets)
+
+    yield arrange
+    display_support.set_live_widgets(False)
+
+
+def test_a_widget_asks_for_a_channel_when_there_is_a_view_to_talk_to(embedding, live):
+    live()
+    embedding(lambda views: "<script>the widget</script>")
+
+    payload = display_support.render_value(FakeWidget())
+
+    assert payload["mime"] == display_support.WIDGET_LIVE_MIME
+
+
+def test_a_live_widget_is_the_same_document_as_a_still_one(embedding, live):
+    # The state travelling in the document is what a saved file shows, what an exported page
+    # draws, and what a view falls back to when the interpreter that owns the widget has gone.
+    # Leaving it out of a live document would trade all three for a smaller frame.
+    embedding(lambda views: "<script>the widget</script>")
+    still = display_support.render_value(FakeWidget())
+
+    live()
+    running = display_support.render_value(FakeWidget())
+
+    assert still["mime"] == display_support.WIDGET_OUTPUT_MIME
+    assert running["mime"] == display_support.WIDGET_LIVE_MIME
+    assert still["data"] == running["data"]
+
+
+def test_a_widget_asks_for_nothing_when_no_view_can_be_reached(embedding, live):
+    # What baking a file and running a terminal both look like. Asking anyway would open a
+    # channel nothing ever mounts, and everything sent to it would queue until it failed.
+    live(wanted=False)
+    embedding(lambda views: "<script></script>")
+
+    assert display_support.render_value(FakeWidget())["mime"] == display_support.WIDGET_OUTPUT_MIME
+
+
+def test_a_widget_asks_for_nothing_when_its_messages_would_go_nowhere(embedding, live):
+    # A channel with no comm substitution behind it is a control that answers nobody, which
+    # looks live and is not.
+    live(comms=False)
+    embedding(lambda views: "<script></script>")
+
+    assert display_support.render_value(FakeWidget())["mime"] == display_support.WIDGET_OUTPUT_MIME
+
+
+def test_a_widget_asks_for_nothing_when_a_view_would_have_nothing_to_ask(embedding, live):
+    # Without the targets registered, a mounted view cannot open the comm it asks for every
+    # widget's state through, and a widget built before anything was drawing is unreachable.
+    live(targets=False)
+    embedding(lambda views: "<script></script>")
+
+    assert display_support.render_value(FakeWidget())["mime"] == display_support.WIDGET_OUTPUT_MIME
+
+
+def test_the_document_names_where_the_front_end_is_loaded_from(embedding):
+    embedding(lambda views: "<script></script>")
+
+    display_support.render_value(FakeWidget())
+
+    assert embedding.calls[0]["embed_url"] == display_support.CDN_EMBED_URL
+
+
+def test_an_asset_source_nobody_serves_is_not_taken(embedding):
+    display_support.configure_assets("bundled")
+    try:
+        assert display_support._asset_source == "bundled"
+
+        display_support.configure_assets("somewhere-else")
+        assert display_support._asset_source == "bundled", (
+            "An unrecognised source has to leave the last one in place rather than reset it.")
+    finally:
+        display_support.configure_assets("cdn")
+
+
+def test_an_asset_source_that_is_not_served_yet_still_draws(embedding):
+    # Reserved rather than implemented: a session asking for a copy that does not ship gets the
+    # published bundle, which draws, rather than an address that answers nothing.
+    display_support.configure_assets("bundled")
+    try:
+        embedding(lambda views: "<script></script>")
+        display_support.render_value(FakeWidget())
+
+        assert embedding.calls[0]["embed_url"] == display_support.CDN_EMBED_URL
+    finally:
+        display_support.configure_assets("cdn")
 
 
 def test_an_object_offering_html_is_not_treated_as_a_widget(embedding):

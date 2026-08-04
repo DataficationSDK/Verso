@@ -83,7 +83,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
             options.DefaultImports,
             options.StartupCode,
             options.EnableShellEscapes,
-            options.VariablePublishLimitBytes);
+            options.VariablePublishLimitBytes,
+            WidgetAssets: options.WidgetAssets);
         _autoInstall = new AutoInstallService(options);
         _comms = new PythonCommRouter(SendToSubprocessAsync);
     }
@@ -173,6 +174,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
             [HostProtocol.CodeField] = code,
             [HostProtocol.InjectField] = BuildInjectPayload(context.Variables),
             [HostProtocol.PublishField] = JsonValue.Create(_options.PublishVariables),
+
+            // A widget asks for a channel only when there is a view to give it one. Asking
+            // anyway would open channels nothing ever mounts, and the queue behind each of them
+            // would fill and then fail while a file was being baked with no browser in sight.
+            [HostProtocol.LiveWidgetsField] = JsonValue.Create(context.OutputChannels is not null),
         };
 
         var events = Channel.CreateUnbounded<JsonObject>(
@@ -815,12 +821,6 @@ internal sealed class PythonHostSession : IAsyncDisposable
     internal event Action<JsonObject>? EventUnclaimed;
 
     /// <summary>
-    /// Starts carrying a widget's comm traffic over a channel. Called by whatever opened the
-    /// channel for a live output, once, as soon as it has one.
-    /// </summary>
-    internal void TrackCommChannel(IOutputChannel channel) => _comms.Track(channel);
-
-    /// <summary>
     /// Writes one frame to the subprocess without expecting an answer. A connection that has
     /// gone is not reported: the parts of the session that own it already say so, and a widget
     /// update is not where a user should first hear that their kernel died.
@@ -960,7 +960,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
             case HostProtocol.Display:
             {
-                await EmitAsync(MapPayload(message), context, outputs).ConfigureAwait(false);
+                var display = await MapPayloadAsync(message, context).ConfigureAwait(false);
+                await EmitAsync(display, context, outputs).ConfigureAwait(false);
                 return;
             }
 
@@ -1026,6 +1027,58 @@ internal sealed class PythonHostSession : IAsyncDisposable
         => MapPayload(
             HostProtocol.TryGetString(payload, HostProtocol.MimeField) ?? "text/plain",
             HostProtocol.TryGetString(payload, HostProtocol.DataField) ?? "");
+
+    /// <summary>
+    /// The same mapping, for the one payload that cannot be turned into an output on its own: a
+    /// widget asking to be live needs a channel opened for it first, and only the host can open
+    /// one.
+    /// </summary>
+    /// <remarks>
+    /// A widget whose channel could not be opened is written out as an ordinary widget, drawn
+    /// from the state travelling in the document. Nothing about the document differs between the
+    /// two, so this is the difference between a control that answers and a picture of one.
+    /// </remarks>
+    private async Task<CellOutput> MapPayloadAsync(JsonObject payload, IExecutionContext context)
+    {
+        var mime = HostProtocol.TryGetString(payload, HostProtocol.MimeField) ?? "text/plain";
+        var data = HostProtocol.TryGetString(payload, HostProtocol.DataField) ?? "";
+
+        if (mime != HostProtocol.LiveWidgetMime)
+            return MapPayload(mime, data);
+
+        var channelId = await OpenWidgetChannelAsync(context).ConfigureAwait(false);
+        return CellOutput.Widget(data, channelId);
+    }
+
+    /// <summary>
+    /// Opens the channel a widget's view talks over, and starts routing comm traffic across it.
+    /// Returns null when there is nowhere to send, which is what a baked file and a terminal both
+    /// look like from here.
+    /// </summary>
+    private async Task<string?> OpenWidgetChannelAsync(IExecutionContext context)
+    {
+        var channels = context.OutputChannels;
+        if (channels is null)
+            return null;
+
+        try
+        {
+            // Not cancelled with the cell's token: the channel outlives the cell that opened it,
+            // which is the whole reason it exists, and a cell cancelled between opening and
+            // returning would otherwise leave a widget drawn with nothing behind it.
+            var channel = await channels.OpenAsync(context.CellId, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            _comms.Track(channel);
+            return channel.ChannelId;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[Verso] A widget could not be given a channel and was drawn from its saved state: {ex.Message}");
+            return null;
+        }
+    }
 
     // --- variable exchange ---
 
@@ -1238,7 +1291,10 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private async Task AppendReplyAsync(JsonObject reply, IExecutionContext context, List<CellOutput> outputs)
     {
         if (reply[HostProtocol.ResultField] is JsonObject result)
-            await EmitAsync(MapPayload(result), context, outputs).ConfigureAwait(false);
+        {
+            var output = await MapPayloadAsync(result, context).ConfigureAwait(false);
+            await EmitAsync(output, context, outputs).ConfigureAwait(false);
+        }
 
         if (reply[HostProtocol.ErrorField] is JsonObject error)
         {

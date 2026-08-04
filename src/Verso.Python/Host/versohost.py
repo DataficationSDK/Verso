@@ -614,6 +614,7 @@ class HostSession:
             self.publish_limit_bytes = limit
 
         intel_support.configure(config.get("jedi_tools_path"))
+        display_support.configure_assets(config.get("widget_asset_source"))
 
         # The first editor request would otherwise pay for importing the analysis library, which
         # takes long enough to notice. Warmed on a thread of its own so startup does not wait for
@@ -652,6 +653,11 @@ class HostSession:
 
         self.request_id = request_id
         self.router.set_request(request_id)
+
+        # Whether a widget shown by this cell can be given a channel. Carried per cell rather
+        # than agreed once, because the surface an output is going to is the managing side's
+        # business and can differ between one cell and the next.
+        display_support.set_live_widgets(message.get("live_widgets"))
 
         # A package installed moments ago by a magic command in this same cell is only
         # importable once the finders forget what they saw on the path before it existed.

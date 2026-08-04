@@ -226,6 +226,90 @@ def test_a_view_closing_a_comm_closes_the_python_side(wired):
     assert len(closed) == 1
 
 
+# --- telling a view its message landed -------------------------------------------------------
+
+# A widget front end sends one change at a time and holds the rest until it hears the one in
+# flight has been applied, merging what accumulates behind it into a single later message. That
+# is what keeps a dragged control from putting a message per frame in front of the interpreter,
+# and a view that is never told stops sending anything after its first change.
+
+
+def test_a_view_is_told_its_message_was_applied(wired):
+    opened = new_comm()
+    wired.frames.clear()
+
+    comm_support.dispatch({
+        "comm_id": opened.comm_id,
+        "channel_id": "channel-7",
+        "msg_id": "from-the-view-1",
+        "data": {"method": "update", "state": {"value": 5}},
+    })
+
+    assert wired.frames == [{
+        "type": "comm",
+        "req_id": 0,
+        "channel_id": "channel-7",
+        "comm_id": opened.comm_id,
+        "msg_type": "comm_ack",
+        "msg_id": "from-the-view-1",
+    }]
+
+
+def test_the_answer_comes_after_the_message_has_been_applied(wired):
+    # Ordering is the whole point. Told before, a view would be free to send again while the
+    # change it is answering for was still being made.
+    applied = []
+    opened = new_comm()
+    opened.on_msg(lambda msg: applied.append(len(wired.frames)))
+    wired.frames.clear()
+
+    comm_support.dispatch({
+        "comm_id": opened.comm_id,
+        "channel_id": "channel-7",
+        "msg_id": "from-the-view-1",
+        "data": {},
+    })
+
+    assert applied == [0], "The view was told before its message had been handled."
+    assert len(wired.frames) == 1
+
+
+def test_a_view_that_is_not_waiting_is_not_answered(wired):
+    # A message with no name is one nobody is holding anything back for, which is most of them.
+    opened = new_comm()
+    wired.frames.clear()
+
+    comm_support.dispatch({
+        "comm_id": opened.comm_id, "channel_id": "channel-7", "data": {},
+    })
+
+    assert wired.frames == []
+
+
+def test_a_message_belonging_to_no_view_is_not_answered(wired):
+    opened = new_comm()
+    wired.frames.clear()
+
+    comm_support.dispatch({
+        "comm_id": opened.comm_id, "msg_id": "from-nowhere", "data": {},
+    })
+
+    assert wired.frames == []
+
+
+def test_a_view_is_told_even_when_its_message_could_not_be_applied(wired):
+    # Otherwise one message a widget refuses stops every message after it, and a control that
+    # rejected a value once would go quiet rather than letting the next one through.
+    comm_support.dispatch({
+        "comm_id": "never-opened",
+        "channel_id": "channel-7",
+        "msg_id": "from-the-view-1",
+        "data": {"method": "update"},
+    })
+
+    assert [f["msg_type"] for f in wired.frames] == ["comm_ack"]
+
+
 # --- the widget library ---------------------------------------------------------------------
 
 

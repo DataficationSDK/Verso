@@ -69,11 +69,20 @@ internal static class HostProtocol
     public const string EnableShellEscapesField = "enable_shell_escapes";
     public const string VariablePublishLimitField = "variable_publish_limit_bytes";
     public const string JediToolsPathField = "jedi_tools_path";
+    public const string WidgetAssetSourceField = "widget_asset_source";
 
     // Field names: execute request and result.
     public const string CodeField = "code";
     public const string InjectField = "inject";
     public const string PublishField = "publish";
+
+    /// <summary>
+    /// Whether a widget shown by this cell can be given a channel to the view drawing it. Sent
+    /// per cell because it describes the surface the output is going to rather than the session:
+    /// the same interpreter answers a notebook being edited and a file being baked.
+    /// </summary>
+    public const string LiveWidgetsField = "live_widgets";
+
     public const string StatusField = "status";
     public const string ResultField = "result";
     public const string ErrorField = "error";
@@ -106,6 +115,14 @@ internal static class HostProtocol
     public const string ValueField = "value";
     public const string DisplayIdField = "display_id";
 
+    /// <summary>
+    /// A widget document asking for a channel to be opened for it. Never reaches a notebook: the
+    /// managing side opens the channel and writes the ordinary widget output, holding the channel
+    /// on it. What travels under this type is byte for byte what travels under the other, so a
+    /// host with nowhere to send simply writes it out as it is.
+    /// </summary>
+    public const string LiveWidgetMime = "text/x-verso-widget-live";
+
     // Field names: widget comms.
 
     /// <summary>
@@ -124,9 +141,28 @@ internal static class HostProtocol
     /// </summary>
     public const string MsgTypeField = "msg_type";
 
+    /// <summary>
+    /// A view's own name for one message it sent, carried back on the acknowledgement so the view
+    /// can tell which of its messages has been applied.
+    /// </summary>
+    /// <remarks>
+    /// The widget front end sends one change at a time and holds the rest until the one in flight
+    /// has been dealt with, merging what accumulates meanwhile into a single later message. That
+    /// is what keeps a dragged slider from putting a message per frame in front of the
+    /// interpreter, and it only works if something tells it when a message has landed.
+    /// </remarks>
+    public const string MsgIdField = "msg_id";
+
     public const string MetadataField = "metadata";
     public const string BuffersField = "buffers";
     public const string TargetNameField = "target_name";
+
+    /// <summary>
+    /// The <see cref="MsgTypeField"/> value of an acknowledgement. Not one of the three comm
+    /// messages: it belongs to this transport, and it exists because the front end is waiting for
+    /// the signal a Jupyter kernel sends on a channel this one does not have.
+    /// </summary>
+    public const string CommAck = "comm_ack";
 
     // Field names: completion, hover, and diagnostic requests and replies.
     public const string CursorField = "cursor";

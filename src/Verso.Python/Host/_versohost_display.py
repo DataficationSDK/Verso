@@ -2,10 +2,11 @@
 
 Reduces a value to a single MIME payload through the repr chain notebooks conventionally
 implement, provides the ``IPython.display`` names when IPython itself is not installed, and
-routes matplotlib figures into the notebook as they are drawn. Standard library only.
+routes matplotlib figures into the notebook as they are drawn. Nothing outside the standard
+library is imported at module scope, and the one host module it reads is under the same rule.
 
-The module is imported by ``versohost.py`` and shares its process, but keeps no state beyond
-the emitter callback registered at startup.
+The module is imported by ``versohost.py`` and shares its process. What it keeps between calls
+is the emitter registered at startup and the two settings the managing side sends for a cell.
 """
 
 import base64
@@ -15,6 +16,8 @@ import json
 import os
 import sys
 import types
+
+import _versohost_comm as comm_support
 
 # The MIME types the managing side knows how to render, most preferred first. A mimebundle
 # is searched in this order, so an object offering several forms contributes its richest.
@@ -42,16 +45,32 @@ WIDGET_MIME = "application/vnd.jupyter.widget-view+json"
 # fragment, and the surface showing it has to give it a frame of its own to run in.
 WIDGET_OUTPUT_MIME = "text/x-verso-widget"
 
+# The same document, asking for a message channel to be opened for it. The distinction lives
+# only between this module and the managing side: what reaches the notebook is a widget output
+# either way, and whether it holds a channel is what makes it live. Kept as a MIME rather than
+# a flag beside one because a display payload carries a type and its data and nothing else.
+WIDGET_LIVE_MIME = "text/x-verso-widget-live"
+
 # A widget document is saved into the notebook, so it is charged against the file every time
 # the cell runs. Widget state is mostly the data being drawn, and a large mesh or a long
 # series reaches a size worth refusing rather than quietly writing to disk.
 WIDGET_LIMIT_BYTES = 4 * 1024 * 1024
+
+# Where the front end's own code is loaded from. The published bundle carries the whole widget
+# front end, including the machinery a live view talks to Python through, so one address covers
+# both a saved page opened on its own and a view in a running notebook.
+WIDGET_ASSET_SOURCES = ("cdn", "bundled")
+
+CDN_EMBED_URL = (
+    "https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js")
 
 # Returned by a chain step that has decided a value is not worth showing at all, as opposed
 # to None, which means the step declined and the next one should try.
 SUPPRESS = object()
 
 _emitter = None
+_live_widgets = False
+_asset_source = "cdn"
 
 
 # --- emission ---------------------------------------------------------------------------
@@ -67,6 +86,38 @@ def install(emitter):
 
     _install_ipython_shim()
     _install_matplotlib_hook()
+
+
+def set_live_widgets(enabled):
+    """
+    Record whether the managing side can give a widget a channel to talk over.
+
+    Set for each cell, because it is a property of the surface the output is going to rather
+    than of this interpreter: the same session answers a notebook in an editor, where there is
+    a view to talk to, and a file being baked, where there is not.
+    """
+    global _live_widgets
+    _live_widgets = bool(enabled)
+
+
+def configure_assets(source):
+    """
+    Choose where a widget document loads the front end from.
+
+    Only one source is served today. The choice is carried this far anyway so that adding a
+    copy alongside the notebook later changes which URL is written and nothing else: not the
+    shape of the document, not the protocol, and not what a saved file means.
+    """
+    global _asset_source
+    if isinstance(source, str) and source.strip().lower() in WIDGET_ASSET_SOURCES:
+        _asset_source = source.strip().lower()
+
+
+def _embed_script_url():
+    # A copy served beside the notebook would be answered here. Until one is, the published
+    # bundle is what both sources resolve to, which is why asking for the other is documented
+    # as a reservation rather than as something with an effect.
+    return CDN_EMBED_URL
 
 
 def emit(mime, data):
@@ -129,6 +180,12 @@ def _from_widget(value):
     this returns. It is only reachable when the author's own environment has ipywidgets, which
     it does whenever a widget exists to be shown, so nothing is added to this host to support
     it. Anything that fails along the way declines and leaves the repr reachable.
+
+    The same page is returned whether or not the widget is going to be live. State that
+    travels with the document is what a saved file shows when it is opened again, what an
+    exported page draws, and what a view falls back to when the interpreter that owns the
+    widget has gone. A view given a channel takes the state from the interpreter instead, so
+    what it draws is current rather than as it was when the cell ran.
     """
     bundle = _mimebundle_of(value)
     if bundle is None or WIDGET_MIME not in bundle:
@@ -144,7 +201,8 @@ def _from_widget(value):
         return None
 
     try:
-        snippet = embed_snippet(views=[value], state=_embedded_state(Widget))
+        snippet = embed_snippet(
+            views=[value], state=_embedded_state(Widget), embed_url=_embed_script_url())
     except Exception:
         return None
 
@@ -159,7 +217,24 @@ def _from_widget(value):
             ),
         }
 
-    return {"mime": WIDGET_OUTPUT_MIME, "data": document}
+    return {"mime": WIDGET_LIVE_MIME if _wants_a_channel() else WIDGET_OUTPUT_MIME,
+            "data": document}
+
+
+def _wants_a_channel():
+    """
+    Whether this widget should be given a channel to the view that draws it.
+
+    Three things have to hold, and each is known in a different place. The surface has to have
+    a view to talk to, which only the managing side knows and reports for each cell. The comm
+    substitution has to be in place, or a widget's own messages go nowhere. And the targets a
+    front end opens have to be registered, which is what lets a mounted view ask for the state
+    of every widget at once instead of waiting for one to change.
+    """
+    if not _live_widgets or not comm_support.is_installed():
+        return False
+
+    return bool(comm_support.ensure_targets())
 
 
 def _embedded_state(widget_class):

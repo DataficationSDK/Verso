@@ -56,6 +56,16 @@
     "message": "Use the uv tool to install packages and create Python environments when it is on PATH. When off, pip and the standard library venv module are used. Changes apply on next notebook open or kernel restart.",
     "comment": ["uv, pip, venv, and PATH are names typed at a keyboard and stay as written."]
   },
+  "configuration.widgets.assetSource.description": {
+    "message": "Where an interactive widget loads its front-end code from. Changes apply on next notebook open or kernel restart."
+  },
+  "configuration.widgets.assetSource.cdn": {
+    "message": "Fetch it over the network when a widget is drawn. Widgets do not appear offline.",
+    "comment": ["CDN is an abbreviation typed at a keyboard and stays as written in the setting's value list."]
+  },
+  "configuration.widgets.assetSource.bundled": {
+    "message": "Reserved for a copy shipped with Verso. No copy ships yet, so this behaves as the network option."
+  },
   "configuration.language.description": {
     "message": "Language for the notebook interface and kernel messages. Auto-detect follows the VS Code display language. Menu entries, command names, and setting descriptions always follow the VS Code display language and are not affected by this setting. Changes apply on next notebook open.",
     "comment": [

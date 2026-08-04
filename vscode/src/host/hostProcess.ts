@@ -67,6 +67,14 @@ function buildHostEnvironment(): NodeJS.ProcessEnv {
     env.VERSO_PYTHON_UV = "off";
   }
 
+  const widgetAssets = vscode.workspace
+    .getConfiguration("verso.widgets")
+    .get<string>("assetSource")
+    ?.trim();
+  if (widgetAssets) {
+    env.VERSO_WIDGETS_ASSET_SOURCE = widgetAssets;
+  }
+
   return env;
 }
 
