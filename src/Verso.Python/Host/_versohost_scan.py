@@ -148,6 +148,41 @@ def _resolvable(name):
         return True
 
 
+# --- a failed import ---
+
+
+def installable(module):
+    """
+    Whether installing anything could satisfy a module name that failed to import.
+
+    A dotted name means every package before the last segment imported, so whatever provides
+    them is already installed and installing it again cannot help. ``mpld3.display`` is the
+    shape of it: the package is present and has no such submodule, which is a mistake in the
+    import rather than a missing distribution.
+
+    Namespace packages are the exception, because their portions come from separate
+    distributions. A parent that has a search path but no file of its own is one, and the
+    part that is missing from it is exactly what an install would add.
+    """
+    if not isinstance(module, str):
+        return False
+
+    parent, _, leaf = module.strip().rpartition(".")
+    if not leaf:
+        return False
+
+    if not parent:
+        return True
+
+    package = sys.modules.get(parent)
+    if package is None:
+        # Not a failure the import system produced, so there is nothing here to rule an
+        # install out with.
+        return True
+
+    return getattr(package, "__file__", None) is None and hasattr(package, "__path__")
+
+
 # --- declared requirements ---
 
 

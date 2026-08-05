@@ -45,6 +45,16 @@ def test_a_missing_submodule_names_the_module_it_failed_on(execute):
     assert result["error"]["missing_module"].startswith("verso_absent_module_for_tests")
 
 
+def test_a_submodule_of_a_package_that_is_present_is_not_offered_for_install(execute):
+    # The package is installed and has no such submodule, so this is a mistake in the import
+    # rather than something an install could satisfy. Reporting it would offer to install the
+    # package that is already there, and the cell would fail the same way afterwards.
+    result = execute("from json.decoder2 import thing")
+
+    assert result["error"]["name"] == "ModuleNotFoundError"
+    assert "missing_module" not in result["error"]
+
+
 def test_a_missing_name_inside_a_real_module_is_not_a_missing_module(execute):
     # ImportError rather than ModuleNotFoundError: the module is there and the name is not,
     # which no install fixes.

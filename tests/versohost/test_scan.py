@@ -1,6 +1,8 @@
 """Import discovery and declared-requirement checks."""
 
+import importlib
 import importlib.metadata as metadata
+import sys
 
 import pytest
 
@@ -136,6 +138,55 @@ def test_a_module_whose_finder_raises_counts_as_present(monkeypatch):
 
     # An install would not fix a broken sys.path entry, so nothing is reported.
     assert scan_support.scan("import " + ABSENT) == []
+
+
+# --- what a failed import can be satisfied by ---
+
+
+def test_a_top_level_module_is_installable():
+    assert scan_support.installable(ABSENT)
+
+
+def test_a_submodule_of_a_package_that_is_present_is_not_installable():
+    # json is here and has no such submodule, so the import names something that does not
+    # exist rather than something that is missing. Installing again would change nothing.
+    assert not scan_support.installable("json.decoder2")
+
+
+def test_a_submodule_of_a_module_that_is_not_a_package_is_not_installable():
+    assert not scan_support.installable("os.path.deeper")
+
+
+def test_a_portion_of_a_namespace_package_is_installable(tmp_path, monkeypatch):
+    # Namespace portions come from separate distributions, so the one that is missing is
+    # exactly what an install would add.
+    portion = tmp_path / "verso_ns_for_tests" / "portion"
+    portion.mkdir(parents=True)
+    (portion / "__init__.py").write_text("")
+
+    monkeypatch.syspath_prepend(str(tmp_path))
+    importlib.invalidate_caches()
+
+    try:
+        importlib.import_module("verso_ns_for_tests.portion")
+
+        assert scan_support.installable("verso_ns_for_tests.other")
+    finally:
+        for name in list(sys.modules):
+            if name == "verso_ns_for_tests" or name.startswith("verso_ns_for_tests."):
+                del sys.modules[name]
+
+
+def test_a_name_no_import_could_have_produced_is_left_alone():
+    # Nothing rules out an install when the parent was never imported, which is the shape a
+    # ModuleNotFoundError raised by hand takes.
+    assert scan_support.installable("verso_absent_parent_for_tests.child")
+
+
+def test_an_empty_name_is_not_installable():
+    assert not scan_support.installable("")
+    assert not scan_support.installable(None)
+    assert not scan_support.installable("json.")
 
 
 # --- declared requirements ---

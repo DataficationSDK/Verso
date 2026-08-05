@@ -376,6 +376,23 @@ public sealed class AutoImportIntegrationTests
         StringAssert.Contains(OutputOf(outputs) + Output, "json");
     }
 
+    [TestMethod]
+    public async Task ASubmoduleOfAPackageThatIsPresentIsNotOfferedForInstall()
+    {
+        await using var session = await StartedSessionAsync();
+
+        // json is here and has no decoder2, so the import names something that does not exist
+        // rather than something that is missing. Offering the package it is already running
+        // against would install nothing and leave the cell failing the same way.
+        var outputs = await session.ExecuteAsync("from json.decoder2 import thing", _context);
+        var all = OutputOf(outputs) + Output;
+
+        Assert.AreEqual(0, _requestCount, "There is nothing an install could add.");
+        Assert.IsTrue(outputs.Any(o => o.IsError), "The import error is the answer.");
+        Assert.IsFalse(all.Contains("Installing"), "Nothing should have been installed.");
+        Assert.IsFalse(all.Contains("again"), "The cell should not have been re-run.");
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         var count = 0;

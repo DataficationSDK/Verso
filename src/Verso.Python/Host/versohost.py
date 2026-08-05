@@ -443,10 +443,11 @@ def error_payload(exc):
     # A dynamic import is invisible to a pre-execution scan, so the failure itself is the
     # only place the missing module can be named. Narrower than ImportError deliberately: a
     # plain ImportError means the module was found and the name inside it was not, which no
-    # install fixes.
+    # install fixes. The module is reported only when installing could actually satisfy it,
+    # for the same reason.
     if isinstance(exc, ModuleNotFoundError):
         missing = getattr(exc, "name", None)
-        if isinstance(missing, str) and missing:
+        if isinstance(missing, str) and scan_support.installable(missing):
             payload["missing_module"] = missing
 
     return payload

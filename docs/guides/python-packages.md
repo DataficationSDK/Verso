@@ -61,6 +61,8 @@ An import wrapped in `try` is never installed. A cell that guards an import has 
 
 Dynamic imports cannot be seen ahead of time. If `importlib.import_module` raises `ModuleNotFoundError`, Verso offers the install then. If the cell had not yet written any output it is re-run for you; if it had, the install is reported and you are asked to run the cell again, because output that has already appeared cannot be taken back.
 
+An import of something inside a package you already have is never offered. `from pandas.frame import DataFrame` fails because pandas has no `frame` module, not because pandas is missing, and the error says so on its own. The exception is a namespace package such as `ruamel` or `google.cloud`, whose parts are published separately, where the part that is missing is worth installing.
+
 ### Policies
 
 `verso.python.autoInstall` controls all of this.
