@@ -13,12 +13,21 @@ namespace Verso.Kernels;
 ///   <item>Native libraries (e.g. <c>e_sqlite3</c>) extracted from <c>runtimes/{rid}/native/</c>
 ///     can be found at runtime.</item>
 /// </list>
+/// Native resolution also installs a per-assembly <see cref="NativeLibrary.SetDllImportResolver"/>
+/// on every managed assembly loaded from a NuGet package directory. A plain
+/// <see cref="AssemblyLoadContext.ResolvingUnmanagedDll"/> handler only runs after the runtime's
+/// default native probing has failed, and on Windows that default probing searches the PATH via
+/// <c>LoadLibrary</c> — so a copy of a native library that happens to live in any PATH directory
+/// (e.g. another app's <c>libSkiaSharp.dll</c>) would win over the package's own native asset.
+/// A <c>DllImportResolver</c> is consulted before default probing, so it restores the intended
+/// precedence of the extracted NuGet native libraries.
 /// </summary>
 internal static class NuGetRuntimeResolver
 {
     private static readonly object Lock = new();
     private static readonly List<string> NativeSearchDirs = new();
     private static readonly List<string> ManagedSearchDirs = new();
+    private static readonly HashSet<string> AssembliesWithResolver = new(StringComparer.OrdinalIgnoreCase);
     private static bool _registered;
 
     /// <summary>
@@ -67,6 +76,70 @@ internal static class NuGetRuntimeResolver
 
         AssemblyLoadContext.Default.Resolving += OnResolvingManagedAssembly;
         AssemblyLoadContext.Default.ResolvingUnmanagedDll += OnResolvingUnmanagedDll;
+        AppDomain.CurrentDomain.AssemblyLoad += (s, e) => AttachDllImportResolver(e.LoadedAssembly);
+    }
+
+    // --- Per-assembly native resolution (takes precedence over PATH probing) ---
+
+    /// <summary>
+    /// Attaches a <see cref="NativeLibrary.SetDllImportResolver"/> to a managed assembly that
+    /// was loaded from a NuGet package directory. The resolver is consulted by the runtime
+    /// before its default native probing, so package native assets win over unrelated copies
+    /// of the same library found through the PATH.
+    /// </summary>
+    private static void AttachDllImportResolver(Assembly assembly)
+    {
+        string location;
+        try
+        {
+            // Throws for assemblies with no backing file, and returns empty for some others.
+            location = assembly.Location;
+        }
+        catch
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(location))
+            return;
+
+        // Only package-loaded assemblies get the resolver; framework and app assemblies keep
+        // the stock behavior and avoid the per-P/Invoke lookup overhead.
+        if (!IsFromPackageDirectory(location))
+            return;
+
+        lock (Lock)
+        {
+            if (!AssembliesWithResolver.Add(location))
+                return;
+        }
+
+        try
+        {
+            NativeLibrary.SetDllImportResolver(assembly, (libraryName, asm, _) => TryResolveNative(asm, libraryName));
+        }
+        catch
+        {
+            // Best effort — resolution still falls back to the ResolvingUnmanagedDll handler.
+        }
+    }
+
+    /// <summary>
+    /// Returns whether an assembly file was loaded from one of the registered NuGet package
+    /// directories (managed assemblies live directly in <c>.../{packageId}/{version}/</c>).
+    /// </summary>
+    private static bool IsFromPackageDirectory(string location)
+    {
+        lock (Lock)
+        {
+            foreach (var dir in ManagedSearchDirs)
+            {
+                if (location.StartsWith(dir, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     // --- Managed assembly resolution ---
@@ -120,7 +193,12 @@ internal static class NuGetRuntimeResolver
         var sawTpaConflict = false;
         foreach (var candidate in candidates)
         {
-            try { return context.LoadFromAssemblyPath(candidate); }
+            try
+            {
+                var assembly = context.LoadFromAssemblyPath(candidate);
+                AttachDllImportResolver(assembly);
+                return assembly;
+            }
             catch (FileLoadException) { sawTpaConflict = true; }
             catch { /* try next */ }
         }
@@ -129,7 +207,12 @@ internal static class NuGetRuntimeResolver
         {
             foreach (var candidate in candidates)
             {
-                try { return IsolationContext.LoadFromAssemblyPath(candidate); }
+                try
+                {
+                    var assembly = IsolationContext.LoadFromAssemblyPath(candidate);
+                    AttachDllImportResolver(assembly);
+                    return assembly;
+                }
                 catch { /* try next */ }
             }
         }
@@ -140,6 +223,15 @@ internal static class NuGetRuntimeResolver
     // --- Native library resolution ---
 
     private static IntPtr OnResolvingUnmanagedDll(Assembly assembly, string libraryName)
+        => TryResolveNative(assembly, libraryName);
+
+    /// <summary>
+    /// Searches the registered native library directories for a library matching
+    /// <paramref name="libraryName"/>. Shared by the <see cref="AssemblyLoadContext.ResolvingUnmanagedDll"/>
+    /// fallback handler and the per-assembly <see cref="DllImportResolver"/> attached by
+    /// <see cref="AttachDllImportResolver"/>.
+    /// </summary>
+    private static IntPtr TryResolveNative(Assembly assembly, string libraryName)
     {
         string[] dirs;
         lock (Lock)
