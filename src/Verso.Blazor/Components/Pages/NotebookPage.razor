@@ -213,6 +213,7 @@
     private DotNetObjectReference<NotebookPage>? _cellInteractRef;
     private DotNetObjectReference<NotebookPage>? _cellDragRef;
     private DotNetObjectReference<NotebookPage>? _layoutInteractRef;
+    private DotNetObjectReference<NotebookPage>? _outputChannelRef;
     private ElementReference _resizeHandle;
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
@@ -347,6 +348,9 @@
 
             _layoutInteractRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("versoLayoutInteract.register", _layoutInteractRef);
+
+            _outputChannelRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("versoOutputChannel.register", _outputChannelRef);
 
             await SyncMonacoThemeAsync();
 
@@ -660,6 +664,21 @@
         return await Service.HandleCellInteractionAsync(
             cellGuid, extensionId, interactionType, payloadJson, outputBlockId, CellRegion.Output);
     }
+
+    /// <summary>
+    /// A widget frame reporting that its view has mounted and can receive. Sibling to
+    /// <see cref="OnCellInteract"/>, and separate from it because a channel outlives the execution
+    /// that opened it and is addressed by channel rather than by cell.
+    /// </summary>
+    [JSInvokable]
+    public Task OnOutputChannelReady(string channelId, string? protocolVersion)
+        => Service.OutputChannelReadyAsync(channelId, protocolVersion);
+
+    /// <summary>A message from a widget frame, on its way to whoever owns its channel.</summary>
+    [JSInvokable]
+    public Task OnOutputChannelMessage(
+        string channelId, string messageType, string? payloadJson, string[]? buffers)
+        => Service.OutputChannelMessageAsync(channelId, messageType, payloadJson, buffers);
 
     [JSInvokable]
     public async Task<string?> OnLayoutInteract(
@@ -1553,6 +1572,7 @@
         _cellInteractRef?.Dispose();
         _cellDragRef?.Dispose();
         _layoutInteractRef?.Dispose();
+        _outputChannelRef?.Dispose();
         Service.OnCellExecuted -= HandleCellExecutedRefresh;
         Service.OnCellExecuting -= HandleCellExecutingEvent;
         Service.OnCellExecutionCompleted -= HandleCellExecutedEvent;

@@ -121,6 +121,7 @@ everywhere and update this table, not just the entry in front of them.
 | renderer, handler | Renderer, Handler | Kept, as German developers say them |
 | serializer | Serialisierer | |
 | formatter | Formatierer | |
+| widget | Widget | Kept, as the editor's own German has it |
 
 One departure from a note: `Serve_PressCtrlC` says `Ctrl+C` is the same in every language, but a
 German keyboard prints **Strg**, so the German reads `Strg+C`. Key names follow the keyboard the
@@ -156,6 +157,7 @@ reader has, which is the rule the `Key_*` entries already state.
 | commit (version control) | confirmación | |
 | required | obligatorio | |
 | default | predeterminado | |
+| widget | widget | Kept. What Spanish developers say, and what the editor itself uses |
 
 Two collisions worth knowing about, because the English words are distinct and the obvious
 Spanish is not. `Table_Kind` (light or dark) is **Clase** so that `Table_Type` can stay **Tipo**,
@@ -193,6 +195,7 @@ Spanish would need `alta` there.
 | required | 必須 | |
 | default | 既定 | Microsoft's Japanese, over デフォルト |
 | run / execute | 実行 | One word for both, as the source asks |
+| widget | ウィジェット | |
 
 Japanese has one form where English has two, so every `_One` and `_Other` pair is translated
 identically. That is expected here and not a copy-and-paste slip.

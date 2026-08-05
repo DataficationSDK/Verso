@@ -32,6 +32,8 @@ from collections import deque
 
 # Siblings of this script, extracted alongside it. Imported before the working directory
 # joins sys.path so a file in the notebook's folder cannot stand in for either.
+import _versohost_bind as bind_support
+import _versohost_comm as comm_support
 import _versohost_display as display_support
 import _versohost_intel as intel_support
 import _versohost_scan as scan_support
@@ -254,6 +256,13 @@ class StreamWriter:
     def write(self, text):
         if not isinstance(text, str):
             raise TypeError("write() argument must be str, not " + type(text).__name__)
+
+        # An output area open on this thread claims what is written inside it. It answers
+        # whether it took the text, and text it did not take is sent the ordinary way, so a
+        # refusal misplaces nothing.
+        if text and display_support.capture_stream(self._name, text):
+            return len(text)
+
         self._router.write(self._name, text)
         return len(text)
 
@@ -537,6 +546,15 @@ class HostSession:
 
         display_support.install(self._emit_display)
 
+        # Before any user code runs, because a widget opens its comm while it is being built.
+        # Installed later, every widget constructed in the meantime would already hold the
+        # stand-in that discards what it is given, and nothing would put that right.
+        comm_support.install(self.channel.write, self._report_comm_refusal)
+
+        # Nothing is watched until a cell asks for it, so this only hands over the writer a
+        # trait change travels on and the way a refusal is explained.
+        bind_support.install(self.channel.write, self._report_bind_problem)
+
         builtins.input = self._input
         builtins.display = display_support.display
         builtins.__verso_shell__ = self._shell
@@ -561,6 +579,31 @@ class HostSession:
                 signal.signal(sigbreak, _raise_keyboard_interrupt)
             except (ValueError, OSError):
                 pass  # no console attached; the interrupt message path still applies
+
+    def _report_comm_refusal(self, text):
+        """
+        Report a widget message the host would not send. Written as a failure rather than as
+        ordinary output: nothing else in the notebook will show that the browser and Python have
+        stopped agreeing about what a widget holds.
+        """
+        self.router.write_error("stderr", text + "\n", "WidgetMessageRefused")
+
+    def _report_bind_problem(self, text):
+        """
+        Report a projected value that did not cross. Written as a failure for the reason a
+        refused widget message is: nothing else in the notebook shows that a shared name and the
+        widget behind it have stopped agreeing.
+        """
+        self.router.write_error("stderr", text + "\n", "BindRefused")
+
+    def handle_comm(self, message):
+        """Hand an inbound comm message to the widget it names, on this thread."""
+        try:
+            comm_support.dispatch(message)
+        except Exception:
+            # A widget's own handler failing is the widget's problem to report, and the loop
+            # that called this has messages after this one to get to.
+            pass
 
     def _thread_excepthook(self, args):
         """Report an unhandled background-thread exception as a failure rather than as text."""
@@ -591,6 +634,7 @@ class HostSession:
             self.publish_limit_bytes = limit
 
         intel_support.configure(config.get("jedi_tools_path"))
+        display_support.configure_assets(config.get("widget_asset_source"))
 
         # The first editor request would otherwise pay for importing the analysis library, which
         # takes long enough to notice. Warmed on a thread of its own so startup does not wait for
@@ -629,6 +673,11 @@ class HostSession:
 
         self.request_id = request_id
         self.router.set_request(request_id)
+
+        # Whether a widget shown by this cell can be given a channel. Carried per cell rather
+        # than agreed once, because the surface an output is going to is the managing side's
+        # business and can differ between one cell and the next.
+        display_support.set_live_widgets(message.get("live_widgets"))
 
         # A package installed moments ago by a magic command in this same cell is only
         # importable once the finders forget what they saw on the path before it existed.
@@ -806,6 +855,73 @@ class HostSession:
         except Exception:
             pass  # the connection has gone; the request's own deadline covers it
 
+    def widget_snapshot(self, message):
+        """
+        Answer with a current page for one widget, so a save records what a reader is looking
+        at rather than what the cell drew.
+
+        Answered on the main thread for the same reason a comm message is applied there: a
+        widget's state is only coherent between the statements that change it. The cost is
+        that a request arriving during a cell waits for the cell, which the asking side bounds
+        and answers by keeping the page it already had.
+        """
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        try:
+            document = display_support.snapshot(message.get("widget_id"))
+        except Exception:
+            document = None
+
+        self._write_reply("widget_snapshot_reply", request_id, "data", document)
+
+    # --- cross-kernel projection ---
+
+    def bind(self, message):
+        """
+        Start projecting one trait into the shared variables, and report the outcome.
+
+        Answered on the main thread because the expression naming the widget is resolved in the
+        cell namespace, which is only settled between cells. It is also where the trait's current
+        value is read, and that value travels back with the reply so the name is readable from
+        another kernel straight away rather than only after the next change.
+        """
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        try:
+            outcome = bind_support.bind(
+                self.scope,
+                message.get("expression"),
+                message.get("trait"),
+                message.get("name"))
+        except Exception as error:
+            outcome = {"status": "error", "reason": str(error)}
+
+        self._write_reply("bind_reply", request_id, "binding", outcome)
+
+    def unbind(self, message):
+        """Stop projecting one name, and report whether there was one to stop."""
+        request_id = message.get("id", UNSOLICITED_REQUEST_ID)
+
+        try:
+            removed = bind_support.unbind(message.get("name"))
+            outcome = {"status": "ok", "removed": removed}
+        except Exception as error:
+            outcome = {"status": "error", "reason": str(error)}
+
+        self._write_reply("bind_reply", request_id, "binding", outcome)
+
+    def apply_bind(self, message):
+        """
+        Set a value another kernel wrote onto the trait it was projected from. Nothing is sent
+        back: the assignment raises the trait's own notification, which travels the ordinary way.
+        """
+        try:
+            bind_support.apply(message.get("name"), message.get("value"))
+        except Exception:
+            # Every way this can fail is already explained where it happens, and the loop that
+            # called this has messages after this one to get to.
+            pass
+
     def _write_reply(self, reply_type, request_id, field, payload):
         try:
             self.channel.write({"type": reply_type, "req_id": request_id, field: payload})
@@ -822,15 +938,22 @@ class HostSession:
     def _getpass(self, prompt="Password: ", stream=None):
         return self.input_bridge.request(str(prompt), True, self.request_id)
 
-    def _emit_display(self, mime, data):
+    def _emit_display(self, mime, data, widget_id=None):
         # Output written before this call belongs above it.
         self.router.flush()
-        self.channel.write({
+        frame = {
             "type": "display",
             "req_id": self.request_id,
             "mime": mime,
             "data": data,
-        })
+        }
+
+        # Only a widget asking to be live has one, and it is what a later request for a fresh
+        # page names, so it travels with the payload rather than being looked up afterwards.
+        if widget_id is not None:
+            frame["widget_id"] = widget_id
+
+        self.channel.write(frame)
 
     def _shell(self, command):
         """Run a shell command for a ``!`` line, streaming its output into the cell."""
@@ -915,7 +1038,7 @@ def _has_jedi():
 def _hello_payload(token):
     capabilities = [
         "execute", "stream", "display", "input", "interrupt",
-        "complete", "hover", "diagnostics", "scan_imports",
+        "complete", "hover", "diagnostics", "scan_imports", "comm", "bind",
     ]
     if _has_jedi():
         capabilities.append("jedi")
@@ -1006,6 +1129,27 @@ def _run(channel, session):
             # scan is always sequenced immediately before its own cell's execute, so this
             # thread is between cells when it arrives.
             session.scan_imports(message)
+        elif kind == "comm_msg":
+            # Here rather than on the reader thread, which handles only the two kinds that run
+            # no user code of their own. Setting a trait runs every observer the author
+            # registered, so it belongs on the thread the author's own cell runs on. The cost is
+            # that a message arriving mid-cell waits for the cell, which is the same ordering a
+            # Jupyter kernel gives it.
+            session.handle_comm(message)
+        elif kind == "widget_snapshot":
+            # Here for the same reason a comm message is: it reads widget state, which is only
+            # settled between cells. A save that arrives mid-cell waits, and the asking side
+            # gives up rather than holding the save open.
+            session.widget_snapshot(message)
+        elif kind == "bind":
+            session.bind(message)
+        elif kind == "unbind":
+            session.unbind(message)
+        elif kind == "bind_set":
+            # On this thread for the reason a comm message is: setting a trait runs the observers
+            # the author registered, which is their own code, and it belongs on the thread their
+            # cells run on rather than beside them on the one reading the socket.
+            session.apply_bind(message)
         # Other message types are handled by later layers; ignore them here.
 
 

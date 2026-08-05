@@ -29,6 +29,22 @@ public sealed record CellOutput(
     /// </summary>
     public OutputChannel? Channel { get; init; }
 
+    /// <summary>
+    /// The output channel keeping this output in conversation with the view that draws it, when
+    /// there is one. Null for the ordinary case of an output that is finished the moment it is
+    /// written, which is every output that is not live.
+    /// <para>
+    /// Unrelated to <see cref="Channel"/> despite the similar name: that one records which text
+    /// stream a line of output came from, and this one names a two-way channel.
+    /// </para>
+    /// <para>
+    /// Session state rather than document content, so it is never written to a file. A saved
+    /// notebook holds the last drawn state of a live output and no claim that it is still live,
+    /// which is what lets the file open on a machine with no kernel for it.
+    /// </para>
+    /// </summary>
+    public string? LiveChannelId { get; init; }
+
     /// <summary>Creates a <c>text/plain</c> output.</summary>
     public static CellOutput Plain(string content) => new("text/plain", content);
 
@@ -76,6 +92,17 @@ public sealed record CellOutput(
 
     /// <summary>Creates a <c>text/x-verso-widget</c> output.</summary>
     public static CellOutput Widget(string document) => new(WidgetMimeType, document);
+
+    /// <summary>
+    /// Creates a <c>text/x-verso-widget</c> output that stays in conversation with whatever draws
+    /// it, over the channel named by <paramref name="channelId"/>.
+    /// </summary>
+    /// <remarks>
+    /// A separate overload rather than an optional argument on the one above, so that code already
+    /// compiled against the single-argument form keeps calling the method it was compiled against.
+    /// </remarks>
+    public static CellOutput Widget(string document, string? channelId) =>
+        new(WidgetMimeType, document) { LiveChannelId = channelId };
 
     /// <summary>
     /// The drawable part of a widget document: whatever its body element contains.

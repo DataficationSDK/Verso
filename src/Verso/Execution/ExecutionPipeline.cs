@@ -30,6 +30,7 @@ internal sealed class ExecutionPipeline
     private readonly Action<Guid>? _notifyOutputUpdated;
     private readonly Func<Guid, string, bool, CancellationToken, Task<string?>>? _requestInput;
     private readonly BackgroundFaultSink? _backgroundFaults;
+    private readonly OutputChannelHost? _outputChannels;
 
     public ExecutionPipeline(
         IVariableStore variables,
@@ -45,7 +46,8 @@ internal sealed class ExecutionPipeline
         Func<string, IMagicCommand?>? resolveMagicCommand = null,
         Action<Guid>? notifyOutputUpdated = null,
         Func<Guid, string, bool, CancellationToken, Task<string?>>? requestInput = null,
-        BackgroundFaultSink? backgroundFaults = null)
+        BackgroundFaultSink? backgroundFaults = null,
+        OutputChannelHost? outputChannels = null)
     {
         _variables = variables;
         _theme = theme;
@@ -61,13 +63,27 @@ internal sealed class ExecutionPipeline
         _notifyOutputUpdated = notifyOutputUpdated;
         _requestInput = requestInput;
         _backgroundFaults = backgroundFaults;
+        _outputChannels = outputChannels;
     }
+
+    /// <summary>
+    /// The channel host a context should report, or null when there is nowhere to send. Read for
+    /// each context rather than once, because a shell attaches its transport when it has a surface
+    /// to attach one to, which can be after the first pipeline was built.
+    /// </summary>
+    private IOutputChannelHost? ContextOutputChannels
+        => _outputChannels is { CanReachViews: true } channels ? channels : null;
 
     public async Task<ExecutionResult> ExecuteAsync(CellModel cell, CancellationToken ct)
     {
         var cellId = cell.Id;
         var executionCount = _getExecutionCount(cellId);
         var stopwatch = Stopwatch.StartNew();
+
+        // Whatever the last run left live is about to be replaced. The view goes with the outputs
+        // it was drawn from, so there is nobody to tell, and closing here rather than after the
+        // run is what keeps a cell from accumulating a channel per execution.
+        _outputChannels?.CloseForCell(cellId, "the cell was run again");
 
         try
         {
@@ -289,7 +305,10 @@ internal sealed class ExecutionPipeline
                 _extensionHost,
                 _notebookMetadata,
                 _notebook,
-                AppendOutput);
+                AppendOutput)
+            {
+                OutputChannels = ContextOutputChannels,
+            };
 
             await magicCommand.ExecuteAsync(parseResult.Arguments ?? "", magicContext).ConfigureAwait(false);
 
@@ -340,7 +359,10 @@ internal sealed class ExecutionPipeline
                 _requestInput is null
                     ? throw new NotSupportedException(Strings.Error_InteractiveInputUnsupported)
                     : _requestInput(cell.Id, prompt, isPassword, inputCt == default ? ct : inputCt),
-            updateOutput: UpdateOutput);
+            updateOutput: UpdateOutput)
+        {
+            OutputChannels = ContextOutputChannels,
+        };
 
         ct.ThrowIfCancellationRequested();
 

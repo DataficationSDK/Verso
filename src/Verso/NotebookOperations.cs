@@ -51,6 +51,9 @@ internal sealed class NotebookOperations : INotebookOperations
         var cell = _scaffold.GetCell(cellId)
             ?? throw new InvalidOperationException($"Cell {cellId} not found.");
         cell.Outputs.Clear();
+
+        // A live output is gone with the rest, so whatever was still talking to it stops.
+        _scaffold.OutputChannels.CloseForCell(cellId, "the cell's outputs were cleared");
         return Task.CompletedTask;
     }
 

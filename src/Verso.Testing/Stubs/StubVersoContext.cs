@@ -17,6 +17,12 @@ public sealed class StubVersoContext : IVersoContext
     public INotebookMetadata NotebookMetadata { get; } = new NotebookMetadataContext(new NotebookModel());
     public INotebookOperations Notebook { get; set; } = new StubNotebookOperations();
 
+    /// <summary>
+    /// Left null so the stub reports no channels, which is what a host with nothing drawing its
+    /// output does. A test covering live output sets its own.
+    /// </summary>
+    public IOutputChannelHost? OutputChannels { get; set; }
+
     public List<CellOutput> WrittenOutputs { get; } = new();
     public List<(string OutputBlockId, CellOutput Output)> UpdatedOutputs { get; } = new();
 

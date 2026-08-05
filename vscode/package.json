@@ -185,6 +185,19 @@
           "default": true,
           "description": "%configuration.python.useUv.description%"
         },
+        "verso.widgets.assetSource": {
+          "type": "string",
+          "enum": [
+            "cdn",
+            "bundled"
+          ],
+          "enumDescriptions": [
+            "%configuration.widgets.assetSource.cdn%",
+            "%configuration.widgets.assetSource.bundled%"
+          ],
+          "default": "cdn",
+          "description": "%configuration.widgets.assetSource.description%"
+        },
         "verso.language": {
           "type": "string",
           "enum": [

@@ -36,6 +36,26 @@ public enum AutoInstallPolicy
 }
 
 /// <summary>
+/// Where a widget document loads the widget front end from.
+/// </summary>
+public enum WidgetAssetSource
+{
+    /// <summary>
+    /// The published bundle, fetched over the network when the widget is drawn. What every
+    /// widget document has always done, and what a page exported from a notebook needs, since
+    /// it is opened somewhere Verso is not.
+    /// </summary>
+    Cdn,
+
+    /// <summary>
+    /// A copy served alongside the notebook, which removes the network from drawing a widget
+    /// and pins the front end to the release. Reserved: nothing ships a copy yet, so a session
+    /// asking for this is drawn from the published bundle.
+    /// </summary>
+    Bundled,
+}
+
+/// <summary>
 /// Configuration options for the Python language kernel.
 /// </summary>
 public sealed record PythonKernelOptions
@@ -116,6 +136,12 @@ public sealed record PythonKernelOptions
     /// <c>%pip</c> runs pip against the active interpreter, matching notebook convention.
     /// </summary>
     public bool EnableShellEscapes { get; init; } = true;
+
+    /// <summary>
+    /// Where a widget document loads the widget front end from. Defaults to
+    /// <see cref="WidgetAssetSource.Cdn"/>.
+    /// </summary>
+    public WidgetAssetSource WidgetAssets { get; init; } = WidgetAssetSource.Cdn;
 
     /// <summary>
     /// Whether a cell's missing imports are installed for it, and whether the user is asked

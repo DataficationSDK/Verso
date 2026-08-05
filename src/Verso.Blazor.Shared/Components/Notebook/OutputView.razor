@@ -7,13 +7,21 @@
 {
     var index = outputIndex;
     var output = Outputs[index];
+    @* What makes an output the same output across renders. CellOutput is a record with value
+       equality, so for most outputs the value itself is the identity and any change rebuilds,
+       which is what recovers a failed render. A live output is identified by its channel
+       instead: its content is refreshed from the kernel whenever the notebook is serialized,
+       and treating that refresh as a new output would tear down a view that is still talking
+       to the kernel and rebuild it from a document captured at the moment of the refresh. A
+       re-run opens a new channel, so it still counts as new. *@
+    var identity = (object?)output.LiveChannelId ?? output;
     @* Each output renders inside its own ErrorBoundary so one payload that throws during render
-       degrades to a single inline error card while sibling outputs keep rendering. The output
-       object is part of the boundary key (CellOutput is a record with value equality, so the
-       position disambiguates duplicates); replacing an output via re-run or an interaction update
-       therefore recreates the boundary and recovers without user action. Retry bumps
-       _retryVersion, which rotates every key and re-attempts all outputs. *@
-    <ErrorBoundary @key="(index, output, _retryVersion)">
+       degrades to a single inline error card while sibling outputs keep rendering. The identity
+       is part of the boundary key (the position disambiguates duplicates); replacing an output
+       via re-run or an interaction update therefore recreates the boundary and recovers without
+       user action. Retry bumps _retryVersion, which rotates every key and re-attempts all
+       outputs, and is what recovers a live output whose own boundary no longer rotates. *@
+    <ErrorBoundary @key="(index, identity, _retryVersion)">
         <ChildContent>
             @if (output.IsError)
             {
@@ -55,11 +63,14 @@
                whole document into a <pre>. *@
             else if (output.MimeType == CellOutput.WidgetMimeType)
             {
-                @* A widget is a whole document and gets its own frame. Keyed like the HTML
-                   branch so a re-run builds a new frame rather than refilling this one, which
-                   would leave the previous widget's code running inside it. *@
+                @* A widget is a whole document and gets its own frame. Keyed on the output's
+                   identity so a re-run builds a new frame rather than refilling this one, which
+                   would leave the previous widget's code running inside it. A live widget keeps
+                   its frame across a content refresh: the document seeds the first paint only
+                   and is not read again after mount, so rebuilding would cost the view its
+                   place in the conversation and gain nothing. *@
                 <div class="verso-output verso-output--widget">
-                    <WidgetFrame @key="(index, output)" Document="@output.Content" />
+                    <WidgetFrame @key="(index, identity)" Document="@output.Content" ChannelId="@output.LiveChannelId" />
                 </div>
             }
             else if (ExtendedMimeTypes && output.MimeType == "text/x-verso-mermaid")

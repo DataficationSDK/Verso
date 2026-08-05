@@ -262,6 +262,28 @@ public interface INotebookService
     Task<string?> HandleCellInteractionAsync(Guid cellId, string extensionId, string interactionType,
         string payload, string? outputBlockId, CellRegion region);
 
+    // ── Output channels ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Tell the session that the view drawing <paramref name="channelId"/> has mounted and can
+    /// receive, which releases anything the channel was holding for it.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to doing nothing, so a host that does not carry live output ignores a view that
+    /// announces itself rather than failing it. The two members here are what a page calls when a
+    /// widget frame speaks; what happens next is the session's business.
+    /// </remarks>
+    Task OutputChannelReadyAsync(string channelId, string? protocolVersion) => Task.CompletedTask;
+
+    /// <summary>
+    /// Send a message from a view to whoever owns its channel. Buffers arrive base64-encoded,
+    /// which is the one representation every boundary between the view and the session carries as
+    /// ordinary JSON.
+    /// </summary>
+    Task OutputChannelMessageAsync(
+        string channelId, string messageType, string? payloadJson, IReadOnlyList<string>? buffers)
+        => Task.CompletedTask;
+
     // ── Editor intelligence ────────────────────────────────────────────
 
     /// <summary>Get hover information for a position in a cell.</summary>

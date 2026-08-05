@@ -919,4 +919,7 @@
   <data name="Widget_FrameTitle" xml:space="preserve">
     <value>ウィジェットの出力</value>
   </data>
+  <data name="Widget_InertNotice" xml:space="preserve">
+    <value>保存された状態を表示しています。セルを実行するとこのウィジェットが有効になります。</value>
+  </data>
 </root>

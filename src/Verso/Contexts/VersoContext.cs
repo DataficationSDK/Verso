@@ -77,6 +77,15 @@ public class VersoContext : IVersoContext
     public INotebookOperations Notebook { get; }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Set through an object initializer rather than taken as a constructor argument. Both
+    /// constructors above are shipped, and the remark on the first one says why an argument cannot
+    /// simply be added to them; a third overload for one optional value is worse than a property
+    /// that leaves every existing call site compiling as it stands.
+    /// </remarks>
+    public IOutputChannelHost? OutputChannels { get; init; }
+
+    /// <inheritdoc />
     public Task WriteOutputAsync(CellOutput output)
     {
         ArgumentNullException.ThrowIfNull(output);

@@ -1206,4 +1206,8 @@
     <value>Widget output</value>
     <comment>Accessible name of the frame a widget draws itself in. Read aloud by a screen reader.</comment>
   </data>
+  <data name="Widget_InertNotice" xml:space="preserve">
+    <value>Showing saved state. Run the cell to make this widget live.</value>
+    <comment>Note under a widget that has no kernel behind it. Read aloud by a screen reader, and shown as text beneath the widget.</comment>
+  </data>
 </root>

@@ -386,12 +386,12 @@ public static class LayoutHandler
             throw new InvalidOperationException($"[{p.ExtensionId}] {ex.Message}", ex);
         }
 
-        // A layout interaction handler may mutate kernel variables (e.g. surfacing a
-        // selection as a variable). Cell execution and kernel restart announce variable
-        // changes explicitly; do the same here so the client refreshes its variable view.
-        // The in-process server host surfaces this automatically via the live store's
-        // change event, so this notification closes the gap for the out-of-process host.
-        ns.SendNotification(MethodNames.VariableChanged);
+        // A layout interaction handler may mutate kernel variables, and used to say so here on
+        // every interaction whether it had or not. The session now watches the store itself and
+        // reports what actually changed, which covers this and covers a change made with nothing
+        // running. Saying it again from here would be worse than redundant: a layout that reacts
+        // to variables by interacting would be answered with another announcement, and the two
+        // would chase each other for as long as the notebook stayed open.
 
         // If the interaction changed the cell collection (e.g. a custom layout's own insert/move/
         // delete affordance, which mutates the host's cells rather than the client's), tell the

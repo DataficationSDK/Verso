@@ -182,6 +182,70 @@
     <value>Python language kernel running the interpreter installed on this machine.</value>
     <comment>What the Python kernel is, shown wherever kernels are listed.</comment>
   </data>
+  <data name="Magic_Bind_BadName" xml:space="preserve">
+    <value>'{0}' cannot be used as a variable name. Use letters, digits, and underscores, starting with a letter or an underscore.</value>
+    <comment>Shown when the chosen variable name has characters another kernel could not read as a name.</comment>
+  </data>
+  <data name="Magic_Bind_Bound" xml:space="preserve">
+    <value>'{0}' now follows {1}.{2}. Any kernel can read it, and writing it moves the widget.</value>
+    <comment>Confirms a trait is now shared. {0} is the variable name, {1} the expression, {2} the trait.</comment>
+  </data>
+  <data name="Magic_Bind_Description" xml:space="preserve">
+    <value>Shares a widget's trait as a notebook variable, so any kernel can read it and writing it moves the widget.</value>
+    <comment>What the #!bind command does, shown in command listings.</comment>
+  </data>
+  <data name="Magic_Bind_Failed" xml:space="preserve">
+    <value>The trait could not be shared: {0}</value>
+    <comment>Shown when the interpreter refused the request. {0} is its reason.</comment>
+  </data>
+  <data name="Magic_Bind_Heading" xml:space="preserve">
+    <value>Widget traits shared as variables:</value>
+    <comment>Heading above the list of shared traits.</comment>
+  </data>
+  <data name="Magic_Bind_Name" xml:space="preserve">
+    <value>Share widget trait</value>
+    <comment>The #!bind command's name, shown wherever extensions are listed.</comment>
+  </data>
+  <data name="Magic_Bind_NeedsTrait" xml:space="preserve">
+    <value>'{0}' does not name a trait. Write the widget and the trait together, such as #!bind slider.value.</value>
+    <comment>Shown when the argument names no trait. {0} is what was written.</comment>
+  </data>
+  <data name="Magic_Bind_NoSession" xml:space="preserve">
+    <value>The Python kernel is not running, so there is no widget to share a trait from.</value>
+    <comment>Shown when there is no running interpreter to share a trait from.</comment>
+  </data>
+  <data name="Magic_Bind_None" xml:space="preserve">
+    <value>No widget traits are shared as variables.</value>
+    <comment>Shown by #!bind --list when nothing is shared.</comment>
+  </data>
+  <data name="Magic_Bind_NotFound" xml:space="preserve">
+    <value>'{0}' is not shared from a widget trait.</value>
+    <comment>Shown by #!bind --remove for a name that is not shared. {0} is the name.</comment>
+  </data>
+  <data name="Magic_Bind_Param_Name" xml:space="preserve">
+    <value>The variable name to share the trait under. Defaults to the trait's own name.</value>
+    <comment>Describes the optional name argument.</comment>
+  </data>
+  <data name="Magic_Bind_Param_Target" xml:space="preserve">
+    <value>The widget and the trait to share, written as an expression followed by the trait name.</value>
+    <comment>Describes the widget and trait argument.</comment>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>'{0}' no longer follows a widget trait. It keeps the value it last held.</value>
+    <comment>Confirms a name is no longer shared. {0} is the name.</comment>
+  </data>
+  <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
+    <value>Usage: #!bind --remove &lt;name&gt;</value>
+    <comment>Shown when #!bind --remove is given no name.</comment>
+  </data>
+  <data name="Magic_Bind_Replaced" xml:space="preserve">
+    <value>It replaces '{0}', which shared the same trait.</value>
+    <comment>Added when the new binding supersedes an earlier one. {0} is the earlier name.</comment>
+  </data>
+  <data name="Magic_Bind_Usage" xml:space="preserve">
+    <value>Usage: #!bind &lt;expression&gt;.&lt;trait&gt; [as &lt;name&gt;], #!bind --list, or #!bind --remove &lt;name&gt;</value>
+    <comment>Shown when #!bind is used with no arguments or an unreadable one.</comment>
+  </data>
   <data name="Magic_Pip_Description" xml:space="preserve">
     <value>Installs Python packages via pip for use in subsequent code.</value>
     <comment>What #!pip does, shown in the list of magic commands.</comment>

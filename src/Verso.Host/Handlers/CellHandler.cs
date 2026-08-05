@@ -94,6 +94,7 @@ public static class CellHandler
             cell.Type = p.Type;
             cell.Language = language;
             cell.Outputs.Clear();
+            ns.Scaffold.OutputChannels.CloseForCell(cellId, "the cell's outputs were cleared");
 
             // Layout chrome is type-sensitive (per-type slot classes, heading folding),
             // so a type change needs the same re-render as an add/remove.
@@ -121,6 +122,7 @@ public static class CellHandler
         {
             cell.Language = language;
             cell.Outputs.Clear();
+            ns.Scaffold.OutputChannels.CloseForCell(cellId, "the cell's outputs were cleared");
 
             // Eagerly warm up the target kernel so IntelliSense is ready immediately
             _ = Task.Run(async () =>

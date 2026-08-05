@@ -40,6 +40,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private string _workingDirectory = "";
     private string? _sessionSelection;
     private volatile bool _executing;
+
+    /// <summary>
+    /// Whether the running cell's event handler is attached. Read by the session handler to tell a
+    /// message that cell owns from one that arrived with no cell to own it.
+    /// </summary>
+    private volatile bool _executionAttached;
+
+    /// <summary>Message types already reported as undelivered, so each is mentioned once.</summary>
+    private readonly HashSet<string> _unclaimedReported = new(StringComparer.Ordinal);
     private bool _boundToNotebook;
     private bool _dependenciesRequested;
     private bool _requiresPythonReported;
@@ -48,6 +57,29 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
     /// <summary>Assembles streamed text into terminal-like lines. Replaced for each cell.</summary>
     private StreamLineAssembler _lines = new();
+
+    /// <summary>
+    /// Carries widget comm traffic in both directions. Held for the session rather than for a
+    /// cell, because a widget is interacted with after the cell that drew it has finished.
+    /// </summary>
+    private readonly PythonCommRouter _comms;
+
+    /// <summary>
+    /// The traits currently projected into the shared variables, by the name each is projected
+    /// under. Keyed without regard to case, because the store is.
+    /// </summary>
+    private readonly Dictionary<string, Projection> _projections = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The store the projections write to and watch, held for as long as any of them exist.
+    /// </summary>
+    /// <remarks>
+    /// A projection is the one part of this session that acts between cells rather than during
+    /// one, so it cannot reach the store through an execution context the way everything else
+    /// does. It is taken from the context that asked for the first projection and released with
+    /// the last, so a session with none subscribes to nothing.
+    /// </remarks>
+    private IVariableStore? _projectionStore;
 
     /// <summary>Where each revisable block sits in the outputs this cell will return.</summary>
     private readonly Dictionary<string, int> _blockIndexes = new(StringComparer.Ordinal);
@@ -68,8 +100,10 @@ internal sealed class PythonHostSession : IAsyncDisposable
             options.DefaultImports,
             options.StartupCode,
             options.EnableShellEscapes,
-            options.VariablePublishLimitBytes);
+            options.VariablePublishLimitBytes,
+            WidgetAssets: options.WidgetAssets);
         _autoInstall = new AutoInstallService(options);
+        _comms = new PythonCommRouter(SendToSubprocessAsync);
     }
 
     /// <summary>
@@ -157,6 +191,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
             [HostProtocol.CodeField] = code,
             [HostProtocol.InjectField] = BuildInjectPayload(context.Variables),
             [HostProtocol.PublishField] = JsonValue.Create(_options.PublishVariables),
+
+            // A widget asks for a channel only when there is a view to give it one. Asking
+            // anyway would open channels nothing ever mounts, and the queue behind each of them
+            // would fill and then fail while a file was being baked with no browser in sight.
+            [HostProtocol.LiveWidgetsField] = JsonValue.Create(context.OutputChannels is not null),
         };
 
         var events = Channel.CreateUnbounded<JsonObject>(
@@ -176,6 +215,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
             events.Writer.TryWrite(message);
         }
 
+        // Set before the subscription and cleared after it, so the window it describes is never
+        // narrower than the window the handler is attached for. The session handler runs first for
+        // the same message, and reading a flag that had not caught up yet would have it report a
+        // message as undelivered that the line below is about to deliver.
+        _executionAttached = true;
         connection.EventReceived += OnEvent;
 
         // Editor requests are answered as empty while this is set: they read the same namespace
@@ -230,6 +274,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
         {
             _executing = false;
             connection.EventReceived -= OnEvent;
+            _executionAttached = false;
         }
 
         return outputs;
@@ -567,8 +612,12 @@ internal sealed class PythonHostSession : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
+        _comms.Clear();
+        ClearProjections();
+
         if (_process is not null)
         {
+            _process.EventReceived -= OnSessionEvent;
             await _process.DisposeAsync().ConfigureAwait(false);
             _process = null;
         }
@@ -616,6 +665,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
         var process = new PythonHostProcess(executable, workingDirectory, BuildBootstrap());
         process.Exited += OnProcessExited;
+        process.EventReceived += OnSessionEvent;
 
         // The new interpreter has an empty scope, so nothing counts as already injected, and
         // anything explained about a name earlier is worth explaining again to the new scope.
@@ -623,6 +673,11 @@ internal sealed class PythonHostSession : IAsyncDisposable
         _unavailable.Clear();
         _statusChanges.Clear();
         _oversizeReported.Clear();
+
+        // Every widget the old interpreter held is gone with it, so the views still drawing them
+        // have nothing left to talk to. They are told separately that their channels have closed;
+        // what this does is stop the new interpreter from being handed the old one's conversations.
+        _comms.Clear();
 
         await process.StartAsync(cancellationToken).ConfigureAwait(false);
 
@@ -668,6 +723,15 @@ internal sealed class PythonHostSession : IAsyncDisposable
     {
         _crashExitCode = exitCode;
         _crashed = true;
+
+        // Every widget the interpreter held went with it, and the views drawing them are still on
+        // the page. Told here rather than at the next execution, because there may not be one.
+        _comms.Clear();
+
+        // The traits those widgets carried are gone with them, so nothing is watching and nothing
+        // is worth pushing. The shared variables keep the values they last held, which is what a
+        // cell in another kernel is already computing with.
+        ClearProjections();
     }
 
     /// <summary>
@@ -763,11 +827,110 @@ internal sealed class PythonHostSession : IAsyncDisposable
                 "within the grace period and was stopped, so interpreter state was reset."),
             context, outputs).ConfigureAwait(false);
 
+        // The interpreter that held them is being replaced, so its widgets are gone too.
+        _comms.Clear();
+
         try { await process.RespawnAsync(CancellationToken.None).ConfigureAwait(false); }
         catch { /* the next execution retries the restart and reports its own failure */ }
 
         _crashed = false;
         return false;
+    }
+
+    // --- session-scoped events ---
+
+    /// <summary>
+    /// Raised for a message from the subprocess that nothing took: a type no handler answers, or
+    /// one belonging to a running cell that arrived when no cell was running. Every message that
+    /// does not conclude a request passes through a handler or through here, so one that goes
+    /// nowhere can be seen rather than inferred from the absence of what it would have produced.
+    /// </summary>
+    internal event Action<JsonObject>? EventUnclaimed;
+
+    /// <summary>
+    /// Writes one frame to the subprocess without expecting an answer. A connection that has
+    /// gone is not reported: the parts of the session that own it already say so, and a widget
+    /// update is not where a user should first hear that their kernel died.
+    /// </summary>
+    private async Task SendToSubprocessAsync(JsonObject frame)
+    {
+        var connection = _process?.Connection;
+        if (connection is null)
+            return;
+
+        try { await connection.SendAsync(frame, CancellationToken.None).ConfigureAwait(false); }
+        catch (PythonHostException) { }
+        catch (IOException) { }
+        catch (ObjectDisposedException) { }
+    }
+
+    /// <summary>
+    /// The session's own event handler, attached for as long as the subprocess lives rather than
+    /// for the length of a cell. It answers the types the per-execution handler does not, and
+    /// reports what neither of them takes. Runs on the read pump, so it does no work of its own.
+    /// </summary>
+    private void OnSessionEvent(JsonObject message)
+    {
+        var messageType = HostProtocol.GetMessageType(message);
+
+        if (messageType == HostProtocol.Comm)
+        {
+            // Started rather than awaited, because this runs on the read pump and delivering to a
+            // view can mean a round trip of its own. The router puts each frame behind the one
+            // before it, so handing them over without waiting does not reorder them.
+            _ = _comms.RouteAsync(message);
+            return;
+        }
+
+        if (messageType == HostProtocol.BindUpdate)
+        {
+            // Handled here rather than started and left, because a trait's value is a sequence of
+            // changes and the last one has to be the one the store keeps. The work is a conversion
+            // and a write; what happens behind the write belongs to whoever subscribed to it.
+            ApplyProjectionUpdate(message);
+            return;
+        }
+
+        if (HostProtocol.IsExecutionScoped(messageType))
+        {
+            // The running cell owns this one. Answering it here as well would put the same output
+            // in the notebook twice.
+            if (_executionAttached)
+                return;
+
+            ReportUnclaimed(message, messageType, "with no cell running");
+            return;
+        }
+
+        // A reply whose request was abandoned, which is what an editor request that passed its
+        // deadline leaves behind. The caller has long since moved on and said so; expected.
+        if (HostProtocol.IsReply(messageType))
+            return;
+
+        ReportUnclaimed(message, messageType, "which no handler answers");
+    }
+
+    /// <summary>
+    /// Note a message nothing took. Written out once per type per session: a background thread
+    /// writing in a loop would otherwise repeat one line without adding anything to it.
+    /// </summary>
+    private void ReportUnclaimed(JsonObject message, string? messageType, string reason)
+    {
+        bool first;
+        lock (_unclaimedReported)
+        {
+            first = _unclaimedReported.Add(messageType ?? "");
+        }
+
+        if (first)
+        {
+            Console.Error.WriteLine(
+                $"[Verso] The Python host sent a '{messageType}' message {reason}. " +
+                "It was not delivered.");
+        }
+
+        try { EventUnclaimed?.Invoke(message); }
+        catch { /* a subscriber must not stop the messages that follow it */ }
     }
 
     private async Task ConsumeEventsAsync(
@@ -787,7 +950,14 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
     private async Task HandleEventAsync(JsonObject message, IExecutionContext context, List<CellOutput> outputs)
     {
-        switch (HostProtocol.GetMessageType(message))
+        var messageType = HostProtocol.GetMessageType(message);
+
+        // The half of the traffic this handler owns. Anything else belongs to the session handler,
+        // and turning a type away here that the switch below answers would drop it from both.
+        if (!HostProtocol.IsExecutionScoped(messageType))
+            return;
+
+        switch (messageType)
         {
             case HostProtocol.Stream:
             {
@@ -826,7 +996,8 @@ internal sealed class PythonHostSession : IAsyncDisposable
 
             case HostProtocol.Display:
             {
-                await EmitAsync(MapPayload(message), context, outputs).ConfigureAwait(false);
+                var display = await MapPayloadAsync(message, context).ConfigureAwait(false);
+                await EmitAsync(display, context, outputs).ConfigureAwait(false);
                 return;
             }
 
@@ -892,6 +1063,474 @@ internal sealed class PythonHostSession : IAsyncDisposable
         => MapPayload(
             HostProtocol.TryGetString(payload, HostProtocol.MimeField) ?? "text/plain",
             HostProtocol.TryGetString(payload, HostProtocol.DataField) ?? "");
+
+    /// <summary>
+    /// The same mapping, for the one payload that cannot be turned into an output on its own: a
+    /// widget asking to be live needs a channel opened for it first, and only the host can open
+    /// one.
+    /// </summary>
+    /// <remarks>
+    /// A widget whose channel could not be opened is written out as an ordinary widget, drawn
+    /// from the state travelling in the document. Nothing about the document differs between the
+    /// two, so this is the difference between a control that answers and a picture of one.
+    /// </remarks>
+    private async Task<CellOutput> MapPayloadAsync(JsonObject payload, IExecutionContext context)
+    {
+        var mime = HostProtocol.TryGetString(payload, HostProtocol.MimeField) ?? "text/plain";
+        var data = HostProtocol.TryGetString(payload, HostProtocol.DataField) ?? "";
+
+        if (mime != HostProtocol.LiveWidgetMime)
+            return MapPayload(mime, data);
+
+        var widgetId = HostProtocol.TryGetString(payload, HostProtocol.WidgetIdField);
+        var channelId = await OpenWidgetChannelAsync(context, widgetId).ConfigureAwait(false);
+        return CellOutput.Widget(data, channelId);
+    }
+
+    /// <summary>
+    /// Opens the channel a widget's view talks over, and starts routing comm traffic across it.
+    /// Returns null when there is nowhere to send, which is what a baked file and a terminal both
+    /// look like from here.
+    /// </summary>
+    private async Task<string?> OpenWidgetChannelAsync(IExecutionContext context, string? widgetId)
+    {
+        var channels = context.OutputChannels;
+        if (channels is null)
+            return null;
+
+        try
+        {
+            // Not cancelled with the cell's token: the channel outlives the cell that opened it,
+            // which is the whole reason it exists, and a cell cancelled between opening and
+            // returning would otherwise leave a widget drawn with nothing behind it.
+            var channel = await channels.OpenAsync(context.CellId, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            _comms.Track(channel);
+
+            // What lets a save write the state the reader is looking at. Set here rather than at
+            // save time because this is the only place that knows which widget the channel was
+            // opened for, and a widget shown by an interpreter that has since gone answers
+            // nothing, which leaves the page already written in place.
+            if (!string.IsNullOrEmpty(widgetId))
+                channel.SnapshotProvider = ct => RequestWidgetSnapshotAsync(widgetId!, ct);
+
+            return channel.ChannelId;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[Verso] A widget could not be given a channel and was drawn from its saved state: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Asks the interpreter for a current page for one widget. Null for every way this can fail,
+    /// because the caller's fallback is the page already written, which is always something a
+    /// file can hold.
+    /// </summary>
+    /// <remarks>
+    /// Answered on the thread the interpreter runs cells on, so a request made while a cell is
+    /// running waits for it. That is deliberate, and it is why the caller carries a deadline: a
+    /// widget mid-change is not a state worth saving, and a save is not worth holding for one.
+    /// </remarks>
+    private async Task<string?> RequestWidgetSnapshotAsync(string widgetId, CancellationToken ct)
+    {
+        if (_disposed)
+            return null;
+
+        var process = _process is { IsAlive: true } alive ? alive : null;
+        var connection = process?.Connection;
+        if (process is null || connection is null)
+            return null;
+
+        // A host script from an earlier release ignores the request rather than answering it,
+        // which would cost the save its whole deadline for nothing.
+        if (process.Handshake?.Capabilities.Contains(HostProtocol.CommCapability) != true)
+            return null;
+
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.WidgetSnapshot,
+            [HostProtocol.WidgetIdField] = widgetId,
+        };
+
+        try
+        {
+            var reply = await connection.SendRequestAsync(request, ct).ConfigureAwait(false);
+            return HostProtocol.TryGetString(reply, HostProtocol.DataField);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (PythonHostException)
+        {
+            return null;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    // --- cross-kernel projection ---
+
+    /// <summary>How long a bind or unbind request waits before giving up on an answer.</summary>
+    private static readonly TimeSpan ProjectionTimeout = TimeSpan.FromSeconds(15);
+
+    /// <summary>One trait projected into the shared variables, and the last value that crossed.</summary>
+    private sealed class Projection
+    {
+        public Projection(string name, string expression, string trait, string widgetId)
+        {
+            Name = name;
+            Expression = expression;
+            Trait = trait;
+            WidgetId = widgetId;
+        }
+
+        public string Name { get; }
+        public string Expression { get; }
+        public string Trait { get; }
+        public string WidgetId { get; }
+
+        /// <summary>
+        /// A fingerprint of the last value seen under this name, whichever side produced it. It is
+        /// what stops a value crossing forever: each side recognises what it just sent coming back
+        /// and stops there, so a change settles after one round trip in the direction it started.
+        /// </summary>
+        public string? LastHash { get; set; }
+    }
+
+    /// <summary>Every projection, for a listing that must not wait on the interpreter.</summary>
+    internal IReadOnlyList<VariableProjection> Projections
+    {
+        get
+        {
+            lock (_projections)
+            {
+                return _projections.Values
+                    .Select(p => new VariableProjection(p.Name, p.Expression, p.Trait, p.WidgetId))
+                    .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Start projecting one trait into the shared variables. The interpreter resolves the
+    /// expression, reads the trait, and reports what it found; nothing is recorded here until it
+    /// has, because only the interpreter can say whether the object exists and the trait is one
+    /// that can cross.
+    /// </summary>
+    internal async Task<ProjectionOutcome> BindAsync(
+        IVersoContext context, string expression, string trait, string? name, CancellationToken ct)
+    {
+        if (_disposed)
+            return ProjectionOutcome.Failed("The Python kernel has shut down.");
+
+        var connection = _process is { IsAlive: true } alive ? alive.Connection : null;
+        if (connection is null)
+            return ProjectionOutcome.Failed("The Python kernel is not running.");
+
+        if (_process?.Handshake?.Capabilities.Contains(HostProtocol.BindCapability) != true)
+        {
+            return ProjectionOutcome.Failed(
+                "The Python host running this session cannot project widget traits. Restart the " +
+                "kernel to pick up the current one.");
+        }
+
+        var request = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.Bind,
+            [HostProtocol.ExpressionField] = expression,
+            [HostProtocol.TraitField] = trait,
+            [HostProtocol.NameField] = string.IsNullOrEmpty(name) ? null : name,
+        };
+
+        var reply = await AskForProjectionAsync(connection, request, ct).ConfigureAwait(false);
+        if (reply is null)
+            return ProjectionOutcome.Failed("The Python kernel did not answer.");
+
+        if (!string.Equals(HostProtocol.TryGetString(reply, HostProtocol.StatusField),
+                HostProtocol.StatusOk, StringComparison.Ordinal))
+        {
+            return ProjectionOutcome.Failed(
+                HostProtocol.TryGetString(reply, HostProtocol.ReasonField)
+                ?? "The trait could not be projected.");
+        }
+
+        var bound = HostProtocol.TryGetString(reply, HostProtocol.NameField);
+        var widgetId = HostProtocol.TryGetString(reply, HostProtocol.WidgetIdField);
+        if (string.IsNullOrEmpty(bound) || string.IsNullOrEmpty(widgetId))
+            return ProjectionOutcome.Failed("The Python kernel answered without naming what it bound.");
+
+        var replaced = HostProtocol.TryGetString(reply, HostProtocol.ReplacedField);
+        var projection = new Projection(
+            bound!,
+            HostProtocol.TryGetString(reply, HostProtocol.ExpressionField) ?? expression,
+            HostProtocol.TryGetString(reply, HostProtocol.TraitField) ?? trait,
+            widgetId!);
+
+        // Taken before the first value is written, because writing it raises the change
+        // notification this listens for, and the entry has to be findable by then.
+        AttachProjectionStore(context.Variables);
+
+        lock (_projections)
+        {
+            // The interpreter has already stopped watching whatever this supersedes, so the entry
+            // here would otherwise linger and keep pushing writes at a trait nobody reads back.
+            if (!string.IsNullOrEmpty(replaced))
+                _projections.Remove(replaced!);
+
+            _projections[bound!] = projection;
+        }
+
+        // The trait's value as it stands, so the name is readable from another kernel straight
+        // away rather than only after the widget is next touched.
+        StoreProjectedValue(projection, reply[HostProtocol.ValueField]);
+
+        return new ProjectionOutcome(
+            true,
+            Projection: new VariableProjection(
+                projection.Name, projection.Expression, projection.Trait, projection.WidgetId),
+            Replaced: string.IsNullOrEmpty(replaced) ? null : replaced);
+    }
+
+    /// <summary>
+    /// Stop projecting one name. The shared variable is left holding the value it last had: it is
+    /// an ordinary variable from here on, and taking it away would break the cells reading it.
+    /// </summary>
+    internal async Task<ProjectionOutcome> UnbindAsync(string name, CancellationToken ct)
+    {
+        bool known;
+        lock (_projections)
+        {
+            known = _projections.Remove(name);
+        }
+
+        ReleaseProjectionStoreIfIdle();
+
+        var connection = _disposed ? null : (_process is { IsAlive: true } alive ? alive.Connection : null);
+        if (connection is not null
+            && _process?.Handshake?.Capabilities.Contains(HostProtocol.BindCapability) == true)
+        {
+            var request = new JsonObject
+            {
+                [HostProtocol.TypeField] = HostProtocol.Unbind,
+                [HostProtocol.NameField] = name,
+            };
+
+            var reply = await AskForProjectionAsync(connection, request, ct).ConfigureAwait(false);
+
+            // The interpreter is the side that knows whether it was watching anything, so its
+            // answer wins over the entry here when the two disagree.
+            if (reply is not null && reply[HostProtocol.RemovedField] is JsonValue removed
+                && removed.TryGetValue<bool>(out var stopped))
+            {
+                known |= stopped;
+            }
+        }
+
+        return known
+            ? new ProjectionOutcome(true)
+            : ProjectionOutcome.Failed($"'{name}' is not projected from a widget trait.");
+    }
+
+    /// <summary>
+    /// Send a projection request and return the outcome the interpreter reported, or null when
+    /// there was no answer. Bounded rather than awaited without limit: a request arriving during
+    /// a long cell waits for the cell, and a magic command is not somewhere to sit indefinitely.
+    /// </summary>
+    private static async Task<JsonObject?> AskForProjectionAsync(
+        PythonHostConnection connection, JsonObject request, CancellationToken ct)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(ProjectionTimeout);
+
+        try
+        {
+            var reply = await connection.SendRequestAsync(request, deadline.Token).ConfigureAwait(false);
+            return reply[HostProtocol.BindingField] as JsonObject;
+        }
+        catch (OperationCanceledException) { return null; }
+        catch (PythonHostException) { return null; }
+        catch (ObjectDisposedException) { return null; }
+        catch (InvalidOperationException) { return null; }
+    }
+
+    /// <summary>
+    /// Take a changed trait into the shared variables. Runs on the read pump, which is why it does
+    /// nothing but convert and write: the work behind the write belongs to whoever subscribed.
+    /// </summary>
+    private void ApplyProjectionUpdate(JsonObject message)
+    {
+        var name = HostProtocol.TryGetString(message, HostProtocol.NameField);
+        if (string.IsNullOrEmpty(name))
+            return;
+
+        var store = _projectionStore;
+        if (store is null)
+            return;
+
+        var value = HostVariables.FromJson(message[HostProtocol.ValueField]);
+        if (value is null)
+            return;  // the store holds no nulls, and a trait set to None is not a value to share
+
+        // Fingerprinted from the value as it will be held rather than as it arrived, so that the
+        // change this write raises describes it identically and the echo stops in one place.
+        if (!HostVariables.TryToJson(value, out var normalized))
+            return;
+
+        var hash = HostVariables.ComputeHash(normalized);
+
+        lock (_projections)
+        {
+            if (!_projections.TryGetValue(name!, out var projection))
+                return;
+
+            // What we sent, coming back. The trait now holds it, so there is nothing to write.
+            if (string.Equals(projection.LastHash, hash, StringComparison.Ordinal))
+                return;
+
+            projection.LastHash = hash;
+        }
+
+        try
+        {
+            store.Set(name!, value);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[Verso] A widget trait projected as '{name}' could not be shared: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Write the value a bind reply carried, recording its fingerprint first so the change it
+    /// raises is recognised as this one rather than sent straight back to the trait.
+    /// </summary>
+    private void StoreProjectedValue(Projection projection, JsonNode? node)
+    {
+        var value = HostVariables.FromJson(node);
+        if (value is null)
+            return;
+
+        if (!HostVariables.TryToJson(value, out var normalized))
+            return;
+
+        lock (_projections)
+        {
+            projection.LastHash = HostVariables.ComputeHash(normalized);
+        }
+
+        try { _projectionStore?.Set(projection.Name, value); }
+        catch { /* reported by the caller's own outcome; the projection stands either way */ }
+    }
+
+    /// <summary>
+    /// Push what another kernel wrote into the traits it belongs to. Raised for every change to
+    /// the store, so it does as little as possible when nothing is projected.
+    /// </summary>
+    private void OnProjectedStoreChanged()
+    {
+        var store = _projectionStore;
+        if (store is null)
+            return;
+
+        List<Projection> projections;
+        lock (_projections)
+        {
+            if (_projections.Count == 0)
+                return;
+
+            projections = _projections.Values.ToList();
+        }
+
+        foreach (var projection in projections)
+        {
+            // A name that has been removed leaves the trait as it is. The widget is still the
+            // thing that holds the value, and there is nothing to push.
+            if (!store.TryGet<object>(projection.Name, out var value) || value is null)
+                continue;
+
+            if (!HostVariables.TryToJson(value, out var node))
+                continue;
+
+            var hash = HostVariables.ComputeHash(node);
+
+            lock (_projections)
+            {
+                if (!_projections.TryGetValue(projection.Name, out var current))
+                    continue;
+
+                // Either what the trait already holds, or the echo of a change it just raised.
+                if (string.Equals(current.LastHash, hash, StringComparison.Ordinal))
+                    continue;
+
+                current.LastHash = hash;
+            }
+
+            _ = SendToSubprocessAsync(new JsonObject
+            {
+                [HostProtocol.TypeField] = HostProtocol.BindSet,
+                [HostProtocol.NameField] = projection.Name,
+                [HostProtocol.ValueField] = node?.DeepClone(),
+            });
+        }
+    }
+
+    private void AttachProjectionStore(IVariableStore store)
+    {
+        if (ReferenceEquals(_projectionStore, store))
+            return;
+
+        ReleaseProjectionStore();
+        _projectionStore = store;
+        store.OnVariablesChanged += OnProjectedStoreChanged;
+    }
+
+    private void ReleaseProjectionStore()
+    {
+        if (_projectionStore is null)
+            return;
+
+        _projectionStore.OnVariablesChanged -= OnProjectedStoreChanged;
+        _projectionStore = null;
+    }
+
+    private void ReleaseProjectionStoreIfIdle()
+    {
+        lock (_projections)
+        {
+            if (_projections.Count > 0)
+                return;
+        }
+
+        ReleaseProjectionStore();
+    }
+
+    /// <summary>
+    /// Forget every projection. What a restart, a crash, and the session ending all come to: the
+    /// widgets the projections named are in the interpreter that has gone, so nothing here has
+    /// anything left to watch. The variables keep the values they last held.
+    /// </summary>
+    private void ClearProjections()
+    {
+        lock (_projections)
+        {
+            _projections.Clear();
+        }
+
+        ReleaseProjectionStore();
+    }
 
     // --- variable exchange ---
 
@@ -1104,7 +1743,10 @@ internal sealed class PythonHostSession : IAsyncDisposable
     private async Task AppendReplyAsync(JsonObject reply, IExecutionContext context, List<CellOutput> outputs)
     {
         if (reply[HostProtocol.ResultField] is JsonObject result)
-            await EmitAsync(MapPayload(result), context, outputs).ConfigureAwait(false);
+        {
+            var output = await MapPayloadAsync(result, context).ConfigureAwait(false);
+            await EmitAsync(output, context, outputs).ConfigureAwait(false);
+        }
 
         if (reply[HostProtocol.ErrorField] is JsonObject error)
         {

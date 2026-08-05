@@ -74,6 +74,19 @@ public interface IVersoContext
     }
 
     /// <summary>
+    /// Gets the session's output channels, or <c>null</c> when this host cannot reach a rendered
+    /// view. A channel keeps one output in conversation with what draws it for as long as the
+    /// session lives, rather than for the length of a cell.
+    /// </summary>
+    /// <remarks>
+    /// The null default is the capability signal, matching <see cref="LayoutCapabilities"/> and
+    /// <see cref="RequestFileDownloadAsync"/>. A host that renders to a file, a terminal, or
+    /// anything else with nothing to talk back leaves it null, and a caller that finds it null
+    /// writes ordinary static output instead of failing.
+    /// </remarks>
+    IOutputChannelHost? OutputChannels => null;
+
+    /// <summary>
     /// Updates an existing output block in place, replacing its content with the new output.
     /// </summary>
     /// <param name="outputBlockId">The identifier of the output block to update.</param>

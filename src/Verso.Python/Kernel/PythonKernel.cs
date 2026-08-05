@@ -26,6 +26,13 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
     /// </summary>
     internal const string UvVariable = "VERSO_PYTHON_UV";
 
+    /// <summary>
+    /// Selects where a widget document loads the widget front end from: <c>cdn</c> or
+    /// <c>bundled</c>. Delivered through the environment for the same reason the install policy
+    /// is: it is the person running the notebook who decides, not the notebook.
+    /// </summary>
+    internal const string WidgetAssetsVariable = "VERSO_WIDGETS_ASSET_SOURCE";
+
     /// <summary>The notebook setting carrying the requirement list ensured on first execution.</summary>
     internal const string DependenciesSetting = "dependencies";
 
@@ -60,7 +67,20 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
         if (uv is "0" or "off" or "OFF" or "Off" or "false" or "FALSE" or "False")
             options = options with { UseUv = UvUsage.Off };
 
+        if (TryParseWidgetAssets(Environment.GetEnvironmentVariable(WidgetAssetsVariable), out var assets))
+            options = options with { WidgetAssets = assets };
+
         return options;
+    }
+
+    internal static bool TryParseWidgetAssets(string? value, out WidgetAssetSource source)
+    {
+        switch (value?.Trim().ToLowerInvariant())
+        {
+            case "cdn": source = WidgetAssetSource.Cdn; return true;
+            case "bundled": source = WidgetAssetSource.Bundled; return true;
+            default: source = WidgetAssetSource.Cdn; return false;
+        }
     }
 
     internal static bool TryParsePolicy(string? value, out AutoInstallPolicy policy)
@@ -104,6 +124,35 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
             .ConfigureAwait(false);
 
         return session.Interpreter?.Executable;
+    }
+
+    /// <summary>
+    /// The running session, bound to the notebook first so a command in the very first cell acts
+    /// on the same interpreter the cell below it will run in. Null when none could be started.
+    /// </summary>
+    internal async Task<PythonHostSession?> GetBoundSessionAsync(
+        IVersoContext context, CancellationToken cancellationToken)
+    {
+        if (!_initialized)
+            await InitializeAsync().ConfigureAwait(false);
+
+        var session = _session;
+        if (session is null)
+            return null;
+
+        try
+        {
+            await session.EnsureBoundAsync(PythonHostSession.NotebookDirectory(context), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // No interpreter, or one that will not start. The session reports that itself the
+            // first time a cell runs; here it simply means there is nothing to act on.
+            return null;
+        }
+
+        return session;
     }
 
     // --- IExtension ---

@@ -41,6 +41,16 @@ public class DefaultInterfaceMemberTests
     }
 
     [TestMethod]
+    public void IVersoContext_OutputChannels_ReturnsNullByDefault()
+    {
+        // The stub below implements only what the interface requires, which is what a host built
+        // against an earlier version of the assembly compiled to. Reporting no channels is what
+        // keeps such a host working: a caller that finds null writes static output.
+        IVersoContext context = new StubVersoContext();
+        Assert.IsNull(context.OutputChannels);
+    }
+
+    [TestMethod]
     public void IExtensionHostContext_GetPropertyProviders_ReturnsEmptyList()
     {
         IExtensionHostContext context = new StubExtensionHostContext();

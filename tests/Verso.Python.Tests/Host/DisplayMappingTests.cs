@@ -334,4 +334,48 @@ public sealed class DisplayMappingTests
 
         Assert.AreNotEqual(HostVariables.ComputeHash(first), HostVariables.ComputeHash(second));
     }
+
+    // --- bootstrap configuration ---
+
+    [TestMethod]
+    public void Bootstrap_CarriesTheWidgetAssetSourceAsTheSubprocessSpellsIt()
+    {
+        var config = new HostBootstrap(
+            Array.Empty<string>(), null, WidgetAssets: Verso.Python.Kernel.WidgetAssetSource.Bundled).ToJson();
+
+        Assert.AreEqual("bundled", config["widget_asset_source"]!.GetValue<string>());
+    }
+
+    [TestMethod]
+    public void Bootstrap_DefaultsToThePublishedBundle()
+    {
+        var config = new HostBootstrap(Array.Empty<string>(), null).ToJson();
+
+        Assert.AreEqual("cdn", config["widget_asset_source"]!.GetValue<string>());
+    }
+
+    [TestMethod]
+    public void WidgetSnapshotReply_CompletesItsRequest()
+    {
+        // Without this the read pump routes the answer to the event stream, and a save waits out
+        // its whole deadline for one that already arrived and then writes the page it had.
+        Assert.IsTrue(HostProtocol.IsReply(HostProtocol.WidgetSnapshotReply));
+    }
+
+    [TestMethod]
+    public void BindReply_CompletesItsRequest()
+    {
+        // The same trap: without this the answer goes to the event stream, the magic command
+        // waits out its whole deadline, and the only sign is one line on standard error.
+        Assert.IsTrue(HostProtocol.IsReply(HostProtocol.BindReply));
+    }
+
+    [TestMethod]
+    public void BindUpdate_IsNotOwnedByARunningCell()
+    {
+        // A trait changes when the widget is touched, which is most often between cells. Marking
+        // it execution-scoped would have the session handler ignore it and report it undelivered.
+        Assert.IsFalse(HostProtocol.IsExecutionScoped(HostProtocol.BindUpdate));
+        Assert.IsFalse(HostProtocol.IsReply(HostProtocol.BindUpdate));
+    }
 }

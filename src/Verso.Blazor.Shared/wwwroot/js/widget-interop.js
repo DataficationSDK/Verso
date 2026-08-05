@@ -10,11 +10,28 @@
 (function () {
     'use strict';
 
+    // What a frame holds before its content has measured itself. Small enough that a widget grows
+    // into place rather than collapsing into it, and not zero, so an output that is still loading
+    // is somewhere on the page rather than nowhere.
+    var INITIAL_HEIGHT = 28;
+
+    // What a document that never measures itself is given, applied once the wait is clearly over.
     var DEFAULT_HEIGHT = 420;
+    var UNSIZED_GRACE_MS = 6000;
+
     var MAX_HEIGHT = 2000;
 
     var handles = new Map();
     var nextId = 1;
+
+    // Which frame is drawing which channel. Only frames given a channel id at mount appear here,
+    // so a lookup that misses is the ordinary case of a message for an output that has since been
+    // re-run or scrolled away, not an error.
+    var framesByChannel = new Map();
+
+    // Set by a host that receives channel traffic through Blazor interop. A host that talks to its
+    // engine over the editor bridge leaves it null and the bridge is used instead.
+    var channelHostRef = null;
 
     // Theme values a framed document may want, named as the host page names them.
     //
@@ -262,17 +279,50 @@
         '    };',
         '',
         '    var last = -1;',
+        // Measured on the body rather than on the root element.
+        //
+        // A root element's scroll height is never less than the viewport, and the viewport here is
+        // this frame, whose height is whatever was last reported from inside it. Measuring the root
+        // therefore hands back the height the frame already had: it can grow and can never shrink,
+        // so every widget shorter than the height a frame starts at keeps that height for good.
+        //
+        // The body's own height is what the content actually came to. Both readings of it are
+        // taken because a widget that positions a part of itself out of the normal flow is taller
+        // than its layout box says, and neither reading alone catches both.
+        //
+        // The children's own bottoms are a third reading, for the box neither of the others can
+        // see: a margin that collapses through the body belongs to no box the body measures, and
+        // the content it offsets paints below everything the body claims to hold. An output area
+        // opens with exactly that shape, so without this reading a document holding only one is
+        // sized to a fraction of itself and shows as a blank strip.
         '    function report() {',
-        '        var el = document.documentElement;',
-        '        var height = Math.max(el ? el.scrollHeight : 0, document.body ? document.body.scrollHeight : 0);',
+        '        var body = document.body;',
+        '        if (!body) { return; }',
+        '',
+        '        var height = Math.max(body.scrollHeight, body.offsetHeight);',
+        '        for (var i = 0; i < body.children.length; i++) {',
+        '            var edge = body.children[i].getBoundingClientRect().bottom + (window.pageYOffset || 0);',
+        '            if (edge > height) { height = Math.ceil(edge); }',
+        '        }',
         '        if (height > 0 && height !== last) {',
         '            last = height;',
         '            parent.postMessage({ type: "verso/widget-height", height: height }, "*");',
         '        }',
         '    }',
         '    window.addEventListener("load", report);',
-        '    if (window.ResizeObserver) {',
-        '        try { new ResizeObserver(report).observe(document.documentElement); } catch (e) { }',
+        // This script runs in the head, where there is no body yet to watch. Waiting for one is
+        // what makes the first accurate reading arrive as the content lays out rather than after
+        // everything it loads has finished arriving, which for a widget is a slow difference.
+        '    function watch() {',
+        '        report();',
+        '        if (!window.ResizeObserver || !document.body) { return; }',
+        '        try { new ResizeObserver(report).observe(document.body); } catch (e) { }',
+        '    }',
+        '',
+        '    if (document.readyState === "loading") {',
+        '        document.addEventListener("DOMContentLoaded", watch);',
+        '    } else {',
+        '        watch();',
         '    }',
         // A widget that fetches its own code settles some time after load, and a browser that
         // is not painting this frame reports nothing at all until it is. These catch both.
@@ -301,8 +351,444 @@
         '</script>'
     ].join('\n');
 
-    function compose(html, theme) {
-        var injected = themeStyleTag(theme) + FRAME_SCRIPT;
+    // Spliced in alongside the script above, and only for a document whose output has a channel.
+    //
+    // The channel id is injected here rather than written into the document, which matters for two
+    // separate reasons. A document is what gets saved, so an id inside it would be written to a
+    // file and would name a channel that no longer exists the next time the file is opened. And a
+    // document that never learns its own id cannot be rewritten to claim a different one, so the
+    // only channel a frame can reach is the one it was mounted for.
+    //
+    // What the document gets is an object rather than a message vocabulary, because the vocabulary
+    // is this file's business and an author writing a view should not have to reproduce it. The
+    // handshake is left to the document to send: only the document knows when whatever it loaded
+    // is able to receive, and the queue on the other side exists precisely to cover the gap.
+    function channelScript(channelId) {
+        return [
+            '<script>',
+            '(function () {',
+            '    var channelId = ' + JSON.stringify(String(channelId)) + ';',
+            '    var live = true;',
+            '    var root = document.documentElement;',
+            '    try { root.setAttribute("data-verso-live", "true"); } catch (e) { }',
+            '',
+            '    function fire(name, detail) {',
+            '        try { window.dispatchEvent(new CustomEvent(name, { detail: detail })); }',
+            '        catch (e) { }',
+            '    }',
+            '',
+            '    window.versoChannel = {',
+            '        id: channelId,',
+            '        get isLive() { return live; },',
+            // Announces that the view can receive, which flushes anything sent before it could.
+            // The version is what the view was built against, and the host reports a mismatch
+            // rather than refusing to draw.
+            '        ready: function (protocolVersion) {',
+            '            if (!live) { return false; }',
+            '            parent.postMessage({',
+            '                type: "verso/channel-ready",',
+            '                channelId: channelId,',
+            '                protocolVersion: protocolVersion || null',
+            '            }, "*");',
+            '            return true;',
+            '        },',
+            '        post: function (type, payload, buffers) {',
+            '            if (!live || !type) { return false; }',
+            '            parent.postMessage({',
+            '                type: "verso/channel-message",',
+            '                channelId: channelId,',
+            '                messageType: String(type),',
+            '                payload: payload === undefined ? null : payload,',
+            '                buffers: buffers || null',
+            '            }, "*");',
+            '            return true;',
+            '        }',
+            '    };',
+            '',
+            '    window.addEventListener("message", function (event) {',
+            '        var data = event.data;',
+            '        if (!data || data.channelId !== channelId) { return; }',
+            '',
+            '        if (data.type === "verso/channel-post") {',
+            '            fire("verso:channelmessage", {',
+            '                type: data.messageType,',
+            '                payload: data.payload === undefined ? null : data.payload,',
+            '                buffers: data.buffers || null',
+            '            });',
+            '            return;',
+            '        }',
+            '',
+            '        if (data.type === "verso/channel-closed") {',
+            '            live = false;',
+            '            try { root.setAttribute("data-verso-live", "false"); } catch (e) { }',
+            '            fire("verso:channelclosed", { reason: data.reason || null });',
+            '        }',
+            '    });',
+            '})();',
+            '</script>'
+        ].join('\n');
+    }
+
+    // Turns a widget document into a live one, and is spliced only for a document whose output
+    // has a channel. A document without one is left to the loader it already carries, which draws
+    // the state saved inside it and talks to nobody: that is what an exported page is, and what a
+    // notebook opened without running anything should be.
+    //
+    // The widget front end the document loads is not only a renderer. It is the same bundle a
+    // Jupyter front end uses, comm machinery included, and it expects a manager that can reach a
+    // kernel. Supplying one is the whole of this: two methods over the channel, and the loader's
+    // own code does the rest, including asking for every widget's current state as it mounts.
+    //
+    // That last part is why a live view is accurate rather than merely current-looking. A widget
+    // opens its comm while it is being constructed, which is before it has been displayed and so
+    // before any channel exists to carry the announcement. A view that waited to be told would
+    // wait forever; a view that asks is told everything.
+    function managerScript() {
+        return [
+            '<script>',
+            '(function () {',
+            '    var STATE_MIME = "application/vnd.jupyter.widget-state+json";',
+            '    var VIEW_MIME = "application/vnd.jupyter.widget-view+json";',
+            // What the state script is renamed to once this has taken it. The loader looks for
+            // documents to draw by that type, so renaming it is what stops the saved state being
+            // drawn underneath the live view a moment later.
+            '    var CLAIMED_STATE_MIME = "application/vnd.verso.widget-state+json";',
+            '    var WIDGET_TARGET = "jupyter.widget";',
+            '    var CHANNEL_PROTOCOL = "1.0";',
+            '',
+            '    var channel = window.versoChannel;',
+            '    if (!channel) { return; }',
+            '',
+            '    var comms = Object.create(null);',
+            '    var counter = 0;',
+            '',
+            // Kernel-initiated messages held until the state snapshot has been applied, and null
+            // once it has. A channel opened while its cell was still running receives the tail of
+            // a conversation whose beginning predates it: comm_opens whose dependencies never
+            // arrived, updates the snapshot supersedes. Applied as they arrive they build models
+            // from partial graphs, and a model that fails to build poisons its id for the real
+            // state that follows. Held instead, they wait for the snapshot, which is newer than
+            // all of them and complete.
+            '    var pending = [];',
+            '',
+            // What each message in flight is waiting to be told. The front end sends one change
+            // at a time and merges everything that accumulates behind it into a single later
+            // message, and what releases the next one is being told the last has been applied.
+            // A message nobody is waiting on is not recorded, so this holds one entry per widget
+            // being interacted with rather than one per message ever sent.
+            '    var waiting = Object.create(null);',
+            '',
+            '    function complain(what, error) {',
+            '        try { console.error("verso: " + what, error); } catch (e) { }',
+            '    }',
+            '',
+            // Binary trait values travel as text in both directions, because the transport under
+            // the channel is JSON the whole way to the interpreter.
+            '    function decode(text) {',
+            '        var binary = atob(text);',
+            '        var bytes = new Uint8Array(binary.length);',
+            '        for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }',
+            '        return bytes.buffer;',
+            '    }',
+            '',
+            '    function encode(part) {',
+            '        var bytes = part instanceof ArrayBuffer',
+            '            ? new Uint8Array(part)',
+            '            : new Uint8Array(part.buffer, part.byteOffset || 0, part.byteLength);',
+            '        var binary = "";',
+            '        for (var i = 0; i < bytes.length; i++) { binary += String.fromCharCode(bytes[i]); }',
+            '        return btoa(binary);',
+            '    }',
+            '',
+            '    function encodeAll(parts) {',
+            '        var out = [];',
+            '        for (var i = 0; i < (parts || []).length; i++) {',
+            '            try { out.push(encode(parts[i])); }',
+            '            catch (e) { complain("a widget could not send part of its data", e); }',
+            '        }',
+            '        return out;',
+            '    }',
+            '',
+            // The message shape the widget front end reads. It was written for a Jupyter kernel,
+            // so it looks for a header and an envelope that this transport has no use for; they
+            // are filled in rather than worked around, because the code that reads them is the
+            // loader's and not ours.
+            '    function envelope(body, msgType) {',
+            '        var buffers = [];',
+            '        var raw = body.buffers || [];',
+            '        for (var i = 0; i < raw.length; i++) {',
+            '            try { buffers.push(new DataView(decode(raw[i]))); }',
+            '            catch (e) { complain("a widget could not read part of its data", e); }',
+            '        }',
+            '',
+            '        return {',
+            '            header: { msg_type: msgType },',
+            '            parent_header: {},',
+            '            metadata: body.metadata || {},',
+            '            content: {',
+            '                comm_id: body.comm_id,',
+            '                data: body.data || {},',
+            '                target_name: body.target_name || WIDGET_TARGET',
+            '            },',
+            '            buffers: buffers',
+            '        };',
+            '    }',
+            '',
+            '    function VersoComm(targetName, commId) {',
+            '        this.comm_id = commId;',
+            '        this.target_name = targetName;',
+            '    }',
+            '',
+            '    VersoComm.prototype._post = function (msgType, data, metadata, buffers, callbacks) {',
+            '        var messageId = "verso-" + (++counter);',
+            '        var reply = callbacks && callbacks.iopub && callbacks.iopub.status;',
+            '        if (reply) { waiting[messageId] = reply; }',
+            '',
+            '        channel.post("comm", {',
+            '            comm_id: this.comm_id,',
+            '            msg_type: msgType,',
+            // Carried only when something is waiting on it, and answered only when it is
+            // carried, so a message nobody is waiting on costs nothing on the way back.
+            '            msg_id: reply ? messageId : null,',
+            '            target_name: this.target_name,',
+            '            data: data === undefined ? {} : data,',
+            '            metadata: metadata === undefined ? {} : metadata,',
+            '            buffers: encodeAll(buffers)',
+            '        }, null);',
+            '        return messageId;',
+            '    };',
+            '',
+            '    VersoComm.prototype.open = function (data, callbacks, metadata, buffers) {',
+            '        comms[this.comm_id] = this;',
+            '        return this._post("comm_open", data, metadata, buffers, callbacks);',
+            '    };',
+            '',
+            '    VersoComm.prototype.send = function (data, callbacks, metadata, buffers) {',
+            '        return this._post("comm_msg", data, metadata, buffers, callbacks);',
+            '    };',
+            '',
+            '    VersoComm.prototype.close = function (data, callbacks, metadata, buffers) {',
+            '        delete comms[this.comm_id];',
+            '        return this._post("comm_close", data, metadata, buffers, callbacks);',
+            '    };',
+            '',
+            '    VersoComm.prototype.on_msg = function (handler) { this._onMessage = handler; };',
+            '    VersoComm.prototype.on_close = function (handler) { this._onClose = handler; };',
+            '',
+            '    function deliver(manager, body) {',
+            '        if (!body || !body.comm_id) { return; }',
+            '',
+            '        var msgType = body.msg_type || "comm_msg";',
+            '',
+            // A message of ours has been applied, which is what releases the next one. Reported
+            // as the idle status a Jupyter kernel would raise, because that is the signal the
+            // front end is written against and this transport has no execution state of its own.
+            '        if (msgType === "comm_ack") {',
+            '            var reply = waiting[body.msg_id];',
+            '            if (!reply) { return; }',
+            '            delete waiting[body.msg_id];',
+            '            try { reply({ content: { execution_state: "idle" } }); }',
+            '            catch (e) { complain("a widget could not be told its message landed", e); }',
+            '            return;',
+            '        }',
+            '',
+            '        var message = envelope(body, msgType);',
+            '',
+            '        if (msgType === "comm_open") {',
+            '            var opened = new VersoComm(body.target_name || WIDGET_TARGET, body.comm_id);',
+            '            comms[body.comm_id] = opened;',
+            '            var handled = manager.handle_comm_open(opened, message);',
+            '            if (handled && handled.catch) {',
+            '                handled.catch(function (error) { complain("a widget could not be opened", error); });',
+            '            }',
+            '            return;',
+            '        }',
+            '',
+            // A message for a widget this view does not draw. Every view is told about every
+            // widget in the session, because nothing outside a view can tell which models it
+            // took, so arriving here is ordinary rather than a fault.
+            '        var comm = comms[body.comm_id];',
+            '        if (!comm) { return; }',
+            '',
+            '        if (msgType === "comm_close") {',
+            '            delete comms[body.comm_id];',
+            '            if (comm._onClose) { comm._onClose(message); }',
+            '            return;',
+            '        }',
+            '',
+            '        if (comm._onMessage) { comm._onMessage(message); }',
+            '    }',
+            '',
+            // Whether the manager holds a model under this id, without the exception get_model
+            // raises for an id it has never seen. Absence is an ordinary answer here, not a fault.
+            '    function hasModel(manager, modelId) {',
+            '        try { return !!manager.has_model(modelId); }',
+            '        catch (e) { return false; }',
+            '    }',
+            '',
+            // Applies what was held once the snapshot is in. The snapshot was taken after every
+            // one of these was sent, so anything it covers is delivered already and newer: a held
+            // open for a model it built is the old telling of a state it told better, and a held
+            // update likewise. What it does not cover is a widget born while the snapshot was in
+            // flight, and those are applied in the order they arrived. A close is applied
+            // regardless, because nothing supersedes being told a conversation is over.
+            '    function drainPending(manager) {',
+            '        var held = pending;',
+            '        pending = null;',
+            '        held.forEach(function (body) {',
+            '            if (!body || !body.comm_id) { return; }',
+            '            var msgType = body.msg_type || "comm_msg";',
+            '            if (msgType !== "comm_close" && hasModel(manager, body.comm_id)) { return; }',
+            '            try { deliver(manager, body); }',
+            '            catch (e) { complain("a widget message could not be applied", e); }',
+            '        });',
+            '    }',
+            '',
+            // Taken before the loader looks for it, so the saved state is this view's fallback
+            // rather than a second widget drawn under the live one.
+            '    function claimState() {',
+            '        var script = document.querySelector("script[type=\'" + STATE_MIME + "\']");',
+            '        if (!script) { return null; }',
+            '',
+            '        script.setAttribute("type", CLAIMED_STATE_MIME);',
+            '        try { return JSON.parse(script.textContent); }',
+            '        catch (e) { complain("a widget document carried state that could not be read", e); return null; }',
+            '    }',
+            '',
+            '    function viewSlots() {',
+            '        var slots = [];',
+            '        var scripts = document.querySelectorAll("script[type=\'" + VIEW_MIME + "\']");',
+            '',
+            '        for (var i = 0; i < scripts.length; i++) {',
+            '            var script = scripts[i];',
+            '            var spec;',
+            '            try { spec = JSON.parse(script.textContent); } catch (e) { continue; }',
+            '            if (!spec || !spec.model_id || !script.parentElement) { continue; }',
+            '',
+            // The still image some embedders leave in front of a view, so a page that never runs
+            // shows something. This one is about to run.
+            '            var placeholder = script.previousElementSibling;',
+            '            if (placeholder && placeholder.tagName === "IMG"',
+            '                && placeholder.classList.contains("jupyter-widget")) {',
+            '                script.parentElement.removeChild(placeholder);',
+            '            }',
+            '',
+            '            var host = document.createElement("div");',
+            '            host.className = "widget-subarea";',
+            '            script.parentElement.insertBefore(host, script);',
+            '            slots.push({ modelId: spec.model_id, host: host });',
+            '        }',
+            '',
+            '        return slots;',
+            '    }',
+            '',
+            '    function start() {',
+            '        var saved = claimState();',
+            '        var slots = viewSlots();',
+            '        if (!slots.length) { return; }',
+            '',
+            '        require([',
+            '            "@jupyter-widgets/base",',
+            '            "@jupyter-widgets/html-manager",',
+            '            "@jupyter-widgets/html-manager/dist/libembed-amd"',
+            '        ], function (base, html, libembed) {',
+            // Two methods, and the loader's own manager supplies everything else, including the
+            // conversation that pulls every widget's state as this mounts.
+            '            class VersoWidgetManager extends html.HTMLManager {',
+            '                _create_comm(targetName, commId, data, metadata, buffers) {',
+            '                    var comm = new VersoComm(targetName, commId || ("verso-comm-" + (++counter)));',
+            '                    comms[comm.comm_id] = comm;',
+            // Only an announcement carries something to announce. Asked for a comm to a widget
+            // that already exists, opening one would tell the interpreter to build a second.
+            '                    if (data !== undefined || metadata !== undefined) {',
+            '                        comm.open(data, undefined, metadata, buffers);',
+            '                    }',
+            '                    return Promise.resolve(comm);',
+            '                }',
+            '',
+            '                _get_comm_info() {',
+            '                    var info = {};',
+            '                    for (var id in comms) {',
+            '                        if (comms[id].target_name === WIDGET_TARGET) { info[id] = {}; }',
+            '                    }',
+            '                    return Promise.resolve(info);',
+            '                }',
+            '            }',
+            '',
+            '            var manager = new VersoWidgetManager({ loader: libembed.requireLoader });',
+            '',
+            '            window.addEventListener("verso:channelmessage", function (event) {',
+            '                var detail = event.detail || {};',
+            '                if (detail.type !== "comm") { return; }',
+            '                var body = detail.payload;',
+            // A conversation this view opened for itself answers now: the snapshot the
+            // bootstrap below waits on travels over one of those. Everything the kernel
+            // starts is held until the snapshot has landed, because it can be older than
+            // the snapshot and never says more.
+            '                if (pending !== null && !(body && body.comm_id && comms[body.comm_id])) {',
+            '                    pending.push(body);',
+            '                    return;',
+            '                }',
+            '                try { deliver(manager, body); }',
+            '                catch (e) { complain("a widget message could not be applied", e); }',
+            '            });',
+            '',
+            // Announced before anything is asked for, because announcing is what releases the
+            // messages held while this document was still loading.
+            '            channel.ready(CHANNEL_PROTOCOL);',
+            '',
+            '            Promise.resolve(manager._loadFromKernel()).catch(function (error) {',
+            '                complain("a widget could not read its state from the kernel", error);',
+            '            }).then(function () {',
+            // Checked rather than caught. An interpreter that has gone away is reported as a
+            // timeout by one path and as an empty answer by another, and only one of the two
+            // arrives as a rejection, so what matters is whether the models turned up. The
+            // check goes through hasModel because get_model raises for an unknown id, and an
+            // id being unknown is precisely the case being tested for.
+            '                var missing = slots.filter(function (slot) { return !hasModel(manager, slot.modelId); });',
+            '                if (!missing.length || !saved) { return; }',
+            '                return manager.set_state(saved);',
+            '            }).then(function () {',
+            '                drainPending(manager);',
+            '                return draw(manager, slots);',
+            '            }).catch(function (error) {',
+            '                complain("a widget could not be drawn", error);',
+            '            });',
+            '        }, function (error) {',
+            '            complain("the widget front end could not be loaded", error);',
+            '        });',
+            '    }',
+            '',
+            '    function draw(manager, slots) {',
+            '        return Promise.all(slots.map(function (slot) {',
+            // Guarded by hasModel because get_model raises for an id it has never seen, and a
+            // slot whose model never turned up should draw nothing rather than stop the rest.
+            '            if (!hasModel(manager, slot.modelId)) { return null; }',
+            '            return Promise.resolve(manager.get_model(slot.modelId)).then(function (resolved) {',
+            '                return manager.create_view(resolved);',
+            '            }).then(function (view) {',
+            '                return manager.display_view(view, slot.host);',
+            '            }).catch(function (error) {',
+            '                complain("a widget view could not be drawn", error);',
+            '            });',
+            '        }));',
+            '    }',
+            '',
+            // The loader is a plain script at the end of the body, so it has run by the time the
+            // document is parsed and has not yet run while this is being spliced into the head.
+            '    if (document.readyState === "loading") {',
+            '        document.addEventListener("DOMContentLoaded", start);',
+            '    } else {',
+            '        start();',
+            '    }',
+            '})();',
+            '</script>'
+        ].join('\n');
+    }
+
+    function compose(html, theme, channelId) {
+        var injected = themeStyleTag(theme) + FRAME_SCRIPT
+            + (channelId ? channelScript(channelId) + managerScript() : '');
         var head = /<head[^>]*>/i.exec(html);
         if (!head) return injected + html;
 
@@ -343,10 +829,69 @@
         }
     }
 
-    function mount(iframeElem, html, themeKind) {
+    // A channel's traffic on its way to whoever owns the channel, which is somewhere in the engine
+    // rather than on this page. The two routes are the two ways a page reaches its engine, and are
+    // the same two the cell-interaction bridge already chooses between.
+    //
+    // Nothing here is allowed to throw. A view that loses a message is worse off than one that
+    // never sent it, but a rejected promise escaping a message listener takes the page's console
+    // with it and tells the user nothing.
+    function routeToOwner(method, bridgeMethod, params, args) {
+        if (window.vscodeBridge && typeof window.vscodeBridge.sendRequest === 'function') {
+            try {
+                var sent = window.vscodeBridge.sendRequest(bridgeMethod, JSON.stringify(params));
+                if (sent && typeof sent.catch === 'function') {
+                    sent.catch(function (error) { warn(bridgeMethod, error); });
+                }
+            } catch (e) {
+                warn(bridgeMethod, e);
+            }
+            return;
+        }
+
+        if (!channelHostRef) return;
+
+        try {
+            var invoked = channelHostRef.invokeMethodAsync.apply(
+                channelHostRef, [method].concat(args));
+            if (invoked && typeof invoked.catch === 'function') {
+                invoked.catch(function (error) { warn(method, error); });
+            }
+        } catch (e) {
+            warn(method, e);
+        }
+    }
+
+    function warn(what, error) {
+        try { console.error('verso: an output channel could not reach the host through ' + what, error); }
+        catch (e) { }
+    }
+
+    // The document hands over whatever shape it likes and the owner is given JSON text, because the
+    // owner knows what it expects back and nothing in between does.
+    function payloadText(payload) {
+        if (payload === null || payload === undefined) return null;
+        try { return JSON.stringify(payload); }
+        catch (e) { return null; }
+    }
+
+    // Binary travels as base64 strings, which both the editor bridge and the Blazor boundary carry
+    // as ordinary JSON. Anything that is not a string is dropped rather than sent as something the
+    // other side would have to guess at.
+    function bufferList(buffers) {
+        if (!buffers || !buffers.length) return null;
+        var out = [];
+        for (var i = 0; i < buffers.length; i++) {
+            if (typeof buffers[i] === 'string') out.push(buffers[i]);
+        }
+        return out.length ? out : null;
+    }
+
+    function mount(iframeElem, html, themeKind, channelId) {
         if (!iframeElem || typeof html !== 'string') return null;
 
         var handleId = nextId++;
+        var channel = channelId ? String(channelId) : null;
 
         var onMessage = function (event) {
             if (event.source !== iframeElem.contentWindow) return;
@@ -358,20 +903,140 @@
                 return;
             }
 
+            // A frame speaks only for the channel it was mounted with. It was never told any other
+            // id, so this is a consistency check rather than a defence: it is here so a document
+            // that gets its own bookkeeping wrong stops here instead of quietly addressing an
+            // output belonging to someone else.
+            if (data.type === 'verso/channel-ready') {
+                if (channel && data.channelId === channel) {
+                    routeToOwner(
+                        'OnOutputChannelReady', 'channel/ready',
+                        { channelId: channel, protocolVersion: data.protocolVersion || null },
+                        [channel, data.protocolVersion || null]);
+                }
+                return;
+            }
+
+            if (data.type === 'verso/channel-message') {
+                if (channel && data.channelId === channel && data.messageType) {
+                    var text = payloadText(data.payload);
+                    var buffers = bufferList(data.buffers);
+                    routeToOwner(
+                        'OnOutputChannelMessage', 'channel/message',
+                        {
+                            channelId: channel,
+                            messageType: String(data.messageType),
+                            payload: text,
+                            buffers: buffers
+                        },
+                        [channel, String(data.messageType), text, buffers]);
+                }
+                return;
+            }
+
             if (data.type !== 'verso/widget-height') return;
 
             var height = Number(data.height);
             if (!isFinite(height) || height <= 0) return;
+
+            unsized = clearTimeout(unsized);
             iframeElem.style.height = Math.min(Math.round(height), MAX_HEIGHT) + 'px';
         };
 
         window.addEventListener('message', onMessage);
-        handles.set(handleId, { listener: onMessage, frame: iframeElem, kind: themeKind });
 
-        iframeElem.style.height = DEFAULT_HEIGHT + 'px';
-        iframeElem.srcdoc = compose(html, readTheme(iframeElem, themeKind));
+        // A widget's code is fetched before anything can be drawn, so the gap between the frame
+        // appearing and the first measurement arriving is long enough to see. Started small, the
+        // frame grows into what the content came to, which reads as something arriving. Started
+        // at a guess, it would stand empty at the wrong size and then collapse, which reads as a
+        // fault.
+        //
+        // The guess is still what a document that never measures itself falls back to, which is
+        // what a widget whose code did not load leaves behind. It is applied once, late, so it
+        // cannot be what the eye lands on first.
+        var unsized = setTimeout(function () {
+            unsized = null;
+            iframeElem.style.height = DEFAULT_HEIGHT + 'px';
+        }, UNSIZED_GRACE_MS);
+
+        handles.set(handleId, {
+            listener: onMessage,
+            frame: iframeElem,
+            kind: themeKind,
+            channelId: channel,
+            cancelFallback: function () { unsized = clearTimeout(unsized); }
+        });
+
+        // Last mount wins. A view that unmounts and mounts again keeps its channel, and the entry
+        // left by the frame it replaced would otherwise point at an iframe that is no longer drawn.
+        if (channel) framesByChannel.set(channel, handleId);
+
+        iframeElem.style.height = INITIAL_HEIGHT + 'px';
+        iframeElem.srcdoc = compose(html, readTheme(iframeElem, themeKind), channel);
 
         return handleId;
+    }
+
+    function frameForChannel(channelId) {
+        var handleId = framesByChannel.get(String(channelId));
+        if (handleId === undefined) return null;
+
+        var entry = handles.get(handleId);
+        var frame = entry && entry.frame;
+        return (frame && frame.contentWindow) ? frame : null;
+    }
+
+    // Delivers one of the channel owner's messages into the frame drawing it. Returns whether there
+    // was a frame to deliver it to, which is what tells the host a view has gone without saying so.
+    //
+    // The ext/ prefix comes off here, which is the last hop it is useful on. It exists to keep the
+    // framework's own namespace unmistakable on the way through the host, and inside a message
+    // already typed verso/channel-post there is nothing left for it to disambiguate. Taking it off
+    // is what makes both ends see the type the other sent: the owner is handed back what the view
+    // posted, and the view is handed what the owner posted.
+    function postToChannel(channelId, messageType, payload, buffers) {
+        var frame = frameForChannel(channelId);
+        if (!frame || !messageType) return false;
+
+        var type = String(messageType);
+        if (type.indexOf('ext/') === 0) type = type.slice(4);
+
+        try {
+            frame.contentWindow.postMessage({
+                type: 'verso/channel-post',
+                channelId: String(channelId),
+                messageType: type,
+                payload: payload === undefined ? null : payload,
+                buffers: buffers || null
+            }, '*');
+            return true;
+        } catch (e) {
+            // The frame went away between the lookup and the post.
+            return false;
+        }
+    }
+
+    // Tells a frame its channel is gone, so it can stop expecting answers and show that it is no
+    // longer live. The binding is kept: the frame is still on the page and still its own view.
+    function closeChannel(channelId, reason) {
+        var frame = frameForChannel(channelId);
+        if (!frame) return false;
+
+        // Marked on the frame as well as inside the document. The page around it styles itself
+        // from this attribute and reveals the note explaining that the widget is showing saved
+        // state, so the whole visible treatment follows from one attribute changing.
+        try { frame.setAttribute('data-verso-live', 'false'); } catch (e) { }
+
+        try {
+            frame.contentWindow.postMessage({
+                type: 'verso/channel-closed',
+                channelId: String(channelId),
+                reason: reason || null
+            }, '*');
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 
     // Re-reads the theme where the frame sits and posts it in. Called when the notebook's theme
@@ -399,7 +1064,14 @@
         var entry = handles.get(handleId);
         if (!entry) return;
         window.removeEventListener('message', entry.listener);
+        if (entry.cancelFallback) entry.cancelFallback();
         handles.delete(handleId);
+
+        // Only if this frame is still the one drawing the channel. A view that remounted has
+        // already claimed it, and its own entry must survive the old frame being torn down.
+        if (entry.channelId && framesByChannel.get(entry.channelId) === handleId) {
+            framesByChannel.delete(entry.channelId);
+        }
     }
 
     // A VS Code webview restates the theme on the body when the editor theme changes, and swaps
@@ -425,5 +1097,15 @@
         retheme: retheme,
         rethemeAll: rethemeAll,
         detach: detach
+    };
+
+    // The host's half of an output channel. Kept apart from versoWidget because it is addressed by
+    // channel rather than by frame: the engine knows which conversation it is having and not which
+    // element on the page happens to be drawing it.
+    window.versoOutputChannel = {
+        // Called once by a host that receives channel traffic through Blazor interop.
+        register: function (dotNetRef) { channelHostRef = dotNetRef; },
+        post: postToChannel,
+        closed: closeChannel
     };
 })();

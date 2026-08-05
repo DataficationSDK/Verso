@@ -151,6 +151,54 @@
   <data name="Kernel_Description" xml:space="preserve">
     <value>运行本机所安装解释器的 Python 语言内核。</value>
   </data>
+  <data name="Magic_Bind_BadName" xml:space="preserve">
+    <value>'{0}' 不能用作变量名。请使用字母、数字和下划线，并以字母或下划线开头。</value>
+  </data>
+  <data name="Magic_Bind_Bound" xml:space="preserve">
+    <value>'{0}' 现在跟随 {1}.{2}。任何内核都可以读取它，写入它会移动该小部件。</value>
+  </data>
+  <data name="Magic_Bind_Description" xml:space="preserve">
+    <value>将小部件的特性共享为笔记本变量，任何内核都可以读取它，写入它会移动该小部件。</value>
+  </data>
+  <data name="Magic_Bind_Failed" xml:space="preserve">
+    <value>无法共享该特性：{0}</value>
+  </data>
+  <data name="Magic_Bind_Heading" xml:space="preserve">
+    <value>已共享为变量的小部件特性：</value>
+  </data>
+  <data name="Magic_Bind_Name" xml:space="preserve">
+    <value>共享小部件特性</value>
+  </data>
+  <data name="Magic_Bind_NeedsTrait" xml:space="preserve">
+    <value>'{0}' 没有指明特性。请把小部件和特性写在一起，例如 #!bind slider.value。</value>
+  </data>
+  <data name="Magic_Bind_NoSession" xml:space="preserve">
+    <value>Python 内核未在运行，因此没有可共享特性的小部件。</value>
+  </data>
+  <data name="Magic_Bind_None" xml:space="preserve">
+    <value>没有小部件特性被共享为变量。</value>
+  </data>
+  <data name="Magic_Bind_NotFound" xml:space="preserve">
+    <value>'{0}' 不是从小部件特性共享而来的。</value>
+  </data>
+  <data name="Magic_Bind_Param_Name" xml:space="preserve">
+    <value>共享该特性所用的变量名。默认为特性自身的名称。</value>
+  </data>
+  <data name="Magic_Bind_Param_Target" xml:space="preserve">
+    <value>要共享的小部件和特性，写成表达式后跟特性名。</value>
+  </data>
+  <data name="Magic_Bind_Removed" xml:space="preserve">
+    <value>'{0}' 不再跟随小部件特性，并保留它最后持有的值。</value>
+  </data>
+  <data name="Magic_Bind_RemoveUsage" xml:space="preserve">
+    <value>用法：#!bind --remove &lt;name&gt;</value>
+  </data>
+  <data name="Magic_Bind_Replaced" xml:space="preserve">
+    <value>它取代了共享同一特性的 '{0}'。</value>
+  </data>
+  <data name="Magic_Bind_Usage" xml:space="preserve">
+    <value>用法：#!bind &lt;expression&gt;.&lt;trait&gt; [as &lt;name&gt;]、#!bind --list 或 #!bind --remove &lt;name&gt;</value>
+  </data>
   <data name="Magic_Pip_Description" xml:space="preserve">
     <value>通过 pip 安装 Python 包，以供后续代码使用。</value>
   </data>

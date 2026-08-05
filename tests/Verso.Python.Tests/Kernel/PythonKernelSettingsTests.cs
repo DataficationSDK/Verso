@@ -215,4 +215,19 @@ public sealed class PythonKernelSettingsTests
         Assert.IsFalse(PythonKernel.TryParsePolicy(null, out _));
         Assert.IsFalse(PythonKernel.TryParsePolicy("", out _));
     }
+
+    // --- widget assets from the environment ---
+
+    [TestMethod]
+    public void TheWidgetAssetSourceIsReadFromItsSpelling()
+    {
+        Assert.IsTrue(PythonKernel.TryParseWidgetAssets("cdn", out var cdn));
+        Assert.AreEqual(WidgetAssetSource.Cdn, cdn);
+
+        Assert.IsTrue(PythonKernel.TryParseWidgetAssets(" Bundled ", out var bundled));
+        Assert.AreEqual(WidgetAssetSource.Bundled, bundled);
+
+        Assert.IsFalse(PythonKernel.TryParseWidgetAssets("somewhere-else", out var unknown));
+        Assert.AreEqual(WidgetAssetSource.Cdn, unknown);
+    }
 }

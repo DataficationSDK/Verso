@@ -116,6 +116,26 @@ def collect(scope, limit_bytes=DEFAULT_LIMIT_BYTES, total_limit_bytes=None):
     return variables, oversized
 
 
+def reduce_one(value, limit_bytes=DEFAULT_LIMIT_BYTES):
+    """
+    Reduce a single value for the wire, under its own budget.
+
+    Returns the reduced value and whether it fitted. A value that does not fit comes back as not
+    fitting rather than as the description :func:`collect` substitutes, because the two callers
+    want opposite things: a scope listing is still useful when one entry reads
+    ``<ndarray, not shared>``, and a name another kernel computes with has to hold the value or
+    nothing at all.
+    """
+    if not limit_bytes or limit_bytes <= 0:
+        limit_bytes = DEFAULT_LIMIT_BYTES
+
+    budget = [limit_bytes]
+    try:
+        return _reduce(value, 0, set(), budget), True
+    except _TooLarge:
+        return None, False
+
+
 def is_publishable(name, value):
     """Non-underscore, non-module, non-callable names, matching the in-process kernel."""
     if not isinstance(name, str) or not name or name.startswith("_"):

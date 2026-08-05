@@ -16,6 +16,8 @@ The interpreter comes from an explicit setting, the `VERSO_PYTHON` variable, a `
 - **IntelliSense** answered inside the running interpreter, so it sees the packages that are actually installed and the names earlier cells defined. Uses jedi when available, with standard library fallbacks for completions and syntax diagnostics
 - **Bidirectional variable sharing** between Python and every other kernel in the notebook
 - **Matplotlib integration** with automatic figure capture, including figures produced part-way through a cell
+- **Interactive widgets** built on `ipywidgets` or `anywidget`, live in both editors: moving a control reaches the interpreter, the author's callbacks run, and the notebook saves the state a reader last saw. A file without a kernel behind it draws the same widget from that state and says so
+- **`#!bind`** to share a widget's trait as a notebook variable, so a C#, F#, or PowerShell cell reads the control's value and writing it moves the control
 - **`display()` function** supporting `_repr_html_()`, `_repr_png_()`, `_repr_svg_()`, with an optional MIME type hint (for example `display(obj, "application/json")`)
 - **`input()` support**, prompting in the notebook
 - **Package management** through `#!pip`, the `%pip` and `!` shell escapes, consent-gated install on import, inline script metadata, and a per-notebook requirement list, all uv-accelerated when uv is present

@@ -10,11 +10,28 @@
         class="verso-widget-frame"
         title="@UI.Widget_FrameTitle"
         sandbox="allow-scripts"
+        data-verso-live="@(ChannelId is { Length: > 0 } ? "true" : "false")"
         style="width:100%;border:0;display:block"></iframe>
+@* Shown only when the frame beside it is not live, by a sibling rule in the stylesheet, so a
+   channel closing needs nothing here: the interop marks the frame and this appears. Being
+   display:none while the widget is live is also what keeps it out of the accessibility tree
+   until it is true. *@
+<p class="verso-widget-inert" role="note">@UI.Widget_InertNotice</p>
 
 @code {
     /// <summary>The self-contained widget document to draw in the frame.</summary>
     [Parameter, EditorRequired] public string Document { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The output channel this document talks over, when the output has one. Null for a widget
+    /// drawn from saved state or produced by a host with nothing to talk back to, which is drawn
+    /// exactly the same way and simply has no return leg.
+    /// </summary>
+    /// <remarks>
+    /// Handed to the interop at mount rather than written into the document, so it is never part
+    /// of what a save would write and a frame can only ever address the channel it was given.
+    /// </remarks>
+    [Parameter] public string? ChannelId { get; set; }
 
     private ElementReference _frame;
     private int? _handle;
@@ -30,7 +47,9 @@
 
         try
         {
-            _handle = await JS.InvokeAsync<int?>("versoWidget.mount", _frame, Document);
+            // The theme kind is left to the interop, which reads it where the frame sits; the
+            // argument is present only because the channel id follows it.
+            _handle = await JS.InvokeAsync<int?>("versoWidget.mount", _frame, Document, null, ChannelId);
         }
         catch (JSException)
         {

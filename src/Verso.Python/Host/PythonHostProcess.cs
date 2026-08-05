@@ -66,6 +66,14 @@ internal sealed class PythonHostProcess : IAsyncDisposable
     /// <summary>Raised once when the subprocess exits, carrying its exit code.</summary>
     public event Action<int>? Exited;
 
+    /// <summary>
+    /// Raised for every message from the subprocess that no pending request claims, for as long as
+    /// this object lives. <see cref="PythonHostConnection.EventReceived"/> belongs to one
+    /// connection and a respawn replaces it, so a subscriber meant to outlive a restart attaches
+    /// here instead and stays attached, the way <see cref="Exited"/> already does.
+    /// </summary>
+    public event Action<JsonObject>? EventReceived;
+
     /// <summary>The most recent bounded tail of the subprocess's raw standard error.</summary>
     public string StandardErrorTail
     {
@@ -128,6 +136,10 @@ internal sealed class PythonHostProcess : IAsyncDisposable
         // The script applies it before reading further, so a request sent immediately after this
         // point still runs against a fully prepared scope.
         await connection.SendAsync(BuildHelloOk(), cancellationToken).ConfigureAwait(false);
+
+        // Attached before the pump starts, so the first message the subprocess sends is forwarded
+        // like every one after it. A respawn arrives here again with a new connection.
+        connection.EventReceived += ForwardEvent;
         connection.StartPump();
 
         WatchForExit(process);
@@ -214,6 +226,17 @@ internal sealed class PythonHostProcess : IAsyncDisposable
 
         if (_process is not null || _connection is not null)
             await TeardownAsync(kill: true).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Pass a connection's event on to this object's own subscribers. Their failures are caught
+    /// here rather than left to the connection, whose own catch is written for the handler that
+    /// belongs to a running cell and would describe this one wrongly.
+    /// </summary>
+    private void ForwardEvent(JsonObject message)
+    {
+        try { EventReceived?.Invoke(message); }
+        catch { /* a subscriber must not stop the messages that follow it */ }
     }
 
     private async Task<HostHandshake> CompleteHandshakeAsync(
@@ -388,7 +411,8 @@ internal sealed record HostBootstrap(
     string? StartupCode,
     bool EnableShellEscapes = true,
     int VariablePublishLimitBytes = Kernel.PythonKernelOptions.DefaultVariablePublishLimitBytes,
-    string? JediToolsPath = null)
+    string? JediToolsPath = null,
+    Kernel.WidgetAssetSource WidgetAssets = Kernel.WidgetAssetSource.Cdn)
 {
     public static readonly HostBootstrap Empty = new(Array.Empty<string>(), null);
 
@@ -408,6 +432,11 @@ internal sealed record HostBootstrap(
             [HostProtocol.DefaultImportsField] = imports,
             [HostProtocol.EnableShellEscapesField] = JsonValue.Create(EnableShellEscapes),
             [HostProtocol.VariablePublishLimitField] = JsonValue.Create(VariablePublishLimitBytes),
+
+            // Lower case because it names a wire value rather than the enumeration member, and
+            // the subprocess compares it against the sources it knows by that spelling.
+            [HostProtocol.WidgetAssetSourceField] =
+                JsonValue.Create(WidgetAssets.ToString().ToLowerInvariant()),
         };
 
         if (!string.IsNullOrWhiteSpace(StartupCode))
