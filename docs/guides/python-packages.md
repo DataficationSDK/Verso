@@ -13,6 +13,8 @@ import requests
 
 `#!pip` runs before the rest of the cell, so the import below it succeeds on the first run. It takes the same package specifiers and options pip does.
 
+A line that names only packages the environment already has does nothing and says nothing, so leaving it at the top of a cell you run over and over costs neither an installer process nor two lines of output every time. That applies to plain names. A version specifier such as `pandas>=2`, an extra, or any option such as `--upgrade` is passed to the installer whatever is installed, because only the installer can say whether it is satisfied.
+
 If `uv` is on your `PATH`, Verso uses it, which is considerably faster. Set `verso.python.useUv` to false to always use pip and the standard library.
 
 Two familiar notebook shorthands also work in a Python cell:

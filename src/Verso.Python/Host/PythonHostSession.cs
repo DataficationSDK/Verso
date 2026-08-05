@@ -339,6 +339,24 @@ internal sealed class PythonHostSession : IAsyncDisposable
     }
 
     /// <summary>
+    /// Which of the given requirements this environment does not already have. Null when the
+    /// subprocess could not answer, which a caller has to treat as "no idea" rather than as
+    /// "nothing missing".
+    /// </summary>
+    /// <remarks>
+    /// The interpreter owns the installed distribution metadata, so it is the only thing that can
+    /// answer, and asking it costs one round trip against a process that is already running.
+    /// </remarks>
+    internal async Task<IReadOnlyList<string>?> UnsatisfiedAsync(IReadOnlyList<string> requirements)
+    {
+        if (requirements.Count == 0)
+            return Array.Empty<string>();
+
+        var scan = await ScanAsync(string.Empty, requirements).ConfigureAwait(false);
+        return scan?.Unsatisfied;
+    }
+
+    /// <summary>
     /// The distributions this cell's imports need, or null when the subprocess did not answer.
     /// The two cases are distinguished so a scan that never ran can be retried.
     /// </summary>
