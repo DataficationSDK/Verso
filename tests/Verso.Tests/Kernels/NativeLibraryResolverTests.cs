@@ -53,6 +53,45 @@ public sealed class NativeLibraryResolverTests
     }
 
     [TestMethod]
+    public void IsRegisteredDirectory_SameDirectory_ReturnsTrue()
+    {
+        var registered = new[] { Dir("cache", "SkiaSharp", "3.119.0") };
+
+        Assert.IsTrue(NuGetRuntimeResolver.IsRegisteredDirectory(
+            registered, Dir("cache", "SkiaSharp", "3.119.0")));
+    }
+
+    [TestMethod]
+    public void IsRegisteredDirectory_TrailingSeparator_StillMatches()
+    {
+        var registered = new[] { Dir("cache", "SkiaSharp", "3.119.0") + Path.DirectorySeparatorChar };
+
+        Assert.IsTrue(NuGetRuntimeResolver.IsRegisteredDirectory(
+            registered, Dir("cache", "SkiaSharp", "3.119.0")));
+    }
+
+    [TestMethod]
+    public void IsRegisteredDirectory_DirectoryStartingWithARegisteredOne_DoesNotMatch()
+    {
+        // A prerelease of the same version is a different directory, and a prefix test
+        // would hand it a resolver meant for its neighbour.
+        var registered = new[] { Dir("cache", "SkiaSharp", "3.119.0") };
+
+        Assert.IsFalse(NuGetRuntimeResolver.IsRegisteredDirectory(
+            registered, Dir("cache", "SkiaSharp", "3.119.0-preview.1")));
+    }
+
+    [TestMethod]
+    public void IsRegisteredDirectory_UnrelatedDirectory_ReturnsFalse()
+    {
+        // Assemblies that came from anywhere else, the host's own included, are left alone.
+        var registered = new[] { Dir("cache", "SkiaSharp", "3.119.0") };
+
+        Assert.IsFalse(NuGetRuntimeResolver.IsRegisteredDirectory(
+            registered, Dir("usr", "local", "share", "verso")));
+    }
+
+    [TestMethod]
     public void BelongsToPackageVersion_OrdersMatchingDirectoryFirst()
     {
         // The ordering the resolver applies: the matching directory wins regardless of the
