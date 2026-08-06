@@ -148,6 +148,10 @@ A plain `.md` file is a notebook. Fenced code blocks tagged with a language Vers
 
 ![A Markdown file open as a notebook, its prose rendered and a fenced C# block running as a cell](docs/images/markdown-notebook.png)
 
+### Sharing a Notebook
+
+Any notebook in a public repository can be read as a page, with its saved outputs, by changing the host in its URL. `github.com/owner/repo/blob/main/analysis.verso` becomes `www.versonotebooks.com/share/github/owner/repo/blob/main/analysis.verso`, and everything after the host stays as it was. GitLab and gists work the same way, `.verso`, `.ipynb`, and `.md` files are all supported, and nothing is uploaded or executed. Each page offers an "Open in Verso" badge to paste into your README. See [Sharing a Notebook](docs/guides/sharing-a-notebook.md).
+
 ## Languages
 
 | Language | IntelliSense | Variable Sharing |
@@ -316,6 +320,7 @@ In this repository:
 On [versonotebooks.com](https://www.versonotebooks.com):
 
 - [Gallery](https://www.versonotebooks.com/gallery/): notebooks you can read in the browser and download to run
+- [Share a notebook](https://www.versonotebooks.com/share/): read any notebook from a public repository, outputs included
 - [Documentation](https://www.versonotebooks.com/docs/): the same guides, rendered and searchable
 - [API reference](https://www.versonotebooks.com/api/): generated from the public API surface
 - [Release notes](https://www.versonotebooks.com/release-notes.html): what changed in each version
