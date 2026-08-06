@@ -50,6 +50,8 @@ Whatever the file already contains. A notebook saved with its outputs shows its 
 
 Nothing is executed, on the page or anywhere else. The notebook is rendered as a document, in a sandbox with no access to the site around it, which is also why a cell that expects a live kernel shows only what it last saved. Readers who want to run it can download the file and open it in Verso.
 
+Images and links written relative to the notebook keep working. A markdown cell that says `![](figs/genome.png)` is asking for the file beside it in your repository, and that is where the page fetches it from, so a notebook that leans on a folder of figures reads the same here as it does at home. Relative links open the file on the forge rather than downloading it. The one thing to keep in mind is that those files have to be public too: a figure in a private repository is no more reachable than the notebook would be.
+
 Files have to be public and under 5 MB. Private repositories are not reachable, by design: there is no place to put a token, so there is nothing to leak.
 
 ## A badge for your repository
