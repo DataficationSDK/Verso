@@ -30,6 +30,22 @@ internal static class NuGetRuntimeResolver
     private static volatile string[] _managedSearchDirs = Array.Empty<string>();
     private static bool _registered;
 
+    // Directories registered while resolving one reference share a resolution id, which is
+    // how a package reaches the natives of a *differently versioned* package it shipped
+    // alongside. Microsoft.Data.SqlClient 7.0.2 carries its native SNI in
+    // Microsoft.Data.SqlClient.SNI.runtime 6.0.2, so nothing about the two paths matches;
+    // what relates them is that one resolve produced both. Published the same copy-on-write
+    // way as the arrays above, and for the same reason.
+    private static volatile IReadOnlyDictionary<string, int[]> _directoryResolutions =
+        new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
+    private static int _lastResolutionId;
+
+    /// <summary>
+    /// Starts a resolution scope. Directories registered under the same id are treated as
+    /// having shipped together, whatever their package ids and versions are.
+    /// </summary>
+    internal static int NewResolution() => Interlocked.Increment(ref _lastResolutionId);
+
     /// <summary>
     /// Private ALC used as a fallback when loading a managed NuGet assembly into the
     /// default ALC fails because the host's TPA already contains a different version
@@ -44,13 +60,19 @@ internal static class NuGetRuntimeResolver
     /// <summary>
     /// Adds a directory containing managed assemblies (DLLs from <c>lib/</c>) to the search path.
     /// </summary>
-    internal static void AddManagedSearchDirectory(string directory)
+    /// <param name="directory">The directory holding the assemblies.</param>
+    /// <param name="resolution">
+    /// The resolution this directory was produced by, from <see cref="NewResolution"/>, or
+    /// zero when it was not produced by one.
+    /// </param>
+    internal static void AddManagedSearchDirectory(string directory, int resolution = 0)
     {
         lock (Lock)
         {
             if (!_managedSearchDirs.Contains(directory, StringComparer.OrdinalIgnoreCase))
                 _managedSearchDirs = Append(_managedSearchDirs, directory);
 
+            RecordResolution(directory, resolution);
             EnsureRegistered();
         }
     }
@@ -58,22 +80,78 @@ internal static class NuGetRuntimeResolver
     /// <summary>
     /// Adds a directory containing native libraries (from <c>runtimes/{rid}/native/</c>) to the search path.
     /// </summary>
-    internal static void AddNativeSearchDirectory(string directory)
+    /// <param name="directory">The directory holding the native libraries.</param>
+    /// <param name="resolution">
+    /// The resolution this directory was produced by, from <see cref="NewResolution"/>, or
+    /// zero when it was not produced by one.
+    /// </param>
+    internal static void AddNativeSearchDirectory(string directory, int resolution = 0)
     {
         lock (Lock)
         {
             if (!_nativeSearchDirs.Contains(directory, StringComparer.OrdinalIgnoreCase))
                 _nativeSearchDirs = Append(_nativeSearchDirs, directory);
 
+            RecordResolution(directory, resolution);
             EnsureRegistered();
         }
     }
 
-    private static string[] Append(string[] existing, string directory)
+    /// <summary>
+    /// Notes that a directory came out of a given resolution. A directory can belong to
+    /// several, since a package already on disk is registered again by every later resolve
+    /// that reaches it. Callers hold <see cref="Lock"/>.
+    /// </summary>
+    private static void RecordResolution(string directory, int resolution)
     {
-        var extended = new string[existing.Length + 1];
+        if (resolution == 0)
+            return;
+
+        var key = Normalize(directory);
+        var existing = _directoryResolutions.TryGetValue(key, out var ids) ? ids : Array.Empty<int>();
+        if (Array.IndexOf(existing, resolution) >= 0)
+            return;
+
+        var updated = new Dictionary<string, int[]>(_directoryResolutions, StringComparer.OrdinalIgnoreCase)
+        {
+            [key] = Append(existing, resolution)
+        };
+
+        _directoryResolutions = updated;
+    }
+
+    /// <summary>
+    /// The resolutions a directory was registered under, empty for one registered without any.
+    /// </summary>
+    private static int[] ResolutionsOf(string? directory)
+    {
+        if (directory is null)
+            return Array.Empty<int>();
+
+        return _directoryResolutions.TryGetValue(Normalize(directory), out var ids)
+            ? ids
+            : Array.Empty<int>();
+    }
+
+    /// <summary>
+    /// Whether two directories were produced by any resolution in common.
+    /// </summary>
+    internal static bool SharesResolution(int[] left, int[] right)
+    {
+        foreach (var id in left)
+        {
+            if (Array.IndexOf(right, id) >= 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static T[] Append<T>(T[] existing, T item)
+    {
+        var extended = new T[existing.Length + 1];
         Array.Copy(existing, extended, existing.Length);
-        extended[^1] = directory;
+        extended[^1] = item;
         return extended;
     }
 
@@ -190,32 +268,50 @@ internal static class NuGetRuntimeResolver
     /// <remarks>
     /// The claim is deliberately narrow. Once attached, a resolver is consulted for every
     /// P/Invoke the assembly makes, including ones bound for the operating system's own
-    /// libraries, so this answers only for directories belonging to the same package
-    /// version as the caller and returns zero for everything else. Returning zero falls
-    /// through to normal probing, so nothing outside that case changes. Anything wider
-    /// would trade a library hijacked from <c>PATH</c> for one hijacked from the package
-    /// cache, which is the same bug with a shorter reach.
+    /// libraries, so this answers only for directories that shipped with the caller and
+    /// returns zero for everything else. Returning zero falls through to normal probing, so
+    /// nothing outside that case changes. Anything wider would trade a library hijacked from
+    /// <c>PATH</c> for one hijacked from the package cache, which is the same bug with a
+    /// shorter reach.
     /// </remarks>
     private static IntPtr ResolvePackageNative(
         string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        var version = GetPackageVersion(assembly);
-        if (version is null)
+        var directory = AssemblyDirectory(assembly);
+        if (directory is null)
             return IntPtr.Zero;
 
-        var directory = AssemblyDirectory(assembly);
         var dirs = _nativeSearchDirs;
 
-        // A package that ships its own natives answers for itself first. Otherwise any
-        // directory of the same version will do, which is how a managed package reaches
-        // the separate native asset package it ships in lockstep with.
-        if (directory is not null && TryLoadFrom(Path.Combine(directory, "native"), libraryName, out var own))
+        // A package that ships its own natives answers for itself first.
+        if (TryLoadFrom(Path.Combine(directory, "native"), libraryName, out var own))
             return own;
 
-        foreach (var dir in dirs)
+        // Then whatever came out of the same resolution, which is how a managed package
+        // reaches a native asset package that carries its own version. The two agree for
+        // SkiaSharp and SQLitePCLRaw and disagree for the SQL Server client, so the version
+        // is not what relates them.
+        var resolutions = ResolutionsOf(directory);
+        if (resolutions.Length > 0)
         {
-            if (BelongsToPackageVersion(dir, version) && TryLoadFrom(dir, libraryName, out var handle))
-                return handle;
+            foreach (var dir in dirs)
+            {
+                if (SharesResolution(resolutions, ResolutionsOf(dir))
+                    && TryLoadFrom(dir, libraryName, out var sibling))
+                    return sibling;
+            }
+        }
+
+        // Finally the same package version, which covers directories registered before any
+        // resolution was recorded against them.
+        var version = Path.GetFileName(directory);
+        if (!string.IsNullOrEmpty(version))
+        {
+            foreach (var dir in dirs)
+            {
+                if (BelongsToPackageVersion(dir, version) && TryLoadFrom(dir, libraryName, out var handle))
+                    return handle;
+            }
         }
 
         return IntPtr.Zero;
@@ -392,25 +488,84 @@ internal static class NuGetRuntimeResolver
     /// Returns an ordered list of runtime identifiers to search in NuGet packages,
     /// from most specific to least specific for the current platform.
     /// </summary>
-    internal static string[] GetRidFallbacks()
+    internal static string[] GetRidFallbacks() =>
+        BuildRidFallbacks(
+            RuntimeInformation.RuntimeIdentifier,
+            RuntimeInformation.ProcessArchitecture,
+            OperatingSystem.IsMacOS(),
+            OperatingSystem.IsLinux(),
+            OperatingSystem.IsWindows());
+
+    /// <summary>
+    /// Builds the runtime identifier fallback chain, most specific first.
+    /// </summary>
+    /// <remarks>
+    /// Two things this has to get right. The architecture is the one the process is running
+    /// as, not the one the machine has: an x64 build under emulation on an arm64 machine can
+    /// only load x64 natives, and the OS architecture would name the ones it cannot load.
+    /// And the chain starts from the runtime's own identifier, which is the only thing that
+    /// reports a musl C library; a musl process cannot load a glibc build, and packages such
+    /// as SkiaSharp and SQLitePCLRaw ship both side by side, so the musl entries have to come
+    /// first where they apply and be absent everywhere else.
+    /// </remarks>
+    internal static string[] BuildRidFallbacks(
+        string? runtimeIdentifier,
+        Architecture processArchitecture,
+        bool isMacOS,
+        bool isLinux,
+        bool isWindows)
     {
-        var arch = RuntimeInformation.OSArchitecture switch
+        var arch = processArchitecture switch
         {
             Architecture.X64 => "x64",
             Architecture.Arm64 => "arm64",
             Architecture.X86 => "x86",
+            Architecture.Arm => "arm",
             _ => "x64"
         };
 
-        if (OperatingSystem.IsMacOS())
-            return new[] { $"osx-{arch}", "osx", "unix" };
+        var rids = new List<string>();
 
-        if (OperatingSystem.IsLinux())
-            return new[] { $"linux-{arch}", "linux", "unix" };
+        void Add(string rid)
+        {
+            if (!rids.Contains(rid, StringComparer.OrdinalIgnoreCase))
+                rids.Add(rid);
+        }
 
-        if (OperatingSystem.IsWindows())
-            return new[] { $"win-{arch}", "win" };
+        // The runtime's own identifier leads, so a platform that names itself more precisely
+        // than the chain below is still matched exactly.
+        if (!string.IsNullOrEmpty(runtimeIdentifier))
+            Add(runtimeIdentifier);
 
-        return new[] { $"unix-{arch}", "unix" };
+        if (isMacOS)
+        {
+            Add($"osx-{arch}");
+            Add("osx");
+            Add("unix");
+        }
+        else if (isLinux)
+        {
+            if (runtimeIdentifier?.Contains("musl", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                Add($"linux-musl-{arch}");
+                Add("linux-musl");
+            }
+
+            Add($"linux-{arch}");
+            Add("linux");
+            Add("unix");
+        }
+        else if (isWindows)
+        {
+            Add($"win-{arch}");
+            Add("win");
+        }
+        else
+        {
+            Add($"unix-{arch}");
+            Add("unix");
+        }
+
+        return rids.ToArray();
     }
 }

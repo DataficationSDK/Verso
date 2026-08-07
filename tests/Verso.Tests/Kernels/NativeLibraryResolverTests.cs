@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Verso.Kernels;
 
 namespace Verso.Tests.Kernels;
@@ -89,6 +90,101 @@ public sealed class NativeLibraryResolverTests
 
         Assert.IsFalse(NuGetRuntimeResolver.IsRegisteredDirectory(
             registered, Dir("usr", "local", "share", "verso")));
+    }
+
+    [TestMethod]
+    public void SharesResolution_OneInCommon_ReturnsTrue()
+    {
+        // A package directory registered by two resolves shares one of them with a native
+        // directory registered by only the second.
+        Assert.IsTrue(NuGetRuntimeResolver.SharesResolution(new[] { 1, 2 }, new[] { 2 }));
+    }
+
+    [TestMethod]
+    public void SharesResolution_NoneInCommon_ReturnsFalse()
+    {
+        // Two packages that happen to sit in the same cache but were never resolved together
+        // have no claim on each other's natives.
+        Assert.IsFalse(NuGetRuntimeResolver.SharesResolution(new[] { 1, 2 }, new[] { 3 }));
+    }
+
+    [TestMethod]
+    public void SharesResolution_EitherSideEmpty_ReturnsFalse()
+    {
+        Assert.IsFalse(NuGetRuntimeResolver.SharesResolution(Array.Empty<int>(), new[] { 1 }));
+        Assert.IsFalse(NuGetRuntimeResolver.SharesResolution(new[] { 1 }, Array.Empty<int>()));
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_EmulatedProcess_NamesTheProcessArchitecture()
+    {
+        // An x64 build running under emulation on an arm64 machine can only load x64
+        // natives. Reporting the machine's architecture would name the ones it cannot load.
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            "osx-x64", Architecture.X64, isMacOS: true, isLinux: false, isWindows: false);
+
+        CollectionAssert.AreEqual(new[] { "osx-x64", "osx", "unix" }, rids);
+        CollectionAssert.DoesNotContain(rids, "osx-arm64");
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_Musl_PrefersMuslOverGlibc()
+    {
+        // A musl process cannot load a glibc build, and packages ship both, so the musl
+        // entries have to be reached first.
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            "linux-musl-x64", Architecture.X64, isMacOS: false, isLinux: true, isWindows: false);
+
+        CollectionAssert.AreEqual(
+            new[] { "linux-musl-x64", "linux-musl", "linux-x64", "linux", "unix" }, rids);
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_Glibc_HasNoMuslEntries()
+    {
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            "linux-x64", Architecture.X64, isMacOS: false, isLinux: true, isWindows: false);
+
+        CollectionAssert.AreEqual(new[] { "linux-x64", "linux", "unix" }, rids);
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_WindowsArm64_NamesTheArm64Rid()
+    {
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            "win-arm64", Architecture.Arm64, isMacOS: false, isLinux: false, isWindows: true);
+
+        CollectionAssert.AreEqual(new[] { "win-arm64", "win" }, rids);
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_VersionedRuntimeIdentifier_LeadsAndDoesNotDisplaceThePortableRid()
+    {
+        // Some platforms name themselves more precisely than the portable chain. The exact
+        // name is worth trying first, and the portable one still has to follow it.
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            "ubuntu.22.04-x64", Architecture.X64, isMacOS: false, isLinux: true, isWindows: false);
+
+        CollectionAssert.AreEqual(
+            new[] { "ubuntu.22.04-x64", "linux-x64", "linux", "unix" }, rids);
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_NoRuntimeIdentifier_StillReturnsThePlatformChain()
+    {
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            null, Architecture.Arm64, isMacOS: true, isLinux: false, isWindows: false);
+
+        CollectionAssert.AreEqual(new[] { "osx-arm64", "osx", "unix" }, rids);
+    }
+
+    [TestMethod]
+    public void BuildRidFallbacks_UnknownPlatform_FallsBackToUnix()
+    {
+        var rids = NuGetRuntimeResolver.BuildRidFallbacks(
+            null, Architecture.X64, isMacOS: false, isLinux: false, isWindows: false);
+
+        CollectionAssert.AreEqual(new[] { "unix-x64", "unix" }, rids);
     }
 
     [TestMethod]

@@ -173,8 +173,12 @@ internal sealed class NuGetPackageResolver
         var resolvedPackages = new List<(string Id, string Version)>();
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        // Everything this call puts on disk belongs together, which is what lets a managed
+        // assembly reach the natives of a package versioned separately from it.
+        var resolution = NuGetRuntimeResolver.NewResolution();
+
         var resolvedVersion = await ResolveWithDependenciesAsync(
-            packageId, version, allAssemblyPaths, resolvedPackages, visited, depth: 0, ct).ConfigureAwait(false);
+            packageId, version, allAssemblyPaths, resolvedPackages, visited, depth: 0, resolution, ct).ConfigureAwait(false);
 
         return new NuGetResolveResult(packageId, resolvedVersion, allAssemblyPaths, resolvedPackages);
     }
@@ -222,14 +226,14 @@ internal sealed class NuGetPackageResolver
     private async Task<string> ResolveWithDependenciesAsync(
         string packageId, string? version, List<string> allPaths,
         List<(string Id, string Version)> resolvedPackages,
-        HashSet<string> visited, int depth, CancellationToken ct)
+        HashSet<string> visited, int depth, int resolution, CancellationToken ct)
     {
         if (depth > MaxDependencyDepth) return version ?? "";
         if (!visited.Add(packageId)) return version ?? "";
         if (IsFrameworkPackage(packageId)) return version ?? "";
 
         var (resolvedVersion, assemblyPaths, dependencies) =
-            await DownloadSinglePackageAsync(packageId, version, ct).ConfigureAwait(false);
+            await DownloadSinglePackageAsync(packageId, version, resolution, ct).ConfigureAwait(false);
 
         allPaths.AddRange(assemblyPaths);
         resolvedPackages.Add((packageId, resolvedVersion));
@@ -237,7 +241,7 @@ internal sealed class NuGetPackageResolver
         foreach (var (depId, depMinVersion) in dependencies)
         {
             await ResolveWithDependenciesAsync(
-                depId, depMinVersion, allPaths, resolvedPackages, visited, depth + 1, ct).ConfigureAwait(false);
+                depId, depMinVersion, allPaths, resolvedPackages, visited, depth + 1, resolution, ct).ConfigureAwait(false);
         }
 
         return resolvedVersion;
@@ -248,7 +252,7 @@ internal sealed class NuGetPackageResolver
     /// dependency list for the target framework.
     /// </summary>
     private async Task<(string ResolvedVersion, List<string> AssemblyPaths, List<(string Id, string? MinVersion)> Dependencies)>
-        DownloadSinglePackageAsync(string packageId, string? version, CancellationToken ct)
+        DownloadSinglePackageAsync(string packageId, string? version, int resolution, CancellationToken ct)
     {
         var logger = NullLogger.Instance;
         var cache = new SourceCacheContext();
@@ -264,7 +268,7 @@ internal sealed class NuGetPackageResolver
                 var cachedDeps = ReadCachedDependencies(cachedDepsFile);
                 if (cachedDeps is not null)
                 {
-                    RegisterCachedRuntimeDirs(cachedDir);
+                    RegisterCachedRuntimeDirs(cachedDir, resolution);
                     return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
                 }
             }
@@ -337,14 +341,14 @@ internal sealed class NuGetPackageResolver
             // Cache hit: package was previously resolved (may legitimately have 0 DLLs for meta-packages)
             if (cachedDeps is not null)
             {
-                RegisterCachedRuntimeDirs(packageDir);
+                RegisterCachedRuntimeDirs(packageDir, resolution);
                 return (resolvedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
             }
 
             // Legacy cache entry (no .deps file) — re-extract if it has DLLs but no deps info
             if (cachedDlls.Length > 0)
             {
-                RegisterCachedRuntimeDirs(packageDir);
+                RegisterCachedRuntimeDirs(packageDir, resolution);
                 // Download just to read dependencies, then write the deps cache
                 var deps = await DownloadAndReadDependenciesAsync(
                     packageId, resolvedVersion, resource, cache, logger, packageDir, ct).ConfigureAwait(false);
@@ -387,7 +391,7 @@ internal sealed class NuGetPackageResolver
 
         // Extract native and runtime-managed libraries after closing the PackageArchiveReader
         // to avoid file contention — uses ZipFile.OpenRead() directly for reliable extraction.
-        ExtractNativeLibs(tempNupkg, packageDir);
+        ExtractNativeLibs(tempNupkg, packageDir, resolution);
 
         // Overwrite any lib/ stubs with the platform-specific runtime implementation
         // from runtimes/{rid}/lib/{tfm}/ when present. Required for packages like
@@ -401,7 +405,7 @@ internal sealed class NuGetPackageResolver
 
         // Register the directory so cross-package assembly references resolve
         if (assemblyPaths.Count > 0)
-            NuGetRuntimeResolver.AddManagedSearchDirectory(packageDir);
+            NuGetRuntimeResolver.AddManagedSearchDirectory(packageDir, resolution);
 
         // Cache the dependency list (so meta-packages with 0 DLLs are recognized as cached)
         WriteCachedDependencies(depsFile, dependencies);
@@ -529,12 +533,26 @@ internal sealed class NuGetPackageResolver
     /// into a <c>native/</c> subdirectory and registers the directory with the
     /// <see cref="NuGetRuntimeResolver"/> so the runtime can find them.
     /// Uses <see cref="ZipFile"/> directly for reliable extraction (bypasses NuGet reader path matching).
+    /// <para>
+    /// Only a fresh extraction runs this; a cache hit registers what is already on disk. A cache
+    /// populated under an older rule for choosing a runtime identifier therefore keeps whatever
+    /// it holds, which on a machine running under emulation or on a musl C library can be a
+    /// native this platform cannot load. Clearing the cache directory is the recovery.
+    /// </para>
     /// </summary>
-    private static void ExtractNativeLibs(string nupkgPath, string packageDir)
+    private static void ExtractNativeLibs(string nupkgPath, string packageDir, int resolution)
     {
         var rids = NuGetRuntimeResolver.GetRidFallbacks();
         var nativeDir = Path.Combine(packageDir, "native");
         var extracted = false;
+
+        // Per-filename best candidate: the earlier the RID appears in the fallback chain, the
+        // more specific it is. Selecting rather than extracting every match matters because a
+        // package can ship the same file name under several RIDs this platform accepts, and
+        // SkiaSharp and SQLitePCLRaw both ship a musl build beside the glibc one. Extracting
+        // them in archive order would leave whichever came last.
+        var best = new Dictionary<string, (int RidIndex, ZipArchiveEntry Entry)>(
+            StringComparer.OrdinalIgnoreCase);
 
         using var archive = ZipFile.OpenRead(nupkgPath);
         foreach (var entry in archive.Entries)
@@ -554,18 +572,25 @@ internal sealed class NuGetPackageResolver
             var entryRid = segments[1];
 
             // Check if this RID matches our platform
-            if (!rids.Any(r => r.Equals(entryRid, StringComparison.OrdinalIgnoreCase)))
+            var ridIndex = Array.FindIndex(rids, r => r.Equals(entryRid, StringComparison.OrdinalIgnoreCase));
+            if (ridIndex < 0)
                 continue;
 
             var fileName = segments[^1];
             if (string.IsNullOrEmpty(fileName) || entry.Length == 0)
                 continue;
 
+            if (!best.TryGetValue(fileName, out var current) || ridIndex < current.RidIndex)
+                best[fileName] = (ridIndex, entry);
+        }
+
+        foreach (var (fileName, candidate) in best)
+        {
             try
             {
                 Directory.CreateDirectory(nativeDir);
                 var destPath = Path.Combine(nativeDir, fileName);
-                entry.ExtractToFile(destPath, overwrite: true);
+                candidate.Entry.ExtractToFile(destPath, overwrite: true);
                 extracted = true;
             }
             catch
@@ -576,7 +601,7 @@ internal sealed class NuGetPackageResolver
 
         if (extracted)
         {
-            NuGetRuntimeResolver.AddNativeSearchDirectory(nativeDir);
+            NuGetRuntimeResolver.AddNativeSearchDirectory(nativeDir, resolution);
         }
     }
 
@@ -658,19 +683,19 @@ internal sealed class NuGetPackageResolver
     /// Registers previously-extracted managed and native library directories from a cached
     /// package with the <see cref="NuGetRuntimeResolver"/>.
     /// </summary>
-    private static void RegisterCachedRuntimeDirs(string packageDir)
+    private static void RegisterCachedRuntimeDirs(string packageDir, int resolution)
     {
         // Register managed assembly directory (the package dir itself contains DLLs)
         if (Directory.GetFiles(packageDir, "*.dll").Length > 0)
         {
-            NuGetRuntimeResolver.AddManagedSearchDirectory(packageDir);
+            NuGetRuntimeResolver.AddManagedSearchDirectory(packageDir, resolution);
         }
 
         // Register native library directory
         var nativeDir = Path.Combine(packageDir, "native");
         if (Directory.Exists(nativeDir) && Directory.GetFiles(nativeDir).Length > 0)
         {
-            NuGetRuntimeResolver.AddNativeSearchDirectory(nativeDir);
+            NuGetRuntimeResolver.AddNativeSearchDirectory(nativeDir, resolution);
         }
     }
 

@@ -379,7 +379,7 @@ public sealed class NuGetMarketplaceService
         {
             if (TryPickCompatibleAssemblies(Path.Combine(managedDir, packageId, version)) is { } existing)
             {
-                NuGetRuntimeResolver.AddManagedSearchDirectory(existing.Directory);
+                RegisterInstalledDirectory(existing.Directory);
                 return new MarketplaceInstallResult(version, existing.Directory, existing.Assemblies);
             }
         }
@@ -390,9 +390,10 @@ public sealed class NuGetMarketplaceService
         var targetDir = Path.Combine(
             managedDir, packageId, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
+        CopyNativesToManaged(result.ResolvedPackages, targetDir);
         CopyIconToManaged(packageId, result.ResolvedVersion, managedDir);
 
-        NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
+        RegisterInstalledDirectory(targetDir);
         return new MarketplaceInstallResult(result.ResolvedVersion, targetDir, copied);
     }
 
@@ -413,7 +414,7 @@ public sealed class NuGetMarketplaceService
         if (TryPickCompatibleAssemblies(Path.Combine(managedDir, packageId, version)) is not { } picked)
             return null;
 
-        NuGetRuntimeResolver.AddManagedSearchDirectory(picked.Directory);
+        RegisterInstalledDirectory(picked.Directory);
         return new MarketplaceInstallResult(version, picked.Directory, picked.Assemblies);
     }
 
@@ -531,9 +532,10 @@ public sealed class NuGetMarketplaceService
         var targetDir = Path.Combine(
             managedDir, id, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
+        CopyNativesToManaged(result.ResolvedPackages, targetDir);
         CopyIconToManaged(id, result.ResolvedVersion, managedDir);
 
-        NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
+        RegisterInstalledDirectory(targetDir);
         return new LocalInstallResult(id, result.ResolvedVersion, targetDir, copied);
     }
 
@@ -554,7 +556,7 @@ public sealed class NuGetMarketplaceService
         var dest = Path.Combine(targetDir, Path.GetFileName(dllPath));
         File.Copy(dllPath, dest, overwrite: true);
 
-        NuGetRuntimeResolver.AddManagedSearchDirectory(targetDir);
+        RegisterInstalledDirectory(targetDir);
         return new LocalInstallResult(id, version, targetDir, new[] { dest });
     }
 
@@ -643,7 +645,7 @@ public sealed class NuGetMarketplaceService
     /// the directory can, and it comes last.
     /// </summary>
     private static string IconCacheKey(string packageId, string? version, string managedDir)
-        => $"{packageId} {version} {managedDir}";
+        => $"{packageId}\0{version}\0{managedDir}";
 
     /// <summary>
     /// Drops every cached icon lookup for a package: the pinned entries and the unpinned one,
@@ -654,7 +656,7 @@ public sealed class NuGetMarketplaceService
     /// </summary>
     private static void InvalidateIconCache(string packageId)
     {
-        var prefix = packageId + " ";
+        var prefix = packageId + "\0";
         foreach (var key in IconDataUriCache.Keys)
         {
             if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -743,6 +745,63 @@ public sealed class NuGetMarketplaceService
         }
 
         return copied;
+    }
+
+    /// <summary>
+    /// Copies the native libraries belonging to an installed package's closure into a
+    /// <c>native/</c> directory beside its assemblies.
+    /// </summary>
+    /// <remarks>
+    /// The managed directory is the durable store, the same reasoning that puts the icon
+    /// there: the download cache is a temp directory that can be cleared between launches,
+    /// and a sideloaded package can never be fetched again. Without this an extension that
+    /// P/Invokes works in the session that installed it, because the resolve registered the
+    /// cache directories, and fails on the next launch with the native missing. Natives come
+    /// from across the closure, since a package's natives usually ship in a separate package
+    /// of their own, and they are flattened into one directory the same way the assemblies
+    /// are.
+    /// </remarks>
+    private static void CopyNativesToManaged(
+        IReadOnlyList<(string Id, string Version)> packages, string targetDir)
+    {
+        var nativeDir = Path.Combine(targetDir, "native");
+
+        foreach (var (id, version) in packages)
+        {
+            try
+            {
+                var source = Path.Combine(NuGetPackageResolver.CacheRoot, id, version, "native");
+                if (!Directory.Exists(source))
+                    continue;
+
+                foreach (var file in Directory.GetFiles(source))
+                {
+                    Directory.CreateDirectory(nativeDir);
+                    File.Copy(file, Path.Combine(nativeDir, Path.GetFileName(file)), overwrite: true);
+                }
+            }
+            catch
+            {
+                // A native that cannot be copied surfaces as a load failure when the
+                // extension calls into it, which names the library. Failing the install here
+                // would instead take down an extension that may never touch it.
+            }
+        }
+    }
+
+    /// <summary>
+    /// Registers an installed package directory with the runtime resolver, along with the
+    /// native libraries beside it when it has any. Called on every path that hands assemblies
+    /// back to be loaded, including the offline ones that resolve nothing, since those are
+    /// exactly the launches where nothing else registers the natives.
+    /// </summary>
+    private static void RegisterInstalledDirectory(string directory)
+    {
+        NuGetRuntimeResolver.AddManagedSearchDirectory(directory);
+
+        var nativeDir = Path.Combine(directory, "native");
+        if (Directory.Exists(nativeDir) && Directory.GetFiles(nativeDir).Length > 0)
+            NuGetRuntimeResolver.AddNativeSearchDirectory(nativeDir);
     }
 
     /// <summary>
