@@ -1,11 +1,5 @@
 {
-  "extension.description": {
-    "message": "Polyglot .NET notebooks with C#, F#, Python, JavaScript, TypeScript, PowerShell, SQL, and HTTP cells. One shared variable store across languages, IntelliSense, dashboards, Jupyter import, and GitHub Copilot integration.",
-    "comment": [
-      "The blurb under the extension's name in the Marketplace.",
-      "Every language name and product name here is written the same in every language."
-    ]
-  },
+  "extension.description": "Polyglot .NET notebooks with C#, F#, Python, JavaScript, TypeScript, PowerShell, SQL, and HTTP cells. One shared variable store across languages, IntelliSense, dashboards, Jupyter import, and GitHub Copilot integration.",
 
   "command.newNotebook.title": {
     "message": "New Notebook",

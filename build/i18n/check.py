@@ -86,8 +86,10 @@ def check_manifest() -> list[str]:
         elif isinstance(node, str) and (match := NLS_REFERENCE.match(node)):
             referenced.add(match.group(1))
 
-    walk(json.loads(manifest.read_text(encoding="utf-8")))
-    declared = set(json.loads(strings.read_text(encoding="utf-8")))
+    parsed = json.loads(manifest.read_text(encoding="utf-8"))
+    walk(parsed)
+    entries = json.loads(strings.read_text(encoding="utf-8"))
+    declared = set(entries)
 
     where = display(strings)
     return [
@@ -95,7 +97,36 @@ def check_manifest() -> list[str]:
           for key in sorted(referenced - declared)),
         *(f"{where}: {key} is declared here but nothing in package.json uses it"
           for key in sorted(declared - referenced)),
+        *marketplace_strings(parsed, entries, where),
     ]
+
+
+# Fields the Marketplace reads out of the manifest to build the extension's web page. The
+# editor resolves an entry written either way, as a plain string or as a message with a
+# translator's note beside it, but the Marketplace substitutes the entry as it finds it and
+# renders the note form as "[object Object]" under the extension's name. So these few keys
+# have to stay plain strings; every other key is free to carry a note.
+MARKETPLACE_FIELDS = ("description",)
+
+
+def marketplace_strings(manifest: dict, entries: dict, where: str) -> list[str]:
+    """Whether the entries the Marketplace reads are in the form it can render."""
+    problems: list[str] = []
+
+    for field in MARKETPLACE_FIELDS:
+        value = manifest.get(field)
+        if not isinstance(value, str) or not (match := NLS_REFERENCE.match(value)):
+            continue
+
+        key = match.group(1)
+        if isinstance(entries.get(key), dict):
+            problems.append(
+                f"{where}: {key} must be a plain string, not a message with a note. "
+                f"package.json's \"{field}\" points at it and the Marketplace renders "
+                "the note form as [object Object]"
+            )
+
+    return problems
 
 
 def main() -> int:
