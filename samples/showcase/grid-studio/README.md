@@ -96,6 +96,6 @@ This sample is MIT. It bundles two MIT-licensed libraries verbatim under `assets
 their license texts beside them:
 
 - [Jspreadsheet CE](https://github.com/jspreadsheet/ce) 4.15.0 (`jspreadsheet-ce.LICENSE.txt`)
-- [jsuites](https://github.com/jspreadsheet/jsuites) 5.13.5 (`jsuites.LICENSE.txt`)
+- [jsuites](https://github.com/jspreadsheet/jsuites) 5.13.3 (`jsuites.LICENSE.txt`)
 
 Only the Community Edition (MIT) of Jspreadsheet is used; the Pro edition is not required.

@@ -24,13 +24,15 @@ Because a layout can come from an extension, a notebook that depends on one can 
 
 ## Showcase layouts
 
-The Verso samples include several showcase layout extensions that demonstrate what an isolated layout can do. Each binds to kernel variables and stays in sync with them:
+The Verso samples include five showcase layout extensions, each installable from the marketplace and each turning the notebook into something else:
 
-- **Form Studio** is a drag-and-drop dashboard builder. Input widgets write values back into kernel variables, and charts bound to a data variable (a `DataBlock` from `Datafication.Core` or a `System.Data.DataTable`, such as shared SQL results) update as it changes.
-- **Grid Studio** presents an editable, spreadsheet-style grid that is two-way bound to a `DataBlock` variable, with type-aware columns. `DataTable` variables display as read-only grids.
-- **Image Studio** is a layered image compositor with a canvas, a layer panel, and a tool palette, persisting its state into the notebook.
+- **[DAG Notebook](../showcase/dag-notebook.md)** links cells by the variables they share and re-runs a cell's dependents when it finishes, in dependency order.
+- **[Slide Studio](../showcase/slide-studio.md)** is a deck editor with a filmstrip, a split editor and output view, and a full-screen presenter mode.
+- **[Grid Studio](../showcase/grid-studio.md)** presents an editable, spreadsheet-style grid that is two-way bound to a `DataBlock` variable, with type-aware columns. `DataTable` variables display as read-only grids.
+- **[Form Studio](../showcase/form-studio.md)** is a drag-and-drop dashboard builder. Input widgets write values back into kernel variables, and charts bound to a data variable (a `DataBlock` from `Datafication.Core` or a `System.Data.DataTable`, such as shared SQL results) update as it changes.
+- **[Image Studio](../showcase/image-studio.md)** is a layered image compositor with a canvas, a layer panel, and a tool palette, persisting its state into the notebook.
 
-These show the range of the layout system: an isolated layout is a full interactive surface that communicates with your notebook's kernels through a defined bridge, not just a static arrangement of cells.
+Between them they show the range of the layout system. The first two are inline layouts, arranging the host's real editable cells; the last three are isolated, meaning a full interactive surface that talks to your notebook's kernels through a defined bridge rather than a static arrangement of cells. [Showcase Extensions](../showcase/overview.md) covers all five, how the two kinds differ, and how to install or build one.
 
 ## Authoring your own
 
@@ -38,5 +40,6 @@ If you want to build a layout rather than use one, the [Layout Authoring Guide](
 
 ## See also
 
+- [Showcase Extensions](../showcase/overview.md)
 - [Managing Extensions](managing-extensions.md)
 - [Layout Authoring Guide](../extensions/layouts.md)

@@ -77,6 +77,8 @@ An import of something inside a package you already have is never offered. `from
 
 Under `auto`, a name Verso only guessed at is reported rather than installed. Guessing means falling back to using the import name as the distribution name, and that is precisely the case worth being careful about: a typo like `import pandsa` produces a plausible package name that somebody may well have published. Recognized names install silently; guesses are named in the output so you can install them deliberately.
 
+Recognized means the mapping described above knows the name. That covers the packages whose distribution differs from their import, and not the many that install under the name they are imported by, so `import pandas` and `import ipywidgets` are both guesses under this policy. Name those in a `#!pip` line or a declared dependency instead. `prompt` has no such division: it offers everything a cell imports and cannot find, which is why a package that `auto` refuses installs perfectly well in the editor.
+
 The command line never installs anything unless asked. `verso run` uses `off`, and `verso run --auto-install` selects `auto`.
 
 ## Declaring dependencies

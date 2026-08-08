@@ -12,6 +12,10 @@ This guide covers what makes a widget live, what a saved file holds, what happen
 #!pip ipywidgets
 ```
 
+That first line is for a notebook that has to run anywhere, not for the editor. In VS Code or `verso serve` you can leave it out and run the cell below on its own: the default install policy offers to install whatever a cell imports and cannot find, so the "Package Install Required" dialog appears and approving it installs `ipywidgets` before the import runs.
+
+The command line is where the line earns its place. `verso run` never installs on import, and `verso run --auto-install` does not cover this one either, because that policy installs only the distributions Verso keeps a mapping for and `ipywidgets` installs under the name it is imported by. See [Python Packages](python-packages.md) for the policies and how to change them.
+
 ```python
 import ipywidgets as widgets
 
@@ -63,7 +67,7 @@ This surprises people most with `anywidget`, because an `anywidget`'s own JavaSc
 
 ## anywidget
 
-`anywidget` widgets work the same as any other, live and static, and need nothing configured:
+`anywidget` widgets work the same as any other, live and static, and need nothing configured. The install line follows the same rule as the one at the top of this guide, so the editor does not need it:
 
 ```python
 #!pip anywidget

@@ -89,10 +89,14 @@ host installs it from NuGet on open. Then:
 
 1. Run the cells that build the `sales` and `chartData` DataBlocks.
 2. Switch the layout to **Form Studio** from the layout picker.
-3. Drag a Slider, a Dropdown, and a Bar chart onto the canvas. Bind the slider to `minUnits`, the
-   dropdown to `region` (options `All, North, South, East, West`), and point the chart at
-   `chartData` with X axis `Month` and Y axis `Units`.
-4. Click **Preview**, then move the slider or change the region and watch the chart update.
+3. Click **Preview**, then move the slider or change the region and watch the charts update.
+
+The notebook ships with its dashboard already built, saved in the layout's own metadata: a slider
+bound to `minUnits`, a dropdown bound to `region` (options `All, North, South, East, West`), and bar
+and line charts reading `chartData`. To build one from nothing, stay in **Edit**, delete those four
+widgets, and drag replacements from the palette. Select a widget to bind it: an input takes the name
+of the kernel variable it writes, and a chart takes the variable it reads plus the column on each
+axis, so the bar chart is `chartData` with X axis `Month` and Y axis `Units`.
 
 ## Licensing
 

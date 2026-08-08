@@ -48,15 +48,16 @@ To run against a local build instead, load the freshly built assembly with
 `#!extension ./src/Verso.Showcase.ImageStudio/bin/Debug/net8.0/Verso.Showcase.ImageStudio.dll`
 (the path resolves relative to the notebook's folder), then switch to **Image Studio**.
 
-You will land on a seeded composition (a sunset gradient, a soft sun, a dot grid, and a
-title). From there:
+You will land on a seeded composition: a sunset gradient, a soft sun, a dot grid, a procedural
+layer named **Scripted**, and a title. From there:
 
 - Toggle a layer's visibility, drag its opacity, change its blend mode, or drag rows to
   reorder: the canvas recomposites live.
 - Add layers from the tool palette; edit their colors, angles, and positions in the
   properties panel.
-- Add a **Procedural** layer (the `</>` icon), then run the second code cell to drive it from
-  the `ops` variable. Edit the instructions and re-run to repaint it live.
+- Run the second code cell to fill the **Scripted** layer. It is procedural, so it draws nothing
+  until the `ops` variable exists. Edit the instructions and re-run to repaint it live, and add
+  procedural layers of your own with the `</>` icon in the palette.
 - **Save** the notebook: the layer stack is written into the `.verso` file and restored the
   next time you open the notebook in this layout.
 
