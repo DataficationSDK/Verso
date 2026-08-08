@@ -104,6 +104,7 @@ jobs:
           dotnet pack samples/showcase/form-studio/src/Verso.Showcase.FormStudio/Verso.Showcase.FormStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
           dotnet pack samples/showcase/grid-studio/src/Verso.Showcase.GridStudio/Verso.Showcase.GridStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
           dotnet pack samples/showcase/slide-studio/src/Verso.Showcase.SlideStudio/Verso.Showcase.SlideStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
+          dotnet pack samples/showcase/dag-notebook/src/Verso.Showcase.DagNotebook/Verso.Showcase.DagNotebook.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4

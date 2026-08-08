@@ -4,6 +4,8 @@ A notebook in a public repository can be read as a page, with its saved outputs,
 
 This is the reading half of a notebook's life. The file stays the source of truth, and the page is a view of it.
 
+![A notebook from a public repository rendered as a shared page, with a read-only preview pill, a Download button, and a View source link back to the file](sharing-a-notebook.png)
+
 ## The link
 
 A share link is the file's own link with the host changed. Take the address of the file on GitHub:

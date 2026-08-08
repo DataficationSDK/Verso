@@ -2,6 +2,8 @@
 
 Verso's interface is written in English and translated into German, Spanish, Japanese, and Simplified Chinese. The translation covers what Verso itself draws: the notebook interface, the toolbar and panels, the messages a kernel puts in a cell's output, and the command-line tool. What your notebook prints is your own, and Verso never rewrites it.
 
+![The notebook interface in Japanese, with the toolbar and an open settings panel translated while the notebook's own content stays as it was written](interface-language.png)
+
 | Tag | Language |
 |-----|----------|
 | `en` | English |

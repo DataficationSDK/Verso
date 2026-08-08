@@ -171,7 +171,7 @@ Internally, the context also has `ReportElapsedTime`, which the `#!time` command
 | `#!time` | Enables elapsed time reporting after kernel execution. Does not suppress. |
 | `#!nuget PackageId [Version]` | Resolves a NuGet package and stores assembly paths in the variable store for the kernel to pick up. |
 | `#!extension PackageId\|path [Version]` | Loads an extension from NuGet or a local DLL. Requests consent for NuGet packages. Idempotent. |
-| `#!import path [--param name=value ...] [--show-output]` | Imports another notebook or a raw source file. A notebook import deserializes and executes its code cells with optional parameter overrides; a raw source file (`.cs`, `.fsx`, `.py`, `.sql`, and similar) is routed to the kernel matched by its extension. Suppresses execution. Pass `--show-output` to surface the imported outputs in the importing cell. |
+| `#!import path [--param name=value ...] [--show-output]` | Imports another notebook or a raw source file. A notebook import deserializes and executes its code cells with optional parameter overrides; a raw source file (`.cs`, `.fsx`, `.py`, `.sql`, and similar) is routed to the kernel matched by its extension. Does not suppress: code written under the directive in the same cell still runs. Pass `--show-output` to surface the imported outputs in the importing cell. See [Nested Imports](#nested-imports). |
 | `#!restart` | Restarts the current kernel. |
 
 Language-specific magic commands are provided by their respective extensions:
@@ -179,8 +179,18 @@ Language-specific magic commands are provided by their respective extensions:
 | Command | Extension | Effect |
 |---------|-----------|--------|
 | `#!pip package` | Verso.Python | Installs a Python package |
+| `#!python [path]` | Verso.Python | Inspects, lists, and selects the interpreter for the session |
+| `#!bind widget name` | Verso.Python | Projects a widget's trait into the variable store under `name`, in both directions |
 | `#!npm package` | Verso.JavaScript | Installs an npm package |
 | `#!sql-connect` | Verso.Ado | Opens a named database connection |
+
+### Nested Imports
+
+An imported file may import another. Rather than reassembling the file into a single submission, each directive it carries runs on its own, in priority order: package directives first, then imports, then everything else. The file's own code runs last, as its own submission. A `#!import` written inside an imported file is therefore acted on rather than reaching a kernel as ordinary code.
+
+A path in a nested `#!import` is read relative to the file that wrote it, falling back to the notebook's directory when nothing sits beside it. The importing directory travels with the import in an `AsyncLocal` that `ResolveImportPath` consults, rather than being rewritten into the directive text, because a resolved path can contain spaces and the parser that reads it back ends a path at the first one. `ResolvePath` is unchanged, since other commands share it and promise their users the notebook's directory.
+
+Files part way through being imported are tracked in an `AsyncLocal` `ImmutableHashSet`. A file already in progress is passed over quietly, the way an include guard does, so two files that name each other terminate instead of recursing.
 
 ## Output Model
 

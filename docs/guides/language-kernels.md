@@ -45,6 +45,12 @@ Installed lodash 4.17.23 and 2 dependencies.
 
 That output is saved with the notebook, so whoever opens the file next sees it too. To name every package instead of counting the ones that came along, clear **Hide Installation Output** under Packages in the notebook's settings, in the Python or JavaScript group depending on which installs you want the detail for. An install that fails is always reported in full, and so is anything an audit found.
 
+### Packages that carry native libraries
+
+Some packages ship a native binary beside their managed assemblies, as plotting and database libraries commonly do. Verso resolves those against the package that asked for them, so a library of the same name sitting elsewhere on the machine is not picked up in its place, and a package whose native ships in a separately versioned companion package still finds it. Selection also follows the running process rather than the machine, which is what makes a session work under architecture emulation or on a musl based distribution such as Alpine.
+
+Nothing needs to be configured for this. It is worth knowing only because a native load failure that used to look like the package's fault, a version mismatch naming a library the notebook never asked for, is usually not one.
+
 ## Sharing variables across languages
 
 All kernels in a notebook share a single variable store. There is no per-kernel isolation: a variable set in one language is immediately readable in every other. This is the feature that makes a mixed-language notebook worthwhile.

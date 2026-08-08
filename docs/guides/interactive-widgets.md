@@ -4,6 +4,8 @@ A widget is a control that draws in the browser and has a kernel behind it. Move
 
 This guide covers what makes a widget live, what a saved file holds, what happens with no network, and how to share a widget's value with the other languages in the notebook.
 
+![Two ipywidgets sliders above a matplotlib chart in a Python cell, where moving a slider redraws the chart without the cell running again](interactive-widgets.png)
+
 ## A first widget
 
 ```python

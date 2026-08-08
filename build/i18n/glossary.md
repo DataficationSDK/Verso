@@ -7,7 +7,9 @@ every batch, and a human reviewer should hold a translation to the same rules.
 
 These are names, not words. They appear as written in every language.
 
-- **Verso**, **Verso Notebooks**, **Datafication**
+- **Verso**, **Verso Notebooks**, **Datafication**. This covers the application's own title,
+  `Common_AppTitle`, which reads "Verso Notebook" in every language: it names the product in the
+  browser tab rather than describing a document, the way an editor shows its own name there
 - Kernel and language names: **C#**, **F#**, **Python**, **PowerShell**, **JavaScript**,
   **SQL**, **HTTP**, **Markdown**, **Mermaid**, **Blazor**, **Monaco**, **NuGet**,
   **Jupyter**, **Git**
