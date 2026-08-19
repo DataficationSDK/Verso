@@ -139,7 +139,7 @@ Slash commands skip the model for common actions:
 | `@verso /run` | Run all cells and show results |
 | `@verso /vars` | Show all variables currently in scope |
 
-**Agent mode:** Verso registers twenty language model tools, so Copilot can list, add, edit, move, and run cells, inspect variables, manage parameters, and switch layouts as part of a larger task without you typing `@verso` at all. Requires GitHub Copilot Chat and VS Code 1.99 or later.
+**Agent mode:** Verso registers twenty language model tools, so Copilot can list, add, edit, move, and run cells, inspect variables, manage parameters, and switch layouts as part of a larger task without you typing `@verso` at all. The tools are offered while a notebook is open and stay out of the way when none is. Requires GitHub Copilot Chat and VS Code 1.99 or later.
 
 ## Extension Marketplace
 

@@ -136,7 +136,7 @@ The notebook interface, the toolbar and panels, the kernel messages that land in
 
 ### GitHub Copilot Integration
 
-In VS Code, a `@verso` chat participant answers questions about the notebook in front of you, and twenty language model tools let agent mode create, edit, run, and inspect cells directly. Copilot works against the real notebook rather than a text approximation of it.
+In VS Code, a `@verso` chat participant answers questions about the notebook in front of you, and while a notebook is open, twenty language model tools let agent mode create, edit, run, and inspect cells directly. Copilot works against the real notebook rather than a text approximation of it.
 
 ### Import from Jupyter and Polyglot Notebooks
 

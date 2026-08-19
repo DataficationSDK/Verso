@@ -269,10 +269,13 @@
     "languageModelTools": [
       {
         "name": "verso_listCells",
+        "toolReferenceName": "verso_listCells",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.listCells.displayName%",
+        "userDescription": "%tool.listCells.userDescription%",
         "modelDescription": "List all cells in the active Verso notebook, showing each cell's source code, language, and outputs.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -280,10 +283,13 @@
       },
       {
         "name": "verso_addCell",
+        "toolReferenceName": "verso_addCell",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.addCell.displayName%",
+        "userDescription": "%tool.addCell.userDescription%",
         "modelDescription": "Add a new cell to the Verso notebook. The 'type' field determines the cell kind. For code cells, also set 'language' to the kernel. For non-code types (markdown, html, mermaid, etc.), only type is needed. Refer to the system prompt for available cell types and languages.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -309,10 +315,13 @@
       },
       {
         "name": "verso_updateCell",
+        "toolReferenceName": "verso_updateCell",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.updateCell.displayName%",
+        "userDescription": "%tool.updateCell.userDescription%",
         "modelDescription": "Update the source code of an existing cell. Use the 1-based cell number (call verso_listCells first to find it).",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -330,10 +339,13 @@
       },
       {
         "name": "verso_removeCell",
+        "toolReferenceName": "verso_removeCell",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.removeCell.displayName%",
+        "userDescription": "%tool.removeCell.userDescription%",
         "modelDescription": "Remove a cell from the notebook by its 1-based cell number.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -347,10 +359,13 @@
       },
       {
         "name": "verso_runCell",
+        "toolReferenceName": "verso_runCell",
         "tags": ["verso", "notebook", "execution"],
         "displayName": "%tool.runCell.displayName%",
+        "userDescription": "%tool.runCell.userDescription%",
         "modelDescription": "Execute a specific cell by its 1-based cell number and return the output.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -364,10 +379,13 @@
       },
       {
         "name": "verso_runAll",
+        "toolReferenceName": "verso_runAll",
         "tags": ["verso", "notebook", "execution"],
         "displayName": "%tool.runAll.displayName%",
+        "userDescription": "%tool.runAll.userDescription%",
         "modelDescription": "Execute all cells in the notebook sequentially and return results.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -375,10 +393,13 @@
       },
       {
         "name": "verso_listVariables",
+        "toolReferenceName": "verso_listVariables",
         "tags": ["verso", "notebook", "variables"],
         "displayName": "%tool.listVariables.displayName%",
+        "userDescription": "%tool.listVariables.userDescription%",
         "modelDescription": "List all variables currently in scope in the notebook kernel, showing name, type, and value preview.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -386,10 +407,13 @@
       },
       {
         "name": "verso_inspectVariable",
+        "toolReferenceName": "verso_inspectVariable",
         "tags": ["verso", "notebook", "variables"],
         "displayName": "%tool.inspectVariable.displayName%",
+        "userDescription": "%tool.inspectVariable.userDescription%",
         "modelDescription": "Get the detailed value of a specific variable by name.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -403,10 +427,13 @@
       },
       {
         "name": "verso_getLanguages",
+        "toolReferenceName": "verso_getLanguages",
         "tags": ["verso", "notebook"],
         "displayName": "%tool.getLanguages.displayName%",
+        "userDescription": "%tool.getLanguages.userDescription%",
         "modelDescription": "List the available languages/kernels for the active notebook.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -414,10 +441,13 @@
       },
       {
         "name": "verso_listParameters",
+        "toolReferenceName": "verso_listParameters",
         "tags": ["verso", "notebook", "parameters"],
         "displayName": "%tool.listParameters.displayName%",
+        "userDescription": "%tool.listParameters.userDescription%",
         "modelDescription": "List all parameters defined in the notebook. Parameters are named, typed values (string, int, float, bool, date, datetime) that can be set before execution to control notebook behavior.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -425,10 +455,13 @@
       },
       {
         "name": "verso_addParameter",
+        "toolReferenceName": "verso_addParameter",
         "tags": ["verso", "notebook", "parameters"],
         "displayName": "%tool.addParameter.displayName%",
+        "userDescription": "%tool.addParameter.userDescription%",
         "modelDescription": "Add a new parameter to the notebook. Supported types: string, int, float, bool, date (yyyy-MM-dd), datetime (ISO 8601). A parameters cell is automatically created if one does not exist.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -459,10 +492,13 @@
       },
       {
         "name": "verso_updateParameter",
+        "toolReferenceName": "verso_updateParameter",
         "tags": ["verso", "notebook", "parameters"],
         "displayName": "%tool.updateParameter.displayName%",
+        "userDescription": "%tool.updateParameter.userDescription%",
         "modelDescription": "Update an existing parameter's properties. Only the fields you provide will be changed. Use verso_listParameters first to see current parameters.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -493,10 +529,13 @@
       },
       {
         "name": "verso_removeParameter",
+        "toolReferenceName": "verso_removeParameter",
         "tags": ["verso", "notebook", "parameters"],
         "displayName": "%tool.removeParameter.displayName%",
+        "userDescription": "%tool.removeParameter.userDescription%",
         "modelDescription": "Remove a parameter from the notebook by name. This also removes the corresponding variable from the kernel.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -510,10 +549,13 @@
       },
       {
         "name": "verso_getCellProperties",
+        "toolReferenceName": "verso_getCellProperties",
         "tags": ["verso", "notebook", "properties"],
         "displayName": "%tool.getCellProperties.displayName%",
+        "userDescription": "%tool.getCellProperties.userDescription%",
         "modelDescription": "Get the configurable properties for a specific cell. Properties are extension-provided settings like visibility, formatting, or tags. Call this before verso_updateCellProperty to discover available properties and their current values. The response includes providerExtensionId values needed for updates.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -527,10 +569,13 @@
       },
       {
         "name": "verso_updateCellProperty",
+        "toolReferenceName": "verso_updateCellProperty",
         "tags": ["verso", "notebook", "properties"],
         "displayName": "%tool.updateCellProperty.displayName%",
+        "userDescription": "%tool.updateCellProperty.userDescription%",
         "modelDescription": "Update a property on a cell. Call verso_getCellProperties first to discover the available properties, their field types, and the providerExtensionId needed for this call. For Select fields, use the option value (not display name). For Toggle fields, use 'true' or 'false'.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -556,10 +601,13 @@
       },
       {
         "name": "verso_listLayouts",
+        "toolReferenceName": "verso_listLayouts",
         "tags": ["verso", "notebook", "layout"],
         "displayName": "%tool.listLayouts.displayName%",
+        "userDescription": "%tool.listLayouts.userDescription%",
         "modelDescription": "List the layouts registered for this notebook (for example Notebook or Dashboard). Each entry includes its displayName, the extensionId and layoutId needed by verso_switchLayout, and whether it is currently active. Call this before verso_switchLayout to discover the qualified identity of the target layout.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -567,10 +615,13 @@
       },
       {
         "name": "verso_switchLayout",
+        "toolReferenceName": "verso_switchLayout",
         "tags": ["verso", "notebook", "layout"],
         "displayName": "%tool.switchLayout.displayName%",
+        "userDescription": "%tool.switchLayout.userDescription%",
         "modelDescription": "Switch the notebook's active layout. Call verso_listLayouts first to get the extensionId and layoutId of the target layout. The choice is saved with the notebook. Some layouts (such as Dashboard) present cells differently, for example output-only with grid positions.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -588,10 +639,13 @@
       },
       {
         "name": "verso_moveCell",
+        "toolReferenceName": "verso_moveCell",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.moveCell.displayName%",
+        "userDescription": "%tool.moveCell.userDescription%",
         "modelDescription": "Move a cell to a different position in the notebook. Both numbers are 1-based. Call verso_listCells first to confirm the current order.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -609,10 +663,13 @@
       },
       {
         "name": "verso_changeCellType",
+        "toolReferenceName": "verso_changeCellType",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.changeCellType.displayName%",
+        "userDescription": "%tool.changeCellType.userDescription%",
         "modelDescription": "Change a cell's type (for example code, markdown, html, mermaid). Call verso_getLanguages or verso_listCells to see available types. Changing the type clears the cell's outputs. For code cells the language is set automatically; use verso_changeCellLanguage to choose a different one.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -630,10 +687,13 @@
       },
       {
         "name": "verso_changeCellLanguage",
+        "toolReferenceName": "verso_changeCellLanguage",
         "tags": ["verso", "notebook", "cells"],
         "displayName": "%tool.changeCellLanguage.displayName%",
+        "userDescription": "%tool.changeCellLanguage.userDescription%",
         "modelDescription": "Change the kernel language of a code cell (for example csharp, sql, python). Call verso_getLanguages to list valid languages. Changing the language clears the cell's outputs.",
-        "canBeReferencedInPrompt": false,
+        "canBeReferencedInPrompt": true,
+        "when": "verso.notebookOpen",
         "inputSchema": {
           "type": "object",
           "properties": {

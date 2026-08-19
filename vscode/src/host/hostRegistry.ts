@@ -15,13 +15,16 @@ export interface NotebookSession {
 
 class HostRegistry {
   private readonly uriToSession = new Map<string, NotebookSession>();
+  private notebookOpen = false;
 
   register(uri: vscode.Uri, session: NotebookSession): void {
     this.uriToSession.set(uri.toString(), session);
+    this.syncContextKey();
   }
 
   unregister(uri: vscode.Uri): void {
     this.uriToSession.delete(uri.toString());
+    this.syncContextKey();
   }
 
   getByUri(uri: vscode.Uri): NotebookSession | undefined {
@@ -34,6 +37,20 @@ class HostRegistry {
 
   get size(): number {
     return this.uriToSession.size;
+  }
+
+  /**
+   * Mirrors "is a notebook open" into the verso.notebookOpen context key.
+   * The language model tools declare it as their `when` condition so they
+   * stay out of chat sessions that have no notebook to act on.
+   */
+  private syncContextKey(): void {
+    const open = this.uriToSession.size > 0;
+    if (open === this.notebookOpen) {
+      return;
+    }
+    this.notebookOpen = open;
+    void vscode.commands.executeCommand("setContext", "verso.notebookOpen", open);
   }
 }
 
