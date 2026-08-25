@@ -16,6 +16,8 @@ Every commit must carry a `Signed-off-by` line with your real name and email add
 Signed-off-by: Jane Developer <jane@example.com>
 ```
 
+The address must be one where you can actually be reached. GitHub noreply addresses (`@users.noreply.github.com`) do not satisfy the DCO, and the sign-off check fails commits that author or sign off with one. If you use GitHub's email privacy setting, commit with a real address you are comfortable publishing in the project history.
+
 Git adds this for you when you commit with the `-s` flag:
 
 ```bash

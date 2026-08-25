@@ -37,9 +37,23 @@ jobs:
               echo "::error::Commit ${sha} (\"${subject}\") is missing a 'Signed-off-by:' line. Run: git commit --amend --signoff (or rebase with --signoff) and force-push."
               failed=1
             fi
+            # A GitHub noreply address defeats the DCO's provenance purpose: nobody can be
+            # reached through it. CONTRIBUTING.md asks for a reachable address, so fail the
+            # commit whether the noreply appears as the author or inside the sign-off.
+            author_email=$(git show -s --format='%ae' "$sha")
+            if printf '%s' "$author_email" | grep -qiE '@users\.noreply\.github\.com$'; then
+              echo "::error::Commit ${sha} (\"${subject}\") is authored with the GitHub noreply address ${author_email}. The DCO needs a reachable email: set git config user.email, amend the commit, and force-push (see CONTRIBUTING.md)."
+              failed=1
+            fi
+            if git show -s --format='%B' "$sha" \
+              | grep -iE '^Signed-off-by:' \
+              | grep -qiE '@users\.noreply\.github\.com'; then
+              echo "::error::Commit ${sha} (\"${subject}\") signs off with a GitHub noreply address. The DCO needs a reachable email (see CONTRIBUTING.md)."
+              failed=1
+            fi
           done
           if [ "$failed" -ne 0 ]; then
-            echo "One or more commits are missing a DCO sign-off."
+            echo "One or more commits do not satisfy the DCO sign-off requirements."
             exit 1
           fi
-          echo "All commits include a Signed-off-by line."
+          echo "All commits carry a Signed-off-by line with a reachable address."

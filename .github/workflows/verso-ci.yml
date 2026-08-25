@@ -169,6 +169,7 @@ jobs:
           dotnet pack src/Verso.Abstractions/Verso.Abstractions.csproj -c Release --no-build -o packages
           dotnet pack src/Verso/Verso.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.Ado/Verso.Ado.csproj -c Release --no-build -o packages
+          dotnet pack src/Verso.DataFrame/Verso.DataFrame.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.FSharp/Verso.FSharp.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.Http/Verso.Http.csproj -c Release --no-build -o packages
           dotnet pack src/Verso.JavaScript/Verso.JavaScript.csproj -c Release --no-build -o packages

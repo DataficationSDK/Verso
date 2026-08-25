@@ -125,6 +125,73 @@ public sealed class DataFrameFormatterTests
             () => _formatter.FormatAsync(CreateDataFrame(), _context));
     }
 
+    [TestMethod]
+    public void CanFormat_NonHtmlMimeType_ReturnsFalse()
+    {
+        _context.MimeType = "text/plain";
+
+        Assert.IsFalse(_formatter.CanFormat(CreateDataFrame(), _context));
+    }
+
+    [TestMethod]
+    public void CanFormat_PSObjectWrappedDataFrame_ReturnsTrue()
+    {
+        var wrapped = new System.Management.Automation.PSObject(CreateDataFrame());
+
+        Assert.IsTrue(_formatter.CanFormat(wrapped, _context));
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_UnwrapsPSObject()
+    {
+        var wrapped = new System.Management.Automation.PSObject(CreateDataFrame());
+
+        var output = await _formatter.FormatAsync(wrapped, _context);
+
+        StringAssert.Contains(output.Content, "Adelie");
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_UnreadableFrame_Propagates()
+    {
+        var frame = new AnalysisDataFrame(
+            new[] { new DataFrameColumn("value", typeof(string)) },
+            new DataFrameRowCollection(new InvalidOperationException("rows unavailable")));
+
+        var thrown = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            () => _formatter.FormatAsync(frame, _context));
+        Assert.AreEqual("rows unavailable", thrown.Message);
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_TruncatesWideFrames()
+    {
+        var columns = Enumerable.Range(0, 60)
+            .Select(index => new DataFrameColumn($"col-{index}", typeof(string)));
+        var frame = new AnalysisDataFrame(
+            columns,
+            new[] { new DataFrameRow(Enumerable.Repeat<object?>("v", 60).ToArray()) });
+
+        var output = await _formatter.FormatAsync(frame, _context);
+
+        StringAssert.Contains(output.Content, "col-49");
+        Assert.IsFalse(output.Content.Contains("col-50"));
+        StringAssert.Contains(output.Content, "Showing 50 of 60 columns");
+    }
+
+    [TestMethod]
+    public async Task FormatAsync_TruncatesLongCellValues()
+    {
+        var frame = new AnalysisDataFrame(
+            new[] { new DataFrameColumn("value", typeof(string)) },
+            new[] { new DataFrameRow(new string('x', 300)) });
+
+        var output = await _formatter.FormatAsync(frame, _context);
+
+        StringAssert.Contains(output.Content, new string('x', 200) + "…");
+        Assert.IsFalse(output.Content.Contains(new string('x', 201)));
+    }
+
     private static AnalysisDataFrame CreateDataFrame()
     {
         return new AnalysisDataFrame(

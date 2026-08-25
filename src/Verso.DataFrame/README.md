@@ -9,7 +9,8 @@ Rich table formatting for `Microsoft.Data.Analysis.DataFrame` values in
 - Column names and data-type annotations
 - Theme-aware, scrollable HTML tables with sticky headers
 - HTML encoding and explicit null rendering
-- Bounded previews of the first 100 rows with total row counts
+- Bounded previews of the first 100 rows and 50 columns, with total counts and long cell values shortened
+- Table text localized into English, German, Spanish, Japanese, and Simplified Chinese
 - No runtime dependency on `Microsoft.Data.Analysis`, avoiding assembly identity conflicts with language kernels and PowerShell modules
 
 ## Usage

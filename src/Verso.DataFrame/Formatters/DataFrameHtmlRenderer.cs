@@ -3,22 +3,32 @@ using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using Verso.Abstractions;
+using Verso.DataFrame.Resources;
 
 namespace Verso.DataFrame.Formatters;
 
 internal static class DataFrameHtmlRenderer
 {
     internal const int DefaultMaxRows = 100;
+    internal const int DefaultMaxColumns = 50;
+
+    // Bounds the HTML payload, not the on-screen width; the stylesheet already ellipsizes
+    // visually. Without it a single large string cell defeats the row bound entirely.
+    internal const int MaxCellChars = 200;
 
     public static string Render(
         object dataFrame,
         CancellationToken cancellationToken,
         int maxRows = DefaultMaxRows,
+        int maxColumns = DefaultMaxColumns,
         double maxHeight = 600)
     {
         ArgumentNullException.ThrowIfNull(dataFrame);
         if (maxRows <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxRows));
+        if (maxColumns <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxColumns));
 
         var boundedMaxHeight = double.IsFinite(maxHeight)
             ? Math.Clamp(maxHeight, 160, 2000)
@@ -26,7 +36,8 @@ internal static class DataFrameHtmlRenderer
 
         var columnsValue = GetRequiredProperty(dataFrame, "Columns");
         var rowsValue = GetRequiredProperty(dataFrame, "Rows");
-        var columns = ReadColumns(columnsValue, cancellationToken);
+        var (columns, hasMoreColumns) = ReadColumns(columnsValue, maxColumns, cancellationToken);
+        var totalColumns = TryGetCount(columnsValue);
         var totalRows = TryGetCount(rowsValue);
 
         var sb = new StringBuilder();
@@ -37,7 +48,9 @@ internal static class DataFrameHtmlRenderer
 
         if (columns.Count == 0)
         {
-            sb.Append("<div class=\"verso-dataframe-empty\"><em>DataFrame has no columns.</em></div></div>");
+            sb.Append("<div class=\"verso-dataframe-empty\"><em>")
+              .Append(Encode(Strings.Table_NoColumns))
+              .Append("</em></div></div>");
             return sb.ToString();
         }
 
@@ -77,33 +90,35 @@ internal static class DataFrameHtmlRenderer
 
         if (displayedRows == 0)
         {
-            sb.Append("<div class=\"verso-dataframe-empty\"><em>DataFrame has no rows.</em></div>");
+            sb.Append("<div class=\"verso-dataframe-empty\"><em>")
+              .Append(Encode(Strings.Table_NoRows))
+              .Append("</em></div>");
         }
 
-        AppendFooter(sb, displayedRows, totalRows, hasMoreRows);
+        AppendFooter(sb, displayedRows, totalRows, hasMoreRows, columns.Count, totalColumns, hasMoreColumns);
         sb.Append("</div>");
         return sb.ToString();
     }
 
-    public static string RenderError(string message)
-    {
-        var sb = new StringBuilder();
-        AppendStyles(sb);
-        sb.Append("<div class=\"verso-dataframe verso-dataframe-error\"><strong>Unable to render DataFrame.</strong> ")
-          .Append(Encode(message))
-          .Append("</div>");
-        return sb.ToString();
-    }
-
-    private static List<ColumnInfo> ReadColumns(object columnsValue, CancellationToken cancellationToken)
+    private static (List<ColumnInfo> Columns, bool HasMore) ReadColumns(
+        object columnsValue,
+        int maxColumns,
+        CancellationToken cancellationToken)
     {
         var columns = new List<ColumnInfo>();
+        var hasMore = false;
         foreach (var column in Enumerate(columnsValue, "Columns"))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (column is null)
                 throw new InvalidOperationException("Columns contains a null DataFrame column.");
+
+            if (columns.Count >= maxColumns)
+            {
+                hasMore = true;
+                break;
+            }
 
             var name = GetRequiredProperty(column, "Name").ToString() ?? string.Empty;
             var dataType = GetRequiredProperty(column, "DataType");
@@ -117,7 +132,7 @@ internal static class DataFrameHtmlRenderer
             columns.Add(new ColumnInfo(name, displayTypeName, fullTypeName));
         }
 
-        return columns;
+        return (columns, hasMore);
     }
 
     private static void AppendRow(StringBuilder sb, object row, int columnCount)
@@ -151,37 +166,62 @@ internal static class DataFrameHtmlRenderer
             var text = value is IFormattable formattable
                 ? formattable.ToString(null, CultureInfo.InvariantCulture)
                 : value.ToString();
-            sb.Append(Encode(text ?? string.Empty));
+            sb.Append(Encode(Truncate(text ?? string.Empty)));
         }
         sb.Append("</td>");
+    }
+
+    private static string Truncate(string text)
+    {
+        if (text.Length <= MaxCellChars)
+            return text;
+
+        var length = MaxCellChars;
+        if (char.IsHighSurrogate(text[length - 1]))
+            length--;
+
+        return string.Concat(text.AsSpan(0, length), "…");
     }
 
     private static void AppendFooter(
         StringBuilder sb,
         int displayedRows,
         long? totalRows,
-        bool hasMoreRows)
+        bool hasMoreRows,
+        int displayedColumns,
+        long? totalColumns,
+        bool hasMoreColumns)
     {
         sb.Append("<div class=\"verso-dataframe-footer\">");
 
         if (totalRows is not null)
         {
-            sb.Append("Showing ")
-              .Append(displayedRows.ToString("N0", CultureInfo.InvariantCulture))
-              .Append(" of ")
-              .Append(totalRows.Value.ToString("N0", CultureInfo.InvariantCulture))
-              .Append(" rows");
+            sb.Append(Encode(string.Format(Strings.Table_ShowingRows,
+                displayedRows.ToString("N0"), totalRows.Value.ToString("N0"))));
         }
         else if (hasMoreRows)
         {
-            sb.Append("Showing first ")
-              .Append(displayedRows.ToString("N0", CultureInfo.InvariantCulture))
-              .Append(" rows");
+            sb.Append(Encode(string.Format(Strings.Table_ShowingFirstRows,
+                displayedRows.ToString("N0"))));
         }
         else
         {
-            sb.Append(displayedRows.ToString("N0", CultureInfo.InvariantCulture))
-              .Append(" rows");
+            sb.Append(Encode(string.Format(
+                Plural.Of(displayedRows, Strings.Table_RowCount_One, Strings.Table_RowCount_Other),
+                displayedRows.ToString("N0"))));
+        }
+
+        if (totalColumns is not null && totalColumns.Value > displayedColumns)
+        {
+            sb.Append(" · ")
+              .Append(Encode(string.Format(Strings.Table_ShowingColumns,
+                  displayedColumns.ToString("N0"), totalColumns.Value.ToString("N0"))));
+        }
+        else if (hasMoreColumns)
+        {
+            sb.Append(" · ")
+              .Append(Encode(string.Format(Strings.Table_ShowingFirstColumns,
+                  displayedColumns.ToString("N0"))));
         }
 
         sb.Append("</div>");
@@ -208,13 +248,13 @@ internal static class DataFrameHtmlRenderer
             yield return item;
     }
 
-    private static long? TryGetCount(object rows)
+    private static long? TryGetCount(object collection)
     {
         try
         {
-            var count = rows.GetType().GetProperty(
+            var count = collection.GetType().GetProperty(
                 "Count",
-                BindingFlags.Instance | BindingFlags.Public)?.GetValue(rows);
+                BindingFlags.Instance | BindingFlags.Public)?.GetValue(collection);
             return count is null
                 ? null
                 : Convert.ToInt64(count, CultureInfo.InvariantCulture);
@@ -246,7 +286,6 @@ internal static class DataFrameHtmlRenderer
         sb.Append(".verso-dataframe-column-type{display:block;margin-top:2px;color:var(--df-muted);font-size:11px;font-weight:400;}");
         sb.Append(".verso-dataframe-null{color:var(--df-muted);font-style:italic;}");
         sb.Append(".verso-dataframe-footer,.verso-dataframe-empty{padding:7px 2px;color:var(--df-muted);font-size:12px;}");
-        sb.Append(".verso-dataframe-error{padding:8px;border:1px solid var(--df-border);}");
         sb.Append("</style>");
     }
 

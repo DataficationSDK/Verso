@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.DataFrame.Resources;
 
 namespace Verso.DataFrame.Formatters;
 
@@ -13,10 +14,10 @@ public sealed class DataFrameFormatter : IDataFormatter
     internal const string DataFrameTypeName = "Microsoft.Data.Analysis.DataFrame";
 
     public string ExtensionId => "verso.dataframe.formatter";
-    public string Name => "DataFrame Formatter";
+    public string Name => Strings.Formatter_Name;
     public string Version => "1.0.0";
-    public string? Author => "Datafication";
-    public string? Description => "Formats Microsoft.Data.Analysis.DataFrame values as HTML tables.";
+    public string? Author => "Verso Contributors";
+    public string? Description => Strings.Formatter_Description;
 
     // Third-party extensions run in an isolated AssemblyLoadContext. Advertising object here and
     // checking FullName in CanFormat avoids coupling to a second DataFrame assembly identity.
@@ -28,6 +29,11 @@ public sealed class DataFrameFormatter : IDataFormatter
 
     public bool CanFormat(object value, IFormatterContext context)
     {
+        // The only representation this formatter emits is HTML, so a context targeting any
+        // other MIME type must be declined rather than answered with the wrong representation.
+        if (!string.Equals(context.MimeType, "text/html", StringComparison.OrdinalIgnoreCase))
+            return false;
+
         try
         {
             return Unwrap(value).GetType().FullName == DataFrameTypeName;
@@ -38,24 +44,17 @@ public sealed class DataFrameFormatter : IDataFormatter
         }
     }
 
+    // A frame whose shape the reflection walk cannot read is allowed to throw: the resolver
+    // then skips this formatter for the value and the kernel's native rendering still shows
+    // the data, which beats replacing it with an error box.
     public Task<CellOutput> FormatAsync(object value, IFormatterContext context)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
 
-        var dataFrame = Unwrap(value);
-        string html;
-
-        try
-        {
-            html = DataFrameHtmlRenderer.Render(
-                dataFrame,
-                context.CancellationToken,
-                maxHeight: context.MaxHeight);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            html = DataFrameHtmlRenderer.RenderError(ex.Message);
-        }
+        var html = DataFrameHtmlRenderer.Render(
+            Unwrap(value),
+            context.CancellationToken,
+            maxHeight: context.MaxHeight);
 
         return Task.FromResult(CellOutput.Html(html));
     }
