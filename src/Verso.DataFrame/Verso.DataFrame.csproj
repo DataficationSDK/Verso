@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(VersoLibTargetFrameworks)</TargetFrameworks>
+    <LangVersion>10</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Verso.DataFrame</PackageId>
+    <Title>Verso DataFrame</Title>
+    <Description>Rich table formatting for Microsoft.Data.Analysis.DataFrame values in Verso notebooks.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Verso.DataFrame.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Verso.Abstractions\Verso.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

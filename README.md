@@ -114,6 +114,10 @@ Python cells run in a separate process against a CPython installation already on
 
 Verso.Ado provides provider-agnostic SQL connectivity through ADO.NET. Connect to any supported database, execute queries with paginated result tables, inspect schema, and scaffold EF Core DbContext classes at runtime. SQL results are shared to the variable store for use in C#, F#, and other cells. See the [database connectivity guide](docs/guides/database-connectivity.md) for connection setup, provider support, EF Core scaffolding, and CI/CD pipeline examples.
 
+### DataFrame Tables
+
+Verso.DataFrame renders `Microsoft.Data.Analysis.DataFrame` values as theme-aware, scrollable HTML tables with column types, null styling, sticky headers, and bounded previews. The formatter uses the public extension pipeline and reflection, so PowerShell modules and language kernels retain ownership of the DataFrame assembly without dependency conflicts.
+
 ### HTTP Requests
 
 Verso.Http uses `.http` file syntax (the same format supported by VS Code REST Client and JetBrains HTTP Client). Features include variable interpolation, dynamic variables, named request chaining, and cross-kernel integration where response data is shared to C#, F#, and other cells.
@@ -272,7 +276,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Panels** | Metadata, Extensions, Variables, Settings, Properties, View, Compare |
 | **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!python`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Cell Output, Clear Outputs, Restart Kernel, Switch Layout, Switch Theme, Export HTML, Export Markdown, Export CSV, Export JSON, Export Verso |
-| **Data Formatters** | Primitives, Collections (HTML tables), Objects (expandable graph, bounded so framework internals cannot exhaust the output budget), HTML, Images, SVG, Exceptions, F# types, SQL result sets |
+| **Data Formatters** | Primitives, Collections (HTML tables), Objects (expandable graph, bounded so framework internals cannot exhaust the output budget), HTML, Images, SVG, Exceptions, DataFrame tables, F# types, SQL result sets |
 | **Serializers** | `.verso` (native JSON, read/write), `.ipynb` (read/write, write opt-in), `.md` (read/write, plain Markdown, no outputs), `.dib` (read only) |
 
 ## The `.verso` File Format

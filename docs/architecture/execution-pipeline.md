@@ -303,4 +303,4 @@ The `CellInteractionContext` carries the cell ID, extension ID, interaction type
 
 When a kernel produces a runtime object rather than a raw string output, the engine uses `IDataFormatter` extensions to convert it into a `CellOutput`. The engine probes `CanFormat(value, context)` in host MIME-preference order, using formatter `Priority` (higher values first) within each MIME type, and calls `FormatAsync` only for the winning representation.
 
-Built-in formatters handle primitives, collections (as HTML tables), HTML strings, images, SVG, exceptions, F# types, and SQL result sets.
+Built-in formatters handle primitives, collections (as HTML tables), HTML strings, images, SVG, exceptions, Microsoft.Data.Analysis DataFrames, F# types, and SQL result sets.
