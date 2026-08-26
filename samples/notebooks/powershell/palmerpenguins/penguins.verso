@@ -1,0 +1,108 @@
+{
+  "verso": "1.1",
+  "metadata": {
+    "title": "Palmer Penguins with PowerShell DataFrames and Vega-Lite",
+    "created": "2026-08-01T00:00:00+00:00",
+    "modified": "2026-08-01T00:00:00+00:00",
+    "defaultKernel": "powershell",
+    "activeLayout": {
+      "extensionId": "verso.layout.notebook",
+      "layoutId": "notebook"
+    }
+  },
+  "cells": [
+    {
+      "id": "5e5d2ba8-d10c-472a-b8db-633d72381e0c",
+      "type": "markdown",
+      "source": "# Palmer Penguins with PowerShell DataFrames and Vega-Lite\n\nThis notebook demonstrates an end-to-end data-analysis workflow in PowerShell: load a public CSV dataset, clean and type it as a `Microsoft.Data.Analysis.DataFrame`, inspect and aggregate the data, and build interactive Vega-Lite charts.\n\nThe dataset comes from the [palmerpenguins project](https://allisonhorst.github.io/palmerpenguins/)."
+    },
+    {
+      "id": "110bb8c9-bbf2-46fe-b92d-996e07427e1c",
+      "type": "markdown",
+      "source": "## Prerequisites\n\nInstall the `DataFrame` PowerShell module from a regular PowerShell terminal before starting Verso:\n\n```powershell\nInstall-Module DataFrame -Scope CurrentUser\n```\n\nThe notebook downloads the CSV and Vega-Lite browser libraries at runtime, so the first run requires internet access. No dataset file is written to the repository."
+    },
+    {
+      "id": "b0917af3-a2bf-41ce-a17c-ec696f7d746c",
+      "type": "code",
+      "language": "powershell",
+      "source": "$module = Get-Module -ListAvailable -Name DataFrame |\n    Sort-Object Version -Descending |\n    Select-Object -First 1\n\nif (-not $module) {\n    throw 'The DataFrame module is required. Install it from a regular PowerShell terminal with: Install-Module DataFrame -Scope CurrentUser'\n}\n\nImport-Module $module.Path -Force\n\n$url = 'https://raw.githubusercontent.com/allisonhorst/palmerpenguins/main/inst/extdata/penguins.csv'\n$csv = (Invoke-WebRequest -Uri $url).Content\n\n\"Downloaded $($csv.Length) characters from the Palmer Penguins dataset.\""
+    },
+    {
+      "id": "b436f4dd-af05-4fd2-aa25-8a01474bd795",
+      "type": "markdown",
+      "source": "## Load and clean the DataFrame\n\nThe source CSV uses `NA` for missing values. `Microsoft.Data.Analysis` recognizes empty numeric fields as nulls, so the input is normalized in memory before import. Explicit column types keep the measurement columns numeric."
+    },
+    {
+      "id": "ec625e92-a20b-4b6d-894d-be339c76901d",
+      "type": "code",
+      "language": "powershell",
+      "source": "$cleanCsv = $csv -replace '(?m)(^|,)NA(?=,|$)', '$1'\n\n$columnTypes = @(\n    [string], # species\n    [string], # island\n    [double], # bill_length_mm\n    [double], # bill_depth_mm\n    [int],    # flipper_length_mm\n    [int],    # body_mass_g\n    [string], # sex\n    [int]     # year\n)\n\n$penguins = Import-DataFrame `\n    -String $cleanCsv `\n    -ColumnType $columnTypes\n\n$penguins.Head(10)"
+    },
+    {
+      "id": "d8aa8d30-a656-48c8-aac2-da5c76410df9",
+      "type": "markdown",
+      "source": "## Inspect the data\n\nA DataFrame is one PowerShell object, so its row count is available through `Rows.Count`. `Info()` reports the schema and non-null counts, while `Description()` summarizes the numeric columns."
+    },
+    {
+      "id": "9691f019-3ff8-44bb-9951-9d61f3bcad0a",
+      "type": "code",
+      "language": "powershell",
+      "source": "\"Rows: $($penguins.Rows.Count)\"\n\"Columns: $($penguins.Columns.Count)\"\n\n$penguins.Info()\n$penguins.Description()"
+    },
+    {
+      "id": "bdd8e894-bf74-47e7-a794-fe329947be0f",
+      "type": "markdown",
+      "source": "## Aggregate by species\n\nThe DataFrame API can group rows and calculate aggregate values without converting them into ordinary PowerShell objects. The result is another DataFrame and is rendered by the same Verso formatter."
+    },
+    {
+      "id": "e069ee63-33ea-4cb9-af5e-df4019ddb4d2",
+      "type": "code",
+      "language": "powershell",
+      "source": "$massBySpecies = $penguins.\n    GroupBy('species').\n    Mean('body_mass_g')\n\n$massBySpecies"
+    },
+    {
+      "id": "3df60041-bfde-4db2-8199-cfe221e054aa",
+      "type": "markdown",
+      "source": "## Render Vega-Lite charts\n\n`Show-VegaLite` serializes a declarative chart specification into a self-contained Verso widget. The widget loads pinned Vega, Vega-Lite, and Vega-Embed versions and renders inside an isolated iframe. Base64 encoding prevents JSON content from breaking the surrounding HTML document."
+    },
+    {
+      "id": "2fc771ba-50d1-452c-93d6-243921fbfea2",
+      "type": "code",
+      "language": "powershell",
+      "source": "function Show-VegaLite {\n    param(\n        [Parameter(Mandatory)]\n        $Spec\n    )\n\n    $specJson = $Spec | ConvertTo-Json -Depth 100 -Compress\n    $specBase64 = [Convert]::ToBase64String(\n        [Text.Encoding]::UTF8.GetBytes($specJson)\n    )\n\n    $document = @\"\n<!doctype html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <script src=\"https://cdn.jsdelivr.net/npm/vega@6.3.1\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/vega-lite@6.4.3\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/vega-embed@7.1.0\"></script>\n    <style>\n        html, body {\n            margin: 0;\n            padding: 0;\n            background: var(--verso-cell-output-background, white);\n            color: var(--verso-cell-output-foreground, #1e1e1e);\n            font-family: var(--verso-ui-font-family, sans-serif);\n        }\n        #vis { width: 100%; }\n        .error { padding: 12px; color: #c62828; white-space: pre-wrap; }\n    </style>\n</head>\n<body>\n    <div id=\"vis\"></div>\n    <script>\n        const binary = atob(\"$specBase64\");\n        const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));\n        const spec = JSON.parse(new TextDecoder().decode(bytes));\n\n        vegaEmbed(\"#vis\", spec, { renderer: \"svg\", actions: true })\n            .catch(error => {\n                document.body.innerHTML = '<div class=\"error\"></div>';\n                document.querySelector(\".error\").textContent = error.stack || error.message;\n            });\n    </script>\n</body>\n</html>\n\"@\n\n    $document | Display -MimeType 'text/x-verso-widget'\n}"
+    },
+    {
+      "id": "95192b79-901f-4167-9a92-da78c3df3e6b",
+      "type": "markdown",
+      "source": "### Bill length and flipper length\n\nThis scatter plot shows the relationship between bill length and flipper length. Color identifies species, shape identifies sex, and tooltips expose additional measurements. Vega-Lite reads and parses the original CSV string directly."
+    },
+    {
+      "id": "e62f91d9-32c2-4324-8191-b52e2fc3ff2f",
+      "type": "code",
+      "language": "powershell",
+      "source": "$scatterSpec = [ordered]@{\n    '$schema' = 'https://vega.github.io/schema/vega-lite/v6.json'\n    title  = 'Penguin bill length vs. flipper length'\n    width  = 'container'\n    height = 420\n    data = @{\n        values = $csv\n        format = @{\n            type = 'csv'\n            parse = @{\n                bill_length_mm    = 'number'\n                bill_depth_mm     = 'number'\n                flipper_length_mm = 'number'\n                body_mass_g       = 'number'\n                year              = 'number'\n            }\n        }\n    }\n    transform = @(\n        @{ filter = 'isValid(datum.bill_length_mm) && isValid(datum.flipper_length_mm)' }\n    )\n    mark = @{ type = 'point'; filled = $true; size = 85; opacity = 0.75 }\n    encoding = @{\n        x = @{\n            field = 'bill_length_mm'; type = 'quantitative'; title = 'Bill length (mm)'\n            scale = @{ zero = $false }\n        }\n        y = @{\n            field = 'flipper_length_mm'; type = 'quantitative'; title = 'Flipper length (mm)'\n            scale = @{ zero = $false }\n        }\n        color = @{ field = 'species'; type = 'nominal'; title = 'Species' }\n        shape = @{ field = 'sex'; type = 'nominal'; title = 'Sex' }\n        tooltip = @(\n            @{ field = 'species'; type = 'nominal'; title = 'Species' }\n            @{ field = 'island'; type = 'nominal'; title = 'Island' }\n            @{ field = 'sex'; type = 'nominal'; title = 'Sex' }\n            @{ field = 'bill_length_mm'; type = 'quantitative'; title = 'Bill length' }\n            @{ field = 'flipper_length_mm'; type = 'quantitative'; title = 'Flipper length' }\n            @{ field = 'body_mass_g'; type = 'quantitative'; title = 'Body mass' }\n        )\n    }\n}\n\nShow-VegaLite $scatterSpec"
+    },
+    {
+      "id": "4e6c9bbc-cf80-40b5-8ac1-0bbd0e0487c3",
+      "type": "markdown",
+      "source": "### Average body mass\n\nVega-Lite calculates the mean body mass for each species directly from the CSV records. Invalid numeric values are excluded before aggregation."
+    },
+    {
+      "id": "389416a2-3550-4307-8961-7349d5e51eb1",
+      "type": "code",
+      "language": "powershell",
+      "source": "$barSpec = [ordered]@{\n    '$schema' = 'https://vega.github.io/schema/vega-lite/v6.json'\n    title  = 'Average body mass by species'\n    width  = 'container'\n    height = 360\n    data = @{\n        values = $csv\n        format = @{ type = 'csv'; parse = @{ body_mass_g = 'number' } }\n    }\n    transform = @(\n        @{ filter = 'isValid(datum.body_mass_g)' }\n    )\n    mark = @{ type = 'bar'; cornerRadius = 3 }\n    encoding = @{\n        x = @{ field = 'species'; type = 'nominal'; title = 'Species'; sort = '-y' }\n        y = @{\n            field = 'body_mass_g'; type = 'quantitative'; aggregate = 'mean'\n            title = 'Average body mass (g)'\n        }\n        color = @{ field = 'species'; type = 'nominal'; legend = $null }\n        tooltip = @(\n            @{ field = 'species'; type = 'nominal'; title = 'Species' }\n            @{\n                field = 'body_mass_g'; type = 'quantitative'; aggregate = 'mean'\n                title = 'Average mass'; format = '.0f'\n            }\n        )\n    }\n}\n\nShow-VegaLite $barSpec"
+    },
+    {
+      "id": "8ac3dd38-ef03-443c-b840-196d40412085",
+      "type": "markdown",
+      "source": "### Body-mass distributions\n\nFaceting creates one histogram per species. Shared axes make their distributions directly comparable, while the tooltip reports each bin range and count."
+    },
+    {
+      "id": "890eaec0-5286-43b6-9a82-f24a9b8f24a5",
+      "type": "code",
+      "language": "powershell",
+      "source": "$histogramSpec = [ordered]@{\n    '$schema' = 'https://vega.github.io/schema/vega-lite/v6.json'\n    title = 'Body mass distribution by species'\n    data = @{\n        values = $csv\n        format = @{ type = 'csv'; parse = @{ body_mass_g = 'number' } }\n    }\n    transform = @(\n        @{ filter = 'isValid(datum.body_mass_g)' }\n    )\n    facet = @{\n        column = @{ field = 'species'; type = 'nominal'; title = $null }\n    }\n    spec = @{\n        width = 220\n        height = 280\n        mark = @{ type = 'bar'; cornerRadius = 2 }\n        encoding = @{\n            x = @{\n                field = 'body_mass_g'; type = 'quantitative'; title = 'Body mass (g)'\n                bin = @{ maxbins = 20 }\n            }\n            y = @{ aggregate = 'count'; type = 'quantitative'; title = 'Number of penguins' }\n            color = @{ field = 'species'; type = 'nominal'; legend = $null }\n            tooltip = @(\n                @{ field = 'body_mass_g'; type = 'quantitative'; bin = $true; title = 'Body mass range' }\n                @{ aggregate = 'count'; type = 'quantitative'; title = 'Penguins' }\n            )\n        }\n    }\n    resolve = @{ scale = @{ x = 'shared'; y = 'shared' } }\n}\n\nShow-VegaLite $histogramSpec"
+    }
+  ]
+}
