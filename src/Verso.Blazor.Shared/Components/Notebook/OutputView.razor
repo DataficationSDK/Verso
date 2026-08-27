@@ -187,7 +187,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (ExtendedMimeTypes && Outputs.Any(o => o.MimeType == "text/x-verso-mermaid"))
+        // A diagram arrives two ways: as the dedicated mermaid output type, and inside
+        // a markdown cell, where Markdig's diagram extension turns a ```mermaid fence
+        // into a div with class="mermaid". The html check is not gated on
+        // ExtendedMimeTypes, for the same reason the math check below is not.
+        var wantsMermaid = (ExtendedMimeTypes && Outputs.Any(o => o.MimeType == "text/x-verso-mermaid"))
+            || Outputs.Any(o => o.MimeType == "text/html" && o.Content.Contains("class=\"mermaid\"", StringComparison.Ordinal));
+        if (wantsMermaid)
         {
             try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }
             catch (JSException) { }

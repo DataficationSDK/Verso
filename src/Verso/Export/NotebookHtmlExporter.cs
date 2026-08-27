@@ -87,7 +87,7 @@ internal static class NotebookHtmlExporter
             {
                 if (string.Equals(cell.Type, "markdown", StringComparison.OrdinalIgnoreCase))
                 {
-                    RenderMarkdownCell(bodySb, cell, ref hasMath);
+                    RenderMarkdownCell(bodySb, cell, ref hasMermaid, ref hasMath);
                 }
                 else
                 {
@@ -164,11 +164,16 @@ internal static class NotebookHtmlExporter
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
-    private static void RenderMarkdownCell(StringBuilder sb, CellModel cell, ref bool hasMath)
+    private static void RenderMarkdownCell(StringBuilder sb, CellModel cell, ref bool hasMermaid, ref bool hasMath)
     {
         if (string.IsNullOrEmpty(cell.Source)) return;
 
+        // Markdig's diagram extension turns a ```mermaid fence into a div with
+        // class="mermaid", which the same startOnLoad scan that draws dedicated
+        // mermaid cells picks up.
         var html = Markdown.ToHtml(cell.Source, MarkdigPipeline);
+        if (html.Contains("class=\"mermaid\"", StringComparison.Ordinal))
+            hasMermaid = true;
         if (html.Contains("class=\"math\"", StringComparison.Ordinal))
             hasMath = true;
 

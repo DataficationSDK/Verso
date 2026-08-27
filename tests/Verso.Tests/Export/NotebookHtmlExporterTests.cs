@@ -80,6 +80,33 @@ public sealed class NotebookHtmlExporterTests
     }
 
     [TestMethod]
+    public void Export_MarkdownCellWithMermaidFence_IncludesMermaid()
+    {
+        var cells = new[]
+        {
+            new CellModel { Type = "markdown", Source = "```mermaid\ngraph TD\n  A --> B\n```" }
+        };
+
+        var html = ExportToString(null, cells, null);
+
+        Assert.IsTrue(html.Contains("class=\"mermaid\""));
+        Assert.IsTrue(html.Contains("import mermaid"));
+    }
+
+    [TestMethod]
+    public void Export_MarkdownCellWithOtherFence_OmitsMermaid()
+    {
+        var cells = new[]
+        {
+            new CellModel { Type = "markdown", Source = "```csharp\nvar mermaid = 1;\n```" }
+        };
+
+        var html = ExportToString(null, cells, null);
+
+        Assert.IsFalse(html.Contains("import mermaid"));
+    }
+
+    [TestMethod]
     public void Export_ExecutedMarkdownCell_DoesNotDuplicateRenderedSource()
     {
         // After execution, markdown cells hold the Markdig-rendered HTML as a

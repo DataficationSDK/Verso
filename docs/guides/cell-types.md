@@ -20,6 +20,19 @@ Code cells are the general-purpose type and cover every installed [language kern
 
 Markdown cells understand TeX math. Wrap an inline formula in single dollars, `$E = mc^2$`, and a display equation in double dollars on lines of its own; the `\(...\)` and `\[...\]` delimiters work too. Formulas are typeset with KaTeX when the cell renders, and the same happens in exported HTML. A dollar amount such as `$5` stays ordinary text, and a dollar sign inside inline code or a fenced block stays code.
 
+## Diagrams in Markdown cells
+
+A fenced code block tagged `mermaid` renders as a Mermaid diagram in place, so prose and diagrams can share a cell:
+
+````markdown
+```mermaid
+graph TD
+  A[Idea] --> B[Notebook]
+```
+````
+
+The same source renders in exported HTML. For a diagram that stands alone, or one that should substitute notebook variables, the dedicated [Mermaid cell type](mermaid-diagrams.md) is the better fit.
+
 ## Adding and changing cells
 
 Add a cell with the insert control between cells, then set its type. The type picker lists Code and Markdown first, followed by every other cell type an installed extension provides, so adding an extension can add new cell types to the menu.
