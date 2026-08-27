@@ -53,6 +53,33 @@ public sealed class NotebookHtmlExporterTests
     }
 
     [TestMethod]
+    public void Export_MarkdownCellWithMath_IncludesKatex()
+    {
+        var cells = new[]
+        {
+            new CellModel { Type = "markdown", Source = "Euler: $e^{i\\pi} + 1 = 0$" }
+        };
+
+        var html = ExportToString(null, cells, null);
+
+        Assert.IsTrue(html.Contains("class=\"math\""));
+        Assert.IsTrue(html.Contains("katex"));
+    }
+
+    [TestMethod]
+    public void Export_MarkdownCellWithoutMath_OmitsKatex()
+    {
+        var cells = new[]
+        {
+            new CellModel { Type = "markdown", Source = "Plain prose, priced at $5 or $10." }
+        };
+
+        var html = ExportToString(null, cells, null);
+
+        Assert.IsFalse(html.Contains("katex"));
+    }
+
+    [TestMethod]
     public void Export_ExecutedMarkdownCell_DoesNotDuplicateRenderedSource()
     {
         // After execution, markdown cells hold the Markdig-rendered HTML as a

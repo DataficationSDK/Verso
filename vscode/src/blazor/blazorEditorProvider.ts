@@ -832,6 +832,9 @@ export class BlazorEditorProvider
     const mermaidInterop = toUri(
       "_content/Verso.Blazor.Shared/js/mermaid-interop.js"
     );
+    const katexInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/katex-interop.js"
+    );
     const userPrefsInterop = toUri(
       "_content/Verso.Blazor.Shared/js/user-prefs-interop.js"
     );
@@ -1053,6 +1056,7 @@ export class BlazorEditorProvider
     <script src="${panelResizeInterop}"></script>
     <script src="${fileDownloadInterop}"></script>
     <script src="${mermaidInterop}"></script>
+    <script src="${katexInterop}"></script>
     <script src="${cellInteractInterop}"></script>
     <script src="${panelInteractInterop}"></script>
     <script src="${layoutInteractInterop}"></script>

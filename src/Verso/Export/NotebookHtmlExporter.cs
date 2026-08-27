@@ -32,6 +32,7 @@ internal static class NotebookHtmlExporter
     public static byte[] Export(string? title, IReadOnlyList<CellModel> cells, ITheme? theme, ExportOptions? options)
     {
         var hasMermaid = false;
+        var hasMath = false;
         var displayTitle = title ?? "Verso Notebook";
         var sb = new StringBuilder();
 
@@ -86,7 +87,7 @@ internal static class NotebookHtmlExporter
             {
                 if (string.Equals(cell.Type, "markdown", StringComparison.OrdinalIgnoreCase))
                 {
-                    RenderMarkdownCell(bodySb, cell);
+                    RenderMarkdownCell(bodySb, cell, ref hasMath);
                 }
                 else
                 {
@@ -102,7 +103,7 @@ internal static class NotebookHtmlExporter
             {
                 foreach (var output in cell.Outputs)
                 {
-                    RenderOutput(bodySb, output, previewOutputs, outputPreviewLineCount, ref hasMermaid);
+                    RenderOutput(bodySb, output, previewOutputs, outputPreviewLineCount, ref hasMermaid, ref hasMath);
                 }
             }
         }
@@ -132,6 +133,24 @@ internal static class NotebookHtmlExporter
             sb.AppendLine("mermaid.initialize({ startOnLoad: true });");
             sb.AppendLine("</script>");
         }
+        if (hasMath)
+        {
+            // Markdig marks formulas with class="math" and leaves the TeX delimiters in
+            // the text; KaTeX typesets each one in place. A module script runs after the
+            // document is parsed, so the elements are all present by then.
+            sb.AppendLine("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.18/dist/katex.min.css\" />");
+            sb.AppendLine("<script type=\"module\">");
+            sb.AppendLine("import katex from 'https://cdn.jsdelivr.net/npm/katex@0.18/dist/katex.mjs';");
+            sb.AppendLine("for (const node of document.querySelectorAll('.math')) {");
+            sb.AppendLine("  let tex = node.textContent.trim();");
+            sb.AppendLine("  let display = node.tagName === 'DIV';");
+            sb.AppendLine("  if (tex.startsWith('\\\\(') && tex.endsWith('\\\\)')) { tex = tex.slice(2, -2); display = false; }");
+            sb.AppendLine("  else if (tex.startsWith('\\\\[') && tex.endsWith('\\\\]')) { tex = tex.slice(2, -2); display = true; }");
+            sb.AppendLine("  try { katex.render(tex, node, { displayMode: display, throwOnError: false }); }");
+            sb.AppendLine("  catch (e) { /* the source text stays in place */ }");
+            sb.AppendLine("}");
+            sb.AppendLine("</script>");
+        }
         sb.AppendLine("</head>");
 
         // Body
@@ -145,12 +164,16 @@ internal static class NotebookHtmlExporter
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
-    private static void RenderMarkdownCell(StringBuilder sb, CellModel cell)
+    private static void RenderMarkdownCell(StringBuilder sb, CellModel cell, ref bool hasMath)
     {
         if (string.IsNullOrEmpty(cell.Source)) return;
 
+        var html = Markdown.ToHtml(cell.Source, MarkdigPipeline);
+        if (html.Contains("class=\"math\"", StringComparison.Ordinal))
+            hasMath = true;
+
         sb.AppendLine("<div class=\"verso-output--html\">");
-        sb.AppendLine(Markdown.ToHtml(cell.Source, MarkdigPipeline));
+        sb.AppendLine(html);
         sb.AppendLine("</div>");
     }
 
@@ -184,7 +207,7 @@ internal static class NotebookHtmlExporter
         sb.AppendLine("</div>");
     }
 
-    private static void RenderOutput(StringBuilder sb, CellOutput output, bool previewText, int previewLineCount, ref bool hasMermaid)
+    private static void RenderOutput(StringBuilder sb, CellOutput output, bool previewText, int previewLineCount, ref bool hasMermaid, ref bool hasMath)
     {
         if (output.IsError)
         {
@@ -233,6 +256,8 @@ internal static class NotebookHtmlExporter
 
             case "text/html":
             case "image/svg+xml":
+                if (output.Content.Contains("class=\"math\"", StringComparison.Ordinal))
+                    hasMath = true;
                 sb.AppendLine("<div class=\"verso-output--html\">");
                 sb.AppendLine(output.Content);
                 sb.AppendLine("</div>");

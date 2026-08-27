@@ -192,6 +192,16 @@
             try { await JS.InvokeVoidAsync("versoMermaid.renderAll"); }
             catch (JSException) { }
         }
+
+        // Markdig's math extension marks formulas with class="math" inside the HTML it
+        // produces, and KaTeX typesets them in place. Not gated on ExtendedMimeTypes, for
+        // the same reason the HTML branch is not: a markdown cell's rendered input goes
+        // through that branch in both the full and the narrower rendering.
+        if (Outputs.Any(o => o.MimeType == "text/html" && o.Content.Contains("class=\"math\"", StringComparison.Ordinal)))
+        {
+            try { await JS.InvokeVoidAsync("versoKatex.renderAll"); }
+            catch (JSException) { }
+        }
     }
 
     // --- MIME type renderers ---
