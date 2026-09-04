@@ -28,7 +28,7 @@ This package depends on [Verso.Abstractions](https://www.nuget.org/packages/Vers
 
 ## Related Packages
 
-The kernels and cell types below ship with the VS Code extension, the Blazor application, and the CLI, so notebooks there load them without a reference. Each is published separately as well, for applications that host the engine themselves.
+The kernels, cell types, and formatters below ship with the VS Code extension, the Blazor application, and the CLI, so notebooks there load them without a reference. Each is published separately as well, for applications that host the engine themselves.
 
 | Package | Description |
 |---------|-------------|
@@ -38,6 +38,7 @@ The kernels and cell types below ship with the VS Code extension, the Blazor app
 | [Verso.PowerShell](https://www.nuget.org/packages/Verso.PowerShell) | PowerShell kernel |
 | [Verso.Python](https://www.nuget.org/packages/Verso.Python) | Python kernel running the interpreter installed on the machine |
 | [Verso.Http](https://www.nuget.org/packages/Verso.Http) | HTTP request cell type |
+| [Verso.DataFrame](https://www.nuget.org/packages/Verso.DataFrame) | Table formatting for `Microsoft.Data.Analysis.DataFrame` values |
 | [Verso.JavaScript](https://www.nuget.org/packages/Verso.JavaScript) | JavaScript kernel |
 | [Verso.Cli](https://www.nuget.org/packages/Verso.Cli) | Command-line interface |
 | [Verso.Testing](https://www.nuget.org/packages/Verso.Testing) | Test utilities for extensions |

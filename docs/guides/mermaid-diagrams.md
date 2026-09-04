@@ -2,6 +2,8 @@
 
 Verso renders [Mermaid](https://mermaid.js.org) diagrams natively in a dedicated cell type. Flowcharts, sequence diagrams, class diagrams, Gantt charts, and the other Mermaid diagram types render inline alongside your code and data, and the diagram source supports `@variable` substitution so a chart can be driven by values produced in other cells.
 
+A diagram can also live inside a Markdown cell. A fenced code block tagged `mermaid` renders in place among the prose, the same source renders in exported HTML, and `@variable` substitution applies to it as it does to the rest of the cell. The dedicated cell type described here is the better fit for a diagram that stands alone, and it is the one that offers diagram keyword completions and reports an unresolved variable as a diagnostic. See [Cell Types](cell-types.md#diagrams-in-markdown-cells) for the Markdown route.
+
 ## Creating a Mermaid Cell
 
 Mermaid is a cell type, not a magic command. Add a cell and set its type to **Mermaid** from the cell type selector, then write the diagram source directly:

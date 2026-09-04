@@ -128,7 +128,7 @@ Verso.JavaScript provides full JavaScript and TypeScript execution in notebook c
 
 ### Rich Content Cells
 
-Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support `@variable` substitution from the shared variable store, enabling dynamic documents that update when data changes. See the [Mermaid diagrams guide](docs/guides/mermaid-diagrams.md) for diagram types, variable-driven charts, and theming.
+Markdown (rendered via Markdig), raw HTML, and Mermaid diagram cells all support `@variable` substitution from the shared variable store, enabling dynamic documents that update when data changes. Markdown cells also typeset TeX math written between `$` delimiters with KaTeX, and render a fenced code block tagged `mermaid` as a diagram in place, so prose, formulas, and diagrams can share a cell; both carry through to HTML export. See the [Mermaid diagrams guide](docs/guides/mermaid-diagrams.md) for diagram types, variable-driven charts, and theming, and the [cell types guide](docs/guides/cell-types.md) for math and diagrams inside Markdown.
 
 ### Themes
 
@@ -316,6 +316,7 @@ In this repository:
 
 - [Architecture](docs/architecture/overview.md): the engine, front-ends, and extension host in depth
 - [Guides](docs/guides/): database connectivity, Mermaid diagrams, notebook comparison, and more
+- [Showcase extensions](docs/showcase/overview.md): five sample layouts, each rebuilding the notebook into something else, from a reactive graph to an image compositor
 - [Extension authoring](docs/extensions/): the full interface reference and walkthroughs
 - [Migration](docs/migration/): coming from Polyglot Notebooks, Jupyter, or Papermill
 - [CLI reference](src/Verso.Cli/README.md): every command, option, meta-command, and exit code

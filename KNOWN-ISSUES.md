@@ -209,7 +209,9 @@ Safari cannot load the notebook editor in the Codespaces browser client: the web
 
 ### Symptom
 
-Returning a value whose type has deep or wide object graphs (such as `Microsoft.Data.Analysis.DataFrame`) can produce extremely large cell output (hundreds of megabytes), causing a `System.ArgumentException: The JSON value of length N is too large` error during notebook auto-save serialization.
+Returning a value whose type has deep or wide object graphs can produce extremely large cell output (hundreds of megabytes), causing a `System.ArgumentException: The JSON value of length N is too large` error during notebook auto-save serialization.
+
+`Microsoft.Data.Analysis.DataFrame` was the value that first exposed this. It no longer takes this path, because the `Verso.DataFrame` package renders a DataFrame as a table before the object tree is consulted, but any other type that reaches framework infrastructure through its public properties still can.
 
 ### Root cause
 

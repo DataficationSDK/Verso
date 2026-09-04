@@ -31,7 +31,7 @@ graph TD
 ```
 ````
 
-The same source renders in exported HTML. For a diagram that stands alone, or one that should substitute notebook variables, the dedicated [Mermaid cell type](mermaid-diagrams.md) is the better fit.
+The same source renders in exported HTML, and `@variable` substitution applies inside the fence as it does to the rest of the cell. For a diagram that stands alone, or one that should offer diagram keyword completions and report an unresolved variable, the dedicated [Mermaid cell type](mermaid-diagrams.md) is the better fit.
 
 ## Adding and changing cells
 

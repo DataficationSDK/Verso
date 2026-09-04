@@ -37,6 +37,7 @@ The architecture separates into three layers. The engine knows nothing about the
 |  |  First-Party Extension Packages                      | |
 |  |  Verso.FSharp - Verso.JavaScript - Verso.PowerShell  | |
 |  |  Verso.Python - Verso.Ado - Verso.Http               | |
+|  |  Verso.DataFrame                                     | |
 |  +------------------------------------------------------+ |
 +-----------------------------------------------------------+
                            |
@@ -144,6 +145,7 @@ Verso                       (engine: Scaffold, ExtensionHost, Pipeline)
     |--- Verso.Python       (Python kernel extension)
     |--- Verso.Ado          (SQL kernel extension)
     |--- Verso.Http         (HTTP kernel extension)
+    |--- Verso.DataFrame    (DataFrame table formatter extension)
     ^
     |
 Verso.Blazor.Shared         (Razor Class Library, shared components)

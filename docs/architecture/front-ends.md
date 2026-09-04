@@ -47,6 +47,7 @@ The shared project includes JavaScript interop files in `wwwroot/js/`:
 | `dashboard-interop.js` | Dashboard grid drag and resize |
 | `parameters-interop.js` | Parameter cell form event delegation |
 | `mermaid-interop.js` | Mermaid diagram rendering |
+| `katex-interop.js` | KaTeX typesetting of TeX math in rendered Markdown |
 | `panel-resize-interop.js` | Sidebar resize handle |
 | `file-download-interop.js` | Browser download trigger (Server mode) |
 | `user-prefs-interop.js` | VS Code global state read/write |
@@ -85,7 +86,7 @@ Engine events are forwarded to the UI through `Action?` events on the service, w
 
 ### Project References
 
-Verso.Blazor references the engine (`Verso`), all kernel extension packages (`Verso.FSharp`, `Verso.JavaScript`, `Verso.Python`, `Verso.PowerShell`, `Verso.Ado`, `Verso.Http`), and the shared UI library (`Verso.Blazor.Shared`). The PowerShell host adapter is internal to `Verso.PowerShell`.
+Verso.Blazor references the engine (`Verso`), all kernel extension packages (`Verso.FSharp`, `Verso.JavaScript`, `Verso.Python`, `Verso.PowerShell`, `Verso.Ado`, `Verso.Http`), the DataFrame formatter package (`Verso.DataFrame`), and the shared UI library (`Verso.Blazor.Shared`). The PowerShell host adapter is internal to `Verso.PowerShell`.
 
 ## VS Code Extension
 
