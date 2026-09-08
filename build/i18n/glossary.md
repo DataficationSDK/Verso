@@ -33,6 +33,10 @@ These are names, not words. They appear as written in every language.
   `FSharp.Compiler.Service`, `System.Management.Automation`, `Microsoft.Data.SqlClient`
 - Argument names as the help text spells them: `<path>`, `<notebook>`, `<n>..<m>`,
   `name=value`. They describe what to type, so they are read alongside what was typed
+- The showcase extensions' names: **DAG Notebook**, **Form Studio**, **Grid Studio**,
+  **Image Studio**, **Slide Studio**. Each names a sample, drawn in its own header bar and in
+  the layout picker. A word beside one, such as the "Layout" in "Form Studio Layout", is prose
+  and is translated. **DAG** is an abbreviation and stays as written
 - The names languages call themselves. A language picker lists **English**, **Deutsch**,
   **Español**, **日本語**, **简体中文**, and those read the same whichever language the
   picker is in. Only the entry meaning "take it from the editor" is a word to translate.
@@ -124,6 +128,12 @@ everywhere and update this table, not just the entry in front of them.
 | serializer | Serialisierer | |
 | formatter | Formatierer | |
 | widget | Widget | Kept, as the editor's own German has it |
+| layer (of an image) | Ebene | As German image editors say it |
+| chart | Diagramm | |
+| slide | Folie | |
+| blend mode | Mischmodus | |
+| canvas (a drawing surface) | Arbeitsfläche | |
+| dashboard | Dashboard | Kept, as German practitioners say it |
 
 One departure from a note: `Serve_PressCtrlC` says `Ctrl+C` is the same in every language, but a
 German keyboard prints **Strg**, so the German reads `Strg+C`. Key names follow the keyboard the
@@ -160,6 +170,11 @@ reader has, which is the rule the `Key_*` entries already state.
 | required | obligatorio | |
 | default | predeterminado | |
 | widget | widget | Kept. What Spanish developers say, and what the editor itself uses |
+| layer (of an image) | capa | |
+| chart | gráfico | |
+| slide | diapositiva | |
+| blend mode | fusión | The image editors' word |
+| canvas (a drawing surface) | lienzo | |
 
 Two collisions worth knowing about, because the English words are distinct and the obvious
 Spanish is not. `Table_Kind` (light or dark) is **Clase** so that `Table_Type` can stay **Tipo**,
@@ -198,6 +213,11 @@ Spanish would need `alta` there.
 | default | 既定 | Microsoft's Japanese, over デフォルト |
 | run / execute | 実行 | One word for both, as the source asks |
 | widget | ウィジェット | |
+| layer (of an image) | レイヤー | |
+| chart | グラフ | |
+| slide | スライド | |
+| blend mode | 描画モード | The image editors' word |
+| canvas (a drawing surface) | キャンバス | |
 
 Japanese has one form where English has two, so every `_One` and `_Other` pair is translated
 identically. That is expected here and not a copy-and-paste slip.
@@ -251,6 +271,12 @@ VS Code's Japanese words that command differently, match the editor rather than 
 | default | 默认 | |
 | run / execute | 运行 | One word for both, as the source asks |
 | widget | 小组件 | |
+| layer (of an image) | 图层 | |
+| chart | 图表 | |
+| slide | 幻灯片 | |
+| blend mode | 混合模式 | The image editors' word |
+| canvas (a drawing surface) | 画布 | |
+| palette (of tools or widgets) | 选板 | Deliberately not 面板, which is a panel |
 
 Chinese has one form where English has two, so every `_One` and `_Other` pair is translated
 identically. That is expected here and not a copy-and-paste slip.

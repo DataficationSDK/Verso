@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Caption_Cell" xml:space="preserve">
+    <value>Zelle</value>
+  </data>
+  <data name="Caption_Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Filmstrip_Empty" xml:space="preserve">
+    <value>Dieses Notebook hat noch keine Zellen. Wechseln Sie zum Notebook-Layout, um welche hinzuzufügen.</value>
+  </data>
+  <data name="Hud_Exit" xml:space="preserve">
+    <value>Beenden (Esc)</value>
+  </data>
+  <data name="Hud_Next" xml:space="preserve">
+    <value>Nächste Folie</value>
+  </data>
+  <data name="Hud_Previous" xml:space="preserve">
+    <value>Vorherige Folie</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Layout zum Erstellen von Foliendecks: ein Filmstreifen mit Zellvorschauen, eine geteilte Ansicht aus Editor und Ausgabe und ein Vollbild-Präsentationsmodus mit Quelltext- und Ausgabesteuerung je Zelle.</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Slide Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Slide Studio</value>
+  </data>
+  <data name="Output_ImageAlt" xml:space="preserve">
+    <value>Zellausgabe</value>
+  </data>
+  <data name="Pane_Cell" xml:space="preserve">
+    <value>Zelle</value>
+  </data>
+  <data name="Pane_NoOutput" xml:space="preserve">
+    <value>Noch keine Ausgabe. Führen Sie die Zelle aus, um ihr Ergebnis hier zu sehen.</value>
+  </data>
+  <data name="Pane_Output" xml:space="preserve">
+    <value>Ausgabe</value>
+  </data>
+  <data name="Pane_OutputOnSlide" xml:space="preserve">
+    <value>Ausgabe auf Folie</value>
+  </data>
+  <data name="Pane_OutputOnSlide_Tip" xml:space="preserve">
+    <value>Die Ausgabe dieser Zelle auf ihrer Folie zeigen</value>
+  </data>
+  <data name="Pane_SelectCell" xml:space="preserve">
+    <value>Wählen Sie eine Zelle im Filmstreifen aus.</value>
+  </data>
+  <data name="Pane_SourceOnSlide" xml:space="preserve">
+    <value>Quelltext auf Folie</value>
+  </data>
+  <data name="Pane_SourceOnSlide_Tip" xml:space="preserve">
+    <value>Den Quelltext dieser Zelle auf ihrer Folie zeigen</value>
+  </data>
+  <data name="Props_Include" xml:space="preserve">
+    <value>In Präsentation aufnehmen</value>
+  </data>
+  <data name="Props_Include_Hint" xml:space="preserve">
+    <value>Ob diese Zelle in der Präsentationsansicht als Folie erscheint.</value>
+  </data>
+  <data name="Props_Section" xml:space="preserve">
+    <value>Präsentation</value>
+  </data>
+  <data name="Props_Section_Description" xml:space="preserve">
+    <value>Wie diese Zelle in der Präsentationsansicht von Slide Studio erscheint.</value>
+  </data>
+  <data name="Props_ShowOutput" xml:space="preserve">
+    <value>Ausgabe auf Folie zeigen</value>
+  </data>
+  <data name="Props_ShowOutput_Hint" xml:space="preserve">
+    <value>Zeigt die Ausgabe der Zelle auf ihrer Folie.</value>
+  </data>
+  <data name="Props_ShowSource" xml:space="preserve">
+    <value>Quelltext auf Folie zeigen</value>
+  </data>
+  <data name="Props_ShowSource_Hint" xml:space="preserve">
+    <value>Zeigt den Quelltext der Zelle auf ihrer Folie.</value>
+  </data>
+  <data name="Tile_Include_Tip" xml:space="preserve">
+    <value>In die Präsentationsansicht aufnehmen</value>
+  </data>
+  <data name="Toolbar_Present" xml:space="preserve">
+    <value>Präsentieren</value>
+  </data>
+  <data name="Toolbar_Present_None_Tip" xml:space="preserve">
+    <value>Keine Zelle ist in die Präsentationsansicht aufgenommen</value>
+  </data>
+  <data name="Toolbar_SlideCount_One" xml:space="preserve">
+    <value>{0} Folie</value>
+  </data>
+  <data name="Toolbar_SlideCount_Other" xml:space="preserve">
+    <value>{0} Folien</value>
+  </data>
+  <data name="Toolbar_Title" xml:space="preserve">
+    <value>Slide Studio</value>
+  </data>
+</root>

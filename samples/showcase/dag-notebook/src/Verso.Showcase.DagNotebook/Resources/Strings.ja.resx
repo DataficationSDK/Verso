@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Add_Cell" xml:space="preserve">
+    <value>{0} セル</value>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>コード</value>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="Chip_Conflict_Tip" xml:space="preserve">
+    <value>{0} は複数のセルで代入されているため、そのリンクは追跡されません</value>
+  </data>
+  <data name="Chip_Cycle" xml:space="preserve">
+    <value>循環</value>
+  </data>
+  <data name="Chip_Cycle_Tip" xml:space="preserve">
+    <value>このセルは依存関係の循環上にあります。循環する辺は自動実行から除外されます</value>
+  </data>
+  <data name="Chip_Feeds_Tip" xml:space="preserve">
+    <value>セル {1} に {0} を渡します</value>
+  </data>
+  <data name="Chip_Live_Tip" xml:space="preserve">
+    <value>{0} はこのページのコントロールに従います。動かすと下のセルが実行されます</value>
+  </data>
+  <data name="Chip_Reads_Tip" xml:space="preserve">
+    <value>セル {1} から {0} を読み取ります</value>
+  </data>
+  <data name="Common_Off" xml:space="preserve">
+    <value>オフ</value>
+  </data>
+  <data name="Common_On" xml:space="preserve">
+    <value>オン</value>
+  </data>
+  <data name="Empty_Subtitle" xml:space="preserve">
+    <value>下で最初のセルを追加してください。</value>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>このノートブックは空です</value>
+  </data>
+  <data name="Header_AutoRun" xml:space="preserve">
+    <value>依存セルを自動実行: {0}</value>
+  </data>
+  <data name="Header_AutoRun_Tip" xml:space="preserve">
+    <value>オンのとき、セルを実行するかバインドされたコントロールを動かすと、それに依存するセルが再実行されます</value>
+  </data>
+  <data name="Header_RunDag" xml:space="preserve">
+    <value>DAG を実行</value>
+  </data>
+  <data name="Header_RunDag_Tip" xml:space="preserve">
+    <value>すべてのセルを依存順に実行します</value>
+  </data>
+  <data name="Header_Title" xml:space="preserve">
+    <value>DAG Notebook</value>
+  </data>
+  <data name="Insert_Tip" xml:space="preserve">
+    <value>ここに {0} セルを挿入</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>依存関係に基づくリアクティブ実行を備えたノートブックのレイアウトです。変数を共有するセルはバッジで結ばれ、セルを実行するとそれに依存するセルが依存順に再実行されます。</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>DAG Notebook</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>DAG Notebook</value>
+  </data>
+</root>

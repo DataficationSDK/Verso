@@ -21,6 +21,18 @@
 
 const verso = window.verso;
 
+// --- Interface strings ------------------------------------------------------
+// The extension resolves its strings for the host's language on the server and hands the
+// table over on verso/init, under payload.extension.strings, so the chrome is built only once
+// that message has arrived. A missing key falls back to the key itself, which keeps a typo
+// visible instead of blank. {0}-style placeholders are filled from the extra arguments.
+let strings = {};
+let chromeBuilt = false;
+function t(key, ...args) {
+  const text = Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key;
+  return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
 // --- Chart library ----------------------------------------------------------
 
 (function injectChart() {
@@ -183,63 +195,112 @@ const STYLE = `
 
 injectStyle(STYLE);
 
-document.body.innerHTML = `
-  <div class="app" id="app">
-    <div class="rail left" id="palette"></div>
-    <div class="top">
-      <div class="spacer"></div>
-      <label class="toggle" title="Re-run the notebook automatically when an input changes">
-        <input type="checkbox" id="autorun" checked> Auto-run
-      </label>
-      <button class="btn" id="run" title="Re-run the notebook now">${ICON_PLAY} Run</button>
-      <button class="btn" id="export" title="Download the dashboard as JSON">Export</button>
-      <div class="seg" id="mode">
-        <button data-mode="edit" class="on">Edit</button>
-        <button data-mode="preview">Preview</button>
+let canvasEl, canvasWrapEl, appEl, bodyEl, propsEl, autorunEl;
+
+// Built on verso/init, once the strings have arrived (see the message handler at the bottom).
+function buildChrome() {
+  document.body.innerHTML = `
+    <div class="app" id="app">
+      <div class="rail left" id="palette"></div>
+      <div class="top">
+        <div class="spacer"></div>
+        <label class="toggle" title="${t("Toolbar_AutoRun_Tip")}">
+          <input type="checkbox" id="autorun" checked> ${t("Toolbar_AutoRun")}
+        </label>
+        <button class="btn" id="run" title="${t("Toolbar_Run_Tip")}">${ICON_PLAY} ${t("Toolbar_Run")}</button>
+        <button class="btn" id="export" title="${t("Toolbar_Export_Tip")}">${t("Toolbar_Export")}</button>
+        <div class="seg" id="mode">
+          <button data-mode="edit" class="on">${t("Toolbar_Edit")}</button>
+          <button data-mode="preview">${t("Toolbar_Preview")}</button>
+        </div>
+      </div>
+      <div class="body" id="body">
+        <div class="canvas-wrap" id="canvasWrap"><div class="canvas" id="canvas"></div></div>
+        <div class="rail right" id="props"></div>
       </div>
     </div>
-    <div class="body" id="body">
-      <div class="canvas-wrap" id="canvasWrap"><div class="canvas" id="canvas"></div></div>
-      <div class="rail right" id="props"></div>
-    </div>
-  </div>
-`;
+  `;
 
-const canvasEl = document.getElementById("canvas");
-const canvasWrapEl = document.getElementById("canvasWrap");
-const appEl = document.getElementById("app");
-const bodyEl = document.getElementById("body");
-const propsEl = document.getElementById("props");
-const autorunEl = document.getElementById("autorun");
+  canvasEl = document.getElementById("canvas");
+  canvasWrapEl = document.getElementById("canvasWrap");
+  appEl = document.getElementById("app");
+  bodyEl = document.getElementById("body");
+  propsEl = document.getElementById("props");
+  autorunEl = document.getElementById("autorun");
+
+  canvasEl.addEventListener("dragover", (e) => { if (mode === "edit") { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } });
+  canvasEl.addEventListener("drop", (e) => {
+    if (mode !== "edit") return;
+    e.preventDefault();
+    let spec;
+    try { spec = JSON.parse(e.dataTransfer.getData("text/plain")); } catch { return; }
+    if (!spec || !spec.kind) return;
+    const r = canvasEl.getBoundingClientRect();
+    addWidget(spec.kind, spec.chartType, Math.max(0, e.clientX - r.left - 40), Math.max(0, e.clientY - r.top - 16));
+  });
+
+  document.getElementById("run").addEventListener("click", () => verso.interact("run", {}));
+  document.getElementById("export").addEventListener("click", () =>
+    verso.interact("export", { fileName: "dashboard.json", content: JSON.stringify(serialize(), null, 2) }));
+
+  autorunEl.addEventListener("change", () => { doc.autoRun = autorunEl.checked; saveDoc(); });
+
+  document.getElementById("mode").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-mode]");
+    if (!b) return;
+    mode = b.dataset.mode;
+    document.querySelectorAll("#mode button").forEach((x) => x.classList.toggle("on", x === b));
+    appEl.classList.toggle("preview", mode === "preview");
+    bodyEl.classList.toggle("preview", mode === "preview");
+    canvasEl.classList.toggle("preview", mode === "preview");
+    if (mode === "preview") select(null);
+    renderAll();
+  });
+
+  buildPalette();
+  renderProps();
+  updateEmpty();
+  chromeBuilt = true;
+}
 
 // --- Palette (drag source + click-to-add) -----------------------------------
 
 const PALETTE = [
-  { group: "Inputs", items: [
-    { kind: "slider", label: "Slider", icon: ICON_SLIDER },
-    { kind: "number", label: "Number", icon: ICON_HASH },
-    { kind: "toggle", label: "Toggle", icon: ICON_TOGGLE },
-    { kind: "dropdown", label: "Dropdown", icon: ICON_LIST },
-    { kind: "text", label: "Text", icon: ICON_TEXT },
-    { kind: "label", label: "Label", icon: ICON_TAG },
+  { groupKey: "Palette_Inputs", items: [
+    { kind: "slider", labelKey: "Palette_Slider", icon: ICON_SLIDER },
+    { kind: "number", labelKey: "Palette_Number", icon: ICON_HASH },
+    { kind: "toggle", labelKey: "Palette_Toggle", icon: ICON_TOGGLE },
+    { kind: "dropdown", labelKey: "Palette_Dropdown", icon: ICON_LIST },
+    { kind: "text", labelKey: "Palette_Text", icon: ICON_TEXT },
+    { kind: "label", labelKey: "Palette_Label", icon: ICON_TAG },
   ]},
-  { group: "Charts", items: [
-    { kind: "chart", chartType: "bar", label: "Bar", icon: ICON_BAR },
-    { kind: "chart", chartType: "line", label: "Line", icon: ICON_LINE },
-    { kind: "chart", chartType: "pie", label: "Pie", icon: ICON_PIE },
-    { kind: "chart", chartType: "scatter", label: "Scatter", icon: ICON_SCATTER },
+  { groupKey: "Palette_Charts", items: [
+    { kind: "chart", chartType: "bar", labelKey: "Palette_Bar", icon: ICON_BAR },
+    { kind: "chart", chartType: "line", labelKey: "Palette_Line", icon: ICON_LINE },
+    { kind: "chart", chartType: "pie", labelKey: "Palette_Pie", icon: ICON_PIE },
+    { kind: "chart", chartType: "scatter", labelKey: "Palette_Scatter", icon: ICON_SCATTER },
   ]},
 ];
+
+// The palette's label for a widget kind, which doubles as the widget's default label.
+function paletteLabel(kind, chartType) {
+  for (const section of PALETTE) {
+    for (const item of section.items) {
+      if (item.kind === kind && (kind !== "chart" || item.chartType === chartType)) return t(item.labelKey);
+    }
+  }
+  return cap(kind);
+}
 
 function buildPalette() {
   const host = document.getElementById("palette");
   host.innerHTML = "";
   for (const section of PALETTE) {
-    const h = el("h4", {}, section.group);
+    const h = el("h4", {}, t(section.groupKey));
     host.appendChild(h);
     for (const item of section.items) {
-      const chip = el("div", { class: "chip", draggable: "true", title: "Drag onto the canvas" },
-        el("span", { class: "ic", html: item.icon }), el("span", {}, item.label));
+      const chip = el("div", { class: "chip", draggable: "true", title: t("Palette_Drag_Tip") },
+        el("span", { class: "ic", html: item.icon }), el("span", {}, t(item.labelKey)));
       chip.addEventListener("dragstart", (e) => {
         e.dataTransfer.setData("text/plain", JSON.stringify({ kind: item.kind, chartType: item.chartType }));
         e.dataTransfer.effectAllowed = "copy";
@@ -250,22 +311,6 @@ function buildPalette() {
     }
   }
 }
-
-canvasEl.addEventListener("dragover", (e) => { if (mode === "edit") { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } });
-canvasEl.addEventListener("drop", (e) => {
-  if (mode !== "edit") return;
-  e.preventDefault();
-  let spec;
-  try { spec = JSON.parse(e.dataTransfer.getData("text/plain")); } catch { return; }
-  if (!spec || !spec.kind) return;
-  const r = canvasEl.getBoundingClientRect();
-  addWidget(spec.kind, spec.chartType, Math.max(0, e.clientX - r.left - 40), Math.max(0, e.clientY - r.top - 16));
-});
-
-// Initial paint (after the palette and its data are defined, to avoid touching them too early).
-buildPalette();
-renderProps();
-updateEmpty();
 
 // --- Widget model -----------------------------------------------------------
 
@@ -281,9 +326,9 @@ function addWidget(kind, chartType, x, y) {
 }
 
 function defaultLabel(kind, chartType) {
-  if (kind === "chart") return cap(chartType || "bar") + " chart";
-  if (kind === "label") return "Heading";
-  return cap(kind);
+  if (kind === "chart") return t("Widget_ChartLabel", paletteLabel("chart", chartType || "bar"));
+  if (kind === "label") return t("Widget_Heading");
+  return paletteLabel(kind);
 }
 
 function applyDefaults(w, chartType) {
@@ -348,7 +393,7 @@ function renderWidget(w) {
   node.appendChild(bd);
   renderBody(w, bd);
 
-  const rz = el("div", { class: "rz", title: "Resize" });
+  const rz = el("div", { class: "rz", title: t("Widget_Resize_Tip") });
   rz.addEventListener("pointerdown", (e) => startResize(e, w));
   node.appendChild(rz);
 
@@ -416,8 +461,8 @@ function updateEmpty() {
   let e = canvasEl.querySelector(".empty");
   if (doc.widgets.length === 0) {
     if (!e) canvasEl.appendChild(el("div", { class: "empty" },
-      el("div", {}, "Drag a widget from the left onto the canvas.", el("br"), el("br"),
-        el("span", { class: "hint" }, "Inputs write kernel variables. Charts plot a data source. Switch to Preview to use the app."))));
+      el("div", {}, t("Empty_Title"), el("br"), el("br"),
+        el("span", { class: "hint" }, t("Empty_Hint")))));
   } else if (e) {
     e.remove();
   }
@@ -465,27 +510,27 @@ function select(id) {
 
 function renderProps() {
   propsEl.innerHTML = "";
-  propsEl.appendChild(el("h4", {}, "Properties"));
+  propsEl.appendChild(el("h4", {}, t("Props_Title")));
   const w = widgetById(selectedId);
   if (!w) {
-    propsEl.appendChild(el("div", { class: "hint" }, "Select a widget to edit its settings, or drag a new one from the palette."));
+    propsEl.appendChild(el("div", { class: "hint" }, t("Props_None")));
     return;
   }
 
-  propsEl.appendChild(field("Label", textInput(w.label, (v) => { w.label = v; renderWidget(w); saveDoc(); })));
+  propsEl.appendChild(field(t("Props_Label"), textInput(w.label, (v) => { w.label = v; renderWidget(w); saveDoc(); })));
 
   if (w.kind !== "label" && w.kind !== "chart") {
-    propsEl.appendChild(field("Binds to variable", textInput(w.bindVar, (v) => { w.bindVar = v.trim(); saveDoc(); emitValue(w); }), "The kernel variable this input writes."));
+    propsEl.appendChild(field(t("Props_BindsTo"), textInput(w.bindVar, (v) => { w.bindVar = v.trim(); saveDoc(); emitValue(w); }), t("Props_BindsTo_Hint")));
   }
 
   switch (w.kind) {
     case "slider":
-      propsEl.appendChild(field("Min", numInput(w.config.min, (v) => cfg(w, "min", v))));
-      propsEl.appendChild(field("Max", numInput(w.config.max, (v) => cfg(w, "max", v))));
-      propsEl.appendChild(field("Step", numInput(w.config.step, (v) => cfg(w, "step", v))));
+      propsEl.appendChild(field(t("Props_Min"), numInput(w.config.min, (v) => cfg(w, "min", v))));
+      propsEl.appendChild(field(t("Props_Max"), numInput(w.config.max, (v) => cfg(w, "max", v))));
+      propsEl.appendChild(field(t("Props_Step"), numInput(w.config.step, (v) => cfg(w, "step", v))));
       break;
     case "dropdown":
-      propsEl.appendChild(field("Options (comma separated)",
+      propsEl.appendChild(field(t("Props_Options"),
         textInput((w.config.options || []).join(", "), (v) => {
           w.config.options = v.split(",").map((s) => s.trim()).filter(Boolean);
           if (!w.config.options.includes(w.value)) w.value = w.config.options[0] || "";
@@ -493,21 +538,21 @@ function renderProps() {
         })));
       break;
     case "label":
-      propsEl.appendChild(field("Text", textInput(w.config.text || "", (v) => cfg(w, "text", v))));
+      propsEl.appendChild(field(t("Props_Text"), textInput(w.config.text || "", (v) => cfg(w, "text", v))));
       break;
     case "chart":
-      propsEl.appendChild(field("Data", selectInput(vars.sourceVars, w.config.sourceVar, (v) => {
+      propsEl.appendChild(field(t("Props_Data"), selectInput(vars.sourceVars, w.config.sourceVar, (v) => {
         w.config.sourceVar = v; w.config.xColumn = ""; w.config.yColumns = []; saveDoc(); requestChart(w);
-      }), "The kernel variable to plot (a DataBlock or DataTable)."));
-      propsEl.appendChild(field("Chart type", selectInput(CHART_TYPES, w.config.chartType, (v) => { w.config.chartType = v; renderChart(w); saveDoc(); })));
+      }), t("Props_Data_Hint")));
+      propsEl.appendChild(field(t("Props_ChartType"), selectInput(CHART_TYPES, w.config.chartType, (v) => { w.config.chartType = v; renderChart(w); saveDoc(); })));
       const cols = (chartCache.get(w.id) || {}).columns || [];
-      propsEl.appendChild(field("X axis", selectInput(cols, w.config.xColumn, (v) => { w.config.xColumn = v; renderChart(w); saveDoc(); })));
-      propsEl.appendChild(field("Y axis (series)", multiSelect(cols, w.config.yColumns || [], (v) => { w.config.yColumns = v; renderChart(w); saveDoc(); })));
-      propsEl.appendChild(field("Series color", colorInput(w.config.color || SERIES_PALETTE[0], (v) => { w.config.color = v; renderChart(w); saveDoc(); })));
+      propsEl.appendChild(field(t("Props_XAxis"), selectInput(cols, w.config.xColumn, (v) => { w.config.xColumn = v; renderChart(w); saveDoc(); })));
+      propsEl.appendChild(field(t("Props_YAxis"), multiSelect(cols, w.config.yColumns || [], (v) => { w.config.yColumns = v; renderChart(w); saveDoc(); })));
+      propsEl.appendChild(field(t("Props_SeriesColor"), colorInput(w.config.color || SERIES_PALETTE[0], (v) => { w.config.color = v; renderChart(w); saveDoc(); })));
       break;
   }
 
-  const del = el("button", { class: "btn del" }, "Delete widget");
+  const del = el("button", { class: "btn del" }, t("Props_Delete"));
   del.addEventListener("click", () => removeWidget(w.id));
   propsEl.appendChild(del);
 }
@@ -534,7 +579,7 @@ function renderChart(w) {
   const data = chartCache.get(w.id);
   const cols = data ? data.columns : [];
   if (!data || cols.length === 0) {
-    paintPlaceholder(cv, w.config.sourceVar ? "Loading…" : "Pick a data source");
+    paintPlaceholder(cv, w.config.sourceVar ? t("Chart_Loading") : t("Chart_PickSource"));
     return;
   }
 
@@ -637,24 +682,6 @@ function serialize() {
 
 // --- Toolbar wiring ---------------------------------------------------------
 
-document.getElementById("run").addEventListener("click", () => verso.interact("run", {}));
-document.getElementById("export").addEventListener("click", () =>
-  verso.interact("export", { fileName: "dashboard.json", content: JSON.stringify(serialize(), null, 2) }));
-
-autorunEl.addEventListener("change", () => { doc.autoRun = autorunEl.checked; saveDoc(); });
-
-document.getElementById("mode").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-mode]");
-  if (!b) return;
-  mode = b.dataset.mode;
-  document.querySelectorAll("#mode button").forEach((x) => x.classList.toggle("on", x === b));
-  appEl.classList.toggle("preview", mode === "preview");
-  bodyEl.classList.toggle("preview", mode === "preview");
-  canvasEl.classList.toggle("preview", mode === "preview");
-  if (mode === "preview") select(null);
-  renderAll();
-});
-
 // --- Bridge: host -> frame --------------------------------------------------
 
 function applySeed(seed) {
@@ -679,6 +706,10 @@ function applySeed(seed) {
 verso.onMessage((type, payload) => {
   switch (type) {
     case "verso/init":
+      if (!chromeBuilt) {
+        strings = (payload && payload.extension && payload.extension.strings) || {};
+        buildChrome();
+      }
       if (payload && payload.extension) applySeed(payload.extension);
       break;
     case "ext/vars":
@@ -739,7 +770,7 @@ function colorInput(value, onChange) {
 }
 function selectInput(options, value, onChange) {
   const s = el("select", {});
-  if (!options || options.length === 0) s.appendChild(el("option", { value: "" }, "(none)"));
+  if (!options || options.length === 0) s.appendChild(el("option", { value: "" }, t("Select_None")));
   for (const o of (options || [])) s.appendChild(el("option", { value: o }, o));
   s.value = value || "";
   s.addEventListener("change", () => onChange(s.value));
@@ -760,7 +791,7 @@ function multiSelect(options, selected, onChange) {
     lab.append(cb, document.createTextNode(o));
     wrap.appendChild(lab);
   }
-  if (!options || options.length === 0) wrap.appendChild(el("span", { class: "hint" }, "Pick a data source first."));
+  if (!options || options.length === 0) wrap.appendChild(el("span", { class: "hint" }, t("Select_PickSourceFirst")));
   return wrap;
 }
 

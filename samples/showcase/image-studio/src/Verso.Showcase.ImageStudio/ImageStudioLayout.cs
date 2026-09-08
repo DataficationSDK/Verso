@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Showcase.ImageStudio.Model;
+using Verso.Showcase.ImageStudio.Resources;
 
 namespace Verso.Showcase.ImageStudio;
 
@@ -45,10 +46,10 @@ public sealed class ImageStudioLayout
     // --- IExtension ---
 
     public string ExtensionId => "com.verso.showcase.image-studio";
-    public string Name => "Image Studio Layout";
+    public string Name => Strings.Layout_Name;
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Isolated layout that presents the notebook as a layered image document.";
+    public string? Description => Strings.Layout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -56,7 +57,7 @@ public sealed class ImageStudioLayout
     // --- ILayoutEngine ---
 
     public string LayoutId => "image-studio";
-    public string DisplayName => "Image Studio";
+    public string DisplayName => Strings.Layout_DisplayName;
 
     public string? Icon =>
         "<svg viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">" +
@@ -134,7 +135,13 @@ public sealed class ImageStudioLayout
 
         // Hand the renderer its authoritative initial state on the host's init message (under
         // the "extension" key). Include any procedural variables a cell already produced.
-        var seed = new Dictionary<string, object> { ["document"] = _doc };
+        // The frame cannot reach a resource manager, so it gets its strings here, resolved for
+        // the language the host is answering in. The frame builds its chrome once they arrive.
+        var seed = new Dictionary<string, object>
+        {
+            ["strings"] = StringTable.From(Strings.ResourceManager, context.Verso.UICulture),
+            ["document"] = _doc,
+        };
         var initialVars = CollectProceduralVars(variables);
         if (initialVars.Count > 0)
             seed["vars"] = initialVars;
@@ -410,16 +417,16 @@ public sealed class ImageStudioLayout
 
     private static string DefaultName(string kind) => kind switch
     {
-        "solid" => "Solid",
-        "linear-gradient" => "Gradient",
-        "radial-gradient" => "Radial",
-        "checkerboard" => "Checker",
-        "stripes" => "Stripes",
-        "dots" => "Dots",
-        "rings" => "Rings",
-        "text" => "Text",
-        "procedural" => "Procedural",
-        _ => "Layer",
+        "solid" => Strings.Name_Solid,
+        "linear-gradient" => Strings.Name_Gradient,
+        "radial-gradient" => Strings.Name_Radial,
+        "checkerboard" => Strings.Name_Checker,
+        "stripes" => Strings.Name_Stripes,
+        "dots" => Strings.Name_Dots,
+        "rings" => Strings.Name_Rings,
+        "text" => Strings.Name_Text,
+        "procedural" => Strings.Name_Procedural,
+        _ => Strings.Layer_Default,
     };
 
     private static Dictionary<string, object> DefaultProps(string kind) => kind switch

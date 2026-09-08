@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Add_Cell" xml:space="preserve">
+    <value>{0} Cell</value>
+    <comment>Button under the last cell that adds one. {0} is the cell type's display name, such as 'Code'.</comment>
+  </data>
+  <data name="CellType_Code" xml:space="preserve">
+    <value>Code</value>
+    <comment>Display name of the code cell type on the insert buttons, used when the host does not name it.</comment>
+  </data>
+  <data name="CellType_Markdown" xml:space="preserve">
+    <value>Markdown</value>
+    <comment>Display name of the Markdown cell type on the insert buttons. Markdown is a format name and stays as written.</comment>
+  </data>
+  <data name="Chip_Conflict_Tip" xml:space="preserve">
+    <value>{0} is assigned in more than one cell, so its links are not tracked</value>
+    <comment>Tooltip on the warning badge for a variable written by several cells. {0} is the variable name.</comment>
+  </data>
+  <data name="Chip_Cycle" xml:space="preserve">
+    <value>cycle</value>
+    <comment>Text of the warning badge on a cell that is part of a dependency cycle. Lower case, drawn after a warning sign.</comment>
+  </data>
+  <data name="Chip_Cycle_Tip" xml:space="preserve">
+    <value>This cell is on a dependency cycle; cycle edges are excluded from auto-run</value>
+    <comment>Tooltip on the cycle badge.</comment>
+  </data>
+  <data name="Chip_Feeds_Tip" xml:space="preserve">
+    <value>Feeds {0} to cell {1}</value>
+    <comment>Tooltip on a badge linking to a cell that uses this value. {0} is the variable name, {1} the cell number.</comment>
+  </data>
+  <data name="Chip_Live_Tip" xml:space="preserve">
+    <value>{0} follows a control on this page; moving it runs the cells below</value>
+    <comment>Tooltip on the badge of a variable bound to an interactive control. {0} is the variable name.</comment>
+  </data>
+  <data name="Chip_Reads_Tip" xml:space="preserve">
+    <value>Reads {0} from cell {1}</value>
+    <comment>Tooltip on a badge linking to the cell a value comes from. {0} is the variable name, {1} the cell number.</comment>
+  </data>
+  <data name="Common_Off" xml:space="preserve">
+    <value>Off</value>
+    <comment>State word inside the auto-run toggle.</comment>
+  </data>
+  <data name="Common_On" xml:space="preserve">
+    <value>On</value>
+    <comment>State word inside the auto-run toggle.</comment>
+  </data>
+  <data name="Empty_Subtitle" xml:space="preserve">
+    <value>Add your first cell below.</value>
+    <comment>Line under the empty-notebook heading, pointing at the add buttons.</comment>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>This notebook is empty</value>
+    <comment>Heading in the cell area when the notebook has no cells.</comment>
+  </data>
+  <data name="Header_AutoRun" xml:space="preserve">
+    <value>Auto-run dependents: {0}</value>
+    <comment>Header toggle showing whether dependents re-run on their own. {0} is Common_On or Common_Off.</comment>
+  </data>
+  <data name="Header_AutoRun_Tip" xml:space="preserve">
+    <value>When on, running a cell or moving a bound control re-runs the cells that depend on it</value>
+    <comment>Tooltip on the auto-run toggle.</comment>
+  </data>
+  <data name="Header_RunDag" xml:space="preserve">
+    <value>Run DAG</value>
+    <comment>Header button that runs every cell in dependency order. DAG is an abbreviation and stays as written.</comment>
+  </data>
+  <data name="Header_RunDag_Tip" xml:space="preserve">
+    <value>Run every cell in dependency order</value>
+    <comment>Tooltip on the Run DAG button.</comment>
+  </data>
+  <data name="Header_Title" xml:space="preserve">
+    <value>DAG Notebook</value>
+    <comment>Title at the left of the layout's own header bar. Stays as written.</comment>
+  </data>
+  <data name="Insert_Tip" xml:space="preserve">
+    <value>Insert a {0} cell here</value>
+    <comment>Tooltip on the small insert button between two cells. {0} is the cell type's display name.</comment>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Notebook layout with dependency-aware reactive execution: cells that share variables are linked with badges, and running a cell re-runs its dependents in dependency order.</value>
+    <comment>Second line of the sample's entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>DAG Notebook</value>
+    <comment>Label in the layout picker. Stays as written.</comment>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>DAG Notebook</value>
+    <comment>Name of the sample extension as listed in the Extensions panel. 'DAG Notebook' is the sample's name and stays as written.</comment>
+  </data>
+</root>

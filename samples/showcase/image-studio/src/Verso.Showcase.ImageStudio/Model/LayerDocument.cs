@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Verso.Showcase.ImageStudio.Resources;
 
 namespace Verso.Showcase.ImageStudio.Model;
 
@@ -17,7 +18,7 @@ namespace Verso.Showcase.ImageStudio.Model;
 public sealed class Layer
 {
     [JsonPropertyName("id")] public string Id { get; set; } = Guid.NewGuid().ToString("n");
-    [JsonPropertyName("name")] public string Name { get; set; } = "Layer";
+    [JsonPropertyName("name")] public string Name { get; set; } = Strings.Layer_Default;
     [JsonPropertyName("kind")] public string Kind { get; set; } = "solid";
     [JsonPropertyName("visible")] public bool Visible { get; set; } = true;
     [JsonPropertyName("opacity")] public double Opacity { get; set; } = 1.0;
@@ -102,7 +103,7 @@ public sealed class LayerDocument
         {
             new Layer
             {
-                Name = "Sky",
+                Name = Strings.Seed_Sky,
                 Kind = "linear-gradient",
                 Props = new()
                 {
@@ -117,7 +118,7 @@ public sealed class LayerDocument
             },
             new Layer
             {
-                Name = "Sun",
+                Name = Strings.Seed_Sun,
                 Kind = "radial-gradient",
                 Blend = "screen",
                 Props = new()
@@ -135,7 +136,7 @@ public sealed class LayerDocument
             },
             new Layer
             {
-                Name = "Dot grid",
+                Name = Strings.Seed_DotGrid,
                 Kind = "dots",
                 Blend = "overlay",
                 Opacity = 0.30,
@@ -148,13 +149,13 @@ public sealed class LayerDocument
             },
             new Layer
             {
-                Name = "Scripted",
+                Name = Strings.Seed_Scripted,
                 Kind = "procedural",
                 SourceVar = "ops",
             },
             new Layer
             {
-                Name = "Title",
+                Name = Strings.Seed_Title,
                 Kind = "text",
                 Opacity = 0.92,
                 Props = new()

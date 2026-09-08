@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Align_Center" xml:space="preserve">
+    <value>Center</value>
+    <comment>Text alignment choice.</comment>
+  </data>
+  <data name="Align_Left" xml:space="preserve">
+    <value>Left</value>
+    <comment>Text alignment choice.</comment>
+  </data>
+  <data name="Align_Right" xml:space="preserve">
+    <value>Right</value>
+    <comment>Text alignment choice.</comment>
+  </data>
+  <data name="Blend_Color" xml:space="preserve">
+    <value>Color</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_ColorBurn" xml:space="preserve">
+    <value>Color burn</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_ColorDodge" xml:space="preserve">
+    <value>Color dodge</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Darken" xml:space="preserve">
+    <value>Darken</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Difference" xml:space="preserve">
+    <value>Difference</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Exclusion" xml:space="preserve">
+    <value>Exclusion</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_HardLight" xml:space="preserve">
+    <value>Hard light</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Hue" xml:space="preserve">
+    <value>Hue</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Lighten" xml:space="preserve">
+    <value>Lighten</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Luminosity" xml:space="preserve">
+    <value>Luminosity</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Multiply" xml:space="preserve">
+    <value>Multiply</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Normal" xml:space="preserve">
+    <value>Normal</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Overlay" xml:space="preserve">
+    <value>Overlay</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Saturation" xml:space="preserve">
+    <value>Saturation</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_Screen" xml:space="preserve">
+    <value>Screen</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Blend_SoftLight" xml:space="preserve">
+    <value>Soft light</value>
+    <comment>Blend mode, as an image editor names it.</comment>
+  </data>
+  <data name="Export_Png" xml:space="preserve">
+    <value>PNG Image</value>
+    <comment>Entry in the notebook's Export menu.</comment>
+  </data>
+  <data name="Export_Png_Description" xml:space="preserve">
+    <value>Exports the Image Studio composite as a PNG image.</value>
+    <comment>Second line of the PNG export action's entry in the Extensions panel.</comment>
+  </data>
+  <data name="Export_Png_Name" xml:space="preserve">
+    <value>Image Studio: Export PNG</value>
+    <comment>Name of the PNG export action as listed in the Extensions panel. PNG is a format name and stays as written.</comment>
+  </data>
+  <data name="Export_Svg" xml:space="preserve">
+    <value>SVG Image</value>
+    <comment>Entry in the notebook's Export menu.</comment>
+  </data>
+  <data name="Export_Svg_Description" xml:space="preserve">
+    <value>Exports the Image Studio composite as an SVG image.</value>
+    <comment>Second line of the SVG export action's entry in the Extensions panel.</comment>
+  </data>
+  <data name="Export_Svg_Name" xml:space="preserve">
+    <value>Image Studio: Export SVG</value>
+    <comment>Name of the SVG export action as listed in the Extensions panel. SVG is a format name and stays as written.</comment>
+  </data>
+  <data name="Kind_Checkerboard" xml:space="preserve">
+    <value>Checkerboard</value>
+    <comment>A layer kind. Layer list subtitle.</comment>
+  </data>
+  <data name="Kind_Dots" xml:space="preserve">
+    <value>Pattern</value>
+    <comment>A layer kind: a grid of dots. Tool palette label and layer list subtitle.</comment>
+  </data>
+  <data name="Kind_LinearGradient" xml:space="preserve">
+    <value>Linear gradient</value>
+    <comment>A layer kind. Tool palette label and layer list subtitle.</comment>
+  </data>
+  <data name="Kind_Procedural" xml:space="preserve">
+    <value>Procedural (code-driven)</value>
+    <comment>A layer kind drawn by a kernel variable. Tool palette label and layer list subtitle.</comment>
+  </data>
+  <data name="Kind_RadialGradient" xml:space="preserve">
+    <value>Radial gradient</value>
+    <comment>A layer kind. Tool palette label and layer list subtitle.</comment>
+  </data>
+  <data name="Kind_Rings" xml:space="preserve">
+    <value>Rings</value>
+    <comment>A layer kind. Layer list subtitle.</comment>
+  </data>
+  <data name="Kind_Solid" xml:space="preserve">
+    <value>Solid color</value>
+    <comment>A layer kind: one flat color. Tool palette label and layer list subtitle.</comment>
+  </data>
+  <data name="Kind_Stripes" xml:space="preserve">
+    <value>Stripes</value>
+    <comment>A layer kind. Layer list subtitle.</comment>
+  </data>
+  <data name="Kind_Text" xml:space="preserve">
+    <value>Text</value>
+    <comment>A layer kind. Tool palette label and layer list subtitle.</comment>
+  </data>
+  <data name="Layer_Default" xml:space="preserve">
+    <value>Layer</value>
+    <comment>Name given to a layer when nothing else names it.</comment>
+  </data>
+  <data name="Layer_Hide" xml:space="preserve">
+    <value>Hide</value>
+    <comment>Tooltip on a visible layer's eye icon.</comment>
+  </data>
+  <data name="Layer_Show" xml:space="preserve">
+    <value>Show</value>
+    <comment>Tooltip on a hidden layer's eye icon.</comment>
+  </data>
+  <data name="Layers_Add_Tip" xml:space="preserve">
+    <value>Add layer</value>
+    <comment>Tooltip on the plus button beside the Layers heading.</comment>
+  </data>
+  <data name="Layers_Empty" xml:space="preserve">
+    <value>No layers yet. Add one from the tool palette.</value>
+    <comment>Text in the layer list when the document has no layers.</comment>
+  </data>
+  <data name="Layers_Title" xml:space="preserve">
+    <value>Layers</value>
+    <comment>Heading of the layer list in the right panel.</comment>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Isolated layout that presents the notebook as a layered image document.</value>
+    <comment>Second line of the sample's entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Image Studio</value>
+    <comment>Label in the layout picker. Stays as written.</comment>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Image Studio Layout</value>
+    <comment>Name of the sample extension as listed in the Extensions panel. 'Image Studio' is the sample's name and stays as written; 'Layout' translates.</comment>
+  </data>
+  <data name="Name_Checker" xml:space="preserve">
+    <value>Checker</value>
+    <comment>Name given to a newly added checkerboard layer.</comment>
+  </data>
+  <data name="Name_Dots" xml:space="preserve">
+    <value>Dots</value>
+    <comment>Name given to a newly added dot pattern layer.</comment>
+  </data>
+  <data name="Name_Gradient" xml:space="preserve">
+    <value>Gradient</value>
+    <comment>Name given to a newly added linear gradient layer.</comment>
+  </data>
+  <data name="Name_Procedural" xml:space="preserve">
+    <value>Procedural</value>
+    <comment>Name given to a newly added code-driven layer.</comment>
+  </data>
+  <data name="Name_Radial" xml:space="preserve">
+    <value>Radial</value>
+    <comment>Name given to a newly added radial gradient layer.</comment>
+  </data>
+  <data name="Name_Rings" xml:space="preserve">
+    <value>Rings</value>
+    <comment>Name given to a newly added rings layer.</comment>
+  </data>
+  <data name="Name_Solid" xml:space="preserve">
+    <value>Solid</value>
+    <comment>Name given to a newly added solid color layer.</comment>
+  </data>
+  <data name="Name_Stripes" xml:space="preserve">
+    <value>Stripes</value>
+    <comment>Name given to a newly added stripes layer.</comment>
+  </data>
+  <data name="Name_Text" xml:space="preserve">
+    <value>Text</value>
+    <comment>Name given to a newly added text layer.</comment>
+  </data>
+  <data name="Props_Align" xml:space="preserve">
+    <value>Align</value>
+    <comment>Field: the dropdown of Align_Left, Align_Center, and Align_Right.</comment>
+  </data>
+  <data name="Props_Angle" xml:space="preserve">
+    <value>Angle</value>
+    <comment>Field: the direction of a gradient or stripes, in degrees.</comment>
+  </data>
+  <data name="Props_Blend" xml:space="preserve">
+    <value>Blend</value>
+    <comment>Field: the dropdown of blend modes, Blend_Normal and the others.</comment>
+  </data>
+  <data name="Props_CenterX" xml:space="preserve">
+    <value>Center X</value>
+    <comment>Field: horizontal position of a radial gradient's or ring's center.</comment>
+  </data>
+  <data name="Props_CenterY" xml:space="preserve">
+    <value>Center Y</value>
+    <comment>Field: vertical position of a radial gradient's or ring's center.</comment>
+  </data>
+  <data name="Props_Color" xml:space="preserve">
+    <value>Color</value>
+    <comment>Field: a color picker.</comment>
+  </data>
+  <data name="Props_Color1" xml:space="preserve">
+    <value>Color 1</value>
+    <comment>Field: the first of a pattern's two colors.</comment>
+  </data>
+  <data name="Props_Color2" xml:space="preserve">
+    <value>Color 2</value>
+    <comment>Field: the second of a pattern's two colors.</comment>
+  </data>
+  <data name="Props_Count" xml:space="preserve">
+    <value>Count</value>
+    <comment>Field: how many rings to draw.</comment>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>Delete layer</value>
+    <comment>Button at the bottom of the properties panel, drawn after a bin icon.</comment>
+  </data>
+  <data name="Props_From" xml:space="preserve">
+    <value>From</value>
+    <comment>Field: the starting color of a linear gradient.</comment>
+  </data>
+  <data name="Props_Inner" xml:space="preserve">
+    <value>Inner</value>
+    <comment>Field: the center color of a radial gradient.</comment>
+  </data>
+  <data name="Props_Name" xml:space="preserve">
+    <value>Name</value>
+    <comment>Field: the layer's name.</comment>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>Select a layer to edit its properties.</value>
+    <comment>Properties panel text when no layer is selected.</comment>
+  </data>
+  <data name="Props_Opacity" xml:space="preserve">
+    <value>Opacity</value>
+    <comment>Field: a slider from transparent to solid.</comment>
+  </data>
+  <data name="Props_Outer" xml:space="preserve">
+    <value>Outer</value>
+    <comment>Field: the edge color of a radial gradient.</comment>
+  </data>
+  <data name="Props_Procedural_Hint" xml:space="preserve">
+    <value>Bind to a kernel variable, then run a code cell that assigns it (an array of draw ops). Each procedural layer can use its own variable.</value>
+    <comment>Help text under the Variable field.</comment>
+  </data>
+  <data name="Props_Radius" xml:space="preserve">
+    <value>Radius</value>
+    <comment>Field: the reach of a radial gradient or the size of each dot.</comment>
+  </data>
+  <data name="Props_Size" xml:space="preserve">
+    <value>Size</value>
+    <comment>Field: the size of a checkerboard square or of the text.</comment>
+  </data>
+  <data name="Props_Spacing" xml:space="preserve">
+    <value>Spacing</value>
+    <comment>Field: the distance between dots.</comment>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>Text</value>
+    <comment>Field: the words a text layer draws.</comment>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>Properties</value>
+    <comment>Heading of the properties panel.</comment>
+  </data>
+  <data name="Props_To" xml:space="preserve">
+    <value>To</value>
+    <comment>Field: the ending color of a linear gradient.</comment>
+  </data>
+  <data name="Props_Variable" xml:space="preserve">
+    <value>Variable</value>
+    <comment>Field: the kernel variable a procedural layer draws from.</comment>
+  </data>
+  <data name="Props_Width" xml:space="preserve">
+    <value>Width</value>
+    <comment>Field: the width of a stripe or a ring.</comment>
+  </data>
+  <data name="Props_X" xml:space="preserve">
+    <value>X</value>
+    <comment>Field: horizontal position of the text. X is the axis name and stays as written.</comment>
+  </data>
+  <data name="Props_Y" xml:space="preserve">
+    <value>Y</value>
+    <comment>Field: vertical position of the text. Y is the axis name and stays as written.</comment>
+  </data>
+  <data name="Seed_DotGrid" xml:space="preserve">
+    <value>Dot grid</value>
+    <comment>Name of the pattern layer in the starter document.</comment>
+  </data>
+  <data name="Seed_Scripted" xml:space="preserve">
+    <value>Scripted</value>
+    <comment>Name of the code-driven layer in the starter document.</comment>
+  </data>
+  <data name="Seed_Sky" xml:space="preserve">
+    <value>Sky</value>
+    <comment>Name of the gradient layer in the starter document a fresh notebook opens with.</comment>
+  </data>
+  <data name="Seed_Sun" xml:space="preserve">
+    <value>Sun</value>
+    <comment>Name of the radial glow layer in the starter document.</comment>
+  </data>
+  <data name="Seed_Title" xml:space="preserve">
+    <value>Title</value>
+    <comment>Name of the text layer in the starter document. Its text, VERSO, is the product name and stays as written.</comment>
+  </data>
+  <data name="Tool_Add_Tip" xml:space="preserve">
+    <value>Add: {0}</value>
+    <comment>Tooltip on a tool palette button. {0} is the layer kind, such as Kind_Solid.</comment>
+  </data>
+  <data name="Tool_Props_Tip" xml:space="preserve">
+    <value>Toggle properties</value>
+    <comment>Tooltip on the tool palette button that shows or hides the properties panel.</comment>
+  </data>
+  <data name="Zoom_Fit" xml:space="preserve">
+    <value>Fit</value>
+    <comment>Button under the canvas that scales the image to the window.</comment>
+  </data>
+  <data name="Zoom_Fit_Tip" xml:space="preserve">
+    <value>Fit to window</value>
+    <comment>Tooltip on the Fit button under the canvas.</comment>
+  </data>
+  <data name="Zoom_In_Tip" xml:space="preserve">
+    <value>Zoom in</value>
+    <comment>Tooltip on the plus button under the canvas.</comment>
+  </data>
+  <data name="Zoom_Out_Tip" xml:space="preserve">
+    <value>Zoom out</value>
+    <comment>Tooltip on the minus button under the canvas.</comment>
+  </data>
+  <data name="Zoom_Reset_Tip" xml:space="preserve">
+    <value>Reset to 100%</value>
+    <comment>Tooltip on the percentage readout under the canvas, which is also a button.</comment>
+  </data>
+</root>

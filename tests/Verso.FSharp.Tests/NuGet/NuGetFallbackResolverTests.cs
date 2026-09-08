@@ -125,4 +125,13 @@ public class NuGetFallbackResolverTests
         Assert.IsTrue(ex.Message.Contains("was not found on any configured source"),
             $"Expected 'was not found on any configured source' in message, got: {ex.Message}");
     }
+
+    [TestMethod]
+    public void TryGetSatelliteCulture_MatchesTheCoreResolver()
+    {
+        Assert.IsTrue(NuGetFallbackResolver.TryGetSatelliteCulture("lib/net8.0/de/Some.Ext.resources.dll", out var culture));
+        Assert.AreEqual("de", culture);
+        Assert.IsFalse(NuGetFallbackResolver.TryGetSatelliteCulture("lib/net8.0/Some.Ext.dll", out _));
+        Assert.IsFalse(NuGetFallbackResolver.TryGetSatelliteCulture("lib/net8.0/../Some.Ext.resources.dll", out _));
+    }
 }

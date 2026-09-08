@@ -1,4 +1,5 @@
 using Verso.Abstractions;
+using Verso.Showcase.ImageStudio.Resources;
 
 namespace Verso.Showcase.ImageStudio;
 
@@ -36,16 +37,16 @@ internal static class ImageStudioExport
 public sealed class ImageStudioExportPngAction : IToolbarAction
 {
     public string ExtensionId => "com.verso.showcase.image-studio.export-png";
-    public string Name => "Image Studio: Export PNG";
+    public string Name => Strings.Export_Png_Name;
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Exports the Image Studio composite as a PNG image.";
+    public string? Description => Strings.Export_Png_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public string ActionId => "com.verso.showcase.image-studio.export-png";
-    public string DisplayName => "PNG Image";
+    public string DisplayName => Strings.Export_Png;
     public string? Icon => null;
     public ToolbarPlacement Placement => ToolbarPlacement.ExportMenu;
     public int Order => 10;
@@ -65,16 +66,16 @@ public sealed class ImageStudioExportPngAction : IToolbarAction
 public sealed class ImageStudioExportSvgAction : IToolbarAction
 {
     public string ExtensionId => "com.verso.showcase.image-studio.export-svg";
-    public string Name => "Image Studio: Export SVG";
+    public string Name => Strings.Export_Svg_Name;
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Exports the Image Studio composite as an SVG image.";
+    public string? Description => Strings.Export_Svg_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
 
     public string ActionId => "com.verso.showcase.image-studio.export-svg";
-    public string DisplayName => "SVG Image";
+    public string DisplayName => Strings.Export_Svg;
     public string? Icon => null;
     public ToolbarPlacement Placement => ToolbarPlacement.ExportMenu;
     public int Order => 20;

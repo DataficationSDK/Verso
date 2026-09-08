@@ -268,7 +268,10 @@ def discover() -> list[ResourceSet]:
     """
     sets: list[ResourceSet] = []
 
-    for path in sorted((REPO_ROOT / "src").glob("**/Resources/*.resx")):
+    # The showcase extensions carry their own sets, so that the samples people copy show
+    # the pattern and so that a drifted showcase string is caught the same way.
+    roots = (REPO_ROOT / "src", REPO_ROOT / "samples" / "showcase")
+    for path in sorted(p for root in roots for p in root.glob("**/Resources/*.resx")):
         if "." in path.stem or {"bin", "obj"} & set(path.parts):
             continue
         sets.append(ResxSet(path))

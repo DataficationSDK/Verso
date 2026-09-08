@@ -30,6 +30,10 @@ Install it from the Verso **Extensions** pane: search for `Verso.Showcase`, inst
 **Verso.Showcase.SlideStudio**, then choose **Slide Studio** from the layout picker. A notebook
 can also declare it as a required extension so it installs automatically on open.
 
+## Languages
+
+The layout's chrome follows the interface language: English, German, Spanish, Japanese, and Simplified Chinese ship in the package. Set `verso.language` in VS Code or pass `--language` on the command line, and the layout answers in that language with the rest of the notebook.
+
 ## License
 
 MIT. This package bundles no third-party libraries.

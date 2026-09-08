@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Caption_Cell" xml:space="preserve">
+    <value>セル</value>
+  </data>
+  <data name="Caption_Code" xml:space="preserve">
+    <value>コード</value>
+  </data>
+  <data name="Filmstrip_Empty" xml:space="preserve">
+    <value>このノートブックにはまだセルがありません。ノートブック レイアウトに切り替えて追加してください。</value>
+  </data>
+  <data name="Hud_Exit" xml:space="preserve">
+    <value>終了 (Esc)</value>
+  </data>
+  <data name="Hud_Next" xml:space="preserve">
+    <value>次のスライド</value>
+  </data>
+  <data name="Hud_Previous" xml:space="preserve">
+    <value>前のスライド</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>スライド作成のレイアウトです。セルのプレビューを並べたフィルムストリップ、エディターと出力の分割ビュー、セルごとにソースと出力を切り替えられる全画面のプレゼンター モードを備えています。</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Slide Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Slide Studio</value>
+  </data>
+  <data name="Output_ImageAlt" xml:space="preserve">
+    <value>セルの出力</value>
+  </data>
+  <data name="Pane_Cell" xml:space="preserve">
+    <value>セル</value>
+  </data>
+  <data name="Pane_NoOutput" xml:space="preserve">
+    <value>まだ出力がありません。セルを実行すると結果がここに表示されます。</value>
+  </data>
+  <data name="Pane_Output" xml:space="preserve">
+    <value>出力</value>
+  </data>
+  <data name="Pane_OutputOnSlide" xml:space="preserve">
+    <value>スライドに出力を表示</value>
+  </data>
+  <data name="Pane_OutputOnSlide_Tip" xml:space="preserve">
+    <value>このセルの出力をスライドに表示します</value>
+  </data>
+  <data name="Pane_SelectCell" xml:space="preserve">
+    <value>フィルムストリップでセルを選択してください。</value>
+  </data>
+  <data name="Pane_SourceOnSlide" xml:space="preserve">
+    <value>スライドにソースを表示</value>
+  </data>
+  <data name="Pane_SourceOnSlide_Tip" xml:space="preserve">
+    <value>このセルのソースをスライドに表示します</value>
+  </data>
+  <data name="Props_Include" xml:space="preserve">
+    <value>プレゼンターに含める</value>
+  </data>
+  <data name="Props_Include_Hint" xml:space="preserve">
+    <value>このセルをプレゼンター ビューにスライドとして表示するかどうかです。</value>
+  </data>
+  <data name="Props_Section" xml:space="preserve">
+    <value>プレゼンター</value>
+  </data>
+  <data name="Props_Section_Description" xml:space="preserve">
+    <value>Slide Studio のプレゼンター ビューでこのセルをどう表示するかを設定します。</value>
+  </data>
+  <data name="Props_ShowOutput" xml:space="preserve">
+    <value>スライドに出力を表示</value>
+  </data>
+  <data name="Props_ShowOutput_Hint" xml:space="preserve">
+    <value>セルの出力をスライドに表示します。</value>
+  </data>
+  <data name="Props_ShowSource" xml:space="preserve">
+    <value>スライドにソースを表示</value>
+  </data>
+  <data name="Props_ShowSource_Hint" xml:space="preserve">
+    <value>セルのソースをスライドに表示します。</value>
+  </data>
+  <data name="Tile_Include_Tip" xml:space="preserve">
+    <value>プレゼンター ビューに含める</value>
+  </data>
+  <data name="Toolbar_Present" xml:space="preserve">
+    <value>プレゼン</value>
+  </data>
+  <data name="Toolbar_Present_None_Tip" xml:space="preserve">
+    <value>プレゼンター ビューに含まれているセルがありません</value>
+  </data>
+  <data name="Toolbar_SlideCount_One" xml:space="preserve">
+    <value>{0} 枚のスライド</value>
+  </data>
+  <data name="Toolbar_SlideCount_Other" xml:space="preserve">
+    <value>{0} 枚のスライド</value>
+  </data>
+  <data name="Toolbar_Title" xml:space="preserve">
+    <value>Slide Studio</value>
+  </data>
+</root>

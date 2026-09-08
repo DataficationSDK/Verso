@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Align_Center" xml:space="preserve">
+    <value>居中</value>
+  </data>
+  <data name="Align_Left" xml:space="preserve">
+    <value>左</value>
+  </data>
+  <data name="Align_Right" xml:space="preserve">
+    <value>右</value>
+  </data>
+  <data name="Blend_Color" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="Blend_ColorBurn" xml:space="preserve">
+    <value>颜色加深</value>
+  </data>
+  <data name="Blend_ColorDodge" xml:space="preserve">
+    <value>颜色减淡</value>
+  </data>
+  <data name="Blend_Darken" xml:space="preserve">
+    <value>变暗</value>
+  </data>
+  <data name="Blend_Difference" xml:space="preserve">
+    <value>差值</value>
+  </data>
+  <data name="Blend_Exclusion" xml:space="preserve">
+    <value>排除</value>
+  </data>
+  <data name="Blend_HardLight" xml:space="preserve">
+    <value>强光</value>
+  </data>
+  <data name="Blend_Hue" xml:space="preserve">
+    <value>色相</value>
+  </data>
+  <data name="Blend_Lighten" xml:space="preserve">
+    <value>变亮</value>
+  </data>
+  <data name="Blend_Luminosity" xml:space="preserve">
+    <value>明度</value>
+  </data>
+  <data name="Blend_Multiply" xml:space="preserve">
+    <value>正片叠底</value>
+  </data>
+  <data name="Blend_Normal" xml:space="preserve">
+    <value>正常</value>
+  </data>
+  <data name="Blend_Overlay" xml:space="preserve">
+    <value>叠加</value>
+  </data>
+  <data name="Blend_Saturation" xml:space="preserve">
+    <value>饱和度</value>
+  </data>
+  <data name="Blend_Screen" xml:space="preserve">
+    <value>滤色</value>
+  </data>
+  <data name="Blend_SoftLight" xml:space="preserve">
+    <value>柔光</value>
+  </data>
+  <data name="Export_Png" xml:space="preserve">
+    <value>PNG 图像</value>
+  </data>
+  <data name="Export_Png_Description" xml:space="preserve">
+    <value>将 Image Studio 的合成结果导出为 PNG 图像。</value>
+  </data>
+  <data name="Export_Png_Name" xml:space="preserve">
+    <value>Image Studio：导出 PNG</value>
+  </data>
+  <data name="Export_Svg" xml:space="preserve">
+    <value>SVG 图像</value>
+  </data>
+  <data name="Export_Svg_Description" xml:space="preserve">
+    <value>将 Image Studio 的合成结果导出为 SVG 图像。</value>
+  </data>
+  <data name="Export_Svg_Name" xml:space="preserve">
+    <value>Image Studio：导出 SVG</value>
+  </data>
+  <data name="Kind_Checkerboard" xml:space="preserve">
+    <value>棋盘格</value>
+  </data>
+  <data name="Kind_Dots" xml:space="preserve">
+    <value>图案</value>
+  </data>
+  <data name="Kind_LinearGradient" xml:space="preserve">
+    <value>线性渐变</value>
+  </data>
+  <data name="Kind_Procedural" xml:space="preserve">
+    <value>程序化（代码驱动）</value>
+  </data>
+  <data name="Kind_RadialGradient" xml:space="preserve">
+    <value>径向渐变</value>
+  </data>
+  <data name="Kind_Rings" xml:space="preserve">
+    <value>圆环</value>
+  </data>
+  <data name="Kind_Solid" xml:space="preserve">
+    <value>纯色</value>
+  </data>
+  <data name="Kind_Stripes" xml:space="preserve">
+    <value>条纹</value>
+  </data>
+  <data name="Kind_Text" xml:space="preserve">
+    <value>文本</value>
+  </data>
+  <data name="Layer_Default" xml:space="preserve">
+    <value>图层</value>
+  </data>
+  <data name="Layer_Hide" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="Layer_Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Layers_Add_Tip" xml:space="preserve">
+    <value>添加图层</value>
+  </data>
+  <data name="Layers_Empty" xml:space="preserve">
+    <value>还没有图层。从工具选板添加一个。</value>
+  </data>
+  <data name="Layers_Title" xml:space="preserve">
+    <value>图层</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>隔离布局，把笔记本显示为分图层的图像文档。</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Image Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Image Studio 布局</value>
+  </data>
+  <data name="Name_Checker" xml:space="preserve">
+    <value>棋盘</value>
+  </data>
+  <data name="Name_Dots" xml:space="preserve">
+    <value>圆点</value>
+  </data>
+  <data name="Name_Gradient" xml:space="preserve">
+    <value>渐变</value>
+  </data>
+  <data name="Name_Procedural" xml:space="preserve">
+    <value>程序化</value>
+  </data>
+  <data name="Name_Radial" xml:space="preserve">
+    <value>径向</value>
+  </data>
+  <data name="Name_Rings" xml:space="preserve">
+    <value>圆环</value>
+  </data>
+  <data name="Name_Solid" xml:space="preserve">
+    <value>纯色</value>
+  </data>
+  <data name="Name_Stripes" xml:space="preserve">
+    <value>条纹</value>
+  </data>
+  <data name="Name_Text" xml:space="preserve">
+    <value>文本</value>
+  </data>
+  <data name="Props_Align" xml:space="preserve">
+    <value>对齐</value>
+  </data>
+  <data name="Props_Angle" xml:space="preserve">
+    <value>角度</value>
+  </data>
+  <data name="Props_Blend" xml:space="preserve">
+    <value>混合模式</value>
+  </data>
+  <data name="Props_CenterX" xml:space="preserve">
+    <value>中心 X</value>
+  </data>
+  <data name="Props_CenterY" xml:space="preserve">
+    <value>中心 Y</value>
+  </data>
+  <data name="Props_Color" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="Props_Color1" xml:space="preserve">
+    <value>颜色 1</value>
+  </data>
+  <data name="Props_Color2" xml:space="preserve">
+    <value>颜色 2</value>
+  </data>
+  <data name="Props_Count" xml:space="preserve">
+    <value>数量</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>删除图层</value>
+  </data>
+  <data name="Props_From" xml:space="preserve">
+    <value>起点</value>
+  </data>
+  <data name="Props_Inner" xml:space="preserve">
+    <value>内侧</value>
+  </data>
+  <data name="Props_Name" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>选择一个图层来编辑其属性。</value>
+  </data>
+  <data name="Props_Opacity" xml:space="preserve">
+    <value>不透明度</value>
+  </data>
+  <data name="Props_Outer" xml:space="preserve">
+    <value>外侧</value>
+  </data>
+  <data name="Props_Procedural_Hint" xml:space="preserve">
+    <value>绑定一个内核变量，然后运行一个给它赋值（绘制操作数组）的代码单元格。每个程序化图层可以使用自己的变量。</value>
+  </data>
+  <data name="Props_Radius" xml:space="preserve">
+    <value>半径</value>
+  </data>
+  <data name="Props_Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="Props_Spacing" xml:space="preserve">
+    <value>间距</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>文本</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Props_To" xml:space="preserve">
+    <value>终点</value>
+  </data>
+  <data name="Props_Variable" xml:space="preserve">
+    <value>变量</value>
+  </data>
+  <data name="Props_Width" xml:space="preserve">
+    <value>宽度</value>
+  </data>
+  <data name="Props_X" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="Props_Y" xml:space="preserve">
+    <value>Y</value>
+  </data>
+  <data name="Seed_DotGrid" xml:space="preserve">
+    <value>点阵</value>
+  </data>
+  <data name="Seed_Scripted" xml:space="preserve">
+    <value>脚本</value>
+  </data>
+  <data name="Seed_Sky" xml:space="preserve">
+    <value>天空</value>
+  </data>
+  <data name="Seed_Sun" xml:space="preserve">
+    <value>太阳</value>
+  </data>
+  <data name="Seed_Title" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Tool_Add_Tip" xml:space="preserve">
+    <value>添加：{0}</value>
+  </data>
+  <data name="Tool_Props_Tip" xml:space="preserve">
+    <value>显示或隐藏属性</value>
+  </data>
+  <data name="Zoom_Fit" xml:space="preserve">
+    <value>适应</value>
+  </data>
+  <data name="Zoom_Fit_Tip" xml:space="preserve">
+    <value>适应窗口</value>
+  </data>
+  <data name="Zoom_In_Tip" xml:space="preserve">
+    <value>放大</value>
+  </data>
+  <data name="Zoom_Out_Tip" xml:space="preserve">
+    <value>缩小</value>
+  </data>
+  <data name="Zoom_Reset_Tip" xml:space="preserve">
+    <value>重置为 100%</value>
+  </data>
+</root>

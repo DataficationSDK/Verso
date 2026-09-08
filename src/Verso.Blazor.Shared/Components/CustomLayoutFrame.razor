@@ -1,3 +1,4 @@
+@using System.Globalization
 @using System.Text
 @using System.Text.Json
 @using Microsoft.AspNetCore.Components
@@ -120,7 +121,7 @@ else if (_srcdoc is not null)
             return;
         }
 
-        _srcdoc = BuildSrcDoc(package, composedCsp, bridgeScript, _extensionId, _layoutId, _frameInstanceId);
+        _srcdoc = BuildSrcDoc(package, composedCsp, bridgeScript, _extensionId, _layoutId, _frameInstanceId, CultureInfo.CurrentUICulture.Name);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -287,7 +288,7 @@ else if (_srcdoc is not null)
         _readyTimeoutCts?.Cancel();
 
         if (_rendererProtocolVersion is { Length: > 0 } declared
-            && !string.Equals(declared, LayoutBridgeProtocol.Version, StringComparison.Ordinal))
+            && !ProtocolIsCompatible(declared, LayoutBridgeProtocol.Version))
         {
             await TryForwardLogAsync("warn",
                 $"Renderer declares layout-bridge protocol '{declared}' but the host speaks " +
@@ -322,6 +323,8 @@ else if (_srcdoc is not null)
             ["hostProtocolVersion"] = LayoutBridgeProtocol.Version,
             ["extension"] = extra
         };
+
+        initPayload["uiCulture"] = CultureInfo.CurrentUICulture.Name;
 
         if (Host.CurrentTheme is { } themeBundle)
         {
@@ -563,16 +566,41 @@ else if (_srcdoc is not null)
         return true;
     }
 
+    /// <summary>
+    /// A renderer built against an older minor of the protocol only lacks fields the host now
+    /// sends, so it is compatible; one built against a newer minor may expect fields this host
+    /// does not send yet, and a different major is a different contract.
+    /// </summary>
+    private static bool ProtocolIsCompatible(string declared, string host)
+    {
+        static bool TryParse(string version, out int major, out int minor)
+        {
+            major = minor = 0;
+            var dot = version.IndexOf('.');
+            if (dot <= 0) return false;
+            return int.TryParse(version.AsSpan(0, dot), out major)
+                && int.TryParse(version.AsSpan(dot + 1), out minor);
+        }
+
+        return TryParse(declared, out var declaredMajor, out var declaredMinor)
+            && TryParse(host, out var hostMajor, out var hostMinor)
+            && declaredMajor == hostMajor
+            && declaredMinor <= hostMinor;
+    }
+
     private static string BuildSrcDoc(
         LayoutRendererPackageDto package,
         string csp,
         string bridgeScript,
         string extensionId,
         string layoutId,
-        string frameInstanceId)
+        string frameInstanceId,
+        string uiCulture)
     {
         var sb = new StringBuilder(8192);
-        sb.Append("<!doctype html><html><head>");
+        sb.Append("<!doctype html><html lang=\"")
+          .Append(HtmlAttributeEscape(uiCulture))
+          .Append("\"><head>");
         sb.Append("<meta charset=\"utf-8\">");
         sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"")
           .Append(HtmlAttributeEscape(csp))

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Verso.Abstractions.Tests.Extensions;
 
 [TestClass]
@@ -48,6 +50,27 @@ public class DefaultInterfaceMemberTests
         // keeps such a host working: a caller that finds null writes static output.
         IVersoContext context = new StubVersoContext();
         Assert.IsNull(context.OutputChannels);
+    }
+
+    [TestMethod]
+    public void IVersoContext_UICulture_FollowsTheCurrentUICulture()
+    {
+        // A host built before the member existed sets the thread's UI culture and nothing else,
+        // so the default has to read that, live, rather than a value captured at construction.
+        IVersoContext context = new StubVersoContext();
+        var original = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de");
+            Assert.AreEqual("de", context.UICulture.Name);
+
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("ja");
+            Assert.AreEqual("ja", context.UICulture.Name);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = original;
+        }
     }
 
     [TestMethod]

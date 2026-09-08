@@ -25,6 +25,10 @@ Pick a different DataBlock from the toolbar dropdown, which lists every variable
 one. The extension reads and rebuilds DataBlocks entirely by reflection, so it needs no reference to
 Datafication.Core.
 
+## Languages
+
+The layout's chrome follows the interface language: English, German, Spanish, Japanese, and Simplified Chinese ship in the package. Set `verso.language` in VS Code or pass `--language` on the command line, and the layout answers in that language with the rest of the notebook.
+
 ## License
 
 MIT. This package bundles [Jspreadsheet CE](https://github.com/jspreadsheet/ce) and

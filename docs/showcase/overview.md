@@ -60,6 +60,8 @@ They persist their own state into the notebook file through layout metadata. A d
 
 They read data by reflection rather than by reference. Grid Studio and Form Studio both work with `DataBlock` values from `Datafication.Core`, and neither references that package: they read whichever assembly the kernel loaded with `#r "nuget: ..."`, which is what keeps them working however that assembly arrived.
 
+They follow the interface language. Each keeps its strings in its own resource file, translated into the same four languages as Verso itself, and the three isolated layouts hand their strings to their frames on mount. Open one with `verso serve --language de` and its header bar, tooltips, and properties panel come up in German with the rest of the notebook. The [Localization](../extensions/localization.md) guide walks through what they do.
+
 And they are samples, not products. The code is meant to be read, and each one is small enough that reading it is a reasonable afternoon.
 
 ## See also

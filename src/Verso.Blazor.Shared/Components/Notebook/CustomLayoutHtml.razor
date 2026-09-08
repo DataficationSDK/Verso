@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Microsoft.AspNetCore.Components
 @using Microsoft.JSInterop
 @using Verso.Abstractions
@@ -83,6 +84,7 @@
    reorder re-renders stay flicker-free. Blazor still owns this element; only its children are
    managed out-of-band. *@
 <div class="verso-layout-root"
+     lang="@CultureInfo.CurrentUICulture.Name"
      data-extension-id="@_extensionId"
      data-layout-id="@_layoutId"
      data-frame-instance-id="@_frameInstanceId"

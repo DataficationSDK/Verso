@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Chart_Loading" xml:space="preserve">
+    <value>正在加载…</value>
+  </data>
+  <data name="Chart_PickSource" xml:space="preserve">
+    <value>选择一个数据源</value>
+  </data>
+  <data name="Empty_Hint" xml:space="preserve">
+    <value>输入会写入内核变量。图表绘制一个数据源。切换到预览即可使用该应用。</value>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>从左侧拖一个小组件到画布上。</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>隔离布局，用可拖动的小组件和图表把笔记本变成实时的参数化应用。</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Form Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Form Studio 布局</value>
+  </data>
+  <data name="Palette_Bar" xml:space="preserve">
+    <value>柱状</value>
+  </data>
+  <data name="Palette_Charts" xml:space="preserve">
+    <value>图表</value>
+  </data>
+  <data name="Palette_Drag_Tip" xml:space="preserve">
+    <value>拖到画布上</value>
+  </data>
+  <data name="Palette_Dropdown" xml:space="preserve">
+    <value>下拉列表</value>
+  </data>
+  <data name="Palette_Inputs" xml:space="preserve">
+    <value>输入</value>
+  </data>
+  <data name="Palette_Label" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Palette_Line" xml:space="preserve">
+    <value>折线</value>
+  </data>
+  <data name="Palette_Number" xml:space="preserve">
+    <value>数字</value>
+  </data>
+  <data name="Palette_Pie" xml:space="preserve">
+    <value>饼</value>
+  </data>
+  <data name="Palette_Scatter" xml:space="preserve">
+    <value>散点</value>
+  </data>
+  <data name="Palette_Slider" xml:space="preserve">
+    <value>滑块</value>
+  </data>
+  <data name="Palette_Text" xml:space="preserve">
+    <value>文本</value>
+  </data>
+  <data name="Palette_Toggle" xml:space="preserve">
+    <value>开关</value>
+  </data>
+  <data name="Props_BindsTo" xml:space="preserve">
+    <value>绑定到变量</value>
+  </data>
+  <data name="Props_BindsTo_Hint" xml:space="preserve">
+    <value>此输入写入的内核变量。</value>
+  </data>
+  <data name="Props_ChartType" xml:space="preserve">
+    <value>图表类型</value>
+  </data>
+  <data name="Props_Data" xml:space="preserve">
+    <value>数据</value>
+  </data>
+  <data name="Props_Data_Hint" xml:space="preserve">
+    <value>要绘制的内核变量（DataBlock 或 DataTable）。</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>删除小组件</value>
+  </data>
+  <data name="Props_Label" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Props_Max" xml:space="preserve">
+    <value>最大值</value>
+  </data>
+  <data name="Props_Min" xml:space="preserve">
+    <value>最小值</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>选择一个小组件来编辑其设置，或从选板拖入一个新的。</value>
+  </data>
+  <data name="Props_Options" xml:space="preserve">
+    <value>选项（逗号分隔）</value>
+  </data>
+  <data name="Props_SeriesColor" xml:space="preserve">
+    <value>系列颜色</value>
+  </data>
+  <data name="Props_Step" xml:space="preserve">
+    <value>步长</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>文本</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Props_XAxis" xml:space="preserve">
+    <value>X 轴</value>
+  </data>
+  <data name="Props_YAxis" xml:space="preserve">
+    <value>Y 轴（系列）</value>
+  </data>
+  <data name="Seed_MinimumUnits" xml:space="preserve">
+    <value>最低数量</value>
+  </data>
+  <data name="Seed_Region" xml:space="preserve">
+    <value>区域</value>
+  </data>
+  <data name="Seed_RevenueByMonth" xml:space="preserve">
+    <value>各月收入</value>
+  </data>
+  <data name="Seed_UnitsByMonth" xml:space="preserve">
+    <value>各月数量</value>
+  </data>
+  <data name="Select_None" xml:space="preserve">
+    <value>（无）</value>
+  </data>
+  <data name="Select_PickSourceFirst" xml:space="preserve">
+    <value>请先选择一个数据源。</value>
+  </data>
+  <data name="Toolbar_AutoRun" xml:space="preserve">
+    <value>自动运行</value>
+  </data>
+  <data name="Toolbar_AutoRun_Tip" xml:space="preserve">
+    <value>输入变化时自动重新运行笔记本</value>
+  </data>
+  <data name="Toolbar_Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Toolbar_Export_Tip" xml:space="preserve">
+    <value>将仪表板下载为 JSON</value>
+  </data>
+  <data name="Toolbar_Preview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="Toolbar_Run" xml:space="preserve">
+    <value>运行</value>
+  </data>
+  <data name="Toolbar_Run_Tip" xml:space="preserve">
+    <value>立即重新运行笔记本</value>
+  </data>
+  <data name="Widget_ChartLabel" xml:space="preserve">
+    <value>{0}图</value>
+  </data>
+  <data name="Widget_Heading" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Widget_Resize_Tip" xml:space="preserve">
+    <value>调整大小</value>
+  </data>
+</root>

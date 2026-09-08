@@ -9,6 +9,12 @@ one set per assembly, which the build turns into a satellite assembly per langua
 editor extension reads `vscode/package.nls.json` for anything named in its manifest and
 `vscode/l10n/bundle.l10n.json` for the strings its own code shows.
 
+The showcase extensions under `samples/showcase` carry their own sets in the same shape,
+`samples/showcase/<sample>/src/<Project>/Resources/Strings.resx`, and every script here treats
+them like any other. They are the samples people copy when writing an extension, so they show
+the pattern an extension follows; the authoring guide at `docs/extensions/localization.md`
+walks through it.
+
 One set per assembly is not a choice: a satellite assembly carries one assembly's resources, so a
 kernel that ships as its own package needs its own. Each kernel therefore has a `Resources` folder
 and a block in its `.csproj` that generates the accessor. `Plural` lives in `Verso.Abstractions`,

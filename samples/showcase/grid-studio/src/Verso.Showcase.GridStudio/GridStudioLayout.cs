@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Showcase.GridStudio.Resources;
 
 namespace Verso.Showcase.GridStudio;
 
@@ -47,10 +48,10 @@ public sealed class GridStudioLayout
     // --- IExtension ---
 
     public string ExtensionId => "com.verso.showcase.grid-studio";
-    public string Name => "Grid Studio Layout";
+    public string Name => Strings.Layout_Name;
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Isolated layout that presents a kernel DataBlock as an editable spreadsheet, or a DataTable read-only.";
+    public string? Description => Strings.Layout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -58,7 +59,7 @@ public sealed class GridStudioLayout
     // --- ILayoutEngine ---
 
     public string LayoutId => "grid-studio";
-    public string DisplayName => "Grid Studio";
+    public string DisplayName => Strings.Layout_DisplayName;
 
     public string? Icon =>
         "<svg viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">" +
@@ -130,8 +131,11 @@ public sealed class GridStudioLayout
         variables.OnVariablesChanged += PushOnChange;
         _unsubscribers[context.FrameInstanceId] = () => variables.OnVariablesChanged -= PushOnChange;
 
+        // The frame cannot reach a resource manager, so it gets its strings here, resolved for
+        // the language the host is answering in. The frame builds its chrome once they arrive.
         var seed = new Dictionary<string, object>(StringComparer.Ordinal)
         {
+            ["strings"] = StringTable.From(Strings.ResourceManager, context.Verso.UICulture),
             ["sourceVar"] = _doc.SourceVar,
             ["variables"] = ListSourceVars(variables),
             ["readOnly"] = IsReadOnlySource(variables),

@@ -17,6 +17,10 @@ namespace Verso.Abstractions;
 /// incompatible protocol; a minor bump signals backward-compatible additions (for example
 /// a new optional field on an existing message).
 /// </para>
+/// <para>
+/// 1.1 added the optional <c>uiCulture</c> field to <c>verso/init</c>, naming the language
+/// the host's interface is drawn in.
+/// </para>
 /// </remarks>
 public static class LayoutBridgeProtocol
 {
@@ -24,5 +28,5 @@ public static class LayoutBridgeProtocol
     /// The protocol version this build of the host speaks and the value a renderer should
     /// declare when it targets the current contract.
     /// </summary>
-    public const string Version = "1.0";
+    public const string Version = "1.1";
 }

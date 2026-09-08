@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Caption_Cell" xml:space="preserve">
+    <value>Cell</value>
+    <comment>Caption under a filmstrip tile for a cell of unknown type.</comment>
+  </data>
+  <data name="Caption_Code" xml:space="preserve">
+    <value>Code</value>
+    <comment>Caption under a filmstrip tile for a code cell with no language set.</comment>
+  </data>
+  <data name="Filmstrip_Empty" xml:space="preserve">
+    <value>This notebook has no cells yet. Switch to the Notebook layout to add some.</value>
+    <comment>Text in the filmstrip when the notebook has no cells. 'Notebook' names the built-in layout.</comment>
+  </data>
+  <data name="Hud_Exit" xml:space="preserve">
+    <value>Exit (Esc)</value>
+    <comment>Tooltip on the presenter's close button. Esc names the key and stays as written.</comment>
+  </data>
+  <data name="Hud_Next" xml:space="preserve">
+    <value>Next slide</value>
+    <comment>Tooltip on the presenter's forward arrow.</comment>
+  </data>
+  <data name="Hud_Previous" xml:space="preserve">
+    <value>Previous slide</value>
+    <comment>Tooltip on the presenter's back arrow.</comment>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Slide-deck authoring layout: a filmstrip of cell previews, an editor and output split view, and a full-screen presenter mode with per-cell source/output control.</value>
+    <comment>Second line of the sample's entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Slide Studio</value>
+    <comment>Label in the layout picker. Stays as written.</comment>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Slide Studio</value>
+    <comment>Name of the sample extension as listed in the Extensions panel. 'Slide Studio' is the sample's name and stays as written.</comment>
+  </data>
+  <data name="Output_ImageAlt" xml:space="preserve">
+    <value>cell output</value>
+    <comment>Alternative text of an image output drawn on a slide, read by screen readers.</comment>
+  </data>
+  <data name="Pane_Cell" xml:space="preserve">
+    <value>Cell</value>
+    <comment>Header of the editor pane, the left half of the workspace.</comment>
+  </data>
+  <data name="Pane_NoOutput" xml:space="preserve">
+    <value>No output yet. Run the cell to see its result here.</value>
+    <comment>Output pane text when the selected cell has not produced output.</comment>
+  </data>
+  <data name="Pane_Output" xml:space="preserve">
+    <value>Output</value>
+    <comment>Header of the output pane, the right half of the workspace.</comment>
+  </data>
+  <data name="Pane_OutputOnSlide" xml:space="preserve">
+    <value>Output on slide</value>
+    <comment>Checkbox label in the output pane header.</comment>
+  </data>
+  <data name="Pane_OutputOnSlide_Tip" xml:space="preserve">
+    <value>Show this cell's output on its slide</value>
+    <comment>Tooltip on the Output on slide checkbox.</comment>
+  </data>
+  <data name="Pane_SelectCell" xml:space="preserve">
+    <value>Select a cell in the filmstrip.</value>
+    <comment>Editor pane text when no cell is selected.</comment>
+  </data>
+  <data name="Pane_SourceOnSlide" xml:space="preserve">
+    <value>Source on slide</value>
+    <comment>Checkbox label in the editor pane header.</comment>
+  </data>
+  <data name="Pane_SourceOnSlide_Tip" xml:space="preserve">
+    <value>Show this cell's source on its slide</value>
+    <comment>Tooltip on the Source on slide checkbox.</comment>
+  </data>
+  <data name="Props_Include" xml:space="preserve">
+    <value>Include in presenter</value>
+    <comment>Toggle label in the cell properties panel.</comment>
+  </data>
+  <data name="Props_Include_Hint" xml:space="preserve">
+    <value>Whether this cell appears as a slide in presenter view.</value>
+    <comment>Help text under the Include in presenter toggle.</comment>
+  </data>
+  <data name="Props_Section" xml:space="preserve">
+    <value>Presenter</value>
+    <comment>Title of this layout's section in the cell properties panel.</comment>
+  </data>
+  <data name="Props_Section_Description" xml:space="preserve">
+    <value>How this cell appears in Slide Studio's presenter view.</value>
+    <comment>Description under the section title in the cell properties panel.</comment>
+  </data>
+  <data name="Props_ShowOutput" xml:space="preserve">
+    <value>Show output on slide</value>
+    <comment>Toggle label in the cell properties panel.</comment>
+  </data>
+  <data name="Props_ShowOutput_Hint" xml:space="preserve">
+    <value>Show the cell's output on its slide.</value>
+    <comment>Help text under the Show output on slide toggle.</comment>
+  </data>
+  <data name="Props_ShowSource" xml:space="preserve">
+    <value>Show source on slide</value>
+    <comment>Toggle label in the cell properties panel.</comment>
+  </data>
+  <data name="Props_ShowSource_Hint" xml:space="preserve">
+    <value>Show the cell's source on its slide.</value>
+    <comment>Help text under the Show source on slide toggle.</comment>
+  </data>
+  <data name="Tile_Include_Tip" xml:space="preserve">
+    <value>Include in presenter view</value>
+    <comment>Tooltip on the checkbox in each filmstrip tile.</comment>
+  </data>
+  <data name="Toolbar_Present" xml:space="preserve">
+    <value>Present</value>
+    <comment>Toolbar button that opens the full-screen presenter.</comment>
+  </data>
+  <data name="Toolbar_Present_None_Tip" xml:space="preserve">
+    <value>No cells are included in the presenter view</value>
+    <comment>Tooltip on the disabled Present button when no cell is marked for the deck.</comment>
+  </data>
+  <data name="Toolbar_SlideCount_One" xml:space="preserve">
+    <value>{0} slide</value>
+    <comment>Count in the toolbar for exactly one slide. {0} is the number.</comment>
+  </data>
+  <data name="Toolbar_SlideCount_Other" xml:space="preserve">
+    <value>{0} slides</value>
+    <comment>Count in the toolbar for any other number of slides. {0} is the number.</comment>
+  </data>
+  <data name="Toolbar_Title" xml:space="preserve">
+    <value>Slide Studio</value>
+    <comment>Title at the left of the layout's toolbar. Stays as written.</comment>
+  </data>
+</root>

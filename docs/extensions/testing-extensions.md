@@ -53,7 +53,7 @@ Stubs implement context interfaces with sensible defaults and track calls for as
 
 | Stub | Implements | Key Tracking Properties |
 |---|---|---|
-| `StubVersoContext` | `IVersoContext` | `WrittenOutputs`, `UpdatedOutputs` |
+| `StubVersoContext` | `IVersoContext` | `WrittenOutputs`, `UpdatedOutputs`, settable `UICulture` |
 | `StubExecutionContext` | `IExecutionContext` | `WrittenOutputs`, `DisplayedOutputs`, `UpdatedOutputs`, `CellId`, `ExecutionCount` |
 | `StubFormatterContext` | `IFormatterContext` | `MimeType`, `MaxWidth`, `MaxHeight` |
 | `StubCellRenderContext` | `ICellRenderContext` | `CellId`, `CellMetadata`, `Dimensions`, `IsSelected` |
@@ -452,6 +452,16 @@ Assert.AreEqual(0, fakeKernel.InitializeCallCount); // Not yet initialized
 ```
 
 ---
+
+## Testing with Languages
+
+`StubVersoContext.UICulture` follows the thread's current UI culture unless a test sets it:
+
+```csharp
+var context = new StubVersoContext { UICulture = CultureInfo.GetCultureInfo("de") };
+```
+
+A string that goes through a generated resource class reads the thread's culture rather than the context's, so to prove a display name follows the language, switch `CultureInfo.CurrentUICulture` part-way through the test and ask again. The [Localization](localization.md) guide shows the shape of that test.
 
 ## Complete Example
 

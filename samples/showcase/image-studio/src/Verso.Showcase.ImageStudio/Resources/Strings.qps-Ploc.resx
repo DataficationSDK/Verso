@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Align_Center" xml:space="preserve">
+    <value>[!!Çéñtér···!!]</value>
+  </data>
+  <data name="Align_Left" xml:space="preserve">
+    <value>[!!Léft···!!]</value>
+  </data>
+  <data name="Align_Right" xml:space="preserve">
+    <value>[!!Rïght···!!]</value>
+  </data>
+  <data name="Blend_Color" xml:space="preserve">
+    <value>[!!Çòlòr···!!]</value>
+  </data>
+  <data name="Blend_ColorBurn" xml:space="preserve">
+    <value>[!!Çòlòr bùrñ···!!]</value>
+  </data>
+  <data name="Blend_ColorDodge" xml:space="preserve">
+    <value>[!!Çòlòr dòdgé···!!]</value>
+  </data>
+  <data name="Blend_Darken" xml:space="preserve">
+    <value>[!!Dàrkéñ···!!]</value>
+  </data>
+  <data name="Blend_Difference" xml:space="preserve">
+    <value>[!!Dïfféréñçé···!!]</value>
+  </data>
+  <data name="Blend_Exclusion" xml:space="preserve">
+    <value>[!!Éxçlùšïòñ···!!]</value>
+  </data>
+  <data name="Blend_HardLight" xml:space="preserve">
+    <value>[!!Hàrd lïght···!!]</value>
+  </data>
+  <data name="Blend_Hue" xml:space="preserve">
+    <value>[!!Hùé···!!]</value>
+  </data>
+  <data name="Blend_Lighten" xml:space="preserve">
+    <value>[!!Lïghtéñ···!!]</value>
+  </data>
+  <data name="Blend_Luminosity" xml:space="preserve">
+    <value>[!!Lùmïñòšïtÿ···!!]</value>
+  </data>
+  <data name="Blend_Multiply" xml:space="preserve">
+    <value>[!!Mùltïplÿ···!!]</value>
+  </data>
+  <data name="Blend_Normal" xml:space="preserve">
+    <value>[!!Ñòrmàl···!!]</value>
+  </data>
+  <data name="Blend_Overlay" xml:space="preserve">
+    <value>[!!Òvérlàÿ···!!]</value>
+  </data>
+  <data name="Blend_Saturation" xml:space="preserve">
+    <value>[!!Šàtùràtïòñ···!!]</value>
+  </data>
+  <data name="Blend_Screen" xml:space="preserve">
+    <value>[!!Šçrééñ···!!]</value>
+  </data>
+  <data name="Blend_SoftLight" xml:space="preserve">
+    <value>[!!Šòft lïght···!!]</value>
+  </data>
+  <data name="Export_Png" xml:space="preserve">
+    <value>[!!PÑG Ïmàgé···!!]</value>
+  </data>
+  <data name="Export_Png_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš thé Ïmàgé Štùdïò çòmpòšïté àš à PÑG ïmàgé.···!!]</value>
+  </data>
+  <data name="Export_Png_Name" xml:space="preserve">
+    <value>[!!Ïmàgé Štùdïò: Éxpòrt PÑG···!!]</value>
+  </data>
+  <data name="Export_Svg" xml:space="preserve">
+    <value>[!!ŠVG Ïmàgé···!!]</value>
+  </data>
+  <data name="Export_Svg_Description" xml:space="preserve">
+    <value>[!!Éxpòrtš thé Ïmàgé Štùdïò çòmpòšïté àš àñ ŠVG ïmàgé.···!!]</value>
+  </data>
+  <data name="Export_Svg_Name" xml:space="preserve">
+    <value>[!!Ïmàgé Štùdïò: Éxpòrt ŠVG···!!]</value>
+  </data>
+  <data name="Kind_Checkerboard" xml:space="preserve">
+    <value>[!!Çhéçkérbòàrd···!!]</value>
+  </data>
+  <data name="Kind_Dots" xml:space="preserve">
+    <value>[!!Pàttérñ···!!]</value>
+  </data>
+  <data name="Kind_LinearGradient" xml:space="preserve">
+    <value>[!!Lïñéàr gràdïéñt···!!]</value>
+  </data>
+  <data name="Kind_Procedural" xml:space="preserve">
+    <value>[!!Pròçédùràl (çòdé-drïvéñ)···!!]</value>
+  </data>
+  <data name="Kind_RadialGradient" xml:space="preserve">
+    <value>[!!Ràdïàl gràdïéñt···!!]</value>
+  </data>
+  <data name="Kind_Rings" xml:space="preserve">
+    <value>[!!Rïñgš···!!]</value>
+  </data>
+  <data name="Kind_Solid" xml:space="preserve">
+    <value>[!!Šòlïd çòlòr···!!]</value>
+  </data>
+  <data name="Kind_Stripes" xml:space="preserve">
+    <value>[!!Štrïpéš···!!]</value>
+  </data>
+  <data name="Kind_Text" xml:space="preserve">
+    <value>[!!Téxt···!!]</value>
+  </data>
+  <data name="Layer_Default" xml:space="preserve">
+    <value>[!!Làÿér···!!]</value>
+  </data>
+  <data name="Layer_Hide" xml:space="preserve">
+    <value>[!!Hïdé···!!]</value>
+  </data>
+  <data name="Layer_Show" xml:space="preserve">
+    <value>[!!Šhòw···!!]</value>
+  </data>
+  <data name="Layers_Add_Tip" xml:space="preserve">
+    <value>[!!Àdd làÿér···!!]</value>
+  </data>
+  <data name="Layers_Empty" xml:space="preserve">
+    <value>[!!Ñò làÿérš ÿét. Àdd òñé fròm thé tòòl pàlétté.···!!]</value>
+  </data>
+  <data name="Layers_Title" xml:space="preserve">
+    <value>[!!Làÿérš···!!]</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>[!!Ïšòlàtéd làÿòùt thàt préšéñtš thé ñòtébòòk àš à làÿéréd ïmàgé dòçùméñt.···!!]</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>[!!Ïmàgé Štùdïò···!!]</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>[!!Ïmàgé Štùdïò Làÿòùt···!!]</value>
+  </data>
+  <data name="Name_Checker" xml:space="preserve">
+    <value>[!!Çhéçkér···!!]</value>
+  </data>
+  <data name="Name_Dots" xml:space="preserve">
+    <value>[!!Dòtš···!!]</value>
+  </data>
+  <data name="Name_Gradient" xml:space="preserve">
+    <value>[!!Gràdïéñt···!!]</value>
+  </data>
+  <data name="Name_Procedural" xml:space="preserve">
+    <value>[!!Pròçédùràl···!!]</value>
+  </data>
+  <data name="Name_Radial" xml:space="preserve">
+    <value>[!!Ràdïàl···!!]</value>
+  </data>
+  <data name="Name_Rings" xml:space="preserve">
+    <value>[!!Rïñgš···!!]</value>
+  </data>
+  <data name="Name_Solid" xml:space="preserve">
+    <value>[!!Šòlïd···!!]</value>
+  </data>
+  <data name="Name_Stripes" xml:space="preserve">
+    <value>[!!Štrïpéš···!!]</value>
+  </data>
+  <data name="Name_Text" xml:space="preserve">
+    <value>[!!Téxt···!!]</value>
+  </data>
+  <data name="Props_Align" xml:space="preserve">
+    <value>[!!Àlïgñ···!!]</value>
+  </data>
+  <data name="Props_Angle" xml:space="preserve">
+    <value>[!!Àñglé···!!]</value>
+  </data>
+  <data name="Props_Blend" xml:space="preserve">
+    <value>[!!Bléñd···!!]</value>
+  </data>
+  <data name="Props_CenterX" xml:space="preserve">
+    <value>[!!Çéñtér X···!!]</value>
+  </data>
+  <data name="Props_CenterY" xml:space="preserve">
+    <value>[!!Çéñtér Ý···!!]</value>
+  </data>
+  <data name="Props_Color" xml:space="preserve">
+    <value>[!!Çòlòr···!!]</value>
+  </data>
+  <data name="Props_Color1" xml:space="preserve">
+    <value>[!!Çòlòr 1···!!]</value>
+  </data>
+  <data name="Props_Color2" xml:space="preserve">
+    <value>[!!Çòlòr 2···!!]</value>
+  </data>
+  <data name="Props_Count" xml:space="preserve">
+    <value>[!!Çòùñt···!!]</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>[!!Délété làÿér···!!]</value>
+  </data>
+  <data name="Props_From" xml:space="preserve">
+    <value>[!!Fròm···!!]</value>
+  </data>
+  <data name="Props_Inner" xml:space="preserve">
+    <value>[!!Ïññér···!!]</value>
+  </data>
+  <data name="Props_Name" xml:space="preserve">
+    <value>[!!Ñàmé···!!]</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>[!!Šéléçt à làÿér tò édït ïtš pròpértïéš.···!!]</value>
+  </data>
+  <data name="Props_Opacity" xml:space="preserve">
+    <value>[!!Òpàçïtÿ···!!]</value>
+  </data>
+  <data name="Props_Outer" xml:space="preserve">
+    <value>[!!Òùtér···!!]</value>
+  </data>
+  <data name="Props_Procedural_Hint" xml:space="preserve">
+    <value>[!!Bïñd tò à kérñél vàrïàblé, théñ rùñ à çòdé çéll thàt àššïgñš ït (àñ àrràÿ òf dràw òpš). Éàçh pròçédùràl làÿér çàñ ùšé ïtš òwñ vàrïàblé.···!!]</value>
+  </data>
+  <data name="Props_Radius" xml:space="preserve">
+    <value>[!!Ràdïùš···!!]</value>
+  </data>
+  <data name="Props_Size" xml:space="preserve">
+    <value>[!!Šïzé···!!]</value>
+  </data>
+  <data name="Props_Spacing" xml:space="preserve">
+    <value>[!!Špàçïñg···!!]</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>[!!Téxt···!!]</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>[!!Pròpértïéš···!!]</value>
+  </data>
+  <data name="Props_To" xml:space="preserve">
+    <value>[!!Tò···!!]</value>
+  </data>
+  <data name="Props_Variable" xml:space="preserve">
+    <value>[!!Vàrïàblé···!!]</value>
+  </data>
+  <data name="Props_Width" xml:space="preserve">
+    <value>[!!Wïdth···!!]</value>
+  </data>
+  <data name="Props_X" xml:space="preserve">
+    <value>[!!X···!!]</value>
+  </data>
+  <data name="Props_Y" xml:space="preserve">
+    <value>[!!Ý···!!]</value>
+  </data>
+  <data name="Seed_DotGrid" xml:space="preserve">
+    <value>[!!Dòt grïd···!!]</value>
+  </data>
+  <data name="Seed_Scripted" xml:space="preserve">
+    <value>[!!Šçrïptéd···!!]</value>
+  </data>
+  <data name="Seed_Sky" xml:space="preserve">
+    <value>[!!Škÿ···!!]</value>
+  </data>
+  <data name="Seed_Sun" xml:space="preserve">
+    <value>[!!Šùñ···!!]</value>
+  </data>
+  <data name="Seed_Title" xml:space="preserve">
+    <value>[!!Tïtlé···!!]</value>
+  </data>
+  <data name="Tool_Add_Tip" xml:space="preserve">
+    <value>[!!Àdd: {0}···!!]</value>
+  </data>
+  <data name="Tool_Props_Tip" xml:space="preserve">
+    <value>[!!Tògglé pròpértïéš···!!]</value>
+  </data>
+  <data name="Zoom_Fit" xml:space="preserve">
+    <value>[!!Fït···!!]</value>
+  </data>
+  <data name="Zoom_Fit_Tip" xml:space="preserve">
+    <value>[!!Fït tò wïñdòw···!!]</value>
+  </data>
+  <data name="Zoom_In_Tip" xml:space="preserve">
+    <value>[!!Zòòm ïñ···!!]</value>
+  </data>
+  <data name="Zoom_Out_Tip" xml:space="preserve">
+    <value>[!!Zòòm òùt···!!]</value>
+  </data>
+  <data name="Zoom_Reset_Tip" xml:space="preserve">
+    <value>[!!Réšét tò 100%···!!]</value>
+  </data>
+</root>

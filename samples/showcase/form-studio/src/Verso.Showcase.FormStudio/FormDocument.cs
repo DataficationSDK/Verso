@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Verso.Showcase.FormStudio.Resources;
 
 namespace Verso.Showcase.FormStudio;
 
@@ -24,16 +25,41 @@ internal sealed class FormDocument
     // loads an extension-provided layout from a "#!extension" code cell, which runs after it
     // restores saved layout metadata, so a fresh open has nothing to restore into this layout yet.
     // Shipping a default document here makes the sample present a configured dashboard on every
-    // host without depending on that timing — two inputs (bound to minUnits / region) and two
-    // charts over the kernel's chartData DataBlock.
-    private const string DefaultJson = """
-    {"autoRun":true,"widgets":[
-      {"id":"w_slider","kind":"slider","x":24,"y":20,"w":300,"h":96,"label":"Minimum units","bindVar":"minUnits","value":40,"config":{"min":0,"max":200,"step":5}},
-      {"id":"w_region","kind":"dropdown","x":340,"y":20,"w":260,"h":92,"label":"Region","bindVar":"region","value":"All","config":{"options":["All","North","South","East","West"]}},
-      {"id":"w_bar","kind":"chart","x":24,"y":140,"w":560,"h":300,"label":"Units by month","bindVar":"","config":{"sourceVar":"chartData","chartType":"bar","xColumn":"Month","yColumns":["Units"],"color":"#5b8def"}},
-      {"id":"w_line","kind":"chart","x":600,"y":140,"w":480,"h":300,"label":"Revenue by month","bindVar":"","config":{"sourceVar":"chartData","chartType":"line","xColumn":"Month","yColumns":["Revenue"],"color":"#3fb27f"}}
-    ]}
-    """;
+    // host without depending on that timing: two inputs (bound to minUnits / region) and two
+    // charts over the kernel's chartData DataBlock. The labels are read from the resources each
+    // time so a fresh notebook opens in the reader's language; the dropdown's choices are values
+    // the notebook's own code compares, so they are data and stay as written.
+    private static string DefaultJson => JsonSerializer.Serialize(new
+    {
+        autoRun = true,
+        widgets = new object[]
+        {
+            new
+            {
+                id = "w_slider", kind = "slider", x = 24, y = 20, w = 300, h = 96,
+                label = Strings.Seed_MinimumUnits, bindVar = "minUnits", value = 40,
+                config = new { min = 0, max = 200, step = 5 },
+            },
+            new
+            {
+                id = "w_region", kind = "dropdown", x = 340, y = 20, w = 260, h = 92,
+                label = Strings.Seed_Region, bindVar = "region", value = "All",
+                config = new { options = new[] { "All", "North", "South", "East", "West" } },
+            },
+            new
+            {
+                id = "w_bar", kind = "chart", x = 24, y = 140, w = 560, h = 300,
+                label = Strings.Seed_UnitsByMonth, bindVar = "",
+                config = new { sourceVar = "chartData", chartType = "bar", xColumn = "Month", yColumns = new[] { "Units" }, color = "#5b8def" },
+            },
+            new
+            {
+                id = "w_line", kind = "chart", x = 600, y = 140, w = 480, h = 300,
+                label = Strings.Seed_RevenueByMonth, bindVar = "",
+                config = new { sourceVar = "chartData", chartType = "line", xColumn = "Month", yColumns = new[] { "Revenue" }, color = "#3fb27f" },
+            },
+        },
+    });
 
     /// <summary>The canonical canvas document as authored by the frame.</summary>
     public string Json { get; private set; } = DefaultJson;

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Verso.Abstractions;
 
 /// <summary>
@@ -96,4 +98,16 @@ public interface IVersoContext
     {
         throw new NotSupportedException("In-place output update is not supported by this host.");
     }
+
+    /// <summary>
+    /// Gets the language the host asked this operation to answer in.
+    /// </summary>
+    /// <remarks>
+    /// Every host also sets this as the thread's current UI culture, so a generated resource
+    /// class follows it without being told. Read it here when something takes a culture
+    /// explicitly, such as building a table of strings for a renderer that cannot reach a
+    /// resource manager itself. It is fixed for the life of the session: a user who changes the
+    /// interface language reopens the notebook to see it.
+    /// </remarks>
+    CultureInfo UICulture => CultureInfo.CurrentUICulture;
 }

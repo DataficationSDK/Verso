@@ -450,17 +450,56 @@ internal sealed class NuGetPackageResolver
                 if (entry is null) continue;
 
                 var fileName = Path.GetFileName(item);
-                var destPath = Path.Combine(packageDir, fileName);
+                var isSatellite = TryGetSatelliteCulture(item, out var culture);
+                var destDir = isSatellite ? Path.Combine(packageDir, culture) : packageDir;
+                Directory.CreateDirectory(destDir);
+                var destPath = Path.Combine(destDir, fileName);
 
                 using var entryStream = entry.Open();
                 using var destStream = File.Create(destPath);
                 await entryStream.CopyToAsync(destStream, ct).ConfigureAwait(false);
 
-                assemblyPaths.Add(destPath);
+                // A satellite is not a reference: it holds strings, not types, and the
+                // runtime finds it from its culture folder without being handed the path.
+                if (!isSatellite)
+                    assemblyPaths.Add(destPath);
             }
         }
 
         return assemblyPaths;
+    }
+
+    /// <summary>
+    /// Recognises a satellite resource assembly inside a lib folder, such as
+    /// <c>lib/net8.0/de/Some.Extension.resources.dll</c>, and names its culture.
+    /// </summary>
+    /// <remarks>
+    /// A satellite carries the translated strings for one language and has to sit under a
+    /// folder named for that language beside the assembly it translates, because that is
+    /// where the runtime looks. Flattened beside the assembly it loses its language, and
+    /// two languages overwrite each other.
+    /// </remarks>
+    internal static bool TryGetSatelliteCulture(string item, out string culture)
+    {
+        culture = string.Empty;
+        var segments = item.Split('/');
+        if (segments.Length < 4)
+            return false;
+
+        if (!segments[^1].EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var folder = segments[^2];
+        if (folder.Length is 0 or > 32)
+            return false;
+        foreach (var c in folder)
+        {
+            if (!(char.IsLetterOrDigit(c) || c == '-'))
+                return false;
+        }
+
+        culture = folder;
+        return true;
     }
 
     /// <summary>

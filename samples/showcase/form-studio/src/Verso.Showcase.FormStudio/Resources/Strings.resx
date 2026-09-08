@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Chart_Loading" xml:space="preserve">
+    <value>Loading…</value>
+    <comment>Placeholder drawn on a chart while its data is on the way.</comment>
+  </data>
+  <data name="Chart_PickSource" xml:space="preserve">
+    <value>Pick a data source</value>
+    <comment>Placeholder drawn on a chart that has no data variable yet.</comment>
+  </data>
+  <data name="Empty_Hint" xml:space="preserve">
+    <value>Inputs write kernel variables. Charts plot a data source. Switch to Preview to use the app.</value>
+    <comment>Smaller text under Empty_Title. 'Preview' matches Toolbar_Preview.</comment>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>Drag a widget from the left onto the canvas.</value>
+    <comment>Text in the middle of an empty canvas.</comment>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Isolated layout that turns a notebook into a live, parameterized app built from draggable widgets and charts.</value>
+    <comment>Second line of the sample's entry in the Extensions panel.</comment>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Form Studio</value>
+    <comment>Label in the layout picker. Stays as written.</comment>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Form Studio Layout</value>
+    <comment>Name of the sample extension as listed in the Extensions panel. 'Form Studio' is the sample's name and stays as written; 'Layout' translates.</comment>
+  </data>
+  <data name="Palette_Bar" xml:space="preserve">
+    <value>Bar</value>
+    <comment>Palette entry for a bar chart, and the word used in Widget_ChartLabel.</comment>
+  </data>
+  <data name="Palette_Charts" xml:space="preserve">
+    <value>Charts</value>
+    <comment>Heading of the second group in the widget palette.</comment>
+  </data>
+  <data name="Palette_Drag_Tip" xml:space="preserve">
+    <value>Drag onto the canvas</value>
+    <comment>Tooltip on every palette entry.</comment>
+  </data>
+  <data name="Palette_Dropdown" xml:space="preserve">
+    <value>Dropdown</value>
+    <comment>Palette entry and default label of that widget.</comment>
+  </data>
+  <data name="Palette_Inputs" xml:space="preserve">
+    <value>Inputs</value>
+    <comment>Heading of the first group in the widget palette.</comment>
+  </data>
+  <data name="Palette_Label" xml:space="preserve">
+    <value>Label</value>
+    <comment>Palette entry for a static text widget.</comment>
+  </data>
+  <data name="Palette_Line" xml:space="preserve">
+    <value>Line</value>
+    <comment>Palette entry for a line chart, and the word used in Widget_ChartLabel.</comment>
+  </data>
+  <data name="Palette_Number" xml:space="preserve">
+    <value>Number</value>
+    <comment>Palette entry and default label of that widget: a numeric input.</comment>
+  </data>
+  <data name="Palette_Pie" xml:space="preserve">
+    <value>Pie</value>
+    <comment>Palette entry for a pie chart, and the word used in Widget_ChartLabel.</comment>
+  </data>
+  <data name="Palette_Scatter" xml:space="preserve">
+    <value>Scatter</value>
+    <comment>Palette entry for a scatter chart, and the word used in Widget_ChartLabel.</comment>
+  </data>
+  <data name="Palette_Slider" xml:space="preserve">
+    <value>Slider</value>
+    <comment>Palette entry and default label of that widget.</comment>
+  </data>
+  <data name="Palette_Text" xml:space="preserve">
+    <value>Text</value>
+    <comment>Palette entry and default label of that widget: a text input.</comment>
+  </data>
+  <data name="Palette_Toggle" xml:space="preserve">
+    <value>Toggle</value>
+    <comment>Palette entry and default label of that widget: an on/off switch.</comment>
+  </data>
+  <data name="Props_BindsTo" xml:space="preserve">
+    <value>Binds to variable</value>
+    <comment>Field: the kernel variable an input writes.</comment>
+  </data>
+  <data name="Props_BindsTo_Hint" xml:space="preserve">
+    <value>The kernel variable this input writes.</value>
+    <comment>Help text under the Binds to variable field.</comment>
+  </data>
+  <data name="Props_ChartType" xml:space="preserve">
+    <value>Chart type</value>
+    <comment>Field: bar, line, pie, or scatter.</comment>
+  </data>
+  <data name="Props_Data" xml:space="preserve">
+    <value>Data</value>
+    <comment>Field: the variable a chart plots.</comment>
+  </data>
+  <data name="Props_Data_Hint" xml:space="preserve">
+    <value>The kernel variable to plot (a DataBlock or DataTable).</value>
+    <comment>Help text under the Data field. DataBlock and DataTable are type names and stay as written.</comment>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>Delete widget</value>
+    <comment>Button at the bottom of the properties column.</comment>
+  </data>
+  <data name="Props_Label" xml:space="preserve">
+    <value>Label</value>
+    <comment>Field: the text shown above a widget.</comment>
+  </data>
+  <data name="Props_Max" xml:space="preserve">
+    <value>Max</value>
+    <comment>Field: a slider's largest value.</comment>
+  </data>
+  <data name="Props_Min" xml:space="preserve">
+    <value>Min</value>
+    <comment>Field: a slider's smallest value.</comment>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>Select a widget to edit its settings, or drag a new one from the palette.</value>
+    <comment>Properties column text when nothing is selected.</comment>
+  </data>
+  <data name="Props_Options" xml:space="preserve">
+    <value>Options (comma separated)</value>
+    <comment>Field: the choices a dropdown offers, typed as one line.</comment>
+  </data>
+  <data name="Props_SeriesColor" xml:space="preserve">
+    <value>Series color</value>
+    <comment>Field: the color of the plotted series.</comment>
+  </data>
+  <data name="Props_Step" xml:space="preserve">
+    <value>Step</value>
+    <comment>Field: a slider's increment.</comment>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>Text</value>
+    <comment>Field: the content of a static text widget.</comment>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>Properties</value>
+    <comment>Heading of the properties column on the right.</comment>
+  </data>
+  <data name="Props_XAxis" xml:space="preserve">
+    <value>X axis</value>
+    <comment>Field: the column along the bottom of a chart.</comment>
+  </data>
+  <data name="Props_YAxis" xml:space="preserve">
+    <value>Y axis (series)</value>
+    <comment>Field: the columns plotted as series.</comment>
+  </data>
+  <data name="Seed_MinimumUnits" xml:space="preserve">
+    <value>Minimum units</value>
+    <comment>Label of the slider in the starter dashboard a fresh notebook opens with.</comment>
+  </data>
+  <data name="Seed_Region" xml:space="preserve">
+    <value>Region</value>
+    <comment>Label of the dropdown in the starter dashboard. Its choices are data values the notebook's code compares and stay in English.</comment>
+  </data>
+  <data name="Seed_RevenueByMonth" xml:space="preserve">
+    <value>Revenue by month</value>
+    <comment>Title of the line chart in the starter dashboard.</comment>
+  </data>
+  <data name="Seed_UnitsByMonth" xml:space="preserve">
+    <value>Units by month</value>
+    <comment>Title of the bar chart in the starter dashboard.</comment>
+  </data>
+  <data name="Select_None" xml:space="preserve">
+    <value>(none)</value>
+    <comment>Only entry of a dropdown that has nothing to offer.</comment>
+  </data>
+  <data name="Select_PickSourceFirst" xml:space="preserve">
+    <value>Pick a data source first.</value>
+    <comment>Shown in place of the series checkboxes until a chart has data.</comment>
+  </data>
+  <data name="Toolbar_AutoRun" xml:space="preserve">
+    <value>Auto-run</value>
+    <comment>Checkbox label in the top bar.</comment>
+  </data>
+  <data name="Toolbar_AutoRun_Tip" xml:space="preserve">
+    <value>Re-run the notebook automatically when an input changes</value>
+    <comment>Tooltip on the Auto-run checkbox.</comment>
+  </data>
+  <data name="Toolbar_Edit" xml:space="preserve">
+    <value>Edit</value>
+    <comment>Left half of the mode switch: arrange widgets.</comment>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>Export</value>
+    <comment>Top bar button that downloads the dashboard definition.</comment>
+  </data>
+  <data name="Toolbar_Export_Tip" xml:space="preserve">
+    <value>Download the dashboard as JSON</value>
+    <comment>Tooltip on the Export button. JSON is a format name and stays as written.</comment>
+  </data>
+  <data name="Toolbar_Preview" xml:space="preserve">
+    <value>Preview</value>
+    <comment>Right half of the mode switch: use the dashboard.</comment>
+  </data>
+  <data name="Toolbar_Run" xml:space="preserve">
+    <value>Run</value>
+    <comment>Top bar button that re-runs the notebook.</comment>
+  </data>
+  <data name="Toolbar_Run_Tip" xml:space="preserve">
+    <value>Re-run the notebook now</value>
+    <comment>Tooltip on the Run button.</comment>
+  </data>
+  <data name="Widget_ChartLabel" xml:space="preserve">
+    <value>{0} chart</value>
+    <comment>Default title of a newly added chart. {0} is the chart kind, such as Palette_Bar.</comment>
+  </data>
+  <data name="Widget_Heading" xml:space="preserve">
+    <value>Heading</value>
+    <comment>Default text of a newly added static text widget.</comment>
+  </data>
+  <data name="Widget_Resize_Tip" xml:space="preserve">
+    <value>Resize</value>
+    <comment>Tooltip on the resize handle in a widget's corner.</comment>
+  </data>
+</root>
