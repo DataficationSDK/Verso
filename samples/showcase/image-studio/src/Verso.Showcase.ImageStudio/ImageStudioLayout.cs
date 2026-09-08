@@ -140,7 +140,7 @@ public sealed class ImageStudioLayout
         var seed = new Dictionary<string, object>
         {
             ["strings"] = StringTable.From(Strings.ResourceManager, context.Verso.UICulture),
-            ["document"] = _doc,
+            ["document"] = _doc.ForDisplay(),
         };
         var initialVars = CollectProceduralVars(variables);
         if (initialVars.Count > 0)
@@ -199,10 +199,14 @@ public sealed class ImageStudioLayout
             case "add-layer":
             {
                 var kind = GetString(root, "kind") ?? "solid";
+                var explicitName = GetString(root, "name");
                 var layer = new Layer
                 {
                     Kind = kind,
-                    Name = GetString(root, "name") ?? DefaultName(kind),
+                    // Only a name that came from the frame is a name a person chose; the
+                    // built-in one is kept as a key so it follows the reader's language.
+                    Name = explicitName,
+                    NameKey = explicitName is null ? DefaultNameKey(kind) : null,
                     Props = DefaultProps(kind),
                     SourceVar = kind == "procedural" ? (GetString(root, "sourceVar") ?? "ops") : null,
                 };
@@ -272,6 +276,7 @@ public sealed class ImageStudioLayout
                 var name = GetString(root, "name");
                 if (layer is null || name is null) return false;
                 layer.Name = name;
+                layer.NameKey = null; // a chosen name outranks the built-in one from here on
                 return true;
             }
 
@@ -375,7 +380,7 @@ public sealed class ImageStudioLayout
         foreach (var frame in _frames.Values)
         {
             if (frame.IsAlive)
-                _ = frame.PostMessageAsync(DocumentMessage, new { document = _doc }, ct);
+                _ = frame.PostMessageAsync(DocumentMessage, new { document = _doc.ForDisplay() }, ct);
         }
     }
 
@@ -415,18 +420,23 @@ public sealed class ImageStudioLayout
 
     // --- Defaults for newly added layers ---
 
-    private static string DefaultName(string kind) => kind switch
+    /// <summary>
+    /// The resource key for a layer kind's built-in name. A key rather than the string itself,
+    /// because the name is stored in the notebook and has to survive being opened by a reader
+    /// working in another language.
+    /// </summary>
+    private static string DefaultNameKey(string kind) => kind switch
     {
-        "solid" => Strings.Name_Solid,
-        "linear-gradient" => Strings.Name_Gradient,
-        "radial-gradient" => Strings.Name_Radial,
-        "checkerboard" => Strings.Name_Checker,
-        "stripes" => Strings.Name_Stripes,
-        "dots" => Strings.Name_Dots,
-        "rings" => Strings.Name_Rings,
-        "text" => Strings.Name_Text,
-        "procedural" => Strings.Name_Procedural,
-        _ => Strings.Layer_Default,
+        "solid" => nameof(Strings.Name_Solid),
+        "linear-gradient" => nameof(Strings.Name_Gradient),
+        "radial-gradient" => nameof(Strings.Name_Radial),
+        "checkerboard" => nameof(Strings.Name_Checker),
+        "stripes" => nameof(Strings.Name_Stripes),
+        "dots" => nameof(Strings.Name_Dots),
+        "rings" => nameof(Strings.Name_Rings),
+        "text" => nameof(Strings.Name_Text),
+        "procedural" => nameof(Strings.Name_Procedural),
+        _ => nameof(Strings.Layer_Default),
     };
 
     private static Dictionary<string, object> DefaultProps(string kind) => kind switch

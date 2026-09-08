@@ -32,6 +32,14 @@ function t(key, ...args) {
   return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
 }
 
+// A translation destined for markup. The table is data the host resolved, not markup, so the
+// text is encoded before it can be read as tags; the arguments are not, which is what lets a
+// caller substitute a <code> or <b> fragment it built and escaped itself.
+function tHtml(key, ...args) {
+  return escapeHtml(Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key)
+    .replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
 // --- Vendor assets: styles + libraries --------------------------------------
 
 (function injectVendor() {
@@ -226,24 +234,24 @@ function buildChrome() {
   document.body.innerHTML = `
     <div class="app">
       <div class="top">
-        <button class="btn" id="addRow">${ICON.addRow} ${t("Toolbar_Row")}</button>
-        <button class="btn" id="addCol">${ICON.addCol} ${t("Toolbar_Column")}</button>
-        <button class="btn" id="delRow">${ICON.delRow} ${t("Toolbar_Delete")}</button>
-        <button class="btn" id="export">${ICON.export} ${t("Toolbar_Csv")}</button>
-        <button class="btn" id="reload">${ICON.reload} ${t("Toolbar_Reload")}</button>
-        <button class="btn accent" id="commit">${ICON.commit} ${t("Toolbar_Commit")}</button>
+        <button class="btn" id="addRow">${ICON.addRow} ${tHtml("Toolbar_Row")}</button>
+        <button class="btn" id="addCol">${ICON.addCol} ${tHtml("Toolbar_Column")}</button>
+        <button class="btn" id="delRow">${ICON.delRow} ${tHtml("Toolbar_Delete")}</button>
+        <button class="btn" id="export">${ICON.export} ${tHtml("Toolbar_Csv")}</button>
+        <button class="btn" id="reload">${ICON.reload} ${tHtml("Toolbar_Reload")}</button>
+        <button class="btn accent" id="commit">${ICON.commit} ${tHtml("Toolbar_Commit")}</button>
         <div class="spacer"></div>
-        <div class="bind"><label>${t("Toolbar_Data")}</label><select id="sourceVar"></select></div>
+        <div class="bind"><label>${tHtml("Toolbar_Data")}</label><select id="sourceVar"></select></div>
       </div>
       <div class="stage">
         <div class="grid-host" id="gridHost"></div>
         <div class="empty" id="empty">
-          <h2>${t("Empty_Title")}</h2>
+          <h2>${tHtml("Empty_Title")}</h2>
           <div id="emptyMsg"></div>
         </div>
       </div>
       <div class="status" id="status">
-        <span class="dot"></span><span id="statusText">${t("Status_Ready")}</span>
+        <span class="dot"></span><span id="statusText">${tHtml("Status_Ready")}</span>
         <span class="spacer"></span>
         <span id="dims"></span>
       </div>
@@ -521,7 +529,7 @@ function showEmpty() {
   emptyEl.classList.add("show");
   // The sentence is translated as one piece; the two marked fragments are handed in already
   // escaped, so a translator moves them around without ever touching markup.
-  emptyMsgEl.innerHTML = t("Empty_Assign",
+  emptyMsgEl.innerHTML = tHtml("Empty_Assign",
     "<code>" + escapeHtml(sourceVar) + "</code>",
     "<b>" + escapeHtml(t("Toolbar_Data")) + "</b>");
   dimsEl.textContent = "";

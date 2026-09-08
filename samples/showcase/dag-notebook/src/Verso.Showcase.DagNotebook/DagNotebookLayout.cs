@@ -709,7 +709,7 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
             sb.Append("<span class=\"vdag-chip vdag-chip--live\" title=\"")
               .Append(Escape(string.Format(Strings.Chip_Live_Tip, name))).Append("\">")
               .Append("<span class=\"vdag-arrow\">&#8635;</span>")
-              .Append("<span class=\"vdag-var\">").Append(name).Append("</span></span>");
+              .Append("<span class=\"vdag-var\">").Append(Escape(name)).Append("</span></span>");
         }
 
         foreach (var edge in inbound)
@@ -718,7 +718,7 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
             sb.Append("<button type=\"button\" class=\"vdag-chip vdag-chip--in\" data-goto=\"").Append(edge.From)
               .Append("\" title=\"").Append(Escape(string.Format(Strings.Chip_Reads_Tip, edge.Variable, producer))).Append("\">")
               .Append("<span class=\"vdag-arrow\">&#8593;</span>").Append(producer)
-              .Append("&nbsp;<span class=\"vdag-var\">").Append(edge.Variable).Append("</span></button>");
+              .Append("&nbsp;<span class=\"vdag-var\">").Append(Escape(edge.Variable)).Append("</span></button>");
         }
 
         foreach (var edge in outbound)
@@ -727,14 +727,14 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
             sb.Append("<button type=\"button\" class=\"vdag-chip vdag-chip--out\" data-goto=\"").Append(edge.To)
               .Append("\" title=\"").Append(Escape(string.Format(Strings.Chip_Feeds_Tip, edge.Variable, consumer))).Append("\">")
               .Append("<span class=\"vdag-arrow\">&#8595;</span>").Append(consumer)
-              .Append("&nbsp;<span class=\"vdag-var\">").Append(edge.Variable).Append("</span></button>");
+              .Append("&nbsp;<span class=\"vdag-var\">").Append(Escape(edge.Variable)).Append("</span></button>");
         }
 
         foreach (var name in conflicts)
         {
             sb.Append("<span class=\"vdag-chip vdag-chip--warn\" title=\"")
               .Append(Escape(string.Format(Strings.Chip_Conflict_Tip, name))).Append("\">")
-              .Append("&#9888; <span class=\"vdag-var\">").Append(name).Append("</span></span>");
+              .Append("&#9888; <span class=\"vdag-var\">").Append(Escape(name)).Append("</span></span>");
         }
 
         if (cyclic)

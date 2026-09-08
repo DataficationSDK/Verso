@@ -213,7 +213,10 @@ internal sealed class NuGetFallbackResolver
             {
                 var cachedDlls = GetAllCachedDlls(cachedDir);
                 var cachedDeps = ReadCachedDependencies(cachedDepsFile);
-                if (cachedDeps is not null)
+                // A cache entry that still has its resource assemblies flattened beside the
+                // managed ones predates culture folders, so its translations can never load.
+                // Fall through to a fresh extraction rather than serve it again.
+                if (cachedDeps is not null && !HasFlattenedSatellites(cachedDlls))
                     return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
             }
         }
@@ -282,10 +285,20 @@ internal sealed class NuGetFallbackResolver
             var cachedDlls = GetAllCachedDlls(packageDir);
             var cachedDeps = ReadCachedDependencies(depsFile);
 
-            if (cachedDeps is not null)
+            // A cache entry written before satellites were given culture folders has its
+            // resource assemblies flattened beside the managed ones, where the runtime never
+            // looks for them. Neither cache path below can repair that, so both are skipped
+            // and the entry is re-extracted once, letting an existing install pick up the
+            // translations it was never given.
+            var flattenedSatellites = HasFlattenedSatellites(cachedDlls);
+
+            if (cachedDeps is not null && !flattenedSatellites)
                 return (resolvedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
 
-            if (cachedDlls.Length > 0)
+            if (flattenedSatellites)
+                DiscardFlattenedSatellites(cachedDlls);
+
+            if (cachedDlls.Length > 0 && !flattenedSatellites)
             {
                 var deps = await DownloadAndReadDependenciesAsync(
                     packageId, resolvedVersion, resource, cache, logger, packageDir, ct).ConfigureAwait(false);
@@ -530,6 +543,40 @@ internal sealed class NuGetFallbackResolver
         return packageId.StartsWith("Microsoft.NETCore.", StringComparison.OrdinalIgnoreCase) ||
                packageId.StartsWith("NETStandard.", StringComparison.OrdinalIgnoreCase) ||
                packageId.Equals("NETStandard.Library", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Reports whether a cached package directory holds satellite assemblies at its top level.
+    /// </summary>
+    /// <remarks>
+    /// Extraction places a satellite under a folder named for its culture, because that is the
+    /// only place the runtime looks. One sitting beside the managed assemblies was written by an
+    /// older build that flattened the lib folder, and marks the whole entry as out of date.
+    /// </remarks>
+    internal static bool HasFlattenedSatellites(string[] cachedDlls)
+    {
+        foreach (var path in cachedDlls)
+        {
+            if (path.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Deletes the flattened satellites from a stale cache entry, so that the extraction which
+    /// follows is not itself mistaken for a stale entry on the next resolve.
+    /// </summary>
+    private static void DiscardFlattenedSatellites(string[] cachedDlls)
+    {
+        foreach (var path in cachedDlls)
+        {
+            if (!path.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try { File.Delete(path); } catch { /* best effort: a locked file is re-checked next time */ }
+        }
     }
 
     /// <summary>

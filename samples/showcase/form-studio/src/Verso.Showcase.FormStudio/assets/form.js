@@ -33,6 +33,14 @@ function t(key, ...args) {
   return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
 }
 
+// A translation destined for markup. The table is data the host resolved, not markup, so the
+// text is encoded before it can be read as tags; the arguments are not, which is what lets a
+// caller substitute a <code> or <b> fragment it built and escaped itself.
+function tHtml(key, ...args) {
+  return escapeHtml(Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key)
+    .replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
 // --- Chart library ----------------------------------------------------------
 
 (function injectChart() {
@@ -204,14 +212,14 @@ function buildChrome() {
       <div class="rail left" id="palette"></div>
       <div class="top">
         <div class="spacer"></div>
-        <label class="toggle" title="${t("Toolbar_AutoRun_Tip")}">
-          <input type="checkbox" id="autorun" checked> ${t("Toolbar_AutoRun")}
+        <label class="toggle" title="${tHtml("Toolbar_AutoRun_Tip")}">
+          <input type="checkbox" id="autorun" checked> ${tHtml("Toolbar_AutoRun")}
         </label>
-        <button class="btn" id="run" title="${t("Toolbar_Run_Tip")}">${ICON_PLAY} ${t("Toolbar_Run")}</button>
-        <button class="btn" id="export" title="${t("Toolbar_Export_Tip")}">${t("Toolbar_Export")}</button>
+        <button class="btn" id="run" title="${tHtml("Toolbar_Run_Tip")}">${ICON_PLAY} ${tHtml("Toolbar_Run")}</button>
+        <button class="btn" id="export" title="${tHtml("Toolbar_Export_Tip")}">${tHtml("Toolbar_Export")}</button>
         <div class="seg" id="mode">
-          <button data-mode="edit" class="on">${t("Toolbar_Edit")}</button>
-          <button data-mode="preview">${t("Toolbar_Preview")}</button>
+          <button data-mode="edit" class="on">${tHtml("Toolbar_Edit")}</button>
+          <button data-mode="preview">${tHtml("Toolbar_Preview")}</button>
         </div>
       </div>
       <div class="body" id="body">
@@ -284,12 +292,19 @@ const PALETTE = [
 
 // The palette's label for a widget kind, which doubles as the widget's default label.
 function paletteLabel(kind, chartType) {
+  const key = paletteLabelKey(kind, chartType);
+  return key ? t(key) : cap(kind);
+}
+
+// The resource key behind that label. A widget stores the key rather than the resolved text, so
+// a dashboard built in one language still reads correctly when it is opened in another.
+function paletteLabelKey(kind, chartType) {
   for (const section of PALETTE) {
     for (const item of section.items) {
-      if (item.kind === kind && (kind !== "chart" || item.chartType === chartType)) return t(item.labelKey);
+      if (item.kind === kind && (kind !== "chart" || item.chartType === chartType)) return item.labelKey;
     }
   }
-  return cap(kind);
+  return null;
 }
 
 function buildPalette() {
@@ -317,6 +332,7 @@ function buildPalette() {
 function addWidget(kind, chartType, x, y) {
   const id = "w" + (++widgetSeq) + "_" + doc.widgets.length;
   const w = { id, kind, x: Math.round(x), y: Math.round(y), label: defaultLabel(kind, chartType), bindVar: "", config: {} };
+  Object.assign(w, defaultLabelKeys(kind, chartType));
   applyDefaults(w, chartType);
   doc.widgets.push(w);
   renderWidget(w);
@@ -329,6 +345,20 @@ function defaultLabel(kind, chartType) {
   if (kind === "chart") return t("Widget_ChartLabel", paletteLabel("chart", chartType || "bar"));
   if (kind === "label") return t("Widget_Heading");
   return paletteLabel(kind);
+}
+
+// The same default named rather than written out. The host resolves these on the way to the frame
+// and strips the resolved text on the way back, so the notebook only ever holds the keys.
+// A chart's title composes two of them ("{0} chart" over a chart-kind word), which is why the
+// argument is a key as well and not the already-translated word.
+function defaultLabelKeys(kind, chartType) {
+  if (kind === "chart") {
+    return { labelKey: "Widget_ChartLabel", labelArgKey: paletteLabelKey("chart", chartType || "bar") };
+  }
+  if (kind === "label") return { labelKey: "Widget_Heading" };
+
+  const key = paletteLabelKey(kind);
+  return key ? { labelKey: key } : {};
 }
 
 function applyDefaults(w, chartType) {
@@ -517,7 +547,14 @@ function renderProps() {
     return;
   }
 
-  propsEl.appendChild(field(t("Props_Label"), textInput(w.label, (v) => { w.label = v; renderWidget(w); saveDoc(); })));
+  propsEl.appendChild(field(t("Props_Label"), textInput(w.label, (v) => {
+    w.label = v;
+    // A label someone typed is theirs from here on, and is not translated out from under them.
+    delete w.labelKey;
+    delete w.labelArgKey;
+    renderWidget(w);
+    saveDoc();
+  })));
 
   if (w.kind !== "label" && w.kind !== "chart") {
     propsEl.appendChild(field(t("Props_BindsTo"), textInput(w.bindVar, (v) => { w.bindVar = v.trim(); saveDoc(); emitValue(w); }), t("Props_BindsTo_Hint")));
@@ -675,7 +712,8 @@ function serialize() {
     autoRun: doc.autoRun,
     widgets: doc.widgets.map((w) => ({
       id: w.id, kind: w.kind, x: w.x, y: w.y, w: w.w, h: w.h,
-      label: w.label, bindVar: w.bindVar, value: w.value, config: w.config,
+      label: w.label, labelKey: w.labelKey, labelArgKey: w.labelArgKey,
+      bindVar: w.bindVar, value: w.value, config: w.config,
     })),
   };
 }
@@ -806,3 +844,8 @@ function toHex(c) {
   return "#5b8def";
 }
 function injectStyle(css) { const s = document.createElement("style"); s.textContent = css; document.head.appendChild(s); }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}

@@ -41,6 +41,7 @@ Three habits keep this correct on a server that draws for several readers:
 - **Resolve on every access.** A property that reads `Strings.X` each time answers each reader in their own language. A field assigned once in a constructor answers everyone in the first reader's language, and nothing in a single-language test run will show it.
 - **Encode before you append.** A layout builds HTML by hand, so anything that lands in an attribute or a text node goes through `System.Net.WebUtility.HtmlEncode`, the way the built-in layouts do. Translated text is no more trustworthy to a parser than English.
 - **Compose with placeholders.** Write `Reads {0} from cell {1}` and fill it with `string.Format`, not `"Reads " + name + " from cell " + n`. Word order differs between languages, and a translator can only move a placeholder.
+- **Store the key, not the text.** A string your layout writes into notebook metadata outlives the reader who saved it. Resolve it and you have stamped their language onto the file, and the next person opens a document in a language they may not read, with no way back. Store the resource key and resolve it when you draw.
 
 For anything that counts, `Plural.Of(count, Strings.Slides_One, Strings.Slides_Other)` picks between two forms. Two forms cover every language Verso ships in; a language with more would need a real plural selector, and the remarks on `Plural` say why the helper stops there.
 
@@ -69,9 +70,23 @@ Because the table arrives with `verso/init`, build the chrome when that message 
 ```js
 let strings = {};
 let chromeBuilt = false;
+
+// For a text node or a property assignment, where the browser never parses the result.
 function t(key, ...args) {
   const text = Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key;
   return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
+// For anything that becomes markup. The arguments are left alone so a caller can pass a
+// fragment it built and escaped itself.
+function tHtml(key, ...args) {
+  return escapeHtml(Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key)
+    .replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 verso.onMessage((type, payload) => {
@@ -88,7 +103,9 @@ verso.ready();
 
 A missing key falls back to the key itself, which keeps a typo visible instead of blank.
 
-The host also tells the frame which language it is drawing in. The `verso/init` payload carries `uiCulture`, a tag such as `de` or `zh-Hans`, and the frame's own document is written with `<html lang="...">` set to the same value, so a script that needs the tag can read either. Do not name your own field `language`: in the same message, the per-cell `language` is the programming language.
+Use `tHtml` wherever the result is assigned to `innerHTML` or interpolated into a template literal that will be, including inside an attribute value such as `title="${tHtml("Toolbar_Run_Tip")}"`. Use plain `t` for `textContent`, for `setAttribute`, and for a property such as `el.title`. This is the same rule as the server side, where a layout runs every string through `WebUtility.HtmlEncode` before appending it: a translation is text, and text becomes markup only when something encodes it first. No shipped translation contains a quote or an angle bracket today, which is exactly why the habit has to be in place before one does.
+
+The host also tells the frame which language it is drawing in. The `verso/init` payload carries `uiCulture`, a tag such as `de` or `zh-Hans`, and the frame's own document is written with `<html lang="...">` set to the same value, so a script that needs the tag can read either. A host that never resolved a language reports `en`, the language the strings are written in, so the field is always a usable tag and never blank. Do not name your own field `language`: in the same message, the per-cell `language` is the programming language.
 
 For an inline layout the picture is simpler. Its HTML is rendered on the server, so every string goes through the resource class before it reaches the page, and the host writes the language onto the layout root as a `lang` attribute for any script that wants it.
 
@@ -119,6 +136,14 @@ public void DisplayName_FollowsTheCurrentLanguage()
 ```
 
 Verso's own tests use the `qps-Ploc` pseudo-locale for this, in which every string comes back accented and bracketed. The `pseudo.py` script under `build/i18n` in the Verso repository generates one from an English resource file; `build/i18n/README.md` covers the tooling. Running `verso serve --language qps-Ploc` with your extension loaded shows at a glance which strings never reached a resource file.
+
+## Names a reader chose
+
+The rule above has an edge to it: a name someone typed is theirs, and translating it out from under them is as wrong as freezing a built-in name in one language. Image Studio and Form Studio both keep the two apart the same way. A layer or widget carries either a `nameKey` naming a resource entry, or a literal name a person typed, never both; renaming clears the key for good. What reaches the notebook is that stored shape, and what reaches the renderer is a projection with the keys resolved, so one file opens correctly for everybody.
+
+Resolving on the way out and stripping on the way back in belongs on the host side rather than in the renderer. The renderer sees a resolved name and hands the whole document back when anything changes, so if the host trusted what it received, a renderer that forgot to strip the resolved text would quietly bake a language into the file.
+
+Form Studio's chart titles show the one wrinkle worth planning for. The default title composes two entries, `{0} chart` over a chart-kind word, so the argument is stored as a key as well. Store a composed string and a later translation moves one half and leaves the other in English.
 
 ## What stays in English
 

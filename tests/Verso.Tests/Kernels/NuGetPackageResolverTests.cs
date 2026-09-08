@@ -132,4 +132,34 @@ public sealed class NuGetPackageResolverTests
         Assert.IsFalse(NuGetPackageResolver.TryGetSatelliteCulture("lib/net8.0/../Some.Ext.resources.dll", out _));
         Assert.IsFalse(NuGetPackageResolver.TryGetSatelliteCulture("lib/net8.0/de_DE/Some.Ext.resources.dll", out _));
     }
+
+    [TestMethod]
+    public void HasFlattenedSatellites_ResourcesBesideTheAssemblies_IsStale()
+    {
+        // What a cache entry written before culture folders existed looks like: both languages
+        // landed in the package root, where the second overwrote the first and neither can load.
+        var cached = new[]
+        {
+            "/cache/Some.Ext/1.0.0/Some.Ext.dll",
+            "/cache/Some.Ext/1.0.0/Some.Ext.resources.dll",
+        };
+
+        Assert.IsTrue(NuGetPackageResolver.HasFlattenedSatellites(cached));
+    }
+
+    [TestMethod]
+    public void HasFlattenedSatellites_CultureFoldersOnly_IsCurrent()
+    {
+        // The current shape. Only the top level is listed, so the satellites under de/ and ja/
+        // are absent from the array entirely, and the entry is served straight from cache.
+        var cached = new[]
+        {
+            "/cache/Some.Ext/1.0.0/Some.Ext.dll",
+            "/cache/Some.Ext/1.0.0/Some.Ext.Support.dll",
+        };
+
+        Assert.IsFalse(NuGetPackageResolver.HasFlattenedSatellites(cached));
+        Assert.IsFalse(NuGetPackageResolver.HasFlattenedSatellites(Array.Empty<string>()),
+            "A meta-package with no assemblies at all is not stale.");
+    }
 }

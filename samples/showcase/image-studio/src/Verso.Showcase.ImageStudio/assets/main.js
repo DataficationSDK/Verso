@@ -26,6 +26,14 @@ function t(key, ...args) {
   return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
 }
 
+// A translation destined for markup. The table is data the host resolved, not markup, so the
+// text is encoded before it can be read as tags; the arguments are not, which is what lets a
+// caller substitute a <code> or <b> fragment it built and escaped itself.
+function tHtml(key, ...args) {
+  return escapeHtml(Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key)
+    .replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
 // --- State -----------------------------------------------------------------
 
 let doc = { width: 1024, height: 768, layers: [] };
@@ -287,16 +295,16 @@ function buildChrome() {
           <div class="canvas-wrap" id="canvasWrap"><canvas id="canvas"></canvas></div>
         </div>
         <div class="zoombar">
-          <button class="zbtn" id="zoomOut" title="${t("Zoom_Out_Tip")}">−</button>
-          <button class="zbtn pct" id="zoomPct" title="${t("Zoom_Reset_Tip")}">100%</button>
-          <button class="zbtn" id="zoomIn" title="${t("Zoom_In_Tip")}">+</button>
+          <button class="zbtn" id="zoomOut" title="${tHtml("Zoom_Out_Tip")}">−</button>
+          <button class="zbtn pct" id="zoomPct" title="${tHtml("Zoom_Reset_Tip")}">100%</button>
+          <button class="zbtn" id="zoomIn" title="${tHtml("Zoom_In_Tip")}">+</button>
           <span class="zsep"></span>
-          <button class="zbtn" id="zoomFit" title="${t("Zoom_Fit_Tip")}">${t("Zoom_Fit")}</button>
+          <button class="zbtn" id="zoomFit" title="${tHtml("Zoom_Fit_Tip")}">${tHtml("Zoom_Fit")}</button>
           <span class="zdims" id="zoomDims">1024×768</span>
         </div>
       </div>
       <div class="panel">
-        <h2>${t("Layers_Title")} <button class="btn" id="addBtn" title="${t("Layers_Add_Tip")}">${ICON.add}</button></h2>
+        <h2>${tHtml("Layers_Title")} <button class="btn" id="addBtn" title="${tHtml("Layers_Add_Tip")}">${ICON.add}</button></h2>
         <div class="layers" id="layers"></div>
         <div class="props" id="props"></div>
       </div>
@@ -601,7 +609,7 @@ function renderLayers() {
   layersEl.innerHTML = "";
   const ordered = (doc.layers || []).slice().reverse(); // top layer first in the panel
   if (!ordered.length) {
-    layersEl.appendChild(el("div", "empty", t("Layers_Empty")));
+    layersEl.appendChild(el("div", "empty", tHtml("Layers_Empty")));
   }
   for (const layer of ordered) {
     const row = el("div", "layer" + (layer.id === selectedId ? " sel" : ""));
@@ -735,11 +743,11 @@ function renderProps() {
   propsEl.innerHTML = "";
   const layer = selectedLayer();
   if (!layer) {
-    propsEl.appendChild(el("div", "empty", t("Props_None")));
+    propsEl.appendChild(el("div", "empty", tHtml("Props_None")));
     return;
   }
 
-  propsEl.appendChild(el("div", "ptitle", t("Props_Title")));
+  propsEl.appendChild(el("div", "ptitle", tHtml("Props_Title")));
 
   // Common controls
   propsEl.appendChild(field(t("Props_Name"), textInput(layer.name || "", (v) => verso.interact("rename", { id: layer.id, name: v }))));
@@ -813,12 +821,12 @@ function renderProps() {
         layer.sourceVar = name;
         verso.interact("set-source", { id: layer.id, sourceVar: name });
       })));
-      propsEl.appendChild(el("div", "empty", t("Props_Procedural_Hint")));
+      propsEl.appendChild(el("div", "empty", tHtml("Props_Procedural_Hint")));
       break;
   }
 
   // Delete
-  const del = el("button", "btn", ICON.trash + " " + escapeHtml(t("Props_Delete")));
+  const del = el("button", "btn", ICON.trash + " " + tHtml("Props_Delete"));
   del.style.marginTop = "12px";
   del.onclick = () => verso.interact("remove-layer", { id: layer.id });
   propsEl.appendChild(del);
@@ -904,7 +912,8 @@ function toHex6(c) {
 }
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // --- Export -----------------------------------------------------------------

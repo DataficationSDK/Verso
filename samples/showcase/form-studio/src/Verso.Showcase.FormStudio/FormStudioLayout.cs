@@ -141,7 +141,7 @@ public sealed class FormStudioLayout
         var seed = new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["strings"] = StringTable.From(Strings.ResourceManager, context.Verso.UICulture),
-            ["doc"] = _doc.Json,
+            ["doc"] = _doc.ForDisplay(),
             ["vars"] = BuildVars(variables),
         };
         return Task.FromResult<IReadOnlyDictionary<string, object>?>(seed);

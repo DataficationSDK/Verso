@@ -189,7 +189,10 @@ jobs:
 
       # The showcases sit outside Verso.sln, so their tests are not part of the main test run.
       - name: Test showcase samples
-        run: dotnet test samples/showcase/slide-studio/tests/Verso.Showcase.SlideStudio.Tests/Verso.Showcase.SlideStudio.Tests.csproj -c Release -p:GeneratePackageOnBuild=false --nologo
+        run: |
+          dotnet test samples/showcase/slide-studio/tests/Verso.Showcase.SlideStudio.Tests/Verso.Showcase.SlideStudio.Tests.csproj -c Release -p:GeneratePackageOnBuild=false --nologo
+          dotnet test samples/showcase/image-studio/tests/Verso.Showcase.ImageStudio.Tests/Verso.Showcase.ImageStudio.Tests.csproj -c Release -p:GeneratePackageOnBuild=false --nologo
+          dotnet test samples/showcase/form-studio/tests/Verso.Showcase.FormStudio.Tests/Verso.Showcase.FormStudio.Tests.csproj -c Release -p:GeneratePackageOnBuild=false --nologo
 
       - name: Validate packages
         run: |

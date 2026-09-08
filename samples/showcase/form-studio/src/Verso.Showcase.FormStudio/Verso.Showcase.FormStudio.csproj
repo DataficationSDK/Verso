@@ -48,4 +48,8 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Verso.Showcase.FormStudio.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -266,7 +266,10 @@ internal sealed class NuGetPackageResolver
             {
                 var cachedDlls = Directory.GetFiles(cachedDir, "*.dll");
                 var cachedDeps = ReadCachedDependencies(cachedDepsFile);
-                if (cachedDeps is not null)
+                // A cache entry that still has its resource assemblies flattened beside the
+                // managed ones predates culture folders, so its translations can never load.
+                // Fall through to a fresh extraction rather than serve it again.
+                if (cachedDeps is not null && !HasFlattenedSatellites(cachedDlls))
                 {
                     RegisterCachedRuntimeDirs(cachedDir, resolution);
                     return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
@@ -338,15 +341,25 @@ internal sealed class NuGetPackageResolver
             var cachedDlls = Directory.GetFiles(packageDir, "*.dll");
             var cachedDeps = ReadCachedDependencies(depsFile);
 
+            // A cache entry written before satellites were given culture folders has its
+            // resource assemblies flattened beside the managed ones, where the runtime never
+            // looks for them. Neither cache path below can repair that, so both are skipped
+            // and the entry is re-extracted once, letting an existing install pick up the
+            // translations it was never given.
+            var flattenedSatellites = HasFlattenedSatellites(cachedDlls);
+
             // Cache hit: package was previously resolved (may legitimately have 0 DLLs for meta-packages)
-            if (cachedDeps is not null)
+            if (cachedDeps is not null && !flattenedSatellites)
             {
                 RegisterCachedRuntimeDirs(packageDir, resolution);
                 return (resolvedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
             }
 
+            if (flattenedSatellites)
+                DiscardFlattenedSatellites(cachedDlls);
+
             // Legacy cache entry (no .deps file) — re-extract if it has DLLs but no deps info
-            if (cachedDlls.Length > 0)
+            if (cachedDlls.Length > 0 && !flattenedSatellites)
             {
                 RegisterCachedRuntimeDirs(packageDir, resolution);
                 // Download just to read dependencies, then write the deps cache
@@ -414,6 +427,40 @@ internal sealed class NuGetPackageResolver
         try { File.Delete(tempNupkg); } catch { /* best effort */ }
 
         return (resolvedVersion.ToString(), assemblyPaths, dependencies);
+    }
+
+    /// <summary>
+    /// Reports whether a cached package directory holds satellite assemblies at its top level.
+    /// </summary>
+    /// <remarks>
+    /// Extraction places a satellite under a folder named for its culture, because that is the
+    /// only place the runtime looks. One sitting beside the managed assemblies was written by an
+    /// older build that flattened the lib folder, and marks the whole entry as out of date.
+    /// </remarks>
+    internal static bool HasFlattenedSatellites(string[] cachedDlls)
+    {
+        foreach (var path in cachedDlls)
+        {
+            if (path.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Deletes the flattened satellites from a stale cache entry, so that the extraction which
+    /// follows is not itself mistaken for a stale entry on the next resolve.
+    /// </summary>
+    private static void DiscardFlattenedSatellites(string[] cachedDlls)
+    {
+        foreach (var path in cachedDlls)
+        {
+            if (!path.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try { File.Delete(path); } catch { /* best effort: a locked file is re-checked next time */ }
+        }
     }
 
     /// <summary>
