@@ -75,6 +75,38 @@ public class RunCommandTests
         Assert.AreEqual(0, result.Errors.Count);
     }
 
+    /// <summary>
+    /// --output-file documents that it implies JSON, and the handler decides that by asking
+    /// whether --output was supplied. An option carrying a default value still produces a result,
+    /// so only an implicit one means the user left the format alone. Reading presence instead of
+    /// implicitness left the format at Text, and the file was then never written at all.
+    /// </summary>
+    [TestMethod]
+    public void Parse_OutputFileWithoutFormat_LeavesOutputImplicit()
+    {
+        var result = _command.Parse("test.verso --output-file results.json");
+
+        var output = result.CommandResult.Children
+            .OfType<OptionResult>()
+            .FirstOrDefault(o => o.Option.Name == "output");
+
+        Assert.IsTrue(output is null or { IsImplicit: true },
+            "an unsupplied --output must not read as a format the user chose");
+    }
+
+    [TestMethod]
+    public void Parse_OutputFileWithExplicitFormat_IsNotImplicit()
+    {
+        var result = _command.Parse("test.verso --output-file results.json --output Text");
+
+        var output = result.CommandResult.Children
+            .OfType<OptionResult>()
+            .FirstOrDefault(o => o.Option.Name == "output");
+
+        Assert.IsNotNull(output, "an explicit --output should have a result");
+        Assert.IsFalse(output!.IsImplicit, "an explicit --output is the user's choice");
+    }
+
     [TestMethod]
     public void Parse_Extensions_IsRecognized()
     {

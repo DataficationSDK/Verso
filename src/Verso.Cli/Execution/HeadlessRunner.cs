@@ -204,7 +204,8 @@ public sealed class HeadlessRunner
 
                         if (options.Verbose)
                             Console.Error.WriteLine(string.Format(
-                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"), result.Status));
+                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"),
+                                CellOutcome.EffectiveStatus(cell, result)));
 
                         if (options.FailFast && CellHasErrors(cellId, notebook, result))
                             break;
@@ -230,7 +231,8 @@ public sealed class HeadlessRunner
 
                         if (options.Verbose)
                             Console.Error.WriteLine(string.Format(
-                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"), result.Status));
+                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"),
+                                CellOutcome.EffectiveStatus(cell, result)));
 
                         if (CellHasErrors(cell.Id, notebook, result))
                             break;
@@ -257,7 +259,8 @@ public sealed class HeadlessRunner
                             results.Add(result);
 
                             Console.Error.WriteLine(string.Format(
-                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"), result.Status));
+                                Strings.Run_CellCompleted, i, total, cellSw.Elapsed.TotalSeconds.ToString("F1"),
+                                CellOutcome.EffectiveStatus(cell, result)));
                         }
                     }
                     else

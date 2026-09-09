@@ -126,8 +126,11 @@ public static class RunCommand
                 }
             }
 
-            // If --output-file is specified without explicit --output, default to json
-            if (outputFile is not null && context.ParseResult.FindResultFor(outputOption) is null)
+            // If --output-file is specified without explicit --output, default to json.
+            // An option carrying a default value always has a result, so the result being present
+            // does not mean the user asked for a format; only a non-implicit one does.
+            var outputResult = context.ParseResult.FindResultFor(outputOption);
+            if (outputFile is not null && outputResult is null or { IsImplicit: true })
                 output = OutputFormat.Json;
 
             var ct = context.GetCancellationToken();

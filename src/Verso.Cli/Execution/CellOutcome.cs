@@ -46,6 +46,18 @@ internal static class CellOutcome
         return HasErrorOutput(cell);
     }
 
+    /// <summary>
+    /// The outcome to report for a cell, which is its execution status corrected by its outputs.
+    /// A kernel that reported an error as an output still returns
+    /// <see cref="ExecutionResult.ExecutionStatus.Success"/>, so progress reporting that printed
+    /// the raw status would contradict the summary printed underneath it.
+    /// </summary>
+    public static ExecutionResult.ExecutionStatus EffectiveStatus(
+        CellModel? cell, ExecutionResult result)
+        => result.Status == ExecutionResult.ExecutionStatus.Success && HasErrorOutput(cell)
+            ? ExecutionResult.ExecutionStatus.Failed
+            : result.Status;
+
     /// <summary>Whether this cell ran and did not fail. Cancelled counts as neither.</summary>
     public static bool Succeeded(CellModel? cell, ExecutionResult? result)
         => result is { Status: ExecutionResult.ExecutionStatus.Success } && !HasErrorOutput(cell);

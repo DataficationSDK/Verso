@@ -87,7 +87,7 @@
     {
       "id": "00000004-0001-0001-0001-000000000010",
       "type": "http",
-      "source": "# @name createUser\nPOST https://httpbin.org/post\nContent-Type: application/json\n\n{\n  \u0022username\u0022: \u0022verso_user\u0022,\n  \u0022email\u0022: \u0022user@verso.dev\u0022\n}\n\n###\n\n# Use the URL from the first response\nGET {{createUser.response.body.$.url}}"
+      "source": "# @name createUser\nPOST https://httpbin.org/anything\nContent-Type: application/json\n\n{\n  \u0022username\u0022: \u0022verso_user\u0022,\n  \u0022email\u0022: \u0022user@verso.dev\u0022\n}\n\n###\n\n# Use the URL from the first response\nGET {{createUser.response.body.$.url}}"
     },
     {
       "id": "00000004-0001-0001-0001-000000000011",
