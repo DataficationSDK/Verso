@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using Verso.Cli.Execution;
 using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
@@ -126,12 +127,8 @@ public static class RunCommand
                 }
             }
 
-            // If --output-file is specified without explicit --output, default to json.
-            // An option carrying a default value always has a result, so the result being present
-            // does not mean the user asked for a format; only a non-implicit one does.
-            var outputResult = context.ParseResult.FindResultFor(outputOption);
-            if (outputFile is not null && outputResult is null or { IsImplicit: true })
-                output = OutputFormat.Json;
+            output = ResolveOutputFormat(
+                output, context.ParseResult.FindResultFor(outputOption), outputFile is not null);
 
             var ct = context.GetCancellationToken();
 
@@ -239,6 +236,17 @@ public static class RunCommand
 
         return command;
     }
+
+    /// <summary>
+    /// The format a run should render in. --output-file implies JSON unless the user chose a format
+    /// themselves. An option carrying a default value always has a result, so the result being
+    /// present does not mean the user asked for a format; only a non-implicit one does.
+    /// </summary>
+    internal static OutputFormat ResolveOutputFormat(
+        OutputFormat requested, OptionResult? outputResult, bool writesToFile)
+        => writesToFile && outputResult is null or { IsImplicit: true }
+            ? OutputFormat.Json
+            : requested;
 }
 
 public enum OutputFormat

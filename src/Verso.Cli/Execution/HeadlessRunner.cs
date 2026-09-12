@@ -51,6 +51,19 @@ public sealed class HeadlessRunner
     internal const string UnknownLanguage = "unknown";
 
     /// <summary>
+    /// The label a cell gets in progress and rendered output. Cells such as http and markdown
+    /// carry their kernel in the type and have no language, so the type stands in for it there;
+    /// only a code cell with no language is unknown.
+    /// </summary>
+    internal static string DisplayLanguage(CellModel? cell)
+    {
+        if (cell?.Language is { } language)
+            return language;
+
+        return cell is { Type: not "code" } ? cell.Type : UnknownLanguage;
+    }
+
+    /// <summary>
     /// Executes a notebook with the given options.
     /// </summary>
     public async Task<RunResult> ExecuteAsync(RunOptions options, CancellationToken externalCt = default)
@@ -192,7 +205,7 @@ public sealed class HeadlessRunner
                         ct.ThrowIfCancellationRequested();
                         var cellId = cellsToExecute[i];
                         var cell = notebook.Cells.FirstOrDefault(c => c.Id == cellId);
-                        var lang = cell?.Language ?? UnknownLanguage;
+                        var lang = DisplayLanguage(cell);
 
                         if (options.Verbose)
                             Console.Error.WriteLine(string.Format(Strings.Run_ExecutingCell, i, total, lang));
@@ -222,7 +235,7 @@ public sealed class HeadlessRunner
 
                         if (options.Verbose)
                             Console.Error.WriteLine(string.Format(
-                                Strings.Run_ExecutingCell, i, total, cell.Language ?? UnknownLanguage));
+                                Strings.Run_ExecutingCell, i, total, DisplayLanguage(cell)));
 
                         var cellSw = System.Diagnostics.Stopwatch.StartNew();
                         var result = await scaffold.ExecuteCellAsync(cell.Id, ct);
@@ -251,7 +264,7 @@ public sealed class HeadlessRunner
                             var cell = notebook.Cells[i];
 
                             Console.Error.WriteLine(string.Format(
-                                Strings.Run_ExecutingCell, i, total, cell.Language ?? UnknownLanguage));
+                                Strings.Run_ExecutingCell, i, total, DisplayLanguage(cell)));
 
                             var cellSw = System.Diagnostics.Stopwatch.StartNew();
                             var result = await scaffold.ExecuteCellAsync(cell.Id, ct);

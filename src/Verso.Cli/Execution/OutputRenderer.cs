@@ -58,7 +58,7 @@ public sealed partial class OutputRenderer
 
         if (cell.Type is "code")
         {
-            var language = cell.Language ?? HeadlessRunner.UnknownLanguage;
+            var language = HeadlessRunner.DisplayLanguage(cell);
             WriteRule($"{string.Format(Strings.Render_CellLabel, index)} ({language})");
 
             if (!hideOutputs)

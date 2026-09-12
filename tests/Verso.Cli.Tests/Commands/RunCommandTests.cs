@@ -82,30 +82,43 @@ public class RunCommandTests
     /// implicitness left the format at Text, and the file was then never written at all.
     /// </summary>
     [TestMethod]
-    public void Parse_OutputFileWithoutFormat_LeavesOutputImplicit()
+    public void ResolveOutputFormat_OutputFileWithoutFormat_ImpliesJson()
     {
         var result = _command.Parse("test.verso --output-file results.json");
-
-        var output = result.CommandResult.Children
-            .OfType<OptionResult>()
-            .FirstOrDefault(o => o.Option.Name == "output");
+        var output = OutputOptionResult(result);
 
         Assert.IsTrue(output is null or { IsImplicit: true },
             "an unsupplied --output must not read as a format the user chose");
+        Assert.AreEqual(OutputFormat.Json,
+            RunCommand.ResolveOutputFormat(OutputFormat.Text, output, writesToFile: true));
     }
 
     [TestMethod]
-    public void Parse_OutputFileWithExplicitFormat_IsNotImplicit()
+    public void ResolveOutputFormat_OutputFileWithExplicitFormat_KeepsTheUsersChoice()
     {
         var result = _command.Parse("test.verso --output-file results.json --output Text");
-
-        var output = result.CommandResult.Children
-            .OfType<OptionResult>()
-            .FirstOrDefault(o => o.Option.Name == "output");
+        var output = OutputOptionResult(result);
 
         Assert.IsNotNull(output, "an explicit --output should have a result");
         Assert.IsFalse(output!.IsImplicit, "an explicit --output is the user's choice");
+        Assert.AreEqual(OutputFormat.Text,
+            RunCommand.ResolveOutputFormat(OutputFormat.Text, output, writesToFile: true));
     }
+
+    [TestMethod]
+    public void ResolveOutputFormat_NoOutputFile_LeavesTheFormatAlone()
+    {
+        var result = _command.Parse("test.verso");
+        var output = OutputOptionResult(result);
+
+        Assert.AreEqual(OutputFormat.Text,
+            RunCommand.ResolveOutputFormat(OutputFormat.Text, output, writesToFile: false));
+    }
+
+    private static OptionResult? OutputOptionResult(ParseResult result)
+        => result.CommandResult.Children
+            .OfType<OptionResult>()
+            .FirstOrDefault(o => o.Option.Name == "output");
 
     [TestMethod]
     public void Parse_Extensions_IsRecognized()
