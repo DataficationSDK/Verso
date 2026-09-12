@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Empty_Assign" xml:space="preserve">
+    <value>在代码单元格中给 {0} 赋值并运行，然后在上方的{1}下拉列表中选择它。</value>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>未绑定数据</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>隔离布局，把内核的 DataBlock 显示为可编辑的电子表格，DataTable 则为只读。</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Grid Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Grid Studio 布局</value>
+  </data>
+  <data name="Select_NoData" xml:space="preserve">
+    <value>（无数据）</value>
+  </data>
+  <data name="Status_Bound" xml:space="preserve">
+    <value>已绑定到 {0}</value>
+  </data>
+  <data name="Status_BoundReadOnly" xml:space="preserve">
+    <value>已绑定到 {0}（只读）</value>
+  </data>
+  <data name="Status_Committed" xml:space="preserve">
+    <value>已提交到 {0}</value>
+  </data>
+  <data name="Status_Dims" xml:space="preserve">
+    <value>{0} 行 x {1} 列</value>
+  </data>
+  <data name="Status_Exported" xml:space="preserve">
+    <value>已导出 {0}</value>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="Status_Unsaved" xml:space="preserve">
+    <value>有未提交的编辑</value>
+  </data>
+  <data name="Toolbar_Column" xml:space="preserve">
+    <value>列</value>
+  </data>
+  <data name="Toolbar_Commit" xml:space="preserve">
+    <value>提交</value>
+  </data>
+  <data name="Toolbar_Csv" xml:space="preserve">
+    <value>CSV</value>
+  </data>
+  <data name="Toolbar_Data" xml:space="preserve">
+    <value>数据</value>
+  </data>
+  <data name="Toolbar_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Toolbar_Reload" xml:space="preserve">
+    <value>重新加载</value>
+  </data>
+  <data name="Toolbar_Row" xml:space="preserve">
+    <value>行</value>
+  </data>
+</root>

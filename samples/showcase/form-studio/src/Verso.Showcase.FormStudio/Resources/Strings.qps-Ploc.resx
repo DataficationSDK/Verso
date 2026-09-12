@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Chart_Loading" xml:space="preserve">
+    <value>[!!Lòàdïñg…···!!]</value>
+  </data>
+  <data name="Chart_PickSource" xml:space="preserve">
+    <value>[!!Pïçk à dàtà šòùrçé···!!]</value>
+  </data>
+  <data name="Empty_Hint" xml:space="preserve">
+    <value>[!!Ïñpùtš wrïté kérñél vàrïàbléš. Çhàrtš plòt à dàtà šòùrçé. Šwïtçh tò Prévïéw tò ùšé thé àpp.···!!]</value>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>[!!Dràg à wïdgét fròm thé léft òñtò thé çàñvàš.···!!]</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>[!!Ïšòlàtéd làÿòùt thàt tùrñš à ñòtébòòk ïñtò à lïvé, pàràmétérïzéd àpp bùïlt fròm dràggàblé wïdgétš àñd çhàrtš.···!!]</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>[!!Fòrm Štùdïò···!!]</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>[!!Fòrm Štùdïò Làÿòùt···!!]</value>
+  </data>
+  <data name="Palette_Bar" xml:space="preserve">
+    <value>[!!Bàr···!!]</value>
+  </data>
+  <data name="Palette_Charts" xml:space="preserve">
+    <value>[!!Çhàrtš···!!]</value>
+  </data>
+  <data name="Palette_Drag_Tip" xml:space="preserve">
+    <value>[!!Dràg òñtò thé çàñvàš···!!]</value>
+  </data>
+  <data name="Palette_Dropdown" xml:space="preserve">
+    <value>[!!Dròpdòwñ···!!]</value>
+  </data>
+  <data name="Palette_Inputs" xml:space="preserve">
+    <value>[!!Ïñpùtš···!!]</value>
+  </data>
+  <data name="Palette_Label" xml:space="preserve">
+    <value>[!!Làbél···!!]</value>
+  </data>
+  <data name="Palette_Line" xml:space="preserve">
+    <value>[!!Lïñé···!!]</value>
+  </data>
+  <data name="Palette_Number" xml:space="preserve">
+    <value>[!!Ñùmbér···!!]</value>
+  </data>
+  <data name="Palette_Pie" xml:space="preserve">
+    <value>[!!Pïé···!!]</value>
+  </data>
+  <data name="Palette_Scatter" xml:space="preserve">
+    <value>[!!Šçàttér···!!]</value>
+  </data>
+  <data name="Palette_Slider" xml:space="preserve">
+    <value>[!!Šlïdér···!!]</value>
+  </data>
+  <data name="Palette_Text" xml:space="preserve">
+    <value>[!!Téxt···!!]</value>
+  </data>
+  <data name="Palette_Toggle" xml:space="preserve">
+    <value>[!!Tògglé···!!]</value>
+  </data>
+  <data name="Props_BindsTo" xml:space="preserve">
+    <value>[!!Bïñdš tò vàrïàblé···!!]</value>
+  </data>
+  <data name="Props_BindsTo_Hint" xml:space="preserve">
+    <value>[!!Thé kérñél vàrïàblé thïš ïñpùt wrïtéš.···!!]</value>
+  </data>
+  <data name="Props_ChartType" xml:space="preserve">
+    <value>[!!Çhàrt tÿpé···!!]</value>
+  </data>
+  <data name="Props_Data" xml:space="preserve">
+    <value>[!!Dàtà···!!]</value>
+  </data>
+  <data name="Props_Data_Hint" xml:space="preserve">
+    <value>[!!Thé kérñél vàrïàblé tò plòt (à DàtàBlòçk òr DàtàTàblé).···!!]</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>[!!Délété wïdgét···!!]</value>
+  </data>
+  <data name="Props_Label" xml:space="preserve">
+    <value>[!!Làbél···!!]</value>
+  </data>
+  <data name="Props_Max" xml:space="preserve">
+    <value>[!!Màx···!!]</value>
+  </data>
+  <data name="Props_Min" xml:space="preserve">
+    <value>[!!Mïñ···!!]</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>[!!Šéléçt à wïdgét tò édït ïtš šéttïñgš, òr dràg à ñéw òñé fròm thé pàlétté.···!!]</value>
+  </data>
+  <data name="Props_Options" xml:space="preserve">
+    <value>[!!Òptïòñš (çòmmà šépàràtéd)···!!]</value>
+  </data>
+  <data name="Props_SeriesColor" xml:space="preserve">
+    <value>[!!Šérïéš çòlòr···!!]</value>
+  </data>
+  <data name="Props_Step" xml:space="preserve">
+    <value>[!!Štép···!!]</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>[!!Téxt···!!]</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>[!!Pròpértïéš···!!]</value>
+  </data>
+  <data name="Props_XAxis" xml:space="preserve">
+    <value>[!!X àxïš···!!]</value>
+  </data>
+  <data name="Props_YAxis" xml:space="preserve">
+    <value>[!!Ý àxïš (šérïéš)···!!]</value>
+  </data>
+  <data name="Seed_MinimumUnits" xml:space="preserve">
+    <value>[!!Mïñïmùm ùñïtš···!!]</value>
+  </data>
+  <data name="Seed_Region" xml:space="preserve">
+    <value>[!!Régïòñ···!!]</value>
+  </data>
+  <data name="Seed_RevenueByMonth" xml:space="preserve">
+    <value>[!!Révéñùé bÿ mòñth···!!]</value>
+  </data>
+  <data name="Seed_UnitsByMonth" xml:space="preserve">
+    <value>[!!Ùñïtš bÿ mòñth···!!]</value>
+  </data>
+  <data name="Select_None" xml:space="preserve">
+    <value>[!!(ñòñé)···!!]</value>
+  </data>
+  <data name="Select_PickSourceFirst" xml:space="preserve">
+    <value>[!!Pïçk à dàtà šòùrçé fïršt.···!!]</value>
+  </data>
+  <data name="Toolbar_AutoRun" xml:space="preserve">
+    <value>[!!Àùtò-rùñ···!!]</value>
+  </data>
+  <data name="Toolbar_AutoRun_Tip" xml:space="preserve">
+    <value>[!!Ré-rùñ thé ñòtébòòk àùtòmàtïçàllÿ whéñ àñ ïñpùt çhàñgéš···!!]</value>
+  </data>
+  <data name="Toolbar_Edit" xml:space="preserve">
+    <value>[!!Édït···!!]</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>[!!Éxpòrt···!!]</value>
+  </data>
+  <data name="Toolbar_Export_Tip" xml:space="preserve">
+    <value>[!!Dòwñlòàd thé dàšhbòàrd àš JŠÒÑ···!!]</value>
+  </data>
+  <data name="Toolbar_Preview" xml:space="preserve">
+    <value>[!!Prévïéw···!!]</value>
+  </data>
+  <data name="Toolbar_Run" xml:space="preserve">
+    <value>[!!Rùñ···!!]</value>
+  </data>
+  <data name="Toolbar_Run_Tip" xml:space="preserve">
+    <value>[!!Ré-rùñ thé ñòtébòòk ñòw···!!]</value>
+  </data>
+  <data name="Widget_ChartLabel" xml:space="preserve">
+    <value>[!!{0} çhàrt···!!]</value>
+  </data>
+  <data name="Widget_Heading" xml:space="preserve">
+    <value>[!!Héàdïñg···!!]</value>
+  </data>
+  <data name="Widget_Resize_Tip" xml:space="preserve">
+    <value>[!!Réšïzé···!!]</value>
+  </data>
+</root>

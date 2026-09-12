@@ -1,5 +1,8 @@
+using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Verso.Showcase.ImageStudio.Resources;
 
 namespace Verso.Showcase.ImageStudio.Model;
 
@@ -17,7 +20,36 @@ namespace Verso.Showcase.ImageStudio.Model;
 public sealed class Layer
 {
     [JsonPropertyName("id")] public string Id { get; set; } = Guid.NewGuid().ToString("n");
-    [JsonPropertyName("name")] public string Name { get; set; } = "Layer";
+
+    /// <summary>
+    /// The name the reader typed, or <c>null</c> for a layer still carrying the name it was
+    /// created with. Only a name a person chose is stored, because only that one is theirs:
+    /// a built-in name is stored as <see cref="NameKey"/> instead, so that it can be shown in
+    /// whatever language the notebook is opened in.
+    /// </summary>
+    [JsonPropertyName("name")] public string? Name { get; set; }
+
+    /// <summary>
+    /// The resource key behind a built-in layer name, resolved through
+    /// <see cref="DisplayName"/> every time the layer is shown. Ignored once
+    /// <see cref="Name"/> is set.
+    /// </summary>
+    [JsonPropertyName("nameKey")] public string? NameKey { get; set; }
+
+    /// <summary>
+    /// The name to show: what the reader typed, else the built-in name in the reader's
+    /// language, else the generic fallback. Never written to the notebook.
+    /// </summary>
+    [JsonIgnore]
+    public string DisplayName => Name ?? ResolveNameKey(NameKey) ?? Strings.Layer_Default;
+
+    /// <summary>
+    /// Looks a built-in name up in the current language. An unknown key returns <c>null</c>
+    /// rather than throwing, so a document written by a newer build still opens.
+    /// </summary>
+    private static string? ResolveNameKey(string? key)
+        => string.IsNullOrEmpty(key) ? null : Strings.ResourceManager.GetString(key, CultureInfo.CurrentUICulture);
+
     [JsonPropertyName("kind")] public string Kind { get; set; } = "solid";
     [JsonPropertyName("visible")] public bool Visible { get; set; } = true;
     [JsonPropertyName("opacity")] public double Opacity { get; set; } = 1.0;
@@ -88,7 +120,35 @@ public sealed class LayerDocument
     }
 
     /// <summary>The layer at the top of the stack, or <c>null</c> when the document is empty.</summary>
+    [JsonIgnore]
     public Layer? Top => Layers.Count > 0 ? Layers[^1] : null;
+
+    /// <summary>
+    /// The document as the frame should see it, with every layer name already resolved into
+    /// the reader's language.
+    /// </summary>
+    /// <remarks>
+    /// The frame draws names; the notebook stores keys. Sending the stored shape would make the
+    /// panel show <c>Seed_Sky</c>, and storing the sent shape would freeze the notebook in the
+    /// language whoever saved it last happened to be reading. Keeping the two apart is what lets
+    /// one file open correctly for everybody.
+    /// </remarks>
+    public object ForDisplay() => new
+    {
+        width = Width,
+        height = Height,
+        layers = Layers.Select(l => new
+        {
+            id = l.Id,
+            name = l.DisplayName,
+            kind = l.Kind,
+            visible = l.Visible,
+            opacity = l.Opacity,
+            blend = l.Blend,
+            props = l.Props,
+            sourceVar = l.SourceVar,
+        }).ToArray(),
+    };
 
     /// <summary>
     /// A pleasing starter stack so a fresh notebook opens with something on the canvas:
@@ -102,7 +162,7 @@ public sealed class LayerDocument
         {
             new Layer
             {
-                Name = "Sky",
+                NameKey = "Seed_Sky",
                 Kind = "linear-gradient",
                 Props = new()
                 {
@@ -117,7 +177,7 @@ public sealed class LayerDocument
             },
             new Layer
             {
-                Name = "Sun",
+                NameKey = "Seed_Sun",
                 Kind = "radial-gradient",
                 Blend = "screen",
                 Props = new()
@@ -135,7 +195,7 @@ public sealed class LayerDocument
             },
             new Layer
             {
-                Name = "Dot grid",
+                NameKey = "Seed_DotGrid",
                 Kind = "dots",
                 Blend = "overlay",
                 Opacity = 0.30,
@@ -148,13 +208,13 @@ public sealed class LayerDocument
             },
             new Layer
             {
-                Name = "Scripted",
+                NameKey = "Seed_Scripted",
                 Kind = "procedural",
                 SourceVar = "ops",
             },
             new Layer
             {
-                Name = "Title",
+                NameKey = "Seed_Title",
                 Kind = "text",
                 Opacity = 0.92,
                 Props = new()

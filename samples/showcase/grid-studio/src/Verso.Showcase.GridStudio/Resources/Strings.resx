@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Empty_Assign" xml:space="preserve">
+    <value>Assign data to {0} in a code cell and run it, then pick it from the {1} dropdown above.</value>
+    <comment>Text under Empty_Title. {0} is the variable name in code style, {1} is Toolbar_Data in bold.</comment>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>No data bound</value>
+    <comment>Heading in the middle of the grid area when nothing is loaded.</comment>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Isolated layout that presents a kernel DataBlock as an editable spreadsheet, or a DataTable read-only.</value>
+    <comment>Second line of the sample's entry in the Extensions panel. DataBlock and DataTable are type names and stay as written.</comment>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Grid Studio</value>
+    <comment>Label in the layout picker. Stays as written.</comment>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Grid Studio Layout</value>
+    <comment>Name of the sample extension as listed in the Extensions panel. 'Grid Studio' is the sample's name and stays as written; 'Layout' translates.</comment>
+  </data>
+  <data name="Select_NoData" xml:space="preserve">
+    <value>(no data)</value>
+    <comment>Only entry of the variable dropdown when the kernel holds no table.</comment>
+  </data>
+  <data name="Status_Bound" xml:space="preserve">
+    <value>Bound to {0}</value>
+    <comment>Status bar text once a variable is loaded. {0} is the variable name.</comment>
+  </data>
+  <data name="Status_BoundReadOnly" xml:space="preserve">
+    <value>Bound to {0} (read-only)</value>
+    <comment>Status bar text once a read-only variable is loaded. {0} is the variable name.</comment>
+  </data>
+  <data name="Status_Committed" xml:space="preserve">
+    <value>Committed to {0}</value>
+    <comment>Status bar text after a commit. {0} is the variable name.</comment>
+  </data>
+  <data name="Status_Dims" xml:space="preserve">
+    <value>{0} rows x {1} cols</value>
+    <comment>Grid size at the right of the status bar. {0} is the row count, {1} the column count.</comment>
+  </data>
+  <data name="Status_Exported" xml:space="preserve">
+    <value>Exported {0}</value>
+    <comment>Status bar text after a download. {0} is the file name, such as sales.csv.</comment>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Ready</value>
+    <comment>Status bar text before anything is loaded.</comment>
+  </data>
+  <data name="Status_Unsaved" xml:space="preserve">
+    <value>Unsaved edits</value>
+    <comment>Status bar text while the grid has edits not yet committed.</comment>
+  </data>
+  <data name="Toolbar_Column" xml:space="preserve">
+    <value>Column</value>
+    <comment>Toolbar button that adds a column, drawn after a plus icon.</comment>
+  </data>
+  <data name="Toolbar_Commit" xml:space="preserve">
+    <value>Commit</value>
+    <comment>Toolbar button that writes the edits back to the kernel variable.</comment>
+  </data>
+  <data name="Toolbar_Csv" xml:space="preserve">
+    <value>CSV</value>
+    <comment>Toolbar button that downloads the grid as a CSV file. CSV is a format name and stays as written.</comment>
+  </data>
+  <data name="Toolbar_Data" xml:space="preserve">
+    <value>Data</value>
+    <comment>Label before the dropdown that picks the variable to show. Also quoted in Empty_Assign.</comment>
+  </data>
+  <data name="Toolbar_Delete" xml:space="preserve">
+    <value>Delete</value>
+    <comment>Toolbar button that removes the selected rows.</comment>
+  </data>
+  <data name="Toolbar_Reload" xml:space="preserve">
+    <value>Reload</value>
+    <comment>Toolbar button that re-reads the bound variable.</comment>
+  </data>
+  <data name="Toolbar_Row" xml:space="preserve">
+    <value>Row</value>
+    <comment>Toolbar button that adds a row, drawn after a plus icon.</comment>
+  </data>
+</root>

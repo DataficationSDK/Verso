@@ -34,7 +34,8 @@ public sealed record LayoutRendererPackage(
     /// Declared as an init-only property rather than a positional parameter so that adding it
     /// does not change the primary constructor's signature: renderer extensions compiled
     /// against the three-argument constructor keep binding to it at run time. Set it with an
-    /// object initializer: <c>new LayoutRendererPackage(entry, files, csp) { RendererProtocolVersion = "1.0" }</c>.
+    /// object initializer: <c>new LayoutRendererPackage(entry, files, csp) { RendererProtocolVersion = LayoutBridgeProtocol.Version }</c>.
+    /// A literal is accepted too, in <c>major.minor</c> form; any further components are ignored.
     /// </remarks>
     public string? RendererProtocolVersion { get; init; }
 }

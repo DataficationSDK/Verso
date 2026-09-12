@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Showcase.FormStudio.Resources;
 
 namespace Verso.Showcase.FormStudio;
 
@@ -47,10 +48,10 @@ public sealed class FormStudioLayout
     // --- IExtension ---
 
     public string ExtensionId => "com.verso.showcase.form-studio";
-    public string Name => "Form Studio Layout";
+    public string Name => Strings.Layout_Name;
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Isolated layout that turns a notebook into a live, parameterized app built from draggable widgets and charts.";
+    public string? Description => Strings.Layout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -58,7 +59,7 @@ public sealed class FormStudioLayout
     // --- ILayoutEngine ---
 
     public string LayoutId => "form-studio";
-    public string DisplayName => "Form Studio";
+    public string DisplayName => Strings.Layout_DisplayName;
 
     public string? Icon =>
         "<svg viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">" +
@@ -135,9 +136,12 @@ public sealed class FormStudioLayout
         variables.OnVariablesChanged += PushOnChange;
         _unsubscribers[context.FrameInstanceId] = () => variables.OnVariablesChanged -= PushOnChange;
 
+        // The frame cannot reach a resource manager, so it gets its strings here, resolved for
+        // the language the host is answering in. The frame builds its chrome once they arrive.
         var seed = new Dictionary<string, object>(StringComparer.Ordinal)
         {
-            ["doc"] = _doc.Json,
+            ["strings"] = StringTable.From(Strings.ResourceManager, context.Verso.UICulture),
+            ["doc"] = _doc.ForDisplay(),
             ["vars"] = BuildVars(variables),
         };
         return Task.FromResult<IReadOnlyDictionary<string, object>?>(seed);

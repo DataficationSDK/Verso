@@ -1,3 +1,4 @@
+using System.Globalization;
 using Verso.Abstractions;
 using Verso.Contexts;
 using Verso.Stubs;
@@ -22,6 +23,19 @@ public sealed class StubVersoContext : IVersoContext
     /// output does. A test covering live output sets its own.
     /// </summary>
     public IOutputChannelHost? OutputChannels { get; set; }
+
+    private CultureInfo? _uiCulture;
+
+    /// <summary>
+    /// Follows the thread's current UI culture unless a test pins one. A test that switches
+    /// language part-way sees the switch; a test that wants one language for one context can
+    /// have it without touching the thread.
+    /// </summary>
+    public CultureInfo UICulture
+    {
+        get => _uiCulture ?? CultureInfo.CurrentUICulture;
+        set => _uiCulture = value;
+    }
 
     public List<CellOutput> WrittenOutputs { get; } = new();
     public List<(string OutputBlockId, CellOutput Output)> UpdatedOutputs { get; } = new();

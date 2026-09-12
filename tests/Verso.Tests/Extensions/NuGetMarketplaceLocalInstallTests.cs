@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -5,6 +6,7 @@ using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 using Verso.Extensions;
 using Verso.Extensions.Marketplace;
+using Verso.Kernels;
 
 namespace Verso.Tests.Extensions;
 
@@ -396,5 +398,129 @@ public class NuGetMarketplaceLocalInstallTests
         var image = new BlobBuilder();
         pe.Serialize(image);
         File.WriteAllBytes(path, image.ToArray());
+    }
+
+    [TestMethod]
+    public void CopySatellitesToManaged_MirrorsCultureFoldersAndNothingElse()
+    {
+        var cacheRoot = Path.Combine(_managedDir, "cache");
+        var packageDir = Path.Combine(cacheRoot, "Pkg", "1.0.0");
+        Directory.CreateDirectory(Path.Combine(packageDir, "de"));
+        Directory.CreateDirectory(Path.Combine(packageDir, "native"));
+        Directory.CreateDirectory(Path.Combine(packageDir, "notes"));
+        File.WriteAllText(Path.Combine(packageDir, "Pkg.dll"), "main");
+        File.WriteAllText(Path.Combine(packageDir, "de", "Pkg.resources.dll"), "de");
+        File.WriteAllText(Path.Combine(packageDir, "native", "libx.dylib"), "native");
+        File.WriteAllText(Path.Combine(packageDir, "notes", "readme.txt"), "text");
+
+        var target = Path.Combine(_managedDir, "target");
+        NuGetMarketplaceService.CopySatellitesToManaged(new[] { ("Pkg", "1.0.0") }, target, cacheRoot);
+
+        Assert.IsTrue(File.Exists(Path.Combine(target, "de", "Pkg.resources.dll")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(target, "native")), "Natives have their own copy step.");
+        Assert.IsFalse(Directory.Exists(Path.Combine(target, "notes")), "A folder with no satellites is not a culture.");
+        Assert.IsFalse(File.Exists(Path.Combine(target, "Pkg.dll")), "Assemblies have their own copy step.");
+    }
+
+    [TestMethod]
+    public async Task InstallFromFileAsync_Nupkg_KeepsSatellitesUnderTheirCultureFolder()
+    {
+        // A package laid out the way dotnet pack lays out a localized extension. Installing it
+        // must keep de/Probe.resources.dll under its culture folder, list only the real assembly,
+        // and leave the installed copy able to answer in German from its own load context.
+        var build = Path.Combine(_managedDir, "build");
+        Directory.CreateDirectory(build);
+        var mainDll = SatelliteProbe.Build(build);
+        var id = "Verso.SatelliteProbe." + Guid.NewGuid().ToString("N")[..12];
+        var nupkg = BuildNupkg(build, id, "1.0.0", mainDll, SatelliteProbe.SatellitePath(build));
+
+        try
+        {
+            var installed = await new NuGetMarketplaceService()
+                .InstallFromFileAsync(nupkg, _managedDir, CancellationToken.None);
+
+            var installedDll = Path.Combine(installed.PackageDirectory, "Probe.dll");
+            Assert.IsTrue(File.Exists(Path.Combine(installed.PackageDirectory, "de", "Probe.resources.dll")),
+                "The satellite lost its culture folder on the way into the managed store.");
+            CollectionAssert.AreEquivalent(
+                new[] { "Probe.dll" },
+                Directory.GetFiles(installed.PackageDirectory, "*.dll").Select(Path.GetFileName).ToArray(),
+                "Only the real assembly belongs at the top level.");
+            CollectionAssert.AreEquivalent(new[] { installedDll }, installed.AssemblyPaths.ToArray());
+
+            var context = new ExtensionLoadContext(installedDll);
+            try
+            {
+                var assembly = context.LoadFromAssemblyPath(installedDll);
+                Assert.AreEqual("Hallo", SatelliteProbe.Greeting(assembly, "de"));
+                Assert.AreEqual("Hello", SatelliteProbe.Greeting(assembly, "fr"));
+            }
+            finally
+            {
+                context.Unload();
+            }
+        }
+        finally
+        {
+            // The resolver cached the package under its real cache root; leave nothing behind.
+            try { Directory.Delete(Path.Combine(NuGetPackageResolver.CacheRoot, id), recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    [TestMethod]
+    public async Task InstallFromFileAsync_Nupkg_RefreshesACacheEntryWithFlattenedSatellites()
+    {
+        // A cache entry written by a build that flattened lib/ has the satellite beside the
+        // assembly, where it can never load. The next install must extract the package again,
+        // put the satellite back under its culture folder and drop the flattened copy, so the
+        // entry is not refreshed again on every resolve after that.
+        var build = Path.Combine(_managedDir, "build");
+        Directory.CreateDirectory(build);
+        var mainDll = SatelliteProbe.Build(build);
+        var id = "Verso.SatelliteProbe." + Guid.NewGuid().ToString("N")[..12];
+        var nupkg = BuildNupkg(build, id, "1.0.0", mainDll, SatelliteProbe.SatellitePath(build));
+        var cacheDir = Path.Combine(NuGetPackageResolver.CacheRoot, id, "1.0.0");
+
+        try
+        {
+            var service = new NuGetMarketplaceService();
+            await service.InstallFromFileAsync(nupkg, Path.Combine(_managedDir, "first"), CancellationToken.None);
+
+            // Age the entry by hand into the shape the older build left behind.
+            var cultureDir = Path.Combine(cacheDir, "de");
+            File.Move(Path.Combine(cultureDir, "Probe.resources.dll"), Path.Combine(cacheDir, "Probe.resources.dll"));
+            Directory.Delete(cultureDir);
+
+            var installed = await service.InstallFromFileAsync(nupkg, Path.Combine(_managedDir, "second"), CancellationToken.None);
+
+            Assert.IsTrue(File.Exists(Path.Combine(cacheDir, "de", "Probe.resources.dll")),
+                "The stale entry was served from cache instead of being extracted again.");
+            Assert.IsFalse(File.Exists(Path.Combine(cacheDir, "Probe.resources.dll")),
+                "The flattened copy was left behind, so the entry would be refreshed on every resolve.");
+            Assert.IsTrue(File.Exists(Path.Combine(installed.PackageDirectory, "de", "Probe.resources.dll")),
+                "The refreshed install did not receive the satellite under its culture folder.");
+            CollectionAssert.AreEquivalent(
+                new[] { "Probe.dll" },
+                Directory.GetFiles(installed.PackageDirectory, "*.dll").Select(Path.GetFileName).ToArray(),
+                "Only the real assembly belongs at the top level.");
+        }
+        finally
+        {
+            try { Directory.Delete(Path.Combine(NuGetPackageResolver.CacheRoot, id), recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    private static string BuildNupkg(string folder, string id, string version, string mainDll, string satelliteDll)
+    {
+        var path = Path.Combine(folder, $"{id}.{version}.nupkg");
+        using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
+        using (var nuspec = new StreamWriter(zip.CreateEntry($"{id}.nuspec").Open()))
+        {
+            nuspec.Write(
+                $"""<?xml version="1.0" encoding="utf-8"?><package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata><id>{id}</id><version>{version}</version><authors>test</authors><description>Satellite probe.</description></metadata></package>""");
+        }
+        zip.CreateEntryFromFile(mainDll, "lib/net8.0/Probe.dll");
+        zip.CreateEntryFromFile(satelliteDll, "lib/net8.0/de/Probe.resources.dll");
+        return path;
     }
 }

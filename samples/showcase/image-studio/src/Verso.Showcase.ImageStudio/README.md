@@ -29,6 +29,10 @@ To save your work, use the host **Export** menu: while Image Studio is the activ
 **PNG Image** (the rasterized canvas) and **SVG Image** (a resolution-independent re-emit of the
 vector layers) alongside the notebook's other export formats.
 
+## Languages
+
+The layout's chrome follows the interface language: English, German, Spanish, Japanese, and Simplified Chinese ship in the package. Set `verso.language` in VS Code or pass `--language` on the command line, and the layout answers in that language with the rest of the notebook.
+
 ## License
 
 MIT. This package bundles no third-party libraries.

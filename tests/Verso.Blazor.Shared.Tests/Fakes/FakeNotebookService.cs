@@ -95,6 +95,8 @@ public sealed class FakeNotebookService : INotebookService
     // ── Call tracking ──────────────────────────────────────────────────
 
     public List<string> AddCellCalls { get; } = new();
+    public List<(int Index, string Type)> InsertCellCalls { get; } = new();
+    public List<Guid> RemoveCellCalls { get; } = new();
     public List<Guid> ExecutedCellIds { get; } = new();
     public int ExecuteAllCallCount { get; private set; }
     public int RestartKernelCallCount { get; private set; }
@@ -187,11 +189,16 @@ public sealed class FakeNotebookService : INotebookService
 
     public Task<CellModel> InsertCellAsync(int index, string type = "code", string? language = null)
     {
+        InsertCellCalls.Add((index, type));
         var cell = new CellModel { Type = type, Language = language };
         return Task.FromResult(cell);
     }
 
-    public Task<bool> RemoveCellAsync(Guid cellId) => Task.FromResult(true);
+    public Task<bool> RemoveCellAsync(Guid cellId)
+    {
+        RemoveCellCalls.Add(cellId);
+        return Task.FromResult(true);
+    }
 
     public Task MoveCellAsync(int fromIndex, int toIndex) => Task.CompletedTask;
 

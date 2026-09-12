@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Showcase.SlideStudio.Models;
+using Verso.Showcase.SlideStudio.Resources;
 
 namespace Verso.Showcase.SlideStudio;
 
@@ -39,12 +40,10 @@ public sealed class SlideStudioLayout :
     // --- IExtension ---
 
     public string ExtensionId => "com.verso.showcase.slide-studio";
-    public string Name => "Slide Studio";
+    public string Name => Strings.Layout_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description =>
-        "Slide-deck authoring layout: a filmstrip of cell previews, an editor and output " +
-        "split view, and a full-screen presenter mode with per-cell source/output control.";
+    public string? Description => Strings.Layout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -52,7 +51,7 @@ public sealed class SlideStudioLayout :
     // --- ILayoutEngine ---
 
     public string LayoutId => "slide-studio";
-    public string DisplayName => "Slide Studio";
+    public string DisplayName => Strings.Layout_DisplayName;
     public string? Icon => null;
     public bool RequiresCustomRenderer => true;
 
@@ -129,7 +128,7 @@ public sealed class SlideStudioLayout :
         // editor slot rather than its (hidden) slide slot. The layout script hands the
         // active cell over to its slide while presenting and returns it afterwards.
         sb.Append("<div class=\"vss-body\">");
-        AppendFilmstrip(sb, cells, activeId);
+        AppendFilmstrip(sb, cells, activeId, CellTypeNames(context));
         AppendWorkspace(sb, cells, activeId, split);
         sb.Append("</div>");
 
@@ -303,15 +302,12 @@ public sealed class SlideStudioLayout :
         var flags = PresenterFlags.Read(cell);
         var fields = new List<PropertyField>
         {
-            new("include", "Include in presenter", PropertyFieldType.Toggle, flags.Include,
-                "Whether this cell appears as a slide in presenter view."),
-            new("showSource", "Show source on slide", PropertyFieldType.Toggle, flags.ShowSource,
-                "Show the cell's source on its slide."),
-            new("showOutput", "Show output on slide", PropertyFieldType.Toggle, flags.ShowOutput,
-                "Show the cell's output on its slide."),
+            new("include", Strings.Props_Include, PropertyFieldType.Toggle, flags.Include, Strings.Props_Include_Hint),
+            new("showSource", Strings.Props_ShowSource, PropertyFieldType.Toggle, flags.ShowSource, Strings.Props_ShowSource_Hint),
+            new("showOutput", Strings.Props_ShowOutput, PropertyFieldType.Toggle, flags.ShowOutput, Strings.Props_ShowOutput_Hint),
         };
         return Task.FromResult(new PropertySection(
-            "Presenter", "How this cell appears in Slide Studio's presenter view.", fields));
+            Strings.Props_Section, Strings.Props_Section_Description, fields));
     }
 
     public Task OnPropertyChangedAsync(CellModel cell, string propertyName, object? value, ICellRenderContext context)
@@ -356,28 +352,37 @@ public sealed class SlideStudioLayout :
 
     // --- HTML builders ---------------------------------------------------------------------
 
+    // Every string is read from the resources at render time rather than kept in a field, so
+    // a host that draws for several readers answers each of them in their own language.
     private static void AppendToolbar(StringBuilder sb, IReadOnlyList<CellModel> cells, int slideCount)
     {
+        var count = string.Format(
+            Plural.Of(slideCount, Strings.Toolbar_SlideCount_One, Strings.Toolbar_SlideCount_Other), slideCount);
         sb.Append("<div class=\"vss-toolbar\">")
-          .Append("<div class=\"vss-title\"><span class=\"vss-logo\">&#9654;</span> Slide Studio</div>")
+          .Append("<div class=\"vss-title\"><span class=\"vss-logo\">&#9654;</span> ")
+          .Append(WebUtility.HtmlEncode(Strings.Toolbar_Title)).Append("</div>")
           .Append("<div class=\"vss-toolbar-right\">")
           .Append("<span class=\"vss-deck-count\">")
-          .Append(slideCount).Append(slideCount == 1 ? " slide" : " slides")
+          .Append(WebUtility.HtmlEncode(count))
           .Append("</span>")
           .Append("<button type=\"button\" class=\"vss-btn vss-btn--primary vss-present\"")
-          .Append(slideCount == 0 ? " disabled title=\"No cells are included in the presenter view\"" : "")
-          .Append(">Present</button>")
+          .Append(slideCount == 0
+              ? " disabled title=\"" + WebUtility.HtmlEncode(Strings.Toolbar_Present_None_Tip) + "\""
+              : "")
+          .Append('>').Append(WebUtility.HtmlEncode(Strings.Toolbar_Present)).Append("</button>")
           .Append("</div></div>");
     }
 
-    private static void AppendFilmstrip(StringBuilder sb, IReadOnlyList<CellModel> cells, Guid? activeId)
+    private static void AppendFilmstrip(
+        StringBuilder sb, IReadOnlyList<CellModel> cells, Guid? activeId, IReadOnlyDictionary<string, string> typeNames)
     {
         sb.Append("<div class=\"vss-filmstrip\">");
 
         if (cells.Count == 0)
         {
-            sb.Append("<div class=\"vss-empty\">This notebook has no cells yet. ")
-              .Append("Switch to the Notebook layout to add some.</div>");
+            sb.Append("<div class=\"vss-empty\">")
+              .Append(WebUtility.HtmlEncode(Strings.Filmstrip_Empty))
+              .Append("</div>");
         }
 
         for (var i = 0; i < cells.Count; i++)
@@ -389,7 +394,8 @@ public sealed class SlideStudioLayout :
               .Append(flags.Include ? "" : " is-excluded")
               .Append("\" data-tile-cell=\"").Append(cell.Id).Append("\">");
 
-            sb.Append("<label class=\"vss-tile-include\" title=\"Include in presenter view\">")
+            sb.Append("<label class=\"vss-tile-include\" title=\"")
+              .Append(WebUtility.HtmlEncode(Strings.Tile_Include_Tip)).Append("\">")
               .Append("<input type=\"checkbox\" data-flag=\"include\" data-flag-cell=\"")
               .Append(cell.Id).Append('"').Append(flags.Include ? " checked" : "").Append("></label>");
 
@@ -400,7 +406,7 @@ public sealed class SlideStudioLayout :
             sb.Append("</div></div>");
 
             sb.Append("<div class=\"vss-tile-caption\">")
-              .Append(WebUtility.HtmlEncode(CaptionFor(cell)))
+              .Append(WebUtility.HtmlEncode(CaptionFor(cell, typeNames)))
               .Append("</div>");
 
             sb.Append("</div>");
@@ -427,19 +433,21 @@ public sealed class SlideStudioLayout :
         // script-driven outputs: layout HTML is injected via innerHTML, which never
         // executes script tags.
         sb.Append("<div class=\"vss-pane vss-pane--editor\">")
-          .Append("<div class=\"vss-pane-header\"><span class=\"vss-pane-name\">Cell</span>");
+          .Append("<div class=\"vss-pane-header\"><span class=\"vss-pane-name\">")
+          .Append(WebUtility.HtmlEncode(Strings.Pane_Cell)).Append("</span>");
         if (active is not null)
         {
-            sb.Append("<label class=\"vss-pane-check\" title=\"Show this cell's source on its slide\">")
+            sb.Append("<label class=\"vss-pane-check\" title=\"")
+              .Append(WebUtility.HtmlEncode(Strings.Pane_SourceOnSlide_Tip)).Append("\">")
               .Append("<input type=\"checkbox\" data-flag=\"source\" data-flag-cell=\"")
               .Append(active.Id).Append('"').Append(flags.ShowSource ? " checked" : "")
-              .Append("> Source on slide</label>");
+              .Append("> ").Append(WebUtility.HtmlEncode(Strings.Pane_SourceOnSlide)).Append("</label>");
         }
         sb.Append("</div>");
         if (active is not null)
             sb.Append("<div class=\"vss-editor-slot\" data-cell-slot=\"").Append(active.Id).Append("\"></div>");
         else
-            sb.Append("<div class=\"vss-pane-empty\">Select a cell in the filmstrip.</div>");
+            sb.Append("<div class=\"vss-pane-empty\">").Append(WebUtility.HtmlEncode(Strings.Pane_SelectCell)).Append("</div>");
         sb.Append("</div>");
 
         sb.Append("<div class=\"vss-splitter\" role=\"separator\" aria-orientation=\"vertical\"></div>");
@@ -450,18 +458,20 @@ public sealed class SlideStudioLayout :
         // exist (see below); whenever the live element exists, its opaque overlay
         // covers the fallback completely.
         sb.Append("<div class=\"vss-pane vss-pane--output\">")
-          .Append("<div class=\"vss-pane-header\"><span class=\"vss-pane-name\">Output</span>");
+          .Append("<div class=\"vss-pane-header\"><span class=\"vss-pane-name\">")
+          .Append(WebUtility.HtmlEncode(Strings.Pane_Output)).Append("</span>");
         if (active is not null)
         {
-            sb.Append("<label class=\"vss-pane-check\" title=\"Show this cell's output on its slide\">")
+            sb.Append("<label class=\"vss-pane-check\" title=\"")
+              .Append(WebUtility.HtmlEncode(Strings.Pane_OutputOnSlide_Tip)).Append("\">")
               .Append("<input type=\"checkbox\" data-flag=\"output\" data-flag-cell=\"")
               .Append(active.Id).Append('"').Append(flags.ShowOutput ? " checked" : "")
-              .Append("> Output on slide</label>");
+              .Append("> ").Append(WebUtility.HtmlEncode(Strings.Pane_OutputOnSlide)).Append("</label>");
         }
         sb.Append("</div><div class=\"vss-output-body\">");
         if (active is null || active.Outputs.Count == 0)
         {
-            sb.Append("<div class=\"vss-pane-empty\">No output yet. Run the cell to see its result here.</div>");
+            sb.Append("<div class=\"vss-pane-empty\">").Append(WebUtility.HtmlEncode(Strings.Pane_NoOutput)).Append("</div>");
         }
         else
         {
@@ -534,10 +544,13 @@ public sealed class SlideStudioLayout :
         sb.Append("</div>");
 
         sb.Append("<div class=\"vss-presenter-hud\">")
-          .Append("<button type=\"button\" class=\"vss-hud-btn\" data-nav=\"prev\" title=\"Previous slide\">&#x25C0;</button>")
+          .Append("<button type=\"button\" class=\"vss-hud-btn\" data-nav=\"prev\" title=\"")
+          .Append(WebUtility.HtmlEncode(Strings.Hud_Previous)).Append("\">&#x25C0;</button>")
           .Append("<span class=\"vss-slide-counter\"></span>")
-          .Append("<button type=\"button\" class=\"vss-hud-btn\" data-nav=\"next\" title=\"Next slide\">&#x25B6;</button>")
-          .Append("<button type=\"button\" class=\"vss-hud-btn vss-hud-exit\" data-nav=\"exit\" title=\"Exit (Esc)\">&#x2715;</button>")
+          .Append("<button type=\"button\" class=\"vss-hud-btn\" data-nav=\"next\" title=\"")
+          .Append(WebUtility.HtmlEncode(Strings.Hud_Next)).Append("\">&#x25B6;</button>")
+          .Append("<button type=\"button\" class=\"vss-hud-btn vss-hud-exit\" data-nav=\"exit\" title=\"")
+          .Append(WebUtility.HtmlEncode(Strings.Hud_Exit)).Append("\">&#x2715;</button>")
           .Append("</div>");
 
         sb.Append("</div>");
@@ -617,7 +630,7 @@ public sealed class SlideStudioLayout :
         {
             sb.Append("<div class=\"vss-out vss-out--image\"><img src=\"data:")
               .Append(output.MimeType).Append(";base64,").Append(output.Content)
-              .Append("\" alt=\"cell output\"></div>");
+              .Append("\" alt=\"").Append(WebUtility.HtmlEncode(Strings.Output_ImageAlt)).Append("\"></div>");
         }
         else
         {
@@ -627,13 +640,25 @@ public sealed class SlideStudioLayout :
         }
     }
 
-    private static string CaptionFor(CellModel cell)
+    private static string CaptionFor(CellModel cell, IReadOnlyDictionary<string, string> typeNames)
     {
         if (string.Equals(cell.Type, "code", StringComparison.OrdinalIgnoreCase))
-            return string.IsNullOrEmpty(cell.Language) ? "Code" : cell.Language!;
-        return cell.Type.Length == 0
-            ? "Cell"
+            return string.IsNullOrEmpty(cell.Language) ? Strings.Caption_Code : cell.Language!;
+        if (cell.Type.Length == 0)
+            return Strings.Caption_Cell;
+        // The host names its cell types in the reader's language; fall back to the raw id
+        // only for a type nothing registered.
+        return typeNames.TryGetValue(cell.Type, out var name)
+            ? name
             : char.ToUpperInvariant(cell.Type[0]) + cell.Type[1..];
+    }
+
+    private static IReadOnlyDictionary<string, string> CellTypeNames(IVersoContext context)
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var cellType in context.ExtensionHost.GetCellTypes())
+            names[cellType.CellTypeId] = cellType.DisplayName;
+        return names;
     }
 
     // --- Value coercion ----------------------------------------------------------------------

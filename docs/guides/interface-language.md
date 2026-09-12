@@ -95,6 +95,10 @@ Four kinds of text are deliberately never translated, and each is marked as such
 
 The line between the last two and everything else is whether you can do something about the message. A package that would not download, a value that does not fit the type its parameter declares, a connection that has since closed: all translated. A cell id that does not exist: not.
 
+## Extensions
+
+An extension can follow the interface language too: the host sets the language it is answering in before it calls into one, so an extension that keeps its strings in an ordinary .NET resource file answers in the same language as the notebook around it. The five showcase extensions do, in all five languages. An extension that has not been translated stays in English. Authors will find the pattern in the [Localization](../extensions/localization.md) guide.
+
 ## Adding a language
 
 Translations are ordinary files in the repository, so a new language is a pull request rather than a release. The `build/i18n` directory holds the tooling and a README covering the whole route: add the tag to the shipped list in four places, export the strings a language is missing, translate them by hand or against an API, and merge them back. The merge refuses a translation that dropped a placeholder, came back empty, or names a string English does not have.

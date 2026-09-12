@@ -1,6 +1,8 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
+using Verso.Showcase.DagNotebook.Resources;
 
 namespace Verso.Showcase.DagNotebook;
 
@@ -83,12 +85,10 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
     // --- IExtension ---
 
     public string ExtensionId => "com.verso.showcase.dag-notebook";
-    public string Name => "DAG Notebook";
+    public string Name => Strings.Layout_Name;
     public string Version => "1.0.0";
     public string? Author => "Verso Contributors";
-    public string? Description =>
-        "Notebook layout with dependency-aware reactive execution: cells that share variables are " +
-        "linked with badges, and running a cell re-runs its dependents in dependency order.";
+    public string? Description => Strings.Layout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -96,7 +96,7 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
     // --- ILayoutEngine ---
 
     public string LayoutId => "dag-notebook";
-    public string DisplayName => "DAG Notebook";
+    public string DisplayName => Strings.Layout_DisplayName;
     public string? Icon => null;
     public bool RequiresCustomRenderer => true;
 
@@ -173,8 +173,8 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
         if (cells.Count == 0)
         {
             sb.Append("<div class=\"vmd-empty\">")
-              .Append("<p class=\"vmd-empty-title\">This notebook is empty</p>")
-              .Append("<p class=\"vmd-empty-sub\">Add your first cell below.</p>")
+              .Append("<p class=\"vmd-empty-title\">").Append(Escape(Strings.Empty_Title)).Append("</p>")
+              .Append("<p class=\"vmd-empty-sub\">").Append(Escape(Strings.Empty_Subtitle)).Append("</p>")
               .Append("</div>");
         }
 
@@ -228,7 +228,7 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
               .Append(cells.Count)
               .Append("\" data-type=\"").Append(ct.Id).Append("\">")
               .Append("<span class=\"vmd-add-glyph\">&#x2B;</span> ")
-              .Append(ct.DisplayName).Append(" Cell</button>");
+              .Append(Escape(string.Format(Strings.Add_Cell, ct.DisplayName))).Append("</button>");
         }
         sb.Append("</div>");
 
@@ -668,19 +668,24 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
 
     // --- HTML helpers ------------------------------------------------------------------------
 
+    // Every string is read from the resources at render time rather than kept in a field, so
+    // a host that draws for several readers answers each of them in their own language.
     private static void AppendHeader(StringBuilder sb, bool autoRun)
     {
+        var state = autoRun ? Strings.Common_On : Strings.Common_Off;
         sb.Append("<div class=\"vdag-header\">")
-          .Append("<div class=\"vdag-title\"><span class=\"vdag-logo\">&#8649;</span> DAG Notebook</div>")
+          .Append("<div class=\"vdag-title\"><span class=\"vdag-logo\">&#8649;</span> ").Append(Escape(Strings.Header_Title)).Append("</div>")
           .Append("<div class=\"vdag-controls\">")
           .Append("<button type=\"button\" class=\"vdag-btn vdag-btn--primary\" data-action=\"dag-run-all\" ")
-          .Append("title=\"Run every cell in dependency order\">Run DAG</button>")
+          .Append("title=\"").Append(Escape(Strings.Header_RunDag_Tip)).Append("\">").Append(Escape(Strings.Header_RunDag)).Append("</button>")
           .Append("<button type=\"button\" class=\"vdag-btn vdag-toggle ").Append(autoRun ? "is-on" : "is-off")
-          .Append("\" data-action=\"dag-toggle-auto\" title=\"When on, running a cell or moving a bound control re-runs the cells that depend on it\">")
-          .Append("<span class=\"vdag-dot\"></span>Auto-run dependents: ").Append(autoRun ? "On" : "Off")
+          .Append("\" data-action=\"dag-toggle-auto\" title=\"").Append(Escape(Strings.Header_AutoRun_Tip)).Append("\">")
+          .Append("<span class=\"vdag-dot\"></span>").Append(Escape(string.Format(Strings.Header_AutoRun, state)))
           .Append("</button>")
           .Append("</div></div>");
     }
+
+    private static string Escape(string value) => WebUtility.HtmlEncode(value);
 
     private static void AppendBadges(StringBuilder sb, Guid cellId, DependencyAnalyzer.Graph graph)
     {
@@ -702,41 +707,41 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
         foreach (var name in bindings)
         {
             sb.Append("<span class=\"vdag-chip vdag-chip--live\" title=\"")
-              .Append(name).Append(" follows a control on this page; moving it runs the cells below\">")
+              .Append(Escape(string.Format(Strings.Chip_Live_Tip, name))).Append("\">")
               .Append("<span class=\"vdag-arrow\">&#8635;</span>")
-              .Append("<span class=\"vdag-var\">").Append(name).Append("</span></span>");
+              .Append("<span class=\"vdag-var\">").Append(Escape(name)).Append("</span></span>");
         }
 
         foreach (var edge in inbound)
         {
             var producer = graph.Nodes[edge.From].Number;
             sb.Append("<button type=\"button\" class=\"vdag-chip vdag-chip--in\" data-goto=\"").Append(edge.From)
-              .Append("\" title=\"Reads ").Append(edge.Variable).Append(" from cell ").Append(producer).Append("\">")
+              .Append("\" title=\"").Append(Escape(string.Format(Strings.Chip_Reads_Tip, edge.Variable, producer))).Append("\">")
               .Append("<span class=\"vdag-arrow\">&#8593;</span>").Append(producer)
-              .Append("&nbsp;<span class=\"vdag-var\">").Append(edge.Variable).Append("</span></button>");
+              .Append("&nbsp;<span class=\"vdag-var\">").Append(Escape(edge.Variable)).Append("</span></button>");
         }
 
         foreach (var edge in outbound)
         {
             var consumer = graph.Nodes[edge.To].Number;
             sb.Append("<button type=\"button\" class=\"vdag-chip vdag-chip--out\" data-goto=\"").Append(edge.To)
-              .Append("\" title=\"Feeds ").Append(edge.Variable).Append(" to cell ").Append(consumer).Append("\">")
+              .Append("\" title=\"").Append(Escape(string.Format(Strings.Chip_Feeds_Tip, edge.Variable, consumer))).Append("\">")
               .Append("<span class=\"vdag-arrow\">&#8595;</span>").Append(consumer)
-              .Append("&nbsp;<span class=\"vdag-var\">").Append(edge.Variable).Append("</span></button>");
+              .Append("&nbsp;<span class=\"vdag-var\">").Append(Escape(edge.Variable)).Append("</span></button>");
         }
 
         foreach (var name in conflicts)
         {
             sb.Append("<span class=\"vdag-chip vdag-chip--warn\" title=\"")
-              .Append(name).Append(" is assigned in more than one cell, so its links are not tracked\">")
-              .Append("&#9888; <span class=\"vdag-var\">").Append(name).Append("</span></span>");
+              .Append(Escape(string.Format(Strings.Chip_Conflict_Tip, name))).Append("\">")
+              .Append("&#9888; <span class=\"vdag-var\">").Append(Escape(name)).Append("</span></span>");
         }
 
         if (cyclic)
         {
             sb.Append("<span class=\"vdag-chip vdag-chip--warn\" ")
-              .Append("title=\"This cell is on a dependency cycle; cycle edges are excluded from auto-run\">")
-              .Append("&#9888; cycle</span>");
+              .Append("title=\"").Append(Escape(Strings.Chip_Cycle_Tip)).Append("\">")
+              .Append("&#9888; ").Append(Escape(Strings.Chip_Cycle)).Append("</span>");
         }
 
         sb.Append("</div>");
@@ -775,16 +780,16 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
             sb.Append("<button type=\"button\" class=\"vmd-insert-btn\" data-action=\"insert-cell\" data-index=\"")
               .Append(index)
               .Append("\" data-type=\"").Append(ct.Id)
-              .Append("\" title=\"Insert a ").Append(ct.DisplayName).Append(" cell here\">")
+              .Append("\" title=\"").Append(Escape(string.Format(Strings.Insert_Tip, ct.DisplayName))).Append("\">")
               .Append("<span class=\"vmd-insert-glyph\">&#x2B;</span>")
-              .Append(ct.DisplayName).Append("</button>");
+              .Append(Escape(ct.DisplayName)).Append("</button>");
         }
         sb.Append("</div></div>");
     }
 
     private static IReadOnlyList<CellTypeOption> GetAvailableCellTypes(IVersoContext context)
     {
-        var types = new List<CellTypeOption> { new("code", "Code") };
+        var types = new List<CellTypeOption> { new("code", Strings.CellType_Code) };
         var host = context.ExtensionHost;
 
         var registeredTypes = host.GetCellTypes();
@@ -792,7 +797,7 @@ public sealed class DagNotebookLayout : ILayoutEngine, ILayoutInteractionHandler
             registeredTypes.Any(ct => string.Equals(ct.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase))
             || host.GetRenderers().Any(r => string.Equals(r.CellTypeId, "markdown", StringComparison.OrdinalIgnoreCase));
         if (hasMarkdown)
-            types.Add(new CellTypeOption("markdown", "Markdown"));
+            types.Add(new CellTypeOption("markdown", Strings.CellType_Markdown));
 
         foreach (var ct in registeredTypes)
         {

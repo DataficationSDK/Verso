@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Chart_Loading" xml:space="preserve">
+    <value>Wird geladen…</value>
+  </data>
+  <data name="Chart_PickSource" xml:space="preserve">
+    <value>Datenquelle wählen</value>
+  </data>
+  <data name="Empty_Hint" xml:space="preserve">
+    <value>Eingaben schreiben Kernel-Variablen. Diagramme zeichnen eine Datenquelle. Wechseln Sie zur Vorschau, um die App zu benutzen.</value>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>Ziehen Sie ein Widget von links auf die Arbeitsfläche.</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Isoliertes Layout, das ein Notebook in eine live parametrisierte App aus verschiebbaren Widgets und Diagrammen verwandelt.</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Form Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Form Studio-Layout</value>
+  </data>
+  <data name="Palette_Bar" xml:space="preserve">
+    <value>Balken</value>
+  </data>
+  <data name="Palette_Charts" xml:space="preserve">
+    <value>Diagramme</value>
+  </data>
+  <data name="Palette_Drag_Tip" xml:space="preserve">
+    <value>Auf die Arbeitsfläche ziehen</value>
+  </data>
+  <data name="Palette_Dropdown" xml:space="preserve">
+    <value>Dropdown</value>
+  </data>
+  <data name="Palette_Inputs" xml:space="preserve">
+    <value>Eingaben</value>
+  </data>
+  <data name="Palette_Label" xml:space="preserve">
+    <value>Beschriftung</value>
+  </data>
+  <data name="Palette_Line" xml:space="preserve">
+    <value>Linien</value>
+  </data>
+  <data name="Palette_Number" xml:space="preserve">
+    <value>Zahl</value>
+  </data>
+  <data name="Palette_Pie" xml:space="preserve">
+    <value>Kreis</value>
+  </data>
+  <data name="Palette_Scatter" xml:space="preserve">
+    <value>Streu</value>
+  </data>
+  <data name="Palette_Slider" xml:space="preserve">
+    <value>Schieberegler</value>
+  </data>
+  <data name="Palette_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Palette_Toggle" xml:space="preserve">
+    <value>Schalter</value>
+  </data>
+  <data name="Props_BindsTo" xml:space="preserve">
+    <value>Bindet an Variable</value>
+  </data>
+  <data name="Props_BindsTo_Hint" xml:space="preserve">
+    <value>Die Kernel-Variable, die diese Eingabe schreibt.</value>
+  </data>
+  <data name="Props_ChartType" xml:space="preserve">
+    <value>Diagrammtyp</value>
+  </data>
+  <data name="Props_Data" xml:space="preserve">
+    <value>Daten</value>
+  </data>
+  <data name="Props_Data_Hint" xml:space="preserve">
+    <value>Die Kernel-Variable, die gezeichnet wird (ein DataBlock oder eine DataTable).</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>Widget löschen</value>
+  </data>
+  <data name="Props_Label" xml:space="preserve">
+    <value>Beschriftung</value>
+  </data>
+  <data name="Props_Max" xml:space="preserve">
+    <value>Max</value>
+  </data>
+  <data name="Props_Min" xml:space="preserve">
+    <value>Min</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>Wählen Sie ein Widget aus, um seine Einstellungen zu bearbeiten, oder ziehen Sie ein neues aus der Palette.</value>
+  </data>
+  <data name="Props_Options" xml:space="preserve">
+    <value>Optionen (durch Komma getrennt)</value>
+  </data>
+  <data name="Props_SeriesColor" xml:space="preserve">
+    <value>Reihenfarbe</value>
+  </data>
+  <data name="Props_Step" xml:space="preserve">
+    <value>Schritt</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>Eigenschaften</value>
+  </data>
+  <data name="Props_XAxis" xml:space="preserve">
+    <value>X-Achse</value>
+  </data>
+  <data name="Props_YAxis" xml:space="preserve">
+    <value>Y-Achse (Reihen)</value>
+  </data>
+  <data name="Seed_MinimumUnits" xml:space="preserve">
+    <value>Mindeststückzahl</value>
+  </data>
+  <data name="Seed_Region" xml:space="preserve">
+    <value>Region</value>
+  </data>
+  <data name="Seed_RevenueByMonth" xml:space="preserve">
+    <value>Umsatz nach Monat</value>
+  </data>
+  <data name="Seed_UnitsByMonth" xml:space="preserve">
+    <value>Stückzahl nach Monat</value>
+  </data>
+  <data name="Select_None" xml:space="preserve">
+    <value>(keine)</value>
+  </data>
+  <data name="Select_PickSourceFirst" xml:space="preserve">
+    <value>Wählen Sie zuerst eine Datenquelle.</value>
+  </data>
+  <data name="Toolbar_AutoRun" xml:space="preserve">
+    <value>Automatisch ausführen</value>
+  </data>
+  <data name="Toolbar_AutoRun_Tip" xml:space="preserve">
+    <value>Das Notebook automatisch erneut ausführen, wenn sich eine Eingabe ändert</value>
+  </data>
+  <data name="Toolbar_Edit" xml:space="preserve">
+    <value>Bearbeiten</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>Exportieren</value>
+  </data>
+  <data name="Toolbar_Export_Tip" xml:space="preserve">
+    <value>Das Dashboard als JSON herunterladen</value>
+  </data>
+  <data name="Toolbar_Preview" xml:space="preserve">
+    <value>Vorschau</value>
+  </data>
+  <data name="Toolbar_Run" xml:space="preserve">
+    <value>Ausführen</value>
+  </data>
+  <data name="Toolbar_Run_Tip" xml:space="preserve">
+    <value>Das Notebook jetzt erneut ausführen</value>
+  </data>
+  <data name="Widget_ChartLabel" xml:space="preserve">
+    <value>{0}diagramm</value>
+  </data>
+  <data name="Widget_Heading" xml:space="preserve">
+    <value>Überschrift</value>
+  </data>
+  <data name="Widget_Resize_Tip" xml:space="preserve">
+    <value>Größe ändern</value>
+  </data>
+</root>

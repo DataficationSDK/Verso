@@ -375,6 +375,10 @@ When the user switches themes, the host updates these variables on `:root` and y
 
 For authors of theme extensions (which set the values these variables resolve to), see [Theme Authoring](theme-authoring.md).
 
+## Language
+
+An inline layout's HTML is rendered on the server, so its strings go through a resource file and follow the reader's interface language the same way the built-in layouts do. The host writes that language onto the layout root as a `lang` attribute, so a script that needs the tag reads the nearest `lang` above it. An isolated layout receives the tag as `uiCulture` on `verso/init` and its strings from its own mount handler. The [Localization](localization.md) guide covers both.
+
 ## Cell Lifecycle Notifications
 
 The layout engine receives notifications when cells are added, removed, or moved. Use these to maintain internal state:
@@ -946,7 +950,7 @@ Host to frame (received in `onMessage`):
 
 | Type | Payload | Purpose |
 |---|---|---|
-| `verso/init` | `{ extensionId, layoutId, frameInstanceId, cells, capabilities, theme, layoutMetadata, extension? }` | Initial state. `extension` is the dictionary your mount handler returned. |
+| `verso/init` | `{ extensionId, layoutId, frameInstanceId, cells, capabilities, hostProtocolVersion, theme, uiCulture, layoutMetadata, extension? }` | Initial state. `extension` is the dictionary your mount handler returned. `uiCulture` is the interface language as a tag such as `de`; the frame document's `<html lang>` carries the same value. The per-cell `language` inside `cells` is the programming language, so do not reuse that word for the culture in your own payloads. |
 | `verso/cellsChanged` | `{ cells }` | The notebook's cell list changed. |
 | `verso/cellOutputs` | `{ cellId, outputs }` | A cell's outputs changed. |
 | `verso/themeChanged` | `{ theme }` | The active theme changed. |

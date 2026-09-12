@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Align_Center" xml:space="preserve">
+    <value>Centro</value>
+  </data>
+  <data name="Align_Left" xml:space="preserve">
+    <value>Izquierda</value>
+  </data>
+  <data name="Align_Right" xml:space="preserve">
+    <value>Derecha</value>
+  </data>
+  <data name="Blend_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Blend_ColorBurn" xml:space="preserve">
+    <value>Subexponer color</value>
+  </data>
+  <data name="Blend_ColorDodge" xml:space="preserve">
+    <value>Sobreexponer color</value>
+  </data>
+  <data name="Blend_Darken" xml:space="preserve">
+    <value>Oscurecer</value>
+  </data>
+  <data name="Blend_Difference" xml:space="preserve">
+    <value>Diferencia</value>
+  </data>
+  <data name="Blend_Exclusion" xml:space="preserve">
+    <value>Exclusión</value>
+  </data>
+  <data name="Blend_HardLight" xml:space="preserve">
+    <value>Luz fuerte</value>
+  </data>
+  <data name="Blend_Hue" xml:space="preserve">
+    <value>Tono</value>
+  </data>
+  <data name="Blend_Lighten" xml:space="preserve">
+    <value>Aclarar</value>
+  </data>
+  <data name="Blend_Luminosity" xml:space="preserve">
+    <value>Luminosidad</value>
+  </data>
+  <data name="Blend_Multiply" xml:space="preserve">
+    <value>Multiplicar</value>
+  </data>
+  <data name="Blend_Normal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="Blend_Overlay" xml:space="preserve">
+    <value>Superponer</value>
+  </data>
+  <data name="Blend_Saturation" xml:space="preserve">
+    <value>Saturación</value>
+  </data>
+  <data name="Blend_Screen" xml:space="preserve">
+    <value>Trama</value>
+  </data>
+  <data name="Blend_SoftLight" xml:space="preserve">
+    <value>Luz suave</value>
+  </data>
+  <data name="Export_Png" xml:space="preserve">
+    <value>Imagen PNG</value>
+  </data>
+  <data name="Export_Png_Description" xml:space="preserve">
+    <value>Exporta la composición de Image Studio como imagen PNG.</value>
+  </data>
+  <data name="Export_Png_Name" xml:space="preserve">
+    <value>Image Studio: Exportar PNG</value>
+  </data>
+  <data name="Export_Svg" xml:space="preserve">
+    <value>Imagen SVG</value>
+  </data>
+  <data name="Export_Svg_Description" xml:space="preserve">
+    <value>Exporta la composición de Image Studio como imagen SVG.</value>
+  </data>
+  <data name="Export_Svg_Name" xml:space="preserve">
+    <value>Image Studio: Exportar SVG</value>
+  </data>
+  <data name="Kind_Checkerboard" xml:space="preserve">
+    <value>Damero</value>
+  </data>
+  <data name="Kind_Dots" xml:space="preserve">
+    <value>Patrón</value>
+  </data>
+  <data name="Kind_LinearGradient" xml:space="preserve">
+    <value>Degradado lineal</value>
+  </data>
+  <data name="Kind_Procedural" xml:space="preserve">
+    <value>Procedural (por código)</value>
+  </data>
+  <data name="Kind_RadialGradient" xml:space="preserve">
+    <value>Degradado radial</value>
+  </data>
+  <data name="Kind_Rings" xml:space="preserve">
+    <value>Anillos</value>
+  </data>
+  <data name="Kind_Solid" xml:space="preserve">
+    <value>Color sólido</value>
+  </data>
+  <data name="Kind_Stripes" xml:space="preserve">
+    <value>Rayas</value>
+  </data>
+  <data name="Kind_Text" xml:space="preserve">
+    <value>Texto</value>
+  </data>
+  <data name="Layer_Default" xml:space="preserve">
+    <value>Capa</value>
+  </data>
+  <data name="Layer_Hide" xml:space="preserve">
+    <value>Ocultar</value>
+  </data>
+  <data name="Layer_Show" xml:space="preserve">
+    <value>Mostrar</value>
+  </data>
+  <data name="Layers_Add_Tip" xml:space="preserve">
+    <value>Agregar capa</value>
+  </data>
+  <data name="Layers_Empty" xml:space="preserve">
+    <value>Aún no hay capas. Agregue una desde la paleta de herramientas.</value>
+  </data>
+  <data name="Layers_Title" xml:space="preserve">
+    <value>Capas</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>Diseño aislado que presenta el cuaderno como un documento de imagen por capas.</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Image Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Diseño Image Studio</value>
+  </data>
+  <data name="Name_Checker" xml:space="preserve">
+    <value>Damero</value>
+  </data>
+  <data name="Name_Dots" xml:space="preserve">
+    <value>Puntos</value>
+  </data>
+  <data name="Name_Gradient" xml:space="preserve">
+    <value>Degradado</value>
+  </data>
+  <data name="Name_Procedural" xml:space="preserve">
+    <value>Procedural</value>
+  </data>
+  <data name="Name_Radial" xml:space="preserve">
+    <value>Radial</value>
+  </data>
+  <data name="Name_Rings" xml:space="preserve">
+    <value>Anillos</value>
+  </data>
+  <data name="Name_Solid" xml:space="preserve">
+    <value>Sólido</value>
+  </data>
+  <data name="Name_Stripes" xml:space="preserve">
+    <value>Rayas</value>
+  </data>
+  <data name="Name_Text" xml:space="preserve">
+    <value>Texto</value>
+  </data>
+  <data name="Props_Align" xml:space="preserve">
+    <value>Alineación</value>
+  </data>
+  <data name="Props_Angle" xml:space="preserve">
+    <value>Ángulo</value>
+  </data>
+  <data name="Props_Blend" xml:space="preserve">
+    <value>Fusión</value>
+  </data>
+  <data name="Props_CenterX" xml:space="preserve">
+    <value>Centro X</value>
+  </data>
+  <data name="Props_CenterY" xml:space="preserve">
+    <value>Centro Y</value>
+  </data>
+  <data name="Props_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Props_Color1" xml:space="preserve">
+    <value>Color 1</value>
+  </data>
+  <data name="Props_Color2" xml:space="preserve">
+    <value>Color 2</value>
+  </data>
+  <data name="Props_Count" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>Eliminar capa</value>
+  </data>
+  <data name="Props_From" xml:space="preserve">
+    <value>Desde</value>
+  </data>
+  <data name="Props_Inner" xml:space="preserve">
+    <value>Interior</value>
+  </data>
+  <data name="Props_Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>Seleccione una capa para editar sus propiedades.</value>
+  </data>
+  <data name="Props_Opacity" xml:space="preserve">
+    <value>Opacidad</value>
+  </data>
+  <data name="Props_Outer" xml:space="preserve">
+    <value>Exterior</value>
+  </data>
+  <data name="Props_Procedural_Hint" xml:space="preserve">
+    <value>Enlace una variable del kernel y después ejecute una celda de código que le asigne una matriz de operaciones de dibujo. Cada capa procedural puede usar su propia variable.</value>
+  </data>
+  <data name="Props_Radius" xml:space="preserve">
+    <value>Radio</value>
+  </data>
+  <data name="Props_Size" xml:space="preserve">
+    <value>Tamaño</value>
+  </data>
+  <data name="Props_Spacing" xml:space="preserve">
+    <value>Espaciado</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>Texto</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>Propiedades</value>
+  </data>
+  <data name="Props_To" xml:space="preserve">
+    <value>Hasta</value>
+  </data>
+  <data name="Props_Variable" xml:space="preserve">
+    <value>Variable</value>
+  </data>
+  <data name="Props_Width" xml:space="preserve">
+    <value>Ancho</value>
+  </data>
+  <data name="Props_X" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="Props_Y" xml:space="preserve">
+    <value>Y</value>
+  </data>
+  <data name="Seed_DotGrid" xml:space="preserve">
+    <value>Cuadrícula de puntos</value>
+  </data>
+  <data name="Seed_Scripted" xml:space="preserve">
+    <value>Programada</value>
+  </data>
+  <data name="Seed_Sky" xml:space="preserve">
+    <value>Cielo</value>
+  </data>
+  <data name="Seed_Sun" xml:space="preserve">
+    <value>Sol</value>
+  </data>
+  <data name="Seed_Title" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="Tool_Add_Tip" xml:space="preserve">
+    <value>Agregar: {0}</value>
+  </data>
+  <data name="Tool_Props_Tip" xml:space="preserve">
+    <value>Mostrar u ocultar propiedades</value>
+  </data>
+  <data name="Zoom_Fit" xml:space="preserve">
+    <value>Ajustar</value>
+  </data>
+  <data name="Zoom_Fit_Tip" xml:space="preserve">
+    <value>Ajustar a la ventana</value>
+  </data>
+  <data name="Zoom_In_Tip" xml:space="preserve">
+    <value>Acercar</value>
+  </data>
+  <data name="Zoom_Out_Tip" xml:space="preserve">
+    <value>Alejar</value>
+  </data>
+  <data name="Zoom_Reset_Tip" xml:space="preserve">
+    <value>Restablecer al 100 %</value>
+  </data>
+</root>

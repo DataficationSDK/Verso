@@ -14,6 +14,26 @@
 
 const verso = window.verso;
 
+// --- Interface strings ------------------------------------------------------
+// The extension resolves its strings for the host's language on the server and hands the
+// table over on verso/init, under payload.extension.strings, so the chrome is built only once
+// that message has arrived. A missing key falls back to the key itself, which keeps a typo
+// visible instead of blank. {0}-style placeholders are filled from the extra arguments.
+let strings = {};
+let chromeBuilt = false;
+function t(key, ...args) {
+  const text = Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key;
+  return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
+// A translation destined for markup. The table is data the host resolved, not markup, so the
+// text is encoded before it can be read as tags; the arguments are not, which is what lets a
+// caller substitute a <code> or <b> fragment it built and escaped itself.
+function tHtml(key, ...args) {
+  return escapeHtml(Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key)
+    .replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
 // --- State -----------------------------------------------------------------
 
 let doc = { width: 1024, height: 768, layers: [] };
@@ -229,13 +249,32 @@ const ICON = {
 const BLENDS = ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
 
 const ADD_TOOLS = [
-  { kind: "solid", icon: ICON.solid, label: "Solid color" },
-  { kind: "linear-gradient", icon: ICON.gradient, label: "Linear gradient" },
-  { kind: "radial-gradient", icon: ICON.radial, label: "Radial gradient" },
-  { kind: "dots", icon: ICON.pattern, label: "Pattern" },
-  { kind: "text", icon: ICON.text, label: "Text" },
-  { kind: "procedural", icon: ICON.code, label: "Procedural (code-driven)" },
+  { kind: "solid", icon: ICON.solid },
+  { kind: "linear-gradient", icon: ICON.gradient },
+  { kind: "radial-gradient", icon: ICON.radial },
+  { kind: "dots", icon: ICON.pattern },
+  { kind: "text", icon: ICON.text },
+  { kind: "procedural", icon: ICON.code },
 ];
+
+// Display names for the identifiers the document stores. The identifiers are the contract with
+// the C# side and with saved notebooks; only the words a person reads change with the language.
+const KIND_KEYS = {
+  "solid": "Kind_Solid", "linear-gradient": "Kind_LinearGradient", "radial-gradient": "Kind_RadialGradient",
+  "dots": "Kind_Dots", "text": "Kind_Text", "procedural": "Kind_Procedural",
+  "checkerboard": "Kind_Checkerboard", "stripes": "Kind_Stripes", "rings": "Kind_Rings",
+};
+const BLEND_KEYS = {
+  "normal": "Blend_Normal", "multiply": "Blend_Multiply", "screen": "Blend_Screen", "overlay": "Blend_Overlay",
+  "darken": "Blend_Darken", "lighten": "Blend_Lighten", "color-dodge": "Blend_ColorDodge", "color-burn": "Blend_ColorBurn",
+  "hard-light": "Blend_HardLight", "soft-light": "Blend_SoftLight", "difference": "Blend_Difference",
+  "exclusion": "Blend_Exclusion", "hue": "Blend_Hue", "saturation": "Blend_Saturation", "color": "Blend_Color",
+  "luminosity": "Blend_Luminosity",
+};
+const ALIGN_KEYS = { "left": "Align_Left", "center": "Align_Center", "right": "Align_Right" };
+function kindLabel(kind) { return KIND_KEYS[kind] ? t(KIND_KEYS[kind]) : (kind || "").replace("-", " "); }
+function blendLabel(blend) { return BLEND_KEYS[blend] ? t(BLEND_KEYS[blend]) : blend; }
+function alignLabel(align) { return ALIGN_KEYS[align] ? t(ALIGN_KEYS[align]) : align; }
 
 // --- DOM scaffold -----------------------------------------------------------
 
@@ -244,67 +283,82 @@ const styleEl = document.createElement("style");
 styleEl.textContent = STYLE;
 document.head.appendChild(styleEl);
 
-document.body.innerHTML = `
-  <div class="app">
-    <div class="tools" id="tools"></div>
-    <div class="stage">
-      <div class="viewport" id="viewport">
-        <div class="canvas-wrap" id="canvasWrap"><canvas id="canvas"></canvas></div>
+let canvas, canvasWrap, viewportEl, layersEl, propsEl, toolsEl, zoomPctEl, zoomDimsEl;
+
+// Built on verso/init, once the strings have arrived (see the message handler at the bottom).
+function buildChrome() {
+  document.body.innerHTML = `
+    <div class="app">
+      <div class="tools" id="tools"></div>
+      <div class="stage">
+        <div class="viewport" id="viewport">
+          <div class="canvas-wrap" id="canvasWrap"><canvas id="canvas"></canvas></div>
+        </div>
+        <div class="zoombar">
+          <button class="zbtn" id="zoomOut" title="${tHtml("Zoom_Out_Tip")}">−</button>
+          <button class="zbtn pct" id="zoomPct" title="${tHtml("Zoom_Reset_Tip")}">100%</button>
+          <button class="zbtn" id="zoomIn" title="${tHtml("Zoom_In_Tip")}">+</button>
+          <span class="zsep"></span>
+          <button class="zbtn" id="zoomFit" title="${tHtml("Zoom_Fit_Tip")}">${tHtml("Zoom_Fit")}</button>
+          <span class="zdims" id="zoomDims">1024×768</span>
+        </div>
       </div>
-      <div class="zoombar">
-        <button class="zbtn" id="zoomOut" title="Zoom out">−</button>
-        <button class="zbtn pct" id="zoomPct" title="Reset to 100%">100%</button>
-        <button class="zbtn" id="zoomIn" title="Zoom in">+</button>
-        <span class="zsep"></span>
-        <button class="zbtn" id="zoomFit" title="Fit to window">Fit</button>
-        <span class="zdims" id="zoomDims">1024×768</span>
+      <div class="panel">
+        <h2>${tHtml("Layers_Title")} <button class="btn" id="addBtn" title="${tHtml("Layers_Add_Tip")}">${ICON.add}</button></h2>
+        <div class="layers" id="layers"></div>
+        <div class="props" id="props"></div>
       </div>
     </div>
-    <div class="panel">
-      <h2>Layers <button class="btn" id="addBtn" title="Add layer">${ICON.add}</button></h2>
-      <div class="layers" id="layers"></div>
-      <div class="props" id="props"></div>
-    </div>
-  </div>
-`;
+  `;
 
-const canvas = document.getElementById("canvas");
-const canvasWrap = document.getElementById("canvasWrap");
-const viewportEl = document.getElementById("viewport");
-const layersEl = document.getElementById("layers");
-const propsEl = document.getElementById("props");
-const toolsEl = document.getElementById("tools");
-const zoomPctEl = document.getElementById("zoomPct");
-const zoomDimsEl = document.getElementById("zoomDims");
+  canvas = document.getElementById("canvas");
+  canvasWrap = document.getElementById("canvasWrap");
+  viewportEl = document.getElementById("viewport");
+  layersEl = document.getElementById("layers");
+  propsEl = document.getElementById("props");
+  toolsEl = document.getElementById("tools");
+  zoomPctEl = document.getElementById("zoomPct");
+  zoomDimsEl = document.getElementById("zoomDims");
 
-// Tool palette: quick "add layer" buttons + a properties toggle.
-for (const t of ADD_TOOLS) {
-  const b = el("div", "tool", t.icon);
-  b.title = "Add: " + t.label;
-  b.onclick = () => verso.interact("add-layer", { kind: t.kind });
-  toolsEl.appendChild(b);
+  // Tool palette: quick "add layer" buttons + a properties toggle.
+  for (const tool of ADD_TOOLS) {
+    const b = el("div", "tool", tool.icon);
+    b.title = t("Tool_Add_Tip", kindLabel(tool.kind));
+    b.onclick = () => verso.interact("add-layer", { kind: tool.kind });
+    toolsEl.appendChild(b);
+  }
+  toolsEl.appendChild(el("div", "rule"));
+  const propsToggle = el("div", "tool on", ICON.sliders);
+  propsToggle.title = t("Tool_Props_Tip");
+  propsToggle.onclick = () => { showProps = !showProps; propsToggle.classList.toggle("on", showProps); renderProps(); };
+  toolsEl.appendChild(propsToggle);
+
+  document.getElementById("addBtn").onclick = () => verso.interact("add-layer", { kind: "solid" });
+
+  // Zoom controls: buttons, click-% to reset, Fit, Ctrl/Cmd+wheel, and +/-/0 keys.
+  document.getElementById("zoomIn").onclick = () => zoomBy(1.25);
+  document.getElementById("zoomOut").onclick = () => zoomBy(0.8);
+  document.getElementById("zoomPct").onclick = () => setZoom(1);
+  document.getElementById("zoomFit").onclick = () => { fitMode = true; viewportEl.scrollLeft = 0; viewportEl.scrollTop = 0; applyZoom(); };
+
+  viewportEl.addEventListener("wheel", (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return; // plain scroll still pans; modifier+wheel zooms
+    e.preventDefault();
+    setZoom(currentScale() * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
+  }, { passive: false });
+
+  // Re-fit (or just refresh the readout) whenever the viewport changes size. A ResizeObserver
+  // catches host panel resizes that never fire a window 'resize' in the iframe.
+  window.addEventListener("resize", onViewportResize);
+  if (typeof ResizeObserver === "function") {
+    new ResizeObserver(onViewportResize).observe(viewportEl);
+  }
+  chromeBuilt = true;
 }
-toolsEl.appendChild(el("div", "rule"));
-const propsToggle = el("div", "tool on", ICON.sliders);
-propsToggle.title = "Toggle properties";
-propsToggle.onclick = () => { showProps = !showProps; propsToggle.classList.toggle("on", showProps); renderProps(); };
-toolsEl.appendChild(propsToggle);
-
-document.getElementById("addBtn").onclick = () => verso.interact("add-layer", { kind: "solid" });
-
-// Zoom controls: buttons, click-% to reset, Fit, Ctrl/Cmd+wheel, and +/-/0 keys.
-document.getElementById("zoomIn").onclick = () => zoomBy(1.25);
-document.getElementById("zoomOut").onclick = () => zoomBy(0.8);
-document.getElementById("zoomPct").onclick = () => setZoom(1);
-document.getElementById("zoomFit").onclick = () => { fitMode = true; viewportEl.scrollLeft = 0; viewportEl.scrollTop = 0; applyZoom(); };
-
-viewportEl.addEventListener("wheel", (e) => {
-  if (!(e.ctrlKey || e.metaKey)) return; // plain scroll still pans; modifier+wheel zooms
-  e.preventDefault();
-  setZoom(currentScale() * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
-}, { passive: false });
 
 document.addEventListener("keydown", (e) => {
+  // The zoom helpers measure the viewport, which exists only once the chrome is built.
+  if (!chromeBuilt) return;
   if (e.target && e.target.closest && e.target.closest("input, select, textarea")) return;
   if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomBy(1.25); }
   else if (e.key === "-" || e.key === "_") { e.preventDefault(); zoomBy(0.8); }
@@ -557,7 +611,7 @@ function renderLayers() {
   layersEl.innerHTML = "";
   const ordered = (doc.layers || []).slice().reverse(); // top layer first in the panel
   if (!ordered.length) {
-    layersEl.appendChild(el("div", "empty", "No layers yet — add one from the tool palette."));
+    layersEl.appendChild(el("div", "empty", tHtml("Layers_Empty")));
   }
   for (const layer of ordered) {
     const row = el("div", "layer" + (layer.id === selectedId ? " sel" : ""));
@@ -566,7 +620,7 @@ function renderLayers() {
     row.appendChild(el("span", "grip", "⠿"));
 
     const eye = el("div", "eye" + (layer.visible ? "" : " off"), layer.visible ? ICON.eye : ICON.eyeOff);
-    eye.title = layer.visible ? "Hide" : "Show";
+    eye.title = t(layer.visible ? "Layer_Hide" : "Layer_Show");
     eye.onclick = (e) => { e.stopPropagation(); verso.interact("set-visible", { id: layer.id, visible: !layer.visible }); };
     row.appendChild(eye);
 
@@ -580,8 +634,8 @@ function renderLayers() {
     row.appendChild(thumb);
 
     const meta = el("div", "meta");
-    meta.appendChild(el("div", "name", escapeHtml(layer.name || "Layer")));
-    meta.appendChild(el("div", "kind", (layer.kind || "").replace("-", " ")));
+    meta.appendChild(el("div", "name", escapeHtml(layer.name || t("Layer_Default"))));
+    meta.appendChild(el("div", "kind", escapeHtml(kindLabel(layer.kind))));
     row.appendChild(meta);
 
     row.appendChild(el("span", "pct", Math.round(num(layer.opacity, 1) * 100) + "%"));
@@ -691,19 +745,19 @@ function renderProps() {
   propsEl.innerHTML = "";
   const layer = selectedLayer();
   if (!layer) {
-    propsEl.appendChild(el("div", "empty", "Select a layer to edit its properties."));
+    propsEl.appendChild(el("div", "empty", tHtml("Props_None")));
     return;
   }
 
-  propsEl.appendChild(el("div", "ptitle", "Properties"));
+  propsEl.appendChild(el("div", "ptitle", tHtml("Props_Title")));
 
   // Common controls
-  propsEl.appendChild(field("Name", textInput(layer.name || "", (v) => verso.interact("rename", { id: layer.id, name: v }))));
-  propsEl.appendChild(field("Opacity", range(0, 1, 0.01, num(layer.opacity, 1), (v) => {
+  propsEl.appendChild(field(t("Props_Name"), textInput(layer.name || "", (v) => verso.interact("rename", { id: layer.id, name: v }))));
+  propsEl.appendChild(field(t("Props_Opacity"), range(0, 1, 0.01, num(layer.opacity, 1), (v) => {
     layer.opacity = v; quickRefresh();
     verso.interact("set-opacity", { id: layer.id, opacity: v });
   })));
-  propsEl.appendChild(field("Blend", select(BLENDS, layer.blend || "normal", (v) => verso.interact("set-blend", { id: layer.id, blend: v }))));
+  propsEl.appendChild(field(t("Props_Blend"), select(BLENDS, layer.blend || "normal", (v) => verso.interact("set-blend", { id: layer.id, blend: v }), blendLabel)));
 
   const p = layer.props || {};
   const set = (key, value) => { p[key] = value; layer.props = p; quickRefresh(); verso.interact("set-prop", { id: layer.id, key, value }); };
@@ -718,63 +772,63 @@ function renderProps() {
 
   switch (layer.kind) {
     case "solid":
-      propsEl.appendChild(field("Color", color(p.color || "#5b8def", (v) => set("color", v))));
+      propsEl.appendChild(field(t("Props_Color"), color(p.color || "#5b8def", (v) => set("color", v))));
       break;
     case "linear-gradient":
-      propsEl.appendChild(field("Angle", range(0, 360, 1, num(p.angle, 90), (v) => set("angle", v))));
-      propsEl.appendChild(field("From", color(firstStop(), (v) => setStop(0, v))));
-      propsEl.appendChild(field("To", color(lastStop(), (v) => setStop((p.stops || []).length - 1, v))));
+      propsEl.appendChild(field(t("Props_Angle"), range(0, 360, 1, num(p.angle, 90), (v) => set("angle", v))));
+      propsEl.appendChild(field(t("Props_From"), color(firstStop(), (v) => setStop(0, v))));
+      propsEl.appendChild(field(t("Props_To"), color(lastStop(), (v) => setStop((p.stops || []).length - 1, v))));
       break;
     case "radial-gradient":
-      propsEl.appendChild(field("Center X", range(0, 1, 0.01, num(p.cx, 0.5), (v) => set("cx", v))));
-      propsEl.appendChild(field("Center Y", range(0, 1, 0.01, num(p.cy, 0.5), (v) => set("cy", v))));
-      propsEl.appendChild(field("Radius", range(0.05, 1.2, 0.01, num(p.radius, 0.4), (v) => set("radius", v))));
-      propsEl.appendChild(field("Inner", color(firstStop(), (v) => setStop(0, v))));
-      propsEl.appendChild(field("Outer", color(lastStop(), (v) => setStop((p.stops || []).length - 1, v))));
+      propsEl.appendChild(field(t("Props_CenterX"), range(0, 1, 0.01, num(p.cx, 0.5), (v) => set("cx", v))));
+      propsEl.appendChild(field(t("Props_CenterY"), range(0, 1, 0.01, num(p.cy, 0.5), (v) => set("cy", v))));
+      propsEl.appendChild(field(t("Props_Radius"), range(0.05, 1.2, 0.01, num(p.radius, 0.4), (v) => set("radius", v))));
+      propsEl.appendChild(field(t("Props_Inner"), color(firstStop(), (v) => setStop(0, v))));
+      propsEl.appendChild(field(t("Props_Outer"), color(lastStop(), (v) => setStop((p.stops || []).length - 1, v))));
       break;
     case "checkerboard":
-      propsEl.appendChild(field("Size", range(8, 128, 1, num(p.size, 32), (v) => set("size", v))));
-      propsEl.appendChild(field("Color 1", color(p.color1 || "#ffffff", (v) => set("color1", v))));
-      propsEl.appendChild(field("Color 2", color(p.color2 || "#cccccc", (v) => set("color2", v))));
+      propsEl.appendChild(field(t("Props_Size"), range(8, 128, 1, num(p.size, 32), (v) => set("size", v))));
+      propsEl.appendChild(field(t("Props_Color1"), color(p.color1 || "#ffffff", (v) => set("color1", v))));
+      propsEl.appendChild(field(t("Props_Color2"), color(p.color2 || "#cccccc", (v) => set("color2", v))));
       break;
     case "stripes":
-      propsEl.appendChild(field("Width", range(4, 96, 1, num(p.width, 24), (v) => set("width", v))));
-      propsEl.appendChild(field("Angle", range(0, 360, 1, num(p.angle, 45), (v) => set("angle", v))));
-      propsEl.appendChild(field("Color 1", color(p.color1 || "#222831", (v) => set("color1", v))));
-      propsEl.appendChild(field("Color 2", color(p.color2 || "#3a4150", (v) => set("color2", v))));
+      propsEl.appendChild(field(t("Props_Width"), range(4, 96, 1, num(p.width, 24), (v) => set("width", v))));
+      propsEl.appendChild(field(t("Props_Angle"), range(0, 360, 1, num(p.angle, 45), (v) => set("angle", v))));
+      propsEl.appendChild(field(t("Props_Color1"), color(p.color1 || "#222831", (v) => set("color1", v))));
+      propsEl.appendChild(field(t("Props_Color2"), color(p.color2 || "#3a4150", (v) => set("color2", v))));
       break;
     case "dots":
-      propsEl.appendChild(field("Spacing", range(8, 120, 1, num(p.size, 40), (v) => set("size", v))));
-      propsEl.appendChild(field("Radius", range(0.5, 16, 0.5, num(p.radius, 3), (v) => set("radius", v))));
-      propsEl.appendChild(field("Color", color(p.color || "#ffffff", (v) => set("color", v))));
+      propsEl.appendChild(field(t("Props_Spacing"), range(8, 120, 1, num(p.size, 40), (v) => set("size", v))));
+      propsEl.appendChild(field(t("Props_Radius"), range(0.5, 16, 0.5, num(p.radius, 3), (v) => set("radius", v))));
+      propsEl.appendChild(field(t("Props_Color"), color(p.color || "#ffffff", (v) => set("color", v))));
       break;
     case "rings":
-      propsEl.appendChild(field("Count", range(1, 24, 1, num(p.count, 6), (v) => set("count", v))));
-      propsEl.appendChild(field("Width", range(0.5, 12, 0.5, num(p.width, 2), (v) => set("width", v))));
-      propsEl.appendChild(field("Center X", range(0, 1, 0.01, num(p.cx, 0.5), (v) => set("cx", v))));
-      propsEl.appendChild(field("Center Y", range(0, 1, 0.01, num(p.cy, 0.5), (v) => set("cy", v))));
-      propsEl.appendChild(field("Color", color(p.color || "#ffffff", (v) => set("color", v))));
+      propsEl.appendChild(field(t("Props_Count"), range(1, 24, 1, num(p.count, 6), (v) => set("count", v))));
+      propsEl.appendChild(field(t("Props_Width"), range(0.5, 12, 0.5, num(p.width, 2), (v) => set("width", v))));
+      propsEl.appendChild(field(t("Props_CenterX"), range(0, 1, 0.01, num(p.cx, 0.5), (v) => set("cx", v))));
+      propsEl.appendChild(field(t("Props_CenterY"), range(0, 1, 0.01, num(p.cy, 0.5), (v) => set("cy", v))));
+      propsEl.appendChild(field(t("Props_Color"), color(p.color || "#ffffff", (v) => set("color", v))));
       break;
     case "text":
-      propsEl.appendChild(field("Text", textInput(p.text || "", (v) => set("text", v))));
-      propsEl.appendChild(field("Size", range(0.04, 0.6, 0.01, num(p.size, 0.15), (v) => set("size", v))));
-      propsEl.appendChild(field("Color", color(p.color || "#ffffff", (v) => set("color", v))));
-      propsEl.appendChild(field("X", range(0, 1, 0.01, num(p.x, 0.5), (v) => set("x", v))));
-      propsEl.appendChild(field("Y", range(0, 1, 0.01, num(p.y, 0.5), (v) => set("y", v))));
-      propsEl.appendChild(field("Align", select(["left", "center", "right"], p.align || "center", (v) => set("align", v))));
+      propsEl.appendChild(field(t("Props_Text"), textInput(p.text || "", (v) => set("text", v))));
+      propsEl.appendChild(field(t("Props_Size"), range(0.04, 0.6, 0.01, num(p.size, 0.15), (v) => set("size", v))));
+      propsEl.appendChild(field(t("Props_Color"), color(p.color || "#ffffff", (v) => set("color", v))));
+      propsEl.appendChild(field(t("Props_X"), range(0, 1, 0.01, num(p.x, 0.5), (v) => set("x", v))));
+      propsEl.appendChild(field(t("Props_Y"), range(0, 1, 0.01, num(p.y, 0.5), (v) => set("y", v))));
+      propsEl.appendChild(field(t("Props_Align"), select(["left", "center", "right"], p.align || "center", (v) => set("align", v), alignLabel)));
       break;
     case "procedural":
-      propsEl.appendChild(field("Variable", commitInput(layer.sourceVar || "ops", (v) => {
+      propsEl.appendChild(field(t("Props_Variable"), commitInput(layer.sourceVar || "ops", (v) => {
         const name = v.trim() || "ops";
         layer.sourceVar = name;
         verso.interact("set-source", { id: layer.id, sourceVar: name });
       })));
-      propsEl.appendChild(el("div", "empty", "Bind to a kernel variable, then run a code cell that assigns it (an array of draw ops). Each procedural layer can use its own variable."));
+      propsEl.appendChild(el("div", "empty", tHtml("Props_Procedural_Hint")));
       break;
   }
 
   // Delete
-  const del = el("button", "btn", ICON.trash + " Delete layer");
+  const del = el("button", "btn", ICON.trash + " " + tHtml("Props_Delete"));
   del.style.marginTop = "12px";
   del.onclick = () => verso.interact("remove-layer", { id: layer.id });
   propsEl.appendChild(del);
@@ -839,11 +893,11 @@ function color(value, onChange) {
   return i;
 }
 
-function select(options, value, onChange) {
+function select(options, value, onChange, labelOf) {
   const s = document.createElement("select");
   for (const o of options) {
     const opt = document.createElement("option");
-    opt.value = o; opt.textContent = o;
+    opt.value = o; opt.textContent = labelOf ? labelOf(o) : o;
     if (o === value) opt.selected = true;
     s.appendChild(opt);
   }
@@ -860,7 +914,8 @@ function toHex6(c) {
 }
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // --- Export -----------------------------------------------------------------
@@ -1083,6 +1138,10 @@ function setDocument(next) {
 verso.onMessage((type, payload) => {
   switch (type) {
     case "verso/init":
+      if (!chromeBuilt) {
+        strings = (payload && payload.extension && payload.extension.strings) || {};
+        buildChrome();
+      }
       if (payload && payload.extension) {
         if (payload.extension.vars) procVars = payload.extension.vars;
         setDocument(payload.extension.document);
@@ -1114,14 +1173,6 @@ verso.onMessage((type, payload) => {
   }
 });
 
-// Re-fit (or just refresh the readout) whenever the viewport changes size. A ResizeObserver
-// catches host panel resizes that never fire a window 'resize' in the iframe — the case where
-// the side panels reflowed but the canvas kept clipping instead of scaling.
 function onViewportResize() { if (fitMode) applyZoom(); else updateZoom(); }
-window.addEventListener("resize", onViewportResize);
-if (typeof ResizeObserver === "function") {
-  new ResizeObserver(onViewportResize).observe(viewportEl);
-}
 
-renderAll();
 verso.ready();

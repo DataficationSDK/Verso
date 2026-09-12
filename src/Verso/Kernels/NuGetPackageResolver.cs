@@ -266,7 +266,10 @@ internal sealed class NuGetPackageResolver
             {
                 var cachedDlls = Directory.GetFiles(cachedDir, "*.dll");
                 var cachedDeps = ReadCachedDependencies(cachedDepsFile);
-                if (cachedDeps is not null)
+                // A cache entry that still has its resource assemblies flattened beside the
+                // managed ones predates culture folders, so its translations can never load.
+                // Fall through to a fresh extraction rather than serve it again.
+                if (cachedDeps is not null && !HasFlattenedSatellites(cachedDlls))
                 {
                     RegisterCachedRuntimeDirs(cachedDir, resolution);
                     return (parsedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
@@ -333,20 +336,32 @@ internal sealed class NuGetPackageResolver
         var depsFile = Path.Combine(packageDir, ".deps");
 
         // Check cache — both DLLs and dependency list
+        string[]? staleDlls = null;
         if (Directory.Exists(packageDir))
         {
             var cachedDlls = Directory.GetFiles(packageDir, "*.dll");
             var cachedDeps = ReadCachedDependencies(depsFile);
 
+            // A cache entry written before satellites were given culture folders has its
+            // resource assemblies flattened beside the managed ones, where the runtime never
+            // looks for them. Neither cache path below can repair that, so both are skipped
+            // and the entry is re-extracted once, letting an existing install pick up the
+            // translations it was never given. The flattened copies are removed only once the
+            // fresh package is in hand, so a resolve that cannot reach a feed leaves the entry
+            // as it found it.
+            var flattenedSatellites = HasFlattenedSatellites(cachedDlls);
+            if (flattenedSatellites)
+                staleDlls = cachedDlls;
+
             // Cache hit: package was previously resolved (may legitimately have 0 DLLs for meta-packages)
-            if (cachedDeps is not null)
+            if (cachedDeps is not null && !flattenedSatellites)
             {
                 RegisterCachedRuntimeDirs(packageDir, resolution);
                 return (resolvedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
             }
 
             // Legacy cache entry (no .deps file) — re-extract if it has DLLs but no deps info
-            if (cachedDlls.Length > 0)
+            if (cachedDlls.Length > 0 && !flattenedSatellites)
             {
                 RegisterCachedRuntimeDirs(packageDir, resolution);
                 // Download just to read dependencies, then write the deps cache
@@ -370,6 +385,9 @@ internal sealed class NuGetPackageResolver
                 throw new InvalidOperationException(
                     string.Format(Strings.Error_PackageDownloadFailed, packageId, resolvedVersion));
         }
+
+        if (staleDlls is not null)
+            DiscardFlattenedSatellites(staleDlls);
 
         var assemblyPaths = new List<string>();
         List<(string Id, string? MinVersion)> dependencies;
@@ -417,6 +435,62 @@ internal sealed class NuGetPackageResolver
     }
 
     /// <summary>
+    /// Reports whether a cached package directory holds satellite assemblies at its top level.
+    /// </summary>
+    /// <remarks>
+    /// Extraction places a satellite under a folder named for its culture, because that is the
+    /// only place the runtime looks. One sitting beside the managed assemblies was written by an
+    /// older build that flattened the lib folder, and marks the whole entry as out of date.
+    /// </remarks>
+    internal static bool HasFlattenedSatellites(string[] cachedDlls)
+        => FlattenedSatellites(cachedDlls).Count > 0;
+
+    /// <summary>
+    /// The satellites sitting at the top level of a cache entry, recognised only beside the
+    /// assembly each one translates.
+    /// </summary>
+    /// <remarks>
+    /// A package whose main assembly happens to be named <c>Something.Resources.dll</c> has no
+    /// such sibling and is left alone, since treating it as stale would delete the package's
+    /// own code on every resolve.
+    /// </remarks>
+    private static List<string> FlattenedSatellites(string[] cachedDlls)
+    {
+        const string suffix = ".resources.dll";
+        var flattened = new List<string>();
+
+        foreach (var path in cachedDlls)
+        {
+            if (!path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var owner = path[..^suffix.Length] + ".dll";
+            foreach (var candidate in cachedDlls)
+            {
+                if (string.Equals(candidate, owner, StringComparison.OrdinalIgnoreCase))
+                {
+                    flattened.Add(path);
+                    break;
+                }
+            }
+        }
+
+        return flattened;
+    }
+
+    /// <summary>
+    /// Deletes the flattened satellites from a stale cache entry, so that the extraction which
+    /// follows is not itself mistaken for a stale entry on the next resolve.
+    /// </summary>
+    private static void DiscardFlattenedSatellites(string[] cachedDlls)
+    {
+        foreach (var path in FlattenedSatellites(cachedDlls))
+        {
+            try { File.Delete(path); } catch { /* best effort: a locked file is re-checked next time */ }
+        }
+    }
+
+    /// <summary>
     /// Extracts DLLs from the best-matching TFM folder in a NuGet package.
     /// </summary>
     private static async Task<List<string>> ExtractDllsAsync(
@@ -450,17 +524,56 @@ internal sealed class NuGetPackageResolver
                 if (entry is null) continue;
 
                 var fileName = Path.GetFileName(item);
-                var destPath = Path.Combine(packageDir, fileName);
+                var isSatellite = TryGetSatelliteCulture(item, out var culture);
+                var destDir = isSatellite ? Path.Combine(packageDir, culture) : packageDir;
+                Directory.CreateDirectory(destDir);
+                var destPath = Path.Combine(destDir, fileName);
 
                 using var entryStream = entry.Open();
                 using var destStream = File.Create(destPath);
                 await entryStream.CopyToAsync(destStream, ct).ConfigureAwait(false);
 
-                assemblyPaths.Add(destPath);
+                // A satellite is not a reference: it holds strings, not types, and the
+                // runtime finds it from its culture folder without being handed the path.
+                if (!isSatellite)
+                    assemblyPaths.Add(destPath);
             }
         }
 
         return assemblyPaths;
+    }
+
+    /// <summary>
+    /// Recognises a satellite resource assembly inside a lib folder, such as
+    /// <c>lib/net8.0/de/Some.Extension.resources.dll</c>, and names its culture.
+    /// </summary>
+    /// <remarks>
+    /// A satellite carries the translated strings for one language and has to sit under a
+    /// folder named for that language beside the assembly it translates, because that is
+    /// where the runtime looks. Flattened beside the assembly it loses its language, and
+    /// two languages overwrite each other.
+    /// </remarks>
+    internal static bool TryGetSatelliteCulture(string item, out string culture)
+    {
+        culture = string.Empty;
+        var segments = item.Split('/');
+        if (segments.Length < 4)
+            return false;
+
+        if (!segments[^1].EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var folder = segments[^2];
+        if (folder.Length is 0 or > 32)
+            return false;
+        foreach (var c in folder)
+        {
+            if (!(char.IsLetterOrDigit(c) || c == '-'))
+                return false;
+        }
+
+        culture = folder;
+        return true;
     }
 
     /// <summary>

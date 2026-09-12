@@ -98,6 +98,10 @@ with no layout switch.
   streams them back for the host to download. It is a small example of an isolated layout
   contributing actions to the host toolbar through the `IToolbarAction` extension point.
 
+## Languages
+
+The layout's own chrome follows the interface language. Its strings live in `src/Verso.Showcase.ImageStudio/Resources/Strings.resx`, translated into German, Spanish, Japanese, and Simplified Chinese beside English, and the build turns each translation into a satellite assembly that ships in the package. Run `verso serve --language de` to see it in German; the [Localization](../../../docs/extensions/localization.md) guide explains the pattern.
+
 ## Licensing
 
 This sample is MIT. It bundles no third-party libraries: the only asset is `assets/main.js`,

@@ -790,6 +790,9 @@ export class BlazorEditorProvider
     // to fetch if it is told the language before the app starts. Assigning a culture after
     // that point leaves the app running in English and eventually faults.
     const language = resolveLanguage();
+    // The page's own lang attribute. When the language is left to the runtime the tag keeps
+    // English, and the notebook's layout root carries the language the app actually settled on.
+    const htmlLang = language && /^[A-Za-z0-9-]+$/.test(language) ? language : "en";
 
     const toUri = (relativePath: string) =>
       webview.asWebviewUri(vscode.Uri.joinPath(wasmRoot, relativePath)).toString() + `?v=${version}`;
@@ -853,6 +856,9 @@ export class BlazorEditorProvider
     const tagInputInterop = toUri(
       "_content/Verso.Blazor.Shared/js/tag-input-interop.js"
     );
+    const keyboardInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/keyboard-interop.js"
+    );
     const widgetInterop = toUri(
       "_content/Verso.Blazor.Shared/js/widget-interop.js"
     );
@@ -871,7 +877,7 @@ export class BlazorEditorProvider
     const monacoCdn = "https://cdn.jsdelivr.net";
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${htmlLang}">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1065,6 +1071,7 @@ export class BlazorEditorProvider
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>
     <script src="${tagInputInterop}"></script>
+    <script src="${keyboardInterop}"></script>
     <script src="${widgetInterop}"></script>
     <script src="${tooltipJs}"></script>
     <script src="${frameworkJs}" autostart="false"></script>

@@ -20,6 +20,26 @@
 
 const verso = window.verso;
 
+// --- Interface strings ------------------------------------------------------
+// The extension resolves its strings for the host's language on the server and hands the
+// table over on verso/init, under payload.extension.strings, so the chrome is built only once
+// that message has arrived. A missing key falls back to the key itself, which keeps a typo
+// visible instead of blank. {0}-style placeholders are filled from the extra arguments.
+let strings = {};
+let chromeBuilt = false;
+function t(key, ...args) {
+  const text = Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key;
+  return text.replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
+// A translation destined for markup. The table is data the host resolved, not markup, so the
+// text is encoded before it can be read as tags; the arguments are not, which is what lets a
+// caller substitute a <code> or <b> fragment it built and escaped itself.
+function tHtml(key, ...args) {
+  return escapeHtml(Object.prototype.hasOwnProperty.call(strings, key) ? strings[key] : key)
+    .replace(/\{(\d+)\}/g, (m, i) => (i < args.length ? String(args[i]) : m));
+}
+
 // --- Vendor assets: styles + libraries --------------------------------------
 
 (function injectVendor() {
@@ -206,54 +226,58 @@ const ICON = {
   export: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M4 21h16"/></svg>`,
 };
 
-document.documentElement.style.height = "100%";
-document.body.innerHTML = `
-  <div class="app">
-    <div class="top">
-      <button class="btn" id="addRow">${ICON.addRow} Row</button>
-      <button class="btn" id="addCol">${ICON.addCol} Column</button>
-      <button class="btn" id="delRow">${ICON.delRow} Delete</button>
-      <button class="btn" id="export">${ICON.export} CSV</button>
-      <button class="btn" id="reload">${ICON.reload} Reload</button>
-      <button class="btn accent" id="commit">${ICON.commit} Commit</button>
-      <div class="spacer"></div>
-      <div class="bind"><label>Data</label><select id="sourceVar"></select></div>
-    </div>
-    <div class="stage">
-      <div class="grid-host" id="gridHost"></div>
-      <div class="empty" id="empty">
-        <h2>No data bound</h2>
-        <div id="emptyMsg"></div>
+let gridHostEl, emptyEl, emptyMsgEl, statusEl, statusTextEl, dimsEl, sourceVarEl;
+
+// Built on verso/init, once the strings have arrived (see the message handler at the bottom).
+function buildChrome() {
+  document.documentElement.style.height = "100%";
+  document.body.innerHTML = `
+    <div class="app">
+      <div class="top">
+        <button class="btn" id="addRow">${ICON.addRow} ${tHtml("Toolbar_Row")}</button>
+        <button class="btn" id="addCol">${ICON.addCol} ${tHtml("Toolbar_Column")}</button>
+        <button class="btn" id="delRow">${ICON.delRow} ${tHtml("Toolbar_Delete")}</button>
+        <button class="btn" id="export">${ICON.export} ${tHtml("Toolbar_Csv")}</button>
+        <button class="btn" id="reload">${ICON.reload} ${tHtml("Toolbar_Reload")}</button>
+        <button class="btn accent" id="commit">${ICON.commit} ${tHtml("Toolbar_Commit")}</button>
+        <div class="spacer"></div>
+        <div class="bind"><label>${tHtml("Toolbar_Data")}</label><select id="sourceVar"></select></div>
       </div>
-    </div>
-    <div class="status" id="status">
-      <span class="dot"></span><span id="statusText">Ready</span>
-      <span class="spacer"></span>
-      <span id="dims"></span>
-    </div>
-  </div>`;
+      <div class="stage">
+        <div class="grid-host" id="gridHost"></div>
+        <div class="empty" id="empty">
+          <h2>${tHtml("Empty_Title")}</h2>
+          <div id="emptyMsg"></div>
+        </div>
+      </div>
+      <div class="status" id="status">
+        <span class="dot"></span><span id="statusText">${tHtml("Status_Ready")}</span>
+        <span class="spacer"></span>
+        <span id="dims"></span>
+      </div>
+    </div>`;
 
-const gridHostEl = document.getElementById("gridHost");
-const emptyEl = document.getElementById("empty");
-const emptyMsgEl = document.getElementById("emptyMsg");
-const statusEl = document.getElementById("status");
-const statusTextEl = document.getElementById("statusText");
-const dimsEl = document.getElementById("dims");
-const sourceVarEl = document.getElementById("sourceVar");
+  gridHostEl = document.getElementById("gridHost");
+  emptyEl = document.getElementById("empty");
+  emptyMsgEl = document.getElementById("emptyMsg");
+  statusEl = document.getElementById("status");
+  statusTextEl = document.getElementById("statusText");
+  dimsEl = document.getElementById("dims");
+  sourceVarEl = document.getElementById("sourceVar");
 
-// --- Toolbar wiring ---------------------------------------------------------
+  document.getElementById("addRow").onclick = () => { if (instance) { instance.insertRow(); markDirty(); scheduleCommit(); } };
+  document.getElementById("delRow").onclick = () => deleteSelectedRows();
+  document.getElementById("addCol").onclick = () => addColumn();
+  document.getElementById("commit").onclick = () => commit();
+  document.getElementById("reload").onclick = () => verso.interact("refresh", {});
+  document.getElementById("export").onclick = () => exportCsv();
 
-document.getElementById("addRow").onclick = () => { if (instance) { instance.insertRow(); markDirty(); scheduleCommit(); } };
-document.getElementById("delRow").onclick = () => deleteSelectedRows();
-document.getElementById("addCol").onclick = () => addColumn();
-document.getElementById("commit").onclick = () => commit();
-document.getElementById("reload").onclick = () => verso.interact("refresh", {});
-document.getElementById("export").onclick = () => exportCsv();
-
-sourceVarEl.addEventListener("change", () => {
-  const name = sourceVarEl.value;
-  if (name && name !== sourceVar) verso.interact("set-source", { sourceVar: name });
-});
+  sourceVarEl.addEventListener("change", () => {
+    const name = sourceVarEl.value;
+    if (name && name !== sourceVar) verso.interact("set-source", { sourceVar: name });
+  });
+  chromeBuilt = true;
+}
 
 // --- Grid construction ------------------------------------------------------
 
@@ -401,7 +425,7 @@ function commit() {
 
   dirty = false;
   statusEl.classList.remove("dirty");
-  setStatus("Committed to " + sourceVar);
+  setStatus(t("Status_Committed", sourceVar));
 }
 
 function exportCsv() {
@@ -415,7 +439,7 @@ function exportCsv() {
   const lines = model.rows.map((row) => row.map(escape).join(","));
   const content = [header].concat(lines).join("\n");
   verso.interact("export", { fileName: sourceVar + ".csv", content });
-  setStatus("Exported " + sourceVar + ".csv");
+  setStatus(t("Status_Exported", sourceVar + ".csv"));
 }
 
 // --- Incoming data (kernel -> frame) ----------------------------------------
@@ -436,7 +460,7 @@ function applyData(payload) {
       rows: (data.rows || []).map((r) => r.slice()),
     };
     buildGrid();
-    setStatus(readOnly ? "Bound to " + sourceVar + " (read-only)" : "Bound to " + sourceVar);
+    setStatus(t(readOnly ? "Status_BoundReadOnly" : "Status_Bound", sourceVar));
   } else {
     model = null;
     buildGrid();
@@ -459,7 +483,7 @@ function applyReadOnly() {
 function markDirty() {
   dirty = true;
   statusEl.classList.add("dirty");
-  setStatus("Unsaved edits");
+  setStatus(t("Status_Unsaved"));
 }
 
 function setStatus(text) { statusTextEl.textContent = text; }
@@ -475,7 +499,7 @@ function renderSourceOptions(list) {
   if (names.length === 0) {
     const opt = document.createElement("option");
     opt.value = "";
-    opt.textContent = "(no data)";
+    opt.textContent = t("Select_NoData");
     opt.disabled = true;
     opt.selected = true;
     sourceVarEl.appendChild(opt);
@@ -495,7 +519,7 @@ function updateDims() {
   if (instance) {
     const data = instance.getData();
     const cols = model ? model.columns.length : 0;
-    dimsEl.textContent = data.length + " rows x " + cols + " cols";
+    dimsEl.textContent = t("Status_Dims", data.length, cols);
   } else {
     dimsEl.textContent = "";
   }
@@ -503,9 +527,11 @@ function updateDims() {
 
 function showEmpty() {
   emptyEl.classList.add("show");
-  emptyMsgEl.innerHTML =
-    "Assign data to <code>" + escapeHtml(sourceVar) + "</code> in a code cell and run it, " +
-    "then pick it from the <b>Data</b> dropdown above.";
+  // The sentence is translated as one piece; the two marked fragments are handed in already
+  // escaped, so a translator moves them around without ever touching markup.
+  emptyMsgEl.innerHTML = tHtml("Empty_Assign",
+    "<code>" + escapeHtml(sourceVar) + "</code>",
+    "<b>" + escapeHtml(t("Toolbar_Data")) + "</b>");
   dimsEl.textContent = "";
 }
 
@@ -519,6 +545,10 @@ function escapeHtml(s) {
 verso.onMessage((type, payload) => {
   switch (type) {
     case "verso/init":
+      if (!chromeBuilt) {
+        strings = (payload && payload.extension && payload.extension.strings) || {};
+        buildChrome();
+      }
       if (payload && payload.extension) applyData(payload.extension);
       else buildGrid();
       break;

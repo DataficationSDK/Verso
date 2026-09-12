@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Chart_Loading" xml:space="preserve">
+    <value>読み込み中…</value>
+  </data>
+  <data name="Chart_PickSource" xml:space="preserve">
+    <value>データ ソースを選んでください</value>
+  </data>
+  <data name="Empty_Hint" xml:space="preserve">
+    <value>入力はカーネルの変数に書き込みます。グラフはデータ ソースを描画します。アプリを使うにはプレビューに切り替えてください。</value>
+  </data>
+  <data name="Empty_Title" xml:space="preserve">
+    <value>左からウィジェットをキャンバスにドラッグしてください。</value>
+  </data>
+  <data name="Layout_Description" xml:space="preserve">
+    <value>ドラッグできるウィジェットとグラフから、ノートブックをライブなパラメーター付きアプリに変える分離レイアウトです。</value>
+  </data>
+  <data name="Layout_DisplayName" xml:space="preserve">
+    <value>Form Studio</value>
+  </data>
+  <data name="Layout_Name" xml:space="preserve">
+    <value>Form Studio レイアウト</value>
+  </data>
+  <data name="Palette_Bar" xml:space="preserve">
+    <value>棒</value>
+  </data>
+  <data name="Palette_Charts" xml:space="preserve">
+    <value>グラフ</value>
+  </data>
+  <data name="Palette_Drag_Tip" xml:space="preserve">
+    <value>キャンバスにドラッグします</value>
+  </data>
+  <data name="Palette_Dropdown" xml:space="preserve">
+    <value>ドロップダウン</value>
+  </data>
+  <data name="Palette_Inputs" xml:space="preserve">
+    <value>入力</value>
+  </data>
+  <data name="Palette_Label" xml:space="preserve">
+    <value>ラベル</value>
+  </data>
+  <data name="Palette_Line" xml:space="preserve">
+    <value>折れ線</value>
+  </data>
+  <data name="Palette_Number" xml:space="preserve">
+    <value>数値</value>
+  </data>
+  <data name="Palette_Pie" xml:space="preserve">
+    <value>円</value>
+  </data>
+  <data name="Palette_Scatter" xml:space="preserve">
+    <value>散布</value>
+  </data>
+  <data name="Palette_Slider" xml:space="preserve">
+    <value>スライダー</value>
+  </data>
+  <data name="Palette_Text" xml:space="preserve">
+    <value>テキスト</value>
+  </data>
+  <data name="Palette_Toggle" xml:space="preserve">
+    <value>トグル</value>
+  </data>
+  <data name="Props_BindsTo" xml:space="preserve">
+    <value>バインド先の変数</value>
+  </data>
+  <data name="Props_BindsTo_Hint" xml:space="preserve">
+    <value>この入力が書き込むカーネルの変数です。</value>
+  </data>
+  <data name="Props_ChartType" xml:space="preserve">
+    <value>グラフの種類</value>
+  </data>
+  <data name="Props_Data" xml:space="preserve">
+    <value>データ</value>
+  </data>
+  <data name="Props_Data_Hint" xml:space="preserve">
+    <value>描画するカーネルの変数です (DataBlock または DataTable)。</value>
+  </data>
+  <data name="Props_Delete" xml:space="preserve">
+    <value>ウィジェットを削除</value>
+  </data>
+  <data name="Props_Label" xml:space="preserve">
+    <value>ラベル</value>
+  </data>
+  <data name="Props_Max" xml:space="preserve">
+    <value>最大</value>
+  </data>
+  <data name="Props_Min" xml:space="preserve">
+    <value>最小</value>
+  </data>
+  <data name="Props_None" xml:space="preserve">
+    <value>ウィジェットを選択して設定を編集するか、パレットから新しいウィジェットをドラッグしてください。</value>
+  </data>
+  <data name="Props_Options" xml:space="preserve">
+    <value>選択肢 (コンマ区切り)</value>
+  </data>
+  <data name="Props_SeriesColor" xml:space="preserve">
+    <value>系列の色</value>
+  </data>
+  <data name="Props_Step" xml:space="preserve">
+    <value>刻み</value>
+  </data>
+  <data name="Props_Text" xml:space="preserve">
+    <value>テキスト</value>
+  </data>
+  <data name="Props_Title" xml:space="preserve">
+    <value>プロパティ</value>
+  </data>
+  <data name="Props_XAxis" xml:space="preserve">
+    <value>X 軸</value>
+  </data>
+  <data name="Props_YAxis" xml:space="preserve">
+    <value>Y 軸 (系列)</value>
+  </data>
+  <data name="Seed_MinimumUnits" xml:space="preserve">
+    <value>最小数量</value>
+  </data>
+  <data name="Seed_Region" xml:space="preserve">
+    <value>地域</value>
+  </data>
+  <data name="Seed_RevenueByMonth" xml:space="preserve">
+    <value>月別売上</value>
+  </data>
+  <data name="Seed_UnitsByMonth" xml:space="preserve">
+    <value>月別数量</value>
+  </data>
+  <data name="Select_None" xml:space="preserve">
+    <value>(なし)</value>
+  </data>
+  <data name="Select_PickSourceFirst" xml:space="preserve">
+    <value>先にデータ ソースを選んでください。</value>
+  </data>
+  <data name="Toolbar_AutoRun" xml:space="preserve">
+    <value>自動実行</value>
+  </data>
+  <data name="Toolbar_AutoRun_Tip" xml:space="preserve">
+    <value>入力が変わったときにノートブックを自動的に再実行します</value>
+  </data>
+  <data name="Toolbar_Edit" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>エクスポート</value>
+  </data>
+  <data name="Toolbar_Export_Tip" xml:space="preserve">
+    <value>ダッシュボードを JSON としてダウンロードします</value>
+  </data>
+  <data name="Toolbar_Preview" xml:space="preserve">
+    <value>プレビュー</value>
+  </data>
+  <data name="Toolbar_Run" xml:space="preserve">
+    <value>実行</value>
+  </data>
+  <data name="Toolbar_Run_Tip" xml:space="preserve">
+    <value>今すぐノートブックを再実行します</value>
+  </data>
+  <data name="Widget_ChartLabel" xml:space="preserve">
+    <value>{0}グラフ</value>
+  </data>
+  <data name="Widget_Heading" xml:space="preserve">
+    <value>見出し</value>
+  </data>
+  <data name="Widget_Resize_Tip" xml:space="preserve">
+    <value>サイズ変更</value>
+  </data>
+</root>

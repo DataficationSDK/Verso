@@ -107,6 +107,10 @@ the deck to demonstrate hiding.
 - OS-level fullscreen depends on the host granting the Fullscreen API; inside hosts that refuse
   it, presenter view fills the notebook viewport instead.
 
+## Languages
+
+The layout's own chrome follows the interface language. Its strings live in `src/Verso.Showcase.SlideStudio/Resources/Strings.resx`, translated into German, Spanish, Japanese, and Simplified Chinese beside English, and the build turns each translation into a satellite assembly that ships in the package. Run `verso serve --language de` to see it in German; the [Localization](../../../docs/extensions/localization.md) guide explains the pattern.
+
 ## Licensing
 
 MIT. The sample bundles no third-party libraries.

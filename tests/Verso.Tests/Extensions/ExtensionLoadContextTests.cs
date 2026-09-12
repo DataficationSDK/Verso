@@ -6,6 +6,26 @@ namespace Verso.Tests.Extensions;
 [TestClass]
 public class ExtensionLoadContextTests
 {
+    private string _dir = null!;
+
+    [TestInitialize]
+    public void Setup()
+    {
+        _dir = Path.Combine(Path.GetTempPath(), $"verso-alc-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_dir);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        try
+        {
+            if (Directory.Exists(_dir))
+                Directory.Delete(_dir, recursive: true);
+        }
+        catch { /* best effort */ }
+    }
+
     // --- ALC name ---
 
     [TestMethod]
@@ -55,5 +75,34 @@ public class ExtensionLoadContextTests
             "Verso.Abstractions should return the host assembly to preserve type identity.");
 
         context.Unload();
+    }
+
+    // --- Satellite resource assemblies ---
+
+    [TestMethod]
+    public void Load_SatelliteBesideTheExtension_ResolvesTranslatedStrings()
+    {
+        // An extension that ships translations the standard way. The isolated load context has
+        // to find the satellite for the extension's ResourceManager, or every extension answers
+        // in English. The runtime probes the culture folder beside the assembly for any load
+        // context, so no probing of our own is needed; this proves that stays true.
+        var mainPath = SatelliteProbe.Build(_dir);
+
+        var context = new ExtensionLoadContext(mainPath);
+        try
+        {
+            var assembly = context.LoadFromAssemblyPath(mainPath);
+
+            Assert.AreEqual("Hallo", SatelliteProbe.Greeting(assembly, "de"),
+                "The satellite beside the extension was not found from its load context.");
+            Assert.AreEqual("Hallo", SatelliteProbe.Greeting(assembly, "de-AT"),
+                "A regional culture falls back to its parent's satellite.");
+            Assert.AreEqual("Hello", SatelliteProbe.Greeting(assembly, "fr"),
+                "A language with no satellite falls back to the neutral resource.");
+        }
+        finally
+        {
+            context.Unload();
+        }
     }
 }

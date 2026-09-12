@@ -98,6 +98,10 @@ widgets, and drag replacements from the palette. Select a widget to bind it: an 
 of the kernel variable it writes, and a chart takes the variable it reads plus the column on each
 axis, so the bar chart is `chartData` with X axis `Month` and Y axis `Units`.
 
+## Languages
+
+The layout's own chrome follows the interface language. Its strings live in `src/Verso.Showcase.FormStudio/Resources/Strings.resx`, translated into German, Spanish, Japanese, and Simplified Chinese beside English, and the build turns each translation into a satellite assembly that ships in the package. Run `verso serve --language de` to see it in German; the [Localization](../../../docs/extensions/localization.md) guide explains the pattern.
+
 ## Licensing
 
 This sample is MIT. It bundles one MIT-licensed library verbatim under `assets/vendor/`, with its

@@ -391,6 +391,7 @@ public sealed class NuGetMarketplaceService
             managedDir, packageId, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
         CopyNativesToManaged(result.ResolvedPackages, targetDir);
+        CopySatellitesToManaged(result.ResolvedPackages, targetDir);
         CopyIconToManaged(packageId, result.ResolvedVersion, managedDir);
 
         RegisterInstalledDirectory(targetDir);
@@ -533,6 +534,7 @@ public sealed class NuGetMarketplaceService
             managedDir, id, result.ResolvedVersion, RuntimeLabelFor(result.AssemblyPaths));
         var copied = CopyAssembliesToManaged(result.AssemblyPaths, targetDir);
         CopyNativesToManaged(result.ResolvedPackages, targetDir);
+        CopySatellitesToManaged(result.ResolvedPackages, targetDir);
         CopyIconToManaged(id, result.ResolvedVersion, managedDir);
 
         RegisterInstalledDirectory(targetDir);
@@ -745,6 +747,45 @@ public sealed class NuGetMarketplaceService
         }
 
         return copied;
+    }
+
+    /// <summary>
+    /// Mirrors the culture folders a package extracted with, so an installed extension keeps
+    /// its translations where its own resource manager looks for them.
+    /// </summary>
+    private static void CopySatellitesToManaged(
+        IReadOnlyList<(string Id, string Version)> packages, string targetDir)
+        => CopySatellitesToManaged(packages, targetDir, NuGetPackageResolver.CacheRoot);
+
+    internal static void CopySatellitesToManaged(
+        IReadOnlyList<(string Id, string Version)> packages, string targetDir, string cacheRoot)
+    {
+        foreach (var (id, version) in packages)
+        {
+            try
+            {
+                var packageDir = Path.Combine(cacheRoot, id, version);
+                if (!Directory.Exists(packageDir))
+                    continue;
+
+                foreach (var cultureDir in Directory.GetDirectories(packageDir))
+                {
+                    var satellites = Directory.GetFiles(cultureDir, "*.resources.dll");
+                    if (satellites.Length == 0)
+                        continue;
+
+                    var dest = Path.Combine(targetDir, Path.GetFileName(cultureDir));
+                    Directory.CreateDirectory(dest);
+                    foreach (var file in satellites)
+                        File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), overwrite: true);
+                }
+            }
+            catch
+            {
+                // A translation that cannot be copied shows up as English, which breaks
+                // nothing. Failing the install here would take down an extension over a string.
+            }
+        }
     }
 
     /// <summary>

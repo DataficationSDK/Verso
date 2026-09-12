@@ -1,3 +1,4 @@
+@using System.Globalization
 @using System.Text
 @using System.Text.Json
 @using Microsoft.AspNetCore.Components
@@ -34,6 +35,13 @@ else if (_srcdoc is not null)
     /// considered failed and the retry banner is shown. Defaults to 10 seconds.
     /// </summary>
     [Parameter] public int ReadyTimeoutMs { get; set; } = 10_000;
+
+    /// <summary>
+    /// The language a frame is told it is in when the host never resolved one. It matches the
+    /// language the strings are authored in, and the fallback the editor host applies to its own
+    /// page, so the two agree.
+    /// </summary>
+    private const string DefaultCultureTag = "en";
 
     private static string? s_cachedBridgeScript;
 
@@ -120,7 +128,7 @@ else if (_srcdoc is not null)
             return;
         }
 
-        _srcdoc = BuildSrcDoc(package, composedCsp, bridgeScript, _extensionId, _layoutId, _frameInstanceId);
+        _srcdoc = BuildSrcDoc(package, composedCsp, bridgeScript, _extensionId, _layoutId, _frameInstanceId, CurrentCultureTag());
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -287,7 +295,7 @@ else if (_srcdoc is not null)
         _readyTimeoutCts?.Cancel();
 
         if (_rendererProtocolVersion is { Length: > 0 } declared
-            && !string.Equals(declared, LayoutBridgeProtocol.Version, StringComparison.Ordinal))
+            && !ProtocolIsCompatible(declared, LayoutBridgeProtocol.Version))
         {
             await TryForwardLogAsync("warn",
                 $"Renderer declares layout-bridge protocol '{declared}' but the host speaks " +
@@ -322,6 +330,8 @@ else if (_srcdoc is not null)
             ["hostProtocolVersion"] = LayoutBridgeProtocol.Version,
             ["extension"] = extra
         };
+
+        initPayload["uiCulture"] = CurrentCultureTag();
 
         if (Host.CurrentTheme is { } themeBundle)
         {
@@ -563,16 +573,79 @@ else if (_srcdoc is not null)
         return true;
     }
 
+    /// <summary>
+    /// The language tag handed to the frame, both as <c>uiCulture</c> on <c>verso/init</c> and as
+    /// the <c>lang</c> attribute of the frame document.
+    /// </summary>
+    /// <remarks>
+    /// The ambient culture is the invariant one in a host that never resolved a language, and in
+    /// globalization-invariant mode, where its name is the empty string. An empty <c>lang</c> is
+    /// worse than a wrong one: it tells the browser nothing about hyphenation, quotation or font
+    /// selection, and a renderer reading <c>uiCulture</c> has nothing to switch on. English is the
+    /// language every string is written in, so it is the honest answer when none was chosen.
+    /// </remarks>
+    internal static string CurrentCultureTag()
+    {
+        var tag = CultureInfo.CurrentUICulture.Name;
+
+        if (string.IsNullOrEmpty(tag))
+            return DefaultCultureTag;
+
+        foreach (var c in tag)
+        {
+            if (!(char.IsAsciiLetterOrDigit(c) || c == '-'))
+                return DefaultCultureTag;
+        }
+
+        return tag;
+    }
+
+    /// <summary>
+    /// A renderer built against an older minor of the protocol only lacks fields the host now
+    /// sends, so it is compatible; one built against a newer minor may expect fields this host
+    /// does not send yet, and a different major is a different contract.
+    /// </summary>
+    internal static bool ProtocolIsCompatible(string declared, string host)
+    {
+        // Only the first two components carry meaning. A renderer that declares a patch as
+        // well ("1.0.0") is making the same statement as "1.0", so the trailing components
+        // are ignored rather than treated as a parse failure. Parsing is invariant because a
+        // version is punctuation, not a number the reader's locale gets a say in.
+        static bool TryParse(string version, out int major, out int minor)
+        {
+            major = minor = 0;
+
+            var span = version.AsSpan().Trim();
+            var firstDot = span.IndexOf('.');
+            if (firstDot <= 0) return false;
+
+            var rest = span[(firstDot + 1)..];
+            var secondDot = rest.IndexOf('.');
+            var minorSpan = secondDot < 0 ? rest : rest[..secondDot];
+
+            return int.TryParse(span[..firstDot], NumberStyles.None, CultureInfo.InvariantCulture, out major)
+                && int.TryParse(minorSpan, NumberStyles.None, CultureInfo.InvariantCulture, out minor);
+        }
+
+        return TryParse(declared, out var declaredMajor, out var declaredMinor)
+            && TryParse(host, out var hostMajor, out var hostMinor)
+            && declaredMajor == hostMajor
+            && declaredMinor <= hostMinor;
+    }
+
     private static string BuildSrcDoc(
         LayoutRendererPackageDto package,
         string csp,
         string bridgeScript,
         string extensionId,
         string layoutId,
-        string frameInstanceId)
+        string frameInstanceId,
+        string uiCulture)
     {
         var sb = new StringBuilder(8192);
-        sb.Append("<!doctype html><html><head>");
+        sb.Append("<!doctype html><html lang=\"")
+          .Append(HtmlAttributeEscape(uiCulture))
+          .Append("\"><head>");
         sb.Append("<meta charset=\"utf-8\">");
         sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"")
           .Append(HtmlAttributeEscape(csp))

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Showcase.ImageStudio.Model;
+using Verso.Showcase.ImageStudio.Resources;
 
 namespace Verso.Showcase.ImageStudio;
 
@@ -45,10 +46,10 @@ public sealed class ImageStudioLayout
     // --- IExtension ---
 
     public string ExtensionId => "com.verso.showcase.image-studio";
-    public string Name => "Image Studio Layout";
+    public string Name => Strings.Layout_Name;
     public string Version => "1.0.0";
     public string? Author => "Datafication";
-    public string? Description => "Isolated layout that presents the notebook as a layered image document.";
+    public string? Description => Strings.Layout_Description;
 
     public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
     public Task OnUnloadedAsync() => Task.CompletedTask;
@@ -56,7 +57,7 @@ public sealed class ImageStudioLayout
     // --- ILayoutEngine ---
 
     public string LayoutId => "image-studio";
-    public string DisplayName => "Image Studio";
+    public string DisplayName => Strings.Layout_DisplayName;
 
     public string? Icon =>
         "<svg viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">" +
@@ -134,7 +135,13 @@ public sealed class ImageStudioLayout
 
         // Hand the renderer its authoritative initial state on the host's init message (under
         // the "extension" key). Include any procedural variables a cell already produced.
-        var seed = new Dictionary<string, object> { ["document"] = _doc };
+        // The frame cannot reach a resource manager, so it gets its strings here, resolved for
+        // the language the host is answering in. The frame builds its chrome once they arrive.
+        var seed = new Dictionary<string, object>
+        {
+            ["strings"] = StringTable.From(Strings.ResourceManager, context.Verso.UICulture),
+            ["document"] = _doc.ForDisplay(),
+        };
         var initialVars = CollectProceduralVars(variables);
         if (initialVars.Count > 0)
             seed["vars"] = initialVars;
@@ -192,10 +199,14 @@ public sealed class ImageStudioLayout
             case "add-layer":
             {
                 var kind = GetString(root, "kind") ?? "solid";
+                var explicitName = GetString(root, "name");
                 var layer = new Layer
                 {
                     Kind = kind,
-                    Name = GetString(root, "name") ?? DefaultName(kind),
+                    // Only a name that came from the frame is a name a person chose; the
+                    // built-in one is kept as a key so it follows the reader's language.
+                    Name = explicitName,
+                    NameKey = explicitName is null ? DefaultNameKey(kind) : null,
                     Props = DefaultProps(kind),
                     SourceVar = kind == "procedural" ? (GetString(root, "sourceVar") ?? "ops") : null,
                 };
@@ -265,6 +276,7 @@ public sealed class ImageStudioLayout
                 var name = GetString(root, "name");
                 if (layer is null || name is null) return false;
                 layer.Name = name;
+                layer.NameKey = null; // a chosen name outranks the built-in one from here on
                 return true;
             }
 
@@ -368,7 +380,7 @@ public sealed class ImageStudioLayout
         foreach (var frame in _frames.Values)
         {
             if (frame.IsAlive)
-                _ = frame.PostMessageAsync(DocumentMessage, new { document = _doc }, ct);
+                _ = frame.PostMessageAsync(DocumentMessage, new { document = _doc.ForDisplay() }, ct);
         }
     }
 
@@ -408,18 +420,23 @@ public sealed class ImageStudioLayout
 
     // --- Defaults for newly added layers ---
 
-    private static string DefaultName(string kind) => kind switch
+    /// <summary>
+    /// The resource key for a layer kind's built-in name. A key rather than the string itself,
+    /// because the name is stored in the notebook and has to survive being opened by a reader
+    /// working in another language.
+    /// </summary>
+    private static string DefaultNameKey(string kind) => kind switch
     {
-        "solid" => "Solid",
-        "linear-gradient" => "Gradient",
-        "radial-gradient" => "Radial",
-        "checkerboard" => "Checker",
-        "stripes" => "Stripes",
-        "dots" => "Dots",
-        "rings" => "Rings",
-        "text" => "Text",
-        "procedural" => "Procedural",
-        _ => "Layer",
+        "solid" => nameof(Strings.Name_Solid),
+        "linear-gradient" => nameof(Strings.Name_Gradient),
+        "radial-gradient" => nameof(Strings.Name_Radial),
+        "checkerboard" => nameof(Strings.Name_Checker),
+        "stripes" => nameof(Strings.Name_Stripes),
+        "dots" => nameof(Strings.Name_Dots),
+        "rings" => nameof(Strings.Name_Rings),
+        "text" => nameof(Strings.Name_Text),
+        "procedural" => nameof(Strings.Name_Procedural),
+        _ => nameof(Strings.Layer_Default),
     };
 
     private static Dictionary<string, object> DefaultProps(string kind) => kind switch

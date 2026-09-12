@@ -118,6 +118,10 @@ To override the version at build time (useful in CI):
 dotnet pack -c Release -p:Version=1.2.0
 ```
 
+## Translations
+
+If the extension keeps its strings in a `Resources/Strings.resx` with sibling files per language, the build produces a satellite assembly per language under a folder named for it, `de/My.Extension.resources.dll`, beside the main assembly. `dotnet pack` places those under `lib/<tfm>/<culture>/` on its own, and a marketplace install keeps the folders, so the translations travel with the package without any extra configuration. The [Localization](localization.md) guide covers the resource file itself.
+
 ## Local Feed Testing
 
 Before publishing to NuGet.org, test your package locally.
