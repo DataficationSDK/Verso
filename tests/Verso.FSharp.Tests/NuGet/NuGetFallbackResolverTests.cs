@@ -134,4 +134,19 @@ public class NuGetFallbackResolverTests
         Assert.IsFalse(NuGetFallbackResolver.TryGetSatelliteCulture("lib/net8.0/Some.Ext.dll", out _));
         Assert.IsFalse(NuGetFallbackResolver.TryGetSatelliteCulture("lib/net8.0/../Some.Ext.resources.dll", out _));
     }
+
+    [TestMethod]
+    public void HasFlattenedSatellites_MatchesTheCoreResolver()
+    {
+        Assert.IsTrue(NuGetFallbackResolver.HasFlattenedSatellites(new[]
+        {
+            "/cache/Some.Ext/1.0.0/Some.Ext.dll",
+            "/cache/Some.Ext/1.0.0/Some.Ext.resources.dll",
+        }));
+
+        Assert.IsFalse(NuGetFallbackResolver.HasFlattenedSatellites(new[]
+        {
+            "/cache/Foo.Resources/1.0.0/Foo.Resources.dll",
+        }), "A main assembly named like a satellite, with no owner beside it, is not a satellite.");
+    }
 }

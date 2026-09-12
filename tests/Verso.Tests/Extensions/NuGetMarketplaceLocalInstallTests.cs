@@ -467,6 +467,49 @@ public class NuGetMarketplaceLocalInstallTests
         }
     }
 
+    [TestMethod]
+    public async Task InstallFromFileAsync_Nupkg_RefreshesACacheEntryWithFlattenedSatellites()
+    {
+        // A cache entry written by a build that flattened lib/ has the satellite beside the
+        // assembly, where it can never load. The next install must extract the package again,
+        // put the satellite back under its culture folder and drop the flattened copy, so the
+        // entry is not refreshed again on every resolve after that.
+        var build = Path.Combine(_managedDir, "build");
+        Directory.CreateDirectory(build);
+        var mainDll = SatelliteProbe.Build(build);
+        var id = "Verso.SatelliteProbe." + Guid.NewGuid().ToString("N")[..12];
+        var nupkg = BuildNupkg(build, id, "1.0.0", mainDll, SatelliteProbe.SatellitePath(build));
+        var cacheDir = Path.Combine(NuGetPackageResolver.CacheRoot, id, "1.0.0");
+
+        try
+        {
+            var service = new NuGetMarketplaceService();
+            await service.InstallFromFileAsync(nupkg, Path.Combine(_managedDir, "first"), CancellationToken.None);
+
+            // Age the entry by hand into the shape the older build left behind.
+            var cultureDir = Path.Combine(cacheDir, "de");
+            File.Move(Path.Combine(cultureDir, "Probe.resources.dll"), Path.Combine(cacheDir, "Probe.resources.dll"));
+            Directory.Delete(cultureDir);
+
+            var installed = await service.InstallFromFileAsync(nupkg, Path.Combine(_managedDir, "second"), CancellationToken.None);
+
+            Assert.IsTrue(File.Exists(Path.Combine(cacheDir, "de", "Probe.resources.dll")),
+                "The stale entry was served from cache instead of being extracted again.");
+            Assert.IsFalse(File.Exists(Path.Combine(cacheDir, "Probe.resources.dll")),
+                "The flattened copy was left behind, so the entry would be refreshed on every resolve.");
+            Assert.IsTrue(File.Exists(Path.Combine(installed.PackageDirectory, "de", "Probe.resources.dll")),
+                "The refreshed install did not receive the satellite under its culture folder.");
+            CollectionAssert.AreEquivalent(
+                new[] { "Probe.dll" },
+                Directory.GetFiles(installed.PackageDirectory, "*.dll").Select(Path.GetFileName).ToArray(),
+                "Only the real assembly belongs at the top level.");
+        }
+        finally
+        {
+            try { Directory.Delete(Path.Combine(NuGetPackageResolver.CacheRoot, id), recursive: true); } catch { /* best effort */ }
+        }
+    }
+
     private static string BuildNupkg(string folder, string id, string version, string mainDll, string satelliteDll)
     {
         var path = Path.Combine(folder, $"{id}.{version}.nupkg");

@@ -750,20 +750,6 @@ public sealed class NuGetMarketplaceService
     }
 
     /// <summary>
-    /// Copies the native libraries belonging to an installed package's closure into a
-    /// <c>native/</c> directory beside its assemblies.
-    /// </summary>
-    /// <remarks>
-    /// The managed directory is the durable store, the same reasoning that puts the icon
-    /// there: the download cache is a temp directory that can be cleared between launches,
-    /// and a sideloaded package can never be fetched again. Without this an extension that
-    /// P/Invokes works in the session that installed it, because the resolve registered the
-    /// cache directories, and fails on the next launch with the native missing. Natives come
-    /// from across the closure, since a package's natives usually ship in a separate package
-    /// of their own, and they are flattened into one directory the same way the assemblies
-    /// are.
-    /// </remarks>
-    /// <summary>
     /// Mirrors the culture folders a package extracted with, so an installed extension keeps
     /// its translations where its own resource manager looks for them.
     /// </summary>
@@ -802,6 +788,20 @@ public sealed class NuGetMarketplaceService
         }
     }
 
+    /// <summary>
+    /// Copies the native libraries belonging to an installed package's closure into a
+    /// <c>native/</c> directory beside its assemblies.
+    /// </summary>
+    /// <remarks>
+    /// The managed directory is the durable store, the same reasoning that puts the icon
+    /// there: the download cache is a temp directory that can be cleared between launches,
+    /// and a sideloaded package can never be fetched again. Without this an extension that
+    /// P/Invokes works in the session that installed it, because the resolve registered the
+    /// cache directories, and fails on the next launch with the native missing. Natives come
+    /// from across the closure, since a package's natives usually ship in a separate package
+    /// of their own, and they are flattened into one directory the same way the assemblies
+    /// are.
+    /// </remarks>
     private static void CopyNativesToManaged(
         IReadOnlyList<(string Id, string Version)> packages, string targetDir)
     {

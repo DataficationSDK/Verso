@@ -950,7 +950,7 @@ Host to frame (received in `onMessage`):
 
 | Type | Payload | Purpose |
 |---|---|---|
-| `verso/init` | `{ extensionId, layoutId, frameInstanceId, cells, capabilities, theme, uiCulture, layoutMetadata, extension? }` | Initial state. `extension` is the dictionary your mount handler returned. `uiCulture` is the interface language as a tag such as `de`; the frame document's `<html lang>` carries the same value. The per-cell `language` inside `cells` is the programming language, so do not reuse that word for the culture in your own payloads. |
+| `verso/init` | `{ extensionId, layoutId, frameInstanceId, cells, capabilities, hostProtocolVersion, theme, uiCulture, layoutMetadata, extension? }` | Initial state. `extension` is the dictionary your mount handler returned. `uiCulture` is the interface language as a tag such as `de`; the frame document's `<html lang>` carries the same value. The per-cell `language` inside `cells` is the programming language, so do not reuse that word for the culture in your own payloads. |
 | `verso/cellsChanged` | `{ cells }` | The notebook's cell list changed. |
 | `verso/cellOutputs` | `{ cellId, outputs }` | A cell's outputs changed. |
 | `verso/themeChanged` | `{ theme }` | The active theme changed. |

@@ -368,7 +368,9 @@ function applyDefaults(w, chartType) {
     case "toggle":  w.w = 190; w.h = 84;  w.value = false; w.bindVar = nextVar("flag"); break;
     case "dropdown":w.w = 210; w.h = 92;  w.config = { options: ["All", "A", "B", "C"] }; w.value = "All"; w.bindVar = nextVar("choice"); break;
     case "text":    w.w = 230; w.h = 90;  w.value = ""; w.bindVar = nextVar("text"); break;
-    case "label":   w.w = 230; w.h = 56;  w.config = { text: "Heading" }; break;
+    // A heading's text starts empty so the body shows the label the host resolved for the
+    // reader's language; whatever is typed into it afterwards is kept as typed.
+    case "label":   w.w = 230; w.h = 56;  w.config = { text: "" }; break;
     case "chart":   w.w = 380; w.h = 270; w.config = { sourceVar: vars.sourceVars[0] || "", chartType: chartType || "bar", xColumn: "", yColumns: [], color: "" }; break;
   }
 }
@@ -433,7 +435,7 @@ function renderWidget(w) {
 function renderBody(w, bd) {
   switch (w.kind) {
     case "label":
-      bd.appendChild(el("div", { style: "font-weight:700;font-size:1.05em" }, w.config.text || w.label));
+      bd.appendChild(el("div", { style: "font-weight:700;font-size:1.05em" }, w.config.text || w.label || cap(w.kind)));
       break;
     case "slider": {
       const head = el("div", { style: "display:flex;justify-content:space-between" },

@@ -357,6 +357,8 @@ function buildChrome() {
 }
 
 document.addEventListener("keydown", (e) => {
+  // The zoom helpers measure the viewport, which exists only once the chrome is built.
+  if (!chromeBuilt) return;
   if (e.target && e.target.closest && e.target.closest("input, select, textarea")) return;
   if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomBy(1.25); }
   else if (e.key === "-" || e.key === "_") { e.preventDefault(); zoomBy(0.8); }

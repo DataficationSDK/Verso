@@ -162,4 +162,19 @@ public sealed class NuGetPackageResolverTests
         Assert.IsFalse(NuGetPackageResolver.HasFlattenedSatellites(Array.Empty<string>()),
             "A meta-package with no assemblies at all is not stale.");
     }
+
+    [TestMethod]
+    public void HasFlattenedSatellites_ResourcesAssemblyWithoutItsOwner_IsNotStale()
+    {
+        // A package whose main assembly is named like a satellite. Nothing called "Foo.dll"
+        // sits beside it, so nothing says the file is a translation, and calling the entry
+        // stale would delete the package's only assembly on every resolve.
+        var cached = new[]
+        {
+            "/cache/Foo.Resources/1.0.0/Foo.Resources.dll",
+            "/cache/Foo.Resources/1.0.0/Foo.Resources.Support.dll",
+        };
+
+        Assert.IsFalse(NuGetPackageResolver.HasFlattenedSatellites(cached));
+    }
 }

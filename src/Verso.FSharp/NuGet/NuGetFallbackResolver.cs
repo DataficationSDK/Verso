@@ -280,6 +280,7 @@ internal sealed class NuGetFallbackResolver
         var depsFile = Path.Combine(packageDir, ".deps");
 
         // Check cache
+        string[]? staleDlls = null;
         if (Directory.Exists(packageDir))
         {
             var cachedDlls = GetAllCachedDlls(packageDir);
@@ -289,14 +290,15 @@ internal sealed class NuGetFallbackResolver
             // resource assemblies flattened beside the managed ones, where the runtime never
             // looks for them. Neither cache path below can repair that, so both are skipped
             // and the entry is re-extracted once, letting an existing install pick up the
-            // translations it was never given.
+            // translations it was never given. The flattened copies are removed only once the
+            // fresh package is in hand, so a resolve that cannot reach a feed leaves the entry
+            // as it found it.
             var flattenedSatellites = HasFlattenedSatellites(cachedDlls);
+            if (flattenedSatellites)
+                staleDlls = cachedDlls;
 
             if (cachedDeps is not null && !flattenedSatellites)
                 return (resolvedVersion.ToString(), new List<string>(cachedDlls), cachedDeps);
-
-            if (flattenedSatellites)
-                DiscardFlattenedSatellites(cachedDlls);
 
             if (cachedDlls.Length > 0 && !flattenedSatellites)
             {
@@ -329,6 +331,9 @@ internal sealed class NuGetFallbackResolver
                 string.Format(Strings.NuGet_DownloadUnreachable,
                     packageId, resolvedVersion, ex.GetType().Name, ex.Message), ex);
         }
+
+        if (staleDlls is not null)
+            DiscardFlattenedSatellites(staleDlls);
 
         var assemblyPaths = new List<string>();
         List<(string Id, string? MinVersion)> dependencies;
@@ -554,14 +559,39 @@ internal sealed class NuGetFallbackResolver
     /// older build that flattened the lib folder, and marks the whole entry as out of date.
     /// </remarks>
     internal static bool HasFlattenedSatellites(string[] cachedDlls)
+        => FlattenedSatellites(cachedDlls).Count > 0;
+
+    /// <summary>
+    /// The satellites sitting at the top level of a cache entry, recognised only beside the
+    /// assembly each one translates.
+    /// </summary>
+    /// <remarks>
+    /// A package whose main assembly happens to be named <c>Something.Resources.dll</c> has no
+    /// such sibling and is left alone, since treating it as stale would delete the package's
+    /// own code on every resolve.
+    /// </remarks>
+    private static List<string> FlattenedSatellites(string[] cachedDlls)
     {
+        const string suffix = ".resources.dll";
+        var flattened = new List<string>();
+
         foreach (var path in cachedDlls)
         {
-            if (path.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
-                return true;
+            if (!path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var owner = path[..^suffix.Length] + ".dll";
+            foreach (var candidate in cachedDlls)
+            {
+                if (string.Equals(candidate, owner, StringComparison.OrdinalIgnoreCase))
+                {
+                    flattened.Add(path);
+                    break;
+                }
+            }
         }
 
-        return false;
+        return flattened;
     }
 
     /// <summary>
@@ -570,11 +600,8 @@ internal sealed class NuGetFallbackResolver
     /// </summary>
     private static void DiscardFlattenedSatellites(string[] cachedDlls)
     {
-        foreach (var path in cachedDlls)
+        foreach (var path in FlattenedSatellites(cachedDlls))
         {
-            if (!path.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
-                continue;
-
             try { File.Delete(path); } catch { /* best effort: a locked file is re-checked next time */ }
         }
     }
