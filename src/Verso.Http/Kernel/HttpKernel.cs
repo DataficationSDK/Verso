@@ -192,7 +192,11 @@ public sealed class HttpKernel : ILanguageKernel
                 // failed. The response itself is still shown above, because the status line and
                 // the body are usually the whole point of looking. Added after the body so the
                 // evidence reads before the verdict.
-                if (!response.IsSuccessStatusCode)
+                //
+                // A 3xx is not a failure. Redirects are followed by default, so one only surfaces
+                // here when the cell asked to see it with @no-redirect, and the redirect is then
+                // the answer the cell wanted.
+                if ((int)response.StatusCode >= 400)
                 {
                     outputs.Add(new CellOutput(
                         "text/plain",

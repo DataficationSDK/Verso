@@ -85,13 +85,15 @@ Per-request directives tune behavior: `# @no-redirect` stops the client followin
 
 ## When a request fails the cell
 
-A response outside the 2xx range fails the cell. The status line and the body are still rendered above the failure, because they are usually the whole point of looking, and the failure is added after them so the evidence reads before the verdict.
+A 4xx or 5xx response fails the cell. The status line and the body are still rendered above the failure, because they are usually the whole point of looking, and the failure is added after them so the evidence reads before the verdict.
+
+A 3xx does not fail the cell. Redirects are followed by default, so one only reaches you when the request asked to see it with `# @no-redirect`, and the redirect is then the answer the cell wanted.
 
 There is no setting to turn this off. If a request is expected to come back 4xx or 5xx, and the cell should not be marked failed for it, read `httpStatus` in a following cell and decide there:
 
 ```csharp
-var status = Variables.Get<string>("httpStatus");
-if (status != "404") throw new Exception($"Expected a 404, got {status}.");
+var status = Variables.Get<int>("httpStatus");
+if (status != 404) throw new Exception($"Expected a 404, got {status}.");
 ```
 
 ## Using a response elsewhere
@@ -100,7 +102,7 @@ After a request runs, the kernel writes the response body and status into the sh
 
 ```csharp
 var body = Variables.Get<string>("httpResponse");
-var status = Variables.Get<string>("httpStatus");
+var status = Variables.Get<int>("httpStatus");
 ```
 
 That makes it easy to fetch data over HTTP in one cell and process it in C#, Python, or SQL in the next. See [Language Kernels](language-kernels.md) for how the variable store works across languages.

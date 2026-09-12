@@ -55,6 +55,40 @@ public sealed class HttpKernelTests
         Assert.IsFalse(outputs[0].IsError, "the response should come before the failure");
     }
 
+    /// <summary>
+    /// A redirect is not a failure. Redirects are followed by default, so one only reaches the
+    /// cell when it asked to see it with @no-redirect, at which point the redirect is the answer
+    /// the cell wanted. Failing it made the documented directive look broken.
+    /// </summary>
+    [TestMethod]
+    public async Task ExecuteAsync_RedirectWithNoRedirectDirective_DoesNotFailTheCell()
+    {
+        using var server = new LocalServer(statusCode: 302, body: "", location: "/elsewhere");
+        var kernel = new HttpKernel();
+        var ctx = new StubExecutionContext();
+
+        var outputs = await kernel.ExecuteAsync($"# @no-redirect\nGET {server.Url}", ctx);
+
+        Assert.IsFalse(outputs.Any(o => o.IsError), "a 302 the cell asked to see is not a failure");
+        Assert.IsTrue(outputs.Any(o => o.MimeType == "text/html" && o.Content.Contains("302")),
+            "the redirect response should still be reported");
+    }
+
+    /// <summary>The first status that means the request did not do what the cell asked.</summary>
+    [TestMethod]
+    public async Task ExecuteAsync_ClientError_FailsTheCell()
+    {
+        using var server = new LocalServer(statusCode: 400, body: "nope");
+        var kernel = new HttpKernel();
+        var ctx = new StubExecutionContext();
+
+        var outputs = await kernel.ExecuteAsync($"GET {server.Url}", ctx);
+
+        var failure = outputs.FirstOrDefault(o => o.IsError);
+        Assert.IsNotNull(failure, "a 400 response should fail the cell");
+        StringAssert.Contains(failure!.Content, "400");
+    }
+
     [TestMethod]
     public async Task ExecuteAsync_SuccessfulResponse_DoesNotFailTheCell()
     {
@@ -72,7 +106,7 @@ public sealed class HttpKernelTests
     {
         private readonly HttpListener _listener = new();
 
-        public LocalServer(int statusCode, string body)
+        public LocalServer(int statusCode, string body, string? location = null)
         {
             var port = GetFreePort();
             Url = $"http://127.0.0.1:{port}/";
@@ -85,6 +119,8 @@ public sealed class HttpKernelTests
                 {
                     var context = await _listener.GetContextAsync();
                     context.Response.StatusCode = statusCode;
+                    if (location is not null)
+                        context.Response.Headers["Location"] = location;
                     var bytes = System.Text.Encoding.UTF8.GetBytes(body);
                     context.Response.ContentLength64 = bytes.Length;
                     await context.Response.OutputStream.WriteAsync(bytes);
