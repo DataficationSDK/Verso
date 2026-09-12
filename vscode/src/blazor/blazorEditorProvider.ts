@@ -856,6 +856,9 @@ export class BlazorEditorProvider
     const tagInputInterop = toUri(
       "_content/Verso.Blazor.Shared/js/tag-input-interop.js"
     );
+    const keyboardInterop = toUri(
+      "_content/Verso.Blazor.Shared/js/keyboard-interop.js"
+    );
     const widgetInterop = toUri(
       "_content/Verso.Blazor.Shared/js/widget-interop.js"
     );
@@ -1068,6 +1071,7 @@ export class BlazorEditorProvider
     <script src="${userPrefsInterop}"></script>
     <script src="${cellDragInterop}"></script>
     <script src="${tagInputInterop}"></script>
+    <script src="${keyboardInterop}"></script>
     <script src="${widgetInterop}"></script>
     <script src="${tooltipJs}"></script>
     <script src="${frameworkJs}" autostart="false"></script>

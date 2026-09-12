@@ -1181,6 +1181,21 @@
             await HandleRunCell(cellId);
     }
 
+    /// <summary>
+    /// Asks the browser whether a plain text field (an input, textarea, select, or
+    /// contenteditable element) has focus. A host page without the keyboard script answers
+    /// false, so it keeps its command-mode keys rather than losing them.
+    /// </summary>
+    private async Task<bool> IsTextFieldFocusedAsync()
+    {
+        try
+        {
+            return await JS.InvokeAsync<bool>("versoKeyboard.isEditableElementFocused");
+        }
+        catch (JSDisconnectedException) { return false; }
+        catch (JSException) { return false; }
+    }
+
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         // The diff overlay owns the keyboard while open (it stops propagation itself; this
@@ -1208,6 +1223,18 @@
         // must not fire, or typing "a"/"b"/"x"/"d" in code would mutate the notebook.
         if (_editingCellId is not null)
             return;
+
+        // The same holds for any other text field inside the notebook: a parameters cell's
+        // name and value inputs, a panel's property fields, the toolbar's path box, a form
+        // in an HTML output. None of those report focus to the page the way Monaco does, so
+        // the browser is asked which element has focus before a key is read as a command.
+        // Without this, an "a" typed into a parameter name inserted a cell above it and took
+        // the field away mid-word.
+        if (await IsTextFieldFocusedAsync())
+        {
+            _awaitingSecondDelete = false;
+            return;
+        }
 
         // Any key other than a bare "d" cancels a pending "dd" delete sequence.
         if (!(e.Key == "d" && NoModifiers(e)))
