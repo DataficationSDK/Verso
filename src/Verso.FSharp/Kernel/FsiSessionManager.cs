@@ -1,4 +1,5 @@
 using Microsoft.FSharp.Core;
+using Verso.Abstractions;
 using static FSharp.Compiler.Interactive.Shell;
 
 namespace Verso.FSharp.Kernel;
@@ -145,9 +146,10 @@ internal sealed class FsiSessionManager : IDisposable
 
     /// <summary>
     /// Evaluates an F# interaction and returns a structured result.
-    /// Console.Out and Console.Error are captured during evaluation.
+    /// Console.Out and Console.Error are captured during evaluation. When <paramref name="inputContext"/>
+    /// is given, Console.In asks that context's host for input.
     /// </summary>
-    public EvalResult EvalInteraction(string code, CancellationToken ct)
+    public EvalResult EvalInteraction(string code, CancellationToken ct, IExecutionContext? inputContext = null)
     {
         EnsureSession();
 
@@ -158,6 +160,7 @@ internal sealed class FsiSessionManager : IDisposable
         // Capture Console.Out and Console.Error
         var originalOut = Console.Out;
         var originalErr = Console.Error;
+        var originalIn = Console.In;
         var consoleOutWriter = new StringWriter();
         var consoleErrWriter = new StringWriter();
 
@@ -165,6 +168,11 @@ internal sealed class FsiSessionManager : IDisposable
         {
             Console.SetOut(consoleOutWriter);
             Console.SetError(consoleErrWriter);
+
+            // Console.ReadLine() asks the front end for a line rather than reading the process's
+            // own standard input, which in the VS Code host is the protocol stream.
+            if (inputContext is not null)
+                Console.SetIn(new HostInputReader(inputContext, consoleOutWriter, originalIn));
 
             ct.ThrowIfCancellationRequested();
 
@@ -242,6 +250,7 @@ internal sealed class FsiSessionManager : IDisposable
         {
             Console.SetOut(originalOut);
             Console.SetError(originalErr);
+            Console.SetIn(originalIn);
         }
     }
 

@@ -284,7 +284,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                     StringComparer.OrdinalIgnoreCase);
             }
 
-            var result = _sessionManager!.EvalInteraction(processedCode, context.CancellationToken);
+            var result = _sessionManager!.EvalInteraction(processedCode, context.CancellationToken, context);
 
             // --- Detect newly loaded assemblies (FSI-native NuGet path) ---
             if (preEvalAssemblies is not null)

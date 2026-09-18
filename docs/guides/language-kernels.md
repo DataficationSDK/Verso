@@ -153,6 +153,33 @@ var cutoff = Variables.Get<long>("threshold");
 
 Dragging the slider changes what that cell computes on its next run, and setting `threshold` from C# moves the slider. See [Interactive Widgets](interactive-widgets.md) for the whole of this: what makes a widget live, what a saved file holds, and the rest of `#!bind`.
 
+## Asking the user for input
+
+A cell can stop and ask for a line of text. The ordinary call in each language does it, so a console program written for a terminal runs as it is:
+
+| Language | Call |
+|----------|------|
+| C# and F# | `Console.ReadLine()`, `Console.Read()` |
+| PowerShell | `Read-Host`, credential and choice prompts |
+| Python | `input()`, `getpass.getpass()` |
+
+```csharp
+Console.Write("What is your name? ");
+var name = Console.ReadLine();
+Console.WriteLine($"Hello, {name}!");
+```
+
+VS Code shows its input box and `verso serve` shows a dialog. The text the cell wrote just before asking becomes the prompt, because a cell's output is not on screen until the cell finishes. The answer is written into the output the way a terminal would show it, so the finished cell reads `What is your name? Ada` and then `Hello, Ada!`.
+
+C# cells also have two calls that carry their own prompt, the second of which masks what is typed:
+
+```csharp
+var user = await GetInputAsync("User:");
+var password = await GetPasswordAsync("Password:");
+```
+
+Both are available at the top level of a cell. Cancelling a prompt gives `null`, the same as end of input in a terminal. The command line (`verso run`, `verso repl`) has no input box: `Console.ReadLine()` reads the terminal or a pipe there, as it would in any console program, and `GetInputAsync` throws `NotSupportedException`. Use [Notebook Parameters](notebook-parameters.md) for values a scheduled run needs.
+
 ## Restarting a kernel
 
 Kernels initialize lazily the first time you run a cell in that language. If a kernel gets into a bad state, restart it to clear its variables and reload. A full "Run All" also resets the kernels first, so it behaves as if the notebook were being executed from scratch.

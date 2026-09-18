@@ -122,6 +122,7 @@ public sealed class CSharpKernel : ILanguageKernel
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         var originalOut = Console.Out;
         var originalErr = Console.Error;
+        var originalIn = Console.In;
         try
         {
             // Pick up assembly paths deposited by #!nuget / #!extension magic
@@ -185,8 +186,13 @@ public sealed class CSharpKernel : ILanguageKernel
             Console.SetOut(consoleWriter);
             Console.SetError(consoleErrWriter);
 
+            // Console.ReadLine() asks the front end for a line rather than reading the process's
+            // own standard input, which in the VS Code host is the protocol stream.
+            Console.SetIn(new HostInputReader(context, consoleWriter, originalIn));
+
             // Create globals on first execution so C# cells can access the shared variable store
             _globals ??= new ScriptGlobals(context.Variables);
+            _globals.Context = context;
 
             // Inject notebook parameters as top-level script variables (once)
             if (!_parametersInjected)
@@ -338,6 +344,9 @@ public sealed class CSharpKernel : ILanguageKernel
         {
             Console.SetOut(originalOut);
             Console.SetError(originalErr);
+            Console.SetIn(originalIn);
+            if (_globals is not null)
+                _globals.Context = null;
             _executionLock.Release();
         }
     }
