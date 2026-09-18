@@ -117,6 +117,70 @@ window.versoMonaco = (function () {
 
     // Extend the built-in C# monarch tokenizer to highlight #i "nuget: ..." directives
     // the same way Monaco highlights #r directives (as preprocessor + string).
+    // The theme last handed to applyTheme(), kept so it can be defined as soon as Monaco
+    // loads: a host usually knows its theme before the editor script has arrived.
+    const CUSTOM_THEME = 'verso-active';
+    const BASE_THEMES = ['vs', 'vs-dark', 'hc-black', 'hc-light'];
+    let _themeSpec = null;
+
+    // Monaco reads theme colors as hex only, and paints anything else bright red rather
+    // than ignoring it. Theme tokens and CSS variables can hold rgb()/rgba() as well, so
+    // every color is brought to #RRGGBB or #RRGGBBAA here, and dropped if it cannot be.
+    function toHexColor(value) {
+        if (typeof value !== 'string') return null;
+        const v = value.trim();
+        let m = /^#([0-9a-f]{3,8})$/i.exec(v);
+        if (m) {
+            const h = m[1];
+            if (h.length === 6 || h.length === 8) return '#' + h;
+            if (h.length === 3 || h.length === 4) {
+                return '#' + h.split('').map(function (c) { return c + c; }).join('');
+            }
+            return null;
+        }
+        m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,\/]+([\d.]+%?))?\s*\)$/i.exec(v);
+        if (!m) return null;
+        const byte = function (n) {
+            const b = Math.max(0, Math.min(255, Math.round(n)));
+            return (b < 16 ? '0' : '') + b.toString(16);
+        };
+        let hex = '#' + byte(+m[1]) + byte(+m[2]) + byte(+m[3]);
+        if (m[4] !== undefined) {
+            const a = m[4].slice(-1) === '%' ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+            if (a < 1) hex += byte(a * 255);
+        }
+        return hex;
+    }
+
+    function defineCustomTheme() {
+        const spec = _themeSpec;
+        if (!spec) return;
+
+        const colors = {};
+        Object.keys(spec.colors || {}).forEach(function (id) {
+            const hex = toHexColor(spec.colors[id]);
+            if (hex) colors[id] = hex;
+        });
+
+        const rules = [];
+        (spec.rules || []).forEach(function (r) {
+            if (!r || typeof r.token !== 'string') return;
+            const rule = { token: r.token };
+            // Token colors take six or eight hex digits and no leading '#'.
+            const fg = toHexColor(r.foreground);
+            if (fg) rule.foreground = fg.slice(1);
+            if (typeof r.fontStyle === 'string') rule.fontStyle = r.fontStyle;
+            if (rule.foreground || rule.fontStyle !== undefined) rules.push(rule);
+        });
+
+        monaco.editor.defineTheme(CUSTOM_THEME, {
+            base: BASE_THEMES.indexOf(spec.base) >= 0 ? spec.base : 'vs',
+            inherit: spec.inherit !== false,
+            rules: rules,
+            colors: colors
+        });
+    }
+
     function enhanceCSharpTokenizer() {
         const langDef = monaco.languages.getLanguages().find(l => l.id === 'csharp');
         if (!langDef || !langDef.loader) return;
@@ -165,6 +229,7 @@ window.versoMonaco = (function () {
                 }
 
                 monacoReady = true;
+                defineCustomTheme();
                 readyCallbacks.forEach(cb => cb());
                 readyCallbacks = [];
                 onReadyCallbacks.forEach(cb => cb());
@@ -511,9 +576,28 @@ window.versoMonaco = (function () {
         },
 
         setTheme: function (theme) {
+            _themeSpec = null;
             _currentTheme = theme || 'vs';
             if (monacoReady) {
                 monaco.editor.setTheme(_currentTheme);
+            }
+        },
+
+        // Themes every editor from a description the host builds out of its own theme:
+        //   base   one of 'vs', 'vs-dark', 'hc-black', 'hc-light'; supplies whatever the
+        //          description leaves out
+        //   inherit false to take only the base's light/dark defaults and none of its
+        //          syntax rules, for a description whose rules are complete
+        //   colors Monaco color id -> CSS color ('editor.background', ...)
+        //   rules  [{ token, foreground, fontStyle }] in Monaco's token names
+        // Calling it again replaces the previous description.
+        applyTheme: function (spec) {
+            if (!spec) return;
+            _themeSpec = spec;
+            _currentTheme = CUSTOM_THEME;
+            if (monacoReady) {
+                defineCustomTheme();
+                monaco.editor.setTheme(CUSTOM_THEME);
             }
         },
 

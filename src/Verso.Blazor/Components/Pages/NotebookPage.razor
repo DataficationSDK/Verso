@@ -695,7 +695,13 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("versoMonaco.setTheme", MonacoThemeName);
+            // The editor takes its surface and syntax colors from the active theme. With
+            // no theme to read, it falls back to the stock palette for the theme's kind.
+            var spec = MonacoThemeBuilder.Build(Service.ActiveThemeKind, Service.ActiveThemeData);
+            if (spec is not null)
+                await JS.InvokeVoidAsync("versoMonaco.applyTheme", spec);
+            else
+                await JS.InvokeVoidAsync("versoMonaco.setTheme", MonacoThemeName);
         }
         catch (JSDisconnectedException) { }
         catch (JSException) { }

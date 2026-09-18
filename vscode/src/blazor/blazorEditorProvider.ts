@@ -11,6 +11,7 @@ import {
 import { hostRegistry } from "../host/hostRegistry";
 import { notebookRegistry } from "../host/notebookRegistry";
 import { BlazorBridge } from "./blazorBridge";
+import { MonacoTokenTheme, loadActiveTokenTheme } from "./activeColorTheme";
 import { log } from "../log";
 import { LANGUAGE_SETTING, resolveLanguage } from "../localization";
 import {
@@ -99,19 +100,35 @@ export class BlazorEditorProvider
       })
     );
 
-    // Sync Monaco editor theme when the VS Code color theme changes
+    // Re-theme the Monaco editors when the VS Code color theme changes, or when the user
+    // edits their own token colors, which changes what a theme looks like without
+    // changing the theme.
     context.subscriptions.push(
-      vscode.window.onDidChangeActiveColorTheme((theme) => {
-        const kind =
-          theme.kind === vscode.ColorThemeKind.Dark ||
-          theme.kind === vscode.ColorThemeKind.HighContrast
-            ? "dark"
-            : "light";
-        for (const [, bridge] of this.bridges) {
-          bridge.postThemeKind(kind);
+      vscode.window.onDidChangeActiveColorTheme(() => void this.pushTokenTheme()),
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("editor.tokenColorCustomizations")) {
+          void this.pushTokenTheme();
         }
       })
     );
+  }
+
+  // Two theme changes close together read their files concurrently; only the newest
+  // result is worth sending.
+  private tokenThemeRequest = 0;
+
+  private async pushTokenTheme(): Promise<void> {
+    if (this.bridges.size === 0) {
+      return;
+    }
+    const request = ++this.tokenThemeRequest;
+    const tokenTheme = await loadActiveTokenTheme();
+    if (request !== this.tokenThemeRequest) {
+      return;
+    }
+    for (const [, bridge] of this.bridges) {
+      bridge.postTheme(tokenTheme);
+    }
   }
 
   /**
@@ -208,7 +225,7 @@ export class BlazorEditorProvider
     };
 
     // Set the webview HTML loading the WASM app
-    webview.html = this.getWebviewHtml(webview);
+    webview.html = this.getWebviewHtml(webview, await loadActiveTokenTheme());
 
     // The bundled host DLL could not be resolved at activation (a distinct,
     // already-diagnosed cause). Report that plainly instead of spawning a doomed
@@ -781,7 +798,7 @@ export class BlazorEditorProvider
   /**
    * Generates the webview HTML that loads the Blazor WASM app.
    */
-  private getWebviewHtml(webview: vscode.Webview): string {
+  private getWebviewHtml(webview: vscode.Webview, tokenTheme: MonacoTokenTheme): string {
     const wasmRoot = this.getWasmRoot();
     const version = this.getCacheBuster();
 
@@ -1053,6 +1070,7 @@ export class BlazorEditorProvider
 
     <script src="${vscodeBridgeJs}"></script>
     <script>window.__versoEditorSettings = ${JSON.stringify(BlazorEditorProvider.getEditorSettings())};</script>
+    <script>window.__versoTokenTheme = ${JSON.stringify(tokenTheme).replace(/</g, "\\u003c")};</script>
     <script src="${monacoCdn}/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
     <script src="${monacoInterop}"></script>
     <script src="${dashboardInterop}"></script>

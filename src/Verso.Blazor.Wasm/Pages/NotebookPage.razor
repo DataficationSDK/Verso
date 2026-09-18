@@ -219,18 +219,6 @@
     private bool _userPrefsApplied;
     private bool _restoringPrefs;
 
-    private string _monacoThemeName = "vs";
-
-    private async Task<string> DetectMonacoThemeAsync()
-    {
-        try
-        {
-            var kind = await JS.InvokeAsync<string>("vscodeBridge.getThemeKind");
-            return kind == "dark" ? "vs-dark" : "vs";
-        }
-        catch { return "vs"; }
-    }
-
     protected override void OnInitialized()
     {
         _comparison = new NotebookComparison(Service);
@@ -492,8 +480,9 @@
     {
         try
         {
-            _monacoThemeName = await DetectMonacoThemeAsync();
-            await JS.InvokeVoidAsync("versoMonaco.setTheme", _monacoThemeName);
+            // The editor follows the VS Code color theme, which the bridge reads off the
+            // page and from the extension host; the notebook's own theme has no say here.
+            await JS.InvokeVoidAsync("vscodeBridge.applyMonacoTheme");
         }
         catch (JSException) { }
     }

@@ -170,12 +170,15 @@ public sealed record ThemeInfo(
 /// <remarks>
 /// <paramref name="Elevation"/> is optional so a host that predates the elevation scale
 /// still produces valid theme data; consumers coalesce a null to the defaults.
+/// <paramref name="SyntaxColors"/> is the theme's <see cref="ITheme.GetSyntaxColors"/> map,
+/// which the code editor is colored from; without it the editor keeps a stock palette.
 /// </remarks>
 public sealed record ThemeData(
     ThemeColorTokens Colors,
     ThemeTypography Typography,
     ThemeSpacing Spacing,
-    ThemeElevation? Elevation = null);
+    ThemeElevation? Elevation = null,
+    IReadOnlyDictionary<string, string>? SyntaxColors = null);
 
 /// <summary>Resolved theme bundle sent to iframe-isolated layout renderers.</summary>
 public sealed record LayoutThemeBundle(string Kind, IReadOnlyDictionary<string, string> Tokens);

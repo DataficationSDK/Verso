@@ -2034,7 +2034,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                     MapColorsFromDict(theme.Colors),
                     MapTypographyFromDto(theme.Typography),
                     MapSpacingFromDto(theme.Spacing),
-                    MapElevationFromDto(theme.Elevation));
+                    MapElevationFromDto(theme.Elevation),
+                    theme.SyntaxColors);
             }
         }
         catch

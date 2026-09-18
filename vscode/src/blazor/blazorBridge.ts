@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { HostProcess } from "../host/hostProcess";
 import { GitBaselineProvider } from "../git/gitBaselineProvider";
 import { log } from "../log";
+import type { MonacoTokenTheme } from "./activeColorTheme";
 
 /**
  * Bridges communication between the Blazor WASM webview and the Verso.Host process.
@@ -827,13 +828,16 @@ export class BlazorBridge implements vscode.Disposable {
   }
 
   /**
-   * Push a theme kind change to the webview so Monaco editors switch
-   * between light and dark themes when the VS Code color theme changes.
+   * Push a color theme change to the webview. The syntax rules travel with it because
+   * the webview cannot read them for itself; the editor colors do not, because it can,
+   * from the --vscode-* variables VS Code keeps current on the page.
    */
-  postThemeKind(kind: "dark" | "light"): void {
+  postTheme(tokenTheme: MonacoTokenTheme): void {
+    const dark = tokenTheme.base === "vs-dark" || tokenTheme.base === "hc-black";
     this.webview.postMessage({
       type: "theme-kind-changed",
-      kind,
+      kind: dark ? "dark" : "light",
+      tokenTheme,
     });
   }
 

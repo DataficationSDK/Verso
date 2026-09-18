@@ -211,7 +211,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
                 theme.Colors ?? new ThemeColorTokens(),
                 theme.Typography ?? new ThemeTypography(),
                 theme.Spacing ?? new ThemeSpacing(),
-                theme.Elevation ?? new ThemeElevation());
+                theme.Elevation ?? new ThemeElevation(),
+                theme.GetSyntaxColors()?.GetAll());
         }
     }
 
