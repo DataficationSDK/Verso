@@ -157,16 +157,22 @@ public sealed class ServerNotebookServiceTests
         return cell;
     }
 
+    // The waits below exist to fail a test that hangs, not to time anything. The first cell
+    // in the process pays for loading PowerShell and opening a runspace, which on a busy
+    // Windows build agent has taken longer than ten seconds, so the limit is set well
+    // clear of that. A test that passes never waits anywhere near this long.
+    private static readonly TimeSpan HangTimeout = TimeSpan.FromSeconds(60);
+
     private static async Task WaitForAsync(Task task, string failureMessage)
     {
-        var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10)));
+        var completed = await Task.WhenAny(task, Task.Delay(HangTimeout));
         Assert.AreSame(task, completed, failureMessage);
         await task;
     }
 
     private static async Task<T> WaitForAsync<T>(Task<T> task, string failureMessage)
     {
-        var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10)));
+        var completed = await Task.WhenAny(task, Task.Delay(HangTimeout));
         Assert.AreSame(task, completed, failureMessage);
         return await task;
     }

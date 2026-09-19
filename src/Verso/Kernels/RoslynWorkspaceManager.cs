@@ -15,20 +15,22 @@ namespace Verso.Kernels;
 
 /// <summary>
 /// Manages an <see cref="AdhocWorkspace"/> for intellisense operations (completions, diagnostics, hover).
-/// Maintains a history of successfully executed cell sources and builds combined documents for analysis.
+/// Each successfully executed cell becomes a script submission chained to the one before it, which is
+/// how the scripting engine runs them. A cell that declares a name an earlier cell already declared
+/// shadows it, so running a cell and then editing it does not leave the name declared twice.
 /// </summary>
 internal sealed class RoslynWorkspaceManager : IDisposable
 {
-    private readonly List<string> _executedSources = new();
+    private readonly object _gate = new();
     private readonly AdhocWorkspace _workspace;
-    private readonly ProjectId _projectId;
-    private readonly IReadOnlyList<string> _defaultImports;
-    private int _documentVersion;
+    private readonly CSharpCompilationOptions _compilationOptions;
+    private readonly CSharpParseOptions _parseOptions;
+    private readonly List<MetadataReference> _references;
+    private ProjectId? _lastSubmissionId;
+    private int _submissionCount;
 
     public RoslynWorkspaceManager(IReadOnlyList<string> defaultImports, IEnumerable<MetadataReference> references)
     {
-        _defaultImports = defaultImports;
-
         var assemblies = MefHostServices.DefaultAssemblies
             .Concat(new[]
             {
@@ -42,18 +44,11 @@ internal sealed class RoslynWorkspaceManager : IDisposable
         var host = MefHostServices.Create(assemblies);
         _workspace = new AdhocWorkspace(host);
 
-        _projectId = ProjectId.CreateNewId("CSharpKernelProject");
-
-        var projectInfo = ProjectInfo.Create(
-            _projectId,
-            VersionStamp.Default,
-            "CSharpKernelProject",
-            "CSharpKernelProject",
-            LanguageNames.CSharp,
-            parseOptions: new CSharpParseOptions(LanguageVersion.Latest, kind: SourceCodeKind.Script),
-            metadataReferences: references);
-
-        _workspace.AddProject(projectInfo);
+        _references = references.ToList();
+        _parseOptions = new CSharpParseOptions(LanguageVersion.Latest, kind: SourceCodeKind.Script);
+        _compilationOptions = new CSharpCompilationOptions(
+            OutputKind.DynamicallyLinkedLibrary,
+            usings: defaultImports);
     }
 
     /// <summary>
@@ -69,8 +64,10 @@ internal sealed class RoslynWorkspaceManager : IDisposable
 
         if (refs.Length == 0) return;
 
-        var solution = _workspace.CurrentSolution.AddMetadataReferences(_projectId, refs);
-        _workspace.TryApplyChanges(solution);
+        lock (_gate)
+        {
+            _references.AddRange(refs);
+        }
     }
 
     /// <summary>
@@ -78,42 +75,55 @@ internal sealed class RoslynWorkspaceManager : IDisposable
     /// </summary>
     public void AppendExecutedCode(string code)
     {
-        _executedSources.Add(code);
+        lock (_gate)
+        {
+            var submission = CreateSubmission(code, out _);
+            _workspace.AddProject(submission);
+            _lastSubmissionId = submission.Id;
+        }
     }
 
     /// <summary>
-    /// Builds a combined document from all previous cell sources plus the current code,
-    /// and returns the document along with the offset where the current cell begins.
+    /// Builds a document holding only the current cell, as a submission that follows every
+    /// executed cell. Positions in the document are positions in the cell.
     /// </summary>
-    public (Document Document, int PrefixLength) BuildDocument(string currentCode)
+    private Document BuildDocument(string currentCode)
     {
-        var prefixBuilder = new System.Text.StringBuilder();
-
-        foreach (var import in _defaultImports)
+        lock (_gate)
         {
-            prefixBuilder.AppendLine($"using {import};");
+            // The submission is added to a fork of the solution and never applied, so an
+            // in-progress cell leaves nothing behind in the workspace.
+            var submission = CreateSubmission(currentCode, out var documentId);
+            return _workspace.CurrentSolution.AddProject(submission).GetDocument(documentId)!;
         }
+    }
 
-        foreach (var source in _executedSources)
-        {
-            prefixBuilder.AppendLine(source);
-        }
+    private ProjectInfo CreateSubmission(string code, out DocumentId documentId)
+    {
+        var name = $"Submission#{++_submissionCount}";
+        var projectId = ProjectId.CreateNewId(name);
+        documentId = DocumentId.CreateNewId(projectId, name);
 
-        var prefix = prefixBuilder.ToString();
-        var combinedSource = prefix + currentCode;
-
-        var documentId = DocumentId.CreateNewId(_projectId);
-        var documentInfo = DocumentInfo.Create(
+        var document = DocumentInfo.Create(
             documentId,
-            $"Cell_{++_documentVersion}.csx",
+            $"{name}.csx",
             sourceCodeKind: SourceCodeKind.Script,
-            loader: TextLoader.From(TextAndVersion.Create(
-                SourceText.From(combinedSource), VersionStamp.Create())));
+            loader: TextLoader.From(TextAndVersion.Create(SourceText.From(code), VersionStamp.Create())));
 
-        var solution = _workspace.CurrentSolution.AddDocument(documentInfo);
-        var document = solution.GetDocument(documentId)!;
-
-        return (document, prefix.Length);
+        return ProjectInfo.Create(
+            projectId,
+            VersionStamp.Create(),
+            name,
+            name,
+            LanguageNames.CSharp,
+            compilationOptions: _compilationOptions.WithScriptClassName(name),
+            parseOptions: _parseOptions,
+            documents: new[] { document },
+            projectReferences: _lastSubmissionId is null
+                ? null
+                : new[] { new ProjectReference(_lastSubmissionId) },
+            metadataReferences: _references.ToArray(),
+            isSubmission: true);
     }
 
     /// <summary>
@@ -121,13 +131,12 @@ internal sealed class RoslynWorkspaceManager : IDisposable
     /// </summary>
     public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
     {
-        var (document, prefixLength) = BuildDocument(code);
-        var adjustedPosition = prefixLength + cursorPosition;
+        var document = BuildDocument(code);
 
         var completionService = CompletionService.GetService(document);
         if (completionService is null) return Array.Empty<Completion>();
 
-        var completions = await completionService.GetCompletionsAsync(document, adjustedPosition)
+        var completions = await completionService.GetCompletionsAsync(document, cursorPosition)
             .ConfigureAwait(false);
 
         if (completions is null) return Array.Empty<Completion>();
@@ -135,6 +144,11 @@ internal sealed class RoslynWorkspaceManager : IDisposable
         var results = new List<Completion>();
         foreach (var item in completions.ItemsList)
         {
+            // The front ends insert the display text and nothing else. An item that needs a wider
+            // edit, such as an extension method that must also add its using directive, would
+            // leave code that does not compile.
+            if (item.IsComplexTextEdit) continue;
+
             var kind = MapCompletionKind(item);
             results.Add(new Completion(
                 DisplayText: item.DisplayText,
@@ -148,17 +162,14 @@ internal sealed class RoslynWorkspaceManager : IDisposable
     }
 
     /// <summary>
-    /// Gets diagnostics for the given code, filtering to only those within the current cell.
+    /// Gets diagnostics for the given code.
     /// </summary>
     public async Task<IReadOnlyList<VersoDiagnostic>> GetDiagnosticsAsync(string code)
     {
-        var (document, prefixLength) = BuildDocument(code);
+        var document = BuildDocument(code);
 
         var semanticModel = await document.GetSemanticModelAsync().ConfigureAwait(false);
         if (semanticModel is null) return Array.Empty<VersoDiagnostic>();
-
-        var sourceText = await document.GetTextAsync().ConfigureAwait(false);
-        var prefixLines = sourceText.Lines.GetLineFromPosition(prefixLength).LineNumber;
 
         var results = new List<VersoDiagnostic>();
         foreach (var diag in semanticModel.GetDiagnostics())
@@ -171,9 +182,6 @@ internal sealed class RoslynWorkspaceManager : IDisposable
             var startLine = span.StartLinePosition.Line;
             var endLine = span.EndLinePosition.Line;
 
-            // Filter to diagnostics within the current cell's span
-            if (startLine < prefixLines) continue;
-
             var severity = diag.Severity switch
             {
                 Microsoft.CodeAnalysis.DiagnosticSeverity.Info => VersoDiagnosticSeverity.Info,
@@ -185,9 +193,9 @@ internal sealed class RoslynWorkspaceManager : IDisposable
             results.Add(new VersoDiagnostic(
                 Severity: severity,
                 Message: diag.GetMessage(),
-                StartLine: startLine - prefixLines,
+                StartLine: startLine,
                 StartColumn: span.StartLinePosition.Character,
-                EndLine: endLine - prefixLines,
+                EndLine: endLine,
                 EndColumn: span.EndLinePosition.Character,
                 Code: diag.Id));
         }
@@ -200,8 +208,7 @@ internal sealed class RoslynWorkspaceManager : IDisposable
     /// </summary>
     public async Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
     {
-        var (document, prefixLength) = BuildDocument(code);
-        var adjustedPosition = prefixLength + cursorPosition;
+        var document = BuildDocument(code);
 
         var semanticModel = await document.GetSemanticModelAsync().ConfigureAwait(false);
         if (semanticModel is null) return null;
@@ -209,7 +216,7 @@ internal sealed class RoslynWorkspaceManager : IDisposable
         var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);
         if (root is null) return null;
 
-        var token = root.FindToken(adjustedPosition);
+        var token = root.FindToken(cursorPosition);
         if (token.Span.Length == 0) return null;
 
         var symbolInfo = semanticModel.GetSymbolInfo(token.Parent!);
@@ -241,15 +248,14 @@ internal sealed class RoslynWorkspaceManager : IDisposable
         }
 
         var sourceText = await document.GetTextAsync().ConfigureAwait(false);
-        var prefixLines = sourceText.Lines.GetLineFromPosition(prefixLength).LineNumber;
 
         var tokenSpan = token.Span;
         var tokenLineSpan = sourceText.Lines.GetLinePositionSpan(tokenSpan);
 
         var range = (
-            StartLine: tokenLineSpan.Start.Line - prefixLines,
+            StartLine: tokenLineSpan.Start.Line,
             StartColumn: tokenLineSpan.Start.Character,
-            EndLine: tokenLineSpan.End.Line - prefixLines,
+            EndLine: tokenLineSpan.End.Line,
             EndColumn: tokenLineSpan.End.Character);
 
         return new HoverInfo(description, Range: range);
