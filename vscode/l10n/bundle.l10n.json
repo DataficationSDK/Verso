@@ -208,6 +208,24 @@
   "Kernel restart failed: the host process did not start ({0}). Close and reopen the notebook.": "Kernel restart failed: the host process did not start ({0}). Close and reopen the notebook.",
   "Kernel restart failed: the notebook did not reopen ({0}).": "Kernel restart failed: the notebook did not reopen ({0}).",
   "Verso: kernel restart failed (notebook did not reopen): {0}. Close and reopen the notebook.": "Verso: kernel restart failed (notebook did not reopen): {0}. Close and reopen the notebook.",
+  "Replace/Button that confirms replacing an existing file with the notebook being saved. A verb; keep short.": {
+    "message": "Replace",
+    "comment": [
+      "Button that confirms replacing an existing file with the notebook being saved. A verb; keep short."
+    ]
+  },
+  "To save Jupyter notebooks in their own format instead, turn on the {0} setting./Detail under the replace-file question, shown only for an .ipynb file. {0} is a setting name and is not translated.": {
+    "message": "To save Jupyter notebooks in their own format instead, turn on the {0} setting.",
+    "comment": [
+      "Detail under the replace-file question, shown only for an .ipynb file. {0} is a setting name and is not translated."
+    ]
+  },
+  "Saving converts this notebook to the Verso format and writes it to {0}, which already exists. Replace it?/Asked before Save replaces an existing file. {0} is a file name such as report.verso.": {
+    "message": "Saving converts this notebook to the Verso format and writes it to {0}, which already exists. Replace it?",
+    "comment": [
+      "Asked before Save replaces an existing file. {0} is a file name such as report.verso."
+    ]
+  },
   "Export failed: {0}": "Export failed: {0}",
   "Input request failed: {0}": "Input request failed: {0}",
   "Install Extension/The button that accepts the chosen file, in place of \"Open\".": {

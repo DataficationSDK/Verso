@@ -778,6 +778,18 @@
   <data name="SaveDialog_Title" xml:space="preserve">
     <value>Guardar el cuaderno como</value>
   </data>
+  <data name="SaveReplace_Confirm" xml:space="preserve">
+    <value>Reemplazar</value>
+  </data>
+  <data name="SaveReplace_PreserveHint" xml:space="preserve">
+    <value>Para guardar los cuadernos de Jupyter en su propio formato, inicie el editor con {0}.</value>
+  </data>
+  <data name="SaveReplace_Prompt" xml:space="preserve">
+    <value>Al guardar, este cuaderno se convierte al formato de Verso y se escribe en {0}, que ya existe. ¿Desea reemplazarlo?</value>
+  </data>
+  <data name="SaveReplace_Title" xml:space="preserve">
+    <value>¿Reemplazar el archivo existente?</value>
+  </data>
   <data name="Settings_CategoryGeneral" xml:space="preserve">
     <value>General</value>
   </data>

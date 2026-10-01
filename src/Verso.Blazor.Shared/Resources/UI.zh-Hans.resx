@@ -778,6 +778,18 @@
   <data name="SaveDialog_Title" xml:space="preserve">
     <value>笔记本另存为</value>
   </data>
+  <data name="SaveReplace_Confirm" xml:space="preserve">
+    <value>替换</value>
+  </data>
+  <data name="SaveReplace_PreserveHint" xml:space="preserve">
+    <value>若要改为以 Jupyter 笔记本自身的格式保存，请使用 {0} 启动编辑器。</value>
+  </data>
+  <data name="SaveReplace_Prompt" xml:space="preserve">
+    <value>保存时，此笔记本会转换为 Verso 格式并写入 {0}，但该文件已存在。是否替换？</value>
+  </data>
+  <data name="SaveReplace_Title" xml:space="preserve">
+    <value>替换现有文件？</value>
+  </data>
   <data name="Settings_CategoryGeneral" xml:space="preserve">
     <value>常规</value>
   </data>

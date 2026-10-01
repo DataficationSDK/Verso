@@ -778,6 +778,18 @@
   <data name="SaveDialog_Title" xml:space="preserve">
     <value>Notebook speichern unter</value>
   </data>
+  <data name="SaveReplace_Confirm" xml:space="preserve">
+    <value>Ersetzen</value>
+  </data>
+  <data name="SaveReplace_PreserveHint" xml:space="preserve">
+    <value>Um Jupyter-Notebooks stattdessen in ihrem eigenen Format zu speichern, starten Sie den Editor mit {0}.</value>
+  </data>
+  <data name="SaveReplace_Prompt" xml:space="preserve">
+    <value>Beim Speichern wird dieses Notebook in das Verso-Format umgewandelt und in {0} geschrieben. Diese Datei ist bereits vorhanden. Möchten Sie sie ersetzen?</value>
+  </data>
+  <data name="SaveReplace_Title" xml:space="preserve">
+    <value>Vorhandene Datei ersetzen?</value>
+  </data>
   <data name="Settings_CategoryGeneral" xml:space="preserve">
     <value>Allgemein</value>
   </data>

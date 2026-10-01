@@ -778,6 +778,18 @@
   <data name="SaveDialog_Title" xml:space="preserve">
     <value>[!!Šàvé Ñòtébòòk Àš···!!]</value>
   </data>
+  <data name="SaveReplace_Confirm" xml:space="preserve">
+    <value>[!!Réplàçé···!!]</value>
+  </data>
+  <data name="SaveReplace_PreserveHint" xml:space="preserve">
+    <value>[!!Tò šàvé Jùpÿtér ñòtébòòkš ïñ théïr òwñ fòrmàt ïñštéàd, štàrt thé édïtòr wïth {0}.···!!]</value>
+  </data>
+  <data name="SaveReplace_Prompt" xml:space="preserve">
+    <value>[!!Šàvïñg çòñvértš thïš ñòtébòòk tò thé Véršò fòrmàt àñd wrïtéš ït tò {0}, whïçh àlréàdÿ éxïštš. Réplàçé ït?···!!]</value>
+  </data>
+  <data name="SaveReplace_Title" xml:space="preserve">
+    <value>[!!Réplàçé Éxïštïñg Fïlé?···!!]</value>
+  </data>
   <data name="Settings_CategoryGeneral" xml:space="preserve">
     <value>[!!Géñéràl···!!]</value>
   </data>

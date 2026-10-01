@@ -69,6 +69,34 @@
         </div>
     }
 
+    @if (_pendingReplace is { } replace)
+    {
+        <div class="verso-modal-overlay" @onclick="CancelReplace">
+            <div class="verso-modal" role="dialog" aria-modal="true" aria-label="@UI.SaveReplace_Title"
+                 @onclick:stopPropagation="true" @onkeydown="OnReplaceKeyDown">
+                <div class="verso-modal-header">
+                    <span class="verso-modal-title">@UI.SaveReplace_Title</span>
+                    <button class="verso-modal-close" @onclick="CancelReplace" aria-label="@UI.Common_Cancel" data-verso-tip="@UI.Common_Cancel">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+                    </button>
+                </div>
+                <div class="verso-modal-body">
+                    <p style="margin:0;">@Sentence(UI.SaveReplace_Prompt, System.IO.Path.GetFileName(replace.Target))</p>
+                    @if (replace.Requested.EndsWith(".ipynb", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="verso-modal-hint">@Sentence(UI.SaveReplace_PreserveHint, "--preserve-format")</div>
+                    }
+                </div>
+                <div class="verso-modal-footer">
+                    <button class="verso-modal-btn verso-modal-btn--secondary"
+                            @onclick="CancelReplace">@UI.Common_Cancel</button>
+                    <button class="verso-modal-btn verso-modal-btn--primary"
+                            @onclick="ConfirmReplaceAsync">@UI.SaveReplace_Confirm</button>
+                </div>
+            </div>
+        </div>
+    }
+
     @if (_showExtensionConsent && _pendingConsentExtensions is not null)
     {
         <ExtensionConsentDialog IsVisible="true"
@@ -218,6 +246,11 @@
     private ElementReference _panelContentEl;
     private bool _panelResizeInitialized;
     private bool _showSaveDialog;
+
+    // A save that would convert to .verso and replace a file already there, held until the
+    // reader answers. Requested is the path Save was asked to write; Target is the .verso
+    // file the conversion would actually write.
+    private (string Requested, string Target)? _pendingReplace;
     private string _saveFilePath = "";
     private bool _hasNativeHandle;
     private ElementReference _saveDialogInput;
@@ -926,7 +959,7 @@
         try { await _saveDialogInput.FocusAsync(); } catch { }
     }
 
-    private async Task SaveToPathAsync(string path)
+    private async Task SaveToPathAsync(string path, bool replaceConfirmed = false)
     {
         try
         {
@@ -934,7 +967,20 @@
 
             var preservesFormat = Service is ServerNotebookService svc && svc.PreservesFormat(path);
             if (!preservesFormat && !path.EndsWith(".verso", StringComparison.OrdinalIgnoreCase))
-                path = System.IO.Path.ChangeExtension(path, ".verso");
+            {
+                var target = System.IO.Path.ChangeExtension(path, ".verso");
+
+                // Converting writes a different file from the one that was opened, and that file
+                // can already hold a notebook of its own, such as the original a Jupyter copy was
+                // made from. Ask before replacing it.
+                if (!replaceConfirmed && System.IO.File.Exists(target))
+                {
+                    _pendingReplace = (path, target);
+                    return;
+                }
+
+                path = target;
+            }
 
             await Service.SaveAsync(path);
             await ShowStatusAsync(string.Format(UI.Status_SavedTo, System.IO.Path.GetFileName(path)));
@@ -994,6 +1040,21 @@
     private void CancelSaveDialog()
     {
         _showSaveDialog = false;
+    }
+
+    private async Task ConfirmReplaceAsync()
+    {
+        if (_pendingReplace is not { } replace) return;
+        _pendingReplace = null;
+        await SaveToPathAsync(replace.Requested, replaceConfirmed: true);
+    }
+
+    private void CancelReplace() => _pendingReplace = null;
+
+    private async Task OnReplaceKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ConfirmReplaceAsync();
+        else if (e.Key == "Escape") CancelReplace();
     }
 
     private async Task OnSaveDialogKeyDown(KeyboardEventArgs e)

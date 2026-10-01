@@ -778,6 +778,18 @@
   <data name="SaveDialog_Title" xml:space="preserve">
     <value>名前を付けてノートブックを保存</value>
   </data>
+  <data name="SaveReplace_Confirm" xml:space="preserve">
+    <value>置換</value>
+  </data>
+  <data name="SaveReplace_PreserveHint" xml:space="preserve">
+    <value>Jupyter ノートブックを元の形式のまま保存するには、{0} を付けてエディターを起動してください。</value>
+  </data>
+  <data name="SaveReplace_Prompt" xml:space="preserve">
+    <value>保存すると、このノートブックは Verso 形式に変換されて {0} に書き込まれますが、このファイルは既に存在します。置き換えますか?</value>
+  </data>
+  <data name="SaveReplace_Title" xml:space="preserve">
+    <value>既存のファイルを置き換えますか?</value>
+  </data>
   <data name="Settings_CategoryGeneral" xml:space="preserve">
     <value>全般</value>
   </data>
