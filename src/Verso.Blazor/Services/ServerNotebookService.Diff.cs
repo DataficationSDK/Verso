@@ -1,6 +1,7 @@
 using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
 using Verso.Diffing;
+using Verso.Extensions;
 using Verso.Serializers;
 using Verso.Blazor.Shared.Resources;
 
@@ -136,13 +137,8 @@ public sealed partial class ServerNotebookService
 
         if (_extensionHost is not null)
         {
-            var postProcessors = _extensionHost.GetPostProcessors()
-                .Where(pp => pp.CanProcess(baselinePath, serializer.FormatId))
-                .OrderBy(pp => pp.Priority);
-            foreach (var postProcessor in postProcessors)
-            {
-                baseline = await postProcessor.PostDeserializeAsync(baseline, baselinePath);
-            }
+            baseline = await NotebookPostProcessing.AfterDeserializeAsync(
+                _extensionHost, baseline, baselinePath, serializer.FormatId);
         }
 
         return baseline;

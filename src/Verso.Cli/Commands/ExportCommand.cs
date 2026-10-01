@@ -137,6 +137,8 @@ public static class ExportCommand
                 try
                 {
                     notebook = await serializer.DeserializeAsync(content);
+                    notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+                        extensionHost, notebook, inputPath, serializer.FormatId);
                 }
                 catch (Exception ex)
                 {

@@ -177,6 +177,8 @@ public static class ReplCommand
                 try
                 {
                     notebook = await serializer.DeserializeAsync(content);
+                    notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+                        extensionHost, notebook, fullPath, serializer.FormatId);
                 }
                 catch (Exception ex)
                 {

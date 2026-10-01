@@ -249,6 +249,40 @@ public class HeadlessRunnerTests
     }
 
     [TestMethod]
+    public async Task Execute_PolyglotIpynb_RunsPostProcessorsBeforeExecuting()
+    {
+        // A .NET Interactive notebook switches a cell's language with a leading directive. The
+        // built-in Polyglot post-processor turns that into an F# cell on open, as every other
+        // host does, so the cell runs under the F# kernel rather than as C# source.
+        var ipynbContent =
+            "{\n" +
+            "  \"nbformat\": 4,\n" +
+            "  \"nbformat_minor\": 2,\n" +
+            "  \"metadata\": { \"kernelspec\": { \"language\": \"csharp\" } },\n" +
+            "  \"cells\": [\n" +
+            "    {\n" +
+            "      \"cell_type\": \"code\",\n" +
+            "      \"source\": [\"#!fsharp\\n\", \"printf \\\"from-fsharp\\\"\"],\n" +
+            "      \"metadata\": {},\n" +
+            "      \"outputs\": []\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+
+        var filePath = Path.Combine(_tempDir, "polyglot.ipynb");
+        await File.WriteAllTextAsync(filePath, ipynbContent);
+
+        var runner = new HeadlessRunner();
+        var result = await runner.ExecuteAsync(new RunOptions { FilePath = filePath });
+
+        Assert.AreEqual("fsharp", result.Cells[0].Language,
+            "The Polyglot post-processor should have made the cell an F# cell before it ran.");
+        Assert.AreEqual(ExitCodes.Success, result.ExitCode);
+        Assert.IsTrue(result.Cells[0].Outputs.Any(o => o.Content.Contains("from-fsharp")),
+            "The cell should have run under the F# kernel.");
+    }
+
+    [TestMethod]
     public async Task Execute_MultiKernel_CSharpAndFSharp_BothSucceed()
     {
         var filePath = await CreateNotebookAsync("multikernel.verso",
