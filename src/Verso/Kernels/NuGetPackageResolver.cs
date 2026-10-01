@@ -58,14 +58,6 @@ internal sealed class NuGetPackageResolver
         return frameworks.ToArray();
     }
 
-    /// <summary>
-    /// Maximum depth for transitive dependency resolution. Prevents runaway expansion
-    /// in deep dependency trees.  Depth 6 covers packages like EF Core whose transitive
-    /// chain (e.g. EF.Sqlite → EF.Sqlite.Core → EF.Relational → EF → Extensions.Logging
-    /// → Extensions.Logging.Abstractions) requires at least 5 hops.
-    /// </summary>
-    private const int MaxDependencyDepth = 6;
-
     public NuGetPackageResolver()
     {
         _sources = new List<SourceRepository>();
@@ -171,14 +163,13 @@ internal sealed class NuGetPackageResolver
 
         var allAssemblyPaths = new List<string>();
         var resolvedPackages = new List<(string Id, string Version)>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Everything this call puts on disk belongs together, which is what lets a managed
         // assembly reach the natives of a package versioned separately from it.
         var resolution = NuGetRuntimeResolver.NewResolution();
 
         var resolvedVersion = await ResolveWithDependenciesAsync(
-            packageId, version, allAssemblyPaths, resolvedPackages, visited, depth: 0, resolution, ct).ConfigureAwait(false);
+            packageId, version, allAssemblyPaths, resolvedPackages, resolution, ct).ConfigureAwait(false);
 
         return new NuGetResolveResult(packageId, resolvedVersion, allAssemblyPaths, resolvedPackages);
     }
@@ -219,32 +210,51 @@ internal sealed class NuGetPackageResolver
     }
 
     /// <summary>
-    /// Recursively resolves a package and its dependencies, collecting all assembly paths
+    /// Resolves a package and its whole dependency closure, collecting all assembly paths
     /// and a flat list of (id, version) pairs for every package that was actually resolved
     /// (i.e. not skipped by <see cref="IsFrameworkPackage"/> or already visited).
     /// </summary>
+    /// <remarks>
+    /// The graph is walked one level at a time, so every package is first met along its
+    /// shortest path from the root and the version declared nearest the root is the one
+    /// kept. Each id is resolved once, which is what bounds the walk. There is deliberately
+    /// no depth limit: combined with first-visit-wins, a limit drops any package whose parent
+    /// happens to be met deep in a long chain before it is met near the root.
+    /// </remarks>
     private async Task<string> ResolveWithDependenciesAsync(
         string packageId, string? version, List<string> allPaths,
         List<(string Id, string Version)> resolvedPackages,
-        HashSet<string> visited, int depth, int resolution, CancellationToken ct)
+        int resolution, CancellationToken ct)
     {
-        if (depth > MaxDependencyDepth) return version ?? "";
-        if (!visited.Add(packageId)) return version ?? "";
-        if (IsFrameworkPackage(packageId)) return version ?? "";
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { packageId };
+        var pending = new Queue<(string Id, string? Version)>();
+        pending.Enqueue((packageId, version));
+        string? rootVersion = null;
 
-        var (resolvedVersion, assemblyPaths, dependencies) =
-            await DownloadSinglePackageAsync(packageId, version, resolution, ct).ConfigureAwait(false);
-
-        allPaths.AddRange(assemblyPaths);
-        resolvedPackages.Add((packageId, resolvedVersion));
-
-        foreach (var (depId, depMinVersion) in dependencies)
+        while (pending.Count > 0)
         {
-            await ResolveWithDependenciesAsync(
-                depId, depMinVersion, allPaths, resolvedPackages, visited, depth + 1, resolution, ct).ConfigureAwait(false);
+            var (id, requested) = pending.Dequeue();
+            if (IsFrameworkPackage(id))
+            {
+                rootVersion ??= requested ?? "";
+                continue;
+            }
+
+            var (resolvedVersion, assemblyPaths, dependencies) =
+                await DownloadSinglePackageAsync(id, requested, resolution, ct).ConfigureAwait(false);
+
+            rootVersion ??= resolvedVersion;
+            allPaths.AddRange(assemblyPaths);
+            resolvedPackages.Add((id, resolvedVersion));
+
+            foreach (var (depId, depMinVersion) in dependencies)
+            {
+                if (visited.Add(depId))
+                    pending.Enqueue((depId, depMinVersion));
+            }
         }
 
-        return resolvedVersion;
+        return rootVersion ?? "";
     }
 
     /// <summary>

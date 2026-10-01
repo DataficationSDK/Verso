@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Verso.Kernels;
 
 namespace Verso.Tests.Kernels;
@@ -176,5 +177,63 @@ public sealed class NuGetPackageResolverTests
         };
 
         Assert.IsFalse(NuGetPackageResolver.HasFlattenedSatellites(cached));
+    }
+
+    [TestMethod]
+    public async Task ResolvePackageAsync_PackageFirstReachedThroughALongChain_StillResolvesItsDependencies()
+    {
+        // The root depends on a six-hop chain that ends at Parent, and on Parent directly. The
+        // walk follows the chain first, so Parent is first met six levels down and its own
+        // dependency, Child, seven. Child is only two levels from the root through the direct
+        // edge, and has to be resolved however the walk happens to meet it first.
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        string Id(string name) => $"VersoDepthProbe.{tag}.{name}";
+
+        var feed = Path.Combine(Path.GetTempPath(), "verso-depth-probe-" + tag);
+        Directory.CreateDirectory(feed);
+
+        var chain = Enumerable.Range(1, 5).Select(i => Id("Chain" + i)).ToArray();
+        var packages = new List<(string Id, string[] Dependencies)>
+        {
+            (Id("Root"), new[] { chain[0], Id("Parent") }),
+            (Id("Parent"), new[] { Id("Child") }),
+            (Id("Child"), Array.Empty<string>()),
+        };
+        for (var i = 0; i < chain.Length; i++)
+            packages.Add((chain[i], new[] { i + 1 < chain.Length ? chain[i + 1] : Id("Parent") }));
+
+        try
+        {
+            foreach (var (id, deps) in packages)
+                BuildMetaPackage(feed, id, deps);
+
+            var resolver = new NuGetPackageResolver();
+            resolver.AddSource(feed);
+
+            var result = await resolver.ResolvePackageAsync(Id("Root"), "1.0.0", CancellationToken.None);
+
+            var resolved = result.ResolvedPackages.Select(p => p.Id).ToList();
+            CollectionAssert.Contains(resolved, Id("Parent"));
+            CollectionAssert.Contains(resolved, Id("Child"),
+                "A dependency two levels from the root was dropped because the walk first met its parent deep in a chain.");
+        }
+        finally
+        {
+            try { Directory.Delete(feed, recursive: true); } catch { /* best effort */ }
+            foreach (var (id, _) in packages)
+            {
+                try { Directory.Delete(Path.Combine(NuGetPackageResolver.CacheRoot, id), recursive: true); } catch { /* best effort */ }
+            }
+        }
+    }
+
+    private static void BuildMetaPackage(string folder, string id, string[] dependencies)
+    {
+        var deps = string.Concat(dependencies.Select(d => $"""<dependency id="{d}" version="1.0.0" />"""));
+        var path = Path.Combine(folder, $"{id}.1.0.0.nupkg");
+        using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
+        using var nuspec = new StreamWriter(zip.CreateEntry($"{id}.nuspec").Open());
+        nuspec.Write(
+            $"""<?xml version="1.0" encoding="utf-8"?><package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata><id>{id}</id><version>1.0.0</version><authors>test</authors><description>Depth probe.</description><dependencies><group targetFramework="net8.0">{deps}</group></dependencies></metadata></package>""");
     }
 }
