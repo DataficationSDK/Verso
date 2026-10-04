@@ -547,4 +547,51 @@ public sealed class VersoSerializerTests
         Assert.AreEqual(0, result.Cells[0].Outputs.Count);
         Assert.AreEqual(1, result.Cells[1].Outputs.Count);
     }
+
+    [TestMethod]
+    public async Task Serialize_WritesSourceAsItsOwnText_SoAWorkspaceSearchCanFindIt()
+    {
+        const string source = "#r \"nuget: Example.PackageA, 1.2.3\"\nvar ok = 1 + 2 < 4 && 5 > 3;";
+        const string markdown = "Größe und Übersicht, 日本語";
+        var notebook = new NotebookModel();
+        notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = source });
+        notebook.Cells.Add(new CellModel
+        {
+            Type = "markdown",
+            Source = markdown,
+            Metadata = new Dictionary<string, object> { ["title"] = "\"Über\" <section>" }
+        });
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        StringAssert.Contains(json, "#r \\\"nuget: Example.PackageA, 1.2.3\\\"");
+        StringAssert.Contains(json, "1 + 2 < 4 && 5 > 3");
+        StringAssert.Contains(json, markdown);
+        StringAssert.Contains(json, "<section>");
+        Assert.IsFalse(json.Contains("\\u00", StringComparison.Ordinal), "nothing in the file should be \\u-escaped");
+
+        var result = await _serializer.DeserializeAsync(json);
+        Assert.AreEqual(source, result.Cells[0].Source);
+        Assert.AreEqual(markdown, result.Cells[1].Source);
+        Assert.AreEqual("\"Über\" <section>", result.Cells[1].Metadata["title"]);
+    }
+
+    [TestMethod]
+    public async Task Deserialize_FileWrittenWithEscapes_ReadsTheSameText()
+    {
+        // How earlier versions wrote the same source; those files must keep opening unchanged.
+        var json = $$"""
+            {
+              "verso": "{{NotebookFormatVersion.Current}}",
+              "cells": [
+                { "id": "{{Guid.NewGuid()}}", "type": "code", "language": "csharp",
+                  "source": "#r \u0022nuget: Example.PackageA\u0022 // Gr\u00F6\u00DFe \u002B \u003C\u003E" }
+              ]
+            }
+            """;
+
+        var result = await _serializer.DeserializeAsync(json);
+
+        Assert.AreEqual("#r \"nuget: Example.PackageA\" // Größe + <>", result.Cells[0].Source);
+    }
 }

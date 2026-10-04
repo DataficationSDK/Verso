@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Verso.Abstractions;
@@ -12,9 +13,15 @@ namespace Verso.Serializers;
 [VersoExtension]
 public sealed class VersoSerializer : INotebookSerializer
 {
+    // The default encoder writes quotes, '+', '<', '>' and every non-ASCII character as \uXXXX
+    // escapes, which is safe for embedding in HTML but leaves a cell's source unsearchable on disk:
+    // a workspace search for #r "nuget: finds nothing, and neither does German or Japanese text.
+    // The file is never embedded in a page, so the relaxed encoder keeps it as the text it holds.
+    // Files written with the old escapes still read the same.
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };

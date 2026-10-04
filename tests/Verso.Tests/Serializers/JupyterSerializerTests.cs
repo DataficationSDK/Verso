@@ -746,4 +746,24 @@ public sealed class JupyterSerializerTests
         Assert.AreEqual("sql", notebook.Cells[1].Language);
         Assert.AreEqual("sql-PrimaryServer", notebook.Cells[1].Metadata["polyglotKernelName"]);
     }
+
+    [TestMethod]
+    public async Task Serialize_WritesSourceAsItsOwnText_LikeJupyterDoes()
+    {
+        const string source = "#r \"nuget: Example.PackageA\"\nvar ok = 1 + 2 < 4;";
+        var notebook = new NotebookModel();
+        notebook.Cells.Add(new CellModel { Type = "code", Language = "csharp", Source = source });
+        notebook.Cells.Add(new CellModel { Type = "markdown", Source = "Größe, 日本語" });
+
+        var json = await _serializer.SerializeAsync(notebook);
+
+        StringAssert.Contains(json, "\"#r \\\"nuget: Example.PackageA\\\"\\n\"");
+        StringAssert.Contains(json, "1 + 2 < 4");
+        StringAssert.Contains(json, "Größe, 日本語");
+        Assert.IsFalse(json.Contains("\\u00", StringComparison.Ordinal), "nothing in the file should be \\u-escaped");
+
+        var result = await _serializer.DeserializeAsync(json);
+        Assert.AreEqual(source, result.Cells[0].Source);
+        Assert.AreEqual("Größe, 日本語", result.Cells[1].Source);
+    }
 }
