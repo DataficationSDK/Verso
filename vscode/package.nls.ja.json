@@ -8,6 +8,7 @@
   "command.newNotebook.title": "新しいノートブック",
   "command.openInVerso.title": "Verso ノートブックとして開く",
   "configuration.dotnetPath.description": "ノートブックの実行に使う 'dotnet' 実行ファイルのパス。空の場合、Verso はインストール済みの .NET ランタイムを再利用し (利用できるときは .NET Install Tool で探します)、見つからなければ PATH 上の 'dotnet' を使います。",
+  "configuration.editor.maxLines.description": "セルのエディターが内部でスクロールし始めるまでに伸びる高さ (行数) です。これより短いセルは内容に合わせて伸びます。0 は無制限で、数千行あるセルの表示やスクロールが遅くなることがあります。",
   "configuration.extensionsPath.description": "ノートブックを開いたときに読み込む、サードパーティの Verso 拡張機能アセンブリのディレクトリ。1 項目につき 1 つのディレクトリパスを指定します。変更は次にノートブックを開いたとき、またはカーネルの再起動時に反映されます。",
   "configuration.hostPath.description": "Verso.Host.dll のパス。空の場合は同梱のホストを使います。",
   "configuration.language.auto": "自動検出",

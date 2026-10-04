@@ -8,6 +8,7 @@
   "command.newNotebook.title": "Nuevo cuaderno",
   "command.openInVerso.title": "Abrir como Verso Notebook",
   "configuration.dotnetPath.description": "Ruta al ejecutable 'dotnet' que se usa para ejecutar los cuadernos. Si está vacío, Verso reutiliza un runtime de .NET instalado (localizándolo con .NET Install Tool cuando está disponible) y recurre a 'dotnet' en PATH.",
+  "configuration.editor.maxLines.description": "Altura máxima que alcanza el editor de una celda, en líneas, antes de desplazarse por dentro. Una celda más corta crece hasta ajustarse a su contenido. 0 significa sin límite, lo que puede hacer que una celda con miles de líneas tarde en abrirse y en desplazarse.",
   "configuration.extensionsPath.description": "Directorios de ensamblados de extensión de Verso de terceros que se cargan al abrir un cuaderno. Cada entrada es la ruta de un directorio. Los cambios se aplican al abrir el siguiente cuaderno o al reiniciar el kernel.",
   "configuration.hostPath.description": "Ruta a Verso.Host.dll. Si está vacío, se usa el host incluido.",
   "configuration.language.auto": "Detección automática",

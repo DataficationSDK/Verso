@@ -77,7 +77,8 @@ export class BlazorEditorProvider
         if (
           e.affectsConfiguration("editor.fontFamily") ||
           e.affectsConfiguration("editor.fontSize") ||
-          e.affectsConfiguration("editor.fontLigatures")
+          e.affectsConfiguration("editor.fontLigatures") ||
+          e.affectsConfiguration("verso.editor.maxLines")
         ) {
           const settings = BlazorEditorProvider.getEditorSettings();
           for (const [, bridge] of this.bridges) {
@@ -133,7 +134,8 @@ export class BlazorEditorProvider
 
   /**
    * Reads the user's VS Code editor font settings and prepends
-   * ligature-capable fonts so ligatures work out of the box.
+   * ligature-capable fonts so ligatures work out of the box, along with
+   * how tall a cell's editor may grow before it scrolls inside itself.
    */
   private static readonly ligatureFonts = "'Cascadia Code', 'Fira Code'";
 
@@ -141,6 +143,7 @@ export class BlazorEditorProvider
     fontSize: number;
     fontFamily: string;
     fontLigatures: boolean | string;
+    maxLines: number;
   } {
     const config = vscode.workspace.getConfiguration("editor");
     const vscodeFontFamily = config.get<string>("fontFamily", "monospace");
@@ -149,6 +152,7 @@ export class BlazorEditorProvider
       fontSize: config.get<number>("fontSize", 14),
       fontFamily,
       fontLigatures: config.get<boolean | string>("fontLigatures", true),
+      maxLines: vscode.workspace.getConfiguration("verso").get<number>("editor.maxLines", 500),
     };
   }
 

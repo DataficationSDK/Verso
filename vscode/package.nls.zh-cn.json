@@ -8,6 +8,7 @@
   "command.newNotebook.title": "新建笔记本",
   "command.openInVerso.title": "作为 Verso Notebook 打开",
   "configuration.dotnetPath.description": "用于运行笔记本的 'dotnet' 可执行文件的路径。留空时，Verso 会重用已安装的 .NET 运行时（在可用时通过 .NET Install Tool 定位它），并回退到 PATH 上的 'dotnet'。",
+  "configuration.editor.maxLines.description": "单元格编辑器在内部出现滚动之前可增长到的高度（行数）。较短的单元格会随内容自动增高。0 表示不限制，这可能会使包含数千行的单元格打开和滚动变慢。",
   "configuration.extensionsPath.description": "打开笔记本时要加载的第三方 Verso 扩展程序集的目录。每一项为一个目录路径。更改将在下次打开笔记本或重启内核时生效。",
   "configuration.hostPath.description": "Verso.Host.dll 的路径。留空时使用捆绑的宿主。",
   "configuration.language.auto": "自动检测",

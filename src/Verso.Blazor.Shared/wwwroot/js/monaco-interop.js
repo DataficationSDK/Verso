@@ -15,8 +15,27 @@ window.versoMonaco = (function () {
     let _editorSettings = {
         fontSize: 14,
         fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-        fontLigatures: true
+        fontLigatures: true,
+        // Tallest a cell editor grows, in lines, before it scrolls inside itself; 0 means no
+        // limit. A cell grows to fit its content up to here. The bound is there for the cell
+        // somebody pastes thousands of lines into: an editor as tall as its content draws every
+        // line, so an unbounded one makes that cell slow to open and to scroll past.
+        maxLines: 500
     };
+
+    const minEditorLines = 3;
+
+    // Height for an editor whose rendered content is contentHeight pixels tall: at least three
+    // lines so an empty cell is still a comfortable target, at most the maxLines setting.
+    // contentHeight is Monaco's own measure, which counts wrapped lines, view zones such as the
+    // deleted lines an inline diff shows, and the horizontal scrollbar, none of which a line
+    // count sees.
+    function editorHeight(contentHeight, lineHeight, padding) {
+        let height = Math.max(contentHeight, minEditorLines * lineHeight);
+        const maxLines = Number(_editorSettings.maxLines);
+        if (maxLines > 0) height = Math.min(height, maxLines * lineHeight);
+        return height + padding;
+    }
 
     // Apply VS Code editor settings if injected by the extension host
     if (window.__versoEditorSettings) {
@@ -306,13 +325,11 @@ window.versoMonaco = (function () {
                 function applyHeight() {
                     const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
                     if (!lineHeight) return false;
-                    const lineCount = editor.getModel().getLineCount();
-                    const minLines = 3;
-                    const maxLines = 30;
-                    const lines = Math.max(minLines, Math.min(maxLines, lineCount));
-                    const padding = 10;
-                    container.style.height = (lines * lineHeight + padding) + 'px';
-                    editor.layout();
+                    const height = editorHeight(editor.getContentHeight(), lineHeight, 10) + 'px';
+                    if (container.style.height !== height) {
+                        container.style.height = height;
+                        editor.layout();
+                    }
                     return true;
                 }
 
@@ -331,8 +348,13 @@ window.versoMonaco = (function () {
                 }
                 layoutFns[elementId] = updateHeight;
 
+                // Content height changes on more than edits: a horizontal scrollbar appearing,
+                // a font change, a view zone. This is the event Monaco raises for all of them.
+                editor.onDidContentSizeChange(function (e) {
+                    if (e.contentHeightChanged) updateHeight();
+                });
+
                 editor.onDidChangeModelContent(function () {
-                    updateHeight();
                     if (dotnetRef) {
                         const value = editor.getValue();
                         dotnetRef.invokeMethodAsync('OnContentChanged', value);
@@ -489,25 +511,40 @@ window.versoMonaco = (function () {
                 // view mounts its editors only while visible, but the first measure can still
                 // race Monaco's async setup, so keep a short bounded retry.
                 function applyHeight() {
+                    const originalEditor = editor.getOriginalEditor();
                     const modifiedEditor = editor.getModifiedEditor();
                     const lineHeight = modifiedEditor.getOption(monaco.editor.EditorOption.lineHeight);
                     if (!lineHeight) return false;
-                    const lineCount = Math.max(originalModel.getLineCount(), modifiedModel.getLineCount());
-                    const minLines = 3;
-                    const maxLines = 40;
-                    const lines = Math.max(minLines, Math.min(maxLines, lineCount));
-                    const padding = 14;
-                    container.style.height = (lines * lineHeight + padding) + 'px';
-                    editor.layout();
+                    const contentHeight = Math.max(originalEditor.getContentHeight(), modifiedEditor.getContentHeight());
+                    const height = editorHeight(contentHeight, lineHeight, 14) + 'px';
+                    if (container.style.height !== height) {
+                        container.style.height = height;
+                        editor.layout();
+                    }
                     return true;
                 }
 
-                let tries = 0;
-                (function retry() {
-                    if (!diffEditors[elementId]) return; // disposed mid-window
-                    if (applyHeight() || tries++ > 60) return;
-                    requestAnimationFrame(retry);
-                })();
+                function updateHeight() {
+                    if (applyHeight()) return;
+                    let tries = 0;
+                    (function retry() {
+                        if (!diffEditors[elementId]) return; // disposed mid-window
+                        if (applyHeight() || tries++ > 60) return;
+                        requestAnimationFrame(retry);
+                    })();
+                }
+                diffEditors[elementId].updateHeight = updateHeight;
+
+                // The diff is computed after the editor is created, and it is what adds the
+                // padding that lines up the two sides and, inline, the deleted lines. Both
+                // change the content height after the first measure.
+                [editor.getOriginalEditor(), editor.getModifiedEditor()].forEach(function (side) {
+                    side.onDidContentSizeChange(function (e) {
+                        if (e.contentHeightChanged) updateHeight();
+                    });
+                });
+
+                updateHeight();
             });
         },
 
@@ -671,6 +708,11 @@ window.versoMonaco = (function () {
             if (settings.fontLigatures !== undefined) opts.fontLigatures = settings.fontLigatures;
             Object.values(editors).forEach(function (ed) { ed.updateOptions(opts); });
             Object.values(diffEditors).forEach(function (entry) { entry.editor.updateOptions(opts); });
+            // A font change resizes through onDidContentSizeChange; a new limit alone does not.
+            if (settings.maxLines !== undefined) {
+                Object.values(layoutFns).forEach(function (fn) { try { fn(); } catch (e) { } });
+                Object.values(diffEditors).forEach(function (entry) { if (entry.updateHeight) entry.updateHeight(); });
+            }
         }
     };
 })();

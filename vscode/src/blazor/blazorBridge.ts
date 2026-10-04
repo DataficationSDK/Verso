@@ -820,6 +820,7 @@ export class BlazorBridge implements vscode.Disposable {
     fontSize: number;
     fontFamily: string;
     fontLigatures: boolean | string;
+    maxLines: number;
   }): void {
     this.webview.postMessage({
       type: "editor-settings-changed",

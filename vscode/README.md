@@ -188,6 +188,7 @@ Menu entries, command names, and the descriptions of these settings come from VS
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `verso.dotnetPath` | auto-detect | Path to the `dotnet` executable used to run notebooks. If empty, Verso reuses an installed .NET runtime, locating it via the .NET Install Tool. |
+| `verso.editor.maxLines` | `500` | How tall a cell's editor grows, in lines, before it scrolls inside itself. Shorter cells grow to fit their content. `0` means no limit, which can make a cell with thousands of lines slow to open and scroll past. |
 | `verso.extensionsPath` | `[]` | Directories of third-party Verso extension assemblies to load on notebook open, one directory per entry. Applies on the next notebook open. |
 | `verso.hostPath` | bundled | Path to a custom `Verso.Host.dll`. If empty, the bundled host is used. |
 | `verso.language` | `auto` | Language of the notebook interface and kernel messages: English, Deutsch, Español, 日本語, or 简体中文. `auto` follows the VS Code display language. Applies on the next notebook open. |
