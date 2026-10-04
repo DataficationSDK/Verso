@@ -1018,6 +1018,22 @@
     <value>Save Notebook As</value>
     <comment>Title of the dialog that asks where to write the notebook.</comment>
   </data>
+  <data name="SaveReplace_Confirm" xml:space="preserve">
+    <value>Replace</value>
+    <comment>Button that confirms replacing an existing file with the notebook being saved. A verb; keep short, it sits beside Cancel.</comment>
+  </data>
+  <data name="SaveReplace_PreserveHint" xml:space="preserve">
+    <value>To save Jupyter notebooks in their own format instead, start the editor with {0}.</value>
+    <comment>Under the replace-file question, shown only for a notebook opened from an .ipynb file. {0} is the literal command-line option “--preserve-format”, drawn in a code style and not translated.</comment>
+  </data>
+  <data name="SaveReplace_Prompt" xml:space="preserve">
+    <value>Saving converts this notebook to the Verso format and writes it to {0}, which already exists. Replace it?</value>
+    <comment>Asked before Save replaces an existing file. {0} is a file name such as “report.verso”, drawn in a code style and not translated.</comment>
+  </data>
+  <data name="SaveReplace_Title" xml:space="preserve">
+    <value>Replace Existing File?</value>
+    <comment>Title of the dialog asked before Save replaces a file that already exists.</comment>
+  </data>
   <data name="Settings_CategoryGeneral" xml:space="preserve">
     <value>General</value>
     <comment>Heading over settings an extension did not file under any category of its own.</comment>

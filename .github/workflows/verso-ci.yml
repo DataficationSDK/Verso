@@ -210,6 +210,45 @@ jobs:
           name: nuget-packages
           path: packages/*.nupkg
 
+  # Drives a real `verso serve` in a browser through Motus. The project sits outside Verso.sln so
+  # the main test run needs no browser, and it runs on Linux only: the runner image carries Google
+  # Chrome, and Motus key presses are unreliable on macOS, where those tests report inconclusive.
+  browser-tests:
+    name: Browser Tests (serve)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      # Builds the CLI it serves from along with the tests, so the run always serves this commit.
+      - name: Run browser tests
+        env:
+          MOTUS_FAILURES_TRACE: "true"
+          MOTUS_FAILURES_TRACE_PATH: ${{ github.workspace }}/TestResults/traces
+        run: >-
+          dotnet test tests/Verso.E2E.Tests/Verso.E2E.Tests.csproj
+          --configuration Release
+          --logger "trx;LogFileName=browser-tests.trx"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults
+
+      - name: Upload test results and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-results
+          path: |
+            TestResults/**/*.trx
+            TestResults/traces/*.zip
+          if-no-files-found: ignore
+
   python-host:
     name: Python Host (${{ matrix.python-version }})
     # Pinned to 22.04: the 24.04 image does not serve Python 3.8, which is the oldest

@@ -506,9 +506,13 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     /// Whether saving to <paramref name="path"/> keeps that file's own format instead of
     /// converting to the native .verso format.
     /// </summary>
+    /// <remarks>
+    /// Answered by the same rule that picks the serializer on save, so the decision to redirect
+    /// to a sibling .verso file always agrees with what the save would write, including
+    /// <c>verso serve --preserve-format</c>.
+    /// </remarks>
     public bool PreservesFormat(string path) =>
-        _extensionHost?.GetSerializers()
-            .Any(s => s.CanImport(path) && s.PreservesFormatByDefault) ?? false;
+        ResolveSerializer(path) is not VersoSerializer;
 
     private async Task<string> PrepareSerializedContentAsync(string? targetPath)
     {

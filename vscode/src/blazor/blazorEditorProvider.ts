@@ -544,6 +544,42 @@ export class BlazorEditorProvider
     ".md": { format: "markdown", always: true },
   };
 
+  /**
+   * Asks before a save that converts to .verso replaces a file already there. Converting
+   * writes a different file from the one that was opened, and that file can hold a notebook
+   * of its own, such as the original a Jupyter copy was made from. Resolves true when there
+   * is nothing to replace or the reader chose to replace it. A save that is not going ahead
+   * must throw rather than return, or VS Code treats it as done and marks the document clean.
+   */
+  private static async confirmReplaceOnConvert(
+    versoUri: vscode.Uri,
+    sourceExt: string
+  ): Promise<boolean> {
+    if (!fs.existsSync(versoUri.fsPath)) return true;
+
+    const replace = vscode.l10n.t({
+      message: "Replace",
+      comment: ["Button that confirms replacing an existing file with the notebook being saved. A verb; keep short."],
+    });
+    const detail = sourceExt === ".ipynb"
+      ? vscode.l10n.t({
+          message: "To save Jupyter notebooks in their own format instead, turn on the {0} setting.",
+          args: ["verso.preserveOriginalFormat"],
+          comment: ["Detail under the replace-file question, shown only for an .ipynb file. {0} is a setting name and is not translated."],
+        })
+      : undefined;
+    const choice = await vscode.window.showWarningMessage(
+      vscode.l10n.t({
+        message: "Saving converts this notebook to the Verso format and writes it to {0}, which already exists. Replace it?",
+        args: [path.basename(versoUri.fsPath)],
+        comment: ["Asked before Save replaces an existing file. {0} is a file name such as report.verso."],
+      }),
+      { modal: true, detail },
+      replace
+    );
+    return choice === replace;
+  }
+
   async saveCustomDocument(
     document: VersoDocument,
     _cancellation: vscode.CancellationToken
@@ -573,6 +609,9 @@ export class BlazorEditorProvider
     if (ext !== ".verso" && !shouldPreserve) {
       const versoPath = fsPath.replace(/\.[^.]+$/, ".verso");
       const versoUri = vscode.Uri.file(versoPath);
+      if (!(await BlazorEditorProvider.confirmReplaceOnConvert(versoUri, ext))) {
+        throw new vscode.CancellationError();
+      }
 
       const result = await host.sendRequest<NotebookSaveResult>(
         "notebook/save",
@@ -630,9 +669,13 @@ export class BlazorEditorProvider
     } else if (shouldPreserve) {
       format = preservable.format;
     } else {
-      // Destination isn't writable in its requested format: coerce to .verso.
+      // Destination isn't writable in its requested format: coerce to .verso. The save
+      // dialog only confirmed replacing the name the reader picked, not this one.
       const versoPath = destination.fsPath.replace(/\.[^.]+$/, ".verso");
       targetUri = vscode.Uri.file(versoPath);
+      if (!(await BlazorEditorProvider.confirmReplaceOnConvert(targetUri, destExt))) {
+        throw new vscode.CancellationError();
+      }
     }
 
     const result = await host.sendRequest<NotebookSaveResult>(

@@ -599,6 +599,47 @@ public sealed class JupyterSerializerTests
     }
 
     [TestMethod]
+    public async Task RoundTrip_NonStandardCellTypes_RestoresVersoType()
+    {
+        // Jupyter has no Mermaid or HTML cell, so they are written as raw cells carrying their
+        // Verso type. Reading the file back has to restore that type, or a notebook that went
+        // out to .ipynb and back loses every cell Jupyter cannot represent.
+        var notebook = new NotebookModel
+        {
+            Cells =
+            {
+                new CellModel { Type = "markdown", Source = "# Quarterly report" },
+                new CellModel { Type = "mermaid", Source = "graph TD\n  A[Input] --> B[Output]" },
+                new CellModel { Type = "html", Source = "<p><b>Summary</b> goes here.</p>" },
+                new CellModel { Type = "code", Language = "csharp", Source = "var answer = 42;" },
+            }
+        };
+
+        var json = await _serializer.SerializeAsync(notebook);
+        var reread = await _serializer.DeserializeAsync(json);
+
+        CollectionAssert.AreEqual(
+            new[] { "markdown", "mermaid", "html", "code" },
+            reread.Cells.Select(c => c.Type).ToArray());
+        Assert.IsFalse(reread.Cells.Any(c => c.Metadata.ContainsKey("verso_type")),
+            "The type marker is consumed on read, so it is not carried into the cell's own metadata.");
+    }
+
+    [TestMethod]
+    public async Task Deserialize_RawCellWithoutVersoType_StaysRaw()
+    {
+        var json = @"{
+            ""nbformat"": 4, ""nbformat_minor"": 5,
+            ""metadata"": {},
+            ""cells"": [{ ""cell_type"": ""raw"", ""source"": ""raw content"", ""metadata"": { ""format"": ""text/latex"" } }]
+        }";
+
+        var notebook = await _serializer.DeserializeAsync(json);
+
+        Assert.AreEqual("raw", notebook.Cells[0].Type);
+    }
+
+    [TestMethod]
     public async Task Serialize_ExecutionCount_FromMetadata()
     {
         var notebook = new NotebookModel

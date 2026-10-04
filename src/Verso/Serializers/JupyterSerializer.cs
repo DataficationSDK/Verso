@@ -93,7 +93,7 @@ public sealed class JupyterSerializer : INotebookSerializer
 
                 var cellModel = new CellModel
                 {
-                    Type = MapCellType(jCell.CellType),
+                    Type = MapCellType(jCell.CellType, jCell.Metadata),
                     Language = isCode
                         ? ResolveCellLanguage(kernelName, kernelLanguages, notebook.DefaultKernelId)
                         : null,
@@ -276,8 +276,22 @@ public sealed class JupyterSerializer : INotebookSerializer
 
     // --- Mapping helpers ---
 
-    private static string MapCellType(string? cellType)
+    /// <summary>
+    /// Maps a Jupyter cell type to a Verso one. A raw cell written by <see cref="BuildCell"/>
+    /// for a type Jupyter has no equivalent of (Mermaid, HTML, a cell type an extension adds)
+    /// carries that type in <c>metadata.verso_type</c>, and gets it back here.
+    /// </summary>
+    private static string MapCellType(string? cellType, JsonElement? metadata)
     {
+        if (string.Equals(cellType, "raw", StringComparison.OrdinalIgnoreCase)
+            && metadata is { ValueKind: JsonValueKind.Object } meta
+            && meta.TryGetProperty("verso_type", out var versoType)
+            && versoType.ValueKind == JsonValueKind.String
+            && !string.IsNullOrWhiteSpace(versoType.GetString()))
+        {
+            return versoType.GetString()!;
+        }
+
         return cellType?.ToLowerInvariant() switch
         {
             "code" => "code",
