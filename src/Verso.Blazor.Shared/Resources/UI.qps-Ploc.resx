@@ -187,6 +187,15 @@
   <data name="Cell_ExpandSection" xml:space="preserve">
     <value>[!!Éxpàñd Šéçtïòñ···!!]</value>
   </data>
+  <data name="Cell_LineLimit_Change" xml:space="preserve">
+    <value>[!!Çhàñgé lïmït···!!]</value>
+  </data>
+  <data name="Cell_LineLimit_ServeHint" xml:space="preserve">
+    <value>[!!Štàrt véršò šérvé wïth --màx-çéll-lïñéš tò çhàñgé ït.···!!]</value>
+  </data>
+  <data name="Cell_LineLimit_Showing" xml:space="preserve">
+    <value>[!!Šhòwïñg {0} òf {1} lïñéš···!!]</value>
+  </data>
   <data name="Cell_MoveDown" xml:space="preserve">
     <value>[!!Mòvé Dòwñ···!!]</value>
   </data>

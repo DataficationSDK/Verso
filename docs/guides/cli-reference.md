@@ -42,6 +42,7 @@ verso serve --port 8080           # custom port
 | `--no-https` | false | Serve over HTTP only |
 | `--extensions <dir>` | none | Extra directory to scan for extension assemblies |
 | `--preserve-format` | false | Save a loaded `.ipynb` back to `.ipynb` instead of converting to `.verso` |
+| `--max-cell-lines <n>` | 30 | How tall a cell's editor grows, in lines, before it scrolls inside itself; `0` means no limit |
 | `--verbose` | false | Detailed startup logging |
 
 A loaded `.md` file saves back to `.md` without `--preserve-format`, since that format is chosen by default when it can be. See [Markdown Notebooks](markdown-notebooks.md).

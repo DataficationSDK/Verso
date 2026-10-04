@@ -29,6 +29,15 @@ public static class ServeCommand
 
         var preserveFormatOption = new Option<bool>("--preserve-format", () => false, Strings.Serve_OptPreserveFormat);
 
+        var maxCellLinesOption = new Option<int?>("--max-cell-lines", Strings.Serve_OptMaxCellLines);
+        maxCellLinesOption.AddValidator(result =>
+        {
+            if (result.GetValueForOption(maxCellLinesOption) is < 0)
+                result.ErrorMessage = string.Format(
+                    Strings.Meta_Set_InvalidNonNegative, "--max-cell-lines",
+                    result.GetValueForOption(maxCellLinesOption));
+        });
+
         var pythonOption = PythonInterpreterOption.Create();
 
         var command = new Command("serve", Strings.Serve_Description)
@@ -40,6 +49,7 @@ public static class ServeCommand
             extensionsOption,
             verboseOption,
             preserveFormatOption,
+            maxCellLinesOption,
             pythonOption
         };
 
@@ -52,6 +62,7 @@ public static class ServeCommand
             var extensions = context.ParseResult.GetValueForOption(extensionsOption);
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
             var preserveFormat = context.ParseResult.GetValueForOption(preserveFormatOption);
+            var maxCellLines = context.ParseResult.GetValueForOption(maxCellLinesOption);
             var language = context.ParseResult.GetValueForOption(LanguageOption.Instance);
 
             PythonInterpreterOption.Apply(context.ParseResult.GetValueForOption(pythonOption));
@@ -79,6 +90,7 @@ public static class ServeCommand
                     Verbose = verbose,
                     ExtensionsDirectory = extensions?.FullName,
                     PreserveFormat = preserveFormat,
+                    MaxCellLines = maxCellLines,
                     Language = language
                 };
 

@@ -187,6 +187,15 @@
   <data name="Cell_ExpandSection" xml:space="preserve">
     <value>セクションを展開</value>
   </data>
+  <data name="Cell_LineLimit_Change" xml:space="preserve">
+    <value>上限を変更</value>
+  </data>
+  <data name="Cell_LineLimit_ServeHint" xml:space="preserve">
+    <value>変更するには、verso serve を --max-cell-lines を付けて起動します。</value>
+  </data>
+  <data name="Cell_LineLimit_Showing" xml:space="preserve">
+    <value>{1} 行中 {0} 行を表示</value>
+  </data>
   <data name="Cell_MoveDown" xml:space="preserve">
     <value>下へ移動</value>
   </data>

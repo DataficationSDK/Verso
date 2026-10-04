@@ -323,6 +323,13 @@ export class BlazorBridge implements vscode.Disposable {
         // save command so the CustomEditorProvider clears the dirty indicator.
         await vscode.commands.executeCommand("workbench.action.files.save");
         result = { success: true };
+      } else if (method === "extension/openCellLineLimitSetting") {
+        // From the note under a cell that outgrew its line limit.
+        await vscode.commands.executeCommand(
+          "workbench.action.openSettings",
+          "verso.editor.maxLines"
+        );
+        result = { success: true };
       } else if (method === "userPrefs/getDisabledExtensions") {
         const ids =
           this.globalState?.get<string[]>("verso.disabledExtensions") ?? null;

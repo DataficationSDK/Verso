@@ -239,7 +239,7 @@
         },
         "verso.editor.maxLines": {
           "type": "integer",
-          "default": 500,
+          "default": 30,
           "minimum": 0,
           "description": "%configuration.editor.maxLines.description%"
         }

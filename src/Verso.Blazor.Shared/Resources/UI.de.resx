@@ -187,6 +187,15 @@
   <data name="Cell_ExpandSection" xml:space="preserve">
     <value>Abschnitt einblenden</value>
   </data>
+  <data name="Cell_LineLimit_Change" xml:space="preserve">
+    <value>Limit ändern</value>
+  </data>
+  <data name="Cell_LineLimit_ServeHint" xml:space="preserve">
+    <value>Starten Sie verso serve mit --max-cell-lines, um es zu ändern.</value>
+  </data>
+  <data name="Cell_LineLimit_Showing" xml:space="preserve">
+    <value>{0} von {1} Zeilen sichtbar</value>
+  </data>
   <data name="Cell_MoveDown" xml:space="preserve">
     <value>Nach unten</value>
   </data>

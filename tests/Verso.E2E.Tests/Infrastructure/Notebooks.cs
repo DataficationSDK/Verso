@@ -25,7 +25,14 @@ public static class Notebooks
     public static string VersoWithCellsOf(params int[] lineCounts)
         => Verso(lineCounts
             .Select(count => (Guid.NewGuid(), Lines(count, "a")))
-            .Append((Guid.NewGuid(), "var wide = \"" + new string('x', 400) + "\";\nvar after = 1;")));
+            .Append((Guid.NewGuid(), WideLine + "\nvar after = 1;")));
+
+    /// <summary>A .verso notebook with one C# cell per source.</summary>
+    public static string VersoWithSources(params string[] sources)
+        => Verso(sources.Select(source => (Guid.NewGuid(), source)));
+
+    /// <summary>A line far wider than any editor.</summary>
+    public static string WideLine => "var wide = \"" + new string('x', 400) + "\";";
 
     /// <summary>A .verso notebook with a single C# cell.</summary>
     public static string VersoWithCell(Guid id, string source) => Verso([(id, source)]);

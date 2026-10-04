@@ -152,7 +152,7 @@ export class BlazorEditorProvider
       fontSize: config.get<number>("fontSize", 14),
       fontFamily,
       fontLigatures: config.get<boolean | string>("fontLigatures", true),
-      maxLines: vscode.workspace.getConfiguration("verso").get<number>("editor.maxLines", 500),
+      maxLines: vscode.workspace.getConfiguration("verso").get<number>("editor.maxLines", 30),
     };
   }
 

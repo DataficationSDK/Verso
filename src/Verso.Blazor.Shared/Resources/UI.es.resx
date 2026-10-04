@@ -187,6 +187,15 @@
   <data name="Cell_ExpandSection" xml:space="preserve">
     <value>Expandir sección</value>
   </data>
+  <data name="Cell_LineLimit_Change" xml:space="preserve">
+    <value>Cambiar el límite</value>
+  </data>
+  <data name="Cell_LineLimit_ServeHint" xml:space="preserve">
+    <value>Inicie verso serve con --max-cell-lines para cambiarlo.</value>
+  </data>
+  <data name="Cell_LineLimit_Showing" xml:space="preserve">
+    <value>Se muestran {0} de {1} líneas</value>
+  </data>
   <data name="Cell_MoveDown" xml:space="preserve">
     <value>Mover abajo</value>
   </data>

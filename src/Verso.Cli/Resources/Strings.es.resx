@@ -773,6 +773,9 @@
   <data name="Serve_Description" xml:space="preserve">
     <value>Inicia la aplicación Blazor de Verso como servidor web local.</value>
   </data>
+  <data name="Serve_OptMaxCellLines" xml:space="preserve">
+    <value>Altura máxima que alcanza el editor de una celda, en líneas, antes de desplazarse por dentro. 0 significa sin límite.</value>
+  </data>
   <data name="Serve_OptNoBrowser" xml:space="preserve">
     <value>No abre ninguna pestaña del navegador al iniciar.</value>
   </data>

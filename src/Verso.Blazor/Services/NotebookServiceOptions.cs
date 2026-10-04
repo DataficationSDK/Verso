@@ -29,6 +29,12 @@ public sealed record NotebookServiceOptions
     public bool PreserveFormat { get; init; }
 
     /// <summary>
+    /// How tall a cell's editor grows, in lines, before it scrolls inside itself; 0 means no
+    /// limit. Null keeps the editor's own default.
+    /// </summary>
+    public int? CellEditorMaxLines { get; init; }
+
+    /// <summary>
     /// Returns the combined, de-duplicated list of configured extension directories,
     /// merging the single <see cref="ExtensionsDirectory"/> with
     /// <see cref="ExtensionsDirectories"/>.

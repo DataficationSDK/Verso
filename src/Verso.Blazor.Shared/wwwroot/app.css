@@ -1008,6 +1008,31 @@ html, body {
     border-radius: var(--verso-shape-small, 8px);
 }
 
+/* Under an editor whose content is taller than the line limit. Quiet, like the hidden-output
+   summary, because it describes the editor rather than asking for anything. */
+.verso-cell-line-limit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 4px 2px 0;
+    color: var(--verso-editor-line-number, #858585);
+    font-size: 12px;
+}
+
+.verso-cell-line-limit-action {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--verso-accent-primary, #0078D4);
+    font: inherit;
+    cursor: pointer;
+}
+
+.verso-cell-line-limit-action:hover {
+    text-decoration: underline;
+}
+
 /* Mark the active line in the gutter: tint that line's number cell with the
    neutral border color. Scoped to the selected cell so only the active cell's
    editor flags its line in the margin, not every editor on the page. Uses

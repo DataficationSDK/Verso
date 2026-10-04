@@ -774,6 +774,9 @@
   <data name="Serve_Description" xml:space="preserve">
     <value>Verso の Blazor アプリケーションをローカルの Web サーバーとして起動します。</value>
   </data>
+  <data name="Serve_OptMaxCellLines" xml:space="preserve">
+    <value>セルのエディターが内部でスクロールし始めるまでに伸びる高さ (行数)。0 は無制限です。</value>
+  </data>
   <data name="Serve_OptNoBrowser" xml:space="preserve">
     <value>起動時にブラウザーのタブを開きません。</value>
   </data>

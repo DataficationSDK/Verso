@@ -230,6 +230,18 @@
     <value>Expand Section</value>
     <comment>Tooltip on a heading cell whose section is folded away. Clicking shows the cells under it.</comment>
   </data>
+  <data name="Cell_LineLimit_Change" xml:space="preserve">
+    <value>Change limit</value>
+    <comment>Button beside the line-limit note that opens the editor setting holding the limit.</comment>
+  </data>
+  <data name="Cell_LineLimit_ServeHint" xml:space="preserve">
+    <value>Start verso serve with --max-cell-lines to change it.</value>
+    <comment>Follows the line-limit note when the notebook runs in verso serve. 'verso serve' and '--max-cell-lines' are typed as-is and stay untranslated.</comment>
+  </data>
+  <data name="Cell_LineLimit_Showing" xml:space="preserve">
+    <value>Showing {0} of {1} lines</value>
+    <comment>Note under a cell's editor once its content is taller than the line limit; the rest scrolls inside the editor. {0} is the limit, {1} the cell's line count. {1} is always more than {0}.</comment>
+  </data>
   <data name="Cell_MoveDown" xml:space="preserve">
     <value>Move Down</value>
     <comment>Tooltip on the button that swaps this cell with the one below it.</comment>
