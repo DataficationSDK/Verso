@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Browser tests driven by Motus against a real `verso serve`. Kept out of Verso.sln so the main
+    test run stays fast and free of a browser dependency; CI runs this project in a job of its own.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The shared English hook carries an [AssemblyInitialize], and MSTest allows one per assembly,
+      which this suite needs for the browser. The interface language that matters here is the
+      server's, and VersoServer pins that to English when it starts serve.
+    -->
+    <Compile Remove="$(MSBuildThisFileDirectory)../EnglishTestCulture.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.5.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.5.2" />
+    <PackageReference Include="Motus.Testing.MSTest" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built first so the suite always serves the current source, but never referenced as code. -->
+    <ProjectReference Include="..\..\src\Verso.Cli\Verso.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Where the CLI above lands for this configuration; VERSO_E2E_CLI overrides it. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>VersoCliPath</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../src/Verso.Cli/bin/$(Configuration)/net8.0/Verso.Cli.dll'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

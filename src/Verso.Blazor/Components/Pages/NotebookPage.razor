@@ -88,7 +88,7 @@
                     }
                 </div>
                 <div class="verso-modal-footer">
-                    <button class="verso-modal-btn verso-modal-btn--secondary"
+                    <button class="verso-modal-btn verso-modal-btn--secondary" @ref="_replaceCancelButton"
                             @onclick="CancelReplace">@UI.Common_Cancel</button>
                     <button class="verso-modal-btn verso-modal-btn--primary"
                             @onclick="ConfirmReplaceAsync">@UI.SaveReplace_Confirm</button>
@@ -251,6 +251,7 @@
     // reader answers. Requested is the path Save was asked to write; Target is the .verso
     // file the conversion would actually write.
     private (string Requested, string Target)? _pendingReplace;
+    private ElementReference _replaceCancelButton;
     private string _saveFilePath = "";
     private bool _hasNativeHandle;
     private ElementReference _saveDialogInput;
@@ -976,6 +977,11 @@
                 if (!replaceConfirmed && System.IO.File.Exists(target))
                 {
                     _pendingReplace = (path, target);
+
+                    // Start on Cancel so Enter keeps the existing file; Replace takes a deliberate choice.
+                    StateHasChanged();
+                    await Task.Yield();
+                    try { await _replaceCancelButton.FocusAsync(); } catch { }
                     return;
                 }
 
@@ -1051,10 +1057,11 @@
 
     private void CancelReplace() => _pendingReplace = null;
 
-    private async Task OnReplaceKeyDown(KeyboardEventArgs e)
+    // Only Escape is handled here. Enter is left to whichever button has focus, since a
+    // dialog-wide Enter would replace the file even when the reader had focused Cancel.
+    private void OnReplaceKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") await ConfirmReplaceAsync();
-        else if (e.Key == "Escape") CancelReplace();
+        if (e.Key == "Escape") CancelReplace();
     }
 
     private async Task OnSaveDialogKeyDown(KeyboardEventArgs e)
@@ -1268,6 +1275,12 @@
         // The diff overlay owns the keyboard while open (it stops propagation itself; this
         // guard covers focus landing back on the notebook container while it is still up).
         if (_showDiffView)
+            return;
+
+        // The replace-file question sits inside the notebook container, so its keys bubble
+        // here. Read as commands they would edit the notebook behind it: Enter on Cancel put
+        // the selected cell into edit mode, and "a", "b", or "dd" would add or delete cells.
+        if (_pendingReplace is not null)
             return;
 
         // Run All works regardless of edit or command mode.
