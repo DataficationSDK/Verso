@@ -67,8 +67,6 @@ internal sealed class NuGetFallbackResolver
             .ToArray();
     }
 
-    private const int MaxDependencyDepth = 6;
-
     public NuGetFallbackResolver()
     {
         _sources = new List<SourceRepository>();
@@ -168,34 +166,50 @@ internal sealed class NuGetFallbackResolver
         ArgumentNullException.ThrowIfNull(packageId);
 
         var allAssemblyPaths = new List<string>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var resolvedVersion = await ResolveWithDependenciesAsync(
-            packageId, version, allAssemblyPaths, visited, depth: 0, ct).ConfigureAwait(false);
+            packageId, version, allAssemblyPaths, ct).ConfigureAwait(false);
 
         return new FSharpNuGetResolveResult(packageId, resolvedVersion, allAssemblyPaths);
     }
 
+    /// <remarks>
+    /// Walked one level at a time with each id resolved once, so every package is first met
+    /// along its shortest path from the root. There is deliberately no depth limit: combined
+    /// with first-visit-wins, a limit drops any package whose parent happens to be met deep in
+    /// a long chain before it is met near the root.
+    /// </remarks>
     private async Task<string> ResolveWithDependenciesAsync(
-        string packageId, string? version, List<string> allPaths,
-        HashSet<string> visited, int depth, CancellationToken ct)
+        string packageId, string? version, List<string> allPaths, CancellationToken ct)
     {
-        if (depth > MaxDependencyDepth) return version ?? "";
-        if (!visited.Add(packageId)) return version ?? "";
-        if (IsFrameworkPackage(packageId)) return version ?? "";
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { packageId };
+        var pending = new Queue<(string Id, string? Version)>();
+        pending.Enqueue((packageId, version));
+        string? rootVersion = null;
 
-        var (resolvedVersion, assemblyPaths, dependencies) =
-            await DownloadSinglePackageAsync(packageId, version, ct).ConfigureAwait(false);
-
-        allPaths.AddRange(assemblyPaths);
-
-        foreach (var (depId, depMinVersion) in dependencies)
+        while (pending.Count > 0)
         {
-            await ResolveWithDependenciesAsync(
-                depId, depMinVersion, allPaths, visited, depth + 1, ct).ConfigureAwait(false);
+            var (id, requested) = pending.Dequeue();
+            if (IsFrameworkPackage(id))
+            {
+                rootVersion ??= requested ?? "";
+                continue;
+            }
+
+            var (resolvedVersion, assemblyPaths, dependencies) =
+                await DownloadSinglePackageAsync(id, requested, ct).ConfigureAwait(false);
+
+            rootVersion ??= resolvedVersion;
+            allPaths.AddRange(assemblyPaths);
+
+            foreach (var (depId, depMinVersion) in dependencies)
+            {
+                if (visited.Add(depId))
+                    pending.Enqueue((depId, depMinVersion));
+            }
         }
 
-        return resolvedVersion;
+        return rootVersion ?? "";
     }
 
     private async Task<(string ResolvedVersion, List<string> AssemblyPaths, List<(string Id, string? MinVersion)> Dependencies)>
