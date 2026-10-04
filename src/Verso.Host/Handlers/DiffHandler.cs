@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Verso.Abstractions;
 using Verso.Diffing;
+using Verso.Extensions;
 using Verso.Host.Dto;
 using Verso.Host.Protocol;
 using Verso.Serializers;
@@ -52,13 +53,8 @@ public static class DiffHandler
             throw new InvalidOperationException(string.Format(Strings.Diff_BaselineUnreadable, ex.Message), ex);
         }
 
-        var postProcessors = ns.ExtensionHost.GetPostProcessors()
-            .Where(pp => pp.CanProcess(p.BaselineFilePath, serializer.FormatId))
-            .OrderBy(pp => pp.Priority);
-        foreach (var pp in postProcessors)
-        {
-            baseline = await pp.PostDeserializeAsync(baseline, p.BaselineFilePath);
-        }
+        baseline = await NotebookPostProcessing.AfterDeserializeAsync(
+            ns.ExtensionHost, baseline, p.BaselineFilePath, serializer.FormatId);
 
         // Layout state and extension settings live in their managers until save flushes them
         // into the model; flush here too, or unsaved pane and layout edits are invisible to

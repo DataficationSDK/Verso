@@ -2,6 +2,7 @@ using Spectre.Console;
 using Verso.Abstractions;
 using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
+using Verso.Extensions;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -41,7 +42,9 @@ public sealed class ConvertMeta : IMetaCommand
 
         try
         {
-            var content = await serializer.SerializeAsync(context.Session.Notebook);
+            var notebook = await NotebookPostProcessing.BeforeSerializeAsync(
+                context.Session.ExtensionHost, context.Session.Notebook, targetPath, serializer.FormatId);
+            var content = await serializer.SerializeAsync(notebook);
             var directory = Path.GetDirectoryName(targetPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);

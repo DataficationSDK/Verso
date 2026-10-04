@@ -115,11 +115,8 @@ public static class ConvertCommand
                 // untranslated.
                 try
                 {
-                    var postProcessors = extensionHost.GetPostProcessors()
-                        .Where(pp => pp.CanProcess(inputPath, inputSerializer.FormatId))
-                        .OrderBy(pp => pp.Priority);
-                    foreach (var pp in postProcessors)
-                        notebook = await pp.PostDeserializeAsync(notebook, inputPath);
+                    notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+                        extensionHost, notebook, inputPath, inputSerializer.FormatId);
                 }
                 catch (Exception ex)
                 {
@@ -136,10 +133,18 @@ public static class ConvertCommand
                         cell.Outputs.Clear();
                 }
 
-                // Serialize
+                // Determine output path
+                var outputPath = output is not null
+                    ? Path.GetFullPath(output.FullName)
+                    : Path.ChangeExtension(inputPath, outputSerializer.FileExtensions[0]);
+
+                // Serialize, letting post-processors prepare the notebook for the output format
+                // as they would on any other save.
                 string serialized;
                 try
                 {
+                    notebook = await NotebookPostProcessing.BeforeSerializeAsync(
+                        extensionHost, notebook, outputPath, outputSerializer.FormatId);
                     serialized = await outputSerializer.SerializeAsync(notebook);
                 }
                 catch (NotSupportedException)
@@ -156,11 +161,6 @@ public static class ConvertCommand
                     context.ExitCode = ExitCodes.SerializationError;
                     return;
                 }
-
-                // Determine output path
-                var outputPath = output is not null
-                    ? Path.GetFullPath(output.FullName)
-                    : Path.ChangeExtension(inputPath, outputSerializer.FileExtensions[0]);
 
                 await File.WriteAllTextAsync(outputPath, serialized);
                 Console.WriteLine(string.Format(Strings.Convert_Done, inputPath, outputPath));

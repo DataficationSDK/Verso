@@ -42,6 +42,7 @@
     <InternalsVisibleTo Include="Verso.Tests" />
     <InternalsVisibleTo Include="Verso.Blazor" />
     <InternalsVisibleTo Include="Verso.Host" />
+    <InternalsVisibleTo Include="Verso.Cli" />
   </ItemGroup>
 
   <ItemGroup>

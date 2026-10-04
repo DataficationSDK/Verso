@@ -410,6 +410,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             ?? (INotebookSerializer)new VersoSerializer();
 
         var notebook = await serializer.DeserializeAsync(content);
+        notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+            _extensionHost, notebook, filePath, serializer.FormatId);
 
         // Load the notebook's declared extensions before building subsystems so a required
         // layout engine is registered before the active layout is chosen and the first
@@ -456,6 +458,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             ?? (INotebookSerializer)new VersoSerializer();
 
         var notebook = await serializer.DeserializeAsync(content);
+        notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+            _extensionHost, notebook, fileName, serializer.FormatId);
 
         // See OpenAsync: required extensions must load before subsystems and first render.
         await LoadRequiredExtensionsAsync(notebook);
@@ -520,7 +524,12 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
         _scaffold.Notebook.Modified = DateTimeOffset.UtcNow;
         INotebookSerializer serializer = ResolveSerializer(targetPath);
-        return await serializer.SerializeAsync(_scaffold.Notebook);
+
+        var notebook = _extensionHost is null
+            ? _scaffold.Notebook
+            : await NotebookPostProcessing.BeforeSerializeAsync(
+                _extensionHost, _scaffold.Notebook, targetPath, serializer.FormatId);
+        return await serializer.SerializeAsync(notebook);
     }
 
     private INotebookSerializer ResolveSerializer(string? filePath)

@@ -133,6 +133,8 @@ public sealed class HeadlessRunner
             try
             {
                 notebook = await serializer.DeserializeAsync(content);
+                notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+                    extensionHost, notebook, filePath, serializer.FormatId);
             }
             catch (Exception)
             {
@@ -301,7 +303,9 @@ public sealed class HeadlessRunner
             // Save notebook if requested
             if (options.Save)
             {
-                var serialized = await serializer.SerializeAsync(notebook);
+                var toSave = await NotebookPostProcessing.BeforeSerializeAsync(
+                    extensionHost, notebook, filePath, serializer.FormatId);
+                var serialized = await serializer.SerializeAsync(toSave);
                 await File.WriteAllTextAsync(filePath, serialized, CancellationToken.None);
             }
 

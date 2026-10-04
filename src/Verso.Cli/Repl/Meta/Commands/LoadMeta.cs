@@ -2,6 +2,7 @@ using Spectre.Console;
 using Verso.Abstractions;
 using Verso.Cli.Resources;
 using Verso.Cli.Utilities;
+using Verso.Extensions;
 
 namespace Verso.Cli.Repl.Meta.Commands;
 
@@ -58,6 +59,8 @@ public sealed class LoadMeta : IMetaCommand
         {
             var content = await File.ReadAllTextAsync(fullPath, ct);
             loaded = await serializer.DeserializeAsync(content);
+            loaded = await NotebookPostProcessing.AfterDeserializeAsync(
+                context.Session.ExtensionHost, loaded, fullPath, serializer.FormatId);
         }
         catch (Exception ex)
         {

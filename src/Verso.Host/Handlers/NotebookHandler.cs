@@ -75,12 +75,8 @@ public static class NotebookHandler
 
             notebook = await serializer.DeserializeAsync(p.Content);
 
-            // Run post-processors after deserialization
-            var postProcessors = extensionHost.GetPostProcessors()
-                .Where(pp => pp.CanProcess(p.FilePath, serializer.FormatId))
-                .OrderBy(pp => pp.Priority);
-            foreach (var pp in postProcessors)
-                notebook = await pp.PostDeserializeAsync(notebook, p.FilePath);
+            notebook = await NotebookPostProcessing.AfterDeserializeAsync(
+                extensionHost, notebook, p.FilePath, serializer.FormatId);
         }
 
         // Ensure essential metadata defaults are present so subsystems, the
@@ -332,17 +328,10 @@ public static class NotebookHandler
         if (ns.Scaffold.SettingsManager is { } sm)
             await sm.SaveSettingsAsync(ns.Scaffold.Notebook);
 
-        // Run post-processors before serialization. The format key the post-processor
-        // sees matches the requested serializer so format-specific processors can opt in.
-        var postProcessorFormat = string.Equals(format, "verso", StringComparison.OrdinalIgnoreCase)
-            ? "verso-native"
-            : format;
-        var notebook = ns.Scaffold.Notebook;
-        var postProcessors = ns.ExtensionHost.GetPostProcessors()
-            .Where(pp => pp.CanProcess(null, postProcessorFormat))
-            .OrderBy(pp => pp.Priority);
-        foreach (var pp in postProcessors)
-            notebook = await pp.PreSerializeAsync(notebook, null);
+        // The format key the post-processors see matches the requested serializer so
+        // format-specific processors can opt in.
+        var notebook = await NotebookPostProcessing.BeforeSerializeAsync(
+            ns.ExtensionHost, ns.Scaffold.Notebook, null, format);
 
         var serializer = ns.ExtensionHost.GetSerializers()
             .FirstOrDefault(s => string.Equals(s.FormatId, format, StringComparison.OrdinalIgnoreCase))
