@@ -907,6 +907,15 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         public IExtensionHostContext ExtensionHost => _inner.ExtensionHost;
         public INotebookMetadata NotebookMetadata => _inner.NotebookMetadata;
         public INotebookOperations Notebook => _inner.Notebook;
+        public string? ActiveLayoutId => _inner.ActiveLayoutId;
+        public IReadOnlySet<Guid> CollapsedSections => _inner.CollapsedSections;
+        public IOutputChannelHost? OutputChannels => _inner.OutputChannels;
+        public System.Globalization.CultureInfo UICulture => _inner.UICulture;
+        public Guid? CellId => _inner.CellId;
+        public Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data) =>
+            _inner.RequestFileDownloadAsync(fileName, contentType, data);
+        public Task UpdateOutputAsync(string outputBlockId, CellOutput output) =>
+            _inner.UpdateOutputAsync(outputBlockId, output);
     }
 
     private void EnsureInitialized()

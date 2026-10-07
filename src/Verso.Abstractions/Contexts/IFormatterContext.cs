@@ -19,4 +19,10 @@ public interface IFormatterContext : IVersoContext
     /// Gets the maximum height available for the formatted output, in device-independent units.
     /// </summary>
     double MaxHeight { get; }
+
+    /// <summary>
+    /// Gets the cell whose output is being formatted, or <c>null</c> when the value is not being
+    /// formatted for a cell (i.e. variable explorer).
+    /// </summary>
+    Guid? CellId => null;
 }

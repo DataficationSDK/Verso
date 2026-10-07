@@ -156,6 +156,7 @@ Extends `IVersoContext` with formatting constraints. Passed to `IDataFormatter.C
 | `MimeType` | `string` | Target MIME type for the output (e.g., `"text/html"`, `"text/plain"`). |
 | `MaxWidth` | `double` | Maximum available width for the formatted output, in device-independent units. |
 | `MaxHeight` | `double` | Maximum available height for the formatted output, in device-independent units. |
+| `CellId` | `Guid?` | The cell whose output is being formatted, or `null` when the value is not being formatted for a cell (i.e. variable explorer, etc..). `CellId` with `OutputChannels` is what a formatter needs to open a channel
 
 ### When Available
 
