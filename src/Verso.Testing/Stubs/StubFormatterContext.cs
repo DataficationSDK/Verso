@@ -12,6 +12,7 @@ public sealed class StubFormatterContext : IFormatterContext
     public string MimeType { get; set; } = "text/html";
     public double MaxWidth { get; set; } = 800;
     public double MaxHeight { get; set; } = 600;
+    public Guid? CellId { get; set; }
 
     // --- IVersoContext ---
 
@@ -22,6 +23,7 @@ public sealed class StubFormatterContext : IFormatterContext
     public IExtensionHostContext ExtensionHost { get; set; } = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
     public INotebookMetadata NotebookMetadata { get; } = new NotebookMetadataContext(new NotebookModel());
     public INotebookOperations Notebook { get; } = new StubNotebookOperations();
+    public IOutputChannelHost? OutputChannels { get; set; }
 
     public Task WriteOutputAsync(CellOutput output) => Task.CompletedTask;
 }
