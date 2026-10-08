@@ -288,6 +288,18 @@ public sealed class FakeNotebookService : INotebookService
     public Task<CompletionsResultDto?> GetCompletionsAsync(Guid cellId, string code, int position)
         => Task.FromResult<CompletionsResultDto?>(null);
 
+    /// <summary>The result <see cref="GetDiagnosticsAsync"/> answers with; null by default.</summary>
+    public DiagnosticsResultDto? DiagnosticsResult { get; set; }
+
+    /// <summary>Every (cell, code) pair passed to <see cref="GetDiagnosticsAsync"/>, in order.</summary>
+    public List<(Guid CellId, string Code)> DiagnosticsRequests { get; } = new();
+
+    public Task<DiagnosticsResultDto?> GetDiagnosticsAsync(Guid cellId, string code)
+    {
+        DiagnosticsRequests.Add((cellId, code));
+        return Task.FromResult(DiagnosticsResult);
+    }
+
     // ── Layout & theme switching ───────────────────────────────────────
 
     public int RenderActiveLayoutCallCount { get; private set; }

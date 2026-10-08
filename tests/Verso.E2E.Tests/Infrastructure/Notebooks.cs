@@ -17,4 +17,19 @@ public static class Notebooks
          "nbformat_minor": 5
         }
         """;
+
+    /// <summary>A Jupyter notebook with two empty C# cells.</summary>
+    public const string TwoCSharpCells = """
+        {
+         "cells": [
+          { "cell_type": "code", "execution_count": null, "metadata": {}, "outputs": [], "source": [] },
+          { "cell_type": "code", "execution_count": null, "metadata": {}, "outputs": [], "source": [] }
+         ],
+         "metadata": {
+          "kernelspec": { "display_name": ".NET (C#)", "language": "C#", "name": ".net-csharp" }
+         },
+         "nbformat": 4,
+         "nbformat_minor": 5
+        }
+        """;
 }

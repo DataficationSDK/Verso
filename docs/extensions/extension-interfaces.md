@@ -59,6 +59,25 @@ Executes code, provides completions, diagnostics, and hover information for a sp
 3. `ExecuteAsync` / `GetCompletionsAsync` / `GetDiagnosticsAsync` / `GetHoverInfoAsync` -- called as needed during notebook use.
 4. `DisposeAsync` -- called on kernel restart or host shutdown.
 
+### Diagnostics in the Editor
+
+What `GetDiagnosticsAsync` returns is drawn in the cell editor as squiggles. The editor asks after the user pauses typing (about half a second), when the cell's editor gains focus, and after the cell runs. It does not ask while any cell in the notebook is running, and it clears every marker in the notebook when any kernel restarts. Diagnostics are advisory: if the kernel fails to initialize or `GetDiagnosticsAsync` throws, the request goes unanswered and the editor keeps the markers it already shows (none, for a kernel that never started); the failure is reported where it matters, when the cell runs. Return an empty list, not an exception, when there is nothing to report, so fixed problems are cleared.
+
+Leading `#!` magic command lines are blanked before the code reaches the kernel, keeping the line count, so a kernel never has to recognize them and its positions still match the cell. At run time the pipeline removes those lines instead, so a kernel that reads a directive from the cell's first line (as SQL reads `--connection`) should skip leading blank lines when it looks for that line during diagnostics.
+
+| `DiagnosticSeverity` | Shown as |
+|---|---|
+| `Error` | Error squiggle |
+| `Warning` | Warning squiggle |
+| `Info` | Info squiggle |
+| `Hidden` | Not shown |
+
+Positions are 0-based and relative to the cell's source, for lines and columns alike. The editor converts them to its own 1-based positions and clamps them to the text, so a stale or out-of-range span cannot break it.
+
+A span is a location in the cell. When a diagnostic is about a line or the whole cell rather than a place in it (no connection, no valid request), report an empty span that starts at column 0 of the line it concerns, or line 0 for the whole cell: `new Diagnostic(severity, message, line, 0, line, 0)`. The editor marks that whole line. An empty span anywhere else is kept as a point, which is right for something like a missing `;` at the end of a line.
+
+`Code` is shown beside the message (for example `CS0103`), and the kernel's `DisplayName` is shown as the source.
+
 ### Example Implementation
 
 - **Dice sample**: `samples/extensions/Verso.Sample.Dice/DiceExtension.cs`

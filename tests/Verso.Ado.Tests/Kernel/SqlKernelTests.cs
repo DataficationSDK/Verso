@@ -319,6 +319,7 @@ public sealed class SqlKernelTests
     public async Task GetDiagnosticsAsync_WithoutConnection_ReturnsDiagnostics()
     {
         var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", new StubExecutionContext());
 
         var diagnostics = await kernel.GetDiagnosticsAsync("SELECT 1");
 

@@ -256,6 +256,22 @@ public sealed record CompletionItemDto(
     string? Description,
     string? SortText);
 
+/// <summary>Result of a diagnostics request for one cell.</summary>
+public sealed record DiagnosticsResultDto(IReadOnlyList<DiagnosticItemDto> Items);
+
+/// <summary>
+/// A single diagnostic. Severity is the <c>DiagnosticSeverity</c> name (Hidden, Info, Warning,
+/// Error); positions are 0-based and relative to the cell's source.
+/// </summary>
+public sealed record DiagnosticItemDto(
+    string Severity,
+    string Message,
+    int StartLine,
+    int StartColumn,
+    int EndLine,
+    int EndColumn,
+    string? Code);
+
 /// <summary>Result of a cell execution.</summary>
 public sealed record ExecutionResultDto(
     Guid CellId,

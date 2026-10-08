@@ -30,6 +30,7 @@
                       IsSelected="cell.Id == Context.SelectedCellId"
                       IsExecuting="cell.Id == Context.ExecutingCellId"
                       IsRunDisabled="Context.IsRunDisabled"
+                      IsNotebookExecuting="Context.IsAnyExecuting"
                       Index="index"
                       IsLast="index == poolCells.Count - 1"
                       CollapsesInput="Service.ShouldCollapseInput(cell.Type)"

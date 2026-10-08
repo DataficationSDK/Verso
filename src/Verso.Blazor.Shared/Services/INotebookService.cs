@@ -292,6 +292,16 @@ public interface INotebookService
     /// <summary>Get completions for a position in a cell.</summary>
     Task<CompletionsResultDto?> GetCompletionsAsync(Guid cellId, string code, int position);
 
+    /// <summary>
+    /// Get the kernel's diagnostics for a cell's source. Returns null when the request could not
+    /// be answered, which the editor treats as "keep what is shown"; an empty list clears it.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to null so a service without diagnostics support leaves the editor unmarked.
+    /// </remarks>
+    Task<DiagnosticsResultDto?> GetDiagnosticsAsync(Guid cellId, string code)
+        => Task.FromResult<DiagnosticsResultDto?>(null);
+
     // ── Layout & theme switching ───────────────────────────────────────
 
     /// <summary>

@@ -34,6 +34,7 @@
                   IsSelected="cell.Id == Context.SelectedCellId"
                   IsExecuting="cell.Id == Context.ExecutingCellId"
                   IsRunDisabled="Context.IsRunDisabled"
+                  IsNotebookExecuting="Context.IsAnyExecuting"
                   Index="index"
                   IsLast="index == cells.Count - 1"
                   CollapsesInput="Service.ShouldCollapseInput(cell.Type)"

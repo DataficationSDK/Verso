@@ -155,9 +155,17 @@ public sealed class JavaScriptKernel : ILanguageKernel, IExtensionSettings
         return Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
     }
 
+    /// <remarks>
+    /// Syntax errors only, from an in-process parse, so the answer is the same whichever engine
+    /// runs the cell and arrives before the kernel has started. It takes no lock and never waits
+    /// on a running cell.
+    /// </remarks>
     public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
     {
-        return Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
+        if (_disposed || string.IsNullOrWhiteSpace(code))
+            return Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
+
+        return Task.FromResult(JavaScriptSyntaxChecker.Check(MagicLines.BlankLeadingDirectives(code)));
     }
 
     public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)

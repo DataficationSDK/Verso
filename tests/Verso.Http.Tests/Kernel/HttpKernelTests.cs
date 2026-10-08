@@ -197,6 +197,47 @@ public sealed class HttpKernelTests
     }
 
     [TestMethod]
+    public async Task GetDiagnosticsAsync_BeforeAnyRun_DoesNotFlagStoreVariables()
+    {
+        // The kernel has not seen the variable store yet, so it cannot know whether userId was
+        // set by another cell; flagging it would be a false warning on a fresh notebook.
+        var kernel = new HttpKernel();
+
+        var diag = await kernel.GetDiagnosticsAsync("GET https://example.com/users/{{userId}}");
+
+        Assert.IsFalse(diag.Any(d => d.Message.Contains("userId")));
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_AfterRun_FlagsMissingStoreVariable()
+    {
+        var kernel = new HttpKernel();
+        var ctx = new StubExecutionContext();
+        await kernel.ExecuteAsync("", ctx);
+
+        var diag = await kernel.GetDiagnosticsAsync("GET https://example.com/users/{{userId}}");
+
+        var warning = diag.SingleOrDefault(d => d.Message.Contains("userId"));
+        Assert.IsNotNull(warning);
+        Assert.AreEqual(Verso.Abstractions.DiagnosticSeverity.Warning, warning!.Severity);
+        Assert.AreEqual(0, warning.StartLine);
+        Assert.AreEqual("GET https://example.com/users/".Length, warning.StartColumn);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_AfterRun_ResolvesStoreVariable()
+    {
+        var kernel = new HttpKernel();
+        var ctx = new StubExecutionContext();
+        await kernel.ExecuteAsync("", ctx);
+        ctx.Variables.Set("userId", 42);
+
+        var diag = await kernel.GetDiagnosticsAsync("GET https://example.com/users/{{userId}}");
+
+        Assert.IsFalse(diag.Any(d => d.Message.Contains("userId")));
+    }
+
+    [TestMethod]
     public async Task GetHoverInfoAsync_HttpMethod_ReturnsDescription()
     {
         var kernel = new HttpKernel();

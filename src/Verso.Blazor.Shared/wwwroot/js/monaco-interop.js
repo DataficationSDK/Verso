@@ -115,6 +115,191 @@ window.versoMonaco = (function () {
         });
     }
 
+    // ── Kernel diagnostics ──────────────────────────────────────────────
+    // Hover and completion are pulled by Monaco; diagnostics are pushed. Each editor asks its
+    // kernel for diagnostics when the user pauses typing, when the editor gains focus, and when
+    // .NET asks (after the cell runs), then replaces its markers under one owner. Requests are
+    // held while a cell is running, one is in flight per editor at a time, and a reply computed
+    // for text the user has since changed is dropped. A focus refresh is skipped when neither the
+    // text nor the kernel state has changed since the last answer, since for C# and F# a request
+    // is a full compilation, and in VS Code it would queue ahead of a run that follows.
+    const DIAGNOSTICS_OWNER = 'verso-kernel';
+    const DIAGNOSTICS_DELAY_MS = 500;
+    const DIAGNOSTICS_MAX_LINES = 2000;
+    // elementId → { timer, inFlight, pending, suspended, generation, staleEpoch, answeredVersion,
+    //               answeredEpoch, applyingValue }
+    const diagnosticsState = {};
+    const markerSeverity = { Error: 8, Warning: 4, Info: 2 }; // monaco.MarkerSeverity; Hidden is never shown
+
+    function diagnosticsStateFor(elementId) {
+        let state = diagnosticsState[elementId];
+        if (!state) {
+            state = {
+                timer: null, inFlight: false, pending: false, suspended: false, generation: 0,
+                // staleEpoch moves whenever kernel state may have changed under the text (a run
+                // ended, a restart, a language change). The last answer records the model version
+                // and epoch it was computed for; while both still match, a focus refresh is moot.
+                staleEpoch: 0, answeredVersion: null, answeredEpoch: -1,
+                applyingValue: false
+            };
+            diagnosticsState[elementId] = state;
+        }
+        return state;
+    }
+
+    // Kernel positions are 0-based and cell-relative; Monaco's are 1-based. Every coordinate is
+    // clamped to the model so a stale or malformed reply cannot throw inside Monaco. An empty span
+    // that starts at column 0 is a cell-level or line-level advisory and covers its whole line; an
+    // empty span anywhere else is a real point (a missing ';' at the end of a line) and stays put.
+    function toMarkers(model, result) {
+        const lineCount = model.getLineCount();
+        const markers = [];
+        (result.items || []).forEach(function (item) {
+            const severity = markerSeverity[item.severity];
+            if (!severity) return;
+
+            const rawStartLine = Number(item.startLine) || 0;
+            const rawStartColumn = Number(item.startColumn) || 0;
+            const rawEndLine = Number(item.endLine) || 0;
+            const rawEndColumn = Number(item.endColumn) || 0;
+
+            const clampLine = function (line) { return Math.min(Math.max(line, 1), lineCount); };
+            const clampColumn = function (line, column) {
+                return Math.min(Math.max(column, 1), model.getLineMaxColumn(line));
+            };
+
+            const startLineNumber = clampLine(rawStartLine + 1);
+            let startColumn = clampColumn(startLineNumber, rawStartColumn + 1);
+            let endLineNumber = clampLine(rawEndLine + 1);
+            let endColumn = clampColumn(endLineNumber, rawEndColumn + 1);
+
+            const empty = rawEndLine < rawStartLine
+                || (rawEndLine === rawStartLine && rawEndColumn <= rawStartColumn);
+            if (empty && rawStartColumn === 0) {
+                startColumn = 1;
+                endLineNumber = startLineNumber;
+                endColumn = model.getLineMaxColumn(startLineNumber);
+            } else if (endLineNumber < startLineNumber
+                || (endLineNumber === startLineNumber && endColumn < startColumn)) {
+                endLineNumber = startLineNumber;
+                endColumn = startColumn;
+            }
+
+            const marker = {
+                severity: severity,
+                message: item.message || '',
+                startLineNumber: startLineNumber,
+                startColumn: startColumn,
+                endLineNumber: endLineNumber,
+                endColumn: endColumn
+            };
+            if (item.code) marker.code = item.code;
+            if (result.source) marker.source = result.source;
+            markers.push(marker);
+        });
+        return markers;
+    }
+
+    function setKernelMarkers(model, markers) {
+        if (model && !model.isDisposed()) {
+            monaco.editor.setModelMarkers(model, DIAGNOSTICS_OWNER, markers);
+        }
+    }
+
+    function markDiagnosticsStale(state) {
+        if (state) state.staleEpoch++;
+    }
+
+    // onFocus is true for a refresh triggered by the editor gaining focus, which is skipped when
+    // the last answer still holds. Edits, runs and explicit requests always go through.
+    function refreshDiagnostics(elementId, onFocus) {
+        const state = diagnosticsState[elementId];
+        const editor = editors[elementId];
+        if (!state || !editor) return;
+
+        if (onFocus && !state.pending && !state.timer) {
+            const current = editor.getModel();
+            if (current && current.getVersionId() === state.answeredVersion
+                && state.answeredEpoch === state.staleEpoch) {
+                return;
+            }
+        }
+
+        if (state.timer) {
+            clearTimeout(state.timer);
+            state.timer = null;
+        }
+
+        // A running cell holds the kernel; a request now would wait for the run and answer
+        // against state it is changing. Ask once the run is over instead.
+        if (state.suspended || state.inFlight) {
+            state.pending = true;
+            return;
+        }
+        state.pending = false;
+
+        const model = editor.getModel();
+        if (!model) return;
+        const ref = dotnetRefs[model.uri.toString()];
+        if (!ref) return;
+
+        // A pathological pasted cell is not analyzed at all, and what it showed before no
+        // longer applies.
+        if (model.getLineCount() > DIAGNOSTICS_MAX_LINES) {
+            setKernelMarkers(model, []);
+            return;
+        }
+
+        const version = model.getVersionId();
+        const generation = state.generation;
+        const epoch = state.staleEpoch;
+        state.inFlight = true;
+
+        ref.invokeMethodAsync('GetDiagnostics', model.getValue())
+            .then(function (result) {
+                if (diagnosticsState[elementId] !== state || state.generation !== generation) return;
+                if (model.isDisposed() || model.getVersionId() !== version) return;
+                // Null means the request failed; a transient failure must not hide a real error.
+                if (!result) return;
+                setKernelMarkers(model, toMarkers(model, result));
+                state.answeredVersion = version;
+                state.answeredEpoch = epoch;
+            })
+            .catch(function () { /* failure is silence: keep what is shown */ })
+            .finally(function () {
+                state.inFlight = false;
+                if (state.pending && !state.suspended && diagnosticsState[elementId] === state) {
+                    refreshDiagnostics(elementId);
+                }
+            });
+    }
+
+    function scheduleDiagnostics(elementId) {
+        const state = diagnosticsState[elementId];
+        if (!state) return;
+        if (state.timer) clearTimeout(state.timer);
+        state.timer = setTimeout(function () {
+            state.timer = null;
+            refreshDiagnostics(elementId);
+        }, DIAGNOSTICS_DELAY_MS);
+    }
+
+    function clearDiagnostics(elementId) {
+        const state = diagnosticsState[elementId];
+        if (state) {
+            if (state.timer) {
+                clearTimeout(state.timer);
+                state.timer = null;
+            }
+            state.pending = false;
+            // Invalidates any reply still in flight, so it cannot repaint what was just cleared.
+            state.generation++;
+            markDiagnosticsStale(state);
+        }
+        const editor = editors[elementId];
+        if (editor) setKernelMarkers(editor.getModel(), []);
+    }
+
     // Extend the built-in C# monarch tokenizer to highlight #i "nuget: ..." directives
     // the same way Monaco highlights #r directives (as preprocessor + string).
     // The theme last handed to applyTheme(), kept so it can be defined as soon as Monaco
@@ -214,6 +399,17 @@ window.versoMonaco = (function () {
             require(['vs/editor/editor.main'], function () {
                 enhanceCSharpTokenizer();
 
+                // The kernels own JavaScript and TypeScript diagnostics. Monaco's bundled worker
+                // checks each cell as a standalone file and so flags what a notebook does on
+                // purpose (a name declared in an earlier cell, top-level await, require, magic
+                // lines). Its validation is turned off; its completion and hover stay.
+                const tsLanguages = monaco.languages.typescript;
+                if (tsLanguages) {
+                    const off = { noSyntaxValidation: true, noSemanticValidation: true };
+                    tsLanguages.typescriptDefaults.setDiagnosticsOptions(off);
+                    tsLanguages.javascriptDefaults.setDiagnosticsOptions(off);
+                }
+
                 // Remove AMD flag so UMD libraries (Plotly, D3, Leaflet, etc.)
                 // loaded from CDN skip the AMD path and assign to window directly.
                 // Then lock `define` so cell output scripts (e.g. Plotly's AMD
@@ -269,6 +465,11 @@ window.versoMonaco = (function () {
         },
 
         create: function (elementId, options, dotnetRef) {
+            // Set up before Monaco loads, so a suspension .NET sends in the meantime is kept.
+            if (dotnetRef) {
+                diagnosticsStateFor(elementId).suspended = !!options.diagnosticsSuspended;
+            }
+
             ensureMonaco(function () {
                 const container = document.getElementById(elementId);
                 if (!container) return;
@@ -336,6 +537,13 @@ window.versoMonaco = (function () {
                     if (dotnetRef) {
                         const value = editor.getValue();
                         dotnetRef.invokeMethodAsync('OnContentChanged', value);
+                        // Text set from .NET (a reload, a tool editing many cells) would otherwise
+                        // start a compile in every editor at once. Only the editor being typed in
+                        // asks now; the rest have a new version and ask when next focused.
+                        const state = diagnosticsState[elementId];
+                        if (!state || !state.applyingValue || editor.hasTextFocus()) {
+                            scheduleDiagnostics(elementId);
+                        }
                     }
                 });
 
@@ -378,6 +586,10 @@ window.versoMonaco = (function () {
                     editor.onDidFocusEditorText(function () {
                         focusKey.set(true);
                         dotnetRef.invokeMethodAsync('OnEditorActionShortcut', 'focus');
+                        // Variable-dependent kernels (SQL, HTTP, HTML) change their answer when
+                        // another cell runs, not when this text changes; refresh as the user
+                        // comes back to the cell.
+                        refreshDiagnostics(elementId, true);
                     });
                     editor.onDidBlurEditorText(function () { focusKey.set(false); });
 
@@ -430,6 +642,8 @@ window.versoMonaco = (function () {
         },
 
         dispose: function (elementId) {
+            clearDiagnostics(elementId);
+            delete diagnosticsState[elementId];
             const editor = editors[elementId];
             if (editor) {
                 const modelUri = editor.getModel()?.uri?.toString();
@@ -560,7 +774,13 @@ window.versoMonaco = (function () {
         setValue: function (elementId, value) {
             const editor = editors[elementId];
             if (editor && editor.getValue() !== value) {
-                editor.setValue(value);
+                const state = diagnosticsState[elementId];
+                if (state) state.applyingValue = true;
+                try {
+                    editor.setValue(value);
+                } finally {
+                    if (state) state.applyingValue = false;
+                }
             }
         },
 
@@ -569,9 +789,33 @@ window.versoMonaco = (function () {
             if (editor) {
                 const model = editor.getModel();
                 if (model && monaco.editor.getModel(model.uri)) {
+                    // The previous kernel's diagnostics say nothing about the new language.
+                    clearDiagnostics(elementId);
                     monaco.editor.setModelLanguage(model, language);
                     registerProviders(language);
                 }
+            }
+        },
+
+        // Ask the kernel for this editor's diagnostics now (after its cell ran, for example).
+        refreshDiagnostics: function (elementId) {
+            refreshDiagnostics(elementId);
+        },
+
+        clearDiagnostics: function (elementId) {
+            clearDiagnostics(elementId);
+        },
+
+        // While suspended no request is issued; a refresh asked for in the meantime runs once
+        // the suspension lifts.
+        setDiagnosticsSuspended: function (elementId, suspended) {
+            const state = diagnosticsState[elementId];
+            if (!state) return;
+            // A run that just ended may have changed what other cells' code refers to.
+            if (state.suspended && !suspended) markDiagnosticsStale(state);
+            state.suspended = !!suspended;
+            if (!state.suspended && state.pending) {
+                refreshDiagnostics(elementId);
             }
         },
 

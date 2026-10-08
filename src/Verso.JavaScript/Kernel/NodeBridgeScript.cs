@@ -282,22 +282,27 @@ internal static class NodeBridgeScript
             }
         }
 
+        // Shared by transpile and diagnostics so the editor reports what a run would hit.
+        function _verso_transpileOptions() {
+            return {
+                compilerOptions: {
+                    target: _verso_ts.ScriptTarget.ES2022,
+                    module: _verso_ts.ModuleKind.CommonJS,
+                    strict: false,
+                    esModuleInterop: true,
+                    skipLibCheck: true,
+                    forceConsistentCasingInFileNames: true,
+                },
+                reportDiagnostics: true,
+            };
+        }
+
         function _verso_transpileTypeScript(code) {
             if (!_verso_ensureTypeScript()) {
                 return { error: _verso_tsError };
             }
             try {
-                const result = _verso_ts.transpileModule(code, {
-                    compilerOptions: {
-                        target: _verso_ts.ScriptTarget.ES2022,
-                        module: _verso_ts.ModuleKind.CommonJS,
-                        strict: false,
-                        esModuleInterop: true,
-                        skipLibCheck: true,
-                        forceConsistentCasingInFileNames: true,
-                    },
-                    reportDiagnostics: true,
-                });
+                const result = _verso_ts.transpileModule(code, _verso_transpileOptions());
                 const errors = (result.diagnostics || [])
                     .filter(d => d.category === _verso_ts.DiagnosticCategory.Error)
                     .map(d => _verso_ts.flattenDiagnosticMessageText(d.messageText, '\n'));
@@ -313,6 +318,41 @@ internal static class NodeBridgeScript
         function _verso_handleTranspile(cmd) {
             const result = _verso_transpileTypeScript(cmd.code);
             return { type: 'transpileResult', id: cmd.id, ...result };
+        }
+
+        // --- TypeScript diagnostics ---
+        // Syntax diagnostics from the same single-file transpile a run performs, with
+        // zero-based line and column positions. A diagnostic with no file (an options
+        // diagnostic) has no place in the cell, and an empty span is widened to one
+        // character so the editor has something to underline. No compiler, or any fault,
+        // answers with an empty list: the editor treats diagnostics as best effort.
+        function _verso_handleDiagnostics(cmd) {
+            const items = [];
+            try {
+                if (_verso_ensureTypeScript()) {
+                    const result = _verso_ts.transpileModule(cmd.code, _verso_transpileOptions());
+                    for (const d of result.diagnostics || []) {
+                        if (!d.file || typeof d.start !== 'number') continue;
+                        const length = typeof d.length === 'number' && d.length > 0 ? d.length : 0;
+                        const start = d.file.getLineAndCharacterOfPosition(d.start);
+                        const end = d.file.getLineAndCharacterOfPosition(d.start + length);
+                        let endColumn = end.character;
+                        if (length === 0 && end.line === start.line) endColumn = start.character + 1;
+                        items.push({
+                            category: d.category,
+                            code: d.code,
+                            message: _verso_ts.flattenDiagnosticMessageText(d.messageText, '\n'),
+                            startLine: start.line,
+                            startColumn: start.character,
+                            endLine: end.line,
+                            endColumn,
+                        });
+                    }
+                }
+            } catch (_) {
+                items.length = 0;
+            }
+            return { type: 'diagnosticsResult', id: cmd.id, items };
         }
 
         // --- Main loop ---
@@ -341,6 +381,9 @@ internal static class NodeBridgeScript
                     break;
                 case 'transpile':
                     response = _verso_handleTranspile(cmd);
+                    break;
+                case 'diagnostics':
+                    response = _verso_handleDiagnostics(cmd);
                     break;
                 case 'addModulePath':
                     response = _verso_handleAddModulePath(cmd);

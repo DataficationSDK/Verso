@@ -20,6 +20,13 @@ public sealed class NotebookCellContext
     /// </summary>
     public bool IsRunDisabled { get; init; }
 
+    /// <summary>
+    /// True for as long as any run is in progress, including the gaps between cells of a Run All.
+    /// Cells hold back diagnostics requests while it is set, because the kernel would answer them
+    /// only once the run finished.
+    /// </summary>
+    public bool IsAnyExecuting { get; init; }
+
     public IReadOnlySet<Guid> CollapsedSections { get; init; } = new HashSet<Guid>();
 
     /// <summary>

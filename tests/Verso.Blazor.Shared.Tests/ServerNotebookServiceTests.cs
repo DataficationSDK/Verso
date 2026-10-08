@@ -140,6 +140,117 @@ public sealed class ServerNotebookServiceTests
             $"Expected information output, got: {string.Join(" | ", cell.Outputs.Select(o => o.Content))}");
     }
 
+    [TestMethod]
+    public async Task GetDiagnostics_SyntaxError_ReturnsError()
+    {
+        await using var service = await CreateServiceAsync();
+        var cell = await AddPowerShellCellAsync(service, "");
+
+        var result = await WaitForAsync(
+            service.GetDiagnosticsAsync(cell.Id, "Write-Host 'ok'\nfunction { }"),
+            "Expected diagnostics to complete.");
+
+        Assert.IsNotNull(result);
+        var error = result!.Items.FirstOrDefault(d => d.Severity == "Error");
+        Assert.IsNotNull(error, "Expected a parse error for a function with no name.");
+        Assert.AreEqual(1, error!.StartLine, "Positions should be 0-based and cell-relative.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_ValidSource_ReturnsEmptyList()
+    {
+        await using var service = await CreateServiceAsync();
+        var cell = await AddPowerShellCellAsync(service, "");
+
+        var result = await WaitForAsync(
+            service.GetDiagnosticsAsync(cell.Id, "Write-Host 'ok'"),
+            "Expected diagnostics to complete.");
+
+        // An answered request with no problems is an empty list, which clears the editor;
+        // null is reserved for "could not answer".
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_UnknownCell_ReturnsNull()
+    {
+        await using var service = await CreateServiceAsync();
+
+        var result = await service.GetDiagnosticsAsync(Guid.NewGuid(), "function { }");
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_CellWithoutLanguage_UsesDefaultKernel()
+    {
+        await using var service = await CreateServiceAsync();
+        var cell = await AddPowerShellCellAsync(service, "");
+        service.DefaultKernelId = "powershell";
+        cell.Language = null;
+
+        var result = await WaitForAsync(
+            service.GetDiagnosticsAsync(cell.Id, "function { }"),
+            "Expected diagnostics to complete.");
+
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result!.Items.Any(d => d.Severity == "Error"),
+            "A cell with no language runs on the notebook default, so it is checked by that kernel.");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_MarkdownCell_ReturnsEmptyList()
+    {
+        await using var service = await CreateServiceAsync();
+        var cell = await service.AddCellAsync("markdown");
+
+        var result = await service.GetDiagnosticsAsync(cell.Id, "function { }");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_KernelThatFails_ReturnsNull()
+    {
+        // Null, not an empty list: the editor keeps the markers it shows when a request fails.
+        await using var service = await CreateServiceAsync();
+        service.Scaffold!.RegisterKernel(new ThrowingDiagnosticsKernel());
+        var cell = await service.AddCellAsync("code", ThrowingDiagnosticsKernel.Id);
+
+        var result = await service.GetDiagnosticsAsync(cell.Id, "x");
+
+        Assert.IsNull(result);
+    }
+
+    private sealed class ThrowingDiagnosticsKernel : ILanguageKernel
+    {
+        public const string Id = "throwing-diagnostics";
+
+        public string ExtensionId => "com.test.throwing-diagnostics";
+        public string Name => "Throwing Diagnostics";
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+        public string LanguageId => Id;
+        public string DisplayName => "Throwing Diagnostics";
+        public IReadOnlyList<string> FileExtensions => Array.Empty<string>();
+
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+        public Task InitializeAsync() => Task.CompletedTask;
+        public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+            => throw new NotSupportedException();
+        public Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+            => Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
+        public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
+            => throw new InvalidOperationException("analysis failed");
+        public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
+            => Task.FromResult<HoverInfo?>(null);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
     private static async Task<ServerNotebookService> CreateServiceAsync()
     {
         var service = new ServerNotebookService(new ThrowingJSRuntime(), new LayoutAssetCache());

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using Verso.Abstractions;
 using Verso.JavaScript.Resources;
 
 namespace Verso.JavaScript.Kernel;
@@ -17,6 +18,10 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
     private StreamWriter? _stdin;
     private StreamReader? _stdout;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement>> _pending = new();
+
+    // Editor diagnostics are requested while a cell may be running, so commands can be sent
+    // from more than one caller at once. Each line must reach the bridge whole.
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
     private TaskCompletionSource<bool>? _readyTcs;
     private Task? _readLoop;
     private string? _bridgePath;
@@ -139,6 +144,57 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         return new TranspileResult(transpiled, error);
     }
 
+    public async Task<IReadOnlyList<Diagnostic>> GetTypeScriptDiagnosticsAsync(string code, CancellationToken ct)
+    {
+        var response = await SendCommandAsync(new
+        {
+            type = "diagnostics",
+            id = Guid.NewGuid().ToString("N"),
+            code,
+        }, ct);
+
+        return ParseTypeScriptDiagnostics(response);
+    }
+
+    /// <summary>
+    /// Read the items of a bridge <c>diagnosticsResult</c>. TypeScript's categories are
+    /// 0 warning, 1 error, 2 suggestion and 3 message; the last two are shown as information.
+    /// An item missing a field it needs is skipped rather than failing the whole list.
+    /// </summary>
+    internal static IReadOnlyList<Diagnostic> ParseTypeScriptDiagnostics(JsonElement response)
+    {
+        if (!response.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
+            return Array.Empty<Diagnostic>();
+
+        var diagnostics = new List<Diagnostic>();
+        foreach (var item in items.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object) continue;
+
+            var message = GetStringOrNull(item, "message");
+            if (message is null
+                || !TryGetInt(item, "startLine", out var startLine)
+                || !TryGetInt(item, "startColumn", out var startColumn)
+                || !TryGetInt(item, "endLine", out var endLine)
+                || !TryGetInt(item, "endColumn", out var endColumn))
+                continue;
+
+            var severity = TryGetInt(item, "category", out var category)
+                ? category switch
+                {
+                    0 => DiagnosticSeverity.Warning,
+                    1 => DiagnosticSeverity.Error,
+                    _ => DiagnosticSeverity.Info,
+                }
+                : DiagnosticSeverity.Error;
+
+            var code = TryGetInt(item, "code", out var number) ? $"TS{number}" : null;
+
+            diagnostics.Add(new Diagnostic(severity, message, startLine, startColumn, endLine, endColumn, code));
+        }
+        return diagnostics;
+    }
+
     public async Task AddModulePathAsync(string path, CancellationToken ct)
     {
         _nodeModulesPath = path;
@@ -155,6 +211,9 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
 
     public void UpdateNodeModulesPath(string path) => _nodeModulesPath = path;
 
+    /// <summary>The module path this process was started with, or was given since.</summary>
+    internal string? NodeModulesPath => _nodeModulesPath;
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
@@ -164,12 +223,19 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         // Send shutdown
         if (_process is { HasExited: false } && _stdin is not null)
         {
+            // Waits briefly for a command being written; shutting down is not worth hanging on.
+            var locked = false;
             try
             {
+                locked = await _writeLock.WaitAsync(TimeSpan.FromSeconds(1));
                 await _stdin.WriteLineAsync(JsonSerializer.Serialize(new { type = "shutdown" }));
                 await _stdin.FlushAsync();
             }
             catch { }
+            finally
+            {
+                if (locked) _writeLock.Release();
+            }
         }
 
         // Wait for exit
@@ -218,10 +284,29 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         var tcs = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[id] = tcs;
 
-        using var registration = ct.Register(() => tcs.TrySetCanceled(ct));
+        // A cancelled request drops its entry too, so an answer the bridge sends after the
+        // caller gave up is ignored rather than left waiting in the table.
+        using var registration = ct.Register(() =>
+        {
+            _pending.TryRemove(id, out _);
+            tcs.TrySetCanceled(ct);
+        });
 
-        await _stdin!.WriteLineAsync(json);
-        await _stdin.FlushAsync();
+        await _writeLock.WaitAsync(ct);
+        try
+        {
+            await _stdin!.WriteLineAsync(json);
+            await _stdin.FlushAsync();
+        }
+        catch
+        {
+            _pending.TryRemove(id, out _);
+            throw;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
 
         return await tcs.Task;
     }
@@ -273,6 +358,14 @@ internal sealed class NodeProcessRunner : IJavaScriptRunner
         if (val.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) return null;
         var s = val.GetString();
         return string.IsNullOrEmpty(s) ? null : s;
+    }
+
+    private static bool TryGetInt(JsonElement el, string prop, out int value)
+    {
+        value = 0;
+        return el.TryGetProperty(prop, out var val)
+            && val.ValueKind == JsonValueKind.Number
+            && val.TryGetInt32(out value);
     }
 
     private static IReadOnlyList<string>? GetStringArray(JsonElement el, string prop)

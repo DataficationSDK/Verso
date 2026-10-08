@@ -23,10 +23,28 @@ public sealed class TypeScriptKernel : ILanguageKernel
     private bool _initialized;
     private bool _disposed;
     private bool _typescriptInstalled;
+    private bool _nodeModulesPathPreset;
+    private readonly Func<IJavaScriptRunner>? _createRunner;
 
     public TypeScriptKernel() : this(new JavaScriptKernelOptions()) { }
 
     public TypeScriptKernel(JavaScriptKernelOptions options) => _options = options;
+
+    /// <summary>
+    /// Builds the kernel over a runner made by <paramref name="createRunner"/> instead of a
+    /// Node.js process, so tests can drive it without Node.
+    /// </summary>
+    internal TypeScriptKernel(JavaScriptKernelOptions options, Func<IJavaScriptRunner> createRunner)
+    {
+        _options = options;
+        _createRunner = createRunner;
+    }
+
+    /// <summary>
+    /// How long the editor waits for diagnostics before showing none. A cell busy with
+    /// synchronous work holds the bridge, and a squiggle that late is no help anyway.
+    /// </summary>
+    internal TimeSpan DiagnosticsTimeout { get; set; } = TimeSpan.FromSeconds(3);
 
     // IExtension
     public string ExtensionId => "verso.kernel.typescript";
@@ -48,12 +66,23 @@ public sealed class TypeScriptKernel : ILanguageKernel
         if (_initialized) return;
         _disposed = false;
 
-        var nodeExe = _options.NodeExecutablePath ?? JavaScriptEngineManager.NodeExecutablePath;
-        if (nodeExe is null)
-            throw new InvalidOperationException(
-                Strings.Node_Required);
+        // When a supported compiler is already installed, start Node with it on the module
+        // path. Diagnostics then work before the first run, and that run's install probe
+        // succeeds without restarting the process.
+        _nodeModulesPathPreset = false;
+        string? modulesPath = null;
+        if (_createRunner is null)
+        {
+            ResolveNodeExecutable();
+            if (NpmManager.IsPackageInstalled("typescript") && InstalledTypeScriptIsSupported())
+            {
+                modulesPath = NpmManager.NodeModulesPath;
+                _nodeModulesPathPreset = true;
+            }
+        }
 
-        _runner = new NodeProcessRunner(nodeExe, _options);
+        _runner = CreateRunner(modulesPath);
+
         await _runner.InitializeAsync(CancellationToken.None);
 
         if (_options.StartupCode is not null)
@@ -86,8 +115,30 @@ public sealed class TypeScriptKernel : ILanguageKernel
     public Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
         => Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
 
-    public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
-        => Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
+    /// <remarks>
+    /// Syntax errors only, from the same single-file transpile a run performs; type errors are
+    /// not checked. Answers nothing until the kernel has started, and does not take the
+    /// execution lock, so a running cell never holds the editor up for longer than the timeout.
+    /// </remarks>
+    public async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
+    {
+        // Read once: a first run that installs the compiler replaces the runner.
+        var runner = _runner;
+        if (!_initialized || _disposed || runner is null || !runner.IsAlive
+            || string.IsNullOrWhiteSpace(code))
+            return Array.Empty<Diagnostic>();
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(DiagnosticsTimeout);
+            return await runner.GetTypeScriptDiagnosticsAsync(
+                MagicLines.BlankLeadingDirectives(code), timeout.Token);
+        }
+        catch
+        {
+            return Array.Empty<Diagnostic>();
+        }
+    }
 
     public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
         => Task.FromResult<HoverInfo?>(null);
@@ -120,11 +171,15 @@ public sealed class TypeScriptKernel : ILanguageKernel
             outputs.Add(new CellOutput("text/plain", "Node.js process crashed. Restarting..."));
             await context.WriteOutputAsync(outputs[0]);
 
-            await _runner.DisposeAsync();
-            var nodeExe = _options.NodeExecutablePath ?? JavaScriptEngineManager.NodeExecutablePath;
-            _runner = new NodeProcessRunner(nodeExe!, _options);
+            // Start the new process on the module path the old one had, so the compiler it was
+            // using is still requireable and the install probe does not restart Node again.
+            var deadRunner = _runner;
+            var modulesPath = (deadRunner as NodeProcessRunner)?.NodeModulesPath
+                ?? (_nodeModulesPathPreset ? NpmManager.NodeModulesPath : null);
+            await deadRunner.DisposeAsync();
+            _runner = CreateRunner(modulesPath);
             await _runner.InitializeAsync(ct);
-            _typescriptInstalled = false;
+            _typescriptInstalled = _typescriptInstalled && modulesPath is not null;
         }
 
         // Auto-install typescript if needed
@@ -234,7 +289,14 @@ public sealed class TypeScriptKernel : ILanguageKernel
     {
         // Quick check: try transpiling a trivial expression
         var probe = await _runner!.TranspileAsync("const _: number = 1;", ct);
-        if (probe.Success) return;
+        if (probe.Success)
+        {
+            // Started with the installed compiler on the module path, so publish that path
+            // the same way an install would, for other cells' packages to resolve against.
+            if (_nodeModulesPathPreset)
+                context.Variables.Set(NpmManager.NodePathStoreKey, NpmManager.NodeModulesPath);
+            return;
+        }
 
         // Auto-install silently when typescript is missing, or reinstall the pin when an
         // unsupported version is cached (an unpinned install may have pulled 7.x, which
@@ -252,18 +314,10 @@ public sealed class TypeScriptKernel : ILanguageKernel
         var nodeModulesPath = NpmManager.NodeModulesPath;
         context.Variables.Set(NpmManager.NodePathStoreKey, nodeModulesPath);
 
-        if (_runner is NodeProcessRunner nodeRunner)
-            nodeRunner.UpdateNodeModulesPath(nodeModulesPath);
-
         // The typescript module won't be requireable until NODE_PATH is updated.
         // Restart the Node process so it picks up the new NODE_PATH.
         await _runner.DisposeAsync();
-        var nodeExe = _options.NodeExecutablePath ?? JavaScriptEngineManager.NodeExecutablePath;
-        _runner = new NodeProcessRunner(nodeExe!, _options);
-
-        if (_runner is NodeProcessRunner newRunner)
-            newRunner.UpdateNodeModulesPath(nodeModulesPath);
-
+        _runner = CreateRunner(nodeModulesPath);
         await _runner.InitializeAsync(ct);
 
         // Verify
@@ -276,6 +330,25 @@ public sealed class TypeScriptKernel : ILanguageKernel
                     installed ?? Strings.TypeScript_VersionUnknown, verify.Error));
         }
     }
+
+    /// <summary>
+    /// Makes the runner for a new Node process, started with <paramref name="modulesPath"/> as
+    /// its module path when given. The test seam, when set, supplies the runner instead.
+    /// </summary>
+    private IJavaScriptRunner CreateRunner(string? modulesPath)
+    {
+        if (_createRunner is not null)
+            return _createRunner();
+
+        var runner = new NodeProcessRunner(ResolveNodeExecutable(), _options);
+        if (modulesPath is not null)
+            runner.UpdateNodeModulesPath(modulesPath);
+        return runner;
+    }
+
+    private string ResolveNodeExecutable()
+        => _options.NodeExecutablePath ?? JavaScriptEngineManager.NodeExecutablePath
+            ?? throw new InvalidOperationException(Strings.Node_Required);
 
     private static bool InstalledTypeScriptIsSupported()
     {

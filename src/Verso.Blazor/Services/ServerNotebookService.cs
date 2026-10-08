@@ -926,13 +926,10 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         if (_scaffold is null) return null;
 
-        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
-        if (cell?.Language is null) return null;
-
-        var kernel = _scaffold.GetKernel(cell.Language);
+        var kernel = _scaffold.ResolveKernelForCell(cellId);
         if (kernel is null) return null;
 
-        await _scaffold.WarmUpKernelAsync(cell.Language);
+        await _scaffold.WarmUpKernelAsync(kernel.LanguageId);
         var info = await kernel.GetHoverInfoAsync(code, position);
         if (info is null) return null;
 
@@ -947,17 +944,49 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     {
         if (_scaffold is null) return null;
 
-        var cell = _scaffold.Cells.FirstOrDefault(c => c.Id == cellId);
-        if (cell?.Language is null) return null;
-
-        var kernel = _scaffold.GetKernel(cell.Language);
+        var kernel = _scaffold.ResolveKernelForCell(cellId);
         if (kernel is null) return null;
 
-        await _scaffold.WarmUpKernelAsync(cell.Language);
+        await _scaffold.WarmUpKernelAsync(kernel.LanguageId);
         var completions = await kernel.GetCompletionsAsync(code, position);
         return new CompletionsResultDto(
             completions.Select(c => new CompletionItemDto(
                 c.DisplayText, c.InsertText, c.Kind, c.Description, c.SortText)).ToList());
+    }
+
+    public async Task<DiagnosticsResultDto?> GetDiagnosticsAsync(Guid cellId, string code)
+    {
+        if (_scaffold is null) return null;
+
+        if (_scaffold.GetCell(cellId) is null) return null;
+
+        // A cell nothing would execute (Markdown, a render-only type) has no problems to report;
+        // an empty set clears anything left from before the cell changed type.
+        var kernel = _scaffold.ResolveKernelForCell(cellId);
+        if (kernel is null) return new DiagnosticsResultDto(Array.Empty<DiagnosticItemDto>());
+
+        // Diagnostics are advisory. A kernel that cannot start (a runtime it needs is missing) or
+        // that fails mid-analysis reports nothing rather than an error on every keystroke; the
+        // failure surfaces where it matters, when the cell runs. Null rather than an empty set,
+        // so the editor keeps the markers it already shows.
+        IReadOnlyList<Diagnostic> diagnostics;
+        try
+        {
+            await _scaffold.WarmUpKernelAsync(kernel.LanguageId);
+
+            // A semantic pass (Roslyn, FCS) can take a while; keep it off the circuit's
+            // dispatcher so the editor stays responsive while it runs.
+            diagnostics = await Task.Run(() => kernel.GetDiagnosticsAsync(code));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+
+        return new DiagnosticsResultDto(
+            diagnostics.Select(d => new DiagnosticItemDto(
+                d.Severity.ToString(), d.Message,
+                d.StartLine, d.StartColumn, d.EndLine, d.EndColumn, d.Code)).ToList());
     }
 
     // ── Layout & theme switching ───────────────────────────────────────

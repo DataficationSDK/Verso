@@ -94,6 +94,153 @@ public class HandlerTests
         Assert.IsFalse(submitResult.Dirty, "submitting parameter values must not dirty the notebook");
     }
 
+    private static JsonElement DiagnosticsParams(Guid cellId, string code) =>
+        JsonSerializer.SerializeToElement(
+            new DiagnosticsParams { CellId = cellId.ToString(), Code = code },
+            JsonRpcMessage.SerializerOptions);
+
+    [TestMethod]
+    public async Task GetDiagnostics_ReportsKernelErrorWithZeroBasedSpan()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var cell = ns.Scaffold.AddCell("code", "csharp");
+
+        var result = await KernelHandler.HandleGetDiagnosticsAsync(
+            ns, DiagnosticsParams(cell.Id, "var ok = 1;\nint x = \"text\";"));
+
+        Assert.IsNotNull(result);
+        var error = result!.Items.SingleOrDefault(d => d.Code == "CS0029");
+        Assert.IsNotNull(error, "expected a type-conversion error, got: "
+            + string.Join("; ", result.Items.Select(d => $"{d.Code} {d.Message}")));
+        Assert.AreEqual("Error", error!.Severity);
+        Assert.AreEqual(1, error.StartLine);
+        Assert.AreEqual(8, error.StartColumn);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_ValidCode_ReturnsEmpty()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var cell = ns.Scaffold.AddCell("code", "csharp");
+
+        var result = await KernelHandler.HandleGetDiagnosticsAsync(
+            ns, DiagnosticsParams(cell.Id, "var ok = 1;"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_UnknownCell_ReturnsEmpty()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        var result = await KernelHandler.HandleGetDiagnosticsAsync(
+            ns, DiagnosticsParams(Guid.NewGuid(), "int x = \"text\";"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_KernelThatCannotStart_ReturnsNull()
+    {
+        // A kernel whose runtime is missing fails its warm-up, and the scaffold keeps that
+        // failure. Diagnostics are advisory, so the request answers null, which keeps the
+        // editor's markers, instead of an error response on every pause in typing.
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        ns.Scaffold.RegisterKernel(new FailingStartKernel());
+        var cell = ns.Scaffold.AddCell("code", FailingStartKernel.Id);
+
+        var first = await KernelHandler.HandleGetDiagnosticsAsync(ns, DiagnosticsParams(cell.Id, "x"));
+        var second = await KernelHandler.HandleGetDiagnosticsAsync(ns, DiagnosticsParams(cell.Id, "x"));
+
+        Assert.IsNull(first);
+        Assert.IsNull(second);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_CellWithoutLanguage_UsesDefaultKernel()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var cell = ns.Scaffold.AddCell("code", "csharp");
+        cell.Language = null;
+
+        var result = await KernelHandler.HandleGetDiagnosticsAsync(
+            ns, DiagnosticsParams(cell.Id, "int x = \"text\";"));
+
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result!.Items.Any(d => d.Code == "CS0029"),
+            "a cell with no language runs on the notebook default, so it is checked as C#");
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_HtmlCell_ReachesTheCellTypeKernel()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var cell = ns.Scaffold.AddCell("html", source: "<p>ready</p>");
+        await ns.Scaffold.ExecuteCellAsync(cell.Id);
+
+        var result = await KernelHandler.HandleGetDiagnosticsAsync(
+            ns, DiagnosticsParams(cell.Id, "<p>@missingName</p>"));
+
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result!.Items.Any(d => d.Message.Contains("missingName")),
+            "expected an unresolved-variable warning, got: "
+            + string.Join("; ", result.Items.Select(d => d.Message)));
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_MarkdownCell_ReturnsEmpty()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var cell = ns.Scaffold.AddCell("markdown");
+
+        var result = await KernelHandler.HandleGetDiagnosticsAsync(
+            ns, DiagnosticsParams(cell.Id, "int x = \"text\";"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count, "nothing executes a Markdown cell, so nothing checks it");
+    }
+
+    private sealed class FailingStartKernel : ILanguageKernel
+    {
+        public const string Id = "failing-start";
+
+        public string ExtensionId => "com.test.failing-start";
+        public string Name => "Failing Start";
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+        public string LanguageId => Id;
+        public string DisplayName => "Failing Start";
+        public IReadOnlyList<string> FileExtensions => Array.Empty<string>();
+
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+        public Task InitializeAsync() => throw new InvalidOperationException("runtime not installed");
+
+        public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+            => throw new NotSupportedException();
+        public Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+            => Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
+        public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
+            => Task.FromResult<IReadOnlyList<Diagnostic>>(new[]
+            {
+                new Diagnostic(DiagnosticSeverity.Error, "should not be reached", 0, 0, 0, 1)
+            });
+        public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
+            => Task.FromResult<HoverInfo?>(null);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
     [TestMethod]
     public async Task GetTheme_IncludesLayoutPaletteTokens()
     {
