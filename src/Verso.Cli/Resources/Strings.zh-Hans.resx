@@ -773,6 +773,9 @@
   <data name="Serve_Description" xml:space="preserve">
     <value>以本地 Web 服务器的形式启动 Verso Blazor 应用程序。</value>
   </data>
+  <data name="Serve_OptMaxCellLines" xml:space="preserve">
+    <value>单元格编辑器在内部出现滚动之前可增长到的高度（行数）。0 表示不限制。</value>
+  </data>
   <data name="Serve_OptNoBrowser" xml:space="preserve">
     <value>启动时不打开浏览器标签页。</value>
   </data>

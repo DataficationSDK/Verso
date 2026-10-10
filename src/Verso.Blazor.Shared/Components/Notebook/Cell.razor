@@ -193,7 +193,27 @@
                               OnGetHoverInfo="HandleGetHoverInfo"
                               OnGetCompletions="HandleGetCompletions"
                               OnGetDiagnostics="HandleGetDiagnostics"
-                              DiagnosticsSuspended="IsNotebookExecuting" />
+                              DiagnosticsSuspended="IsNotebookExecuting"
+                              OnLineLimitChanged="HandleLineLimitChanged" />
+                @if (_lineLimit is { Clipped: true } limit)
+                {
+                    @* Said once the content outgrows the limit, so the lines scrolled out of view
+                       inside the editor are not mistaken for missing, and so the reader learns
+                       where the limit is changed. *@
+                    <div class="verso-cell-line-limit">
+                        <span>@string.Format(UI.Cell_LineLimit_Showing, limit.MaxLines, limit.LineCount)</span>
+                        @if (Service.CanOpenCellEditorMaxLinesSetting)
+                        {
+                            <button class="verso-cell-line-limit-action"
+                                    @onclick="Service.OpenCellEditorMaxLinesSettingAsync"
+                                    @onclick:stopPropagation="true">@UI.Cell_LineLimit_Change</button>
+                        }
+                        else if (Service.CellEditorMaxLinesHint is { } hint)
+                        {
+                            <span>@hint</span>
+                        }
+                    </div>
+                }
             </div>
         }
 
@@ -300,6 +320,7 @@
     private List<ToolbarActionInfo> _enabledCellActions = new();
     private string? _enabledActionsSignature;
     private bool _showTypeDropdown;
+    private (bool Clipped, int LineCount, int MaxLines)? _lineLimit;
     private bool _showLanguageDropdown;
 
     // OutputView isolates each output in its own per-output ErrorBoundary (the first line of
@@ -842,4 +863,7 @@
 
         return string.Join(Environment.NewLine, previewLines);
     }
+
+    private void HandleLineLimitChanged((bool Clipped, int LineCount, int MaxLines) limit)
+        => _lineLimit = limit;
 }

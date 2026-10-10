@@ -368,6 +368,29 @@ public interface INotebookService
         string packageId, string? version, CancellationToken ct);
 
     /// <summary>
+    /// How tall a cell's editor grows, in lines, before it scrolls inside itself, when this
+    /// host sets the limit; 0 means no limit. Null leaves the limit to whatever the page was
+    /// given by other means, such as the editor settings a VS Code webview is injected with.
+    /// </summary>
+    int? CellEditorMaxLines => null;
+
+    /// <summary>
+    /// Whether <see cref="OpenCellEditorMaxLinesSettingAsync"/> opens somewhere the reader can
+    /// change the cell line limit. Hosts with nowhere to open return false and can explain how
+    /// the limit is changed through <see cref="CellEditorMaxLinesHint"/> instead.
+    /// </summary>
+    bool CanOpenCellEditorMaxLinesSetting => false;
+
+    /// <summary>Opens the setting that holds the cell line limit, where the host has one.</summary>
+    Task OpenCellEditorMaxLinesSettingAsync() => Task.CompletedTask;
+
+    /// <summary>
+    /// A sentence telling the reader how to change the cell line limit, for a host that cannot
+    /// open a setting for it, or null for none.
+    /// </summary>
+    string? CellEditorMaxLinesHint => null;
+
+    /// <summary>
     /// Lists the versions available to install for <paramref name="packageId"/>, newest first.
     /// The marketplace panel uses this to offer a version other than the latest; the latest
     /// remains the default selection. Hosts without marketplace support return an empty list.

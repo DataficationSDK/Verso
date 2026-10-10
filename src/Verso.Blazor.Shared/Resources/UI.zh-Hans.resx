@@ -187,6 +187,15 @@
   <data name="Cell_ExpandSection" xml:space="preserve">
     <value>展开节</value>
   </data>
+  <data name="Cell_LineLimit_Change" xml:space="preserve">
+    <value>更改上限</value>
+  </data>
+  <data name="Cell_LineLimit_ServeHint" xml:space="preserve">
+    <value>要更改此上限，请使用 --max-cell-lines 启动 verso serve。</value>
+  </data>
+  <data name="Cell_LineLimit_Showing" xml:space="preserve">
+    <value>显示 {1} 行中的 {0} 行</value>
+  </data>
   <data name="Cell_MoveDown" xml:space="preserve">
     <value>下移</value>
   </data>

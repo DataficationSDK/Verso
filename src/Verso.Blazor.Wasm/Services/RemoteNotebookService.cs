@@ -154,6 +154,13 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
     public bool IsLoaded => _isLoaded;
     public bool IsEmbedded => true;
+
+    /// <inheritdoc />
+    public bool CanOpenCellEditorMaxLinesSetting => true;
+
+    /// <inheritdoc />
+    public Task OpenCellEditorMaxLinesSettingAsync()
+        => _bridge.RequestVoidAsync("extension/openCellLineLimitSetting", null);
     public string? FilePath => _filePath;
 
     // Local view of unsaved changes: set by this service's own mutations (the same set the

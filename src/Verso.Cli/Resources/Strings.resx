@@ -1000,6 +1000,10 @@
     <value>Launch the Verso Blazor application as a local web server.</value>
     <comment>Summary of the serve command in 'verso --help'.</comment>
   </data>
+  <data name="Serve_OptMaxCellLines" xml:space="preserve">
+    <value>How tall a cell's editor grows, in lines, before it scrolls inside itself. 0 means no limit.</value>
+    <comment>Help for --max-cell-lines. 0 is the literal number typed.</comment>
+  </data>
   <data name="Serve_OptNoBrowser" xml:space="preserve">
     <value>Do not open a browser tab on startup.</value>
     <comment>Help for --no-browser.</comment>

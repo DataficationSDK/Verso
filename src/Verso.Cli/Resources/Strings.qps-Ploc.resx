@@ -773,6 +773,9 @@
   <data name="Serve_Description" xml:space="preserve">
     <value>[!!Làùñçh thé Véršò Blàzòr àpplïçàtïòñ àš à lòçàl wéb šérvér.···!!]</value>
   </data>
+  <data name="Serve_OptMaxCellLines" xml:space="preserve">
+    <value>[!!Hòw tàll à çéll'š édïtòr gròwš, ïñ lïñéš, béfòré ït šçròllš ïñšïdé ïtšélf. 0 méàñš ñò lïmït.···!!]</value>
+  </data>
   <data name="Serve_OptNoBrowser" xml:space="preserve">
     <value>[!!Dò ñòt òpéñ à bròwšér tàb òñ štàrtùp.···!!]</value>
   </data>

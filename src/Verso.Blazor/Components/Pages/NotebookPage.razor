@@ -374,6 +374,11 @@
         if (firstRender)
         {
             _hasRendered = true;
+
+            // verso serve --max-cell-lines. Editors already on the page re-size to it.
+            if (Service.CellEditorMaxLines is int maxLines)
+                await JS.InvokeVoidAsync("versoMonaco.updateEditorSettings", new { maxLines });
+
             _cellInteractRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("versoCellInteract.register", _cellInteractRef);
 

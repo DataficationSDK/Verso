@@ -24,6 +24,12 @@ public sealed record ServeOptions
     public bool PreserveFormat { get; init; }
 
     /// <summary>
+    /// How tall a cell's editor grows, in lines, before it scrolls inside itself; 0 means no
+    /// limit. Null keeps the editor's own default.
+    /// </summary>
+    public int? MaxCellLines { get; init; }
+
+    /// <summary>
     /// Interface language to serve, or <c>null</c> to let each browser negotiate one.
     /// </summary>
     public string? Language { get; init; }
@@ -93,6 +99,7 @@ public static class BlazorHostBuilder
             ExtensionsDirectory = options.ExtensionsDirectory,
             ExtensionsDirectories = new[] { ExtensionDirectoryResolver.GetDefaultManagedDir() },
             PreserveFormat = options.PreserveFormat,
+            CellEditorMaxLines = options.MaxCellLines,
         });
         builder.Services.AddSingleton<LayoutAssetCache>();
         builder.Services.AddSingleton<LayoutAssetProvider>();

@@ -73,6 +73,10 @@
       "The other entries are the names languages call themselves, so they are the same in every list and are not translated."
     ]
   },
+  "configuration.editor.maxLines.description": {
+    "message": "How tall a cell's editor grows, in lines, before it scrolls inside itself. A shorter cell grows to fit its content. 0 means no limit, which can make a cell with thousands of lines slow to open and scroll past.",
+    "comment": ["0 is the literal number the user types."]
+  },
   "configuration.extensionsPath.description": {
     "message": "Directories of third-party Verso extension assemblies to load on notebook open. Each entry is one directory path. Changes apply on next notebook open or kernel restart."
   },

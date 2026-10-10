@@ -775,6 +775,9 @@
   <data name="Serve_Description" xml:space="preserve">
     <value>Die Verso-Blazor-Anwendung als lokalen Webserver starten.</value>
   </data>
+  <data name="Serve_OptMaxCellLines" xml:space="preserve">
+    <value>Wie hoch der Editor einer Zelle wird, in Zeilen, bevor er in sich selbst scrollt. 0 bedeutet keine Begrenzung.</value>
+  </data>
   <data name="Serve_OptNoBrowser" xml:space="preserve">
     <value>Beim Start keinen Browsertab öffnen.</value>
   </data>

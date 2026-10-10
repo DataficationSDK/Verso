@@ -8,6 +8,7 @@
   "command.newNotebook.title": "Neues Notebook",
   "command.openInVerso.title": "Als Verso Notebook öffnen",
   "configuration.dotnetPath.description": "Pfad zur ausführbaren Datei 'dotnet', mit der Notebooks ausgeführt werden. Ohne Angabe verwendet Verso eine installierte .NET-Laufzeit (und findet sie, sofern vorhanden, über das .NET Install Tool) und greift ersatzweise auf 'dotnet' in PATH zurück.",
+  "configuration.editor.maxLines.description": "Wie hoch der Editor einer Zelle wird, in Zeilen, bevor er in sich selbst scrollt. Eine kürzere Zelle wächst mit ihrem Inhalt. 0 bedeutet keine Begrenzung, wodurch sich eine Zelle mit Tausenden Zeilen nur langsam öffnen und überscrollen lässt.",
   "configuration.extensionsPath.description": "Verzeichnisse mit Verso-Erweiterungsassemblys von Drittanbietern, die beim Öffnen eines Notebooks geladen werden. Ein Verzeichnispfad je Eintrag. Änderungen werden beim nächsten Öffnen eines Notebooks oder Neustart des Kernels wirksam.",
   "configuration.hostPath.description": "Pfad zur Verso.Host.dll. Ohne Angabe wird der mitgelieferte Host verwendet.",
   "configuration.language.auto": "Automatisch erkennen",

@@ -15,8 +15,36 @@ window.versoMonaco = (function () {
     let _editorSettings = {
         fontSize: 14,
         fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-        fontLigatures: true
+        fontLigatures: true,
+        // Tallest a cell editor grows, in lines, before it scrolls inside itself; 0 means no
+        // limit. A cell grows to fit its content up to here. Kept short by default so a notebook
+        // stays easy to scan and a dragged cell has little distance to cover; a cell that
+        // reaches it says so and points at where to raise it.
+        maxLines: 30
     };
+
+    const minEditorLines = 3;
+
+    // The compare view is opened on purpose to read a change, so it keeps a fixed, taller limit
+    // of its own rather than following the cell setting.
+    const diffMaxLines = 40;
+
+    // Height for an editor whose rendered content is contentHeight pixels tall: at least three
+    // lines so an empty cell is still a comfortable target, at most maxLines lines when that is
+    // above 0, plus allowance, room the limit should not count such as a horizontal scrollbar.
+    // contentHeight is Monaco's own measure, which counts wrapped lines, view zones such as the
+    // deleted lines an inline diff shows, and the horizontal scrollbar, none of which a line
+    // count sees.
+    function editorHeight(contentHeight, lineHeight, padding, maxLines, allowance) {
+        let height = Math.max(contentHeight, minEditorLines * lineHeight);
+        if (maxLines > 0) height = Math.min(height, maxLines * lineHeight + (allowance || 0));
+        return height + padding;
+    }
+
+    function cellMaxLines() {
+        const maxLines = Number(_editorSettings.maxLines);
+        return maxLines > 0 ? Math.floor(maxLines) : 0;
+    }
 
     // Apply VS Code editor settings if injected by the extension host
     if (window.__versoEditorSettings) {
@@ -507,14 +535,33 @@ window.versoMonaco = (function () {
                 function applyHeight() {
                     const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
                     if (!lineHeight) return false;
+                    const maxLines = cellMaxLines();
+                    const contentHeight = editor.getContentHeight();
                     const lineCount = editor.getModel().getLineCount();
-                    const minLines = 3;
-                    const maxLines = 30;
-                    const lines = Math.max(minLines, Math.min(maxLines, lineCount));
-                    const padding = 10;
-                    container.style.height = (lines * lineHeight + padding) + 'px';
-                    editor.layout();
+                    // A cell neither wraps nor has view zones, so whatever its content measures
+                    // beyond its lines is the horizontal scrollbar. The limit counts lines, so a
+                    // cell of exactly the limit with one long line still shows every line.
+                    const scrollbar = Math.max(0, contentHeight - lineCount * lineHeight);
+                    const height = editorHeight(contentHeight, lineHeight, 10, maxLines, scrollbar) + 'px';
+                    if (container.style.height !== height) {
+                        container.style.height = height;
+                        editor.layout();
+                    }
+                    reportLineLimit(maxLines > 0 && lineCount > maxLines, lineCount, maxLines);
                     return true;
+                }
+
+                // Tells the cell when its content no longer fits under the limit, so it can say
+                // how much is out of view and where the limit is changed. Sent only on a change.
+                // Starts as the not-clipped report, so a cell that fits says nothing on open.
+                let lastLimitReport = '';
+                function reportLineLimit(clipped, lineCount, maxLines) {
+                    if (!dotnetRef) return;
+                    const report = clipped ? lineCount + '/' + maxLines : '';
+                    if (report === lastLimitReport) return;
+                    lastLimitReport = report;
+                    dotnetRef.invokeMethodAsync('OnLineLimitChanged', clipped, lineCount, maxLines)
+                        .catch(function () { /* component disposed */ });
                 }
 
                 // When created hidden, retry for a short, bounded window until the editor is on
@@ -532,8 +579,13 @@ window.versoMonaco = (function () {
                 }
                 layoutFns[elementId] = updateHeight;
 
+                // Content height changes on more than edits: a horizontal scrollbar appearing,
+                // a font change, a view zone. This is the event Monaco raises for all of them.
+                editor.onDidContentSizeChange(function (e) {
+                    if (e.contentHeightChanged) updateHeight();
+                });
+
                 editor.onDidChangeModelContent(function () {
-                    updateHeight();
                     if (dotnetRef) {
                         const value = editor.getValue();
                         dotnetRef.invokeMethodAsync('OnContentChanged', value);
@@ -703,25 +755,39 @@ window.versoMonaco = (function () {
                 // view mounts its editors only while visible, but the first measure can still
                 // race Monaco's async setup, so keep a short bounded retry.
                 function applyHeight() {
+                    const originalEditor = editor.getOriginalEditor();
                     const modifiedEditor = editor.getModifiedEditor();
                     const lineHeight = modifiedEditor.getOption(monaco.editor.EditorOption.lineHeight);
                     if (!lineHeight) return false;
-                    const lineCount = Math.max(originalModel.getLineCount(), modifiedModel.getLineCount());
-                    const minLines = 3;
-                    const maxLines = 40;
-                    const lines = Math.max(minLines, Math.min(maxLines, lineCount));
-                    const padding = 14;
-                    container.style.height = (lines * lineHeight + padding) + 'px';
-                    editor.layout();
+                    const contentHeight = Math.max(originalEditor.getContentHeight(), modifiedEditor.getContentHeight());
+                    const height = editorHeight(contentHeight, lineHeight, 14, diffMaxLines) + 'px';
+                    if (container.style.height !== height) {
+                        container.style.height = height;
+                        editor.layout();
+                    }
                     return true;
                 }
 
-                let tries = 0;
-                (function retry() {
-                    if (!diffEditors[elementId]) return; // disposed mid-window
-                    if (applyHeight() || tries++ > 60) return;
-                    requestAnimationFrame(retry);
-                })();
+                function updateHeight() {
+                    if (applyHeight()) return;
+                    let tries = 0;
+                    (function retry() {
+                        if (!diffEditors[elementId]) return; // disposed mid-window
+                        if (applyHeight() || tries++ > 60) return;
+                        requestAnimationFrame(retry);
+                    })();
+                }
+
+                // The diff is computed after the editor is created, and it is what adds the
+                // padding that lines up the two sides and, inline, the deleted lines. Both
+                // change the content height after the first measure.
+                [editor.getOriginalEditor(), editor.getModifiedEditor()].forEach(function (side) {
+                    side.onDidContentSizeChange(function (e) {
+                        if (e.contentHeightChanged) updateHeight();
+                    });
+                });
+
+                updateHeight();
             });
         },
 
@@ -915,6 +981,10 @@ window.versoMonaco = (function () {
             if (settings.fontLigatures !== undefined) opts.fontLigatures = settings.fontLigatures;
             Object.values(editors).forEach(function (ed) { ed.updateOptions(opts); });
             Object.values(diffEditors).forEach(function (entry) { entry.editor.updateOptions(opts); });
+            // A font change resizes through onDidContentSizeChange; a new limit alone does not.
+            if (settings.maxLines !== undefined) {
+                Object.values(layoutFns).forEach(function (fn) { try { fn(); } catch (e) { } });
+            }
         }
     };
 })();

@@ -20,6 +20,12 @@
     [Parameter] public bool DiagnosticsSuspended { get; set; }
     [Parameter] public EventCallback<string> OnEditorAction { get; set; }
 
+    /// <summary>
+    /// Raised when the content starts or stops being taller than the line limit, with the
+    /// content's line count and the limit. While it is, the rest scrolls inside the editor.
+    /// </summary>
+    [Parameter] public EventCallback<(bool Clipped, int LineCount, int MaxLines)> OnLineLimitChanged { get; set; }
+
     private readonly string _elementId = $"monaco-{Guid.NewGuid():N}";
     private DotNetObjectReference<MonacoEditor>? _dotnetRef;
     private bool _initialized;
@@ -103,6 +109,10 @@
         await ValueChanged.InvokeAsync(newValue);
         await OnValueChanged.InvokeAsync(newValue);
     }
+
+    [JSInvokable("OnLineLimitChanged")]
+    public Task ReportLineLimit(bool clipped, int lineCount, int maxLines)
+        => OnLineLimitChanged.InvokeAsync((clipped, lineCount, maxLines));
 
     [JSInvokable]
     public async Task OnEditorActionShortcut(string action)

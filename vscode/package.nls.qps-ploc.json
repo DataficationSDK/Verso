@@ -8,6 +8,7 @@
   "command.newNotebook.title": "[!!Ñéw Ñòtébòòk···!!]",
   "command.openInVerso.title": "[!!Òpéñ àš Véršò Ñòtébòòk···!!]",
   "configuration.dotnetPath.description": "[!!Pàth tò thé 'dòtñét' éxéçùtàblé ùšéd tò rùñ ñòtébòòkš. Ïf émptÿ, Véršò réùšéš àñ ïñštàlléd .ÑÉT rùñtïmé (lòçàtïñg ït vïà thé .ÑÉT Ïñštàll Tòòl whéñ àvàïlàblé) àñd fàllš bàçk tò 'dòtñét' òñ PÀTH.···!!]",
+  "configuration.editor.maxLines.description": "[!!Hòw tàll à çéll'š édïtòr gròwš, ïñ lïñéš, béfòré ït šçròllš ïñšïdé ïtšélf. À šhòrtér çéll gròwš tò fït ïtš çòñtéñt. 0 méàñš ñò lïmït, whïçh çàñ màké à çéll wïth thòùšàñdš òf lïñéš šlòw tò òpéñ àñd šçròll pàšt.···!!]",
   "configuration.extensionsPath.description": "[!!Dïréçtòrïéš òf thïrd-pàrtÿ Véršò éxtéñšïòñ àššémblïéš tò lòàd òñ ñòtébòòk òpéñ. Éàçh éñtrÿ ïš òñé dïréçtòrÿ pàth. Çhàñgéš àpplÿ òñ ñéxt ñòtébòòk òpéñ òr kérñél réštàrt.···!!]",
   "configuration.hostPath.description": "[!!Pàth tò thé Véršò.Hòšt.dll. Ïf émptÿ, ùšéš bùñdléd hòšt.···!!]",
   "configuration.language.auto": "[!!Àùtò-détéçt···!!]",

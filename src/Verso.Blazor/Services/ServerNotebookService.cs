@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using Verso.Abstractions;
 using Verso.Blazor.Shared.Models;
+using Verso.Blazor.Shared.Resources;
 using Verso.Blazor.Shared.Services;
 using Verso.Contexts;
 using Verso.Execution;
@@ -119,6 +120,12 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
 
     public bool IsLoaded => _scaffold is not null;
     public bool IsEmbedded => false;
+
+    /// <inheritdoc />
+    public int? CellEditorMaxLines => _options.CellEditorMaxLines;
+
+    /// <inheritdoc />
+    public string? CellEditorMaxLinesHint => UI.Cell_LineLimit_ServeHint;
     public string? FilePath => _filePath;
 
     public bool IsDirty { get; private set; }
