@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using NuGet.Versioning;
 using Verso.Kernels;
 
 namespace Verso.Tests.Kernels;
@@ -78,6 +79,143 @@ public sealed class NuGetPackageResolverTests
         Assert.IsNotNull(result);
         Assert.AreEqual("Newtonsoft.Json", result.Value.PackageId);
         Assert.IsNull(result.Value.Version);
+    }
+
+    [TestMethod]
+    public void ParseNuGetReference_RangeContainingComma_KeepsWholeRangeAsVersion()
+    {
+        var result = NuGetPackageResolver.ParseNuGetReference("Newtonsoft.Json, [12.0.0,13.0.0)");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Newtonsoft.Json", result.Value.PackageId);
+        Assert.AreEqual("[12.0.0,13.0.0)", result.Value.Version);
+    }
+
+    [TestMethod]
+    public void ParseNuGetReference_RangeWithSpaceAfterComma_KeepsWholeRangeAsVersion()
+    {
+        var result = NuGetPackageResolver.ParseNuGetReference("Newtonsoft.Json, [12.0.0, 13.0.0)");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("[12.0.0, 13.0.0)", result.Value.Version);
+    }
+
+    [TestMethod]
+    public void ParseNuGetReference_FloatingVersion_IsKept()
+    {
+        var result = NuGetPackageResolver.ParseNuGetReference("Newtonsoft.Json, 13.*");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("13.*", result.Value.Version);
+    }
+
+    private static readonly NuGetVersion[] AvailableVersions =
+        new[] { "1.0.0", "1.2.0", "1.5.0", "2.0.0", "2.0.12", "3.0.0-rc.1", "1.0.0-alpha", "1.0.0-beta" }
+            .Select(NuGetVersion.Parse)
+            .ToArray();
+
+    private static string? Select(string? spec) =>
+        NuGetPackageResolver.SelectVersion(AvailableVersions, spec)?.ToNormalizedString();
+
+    [TestMethod]
+    public void SelectVersion_NoSpec_PicksLatestStable()
+    {
+        Assert.AreEqual("2.0.12", Select(null));
+        Assert.AreEqual("2.0.12", Select(""));
+    }
+
+    [TestMethod]
+    public void SelectVersion_ExactVersion_IsPinned()
+    {
+        Assert.AreEqual("1.2.0", Select("1.2.0"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_ExactPrerelease_IsPinned()
+    {
+        Assert.AreEqual("3.0.0-rc.1", Select("3.0.0-rc.1"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_ExactVersionNotOffered_ReturnsNull()
+    {
+        // A plain version is an exact pin, not a minimum, so a newer release does not stand in.
+        Assert.IsNull(Select("1.1.0"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_Star_PicksLatestStable()
+    {
+        Assert.AreEqual("2.0.12", Select("*"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_StarWithPrerelease_PicksLatestIncludingPrerelease()
+    {
+        Assert.AreEqual("3.0.0-rc.1", Select("*-*"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_FloatingMajor_PicksLatestStableInThatMajor()
+    {
+        Assert.AreEqual("1.5.0", Select("1.*"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_FloatingPrereleaseOfAVersion_PrefersTheStableReleaseOfThatVersion()
+    {
+        // 1.0.0-* matches every 1.0.0 prerelease and 1.0.0 itself; the release ranks highest.
+        Assert.AreEqual("1.0.0", Select("1.0.0-*"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_FloatingPrereleaseOfAVersion_WithoutARelease_PicksLatestPrerelease()
+    {
+        var available = new[] { "1.0.0-alpha", "1.0.0-beta", "2.0.0" }.Select(NuGetVersion.Parse);
+
+        Assert.AreEqual("1.0.0-beta", NuGetPackageResolver.SelectVersion(available, "1.0.0-*")?.ToNormalizedString());
+    }
+
+    [TestMethod]
+    public void SelectVersion_BoundedRange_PicksLowestMatch()
+    {
+        Assert.AreEqual("1.0.0", Select("[1.0.0,2.0.0)"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_ExclusiveLowerBound_PicksLowestAboveIt()
+    {
+        Assert.AreEqual("1.2.0", Select("(1.0.0,)"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_UpperBoundOnly_PicksLowestStableMatch()
+    {
+        // Prereleases are left out because the range does not name one.
+        Assert.AreEqual("1.0.0", Select("(,1.5.0]"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_RangeNothingSatisfies_ReturnsNull()
+    {
+        Assert.IsNull(Select("[4.0.0,)"));
+    }
+
+    [TestMethod]
+    public void SelectVersion_UnreadableSpec_ReturnsNullAndIsNotValid()
+    {
+        foreach (var spec in new[] { "1.0.0.x", "latest" })
+        {
+            Assert.IsNull(Select(spec), spec);
+            Assert.IsFalse(NuGetPackageResolver.IsValidVersionSpec(spec), spec);
+        }
+    }
+
+    [TestMethod]
+    public void IsValidVersionSpec_AcceptsEmptyExactFloatingAndRanges()
+    {
+        foreach (var spec in new[] { null, "", "1.2.0", "3.0.0-rc.1", "*", "*-*", "1.*", "1.0.0-*", "[1.0.0,2.0.0)", "(,1.5.0]" })
+            Assert.IsTrue(NuGetPackageResolver.IsValidVersionSpec(spec), spec ?? "null");
     }
 
     [TestMethod]

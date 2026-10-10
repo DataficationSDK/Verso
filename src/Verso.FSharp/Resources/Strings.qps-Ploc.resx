@@ -85,6 +85,9 @@
   <data name="NuGet_DownloadUnreachable" xml:space="preserve">
     <value>[!!Ùñàblé tò dòwñlòàd pàçkàgé '{0}' v{1}. Çhéçk ÿòùr ñétwòrk çòññéçtïòñ àñd trÿ àgàïñ. ({2}: {3})···!!]</value>
   </data>
+  <data name="NuGet_InvalidVersionSpec" xml:space="preserve">
+    <value>[!!'{0}' ïš ñòt à vàlïd véršïòñ òr véršïòñ ràñgé fòr pàçkàgé '{1}'. Ùšé àñ éxàçt véršïòñ šùçh àš 1.2.3, à flòàtïñg véršïòñ šùçh àš 1.* òr *-*, òr à ràñgé šùçh àš [1.0.0,2.0.0).···!!]</value>
+  </data>
   <data name="NuGet_PackageNotFound" xml:space="preserve">
     <value>[!!Pàçkàgé '{0}'{1} wàš ñòt fòùñd òñ àñÿ çòñfïgùréd šòùrçé. Šòùrçéš trïéd: {2}···!!]</value>
   </data>

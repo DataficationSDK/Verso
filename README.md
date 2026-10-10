@@ -68,7 +68,7 @@ The architecture is built on one principle: every feature is an extension, and e
 
 Every language kernel answers completions and hover from a real language service rather than by text matching: Roslyn for C#, FSharp.Compiler.Service for F#, a live runspace for PowerShell, and your own interpreter for Python. Kernels also compute diagnostics ahead of execution, which hosts and tools reach through `ILanguageKernel.GetDiagnosticsAsync`; errors from a run are reported as cell output.
 
-NuGet packages are referenced inline with `#r "nuget: PackageName/Version"`, and custom package sources are supported with `#i "nuget: <url>"`. Python uses `#!pip` for package management, and JavaScript uses `#!npm` for npm packages. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
+NuGet packages are referenced inline with `#r "nuget: PackageName, Version"`, and custom package sources are supported with `#i "nuget: <url>"`. A plain version is an exact pin; floating versions such as `1.*` or `*-*` and ranges such as `[1.0.0,2.0.0)` follow NuGet's own rules, and leaving the version out picks the latest stable release. Python uses `#!pip` for package management, and JavaScript uses `#!npm` for npm packages. State persists across cells within each kernel, and variables are shared across kernels through a central variable store.
 
 ### Layouts
 

@@ -85,6 +85,9 @@
   <data name="NuGet_DownloadUnreachable" xml:space="preserve">
     <value>无法下载包“{0}”v{1}。请检查网络连接后重试。（{2}：{3}）</value>
   </data>
+  <data name="NuGet_InvalidVersionSpec" xml:space="preserve">
+    <value>“{0}”不是包“{1}”的有效版本或版本范围。请使用确切版本（如 1.2.3）、浮动版本（如 1.* 或 *-*）或版本范围（如 [1.0.0,2.0.0)）。</value>
+  </data>
   <data name="NuGet_PackageNotFound" xml:space="preserve">
     <value>在任何已配置的源中都找不到包“{0}”{1}。已尝试的源：{2}</value>
   </data>

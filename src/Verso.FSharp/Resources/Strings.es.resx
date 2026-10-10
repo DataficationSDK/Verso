@@ -85,6 +85,9 @@
   <data name="NuGet_DownloadUnreachable" xml:space="preserve">
     <value>No se puede descargar el paquete '{0}' v{1}. Compruebe la conexión de red e inténtelo de nuevo. ({2}: {3})</value>
   </data>
+  <data name="NuGet_InvalidVersionSpec" xml:space="preserve">
+    <value>'{0}' no es una versión ni un intervalo de versiones válido para el paquete '{1}'. Use una versión exacta como 1.2.3, una versión flotante como 1.* o *-*, o un intervalo como [1.0.0,2.0.0).</value>
+  </data>
   <data name="NuGet_PackageNotFound" xml:space="preserve">
     <value>No se encontró el paquete '{0}'{1} en ningún origen configurado. Orígenes probados: {2}</value>
   </data>
