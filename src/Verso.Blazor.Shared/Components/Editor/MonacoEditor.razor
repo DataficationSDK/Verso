@@ -11,6 +11,13 @@
     [Parameter] public EventCallback<string> OnValueChanged { get; set; }
     [Parameter] public Func<string, int, Task<object?>>? OnGetHoverInfo { get; set; }
     [Parameter] public Func<string, int, Task<object?>>? OnGetCompletions { get; set; }
+    [Parameter] public Func<string, Task<object?>>? OnGetDiagnostics { get; set; }
+
+    /// <summary>
+    /// When true, the editor issues no diagnostics requests. A refresh asked for while suspended
+    /// runs once when the suspension lifts.
+    /// </summary>
+    [Parameter] public bool DiagnosticsSuspended { get; set; }
     [Parameter] public EventCallback<string> OnEditorAction { get; set; }
 
     private readonly string _elementId = $"monaco-{Guid.NewGuid():N}";
@@ -18,6 +25,7 @@
     private bool _initialized;
     private string? _lastSetValue;
     private string? _lastSetLanguage;
+    private bool _lastSetDiagnosticsSuspended;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -28,11 +36,13 @@
             {
                 value = Value,
                 language = Language,
-                readOnly = ReadOnly
+                readOnly = ReadOnly,
+                diagnosticsSuspended = DiagnosticsSuspended
             }, _dotnetRef);
             _initialized = true;
             _lastSetValue = Value;
             _lastSetLanguage = Language;
+            _lastSetDiagnosticsSuspended = DiagnosticsSuspended;
         }
     }
 
@@ -55,6 +65,35 @@
             _lastSetLanguage = Language;
             await JS.InvokeVoidAsync("versoMonaco.setLanguage", _elementId, Language);
         }
+
+        // Guarded for the same reason: the flag only flips when a run starts or ends.
+        if (DiagnosticsSuspended != _lastSetDiagnosticsSuspended)
+        {
+            _lastSetDiagnosticsSuspended = DiagnosticsSuspended;
+            await JS.InvokeVoidAsync("versoMonaco.setDiagnosticsSuspended", _elementId, DiagnosticsSuspended);
+        }
+    }
+
+    /// <summary>Ask the kernel for fresh diagnostics and replace the editor's markers.</summary>
+    public async Task RefreshDiagnosticsAsync()
+    {
+        if (!_initialized) return;
+        try
+        {
+            await JS.InvokeVoidAsync("versoMonaco.refreshDiagnostics", _elementId);
+        }
+        catch (JSDisconnectedException) { }
+    }
+
+    /// <summary>Remove every kernel diagnostic marker from the editor.</summary>
+    public async Task ClearDiagnosticsAsync()
+    {
+        if (!_initialized) return;
+        try
+        {
+            await JS.InvokeVoidAsync("versoMonaco.clearDiagnostics", _elementId);
+        }
+        catch (JSDisconnectedException) { }
     }
 
     [JSInvokable]
@@ -90,6 +129,18 @@
         {
             return OnGetCompletions is not null
                 ? await OnGetCompletions(code, cursorPosition)
+                : null;
+        }
+        catch { return null; }
+    }
+
+    [JSInvokable]
+    public async Task<object?> GetDiagnostics(string code)
+    {
+        try
+        {
+            return OnGetDiagnostics is not null
+                ? await OnGetDiagnostics(code)
                 : null;
         }
         catch { return null; }

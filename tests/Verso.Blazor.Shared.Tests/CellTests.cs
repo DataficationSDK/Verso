@@ -468,19 +468,156 @@ public sealed class CellTests : BunitTestContext
         Assert.AreEqual(2, _service.GetActionEnabledStatesCallCount);
     }
 
+    [TestMethod]
+    public async Task Diagnostics_MasksLeadingMagicLines_AndMapsResult()
+    {
+        _service.DiagnosticsResult = new DiagnosticsResultDto(new[]
+        {
+            new DiagnosticItemDto("Error", "Cannot convert", 2, 8, 2, 14, "CS0029")
+        });
+        var cell = CreateCodeCell("");
+        var cut = RenderCell(cell);
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        var result = await cut.InvokeAsync(() => editor.GetDiagnostics("#!time\n\nint x = \"text\";\n#!not-leading"));
+
+        // The magic line is blanked, not removed, so line 2 in the reply is still line 2 in the
+        // editor. Only leading magic lines are touched, as in the execution pipeline.
+        Assert.AreEqual(1, _service.DiagnosticsRequests.Count);
+        Assert.AreEqual(cell.Id, _service.DiagnosticsRequests[0].CellId);
+        Assert.AreEqual("\n\nint x = \"text\";\n#!not-leading", _service.DiagnosticsRequests[0].Code);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(result);
+        StringAssert.Contains(json, "\"source\":\"C#\"");
+        StringAssert.Contains(json, "\"severity\":\"Error\"");
+        StringAssert.Contains(json, "\"startLine\":2");
+        StringAssert.Contains(json, "\"startColumn\":8");
+        StringAssert.Contains(json, "\"code\":\"CS0029\"");
+    }
+
+    [TestMethod]
+    public async Task Diagnostics_ServiceReturnsNull_ReturnsNull()
+    {
+        _service.DiagnosticsResult = null;
+        var cut = RenderCell(CreateCodeCell(""));
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        var result = await cut.InvokeAsync(() => editor.GetDiagnostics("var x = 1;"));
+
+        Assert.IsNull(result, "A failed request keeps the editor's markers, so it must stay null.");
+    }
+
+    [TestMethod]
+    public void Diagnostics_SuspendedWhileNotebookExecutes()
+    {
+        var cut = RenderCell(CreateCodeCell("var x = 1;"));
+        Assert.IsFalse(cut.FindComponent<MonacoEditor>().Instance.DiagnosticsSuspended);
+
+        cut.SetParametersAndRender(p => p.Add(c => c.IsNotebookExecuting, true));
+
+        Assert.IsTrue(cut.FindComponent<MonacoEditor>().Instance.DiagnosticsSuspended);
+    }
+
+    [TestMethod]
+    public void Diagnostics_RefreshedWhenOwnRunCompletes()
+    {
+        var cut = RenderCell(CreateCodeCell("var x = 1;"), isExecuting: true, editorCreated: true);
+        Assert.AreEqual(0, RefreshDiagnosticsCallCount());
+
+        cut.SetParametersAndRender(p => p.Add(c => c.IsExecuting, false));
+
+        Assert.AreEqual(1, RefreshDiagnosticsCallCount());
+    }
+
+    [TestMethod]
+    public void Diagnostics_ClearedOnKernelRestart()
+    {
+        var cut = RenderCell(CreateCodeCell("var x = 1;"), editorCreated: true);
+
+        _service.RaiseKernelRestarted();
+
+        cut.WaitForAssertion(() => Assert.AreEqual(1,
+            TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.clearDiagnostics")));
+    }
+
+    [TestMethod]
+    public void Diagnostics_ClearedWhenAnotherKernelRestarts()
+    {
+        // In VS Code a restart respawns the whole host, and a variable a SQL or HTTP cell reads may
+        // be gone with it, so every cell clears whichever kernel restarted.
+        var cut = RenderCell(CreateCodeCell("var x = 1;"), editorCreated: true);
+
+        _service.RaiseKernelRestarted("python");
+
+        cut.WaitForAssertion(() => Assert.AreEqual(1,
+            TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.clearDiagnostics")));
+    }
+
+    [TestMethod]
+    public async Task Diagnostics_HtmlCell_IsSentToTheService()
+    {
+        // HTML and Mermaid cells run on a kernel of their own that reports unresolved variables.
+        _service.DiagnosticsResult = new DiagnosticsResultDto(Array.Empty<DiagnosticItemDto>());
+        var cell = new CellModel { Id = Guid.NewGuid(), Type = "html", Language = "html", Source = "" };
+        var cut = RenderCell(cell);
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        await cut.InvokeAsync(() => editor.GetDiagnostics("<p>@name</p>"));
+
+        Assert.AreEqual(1, _service.DiagnosticsRequests.Count);
+        Assert.AreEqual(cell.Id, _service.DiagnosticsRequests[0].CellId);
+    }
+
+    [TestMethod]
+    public async Task Diagnostics_CodeCellWithoutLanguage_IsSentToTheService()
+    {
+        // A cell with no language runs on the notebook's default kernel.
+        _service.DiagnosticsResult = new DiagnosticsResultDto(Array.Empty<DiagnosticItemDto>());
+        var cell = new CellModel { Id = Guid.NewGuid(), Type = "code", Language = null, Source = "" };
+        var cut = RenderCell(cell);
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        var result = await cut.InvokeAsync(() => editor.GetDiagnostics("var x = 1;"));
+
+        Assert.AreEqual(1, _service.DiagnosticsRequests.Count);
+        StringAssert.Contains(System.Text.Json.JsonSerializer.Serialize(result), "\"source\":\"C#\"");
+    }
+
+    [TestMethod]
+    public async Task Diagnostics_MarkdownCell_IsNotSent()
+    {
+        var cell = new CellModel { Id = Guid.NewGuid(), Type = "markdown", Source = "" };
+        var cut = RenderCell(cell, isSelected: true);
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        var result = await cut.InvokeAsync(() => editor.GetDiagnostics("# Title"));
+
+        Assert.AreEqual(0, _service.DiagnosticsRequests.Count);
+        StringAssert.Contains(System.Text.Json.JsonSerializer.Serialize(result), "\"items\":[]");
+    }
+
+    private int RefreshDiagnosticsCallCount()
+        => TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.refreshDiagnostics");
+
     private IRenderedComponent<Cell> RenderCell(
         CellModel cell,
         bool isSelected = false,
         bool isExecuting = false,
         int index = 0,
         bool isLast = false,
-        bool collapsesInput = false)
+        bool collapsesInput = false,
+        bool editorCreated = false)
     {
-        // Set up JS interop stub for MonacoEditor
-        TestContext!.JSInterop.SetupVoid("versoMonaco.create", _ => true);
+        // Set up JS interop stub for MonacoEditor. The editor only forwards diagnostics calls
+        // once its create call has completed, which a test asks for with editorCreated.
+        var create = TestContext!.JSInterop.SetupVoid("versoMonaco.create", _ => true);
+        if (editorCreated) create.SetVoidResult();
         TestContext.JSInterop.SetupVoid("versoMonaco.setValue", _ => true);
         TestContext.JSInterop.SetupVoid("versoMonaco.setLanguage", _ => true);
         TestContext.JSInterop.SetupVoid("versoMonaco.dispose", _ => true);
+        TestContext.JSInterop.SetupVoid("versoMonaco.refreshDiagnostics", _ => true);
+        TestContext.JSInterop.SetupVoid("versoMonaco.clearDiagnostics", _ => true);
+        TestContext.JSInterop.SetupVoid("versoMonaco.setDiagnosticsSuspended", _ => true);
 
         return RenderComponent<Cell>(p => p
             .Add(c => c.CellData, cell)

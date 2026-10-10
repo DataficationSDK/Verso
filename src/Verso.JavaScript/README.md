@@ -7,7 +7,7 @@ Uses Node.js (subprocess) when available for full npm and module support, with J
 ## Features
 
 - **JavaScript kernel**: Full ES2024+, `require()`, dynamic `import()`, top-level `await`, npm packages via `#!npm`
-- **TypeScript kernel**: Automatic transpilation via the TypeScript compiler API, same Node.js execution environment as JavaScript
+- **TypeScript kernel**: Automatic transpilation via the TypeScript compiler API, run in a Node.js process of its own
 - **Jint fallback** (JavaScript only): Pure .NET ES2024 interpreter, no external dependencies required
 - **Cross-kernel variables**: Share values between JavaScript/TypeScript and other language kernels (C#, Python, F#)
 - **Console capture**: `console.log`/`console.error` output rendered as cell outputs
@@ -55,7 +55,7 @@ console.log(_.capitalize('hello world'));
 - Requires Node.js (no Jint fallback)
 - Transpiles cells using `ts.transpileModule()` with ES2022 target and CommonJS module output
 - The `typescript` npm module is auto-installed silently on first use
-- Shares the same Node.js subprocess and variable scope as JavaScript cells
+- Runs in its own Node.js subprocess, separate from JavaScript cells. Values cross between the two through the shared variable store, like any other kernel
 - Type annotations are stripped at transpile time; any valid TypeScript compiles and runs
 
 ## Magic Commands
@@ -77,5 +77,6 @@ Variables from other kernels are injected into the JavaScript global scope befor
 
 - Static `import` declarations are not supported in cells. Use `const { x } = await import('y')` instead.
 - `let` and `const` declarations are scoped to the cell. Use `var` or bare assignment for cross-cell persistence.
-- TypeScript type checking is limited to transpile-time diagnostics (no cross-cell type awareness).
+- Editor diagnostics are syntax errors only. JavaScript cells are parsed in-process, so errors show with or without Node.js and before the first run; a static `import` is flagged because it fails when the cell runs.
+- TypeScript cells are not type checked, in the editor or at run time. The editor shows the syntax errors the transpiler reports, once the kernel has started and the `typescript` module is installed.
 - Jint mode does not support Node.js APIs, npm packages, or async/await at the top level.

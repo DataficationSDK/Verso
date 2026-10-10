@@ -176,6 +176,9 @@
         SelectedCellId = ActiveLayoutSupportsCellEditing ? _selectedCellId : null,
         ExecutingCellId = _executingCellId,
         IsRunDisabled = _executingCellId.HasValue,
+        // The page's own counter covers the gaps between cells of a Run All, where the executing
+        // cell id is briefly null.
+        IsAnyExecuting = _executingCellId.HasValue || _activeExecutions > 0,
         CollapsedSections = _collapsedSections,
         DiffMarks = _comparison.CellMarks,
         OnRunCell = EventCallback.Factory.Create<Guid>(this, HandleRunCell),

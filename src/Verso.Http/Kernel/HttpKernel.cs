@@ -343,14 +343,13 @@ public sealed class HttpKernel : ILanguageKernel
             if (fileVarNames.Contains(expr))
                 continue;
 
-            // Check variable store
-            bool resolved = false;
-            if (_lastVariableStore is not null)
-            {
-                resolved = _lastVariableStore.TryGet<object>(expr, out _);
-            }
+            // The kernel learns the variable store only when an HTTP cell runs. Until then a
+            // reference to a store variable cannot be checked, and flagging it would mark names
+            // that other cells have already set.
+            if (_lastVariableStore is null)
+                continue;
 
-            if (!resolved)
+            if (!_lastVariableStore.TryGet<object>(expr, out _))
             {
                 var (line, col) = OffsetToLineCol(code, match.Index);
                 var (endLine, endCol) = OffsetToLineCol(code, match.Index + match.Length);

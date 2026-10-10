@@ -33,6 +33,21 @@ Each hosting environment provides its own implementation:
 | Blazor Server | `ServerNotebookService` | Direct, in-process |
 | VS Code (WASM) | `RemoteNotebookService` | JSON-RPC via host process |
 
+#### Editor diagnostics
+
+Hover and completions are pulled: Monaco asks for them. Diagnostics are pushed: `monaco-interop.js` decides when to ask, calls `MonacoEditor.GetDiagnostics`, which goes through `Cell.razor` to `INotebookService.GetDiagnosticsAsync`, and replaces the cell's markers under the owner `verso-kernel`. `ServerNotebookService` calls the kernel in process; `RemoteNotebookService` sends `kernel/getDiagnostics` to `Verso.Host`.
+
+The refresh policy is set by the expensive kernels, where a request is a full compilation:
+
+- **Edit**: debounced, 500 ms after the last change the user makes. Text set from .NET (a reload, a tool editing cells) does not ask unless that editor has focus; the next focus asks instead.
+- **Focus**: when a cell's editor gains focus, since variable-dependent kernels (SQL, HTTP, HTML) change their answer when another cell runs, not when this text changes. Skipped when the text is the version last answered and nothing has happened since that could change the answer (a run ending, a restart, a language change).
+- **Run**: after the cell's own run finishes.
+- **Restart**: markers are cleared in every cell, whichever kernel restarted, not recomputed.
+
+While any cell is running no request is issued (`NotebookCellContext.IsAnyExecuting`, passed to the editor as `DiagnosticsSuspended`). `Verso.Host` answers requests one at a time, so a request during a run would wait for the run, and some kernels answer empty while executing. A refresh asked for in that time runs once the run is over. One request is in flight per editor; a reply for text that has since changed is dropped; a failed request (null) keeps the markers that are showing, while an empty list clears them. Cells over 2,000 lines are not analyzed.
+
+Monaco's bundled TypeScript worker would otherwise mark JavaScript and TypeScript cells as if each were a standalone file, so its validation is turned off when Monaco loads; its completion and hover stay on.
+
 Isolated (iframe) layouts need more than the base notebook operations, so hosts also implement `IIsolatedLayoutHost` (an extension of `INotebookService` in `Verso.Blazor.Shared.Services`). It covers frame allocation, renderer-package fetch, mount and unmount lifecycle, the message pump between the frame and the kernel, and theme propagation. Blazor Server implements it in-process; Blazor WASM implements it over JSON-RPC.
 
 ### Static Assets

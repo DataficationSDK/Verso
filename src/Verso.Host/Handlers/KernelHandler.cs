@@ -42,7 +42,7 @@ public static class KernelHandler
         };
     }
 
-    public static async Task<DiagnosticsResult> HandleGetDiagnosticsAsync(NotebookSession ns, JsonElement? @params)
+    public static async Task<DiagnosticsResult?> HandleGetDiagnosticsAsync(NotebookSession ns, JsonElement? @params)
     {
         var p = @params?.Deserialize<DiagnosticsParams>(JsonRpcMessage.SerializerOptions)
             ?? throw new JsonException("Missing params for kernel/getDiagnostics");
@@ -51,8 +51,22 @@ public static class KernelHandler
         if (kernel is null)
             return new DiagnosticsResult();
 
-        await ns.Scaffold.WarmUpKernelAsync(kernel.LanguageId);
-        var diagnostics = await kernel.GetDiagnosticsAsync(p.Code);
+        // Diagnostics are advisory. A kernel that cannot start (a runtime it needs is missing) or
+        // that fails mid-analysis reports nothing rather than an error on every keystroke; the
+        // failure surfaces where it matters, when the cell runs. A null result rather than an
+        // empty one, so the editor keeps the markers it already shows, and rather than an error
+        // response, so a kernel that cannot start does not log a failure on every request.
+        IReadOnlyList<Diagnostic> diagnostics;
+        try
+        {
+            await ns.Scaffold.WarmUpKernelAsync(kernel.LanguageId);
+            diagnostics = await kernel.GetDiagnosticsAsync(p.Code);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+
         return new DiagnosticsResult
         {
             Items = diagnostics.Select(d => new DiagnosticDto
@@ -98,14 +112,6 @@ public static class KernelHandler
 
     private static ILanguageKernel? ResolveKernelForCell(NotebookSession ns, string cellId)
     {
-        var cell = ns.Scaffold.GetCell(Guid.Parse(cellId));
-        if (cell is null)
-            return null;
-
-        var language = cell.Language ?? ns.Scaffold.Notebook.DefaultKernelId;
-        if (language is null)
-            return null;
-
-        return ns.Scaffold.GetKernel(language);
+        return ns.Scaffold.ResolveKernelForCell(Guid.Parse(cellId));
     }
 }
