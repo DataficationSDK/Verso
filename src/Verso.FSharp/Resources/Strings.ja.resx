@@ -85,6 +85,9 @@
   <data name="NuGet_DownloadUnreachable" xml:space="preserve">
     <value>パッケージ '{0}' v{1} をダウンロードできません。ネットワーク接続を確認して、もう一度試してください。({2}: {3})</value>
   </data>
+  <data name="NuGet_InvalidVersionSpec" xml:space="preserve">
+    <value>'{0}' は、パッケージ '{1}' の有効なバージョンまたはバージョン範囲ではありません。1.2.3 のような正確なバージョン、1.* や *-* のような変動バージョン、または [1.0.0,2.0.0) のような範囲を使用してください。</value>
+  </data>
   <data name="NuGet_PackageNotFound" xml:space="preserve">
     <value>パッケージ '{0}'{1} は、設定されているどのソースにも見つかりませんでした。試したソース: {2}</value>
   </data>
