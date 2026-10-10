@@ -1,3 +1,4 @@
+using Verso.Abstractions;
 using Verso.JavaScript.Resources;
 namespace Verso.JavaScript.Kernel;
 
@@ -32,6 +33,13 @@ internal interface IJavaScriptRunner : IAsyncDisposable
     /// </summary>
     Task<TranspileResult> TranspileAsync(string code, CancellationToken ct) =>
         Task.FromResult(new TranspileResult(null, Strings.Node_TranspileRequiresModule));
+
+    /// <summary>
+    /// Report TypeScript syntax diagnostics for a cell, positioned relative to the code given.
+    /// Empty when the backend has no TypeScript compiler.
+    /// </summary>
+    Task<IReadOnlyList<Diagnostic>> GetTypeScriptDiagnosticsAsync(string code, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
 
     /// <summary>
     /// True if the backend is still operational. For Node.js, false after a process crash.

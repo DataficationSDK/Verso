@@ -50,9 +50,22 @@ public sealed class SqlKernelDiagnosticTests
     }
 
     [TestMethod]
-    public async Task GetDiagnosticsAsync_NoVariableStore_ReturnsConnectionError()
+    public async Task GetDiagnosticsAsync_NoVariableStore_ReportsNothing()
+    {
+        // Before any SQL cell runs the kernel has not seen the variable store, so it cannot know
+        // whether a connection exists; a notebook that is connected must not show an error.
+        var kernel = new SqlKernel();
+
+        var diagnostics = await kernel.GetDiagnosticsAsync("SELECT * FROM T WHERE Id = @someParam");
+
+        Assert.AreEqual(0, diagnostics.Count);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_StoreSeenWithoutConnection_ReturnsConnectionError()
     {
         var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", new StubExecutionContext());
 
         var diagnostics = await kernel.GetDiagnosticsAsync("SELECT 1");
 
@@ -371,6 +384,30 @@ SELECT @rows, @waitDelay, @serverName";
         Assert.IsNotNull(paramDiag);
         Assert.AreEqual(1, paramDiag!.StartLine,
             "@missing is on line 1 (after the directive header on line 0).");
+        Assert.AreEqual(27, paramDiag.StartColumn);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnosticsAsync_BlankedMagicLineAboveDirective_ReadsDirective()
+    {
+        var ctx = CreateContextWithConnection();
+        var kernel = new SqlKernel();
+        await kernel.ExecuteAsync("SELECT 1", ctx);
+
+        // The editor sends "#!time" as an empty line; at run time the pipeline removes it and
+        // the kernel reads "--connection nonexistent" as the cell's first line.
+        var code = "\n--connection nonexistent\nSELECT * FROM T WHERE Id = @missing";
+        var diagnostics = await kernel.GetDiagnosticsAsync(code);
+
+        var connectionError = diagnostics.FirstOrDefault(d =>
+            d.Severity == DiagnosticSeverity.Error && d.Message.Contains("nonexistent"));
+        Assert.IsNotNull(connectionError, "The directive below the blanked line should be read.");
+        Assert.AreEqual(1, connectionError!.StartLine);
+
+        var paramDiag = diagnostics.FirstOrDefault(d =>
+            d.Severity == DiagnosticSeverity.Warning && d.Message.Contains("@missing"));
+        Assert.IsNotNull(paramDiag);
+        Assert.AreEqual(2, paramDiag!.StartLine);
         Assert.AreEqual(27, paramDiag.StartColumn);
     }
 }

@@ -370,39 +370,49 @@ public sealed class SqlKernel : ILanguageKernel
     {
         var diagnostics = new List<Diagnostic>();
 
-        var (directives, sqlCode) = SqlDirectives.Parse(code);
+        // The kernel learns the variable store only when a SQL cell runs. Until then it cannot
+        // tell whether a connection or a parameter exists, and reporting them as missing would
+        // mark every SQL cell in a notebook that is in fact connected.
+        if (_lastVariableStore is null)
+            return Task.FromResult<IReadOnlyList<Diagnostic>>(diagnostics);
+
+        // The editor blanks leading #! magic lines rather than removing them, but the pipeline
+        // removes them before a cell runs, so the directive line the kernel reads at run time
+        // can sit below blank lines here. Skip those lines and count them back into positions.
+        var leadingLines = 0;
+        var start = 0;
+        while (true)
+        {
+            var lineEnd = code.IndexOf('\n', start);
+            if (lineEnd < 0 || !code.AsSpan(start, lineEnd - start).IsWhiteSpace())
+                break;
+            leadingLines++;
+            start = lineEnd + 1;
+        }
+
+        var body = code.Substring(start);
+        var (directives, sqlCode) = SqlDirectives.Parse(body);
 
         // Resolve connection (and dialect for parameter scanning)
-        SqlConnectionInfo? connInfo = null;
         var dialect = SqlDialect.Unknown;
-        if (_lastVariableStore is not null)
-        {
-            connInfo = ConnectionResolver.Resolve(directives.ConnectionName, _lastVariableStore);
-            if (connInfo is null)
-            {
-                diagnostics.Add(new Diagnostic(
-                    DiagnosticSeverity.Error,
-                    directives.ConnectionName is not null
-                        ? $"Connection '{directives.ConnectionName}' not found. Use #!sql-connect to establish a connection."
-                        : "No database connection. Use #!sql-connect to establish a connection.",
-                    0, 0, 0, 0));
-            }
-            else
-            {
-                dialect = SqlDialectResolver.FromProviderName(connInfo.ProviderName);
-            }
-        }
-        else
+        var connInfo = ConnectionResolver.Resolve(directives.ConnectionName, _lastVariableStore);
+        if (connInfo is null)
         {
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Error,
-                "No database connection. Use #!sql-connect to establish a connection.",
-                0, 0, 0, 0));
+                directives.ConnectionName is not null
+                    ? $"Connection '{directives.ConnectionName}' not found. Use #!sql-connect to establish a connection."
+                    : "No database connection. Use #!sql-connect to establish a connection.",
+                leadingLines, 0, leadingLines, 0));
+        }
+        else
+        {
+            dialect = SqlDialectResolver.FromProviderName(connInfo.ProviderName);
         }
 
         // Scan for unresolved parameters in the post-directive-strip SQL,
         // then translate offsets back to the original cell's line numbering.
-        int lineOffset = sqlCode.Length < code.Length ? 1 : 0;
+        int lineOffset = leadingLines + (sqlCode.Length < body.Length ? 1 : 0);
         char prefix = dialect.ParameterPrefix();
 
         var localNames = SqlLocalScopeAnalyzer.FindLocalNames(sqlCode, dialect);
@@ -416,13 +426,8 @@ public sealed class SqlKernel : ILanguageKernel
             if (!seen.Add(reference.Name))
                 continue;
 
-            bool resolved = false;
-            if (_lastVariableStore is not null)
-            {
-                var allVars = _lastVariableStore.GetAll();
-                resolved = allVars.Any(v =>
-                    string.Equals(v.Name, reference.Name, StringComparison.OrdinalIgnoreCase));
-            }
+            var resolved = _lastVariableStore.GetAll().Any(v =>
+                string.Equals(v.Name, reference.Name, StringComparison.OrdinalIgnoreCase));
 
             if (!resolved)
             {

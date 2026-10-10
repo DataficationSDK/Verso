@@ -766,6 +766,24 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 i.DisplayText, i.InsertText, i.Kind, i.Description, i.SortText)).ToList());
     }
 
+    public async Task<DiagnosticsResultDto?> GetDiagnosticsAsync(Guid cellId, string code)
+    {
+        var result = await _bridge.RequestAsync<DiagnosticsResponse?>(
+            "kernel/getDiagnostics",
+            new { cellId = cellId.ToString(), code });
+
+        // The host answers null when the kernel could not analyze the code; the editor then keeps
+        // the markers it already shows. An answered request with nothing in it is a real
+        // "no problems", which clears them.
+        if (result is null) return null;
+
+        return new DiagnosticsResultDto(
+            (result.Items ?? new List<DiagnosticItem>())
+                .Select(d => new DiagnosticItemDto(
+                    d.Severity, d.Message, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn, d.Code))
+                .ToList());
+    }
+
     // ── Layout & theme switching ────────────────────────────────────────
 
     public Task SwitchLayoutAsync(string layoutId)
@@ -2685,6 +2703,22 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string? Kind { get; set; }
         public string? Description { get; set; }
         public string? SortText { get; set; }
+    }
+
+    private sealed class DiagnosticsResponse
+    {
+        public List<DiagnosticItem>? Items { get; set; }
+    }
+
+    private sealed class DiagnosticItem
+    {
+        public string Severity { get; set; } = "";
+        public string Message { get; set; } = "";
+        public int StartLine { get; set; }
+        public int StartColumn { get; set; }
+        public int EndLine { get; set; }
+        public int EndColumn { get; set; }
+        public string? Code { get; set; }
     }
 
     private sealed class SettingsDefinitionsResponse

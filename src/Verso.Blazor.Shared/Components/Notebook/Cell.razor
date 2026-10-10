@@ -185,12 +185,15 @@
                layouts (Presentation, Dashboard) hide the editor with CSS anyway, so skipping it
                here avoids instantiating a hidden Monaco instance per code cell in those layouts. *@
             <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
-                <MonacoEditor Value="@CellData.Source"
+                <MonacoEditor @ref="_editor"
+                              Value="@CellData.Source"
                               Language="@EditorLanguage"
                               OnValueChanged="HandleSourceChanged"
                               OnEditorAction="HandleEditorAction"
                               OnGetHoverInfo="HandleGetHoverInfo"
                               OnGetCompletions="HandleGetCompletions"
+                              OnGetDiagnostics="HandleGetDiagnostics"
+                              DiagnosticsSuspended="IsNotebookExecuting"
                               OnLineLimitChanged="HandleLineLimitChanged" />
                 @if (_lineLimit is { Clipped: true } limit)
                 {
@@ -257,6 +260,12 @@
     [Parameter] public bool IsSelected { get; set; }
     [Parameter] public bool IsExecuting { get; set; }
     [Parameter] public bool IsRunDisabled { get; set; }
+
+    /// <summary>
+    /// True while any cell in the notebook is running. Diagnostics requests are held back for the
+    /// duration: the kernel answers them only after the run, against state the run is changing.
+    /// </summary>
+    [Parameter] public bool IsNotebookExecuting { get; set; }
     [Parameter] public int Index { get; set; }
     [Parameter] public bool IsLast { get; set; }
     [Parameter] public EventCallback<Guid> OnRunCell { get; set; }
@@ -359,6 +368,12 @@
         "verso.action.run-cell"
     };
 
+    private MonacoEditor? _editor;
+
+    // Tracks this cell's own run so its diagnostics refresh once the run has changed kernel state.
+    private bool _wasExecuting;
+    private bool _pendingDiagnosticsRefresh;
+
     private bool _pendingAutoExecute;
     // Latches the one-time auto-render request for non-editable cells (e.g. the parameters form) so a
     // re-render that happens before the first render's output arrives does not re-request execution.
@@ -443,6 +458,7 @@
         Service.OnVariablesChanged += HandleEnablementStateChanged;
         Service.OnExtensionStatusChanged += HandleEnablementStateChanged;
         Service.OnKernelRestarted += HandleEnablementStateChangedForKernel;
+        Service.OnKernelRestarted += HandleKernelRestartedForDiagnostics;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -457,6 +473,10 @@
         if (_lastExecution is { } previous && previous != execution)
             _outputErrorBoundary?.Recover();
         _lastExecution = execution;
+
+        if (_wasExecuting && !IsExecuting)
+            _pendingDiagnosticsRefresh = true;
+        _wasExecuting = IsExecuting;
 
         // Auto-render non-editable cells (e.g. the parameters form) once on open when they have no
         // outputs yet. The latch resets as soon as outputs exist, so clearing a cell's outputs re-renders
@@ -551,6 +571,20 @@
         Service.OnVariablesChanged -= HandleEnablementStateChanged;
         Service.OnExtensionStatusChanged -= HandleEnablementStateChanged;
         Service.OnKernelRestarted -= HandleEnablementStateChangedForKernel;
+        Service.OnKernelRestarted -= HandleKernelRestartedForDiagnostics;
+    }
+
+    // A restart discards the state the markers were computed against, so code that was valid may
+    // no longer be and the reverse. Clear rather than recompute; the next edit or focus refreshes.
+    // Every cell clears whichever kernel restarted: in VS Code a restart respawns the whole host,
+    // and a variable another kernel reads (SQL, HTTP) may be gone with it.
+    private void HandleKernelRestartedForDiagnostics(string? kernelId)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_editor is not null)
+                await _editor.ClearDiagnosticsAsync();
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -559,6 +593,13 @@
         {
             _pendingAutoExecute = false;
             await OnRunCell.InvokeAsync(CellData.Id);
+        }
+
+        if (_pendingDiagnosticsRefresh)
+        {
+            _pendingDiagnosticsRefresh = false;
+            if (_editor is not null)
+                await _editor.RefreshDiagnosticsAsync();
         }
 
         await ReconcileMenuPopoverAsync();
@@ -655,6 +696,37 @@
                 kind = c.Kind,
                 description = c.Description,
                 sortText = c.SortText
+            }).ToArray()
+        };
+    }
+
+    private async Task<object?> HandleGetDiagnostics(string code)
+    {
+        // Markdown has no kernel to ask; an empty set clears anything left over from before the
+        // cell changed type. Any other type goes to the service, which resolves the kernel the
+        // cell would run on (HTML and Mermaid cells have one, a cell with no language uses the
+        // notebook default) and answers empty when there is none.
+        if (string.Equals(CellData.Type, "markdown", StringComparison.OrdinalIgnoreCase))
+            return new { items = Array.Empty<object>() };
+
+        var result = await Service.GetDiagnosticsAsync(
+            CellData.Id, DiagnosticsSource.MaskLeadingMagicCommands(code));
+
+        // Null means the request could not be answered; the editor keeps what it already shows.
+        if (result is null) return null;
+
+        return new
+        {
+            source = GetLanguageDisplayName(CellData.Language ?? Service.DefaultKernelId ?? CellData.Type),
+            items = result.Items.Select(d => new
+            {
+                severity = d.Severity,
+                message = d.Message,
+                startLine = d.StartLine,
+                startColumn = d.StartColumn,
+                endLine = d.EndLine,
+                endColumn = d.EndColumn,
+                code = d.Code
             }).ToArray()
         };
     }

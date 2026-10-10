@@ -201,8 +201,14 @@ public sealed class CSharpKernel : ILanguageKernel
                 var preamble = BuildParameterPreamble(context);
                 if (preamble is not null)
                 {
-                    await _stateManager!.RunAsync(preamble, _globals, context.CancellationToken)
+                    await _stateManager!.RunAsync(preamble.Value.Code, _globals, context.CancellationToken)
                         .ConfigureAwait(false);
+
+                    // Declare the parameters to the IntelliSense workspace as well, or every cell
+                    // that reads one is marked with "name does not exist" (CS0103). The workspace
+                    // has no script globals to read the store through, so it gets plain typed
+                    // declarations rather than the preamble that ran.
+                    _workspaceManager!.AppendExecutedCode(preamble.Value.Declarations);
                 }
             }
 
@@ -362,7 +368,28 @@ public sealed class CSharpKernel : ILanguageKernel
     {
         ThrowIfDisposed();
         EnsureInitialized();
+
+        // #i and #r "nuget:" directives are resolved by this kernel and stripped before the code
+        // reaches Roslyn, which reads #i as an unknown preprocessor directive (CS1024). Blank
+        // them with spaces so every reported position still lines up with the cell. A directive
+        // still being typed has no closing quote yet, so a match can run on to a quote on a later
+        // line; its line breaks are kept so the lines after it do not shift.
+        code = NuGetSourceRegex.Replace(code, BlankKeepingLineBreaks);
+        code = NuGetReferenceRegex.Replace(code, BlankKeepingLineBreaks);
+
         return await _workspaceManager!.GetDiagnosticsAsync(code).ConfigureAwait(false);
+    }
+
+    private static string BlankKeepingLineBreaks(Match match)
+    {
+        var chars = match.Value.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is not '\r' and not '\n')
+                chars[i] = ' ';
+        }
+
+        return new string(chars);
     }
 
     public async Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
@@ -445,15 +472,17 @@ public sealed class CSharpKernel : ILanguageKernel
 
     /// <summary>
     /// Builds a C# code snippet that declares notebook parameters as typed script variables,
-    /// reading their values from the IVariableStore. Returns null if no parameters exist.
+    /// reading their values from the IVariableStore, plus the same names as bare typed
+    /// declarations for the IntelliSense workspace. Returns null if no parameters exist.
     /// </summary>
-    private static string? BuildParameterPreamble(IExecutionContext context)
+    private static (string Code, string Declarations)? BuildParameterPreamble(IExecutionContext context)
     {
         var parameters = context.NotebookMetadata?.Parameters;
         if (parameters is null || parameters.Count == 0)
             return null;
 
         var sb = new System.Text.StringBuilder();
+        var declarations = new System.Text.StringBuilder();
         foreach (var (name, def) in parameters)
         {
             // Skip parameters that aren't valid C# identifiers
@@ -484,9 +513,10 @@ public sealed class CSharpKernel : ILanguageKernel
 
             // Declare as typed variable, reading from the variable store
             sb.AppendLine($"var {name} = Variables.TryGet<{clrType}>(\"{name}\", out var __{name}__val) ? __{name}__val : {defaultLiteral};");
+            declarations.AppendLine($"{clrType} {name} = {defaultLiteral};");
         }
 
-        return sb.Length > 0 ? sb.ToString() : null;
+        return sb.Length > 0 ? (sb.ToString(), declarations.ToString()) : null;
     }
 
     /// <summary>
@@ -681,6 +711,15 @@ public sealed class CSharpKernel : ILanguageKernel
         public IExtensionHostContext ExtensionHost => _inner.ExtensionHost;
         public INotebookMetadata NotebookMetadata => _inner.NotebookMetadata;
         public INotebookOperations Notebook => _inner.Notebook;
+        public string? ActiveLayoutId => _inner.ActiveLayoutId;
+        public IReadOnlySet<Guid> CollapsedSections => _inner.CollapsedSections;
+        public IOutputChannelHost? OutputChannels => _inner.OutputChannels;
+        public System.Globalization.CultureInfo UICulture => _inner.UICulture;
+        public Guid? CellId => _inner.CellId;
+        public Task RequestFileDownloadAsync(string fileName, string contentType, byte[] data) =>
+            _inner.RequestFileDownloadAsync(fileName, contentType, data);
+        public Task UpdateOutputAsync(string outputBlockId, CellOutput output) =>
+            _inner.UpdateOutputAsync(outputBlockId, output);
     }
 
     private void EnsureInitialized()

@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Verso.Abstractions;
@@ -16,8 +17,12 @@ public sealed class JupyterSerializer : INotebookSerializer
         PropertyNameCaseInsensitive = true
     };
 
+    // Jupyter itself writes plain UTF-8, so the default encoder's \uXXXX escapes for quotes and
+    // non-ASCII text would show every such line as changed the first time Verso saves a notebook
+    // that came from Jupyter, and would hide that text from a workspace search.
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };

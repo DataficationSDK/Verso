@@ -367,6 +367,48 @@ public sealed class Scaffold : IAsyncDisposable
             .FirstOrDefault(k => string.Equals(k.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Resolves the kernel that would run the given cell, by the same rules the execution
+    /// pipeline applies: a registered cell type decides first (its kernel, or none for a
+    /// render-only type), then the cell's own language, then a renderer for its type (none),
+    /// and last the notebook's default kernel. Returns <c>null</c> when nothing would execute
+    /// the cell, so editor services (hover, completions, diagnostics) ask the same kernel a
+    /// run would.
+    /// </summary>
+    internal ILanguageKernel? ResolveKernelForCell(Guid cellId)
+    {
+        var cell = GetCell(cellId);
+        if (cell is null)
+            return null;
+
+        if (_extensionHost is null)
+        {
+            if (string.Equals(cell.Type, "markdown", StringComparison.OrdinalIgnoreCase))
+                return null;
+            var languageId = cell.Language ?? _notebook.DefaultKernelId;
+            return string.IsNullOrEmpty(languageId) ? null : ResolveKernel(languageId);
+        }
+
+        var cellType = _extensionHost.GetCellTypes()
+            .FirstOrDefault(t => string.Equals(t.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase));
+        if (cellType is not null)
+            return cellType.Kernel;
+
+        if (!string.IsNullOrEmpty(cell.Language))
+        {
+            var kernel = ResolveKernel(cell.Language);
+            if (kernel is not null)
+                return kernel;
+        }
+
+        if (_extensionHost.GetRenderers()
+            .Any(r => string.Equals(r.CellTypeId, cell.Type, StringComparison.OrdinalIgnoreCase)))
+            return null;
+
+        var defaultLanguageId = cell.Language ?? _notebook.DefaultKernelId;
+        return string.IsNullOrEmpty(defaultLanguageId) ? null : ResolveKernel(defaultLanguageId);
+    }
+
     public IReadOnlyList<string> RegisteredLanguages
     {
         get

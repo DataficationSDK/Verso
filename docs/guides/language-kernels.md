@@ -9,8 +9,8 @@ A kernel is what executes a code cell in a given language. Verso ships kernels f
 | C# (Roslyn scripting) | `csharp` | `.cs`, `.csx` |
 | F# (F# Interactive) | `fsharp` | `.fs`, `.fsx` |
 | Python (your installed interpreter, 3.8+) | `python` | `.py` |
-| JavaScript (Jint) | `javascript` | `.js`, `.mjs` |
-| TypeScript (Jint) | `typescript` | `.ts`, `.tsx` |
+| JavaScript (Node.js, or Jint when Node.js is missing; the editor flags syntax errors only) | `javascript` | `.js`, `.mjs` |
+| TypeScript (Node.js; the editor flags syntax errors only, not type errors) | `typescript` | `.ts`, `.tsx` |
 | PowerShell | `powershell` | `.ps1`, `.psm1` |
 | SQL (ADO.NET, multi-provider) | `sql` | `.sql` |
 | HTTP (REST client) | `http` | `.http`, `.rest` |

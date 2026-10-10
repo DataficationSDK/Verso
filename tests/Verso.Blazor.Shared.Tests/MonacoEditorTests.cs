@@ -39,4 +39,74 @@ public sealed class MonacoEditorTests : BunitTestContext
         cut.SetParametersAndRender(p => p.Add(e => e.Language, "python"));
         Assert.AreEqual(1, SetLanguageCallCount());
     }
+
+    private int SetDiagnosticsSuspendedCallCount()
+        => TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.setDiagnosticsSuspended");
+
+    [TestMethod]
+    public async Task GetDiagnostics_ReturnsCallbackResult()
+    {
+        TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+        string? received = null;
+        var expected = new { items = Array.Empty<object>() };
+        var cut = TestContext.RenderComponent<MonacoEditor>(p => p
+            .Add(e => e.Value, "var x = 1;")
+            .Add(e => e.OnGetDiagnostics, code => { received = code; return Task.FromResult<object?>(expected); }));
+
+        var result = await cut.Instance.GetDiagnostics("var y = 2;");
+
+        Assert.AreEqual("var y = 2;", received);
+        Assert.AreSame(expected, result);
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_ReturnsNull_WhenCallbackThrows()
+    {
+        // Null tells the editor to keep the markers it has; a failed request must not clear them.
+        TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = TestContext.RenderComponent<MonacoEditor>(p => p
+            .Add(e => e.OnGetDiagnostics, _ => throw new InvalidOperationException("host gone")));
+
+        Assert.IsNull(await cut.Instance.GetDiagnostics("var y = 2;"));
+    }
+
+    [TestMethod]
+    public async Task GetDiagnostics_ReturnsNull_WithoutCallback()
+    {
+        var cut = Render();
+
+        Assert.IsNull(await cut.Instance.GetDiagnostics("var y = 2;"));
+    }
+
+    [TestMethod]
+    public void DiagnosticsSuspended_ForwardedOnlyOnChange()
+    {
+        var cut = Render();
+
+        // Unchanged parameters arrive on every parent render; only a real flip reaches the editor.
+        cut.SetParametersAndRender(p => p.Add(e => e.DiagnosticsSuspended, false));
+        Assert.AreEqual(0, SetDiagnosticsSuspendedCallCount());
+
+        cut.SetParametersAndRender(p => p.Add(e => e.DiagnosticsSuspended, true));
+        cut.SetParametersAndRender(p => p.Add(e => e.DiagnosticsSuspended, true));
+        Assert.AreEqual(1, SetDiagnosticsSuspendedCallCount());
+
+        var call = TestContext!.JSInterop.Invocations.Single(i => i.Identifier == "versoMonaco.setDiagnosticsSuspended");
+        Assert.AreEqual(true, call.Arguments[1]);
+
+        cut.SetParametersAndRender(p => p.Add(e => e.DiagnosticsSuspended, false));
+        Assert.AreEqual(2, SetDiagnosticsSuspendedCallCount());
+    }
+
+    [TestMethod]
+    public async Task RefreshAndClearDiagnostics_CallInterop()
+    {
+        var cut = Render();
+
+        await cut.InvokeAsync(() => cut.Instance.RefreshDiagnosticsAsync());
+        await cut.InvokeAsync(() => cut.Instance.ClearDiagnosticsAsync());
+
+        Assert.AreEqual(1, TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.refreshDiagnostics"));
+        Assert.AreEqual(1, TestContext.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.clearDiagnostics"));
+    }
 }
