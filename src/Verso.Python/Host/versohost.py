@@ -812,6 +812,13 @@ class HostSession:
             found = []
             if not busy:
                 try:
+                    # Checked against the source execution will actually compile, so a ``!`` or
+                    # ``%pip`` line is not marked as invalid Python when it will run fine. The
+                    # rewrite works line by line, which keeps every reported position on the
+                    # line the user typed. History needs no such pass, because it records cells
+                    # after this same rewrite.
+                    if self.shell_escapes:
+                        code = transform_escapes(code)
                     found = intel_support.diagnostics(history, code)
                 except Exception:
                     found = []

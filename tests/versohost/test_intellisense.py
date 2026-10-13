@@ -218,6 +218,28 @@ def test_a_diagnostics_reply_lists_the_problems(assist):
     assert len(reply["diagnostics"]) == 1
 
 
+def test_shell_and_pip_lines_are_not_diagnostics(assist):
+    reply = assist("diagnostics", "!pip install requests\n%pip install numpy\nx = 1\n")
+
+    assert reply["diagnostics"] == []
+
+
+def test_a_real_error_after_shell_lines_keeps_its_line(assist):
+    reply = assist("diagnostics", "!pip install requests\n%pip install numpy\nx = 1\ndef f(:\n")
+
+    assert len(reply["diagnostics"]) >= 1
+    assert all(item["line"] == 3 for item in reply["diagnostics"])
+
+
+def test_shell_lines_are_diagnostics_when_shorthands_are_turned_off(session, assist):
+    # Execution reports these lines as a syntax error in this mode, so the editor should too.
+    session.shell_escapes = False
+
+    reply = assist("diagnostics", "!pip install requests\nx = 1\n")
+
+    assert [item["line"] for item in reply["diagnostics"]] == [0]
+
+
 def test_an_unknown_request_is_ignored(session, channel):
     session.answer_intellisense({"type": "nonsense", "id": 1})
 

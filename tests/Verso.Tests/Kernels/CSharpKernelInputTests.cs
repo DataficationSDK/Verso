@@ -125,15 +125,33 @@ public sealed class CSharpKernelInputTests
         CollectionAssert.AreEqual(new[] { ("User:", false), ("Password:", true) }, _requests);
     }
 
+    [TestMethod]
+    public async Task ConsoleReadLine_StopsTheCell_WhenTheCellIsInterruptedAtThePrompt()
+    {
+        // The user interrupting the cell while the prompt is open cancels the request with the
+        // cell's own token. That has to stop the cell rather than read as a dismissed prompt.
+        using var cts = new CancellationTokenSource();
+        var context = CreateContext(cts.Token, (_, _, token) =>
+        {
+            cts.Cancel();
+            return Task.FromCanceled<string?>(token);
+        });
+
+        try
+        {
+            await _kernel.ExecuteAsync(
+                "var line = Console.ReadLine();\nConsole.WriteLine(\"kept going\");", context);
+            Assert.Fail("An interrupted cell should not run past its prompt.");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
     /// <param name="answers">Lines handed back in order, then <c>null</c> as a cancelled prompt would
     /// give. Pass <c>null</c> for a host with no interactive input at all.</param>
     private Verso.Contexts.ExecutionContext CreateContext(params string[]? answers)
     {
-        var variables = new VariableStore();
-        var theme = new StubThemeContext();
-        var extensionHost = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
-        var metadata = new NotebookMetadataContext(new NotebookModel());
-
         Func<string, bool, CancellationToken, Task<string?>>? requestInput = null;
         if (answers is not null)
         {
@@ -145,8 +163,20 @@ public sealed class CSharpKernelInputTests
             };
         }
 
+        return CreateContext(CancellationToken.None, requestInput);
+    }
+
+    private static Verso.Contexts.ExecutionContext CreateContext(
+        CancellationToken cancellationToken,
+        Func<string, bool, CancellationToken, Task<string?>>? requestInput)
+    {
+        var variables = new VariableStore();
+        var theme = new StubThemeContext();
+        var extensionHost = new StubExtensionHostContext(() => Array.Empty<ILanguageKernel>());
+        var metadata = new NotebookMetadataContext(new NotebookModel());
+
         return new Verso.Contexts.ExecutionContext(
-            Guid.NewGuid(), 1, variables, CancellationToken.None,
+            Guid.NewGuid(), 1, variables, cancellationToken,
             theme, LayoutCapabilities.None, extensionHost, metadata,
             new Verso.Stubs.StubNotebookOperations(),
             writeOutput: _ => Task.CompletedTask,

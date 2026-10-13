@@ -81,6 +81,35 @@ public sealed class DiagnosticsTests
     }
 
     [TestMethod]
+    public async Task Diagnostics_ShellAndPipLines_AreNotErrors()
+    {
+        PythonProbe.Require();
+
+        // Execution rewrites these shorthands before compiling, so they are valid cell lines
+        // even though they are not valid Python on their own.
+        var diagnostics = await _kernel.GetDiagnosticsAsync(
+            "!pip install requests\n%pip install numpy\nx = 1\n");
+
+        Assert.AreEqual(0, diagnostics.Count,
+            "Shell and pip shorthand lines should not be reported as syntax errors.");
+    }
+
+    [TestMethod]
+    public async Task Diagnostics_ErrorAfterShellLines_KeepsItsLine()
+    {
+        PythonProbe.Require();
+
+        RequireJedi();
+
+        var code = "!pip install requests\n%pip install numpy\nx = 1\ndef foo(:\n";
+        var diagnostics = await _kernel.GetDiagnosticsAsync(code);
+
+        Assert.IsTrue(diagnostics.Count > 0, "Expected the genuine syntax error to be reported.");
+        Assert.IsTrue(diagnostics.All(d => d.StartLine == 3),
+            "Only the broken definition on line 3 (zero-based) should be reported.");
+    }
+
+    [TestMethod]
     public async Task Diagnostics_EmptyCode_ReturnsEmpty()
     {
         PythonProbe.Require();

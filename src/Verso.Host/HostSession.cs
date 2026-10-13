@@ -256,10 +256,11 @@ public sealed class NotebookSession : IAsyncDisposable
         if (!_pendingInputs.TryRemove(requestId, out var tcs))
             return;
 
-        if (cancelled)
-            tcs.TrySetCanceled();
-        else
-            tcs.TrySetResult(value ?? string.Empty);
+        // A dismissed prompt is an answer of null, which is what the input contract promises and
+        // what the server host gives too. Faulting the request instead would surface as an
+        // exception in the cell, and would look the same as the cell itself being interrupted,
+        // which is the one case that still cancels the request (see RequestInputAsync).
+        tcs.TrySetResult(cancelled ? null : value ?? string.Empty);
     }
 
     public async ValueTask DisposeAsync()
