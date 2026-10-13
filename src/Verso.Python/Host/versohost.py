@@ -683,6 +683,7 @@ class HostSession:
         # A package installed moments ago by a magic command in this same cell is only
         # importable once the finders forget what they saw on the path before it existed.
         importlib.invalidate_caches()
+        display_support.retire_ipython_shim()
 
         variable_support.apply_inject(self.scope, message.get("inject"))
 

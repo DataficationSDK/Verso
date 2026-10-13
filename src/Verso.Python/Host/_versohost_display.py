@@ -10,6 +10,7 @@ is the emitter registered at startup and the two settings the managing side send
 """
 
 import base64
+import importlib.machinery
 import importlib.util
 import io
 import json
@@ -936,6 +937,7 @@ def build_ipython_package():
     package.get_ipython = get_ipython
     package.version_info = SHIM_VERSION_INFO
     package.__version__ = SHIM_VERSION
+    package._verso_shim = True
     return package
 
 
@@ -953,6 +955,38 @@ def _install_ipython_shim():
         return
 
     install_shim_finder()
+
+
+def retire_ipython_shim():
+    """
+    Hand IPython over to a real install once one appears beneath a stand-in already imported.
+
+    An install made during the session (``#!pip install k3d`` brings IPython in through
+    ipywidgets) lands on disk, but an earlier import left the stand-in in ``sys.modules``, and
+    Python answers every later import from there. ``import IPython.core`` then fails against a
+    package with no submodules, and the backstop's install and retry cannot help, because the
+    retry meets the same cached module. Called before each cell, after the finders have
+    forgotten what the path used to hold. Names a cell already bound from the stand-in keep
+    working; only what is imported from here on resolves to the real package.
+    """
+    package = sys.modules.get("IPython")
+    if not getattr(package, "_verso_shim", False):
+        return
+
+    try:
+        real = importlib.machinery.PathFinder.find_spec("IPython")
+    except Exception:
+        real = None
+    if real is None:
+        return
+
+    for name in ("IPython.display", "IPython"):
+        sys.modules.pop(name, None)
+
+    sys.meta_path[:] = [
+        finder for finder in sys.meta_path if not isinstance(finder, ShimFinder)]
+
+    watch_import("IPython.display", _redirect_ipython_display)
 
 
 def _redirect_ipython_display(module):

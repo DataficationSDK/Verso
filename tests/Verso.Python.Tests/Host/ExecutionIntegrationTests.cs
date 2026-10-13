@@ -318,6 +318,40 @@ public sealed class ExecutionIntegrationTests
         Assert.AreEqual("<i>shim</i>", outputs[^1].Content);
     }
 
+    [TestMethod]
+    public async Task Execute_SwitchesToARealIPythonInstalledAfterTheStandInWasImported()
+    {
+        var site = Directory.CreateTempSubdirectory("verso-ipython-").FullName;
+        try
+        {
+            await using var session = await StartedSessionAsync();
+            var context = new StubExecutionContext();
+
+            // The stand-in is placed directly so the test holds whether or not this interpreter
+            // has IPython of its own: what matters is that an earlier import cached it.
+            await session.ExecuteAsync(
+                "import sys, _versohost_display\n" +
+                "sys.modules['IPython'] = _versohost_display.build_ipython_package()",
+                context);
+
+            // An install arriving mid-session, with a submodule the stand-in does not have.
+            var package = Directory.CreateDirectory(Path.Combine(site, "IPython")).FullName;
+            File.WriteAllText(Path.Combine(package, "__init__.py"), "");
+            Directory.CreateDirectory(Path.Combine(package, "core"));
+            File.WriteAllText(Path.Combine(package, "core", "__init__.py"), "MARKER = 'real'\n");
+            await session.ExecuteAsync($"sys.path.insert(0, r'{site}')", context);
+
+            var outputs = await session.ExecuteAsync("import IPython.core\nIPython.core.MARKER", context);
+
+            Assert.IsFalse(outputs.Any(o => o.IsError), outputs.FirstOrDefault(o => o.IsError)?.Content);
+            Assert.AreEqual("'real'", outputs[^1].Content);
+        }
+        finally
+        {
+            Directory.Delete(site, recursive: true);
+        }
+    }
+
     // --- errors ---
 
     [TestMethod]
