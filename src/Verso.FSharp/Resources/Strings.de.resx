@@ -85,6 +85,9 @@
   <data name="NuGet_DownloadUnreachable" xml:space="preserve">
     <value>Das Paket '{0}' v{1} konnte nicht heruntergeladen werden. Prüfen Sie Ihre Netzwerkverbindung und versuchen Sie es erneut. ({2}: {3})</value>
   </data>
+  <data name="NuGet_InvalidVersionSpec" xml:space="preserve">
+    <value>'{0}' ist keine gültige Version und kein gültiger Versionsbereich für das Paket '{1}'. Verwenden Sie eine genaue Version wie 1.2.3, eine variable Version wie 1.* oder *-* oder einen Bereich wie [1.0.0,2.0.0).</value>
+  </data>
   <data name="NuGet_PackageNotFound" xml:space="preserve">
     <value>Das Paket '{0}'{1} wurde in keiner konfigurierten Quelle gefunden. Geprüfte Quellen: {2}</value>
   </data>

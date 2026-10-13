@@ -180,7 +180,10 @@ NuGet package references work the same way:
 ```csharp
 #r "nuget: Newtonsoft.Json"
 #r "nuget: Newtonsoft.Json, 13.0.3"  // with version
+#r "nuget: Newtonsoft.Json, 13.*"    // floating version
 ```
+
+Floating versions and ranges such as `[13.0.0,14.0.0)` follow NuGet's rules: a floating version takes the highest match and a range takes the lowest version it allows. One small difference: a plain version such as `13.0.3` is an exact pin in Verso and must exist on a source, where Polyglot treats it as a minimum and would take the next version up.
 
 ### Layouts
 

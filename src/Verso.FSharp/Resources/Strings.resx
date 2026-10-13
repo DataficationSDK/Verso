@@ -102,6 +102,10 @@
     <value> Last error: {0}: {1}</value>
     <comment>Added to the end of the message above when a source answered with a failure. It opens with a space because it follows a full stop. {0} is the kind of failure and {1} its message, both of which arrive in English.</comment>
   </data>
+  <data name="NuGet_InvalidVersionSpec" xml:space="preserve">
+    <value>'{0}' is not a valid version or version range for package '{1}'. Use an exact version such as 1.2.3, a floating version such as 1.* or *-*, or a range such as [1.0.0,2.0.0).</value>
+    <comment>Shown when a #r "nuget:" directive names a version that cannot be read. {0} is what was written after the package name and {1} is the package name. The examples 1.2.3, 1.*, *-*, and [1.0.0,2.0.0) are NuGet syntax and must be kept exactly as written.</comment>
+  </data>
   <data name="Run_CompilationError" xml:space="preserve">
     <value>Compilation error</value>
     <comment>Shown in place of the compiler's own message when it would not compile and said nothing about why.</comment>

@@ -124,6 +124,40 @@ internal sealed class NuGetFallbackResolver
     }
 
     /// <summary>
+    /// Returns <c>true</c> when <paramref name="spec"/> is something <see cref="SelectVersion"/>
+    /// can resolve: empty, an exact version, or a NuGet version range (including floating
+    /// versions such as <c>1.*</c> or <c>*-*</c>).
+    /// </summary>
+    internal static bool IsValidVersionSpec(string? spec) =>
+        string.IsNullOrWhiteSpace(spec)
+        || NuGetVersion.TryParse(spec, out _)
+        || VersionRange.TryParse(spec, out _);
+
+    /// <summary>
+    /// Picks the version of a package to install from the versions a source offers.
+    /// No spec selects the latest stable release. A spec that is a plain version is an exact
+    /// pin, not the minimum NuGet would read it as. Any other spec is a NuGet version range and
+    /// is resolved the way restore resolves it: a floating range takes the highest match (with
+    /// prereleases only when the range asks for them) and a bounded range takes the lowest.
+    /// Returns <c>null</c> when nothing matches or the spec is not a valid version or range.
+    /// </summary>
+    internal static NuGetVersion? SelectVersion(IEnumerable<NuGetVersion> available, string? spec)
+    {
+        if (string.IsNullOrWhiteSpace(spec))
+        {
+            return available
+                .Where(v => !v.IsPrerelease)
+                .OrderByDescending(v => v)
+                .FirstOrDefault();
+        }
+
+        if (NuGetVersion.TryParse(spec, out var exact))
+            return available.Contains(exact) ? exact : null;
+
+        return VersionRange.TryParse(spec, out var range) ? range.FindBestMatch(available) : null;
+    }
+
+    /// <summary>
     /// Parses a NuGet reference string in the format "PackageId, Version" or "PackageId".
     /// </summary>
     public static (string PackageId, string? Version)? ParseNuGetReference(string? directive)
@@ -235,6 +269,12 @@ internal sealed class NuGetFallbackResolver
             }
         }
 
+        // A version that cannot be read is reported as such, rather than falling back to the
+        // latest stable or looking like a package the sources do not have.
+        if (!IsValidVersionSpec(version))
+            throw new InvalidOperationException(
+                string.Format(Strings.NuGet_InvalidVersionSpec, version, packageId));
+
         // Try each configured source in priority order
         FindPackageByIdResource? resource = null;
         NuGetVersion? resolvedVersion = null;
@@ -246,29 +286,13 @@ internal sealed class NuGetFallbackResolver
             {
                 var res = await source.GetResourceAsync<FindPackageByIdResource>(ct).ConfigureAwait(false);
 
-                if (version is not null && NuGetVersion.TryParse(version, out var parsed))
+                var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
+                var selected = SelectVersion(versions, version);
+                if (selected is not null)
                 {
-                    var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
-                    if (versions.Contains(parsed))
-                    {
-                        resolvedVersion = parsed;
-                        resource = res;
-                        break;
-                    }
-                }
-                else
-                {
-                    var versions = await res.GetAllVersionsAsync(packageId, cache, logger, ct).ConfigureAwait(false);
-                    var latest = versions
-                        .Where(v => !v.IsPrerelease)
-                        .OrderByDescending(v => v)
-                        .FirstOrDefault();
-                    if (latest is not null)
-                    {
-                        resolvedVersion = latest;
-                        resource = res;
-                        break;
-                    }
+                    resolvedVersion = selected;
+                    resource = res;
+                    break;
                 }
             }
             catch (OperationCanceledException) { throw; }
