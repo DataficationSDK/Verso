@@ -468,6 +468,10 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             var completions = new List<Completion>();
             foreach (var item in declInfo.Items)
             {
+                // The modules the executed cells are checked in are not the user's names.
+                if (item.NameInList.StartsWith(FSharpProjectContext.ExecutedCellModulePrefix, StringComparison.Ordinal))
+                    continue;
+
                 completions.Add(new Completion(
                     DisplayText: item.NameInList,
                     InsertText: item.NameInCode,
@@ -578,7 +582,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 adjustedLine, colAtEnd, lineText, fsharpNames, FSharpTokenTag.Identifier,
                 FSharpOption<int>.None);
 
-            var content = FormatToolTip(toolTip);
+            var content = FSharpProjectContext.HideExecutedCellModules(FormatToolTip(toolTip));
             if (string.IsNullOrWhiteSpace(content)) return null;
 
             // Calculate cell-local range for the identifier

@@ -59,6 +59,14 @@ internal sealed class FSharpProjectContext
     /// A tuple of (SourceText, PrefixLineCount, FSharpProjectOptions) where PrefixLineCount
     /// is the number of lines before the current cell code begins.
     /// </returns>
+    /// <remarks>
+    /// FSI compiles each execution as a fragment of its own and opens it for the ones after, so
+    /// a later execution may define again a type or module an earlier one defined, as a cell does
+    /// each time it is run again. In one file that is a duplicate definition, so each executed
+    /// source is wrapped in a module of its own, which is then opened, the way FSI does it. Script
+    /// directives are lifted out of the module, since they apply to the whole script, and the
+    /// fragment's top-level opens are repeated after it, since in FSI they stay open.
+    /// </remarks>
     public (string SourceText, int PrefixLineCount, FSharpProjectOptions Options) BuildDocument(string currentCellCode)
     {
         var prefixBuilder = new StringBuilder();
@@ -69,10 +77,10 @@ internal sealed class FSharpProjectContext
             prefixBuilder.AppendLine($"open {ns}");
         }
 
-        // Add previously executed sources
-        foreach (var source in _executedSources)
+        // Add previously executed sources, one fragment each
+        for (var i = 0; i < _executedSources.Count; i++)
         {
-            prefixBuilder.AppendLine(source);
+            AppendFragment(prefixBuilder, $"{ExecutedCellModulePrefix}{i + 1}", _executedSources[i]);
         }
 
         var prefix = prefixBuilder.ToString();
@@ -88,6 +96,70 @@ internal sealed class FSharpProjectContext
         var options = BuildProjectOptions();
 
         return (combinedSource, prefixLineCount, options);
+    }
+
+    /// <summary>
+    /// The name every executed cell's module starts with, so completions can leave them out.
+    /// </summary>
+    public const string ExecutedCellModulePrefix = "VersoExecutedCell";
+
+    private static readonly System.Text.RegularExpressions.Regex ExecutedCellModuleName =
+        new($@"\.{ExecutedCellModulePrefix}\d+\b|\b{ExecutedCellModulePrefix}\d+\.", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Removes the executed cells' module names from compiler text (a tooltip, a diagnostic), so
+    /// <c>Notebook.VersoExecutedCell1.Shape</c> reads as <c>Notebook.Shape</c>, as it would with
+    /// the cells checked in one file.
+    /// </summary>
+    public static string HideExecutedCellModules(string text) =>
+        text.Contains(ExecutedCellModulePrefix, StringComparison.Ordinal)
+            ? ExecutedCellModuleName.Replace(text, "")
+            : text;
+
+    private static readonly string[] ScriptDirectives =
+        { "#r", "#load", "#I", "#nowarn", "#warnon", "#time", "#help", "#quit", "#i" };
+
+    private static void AppendFragment(StringBuilder builder, string moduleName, string source)
+    {
+        var lines = source.Replace("\r\n", "\n").Split('\n');
+        var body = new StringBuilder();
+        var opens = new List<string>();
+
+        foreach (var line in lines)
+        {
+            if (IsScriptDirective(line))
+            {
+                builder.AppendLine(line);
+                continue;
+            }
+
+            if (line.StartsWith("open ", StringComparison.Ordinal))
+                opens.Add(line);
+
+            body.Append("    ").AppendLine(line);
+        }
+
+        builder.Append("module ").Append(moduleName).AppendLine(" =");
+        builder.Append(body);
+        // A fragment of nothing but directives, or a cell whose last line is a comment, still
+        // needs a body.
+        builder.AppendLine("    do ()");
+        builder.Append("open ").AppendLine(moduleName);
+        foreach (var open in opens)
+            builder.AppendLine(open);
+    }
+
+    private static bool IsScriptDirective(string line)
+    {
+        foreach (var directive in ScriptDirectives)
+        {
+            if (line.StartsWith(directive, StringComparison.Ordinal)
+                && (line.Length == directive.Length || char.IsWhiteSpace(line[directive.Length])))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
