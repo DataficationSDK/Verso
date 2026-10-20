@@ -104,9 +104,11 @@ public sealed class MonacoEditorTests : BunitTestContext
         var cut = Render();
 
         await cut.InvokeAsync(() => cut.Instance.RefreshDiagnosticsAsync());
+        await cut.InvokeAsync(() => cut.Instance.RefreshAfterRunAsync());
         await cut.InvokeAsync(() => cut.Instance.ClearDiagnosticsAsync());
 
         Assert.AreEqual(1, TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.refreshDiagnostics"));
+        Assert.AreEqual(1, TestContext.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.refreshAfterRun"));
         Assert.AreEqual(1, TestContext.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.clearDiagnostics"));
     }
 }
