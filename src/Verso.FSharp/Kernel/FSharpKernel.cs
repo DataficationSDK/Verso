@@ -259,17 +259,6 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
                 _projectContext?.AddReference(path);
             }
 
-            // Add #load file contents to IntelliSense context
-            foreach (var loadedPath in _scriptDirectiveProcessor.LoadedFilePaths)
-            {
-                try
-                {
-                    var loadedSource = File.ReadAllText(loadedPath);
-                    _projectContext?.AppendExecutedCode(loadedSource);
-                }
-                catch { /* best effort — FSI will report its own error */ }
-            }
-
             // --- Snapshot store for Variables.Set detection ---
             _variableBridge!.SnapshotStore(context.Variables);
 
@@ -403,6 +392,19 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             _projectContext?.AppendExecutedCode(code);
             if (_projectContext is not null && _checkerManager is not null)
             {
+                // A loaded script is checked as a file of its own, as FSI compiles it, so later
+                // cells see it under the module name FSI gives it.
+                if (_scriptDirectiveProcessor.LoadedFilePaths.Count > 0)
+                {
+                    try
+                    {
+                        var loadedFiles = await _checkerManager.GetLoadClosureAsync(
+                            VirtualFileName, _scriptDirectiveProcessor.LoadedFilePaths).ConfigureAwait(false);
+                        _projectContext.AddLoadedFiles(loadedFiles);
+                    }
+                    catch { /* best effort, the cell itself has run */ }
+                }
+
                 var (sourceText, _, options) = _projectContext.BuildDocument("");
                 _checkerManager.TriggerBackgroundCheck(VirtualFileName, sourceText, options);
             }
