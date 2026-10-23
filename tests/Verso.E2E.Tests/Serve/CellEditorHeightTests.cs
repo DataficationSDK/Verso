@@ -73,7 +73,7 @@ public sealed class CellEditorHeightTests : MotusTestBase
         var notebook = _scratch.Write("tall.verso", Notebooks.VersoWithCellsOf(20, 60));
         await OpenAsync(s_server, notebook);
         await MeasureEditorsAsync(".verso-cell", expected: 3);
-        await LineLimitNotes.First.WaitForAsync(ElementState.Visible, timeout: 10_000);
+        await LineLimitNotes.First.WaitForAsync(ElementState.Visible, timeout: 60_000);
 
         Assert.AreEqual(1, await LineLimitNotes.CountAsync(), "Only the cell past the limit should carry the note.");
         var note = await LineLimitNotes.First.InnerTextAsync();

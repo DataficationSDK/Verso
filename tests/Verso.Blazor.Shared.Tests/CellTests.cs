@@ -522,11 +522,39 @@ public sealed class CellTests : BunitTestContext
     public void Diagnostics_RefreshedWhenOwnRunCompletes()
     {
         var cut = RenderCell(CreateCodeCell("var x = 1;"), isExecuting: true, editorCreated: true);
-        Assert.AreEqual(0, RefreshDiagnosticsCallCount());
+        Assert.AreEqual(0, RefreshAfterRunCallCount());
 
         cut.SetParametersAndRender(p => p.Add(c => c.IsExecuting, false));
 
-        Assert.AreEqual(1, RefreshDiagnosticsCallCount());
+        Assert.AreEqual(1, RefreshAfterRunCallCount());
+    }
+
+    [TestMethod]
+    public void Diagnostics_RefreshedWhenExecutionCountMovesUnseen()
+    {
+        // In the VS Code webview a quick cell's executing and executed notifications are both
+        // handled before the next render, so the cell is never rendered as executing.
+        var cell = CreateCodeCell("var x = 1;");
+        var cut = RenderCell(cell, editorCreated: true);
+        Assert.AreEqual(0, RefreshAfterRunCallCount());
+
+        cell.ExecutionCount = 1;
+        cut.SetParametersAndRender(p => p.Add(c => c.CellData, cell));
+
+        Assert.AreEqual(1, RefreshAfterRunCallCount());
+    }
+
+    [TestMethod]
+    public void Diagnostics_NotRefreshedWhenARestartClearsTheCount()
+    {
+        var cell = CreateCodeCell("var x = 1;");
+        cell.ExecutionCount = 3;
+        var cut = RenderCell(cell, editorCreated: true);
+
+        cell.ExecutionCount = null;
+        cut.SetParametersAndRender(p => p.Add(c => c.CellData, cell));
+
+        Assert.AreEqual(0, RefreshAfterRunCallCount());
     }
 
     [TestMethod]
@@ -596,8 +624,8 @@ public sealed class CellTests : BunitTestContext
         StringAssert.Contains(System.Text.Json.JsonSerializer.Serialize(result), "\"items\":[]");
     }
 
-    private int RefreshDiagnosticsCallCount()
-        => TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.refreshDiagnostics");
+    private int RefreshAfterRunCallCount()
+        => TestContext!.JSInterop.Invocations.Count(i => i.Identifier == "versoMonaco.refreshAfterRun");
 
     private IRenderedComponent<Cell> RenderCell(
         CellModel cell,
@@ -616,6 +644,7 @@ public sealed class CellTests : BunitTestContext
         TestContext.JSInterop.SetupVoid("versoMonaco.setLanguage", _ => true);
         TestContext.JSInterop.SetupVoid("versoMonaco.dispose", _ => true);
         TestContext.JSInterop.SetupVoid("versoMonaco.refreshDiagnostics", _ => true);
+        TestContext.JSInterop.SetupVoid("versoMonaco.refreshAfterRun", _ => true);
         TestContext.JSInterop.SetupVoid("versoMonaco.clearDiagnostics", _ => true);
         TestContext.JSInterop.SetupVoid("versoMonaco.setDiagnosticsSuspended", _ => true);
 
