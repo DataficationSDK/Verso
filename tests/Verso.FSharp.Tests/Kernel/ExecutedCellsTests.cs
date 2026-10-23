@@ -107,6 +107,62 @@ public class ExecutedCellsTests
     }
 
     [TestMethod]
+    public async Task OpenLineInsideATripleQuotedString_IsNotOpenedForLaterCells()
+    {
+        await _kernel.ExecuteAsync("let text = \"\"\"\nopen System.Text\n\"\"\"", _context);
+
+        var diagnostics = await _kernel.GetDiagnosticsAsync("let sb = StringBuilder()");
+
+        Assert.IsTrue(diagnostics.Any(d => d.Code == "FS0039"), Describe(diagnostics));
+    }
+
+    [TestMethod]
+    public async Task OpenLineInsideAVerbatimString_IsNotOpenedForLaterCells()
+    {
+        await _kernel.ExecuteAsync("let text = @\"\nopen System.Text\n\"", _context);
+
+        var diagnostics = await _kernel.GetDiagnosticsAsync("let sb = StringBuilder()");
+
+        Assert.IsTrue(diagnostics.Any(d => d.Code == "FS0039"), Describe(diagnostics));
+    }
+
+    [TestMethod]
+    public async Task OpenLineInsideABlockComment_IsNotOpenedForLaterCells()
+    {
+        await _kernel.ExecuteAsync("(*\nopen System.Text\n*)\nlet value = 1", _context);
+
+        var diagnostics = await _kernel.GetDiagnosticsAsync("let sb = StringBuilder()");
+
+        Assert.IsTrue(diagnostics.Any(d => d.Code == "FS0039"), Describe(diagnostics));
+    }
+
+    [TestMethod]
+    public async Task OpenInABranchFsiLeavesOut_IsNotOpenedForLaterCells()
+    {
+        await _kernel.ExecuteAsync("#if INTERACTIVE\nlet mode = \"fsi\"\n#else\nopen System.Text\n#endif", _context);
+
+        var diagnostics = await _kernel.GetDiagnosticsAsync("let m : string = mode\nlet sb = StringBuilder()");
+
+        Assert.AreEqual(1, diagnostics.Count, Describe(diagnostics));
+        Assert.AreEqual("FS0039", diagnostics[0].Code, Describe(diagnostics));
+        Assert.AreEqual(1, diagnostics[0].StartLine, Describe(diagnostics));
+    }
+
+    [TestMethod]
+    public void DirectiveLineInsideAMultiLineString_StaysInTheString()
+    {
+        var context = new FSharpProjectContext(Array.Empty<string>(), Array.Empty<string>());
+        context.AppendExecutedCode("let text = \"\"\"\n#r \"nothing.dll\"\nopen Nowhere\n\"\"\"");
+
+        var (sourceText, _, _) = context.BuildDocument("");
+        var lines = sourceText.Replace("\r\n", "\n").Split('\n');
+
+        CollectionAssert.Contains(lines, "    #r \"nothing.dll\"", sourceText);
+        CollectionAssert.DoesNotContain(lines, "#r \"nothing.dll\"", sourceText);
+        CollectionAssert.DoesNotContain(lines, "open Nowhere", sourceText);
+    }
+
+    [TestMethod]
     public async Task Completions_DoNotOfferTheExecutedCellModules()
     {
         await _kernel.ExecuteAsync("let value = 1", _context);
@@ -118,6 +174,7 @@ public class ExecutedCellsTests
                                              && c.Kind == "Module"),
             string.Join(", ", completions.Where(c => c.Kind == "Module").Select(c => c.DisplayText)));
     }
+
     [TestMethod]
     public async Task HoverAndDiagnostics_DoNotNameTheExecutedCellModules()
     {

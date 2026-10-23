@@ -68,6 +68,32 @@ internal sealed class FSharpCheckerManager : IDisposable
     }
 
     /// <summary>
+    /// Lists the files FSI compiles for the given <c>#load</c>ed scripts, in the order it
+    /// compiles them: each script after the scripts it loads itself.
+    /// </summary>
+    /// <remarks>
+    /// The closure is the one the checker works out for a script holding just those
+    /// <c>#load</c> lines, so a nested <c>#load</c> resolves against the file it is in, as it
+    /// does in FSI. The script itself is the last file of the closure and is left out.
+    /// </remarks>
+    public async Task<IReadOnlyList<string>> GetLoadClosureAsync(
+        string scriptFileName, IEnumerable<string> loadedPaths, CancellationToken ct = default)
+    {
+        if (_checker is null)
+            throw new InvalidOperationException("Checker has not been initialized.");
+
+        var script = string.Join("\n", loadedPaths.Select(p => $"#load @\"{p.Replace("\"", "\"\"")}\""));
+        var asyncOp = _checker.GetProjectOptionsFromScript(
+            scriptFileName, SourceText.ofString(script),
+            caret: null, previewEnabled: null, loadedTimeStamp: null, otherFlags: null,
+            useFsiAuxLib: null, useSdkRefs: null, assumeDotNetFramework: null, sdkDirOverride: null,
+            optionsStamp: null, userOpName: null);
+
+        var (options, _) = await StartAsTask(asyncOp, ct).ConfigureAwait(false);
+        return options.SourceFiles.Take(options.SourceFiles.Length - 1).ToArray();
+    }
+
+    /// <summary>
     /// Triggers a background parse-and-check to pre-warm the checker cache.
     /// Errors are silently swallowed.
     /// </summary>
