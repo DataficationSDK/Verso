@@ -61,7 +61,7 @@ internal static class DiagnosticMapper
         // FCS columns are 0-based — no change needed
         return new VersoDiagnostic(
             Severity: severity.Value,
-            Message: diag.Message,
+            Message: Kernel.FSharpProjectContext.HideExecutedCellModules(diag.Message),
             StartLine: cellStartLine,
             StartColumn: diag.StartColumn,
             EndLine: cellEndLine,
