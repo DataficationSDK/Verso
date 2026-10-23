@@ -93,7 +93,8 @@
 
     /// <summary>
     /// The cell has finished running: ask again for this editor's diagnostics and for every
-    /// editor below it, nearest first, since the run may have changed what their code refers to.
+    /// editor below it that is showing kernel markers, nearest first, since the run may have
+    /// changed what their code refers to.
     /// </summary>
     public async Task RefreshAfterRunAsync()
     {

@@ -304,12 +304,14 @@ window.versoMonaco = (function () {
     }
 
     // ── Refresh after a run ─────────────────────────────────────────────
-    // A run changes what the cells after it can refer to, so when a cell's run ends it and every
-    // cell below it are asked again. They go top to bottom and one at a time: the cells nearest
-    // the run update first, and a run started in the meantime waits behind at most one request.
-    // Nothing goes while a cell runs; the walk resumes when the run is over. A cell whose answer
-    // still holds for its text and kernel state is skipped. Cells above a run are asked on their
-    // next focus, as before.
+    // A run changes what the cells after it can refer to, so when a cell's run ends it is asked
+    // again, and so is every cell below it that is showing kernel markers, since those are the
+    // ones a run can visibly fix. For C# and F# each request is a full compilation, so the other
+    // cells below are left to their next focus, as are the cells above. The cells go top to
+    // bottom and one at a time: the cells nearest the run update first, and a run started in the
+    // meantime waits behind at most one request. Nothing goes while a cell runs; the walk resumes
+    // when the run is over. A cell whose answer still holds for its text and kernel state is
+    // skipped.
     const refreshAfterRunQueue = new Set(); // elementIds still to ask
     let refreshAfterRunActive = false;
 
@@ -323,12 +325,21 @@ window.versoMonaco = (function () {
             });
     }
 
+    function showsKernelMarkers(elementId) {
+        const model = editors[elementId] && editors[elementId].getModel();
+        return !!model && !model.isDisposed()
+            && monaco.editor.getModelMarkers({ owner: DIAGNOSTICS_OWNER, resource: model.uri }).length > 0;
+    }
+
     function queueRefreshAfterRun(elementId) {
+        refreshAfterRunQueue.add(elementId);
         const ordered = editorsInDocumentOrder();
         const start = ordered.indexOf(elementId);
-        (start >= 0 ? ordered.slice(start) : [elementId]).forEach(function (id) {
-            refreshAfterRunQueue.add(id);
-        });
+        if (start >= 0) {
+            ordered.slice(start + 1).filter(showsKernelMarkers).forEach(function (id) {
+                refreshAfterRunQueue.add(id);
+            });
+        }
         runRefreshAfterRunQueue();
     }
 
@@ -920,7 +931,8 @@ window.versoMonaco = (function () {
             refreshDiagnostics(elementId);
         },
 
-        // This editor's cell has finished running: ask again for it and every cell below it.
+        // This editor's cell has finished running: ask again for it and every cell below it
+        // that is showing kernel markers.
         refreshAfterRun: function (elementId) {
             queueRefreshAfterRun(elementId);
         },
