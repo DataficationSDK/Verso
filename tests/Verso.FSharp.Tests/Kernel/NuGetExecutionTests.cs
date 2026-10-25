@@ -179,23 +179,26 @@ public class NuGetExecutionTests
     [TestMethod]
     public async Task LoadDirective_AddsFileContentsToIntelliSense()
     {
-        // Create a temp .fsx file with a function definition
-        var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid():N}.fsx");
+        // Create a temp .fsx file with a function definition. FSI names the loaded script's
+        // module for the file and does not open it, so its names are reached as Helpers.x.
+        var tempDir = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var tempFile = Path.Combine(tempDir, "helpers.fsx");
         File.WriteAllText(tempFile, "let loadedHelperFn x = x + 100");
         try
         {
-            // Execute #load — this should add file contents to IntelliSense context
+            // Execute #load, which should add the file to the IntelliSense context
             await _kernel.ExecuteAsync($"#load \"{tempFile}\"", _context);
 
             // Verify IntelliSense includes the loaded function definition
-            var completions = await _kernel.GetCompletionsAsync("loadedH", "loadedH".Length);
+            var completions = await _kernel.GetCompletionsAsync("Helpers.loadedH", "Helpers.loadedH".Length);
             Assert.IsTrue(
                 completions.Any(c => c.DisplayText == "loadedHelperFn"),
                 $"Expected 'loadedHelperFn' in completions after #load, got: {string.Join(", ", completions.Select(c => c.DisplayText).Take(10))}");
         }
         finally
         {
-            File.Delete(tempFile);
+            Directory.Delete(tempDir, recursive: true);
         }
     }
 }

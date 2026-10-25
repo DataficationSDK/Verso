@@ -15,7 +15,7 @@ internal sealed class ScriptDirectiveProcessor
         RegexOptions.Compiled | RegexOptions.Multiline);
 
     private static readonly Regex LoadRegex = new(
-        @"^#load\s+""([^""]+)""",
+        @"^#load\s+@?""([^""]+)""",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
     private static readonly Regex IncludePathRegex = new(
@@ -36,7 +36,8 @@ internal sealed class ScriptDirectiveProcessor
     public IReadOnlyList<string> ResolvedAssemblyPaths => _resolvedAssemblyPaths;
 
     /// <summary>
-    /// File paths loaded via <c>#load "script.fsx"</c> directives, for IntelliSense context.
+    /// File paths the code last processed loads via <c>#load "script.fsx"</c> directives, so the
+    /// kernel can record them for IntelliSense once that code has run.
     /// </summary>
     public IReadOnlyList<string> LoadedFilePaths => _loadedFilePaths;
 
@@ -53,6 +54,7 @@ internal sealed class ScriptDirectiveProcessor
     public string ProcessDirectives(string code, INotebookMetadata? metadata)
     {
         var processed = code;
+        _loadedFilePaths.Clear();
 
         // Process #r "assembly.dll" (non-NuGet)
         processed = AssemblyRefRegex.Replace(processed, match =>
