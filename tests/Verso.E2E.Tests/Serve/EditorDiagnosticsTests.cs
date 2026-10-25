@@ -72,6 +72,21 @@ public sealed class EditorDiagnosticsTests : MotusTestBase
     }
 
     [TestMethod]
+    public async Task MarkerBelowARun_IsClearedWithoutFocus()
+    {
+        await OpenAsync();
+
+        await SetCellSourceAsync(1, "answer + 1");
+        await WaitForMarkersAsync(1, "markers.some(m => String(m.code) === 'CS0103')");
+
+        await SetCellSourceAsync(0, "var answer = 42;");
+        await RunCellAsync(0);
+
+        // The cell below is never focused, so only the run can have asked for it again.
+        await WaitForMarkersAsync(1, "markers.length === 0");
+    }
+
+    [TestMethod]
     public async Task KernelRestart_ClearsMarkers()
     {
         await OpenAsync();

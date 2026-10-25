@@ -470,11 +470,16 @@
         // boundary is holding no error, which is the ordinary case. The first execution this
         // component sees is not treated as a change: there is nothing yet to recover.
         var execution = (CellData.Id, CellData.ExecutionCount);
-        if (_lastExecution is { } previous && previous != execution)
+        var ranAgain = _lastExecution is { } previous && previous != execution;
+        if (ranAgain)
             _outputErrorBoundary?.Recover();
         _lastExecution = execution;
 
-        if (_wasExecuting && !IsExecuting)
+        // The run has ended when the cell stops executing, or when its execution count moves
+        // without this component having seen it execute: in the VS Code webview the executing
+        // and executed notifications for a quick cell are handled before the next render, so
+        // IsExecuting is never seen true. A count cleared by a restart is not a run.
+        if ((_wasExecuting && !IsExecuting) || (ranAgain && execution.ExecutionCount is not null && !IsExecuting))
             _pendingDiagnosticsRefresh = true;
         _wasExecuting = IsExecuting;
 
@@ -599,7 +604,7 @@
         {
             _pendingDiagnosticsRefresh = false;
             if (_editor is not null)
-                await _editor.RefreshDiagnosticsAsync();
+                await _editor.RefreshAfterRunAsync();
         }
 
         await ReconcileMenuPopoverAsync();

@@ -240,16 +240,17 @@ window.versoMonaco = (function () {
 
     // onFocus is true for a refresh triggered by the editor gaining focus, which is skipped when
     // the last answer still holds. Edits, runs and explicit requests always go through.
+    // Returns a promise that settles when the request it sends does, or at once when it sends none.
     function refreshDiagnostics(elementId, onFocus) {
         const state = diagnosticsState[elementId];
         const editor = editors[elementId];
-        if (!state || !editor) return;
+        if (!state || !editor) return Promise.resolve();
 
         if (onFocus && !state.pending && !state.timer) {
             const current = editor.getModel();
             if (current && current.getVersionId() === state.answeredVersion
                 && state.answeredEpoch === state.staleEpoch) {
-                return;
+                return Promise.resolve();
             }
         }
 
@@ -262,20 +263,20 @@ window.versoMonaco = (function () {
         // against state it is changing. Ask once the run is over instead.
         if (state.suspended || state.inFlight) {
             state.pending = true;
-            return;
+            return Promise.resolve();
         }
         state.pending = false;
 
         const model = editor.getModel();
-        if (!model) return;
+        if (!model) return Promise.resolve();
         const ref = dotnetRefs[model.uri.toString()];
-        if (!ref) return;
+        if (!ref) return Promise.resolve();
 
         // A pathological pasted cell is not analyzed at all, and what it showed before no
         // longer applies.
         if (model.getLineCount() > DIAGNOSTICS_MAX_LINES) {
             setKernelMarkers(model, []);
-            return;
+            return Promise.resolve();
         }
 
         const version = model.getVersionId();
@@ -283,7 +284,7 @@ window.versoMonaco = (function () {
         const epoch = state.staleEpoch;
         state.inFlight = true;
 
-        ref.invokeMethodAsync('GetDiagnostics', model.getValue())
+        return ref.invokeMethodAsync('GetDiagnostics', model.getValue())
             .then(function (result) {
                 if (diagnosticsState[elementId] !== state || state.generation !== generation) return;
                 if (model.isDisposed() || model.getVersionId() !== version) return;
@@ -300,6 +301,67 @@ window.versoMonaco = (function () {
                     refreshDiagnostics(elementId);
                 }
             });
+    }
+
+    // ── Refresh after a run ─────────────────────────────────────────────
+    // A run changes what the cells after it can refer to, so when a cell's run ends it is asked
+    // again, and so is every cell below it that is showing kernel markers, since those are the
+    // ones a run can visibly fix. For C# and F# each request is a full compilation, so the other
+    // cells below are left to their next focus, as are the cells above. The cells go top to
+    // bottom and one at a time: the cells nearest the run update first, and a run started in the
+    // meantime waits behind at most one request. Nothing goes while a cell runs; the walk resumes
+    // when the run is over. A cell whose answer still holds for its text and kernel state is
+    // skipped.
+    const refreshAfterRunQueue = new Set(); // elementIds still to ask
+    let refreshAfterRunActive = false;
+
+    function editorsInDocumentOrder() {
+        return Object.keys(diagnosticsState)
+            .filter(function (id) { return editors[id]; })
+            .sort(function (a, b) {
+                const position = editors[a].getContainerDomNode()
+                    .compareDocumentPosition(editors[b].getContainerDomNode());
+                return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+            });
+    }
+
+    function showsKernelMarkers(elementId) {
+        const model = editors[elementId] && editors[elementId].getModel();
+        return !!model && !model.isDisposed()
+            && monaco.editor.getModelMarkers({ owner: DIAGNOSTICS_OWNER, resource: model.uri }).length > 0;
+    }
+
+    function queueRefreshAfterRun(elementId) {
+        refreshAfterRunQueue.add(elementId);
+        const ordered = editorsInDocumentOrder();
+        const start = ordered.indexOf(elementId);
+        if (start >= 0) {
+            ordered.slice(start + 1).filter(showsKernelMarkers).forEach(function (id) {
+                refreshAfterRunQueue.add(id);
+            });
+        }
+        runRefreshAfterRunQueue();
+    }
+
+    function runRefreshAfterRunQueue() {
+        if (refreshAfterRunActive || refreshAfterRunQueue.size === 0) return;
+        refreshAfterRunActive = true;
+
+        function step() {
+            const next = editorsInDocumentOrder().find(function (id) { return refreshAfterRunQueue.has(id); });
+            const state = next && diagnosticsState[next];
+            if (!state || state.suspended) {
+                // Done, or held until the run that is starting ends (setDiagnosticsSuspended).
+                refreshAfterRunActive = false;
+                if (!next) refreshAfterRunQueue.clear();
+                return;
+            }
+            refreshAfterRunQueue.delete(next);
+            refreshDiagnostics(next, true).then(step, step);
+        }
+
+        // On the next turn, so every editor a render lifts from suspension is lifted first.
+        setTimeout(step, 0);
     }
 
     function scheduleDiagnostics(elementId) {
@@ -696,6 +758,7 @@ window.versoMonaco = (function () {
         dispose: function (elementId) {
             clearDiagnostics(elementId);
             delete diagnosticsState[elementId];
+            refreshAfterRunQueue.delete(elementId);
             const editor = editors[elementId];
             if (editor) {
                 const modelUri = editor.getModel()?.uri?.toString();
@@ -863,9 +926,15 @@ window.versoMonaco = (function () {
             }
         },
 
-        // Ask the kernel for this editor's diagnostics now (after its cell ran, for example).
+        // Ask the kernel for this editor's diagnostics now.
         refreshDiagnostics: function (elementId) {
             refreshDiagnostics(elementId);
+        },
+
+        // This editor's cell has finished running: ask again for it and every cell below it
+        // that is showing kernel markers.
+        refreshAfterRun: function (elementId) {
+            queueRefreshAfterRun(elementId);
         },
 
         clearDiagnostics: function (elementId) {
@@ -881,8 +950,10 @@ window.versoMonaco = (function () {
             if (state.suspended && !suspended) markDiagnosticsStale(state);
             state.suspended = !!suspended;
             if (!state.suspended && state.pending) {
-                refreshDiagnostics(elementId);
+                // Joins the walk after a run, so the cells a run held back are asked in order.
+                refreshAfterRunQueue.add(elementId);
             }
+            if (!state.suspended) runRefreshAfterRunQueue();
         },
 
         setTheme: function (theme) {
