@@ -674,7 +674,7 @@ Interaction types in the `verso/` namespace are reserved by the host and are int
 
 ## Augmentation Interfaces
 
-These interfaces are not standalone extension capabilities. They are implemented **alongside** a primary capability interface (e.g., `ILanguageKernel + IExtensionSettings` or `IDataFormatter + ICellInteractionHandler`). They do not extend `IExtension` and cannot be the sole interface on a `[VersoExtension]` class.
+These interfaces are not standalone extension capabilities. They are implemented **alongside** a primary capability interface (e.g., `ILanguageKernel + IExtensionSettings`, `ILanguageKernel + ISemanticTokenProvider` or `IDataFormatter + ICellInteractionHandler`). They do not extend `IExtension` and cannot be the sole interface on a `[VersoExtension]` class.
 
 ### IExtensionSettings
 
@@ -754,6 +754,24 @@ public sealed class MyKernel : ILanguageKernel, IExtensionSettings
     // ... ILanguageKernel members ...
 }
 ```
+
+### ISemanticTokenProvider
+
+Classifies the symbols in a cell, so the editor can color a type, a function and a value differently where its lexer sees the same identifier. Implemented alongside `ILanguageKernel`; the C# and F# kernels implement it.
+
+| Member | Type | Description |
+|---|---|---|
+| `GetSemanticTokensAsync(string)` | `Task<IReadOnlyList<SemanticToken>?>` | Classifies the cell's source. `null` when the code could not be analyzed. |
+
+A `SemanticToken` is `(Line, StartColumn, Length, Type, Modifiers)`. Positions are 0-based and relative to the cell's source, as for a `Diagnostic`; `Length` counts UTF-16 characters, as .NET strings and the editor do, and a token lies on one line. Tokens may come in any order; the editor sorts them and drops a token that overlaps the one before it, one past the end of its line, and one of a type it does not know.
+
+`Type` is one of the `SemanticTokenTypes` constants, which are the Language Server Protocol's standard names: `namespace`, `type`, `class`, `struct`, `enum`, `interface`, `typeParameter`, `parameter`, `variable`, `property`, `enumMember`, `event`, `function`, `method`, `keyword` and `operator`. `Modifiers` holds `SemanticTokenModifiers` (`mutable`, `static`) or is `null`. The theme colors each type by one of its syntax colors (see [Theme Authoring](theme-authoring.md#syntax-color-mapping)).
+
+Report what the lexer cannot know and leave out what it already colors. A keyword, a string or a number gains nothing from a token, and a token whose type the theme does not color is drawn in the editor's foreground color, which can be worse than the lexer's guess. A computation expression builder in F# (`async`, `seq`) is the exception: the lexer reads it as an identifier, and a `keyword` token gives it the keyword color.
+
+The editor asks when a cell is first shown, after the user pauses typing, and after a run, for the cell that ran and every cell below it that shows kernel markers; it asks again on focus when another cell has run since the last answer. It does not ask while any cell in the notebook is running, and the colors already shown stay until the next answer. A request goes out from one editor at a time. Like diagnostics, the request is advisory: `null`, an exception or a kernel that cannot start keeps the colors shown, and an empty list clears them. Leading `#!` magic lines are blanked before the code reaches the kernel.
+
+A classification usually falls out of the same type check as `GetDiagnosticsAsync`, and the editor asks for both after an edit. A kernel that implements both should answer them from one check of the same text, so a pause in typing compiles once; the C# and F# kernels do.
 
 ### ICellInteractionHandler
 

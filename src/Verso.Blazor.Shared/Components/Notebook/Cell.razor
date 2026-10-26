@@ -193,6 +193,7 @@
                               OnGetHoverInfo="HandleGetHoverInfo"
                               OnGetCompletions="HandleGetCompletions"
                               OnGetDiagnostics="HandleGetDiagnostics"
+                              OnGetSemanticTokens="HandleGetSemanticTokens"
                               DiagnosticsSuspended="IsNotebookExecuting"
                               OnLineLimitChanged="HandleLineLimitChanged" />
                 @if (_lineLimit is { Clipped: true } limit)
@@ -732,6 +733,33 @@
                 endLine = d.EndLine,
                 endColumn = d.EndColumn,
                 code = d.Code
+            }).ToArray()
+        };
+    }
+
+    private async Task<object?> HandleGetSemanticTokens(string code)
+    {
+        // Markdown has no kernel to ask; an empty set leaves the editor's own coloring.
+        if (string.Equals(CellData.Type, "markdown", StringComparison.OrdinalIgnoreCase))
+            return new { items = Array.Empty<object>() };
+
+        // Masked as for diagnostics, so a leading magic line is not classified as code and
+        // positions still line up.
+        var result = await Service.GetSemanticTokensAsync(
+            CellData.Id, DiagnosticsSource.MaskLeadingMagicCommands(code));
+
+        // Null means the request could not be answered; the editor keeps the colors it shows.
+        if (result is null) return null;
+
+        return new
+        {
+            items = result.Items.Select(t => new
+            {
+                line = t.Line,
+                startColumn = t.StartColumn,
+                length = t.Length,
+                type = t.Type,
+                modifiers = t.Modifiers
             }).ToArray()
         };
     }

@@ -300,6 +300,18 @@ public sealed class FakeNotebookService : INotebookService
         return Task.FromResult(DiagnosticsResult);
     }
 
+    /// <summary>The result <see cref="GetSemanticTokensAsync"/> answers with; null by default.</summary>
+    public SemanticTokensResultDto? SemanticTokensResult { get; set; }
+
+    /// <summary>Every (cell, code) pair passed to <see cref="GetSemanticTokensAsync"/>, in order.</summary>
+    public List<(Guid CellId, string Code)> SemanticTokensRequests { get; } = new();
+
+    public Task<SemanticTokensResultDto?> GetSemanticTokensAsync(Guid cellId, string code)
+    {
+        SemanticTokensRequests.Add((cellId, code));
+        return Task.FromResult(SemanticTokensResult);
+    }
+
     // ── Layout & theme switching ───────────────────────────────────────
 
     public int RenderActiveLayoutCallCount { get; private set; }

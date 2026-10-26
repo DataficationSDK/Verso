@@ -30,21 +30,31 @@ public static class MonacoThemeBuilder
 {
     // A theme names the kind of thing being colored; the editor's tokenizers have their own
     // names for the same things, and often more than one. A name matches every token that
-    // starts with it, so "keyword" also covers "keyword.cs".
+    // starts with it, so "keyword" also covers "keyword.cs". The kernels' semantic tokens arrive
+    // under the standard semantic token names, with any modifiers appended ("variable.mutable"),
+    // and are colored by the same rules: a class as a type, a method as a function.
     private static readonly (string SyntaxKey, string[] Tokens)[] TokenMap =
     {
         ("keyword", new[] { "keyword" }),
         ("comment", new[] { "comment" }),
         ("string", new[] { "string" }),
         ("number", new[] { "number" }),
-        ("type", new[] { "type" }),
-        ("function", new[] { "function", "support.function" }),
-        ("variable", new[] { "variable" }),
+        ("type", new[] { "type", "class", "struct", "enum", "interface", "typeParameter" }),
+        ("function", new[] { "function", "support.function", "method" }),
+        ("variable", new[] { "variable", "parameter", "property", "event" }),
         ("operator", new[] { "operator", "operators" }),
         ("punctuation", new[] { "delimiter" }),
         ("preprocessor", new[] { "keyword.preprocessor", "namespace.cpp", "directive", "metatag" }),
         ("attribute", new[] { "annotation", "attribute.name" }),
         ("namespace", new[] { "namespace" }),
+        ("enumMember", new[] { "enumMember" }),
+    };
+
+    // Keys added after themes were written, and the key a theme without them is colored by. An
+    // enum member or union case is used more like the type it belongs to than like a variable.
+    private static readonly Dictionary<string, string> Fallbacks = new(StringComparer.Ordinal)
+    {
+        ["enumMember"] = "type",
     };
 
     /// <summary>
@@ -85,7 +95,8 @@ public static class MonacoThemeBuilder
         {
             foreach (var (key, tokens) in TokenMap)
             {
-                if (!syntax.TryGetValue(key, out var color) || string.IsNullOrWhiteSpace(color))
+                if (!TryGetColor(syntax, key, out var color)
+                    && !(Fallbacks.TryGetValue(key, out var fallback) && TryGetColor(syntax, fallback, out color)))
                     continue;
                 foreach (var token in tokens)
                     rules.Add(new MonacoTokenRule(token, color));
@@ -93,6 +104,12 @@ public static class MonacoThemeBuilder
         }
 
         return new MonacoThemeSpec(BaseFor(kind, c.EditorBackground), colors, rules);
+    }
+
+    private static bool TryGetColor(IReadOnlyDictionary<string, string> syntax, string key, out string color)
+    {
+        color = syntax.TryGetValue(key, out var value) ? value : "";
+        return !string.IsNullOrWhiteSpace(color);
     }
 
     /// <summary>

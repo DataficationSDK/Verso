@@ -248,7 +248,7 @@ How much work the shadow has to do depends on the palette. Dark themes separate 
 
 ## Syntax Color Mapping
 
-Themes provide syntax highlighting via `GetSyntaxColors()`, which returns a `SyntaxColorMap`. The platform recognizes 12 standard token types:
+Themes provide syntax highlighting via `GetSyntaxColors()`, which returns a `SyntaxColorMap`. The platform recognizes 13 standard token types:
 
 | Token Type | Description | Light Default | Dark Default |
 |------------|-------------|--------------|-------------|
@@ -263,9 +263,12 @@ Themes provide syntax highlighting via `GetSyntaxColors()`, which returns a `Syn
 | `punctuation` | Brackets, semicolons | `#000000` | `#D4D4D4` |
 | `preprocessor` | Preprocessor directives | `#808080` | `#C586C0` |
 | `attribute` | Attributes and decorators | `#267F99` | `#4EC9B0` |
-| `namespace` | Namespace references | `#267F99` | `#4EC9B0` |
+| `namespace` | Namespace and module references | `#267F99` | `#4EC9B0` |
+| `enumMember` | Enum members, union cases and named constants | `#0070C1` | `#4FC1FF` |
 
-Always provide all 12 tokens. Renderers may fall back to `EditorForeground` for missing tokens.
+Always provide all 13 tokens. Renderers may fall back to `EditorForeground` for missing tokens.
+
+The same colors apply to the semantic tokens a kernel reports (see [`ISemanticTokenProvider`](extension-interfaces.md#isemantictokenprovider)). A class, struct, enum, interface or type parameter takes the `type` color; a method takes `function`; a parameter, property or event takes `variable`. A theme without `enumMember` colors enum members and union cases by its `type` color.
 
 ## Overriding Defaults
 

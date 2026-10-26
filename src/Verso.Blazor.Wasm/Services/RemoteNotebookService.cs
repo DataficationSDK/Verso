@@ -784,6 +784,21 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
                 .ToList());
     }
 
+    public async Task<SemanticTokensResultDto?> GetSemanticTokensAsync(Guid cellId, string code)
+    {
+        var result = await _bridge.RequestAsync<SemanticTokensResponse?>(
+            "kernel/getSemanticTokens",
+            new { cellId = cellId.ToString(), code });
+
+        // Null when the kernel could not analyze the code; the editor keeps the colors it shows.
+        if (result is null) return null;
+
+        return new SemanticTokensResultDto(
+            (result.Items ?? new List<SemanticTokenItem>())
+                .Select(t => new SemanticTokenItemDto(t.Line, t.StartColumn, t.Length, t.Type, t.Modifiers))
+                .ToList());
+    }
+
     // ── Layout & theme switching ────────────────────────────────────────
 
     public Task SwitchLayoutAsync(string layoutId)
@@ -2719,6 +2734,20 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public int EndLine { get; set; }
         public int EndColumn { get; set; }
         public string? Code { get; set; }
+    }
+
+    private sealed class SemanticTokensResponse
+    {
+        public List<SemanticTokenItem>? Items { get; set; }
+    }
+
+    private sealed class SemanticTokenItem
+    {
+        public int Line { get; set; }
+        public int StartColumn { get; set; }
+        public int Length { get; set; }
+        public string Type { get; set; } = "";
+        public List<string>? Modifiers { get; set; }
     }
 
     private sealed class SettingsDefinitionsResponse

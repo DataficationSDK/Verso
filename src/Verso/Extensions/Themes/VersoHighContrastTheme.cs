@@ -150,6 +150,7 @@ public sealed class VersoHighContrastTheme : ITheme
         map.Set("preprocessor", "#DA70D6"); // Orchid, 5.5:1
         map.Set("attribute", "#6FC3DF");   // Cyan, 9.0:1
         map.Set("namespace", "#6FC3DF");   // Cyan, 9.0:1
+        map.Set("enumMember", "#C5E478");  // Yellow green, 14.7:1
         return map;
     }
 }
