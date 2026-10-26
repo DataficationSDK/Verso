@@ -13,6 +13,14 @@ internal sealed class FSharpCheckerManager : IDisposable
 {
     private FSharpChecker? _checker;
 
+    // The last check asked for, by everything it depends on. The editor asks for diagnostics and
+    // for semantic tokens of the same text moments apart, and a check of a cell re-checks every
+    // cell executed before it, so the second request shares the first one's check rather than
+    // running its own. A request for different text replaces it.
+    private readonly object _lastCheckLock = new();
+    private string? _lastCheckKey;
+    private Task<(FSharpParseFileResults ParseResults, FSharpCheckFileResults CheckResults)?>? _lastCheck;
+
     /// <summary>
     /// Creates and configures the F# checker instance.
     /// </summary>
@@ -44,14 +52,56 @@ internal sealed class FSharpCheckerManager : IDisposable
     /// A tuple of (FSharpParseFileResults, FSharpCheckFileResults) or <c>null</c>
     /// if the check was aborted.
     /// </returns>
-    public async Task<(FSharpParseFileResults ParseResults, FSharpCheckFileResults CheckResults)?> ParseAndCheckAsync(
+    /// <remarks>
+    /// A call with the same file, text, compiler options and loaded scripts, unchanged on disk, as
+    /// the previous one returns that call's results, or joins it while it is still running. An aborted or failed check is not
+    /// kept.
+    /// </remarks>
+    public Task<(FSharpParseFileResults ParseResults, FSharpCheckFileResults CheckResults)?> ParseAndCheckAsync(
         string fileName, string sourceText, FSharpProjectOptions options, CancellationToken ct = default)
     {
-        if (_checker is null)
-            throw new InvalidOperationException("Checker has not been initialized.");
+        var checker = _checker
+            ?? throw new InvalidOperationException("Checker has not been initialized.");
 
+        // A cancellable request cannot be shared: cancelling it would cancel every caller joined to it.
+        if (ct.CanBeCanceled)
+            return CheckAsync(checker, fileName, sourceText, options, ct);
+
+        var key = CheckKey(fileName, sourceText, options);
+        lock (_lastCheckLock)
+        {
+            if (_lastCheck is not null && _lastCheckKey == key && !_lastCheck.IsFaulted && !_lastCheck.IsCanceled
+                && !(_lastCheck.IsCompletedSuccessfully && _lastCheck.Result is null))
+            {
+                return _lastCheck;
+            }
+
+            _lastCheckKey = key;
+            _lastCheck = CheckAsync(checker, fileName, sourceText, options, ct);
+            return _lastCheck;
+        }
+    }
+
+    // The other source files are #load'ed scripts, which the checker reads from disk, so a key
+    // holds each one's write time as well as its path.
+    private static string CheckKey(string fileName, string sourceText, FSharpProjectOptions options)
+    {
+        var key = new System.Text.StringBuilder();
+        foreach (var option in options.OtherOptions)
+            key.Append(option).Append('\0');
+        foreach (var file in options.SourceFiles)
+        {
+            if (string.Equals(file, fileName, StringComparison.Ordinal)) continue;
+            key.Append(file).Append('\u0001').Append(File.GetLastWriteTimeUtc(file).Ticks).Append('\0');
+        }
+        return key.Append(fileName).Append('\0').Append(sourceText).ToString();
+    }
+
+    private static async Task<(FSharpParseFileResults ParseResults, FSharpCheckFileResults CheckResults)?> CheckAsync(
+        FSharpChecker checker, string fileName, string sourceText, FSharpProjectOptions options, CancellationToken ct)
+    {
         var source = SourceText.ofString(sourceText);
-        var asyncOp = _checker.ParseAndCheckFileInProject(
+        var asyncOp = checker.ParseAndCheckFileInProject(
             fileName, 0, source, options,
             userOpName: FSharpOption<string>.None);
 
@@ -115,6 +165,11 @@ internal sealed class FSharpCheckerManager : IDisposable
     public void Dispose()
     {
         _checker = null;
+        lock (_lastCheckLock)
+        {
+            _lastCheckKey = null;
+            _lastCheck = null;
+        }
     }
 
     /// <summary>

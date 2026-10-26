@@ -46,6 +46,7 @@ public static class MethodNames
     public const string KernelGetCompletions = "kernel/getCompletions";
     public const string KernelGetDiagnostics = "kernel/getDiagnostics";
     public const string KernelGetHoverInfo = "kernel/getHoverInfo";
+    public const string KernelGetSemanticTokens = "kernel/getSemanticTokens";
 
     // Output
     public const string OutputClearAll = "output/clearAll";

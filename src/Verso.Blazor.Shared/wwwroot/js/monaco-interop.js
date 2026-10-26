@@ -141,6 +141,8 @@ window.versoMonaco = (function () {
                 }
             }
         });
+
+        monaco.languages.registerDocumentSemanticTokensProvider(language, semanticTokensProvider());
     }
 
     // ── Kernel diagnostics ──────────────────────────────────────────────
@@ -283,6 +285,7 @@ window.versoMonaco = (function () {
         const generation = state.generation;
         const epoch = state.staleEpoch;
         state.inFlight = true;
+        refreshSemanticTokens(model, epoch);
 
         return ref.invokeMethodAsync('GetDiagnostics', model.getValue())
             .then(function (result) {
@@ -305,13 +308,13 @@ window.versoMonaco = (function () {
 
     // ── Refresh after a run ─────────────────────────────────────────────
     // A run changes what the cells after it can refer to, so when a cell's run ends it is asked
-    // again, and so is every cell below it that is showing kernel markers, since those are the
-    // ones a run can visibly fix. For C# and F# each request is a full compilation, so the other
-    // cells below are left to their next focus, as are the cells above. The cells go top to
-    // bottom and one at a time: the cells nearest the run update first, and a run started in the
-    // meantime waits behind at most one request. Nothing goes while a cell runs; the walk resumes
-    // when the run is over. A cell whose answer still holds for its text and kernel state is
-    // skipped.
+    // again (diagnostics, and with them semantic tokens), and so is every cell below it that is
+    // showing kernel markers, since those are the ones a run can visibly fix. For C# and F# each
+    // request is a full compilation, so the other cells below are left to their next focus, as are
+    // the cells above. The cells go top to bottom and one at a time: the cells nearest the run
+    // update first, and a run started in the meantime waits behind at most one request. Nothing
+    // goes while a cell runs; the walk resumes when the run is over. A cell whose answer still
+    // holds for its text and kernel state is skipped.
     const refreshAfterRunQueue = new Set(); // elementIds still to ask
     let refreshAfterRunActive = false;
 
@@ -390,6 +393,182 @@ window.versoMonaco = (function () {
         if (editor) setKernelMarkers(editor.getModel(), []);
     }
 
+    // ── Kernel semantic tokens ──────────────────────────────────────────
+    // Monaco pulls semantic tokens: it asks for a model's tokens when the model is attached, after
+    // an edit (debounced by Monaco itself), when the theme changes, and whenever the provider says
+    // they changed. A kernel answers from a type check, so the asking follows the diagnostics rules
+    // above. Nothing is asked while a cell runs, and the colors shown stay. A model is asked again
+    // without an edit only when its diagnostics are (its own run ended, or it gained focus after
+    // kernel state changed). Any other model whose text is unchanged since its answer gets that
+    // answer back without asking. Requests from every editor go one at a time, so a run in VS Code,
+    // where the host answers one request at a time, waits behind at most one of them.
+    const SEMANTIC_TOKEN_TYPES = [
+        'namespace', 'type', 'class', 'struct', 'enum', 'interface', 'typeParameter', 'parameter',
+        'variable', 'property', 'enumMember', 'event', 'function', 'method', 'keyword', 'operator'
+    ];
+    const SEMANTIC_TOKEN_MODIFIERS = ['mutable', 'static'];
+    const semanticTypeIndex = {};
+    SEMANTIC_TOKEN_TYPES.forEach(function (t, i) { semanticTypeIndex[t] = i; });
+    const semanticModifierBit = {};
+    SEMANTIC_TOKEN_MODIFIERS.forEach(function (m, i) { semanticModifierBit[m] = 1 << i; });
+
+    const modelElements = {}; // model URI → elementId of its cell editor
+    // model URI → { data, version, resultId, refresh, askedVersion, askedEpoch }: the last answer,
+    // the model version it was for and the id it was last handed to Monaco under, whether a fresh
+    // answer is wanted for an unchanged version, and the version and diagnostics epoch the last
+    // request was sent for.
+    const semanticState = {};
+    let semanticProvider = null;
+    let semanticChanged = null;
+    let semanticQueue = Promise.resolve();
+    let semanticResultId = 0;
+
+    function semanticStateFor(uri) {
+        let state = semanticState[uri];
+        if (!state) {
+            state = { data: null, version: null, resultId: null, refresh: false, askedVersion: null, askedEpoch: -1 };
+            semanticState[uri] = state;
+        }
+        return state;
+    }
+
+    // Monaco keeps the tokens it shows when a request fails with "busy", and clears them on null.
+    function semanticBusy() {
+        return new Error('busy');
+    }
+
+    // Asks Monaco for every model's tokens. Models that need no new answer get their last one.
+    function announceSemanticTokensChanged() {
+        if (semanticChanged) semanticChanged.fire();
+    }
+
+    // Called as a diagnostics request for model goes out. Unless a semantic request has already
+    // gone out for the same text and kernel state (the edit both reacted to), ask for one too.
+    function refreshSemanticTokens(model, epoch) {
+        const state = semanticState[model.uri.toString()];
+        if (!state) return;
+        if (state.askedVersion === model.getVersionId() && state.askedEpoch === epoch) return;
+        state.refresh = true;
+        announceSemanticTokensChanged();
+    }
+
+    // Kernel positions are 0-based and cell-relative, measured on the text that was sent. A token
+    // past the end of its line, of a type Monaco was not told about, or overlapping the one before
+    // it is dropped; the rest are delta-encoded as Monaco expects.
+    function encodeSemanticTokens(lineLengths, items) {
+        const tokens = [];
+        (items || []).forEach(function (item) {
+            const type = semanticTypeIndex[item.type];
+            if (type === undefined) return;
+            const line = Number(item.line);
+            const start = Number(item.startColumn);
+            const length = Number(item.length);
+            if (!(line >= 0 && line < lineLengths.length) || !(start >= 0) || !(length > 0)) return;
+            if (start >= lineLengths[line]) return;
+            let modifiers = 0;
+            (item.modifiers || []).forEach(function (m) {
+                if (semanticModifierBit[m] !== undefined) modifiers |= semanticModifierBit[m];
+            });
+            tokens.push([line, start, Math.min(length, lineLengths[line] - start), type, modifiers]);
+        });
+        tokens.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+
+        const data = [];
+        let prevLine = 0, prevStart = 0, lastLine = -1, lastEnd = 0;
+        tokens.forEach(function (t) {
+            if (t[0] === lastLine && t[1] < lastEnd) return;
+            data.push(t[0] - prevLine, t[0] === prevLine ? t[1] - prevStart : t[1], t[2], t[3], t[4]);
+            prevLine = t[0];
+            prevStart = t[1];
+            lastLine = t[0];
+            lastEnd = t[1] + t[2];
+        });
+        return new Uint32Array(data);
+    }
+
+    function semanticAnswer(state) {
+        state.resultId = String(++semanticResultId);
+        return { resultId: state.resultId, data: state.data };
+    }
+
+    function requestSemanticTokens(model, uri, elementId, state) {
+        if (model.isDisposed()) return Promise.resolve(null);
+        const diagnostics = diagnosticsState[elementId];
+        if (diagnostics && diagnostics.suspended) {
+            state.refresh = true;
+            return Promise.reject(semanticBusy());
+        }
+        const ref = dotnetRefs[uri];
+        if (!ref) return Promise.resolve(null);
+
+        const version = model.getVersionId();
+        state.refresh = false;
+        state.askedVersion = version;
+        state.askedEpoch = diagnostics ? diagnostics.staleEpoch : 0;
+
+        if (model.getLineCount() > DIAGNOSTICS_MAX_LINES) {
+            state.data = null;
+            state.version = version;
+            return Promise.resolve(null);
+        }
+
+        const lineLengths = model.getLinesContent().map(function (line) { return line.length; });
+        return ref.invokeMethodAsync('GetSemanticTokens', model.getValue()).then(function (result) {
+            // A failure keeps what is shown, until the next edit or refresh asks again.
+            state.version = version;
+            if (!result) {
+                state.data = null;
+                throw semanticBusy();
+            }
+            state.data = encodeSemanticTokens(lineLengths, result.items);
+            return semanticAnswer(state);
+        }, function () {
+            state.version = version;
+            state.data = null;
+            throw semanticBusy();
+        });
+    }
+
+    // lastResultId is the id of the answer Monaco shows, or null when it shows none (a new
+    // model, or one whose tokens a theme or language change cleared).
+    function provideSemanticTokens(model, lastResultId) {
+        const uri = model.uri.toString();
+        const elementId = modelElements[uri];
+        if (!elementId || !dotnetRefs[uri]) return null;
+
+        const state = semanticStateFor(uri);
+        if (!state.refresh && state.version === model.getVersionId()) {
+            // Already showing the last answer: keep it rather than paint it again.
+            if (!state.data || (lastResultId && lastResultId === state.resultId)) {
+                return Promise.reject(semanticBusy());
+            }
+            return semanticAnswer(state);
+        }
+
+        return new Promise(function (resolve, reject) {
+            semanticQueue = semanticQueue.then(function () {
+                return requestSemanticTokens(model, uri, elementId, state).then(resolve, reject);
+            });
+        });
+    }
+
+    function semanticTokensProvider() {
+        if (!semanticProvider) {
+            semanticChanged = new monaco.Emitter();
+            semanticProvider = {
+                onDidChange: semanticChanged.event,
+                getLegend: function () {
+                    return { tokenTypes: SEMANTIC_TOKEN_TYPES, tokenModifiers: SEMANTIC_TOKEN_MODIFIERS };
+                },
+                provideDocumentSemanticTokens: function (model, lastResultId) {
+                    return provideSemanticTokens(model, lastResultId);
+                },
+                releaseDocumentSemanticTokens: function () { }
+            };
+        }
+        return semanticProvider;
+    }
+
     // Extend the built-in C# monarch tokenizer to highlight #i "nuget: ..." directives
     // the same way Monaco highlights #r directives (as preprocessor + string).
     // The theme last handed to applyTheme(), kept so it can be defined as soon as Monaco
@@ -397,6 +576,17 @@ window.versoMonaco = (function () {
     const CUSTOM_THEME = 'verso-active';
     const BASE_THEMES = ['vs', 'vs-dark', 'hc-black', 'hc-light'];
     let _themeSpec = null;
+    // Whether the editors draw the kernels' semantic tokens; a theme description can turn
+    // them off, as a VS Code theme without semantic highlighting does.
+    let _semanticHighlighting = true;
+
+    function applySemanticHighlighting(enabled) {
+        if (enabled === _semanticHighlighting) return;
+        _semanticHighlighting = enabled;
+        Object.values(editors).forEach(function (ed) {
+            ed.updateOptions({ 'semanticHighlighting.enabled': enabled });
+        });
+    }
 
     // Monaco reads theme colors as hex only, and paints anything else bright red rather
     // than ignoring it. Theme tokens and CSS variables can hold rgb()/rgba() as well, so
@@ -578,6 +768,8 @@ window.versoMonaco = (function () {
                     lineNumbersMinChars: 3,
                     renderLineHighlight: 'line',
                     automaticLayout: true,
+                    // Standalone themes leave semantic highlighting off; the kernels supply the tokens.
+                    'semanticHighlighting.enabled': _semanticHighlighting,
                     fontSize: _editorSettings.fontSize,
                     fontFamily: _editorSettings.fontFamily,
                     fontLigatures: _editorSettings.fontLigatures,
@@ -750,6 +942,7 @@ window.versoMonaco = (function () {
                 const modelUri = editor.getModel().uri.toString();
                 if (dotnetRef) {
                     dotnetRefs[modelUri] = dotnetRef;
+                    modelElements[modelUri] = elementId;
                 }
                 registerProviders(options.language || 'csharp');
             });
@@ -764,6 +957,8 @@ window.versoMonaco = (function () {
                 const modelUri = editor.getModel()?.uri?.toString();
                 if (modelUri) {
                     delete dotnetRefs[modelUri];
+                    delete modelElements[modelUri];
+                    delete semanticState[modelUri];
                 }
                 editor.dispose();
                 delete editors[elementId];
@@ -918,8 +1113,10 @@ window.versoMonaco = (function () {
             if (editor) {
                 const model = editor.getModel();
                 if (model && monaco.editor.getModel(model.uri)) {
-                    // The previous kernel's diagnostics say nothing about the new language.
+                    // The previous kernel's diagnostics and tokens say nothing about the new language.
                     clearDiagnostics(elementId);
+                    const semantic = semanticState[model.uri.toString()];
+                    if (semantic) semantic.refresh = true;
                     monaco.editor.setModelLanguage(model, language);
                     registerProviders(language);
                 }
@@ -954,6 +1151,13 @@ window.versoMonaco = (function () {
                 refreshAfterRunQueue.add(elementId);
             }
             if (!state.suspended) runRefreshAfterRunQueue();
+            // Tokens an edit asked for during the run.
+            const editor = editors[elementId];
+            const model = editor && editor.getModel();
+            const semantic = model && semanticState[model.uri.toString()];
+            if (!state.suspended && semantic && semantic.refresh) {
+                announceSemanticTokensChanged();
+            }
         },
 
         setTheme: function (theme) {
@@ -971,10 +1175,12 @@ window.versoMonaco = (function () {
         //          syntax rules, for a description whose rules are complete
         //   colors Monaco color id -> CSS color ('editor.background', ...)
         //   rules  [{ token, foreground, fontStyle }] in Monaco's token names
+        //   semanticHighlighting  false to draw the kernels' semantic tokens not at all
         // Calling it again replaces the previous description.
         applyTheme: function (spec) {
             if (!spec) return;
             _themeSpec = spec;
+            applySemanticHighlighting(spec.semanticHighlighting !== false);
             _currentTheme = CUSTOM_THEME;
             if (monacoReady) {
                 defineCustomTheme();

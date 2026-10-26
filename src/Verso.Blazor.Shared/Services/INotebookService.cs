@@ -302,6 +302,18 @@ public interface INotebookService
     Task<DiagnosticsResultDto?> GetDiagnosticsAsync(Guid cellId, string code)
         => Task.FromResult<DiagnosticsResultDto?>(null);
 
+    /// <summary>
+    /// Get the kernel's semantic classification of a cell's source, which the editor colors by.
+    /// Returns null when the request could not be answered, which the editor treats as "keep the
+    /// colors shown"; an empty list clears them.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to null so a service without semantic token support leaves the editor's own
+    /// coloring.
+    /// </remarks>
+    Task<SemanticTokensResultDto?> GetSemanticTokensAsync(Guid cellId, string code)
+        => Task.FromResult<SemanticTokensResultDto?>(null);
+
     // ── Layout & theme switching ───────────────────────────────────────
 
     /// <summary>

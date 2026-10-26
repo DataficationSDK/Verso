@@ -71,6 +71,32 @@ public sealed class MonacoEditorTests : BunitTestContext
     }
 
     [TestMethod]
+    public async Task GetSemanticTokens_ReturnsCallbackResult()
+    {
+        TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+        string? received = null;
+        var expected = new { items = Array.Empty<object>() };
+        var cut = TestContext.RenderComponent<MonacoEditor>(p => p
+            .Add(e => e.OnGetSemanticTokens, code => { received = code; return Task.FromResult<object?>(expected); }));
+
+        var result = await cut.Instance.GetSemanticTokens("let y = 2");
+
+        Assert.AreEqual("let y = 2", received);
+        Assert.AreSame(expected, result);
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_ReturnsNull_WhenCallbackThrows()
+    {
+        // Null tells the editor to keep the colors it has.
+        TestContext!.JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = TestContext.RenderComponent<MonacoEditor>(p => p
+            .Add(e => e.OnGetSemanticTokens, _ => throw new InvalidOperationException("host gone")));
+
+        Assert.IsNull(await cut.Instance.GetSemanticTokens("let y = 2"));
+    }
+
+    [TestMethod]
     public async Task GetDiagnostics_ReturnsNull_WithoutCallback()
     {
         var cut = Render();

@@ -47,6 +47,7 @@ public sealed class VersoLightTheme : ITheme
         map.Set("preprocessor", "#808080");
         map.Set("attribute", "#267F99");
         map.Set("namespace", "#267F99");
+        map.Set("enumMember", "#0070C1");
         return map;
     }
 }

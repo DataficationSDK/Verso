@@ -10,6 +10,7 @@ Full F# scripting powered by FSharp.Compiler.Service. Latest F# language version
 
 - **F# Interactive session** with configurable warning level, language version, and default opens
 - **IntelliSense** with dot-completion, error diagnostics, and hover info (type signatures and documentation)
+- **Semantic highlighting**: modules, types, functions, values and union cases colored by what the compiler resolves them to
 - **NuGet references** via `#r "nuget: PackageName"` with dual-path resolution (FSI built-in or Verso fallback)
 - **Script directives** (`#r`, `#load`, `#I`, `#nowarn`, and `#time`)
 - **Bidirectional variable sharing** between F# and other kernels

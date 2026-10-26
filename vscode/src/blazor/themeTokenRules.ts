@@ -292,3 +292,135 @@ export function buildMonacoRules(tokenColors: readonly TextMateRule[]): MonacoTo
   }
   return rules;
 }
+
+/**
+ * One value of a theme's `semanticTokenColors`, or of the user's
+ * `editor.semanticTokenColorCustomizations` rules: a color, or a style.
+ */
+export type SemanticTokenStyle =
+  | string
+  | {
+      foreground?: string;
+      fontStyle?: string;
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      strikethrough?: boolean;
+    };
+
+// The semantic token types the kernels report, with the TextMate scopes VS Code colors each
+// by when the theme's semanticTokenColors does not name it (its token classification
+// registry). Each scope is one alternative, tried in order.
+const SEMANTIC_TOKEN_SCOPES: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ["namespace", ["entity.name.namespace"]],
+  ["type", ["entity.name.type", "support.type"]],
+  ["class", ["entity.name.type.class", "support.class"]],
+  ["struct", ["entity.name.type.struct"]],
+  ["enum", ["entity.name.type.enum"]],
+  ["interface", ["entity.name.type.interface"]],
+  ["typeParameter", ["entity.name.type.parameter"]],
+  ["parameter", ["variable.parameter"]],
+  ["variable", ["variable.other.readwrite", "entity.name.variable"]],
+  ["property", ["variable.other.property"]],
+  ["enumMember", ["variable.other.enummember"]],
+  ["event", ["variable.other.event"]],
+  ["function", ["entity.name.function", "support.function"]],
+  ["method", ["entity.name.function.member", "support.function"]],
+  ["keyword", ["keyword.control"]],
+  ["operator", ["keyword.operator"]],
+];
+
+const SEMANTIC_TOKEN_MODIFIERS: readonly string[] = ["mutable", "static"];
+
+function semanticStyle(value: SemanticTokenStyle | undefined): Resolved | undefined {
+  if (typeof value === "string") return { foreground: value };
+  if (!value || typeof value !== "object") return undefined;
+
+  const resolved: Resolved = {};
+  if (typeof value.foreground === "string") resolved.foreground = value.foreground;
+  if (typeof value.fontStyle === "string") {
+    resolved.fontStyle = value.fontStyle;
+  } else {
+    const flags = (["bold", "italic", "underline", "strikethrough"] as const)
+      .filter((flag) => value[flag] === true);
+    if (flags.length > 0) resolved.fontStyle = flags.join(" ");
+  }
+  return resolved.foreground !== undefined || resolved.fontStyle !== undefined ? resolved : undefined;
+}
+
+/**
+ * Builds the Monaco rules for the kernels' semantic tokens, colored as VS Code colors the
+ * same tokens in a source file: by the theme's `semanticTokenColors` where a selector names
+ * the token's type, or its type and a modifier ("variable.mutable", "*.static"), and by the
+ * TextMate scope VS Code falls back to otherwise. Monaco looks a token up by its type with
+ * its modifiers appended, so "variable.mutable" falls back to the "variable" rule.
+ *
+ * Types the Monaco tokenizers share ("variable", "function", "type", "namespace",
+ * "keyword", "operator") already have a rule from {@link buildMonacoRules} with the same
+ * scopes, and get one here only when `semanticTokenColors` names them. Selectors limited to
+ * a language ("variable:fsharp") are not supported and are passed over.
+ */
+export function buildSemanticRules(
+  tokenColors: readonly TextMateRule[],
+  semanticTokenColors: Readonly<Record<string, SemanticTokenStyle>>
+): MonacoTokenRule[] {
+  const lexical = new Set(TOKEN_SCOPES.map(([token]) => token));
+  const rules: MonacoTokenRule[] = [];
+  const push = (token: string, style: Resolved | undefined): void => {
+    if (!style) return;
+    const rule: MonacoTokenRule = { token };
+    if (style.foreground !== undefined) rule.foreground = style.foreground;
+    if (style.fontStyle !== undefined) rule.fontStyle = style.fontStyle;
+    rules.push(rule);
+  };
+
+  for (const [type, scopes] of SEMANTIC_TOKEN_SCOPES) {
+    const named = semanticStyle(semanticTokenColors[type]);
+    if (named) {
+      push(type, named);
+    } else if (!lexical.has(type)) {
+      let hit: Resolved = {};
+      for (const scope of scopes) {
+        hit = resolveScope(tokenColors, scope);
+        if (hit.foreground !== undefined) break;
+      }
+      push(type, hit.foreground !== undefined || hit.fontStyle !== undefined ? hit : undefined);
+    }
+
+    for (const modifier of SEMANTIC_TOKEN_MODIFIERS) {
+      push(`${type}.${modifier}`,
+        semanticStyle(semanticTokenColors[`${type}.${modifier}`])
+          ?? semanticStyle(semanticTokenColors[`*.${modifier}`]));
+    }
+  }
+  return rules;
+}
+
+/**
+ * Reads the user's "editor.semanticTokenColorCustomizations": its rules, laid over the
+ * theme's semanticTokenColors, and whether it turns semantic highlighting on or off. A block
+ * scoped to the active theme ("[Theme Name]") is laid over the general one.
+ */
+export function semanticCustomization(
+  customizations: unknown,
+  themeName: string
+): { rules: Record<string, SemanticTokenStyle>; enabled?: boolean } {
+  const result: { rules: Record<string, SemanticTokenStyle>; enabled?: boolean } = { rules: {} };
+  if (!customizations || typeof customizations !== "object") return result;
+
+  const apply = (block: Record<string, unknown>): void => {
+    if (typeof block.enabled === "boolean") result.enabled = block.enabled;
+    if (block.rules && typeof block.rules === "object") {
+      Object.assign(result.rules, block.rules as Record<string, SemanticTokenStyle>);
+    }
+  };
+  const all = customizations as Record<string, unknown>;
+  apply(all);
+  for (const [key, value] of Object.entries(all)) {
+    if (key.startsWith("[") && value && typeof value === "object" && themeKeyMatches(key, themeName)) {
+      apply(value as Record<string, unknown>);
+    }
+  }
+  return result;
+}
+

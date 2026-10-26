@@ -148,6 +148,7 @@ suite("Protocol Message Types", () => {
       "kernel/getCompletions",
       "kernel/getDiagnostics",
       "kernel/getHoverInfo",
+      "kernel/getSemanticTokens",
       "kernel/restart",
     ];
     for (const m of methods) {

@@ -212,6 +212,39 @@ public sealed class ServerNotebookServiceTests
     }
 
     [TestMethod]
+    public async Task GetSemanticTokens_KernelThatDoesNotClassify_ReturnsEmptyList()
+    {
+        await using var service = await CreateServiceAsync();
+        var cell = await AddPowerShellCellAsync(service, "");
+
+        var result = await service.GetSemanticTokensAsync(cell.Id, "Write-Host 'ok'");
+
+        // Empty, not null: the editor keeps its own coloring rather than waiting for an answer.
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_UnknownCell_ReturnsNull()
+    {
+        await using var service = await CreateServiceAsync();
+
+        Assert.IsNull(await service.GetSemanticTokensAsync(Guid.NewGuid(), "x"));
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_MarkdownCell_ReturnsEmptyList()
+    {
+        await using var service = await CreateServiceAsync();
+        var cell = await service.AddCellAsync("markdown");
+
+        var result = await service.GetSemanticTokensAsync(cell.Id, "# Title");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
     public async Task GetDiagnostics_KernelThatFails_ReturnsNull()
     {
         // Null, not an empty list: the editor keeps the markers it shows when a request fails.
