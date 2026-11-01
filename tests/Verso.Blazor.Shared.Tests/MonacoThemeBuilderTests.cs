@@ -53,6 +53,42 @@ public class MonacoThemeBuilderTests
     }
 
     [TestMethod]
+    public void Build_ColorsSemanticTokensByTheirThemeKey()
+    {
+        var syntax = new Dictionary<string, string>
+        {
+            ["type"] = "#4EC9B0",
+            ["function"] = "#DCDCAA",
+            ["variable"] = "#9CDCFE",
+            ["enumMember"] = "#4FC1FF",
+        };
+
+        var spec = MonacoThemeBuilder.Build(ThemeKind.Dark, MakeThemeData(syntax: syntax))!;
+
+        // The kernels' semantic tokens use the standard names, which a theme does not spell out.
+        foreach (var token in new[] { "class", "struct", "enum", "interface", "typeParameter" })
+            Assert.AreEqual("#4EC9B0", spec.Rules.Single(r => r.Token == token).Foreground, token);
+        Assert.AreEqual("#DCDCAA", spec.Rules.Single(r => r.Token == "method").Foreground);
+        foreach (var token in new[] { "parameter", "property", "event" })
+            Assert.AreEqual("#9CDCFE", spec.Rules.Single(r => r.Token == token).Foreground, token);
+        Assert.AreEqual("#4FC1FF", spec.Rules.Single(r => r.Token == "enumMember").Foreground);
+    }
+
+    [TestMethod]
+    public void Build_ThemeWithoutEnumMember_ColorsEnumMembersAsTypes()
+    {
+        var syntax = new Dictionary<string, string>
+        {
+            ["type"] = "#4EC9B0",
+            ["variable"] = "#9CDCFE",
+        };
+
+        var spec = MonacoThemeBuilder.Build(ThemeKind.Dark, MakeThemeData(syntax: syntax))!;
+
+        Assert.AreEqual("#4EC9B0", spec.Rules.Single(r => r.Token == "enumMember").Foreground);
+    }
+
+    [TestMethod]
     public void Build_WithoutSyntaxColors_LeavesTheRulesToTheBaseTheme()
     {
         var spec = MonacoThemeBuilder.Build(ThemeKind.Light, MakeThemeData())!;

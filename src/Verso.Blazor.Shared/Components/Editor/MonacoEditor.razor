@@ -12,6 +12,7 @@
     [Parameter] public Func<string, int, Task<object?>>? OnGetHoverInfo { get; set; }
     [Parameter] public Func<string, int, Task<object?>>? OnGetCompletions { get; set; }
     [Parameter] public Func<string, Task<object?>>? OnGetDiagnostics { get; set; }
+    [Parameter] public Func<string, Task<object?>>? OnGetSemanticTokens { get; set; }
 
     /// <summary>
     /// When true, the editor issues no diagnostics requests. A refresh asked for while suspended
@@ -92,9 +93,9 @@
     }
 
     /// <summary>
-    /// The cell has finished running: ask again for this editor's diagnostics and for every
-    /// editor below it that is showing kernel markers, nearest first, since the run may have
-    /// changed what their code refers to.
+    /// The cell has finished running: ask again for this editor's diagnostics and semantic
+    /// tokens, and for every editor below it that is showing kernel markers, nearest first,
+    /// since the run may have changed what their code refers to.
     /// </summary>
     public async Task RefreshAfterRunAsync()
     {
@@ -166,6 +167,18 @@
         {
             return OnGetDiagnostics is not null
                 ? await OnGetDiagnostics(code)
+                : null;
+        }
+        catch { return null; }
+    }
+
+    [JSInvokable]
+    public async Task<object?> GetSemanticTokens(string code)
+    {
+        try
+        {
+            return OnGetSemanticTokens is not null
+                ? await OnGetSemanticTokens(code)
                 : null;
         }
         catch { return null; }

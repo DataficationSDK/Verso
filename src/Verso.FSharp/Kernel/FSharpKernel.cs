@@ -19,7 +19,7 @@ namespace Verso.FSharp.Kernel;
 /// Powered by FSharp.Compiler.Service (<c>FsiEvaluationSession</c>).
 /// </summary>
 [VersoExtension]
-public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
+public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings, ISemanticTokenProvider
 {
     private const string VirtualFileName = "/verso/notebook.fsx";
 
@@ -593,6 +593,46 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
             var range = (StartLine: line, StartColumn: identStart, EndLine: line, EndColumn: identEnd);
 
             return new HoverInfo(content, Range: range);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(string code)
+    {
+        ThrowIfDisposed();
+
+        if (!_initialized || _projectContext is null || _checkerManager is null)
+            return null;
+
+        if (string.IsNullOrWhiteSpace(code))
+            return Array.Empty<SemanticToken>();
+
+        try
+        {
+            var (sourceText, prefixLineCount, options) = _projectContext.BuildDocument(code);
+            int cellLineCount = CountLines(code);
+
+            // The same check diagnostics run on this text, so the two requests an edit makes
+            // share one (see FSharpCheckerManager).
+            var result = await _checkerManager.ParseAndCheckAsync(VirtualFileName, sourceText, options)
+                .ConfigureAwait(false);
+            if (result is null) return null;
+
+            var (_, checkResults) = result.Value;
+
+            // Classify the cell's own lines only; the prefix is every cell executed before it.
+            var lastLineLength = code.Length - (code.LastIndexOf('\n') + 1);
+            var cellRange = global::FSharp.Compiler.Text.RangeModule.mkRange(
+                VirtualFileName,
+                global::FSharp.Compiler.Text.PositionModule.mkPos(prefixLineCount + 1, 0),
+                global::FSharp.Compiler.Text.PositionModule.mkPos(prefixLineCount + cellLineCount, lastLineLength));
+
+            var items = checkResults.GetSemanticClassification(
+                FSharpOption<global::FSharp.Compiler.Text.Range>.Some(cellRange));
+            return SemanticTokenMapper.MapClassifications(items, prefixLineCount, code);
         }
         catch
         {

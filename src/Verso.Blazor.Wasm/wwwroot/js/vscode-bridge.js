@@ -186,7 +186,9 @@
             base: getBaseTheme(),
             inherit: rules.length === 0,
             colors: colors,
-            rules: rules
+            rules: rules,
+            // VS Code shows semantic tokens only with a theme (or setting) that asks for them.
+            semanticHighlighting: !active || active.semanticHighlighting !== false
         };
 
         // The page is watched for changes of any kind, most of which are not the theme.

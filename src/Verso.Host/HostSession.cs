@@ -416,6 +416,7 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.KernelGetCompletions => await KernelHandler.HandleGetCompletionsAsync(ns, @params),
             MethodNames.KernelGetDiagnostics => await KernelHandler.HandleGetDiagnosticsAsync(ns, @params),
             MethodNames.KernelGetHoverInfo => await KernelHandler.HandleGetHoverInfoAsync(ns, @params),
+            MethodNames.KernelGetSemanticTokens => await KernelHandler.HandleGetSemanticTokensAsync(ns, @params),
             MethodNames.OutputClearAll => OutputHandler.HandleClearAll(ns),
             MethodNames.CellInteract => await InteractionHandler.HandleInteractAsync(ns, @params),
             MethodNames.ChannelReady => await OutputChannelHandler.HandleReadyAsync(ns, @params),

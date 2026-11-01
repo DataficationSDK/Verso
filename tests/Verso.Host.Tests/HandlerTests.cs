@@ -210,7 +210,131 @@ public class HandlerTests
         Assert.AreEqual(0, result!.Items.Count, "nothing executes a Markdown cell, so nothing checks it");
     }
 
-    private sealed class FailingStartKernel : ILanguageKernel
+    private static JsonElement SemanticTokensParams(Guid cellId, string code) =>
+        JsonSerializer.SerializeToElement(
+            new SemanticTokensParams { CellId = cellId.ToString(), Code = code },
+            JsonRpcMessage.SerializerOptions);
+
+    [TestMethod]
+    public async Task GetSemanticTokens_ReturnsTheKernelsTokens()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        var kernel = new ClassifyingKernel(new[]
+        {
+            new SemanticToken(0, 4, 5, SemanticTokenTypes.Variable, new[] { SemanticTokenModifiers.Mutable }),
+            new SemanticToken(1, 0, 3, SemanticTokenTypes.Function),
+        });
+        ns.Scaffold.RegisterKernel(kernel);
+        var cell = ns.Scaffold.AddCell("code", ClassifyingKernel.Id);
+
+        var result = await KernelHandler.HandleGetSemanticTokensAsync(
+            ns, SemanticTokensParams(cell.Id, "let count = 0\nrun ()"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("let count = 0\nrun ()", kernel.LastCode);
+        Assert.AreEqual(2, result!.Items.Count);
+        var first = result.Items[0];
+        Assert.AreEqual((0, 4, 5, "variable"), (first.Line, first.StartColumn, first.Length, first.Type));
+        CollectionAssert.AreEqual(new[] { "mutable" }, first.Modifiers);
+        Assert.IsNull(result.Items[1].Modifiers, "a token with no modifiers sends none");
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_KernelThatDoesNotClassify_ReturnsEmpty()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        ns.Scaffold.RegisterKernel(new Verso.Testing.Fakes.FakeLanguageKernel("plain"));
+        var cell = ns.Scaffold.AddCell("code", "plain");
+
+        var result = await KernelHandler.HandleGetSemanticTokensAsync(ns, SemanticTokensParams(cell.Id, "x"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_KernelThatCannotAnalyze_ReturnsNull()
+    {
+        // Null keeps the colors the editor shows, where an empty list would clear them.
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        ns.Scaffold.RegisterKernel(new ClassifyingKernel(null));
+        var cell = ns.Scaffold.AddCell("code", ClassifyingKernel.Id);
+
+        var result = await KernelHandler.HandleGetSemanticTokensAsync(ns, SemanticTokensParams(cell.Id, "x"));
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_KernelThatCannotStart_ReturnsNull()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+        ns.Scaffold.RegisterKernel(new FailingStartKernel());
+        var cell = ns.Scaffold.AddCell("code", FailingStartKernel.Id);
+
+        var result = await KernelHandler.HandleGetSemanticTokensAsync(ns, SemanticTokensParams(cell.Id, "x"));
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetSemanticTokens_UnknownCell_ReturnsEmpty()
+    {
+        var (session, notebookId) = await CreateOpenSession();
+        var ns = GetNs(session, notebookId);
+
+        var result = await KernelHandler.HandleGetSemanticTokensAsync(
+            ns, SemanticTokensParams(Guid.NewGuid(), "x"));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result!.Items.Count);
+    }
+
+    private sealed class ClassifyingKernel : ILanguageKernel, ISemanticTokenProvider
+    {
+        public const string Id = "classifying";
+        private readonly IReadOnlyList<SemanticToken>? _tokens;
+
+        public ClassifyingKernel(IReadOnlyList<SemanticToken>? tokens) => _tokens = tokens;
+
+        public string? LastCode { get; private set; }
+
+        public string ExtensionId => "com.test.classifying";
+        public string Name => "Classifying";
+        public string Version => "1.0.0";
+        public string? Author => null;
+        public string? Description => null;
+        public string LanguageId => Id;
+        public string DisplayName => "Classifying";
+        public IReadOnlyList<string> FileExtensions => Array.Empty<string>();
+
+        public Task OnLoadedAsync(IExtensionHostContext context) => Task.CompletedTask;
+        public Task OnUnloadedAsync() => Task.CompletedTask;
+        public Task InitializeAsync() => Task.CompletedTask;
+
+        public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+            => Task.FromResult<IReadOnlyList<CellOutput>>(Array.Empty<CellOutput>());
+        public Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
+            => Task.FromResult<IReadOnlyList<Completion>>(Array.Empty<Completion>());
+        public Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string code)
+            => Task.FromResult<IReadOnlyList<Diagnostic>>(Array.Empty<Diagnostic>());
+        public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
+            => Task.FromResult<HoverInfo?>(null);
+
+        public Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(string code)
+        {
+            LastCode = code;
+            return Task.FromResult(_tokens);
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class FailingStartKernel : ILanguageKernel, ISemanticTokenProvider
     {
         public const string Id = "failing-start";
 
@@ -238,6 +362,11 @@ public class HandlerTests
             });
         public Task<HoverInfo?> GetHoverInfoAsync(string code, int cursorPosition)
             => Task.FromResult<HoverInfo?>(null);
+        public Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(string code)
+            => Task.FromResult<IReadOnlyList<SemanticToken>?>(new[]
+            {
+                new SemanticToken(0, 0, 1, SemanticTokenTypes.Variable)
+            });
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 

@@ -107,7 +107,9 @@ export class BlazorEditorProvider
     context.subscriptions.push(
       vscode.window.onDidChangeActiveColorTheme(() => void this.pushTokenTheme()),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration("editor.tokenColorCustomizations")) {
+        if (e.affectsConfiguration("editor.tokenColorCustomizations") ||
+            e.affectsConfiguration("editor.semanticTokenColorCustomizations") ||
+            e.affectsConfiguration("editor.semanticHighlighting")) {
           void this.pushTokenTheme();
         }
       })

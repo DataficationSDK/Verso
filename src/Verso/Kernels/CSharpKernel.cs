@@ -14,7 +14,7 @@ namespace Verso.Kernels;
 /// with chained state, code completions, diagnostics, and hover information.
 /// </summary>
 [VersoExtension]
-public sealed class CSharpKernel : ILanguageKernel
+public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
 {
     private static readonly Regex NuGetReferenceRegex = new(
         @"^#r\s+""nuget:\s*([^""]+)""",
@@ -397,6 +397,18 @@ public sealed class CSharpKernel : ILanguageKernel
         ThrowIfDisposed();
         EnsureInitialized();
         return await _workspaceManager!.GetHoverInfoAsync(code, cursorPosition).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(string code)
+    {
+        ThrowIfDisposed();
+        EnsureInitialized();
+
+        // Blanked as for diagnostics, so Roslyn does not read the rest of a #i line as a directive.
+        code = NuGetSourceRegex.Replace(code, BlankKeepingLineBreaks);
+        code = NuGetReferenceRegex.Replace(code, BlankKeepingLineBreaks);
+
+        return await _workspaceManager!.GetSemanticTokensAsync(code).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()

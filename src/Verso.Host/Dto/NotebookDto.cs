@@ -281,6 +281,26 @@ public sealed class HoverResult
     public RangeDto? Range { get; set; }
 }
 
+public sealed class SemanticTokensParams
+{
+    public string CellId { get; set; } = "";
+    public string Code { get; set; } = "";
+}
+
+public sealed class SemanticTokensResult
+{
+    public List<SemanticTokenDto> Items { get; set; } = new();
+}
+
+public sealed class SemanticTokenDto
+{
+    public int Line { get; set; }
+    public int StartColumn { get; set; }
+    public int Length { get; set; }
+    public string Type { get; set; } = "";
+    public List<string>? Modifiers { get; set; }
+}
+
 public sealed class RangeDto
 {
     public int StartLine { get; set; }

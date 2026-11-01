@@ -496,6 +496,41 @@ public sealed class CellTests : BunitTestContext
     }
 
     [TestMethod]
+    public async Task SemanticTokens_MasksLeadingMagicLines_AndMapsResult()
+    {
+        _service.SemanticTokensResult = new SemanticTokensResultDto(new[]
+        {
+            new SemanticTokenItemDto(2, 4, 5, "variable", new[] { "mutable" }),
+            new SemanticTokenItemDto(2, 12, 1, "function", null),
+        });
+        var cell = CreateCodeCell("");
+        var cut = RenderCell(cell);
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        var result = await cut.InvokeAsync(() => editor.GetSemanticTokens("#!time\n\nlet mutable count = f 1"));
+
+        Assert.AreEqual(1, _service.SemanticTokensRequests.Count);
+        Assert.AreEqual(cell.Id, _service.SemanticTokensRequests[0].CellId);
+        Assert.AreEqual("\n\nlet mutable count = f 1", _service.SemanticTokensRequests[0].Code);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(result);
+        StringAssert.Contains(json, "{\"line\":2,\"startColumn\":4,\"length\":5,\"type\":\"variable\",\"modifiers\":[\"mutable\"]}");
+        StringAssert.Contains(json, "\"type\":\"function\"");
+    }
+
+    [TestMethod]
+    public async Task SemanticTokens_ServiceReturnsNull_ReturnsNull()
+    {
+        _service.SemanticTokensResult = null;
+        var cut = RenderCell(CreateCodeCell(""));
+        var editor = cut.FindComponent<MonacoEditor>().Instance;
+
+        var result = await cut.InvokeAsync(() => editor.GetSemanticTokens("let x = 1"));
+
+        Assert.IsNull(result, "A failed request keeps the editor's colors, so it must stay null.");
+    }
+
+    [TestMethod]
     public async Task Diagnostics_ServiceReturnsNull_ReturnsNull()
     {
         _service.DiagnosticsResult = null;

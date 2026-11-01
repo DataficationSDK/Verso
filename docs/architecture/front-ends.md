@@ -46,6 +46,14 @@ The refresh policy is set by the expensive kernels, where a request is a full co
 
 While any cell is running no request is issued (`NotebookCellContext.IsAnyExecuting`, passed to the editor as `DiagnosticsSuspended`). `Verso.Host` answers requests one at a time, so a request during a run would wait for the run, and some kernels answer empty while executing. A refresh asked for in that time runs once the run is over, in the same top-to-bottom order. Run All is one `execution/runAll` request, so in VS Code the cells are refreshed once it has finished, not one by one as it goes. One request is in flight per editor; a reply for text that has since changed is dropped; a failed request (null) keeps the markers that are showing, while an empty list clears them. Cells over 2,000 lines are not analyzed.
 
+#### Editor semantic tokens
+
+Semantic tokens are pulled, as hover is: `monaco-interop.js` registers a document semantic tokens provider per language, and Monaco asks for a model's tokens when it is attached, after an edit (debounced by Monaco, from 300 ms up as answers take longer), when the theme changes, and when the provider raises `onDidChange`. The provider calls `MonacoEditor.GetSemanticTokens`, which goes through `Cell.razor` to `INotebookService.GetSemanticTokensAsync`; `ServerNotebookService` calls the kernel in process if it implements `ISemanticTokenProvider`, and `RemoteNotebookService` sends `kernel/getSemanticTokens` to `Verso.Host`. A kernel that does not classify answers an empty list and is not started for it.
+
+The provider keeps each model's last answer and the version of the text it was for. Monaco asks for every model when `onDidChange` is raised, and a model whose text has not changed since its answer gets that answer back without a request. The provider raises it when a diagnostics request goes out for text or kernel state that no semantic request has been sent for: after a run, for the cells the run refreshes, and on focus after another cell ran. Monaco passes the id of the answer it shows; a model already showing its last answer keeps it rather than having it painted again. An edit sends both requests, and the diagnostics request does not cause a second semantic one. Requests from all editors are queued and sent one at a time, so in VS Code a run waits behind at most one of them.
+
+While any cell is running, a request is refused with Monaco's "busy" error, which keeps the tokens shown, and is asked again when the run is over. A failed request (null) is refused the same way; an empty list clears the tokens. Cells over 2,000 lines are not analyzed. Semantic highlighting is turned on per editor (`'semanticHighlighting.enabled': true`), since standalone themes leave it off. Monaco styles a token by the theme rule whose name matches its type with the modifiers appended (`variable.mutable` falls back to `variable`); `MonacoThemeBuilder` adds a rule for each standard token type under the theme's syntax color for it.
+
 Monaco's bundled TypeScript worker would otherwise mark JavaScript and TypeScript cells as if each were a standalone file, so its validation is turned off when Monaco loads; its completion and hover stay on.
 
 Isolated (iframe) layouts need more than the base notebook operations, so hosts also implement `IIsolatedLayoutHost` (an extension of `INotebookService` in `Verso.Blazor.Shared.Services`). It covers frame allocation, renderer-package fetch, mount and unmount lifecycle, the message pump between the frame and the kernel, and theme propagation. Blazor Server implements it in-process; Blazor WASM implements it over JSON-RPC.
@@ -247,7 +255,7 @@ Kernel calls context.RequestInputAsync(prompt, isPassword, ct)
 | `NotebookHandler` | open, close, save, getLanguages, getCellTypes, setFilePath |
 | `CellHandler` | add, insert, remove, move, updateSource, changeType, changeLanguage |
 | `ExecutionHandler` | run, runAll, cancel |
-| `KernelHandler` | restart, getCompletions, getDiagnostics, getHoverInfo |
+| `KernelHandler` | restart, getCompletions, getDiagnostics, getHoverInfo, getSemanticTokens |
 | `OutputHandler` | clearAll |
 | `InteractionHandler` | interact (cell interaction dispatch) |
 | `LayoutHandler` | getLayouts, switch, render, getCellContainer |
