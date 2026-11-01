@@ -206,9 +206,9 @@ export function resolveHostPath(
     for (const cfg of configs) {
       const candidates = [
         // Direct workspace is the Verso project
-        path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
+        path.join(folder.uri.fsPath, "src", "Verso.Host", "bin", cfg, "net10.0", "Verso.Host.dll"),
         // Workspace is a parent
-        path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll"),
+        path.join(folder.uri.fsPath, "tools", "Verso", "src", "Verso.Host", "bin", cfg, "net10.0", "Verso.Host.dll"),
       ];
       for (const candidate of candidates) {
         if (existsSync(candidate)) {
@@ -220,7 +220,7 @@ export function resolveHostPath(
 
   // Fallback: relative to extension path (works in dev host / local install)
   for (const cfg of configs) {
-    const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", cfg, "net8.0", "Verso.Host.dll");
+    const extensionRelative = path.join(context.extensionPath, "..", "src", "Verso.Host", "bin", cfg, "net10.0", "Verso.Host.dll");
     if (existsSync(extensionRelative)) {
       return extensionRelative;
     }

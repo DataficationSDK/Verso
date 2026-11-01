@@ -85,7 +85,7 @@ body:
     attributes:
       label: .NET Version
       description: "Output of `dotnet --version`"
-      placeholder: "e.g., 8.0.300"
+      placeholder: "e.g., 10.0.100"
 
   - type: input
     id: os

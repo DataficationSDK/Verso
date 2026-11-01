@@ -45,7 +45,7 @@ into the layout. You can also install it yourself from the **Extensions** pane (
 `Verso.Showcase`) and switch to **Image Studio** from the layout picker.
 
 To run against a local build instead, load the freshly built assembly with
-`#!extension ./src/Verso.Showcase.ImageStudio/bin/Debug/net8.0/Verso.Showcase.ImageStudio.dll`
+`#!extension ./src/Verso.Showcase.ImageStudio/bin/Debug/net10.0/Verso.Showcase.ImageStudio.dll`
 (the path resolves relative to the notebook's folder), then switch to **Image Studio**.
 
 You will land on a seeded composition: a sunset gradient, a soft sun, a dot grid, a procedural

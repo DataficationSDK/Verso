@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as path from "path";
 import { log } from "../log";
 import { HostStartError } from "./hostProcess";
 
@@ -33,7 +34,7 @@ const SETUP_DOCS_URL =
 // The lowest runtime the host is known to support; used only when the host's
 // runtimeconfig.json cannot be read. The real requirement is read dynamically
 // so it tracks the host's target framework across upgrades without edits here.
-const DEFAULT_RUNTIME_VERSION = "8.0";
+const DEFAULT_RUNTIME_VERSION = "10.0";
 
 // A missing runtime otherwise prompts once per notebook opened, and VS Code
 // restores several notebook tabs at once on startup. Debounce so a burst of
@@ -97,12 +98,24 @@ async function resolveDotnetCommandUncached(
   }
 
   // 2. A runtime we previously acquired for the user lives at a private path off
-  //    PATH; reuse it while it still exists. (Self-heals if it was removed: we
-  //    fall through and the next failed start re-offers acquisition.)
+  //    PATH; reuse it while it still exists and is new enough for this host.
+  //    (Self-heals if it was removed: we fall through and the next failed start
+  //    re-offers acquisition.)
   const acquired = context.globalState.get<string>(ACQUIRED_DOTNET_KEY);
   if (acquired && fs.existsSync(acquired)) {
-    log.info(`Using previously acquired .NET runtime: ${acquired}`);
-    return acquired;
+    const required = getRequiredRuntimeVersion(hostDllPath);
+    if (hasRuntimeAtLeast(acquired, required)) {
+      log.info(`Using previously acquired .NET runtime: ${acquired}`);
+      return acquired;
+    }
+    // Acquired for an older host (for example .NET 8 before the host moved to
+    // .NET 10). Using it would fail with "framework not found" even when a
+    // newer .NET is on PATH, so forget it and let PATH decide.
+    log.info(
+      `Previously acquired .NET runtime at ${acquired} has no ${required} or later ` +
+        `runtime; ignoring it.`
+    );
+    await context.globalState.update(ACQUIRED_DOTNET_KEY, undefined);
   }
 
   // 3. Fall back to a system 'dotnet'. If absent, the host start surfaces the
@@ -111,7 +124,25 @@ async function resolveDotnetCommandUncached(
 }
 
 /**
- * Reads the required shared-runtime version (major.minor, e.g. "8.0") from the
+ * Reports whether the .NET installation that owns `dotnetPath` has a shared
+ * runtime whose major version is at least the major of `requiredVersion`. The
+ * host rolls forward to newer majors, so any later major also qualifies.
+ * Exported for tests.
+ */
+export function hasRuntimeAtLeast(dotnetPath: string, requiredVersion: string): boolean {
+  const requiredMajor = parseInt(requiredVersion, 10);
+  const sharedDir = path.join(path.dirname(dotnetPath), "shared", "Microsoft.NETCore.App");
+  try {
+    return fs
+      .readdirSync(sharedDir)
+      .some((name) => parseInt(name, 10) >= requiredMajor);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads the required shared-runtime version (major.minor, e.g. "10.0") from the
  * host's runtimeconfig.json so acquisition and messaging track the host's target
  * framework automatically. Falls back to {@link DEFAULT_RUNTIME_VERSION} if
  * unreadable.

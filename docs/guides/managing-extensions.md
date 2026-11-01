@@ -22,7 +22,7 @@ Installed packages are unpacked into a managed store on disk:
 - macOS and Linux: `~/.verso/extensions/<package-id>/<version>/<target-framework>/`
 - Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\<target-framework>\`
 
-Each version lives in its own folder, so multiple versions can coexist. Inside a version folder, assemblies are grouped by the .NET runtime they were installed for (for example `net8.0`), so notebook hosts running on different .NET versions can share the same store.
+Each version lives in its own folder, so multiple versions can coexist. Inside a version folder, assemblies are grouped by the .NET runtime they were installed for (for example `net10.0`), so notebook hosts running on different .NET versions can share the same store.
 
 Once a package is installed, its row lists what it added: a kernel, a layout engine, a theme, and so on. A package that loaded but contributed no extension point at all is marked as adding nothing, which is worth knowing since the marketplace searches all of NuGet and will happily install an ordinary library.
 
@@ -74,7 +74,7 @@ You do not need to publish to a feed to try an extension you are building. Two o
 - From a notebook, use the `#!extension` magic command with a path to the compiled assembly:
 
   ```
-  #!extension ./MyExtension/bin/Debug/net8.0/MyExtension.dll
+  #!extension ./MyExtension/bin/Debug/net10.0/MyExtension.dll
   ```
 
   The path is resolved relative to the notebook's directory, and a local assembly loads without a consent prompt.
@@ -82,7 +82,7 @@ You do not need to publish to a feed to try an extension you are building. Two o
 - From the CLI, point any command at a directory of extension assemblies:
 
   ```bash
-  verso serve notebook.verso --extensions ./MyExtension/bin/Debug/net8.0/
+  verso serve notebook.verso --extensions ./MyExtension/bin/Debug/net10.0/
   ```
 
   The `--extensions` flag works on `serve`, `run`, `repl`, `convert`, and `export`. In VS Code, set the `verso.extensionsPath` setting to the same directory.

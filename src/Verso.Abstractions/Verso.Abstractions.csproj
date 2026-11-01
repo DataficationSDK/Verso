@@ -11,7 +11,21 @@
     <PackageId>Verso.Abstractions</PackageId>
     <Title>Verso Abstractions</Title>
     <Description>Pure interfaces and types for the Verso extensible notebook platform.</Description>
+    <!--
+      Fails the build when the public surface breaks compatibility with the last published
+      package, so a change that would break existing extensions is caught before release.
+    -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>1.2.3</PackageValidationBaselineVersion>
   </PropertyGroup>
+
+  <!--
+    1.3.0 drops net8.0 on purpose. Without this, validation reports the dropped target framework
+    (PKV006). Remove this item when the baseline moves to a version that no longer has net8.0.
+  -->
+  <ItemGroup>
+    <PackageValidationBaselineFrameworkToIgnore Include="net8.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />

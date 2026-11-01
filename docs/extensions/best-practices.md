@@ -90,10 +90,10 @@ Where possible, keep your extensions stateless. The Dice sample demonstrates thi
 
 ### Random Number Generators
 
-If using `Random`, be aware that `System.Random` is not thread-safe prior to .NET 6. On .NET 8, `Random.Shared` is the preferred thread-safe option:
+If using `Random`, be aware that `System.Random` is not thread-safe prior to .NET 6. `Random.Shared` is the thread-safe option:
 
 ```csharp
-// Good - thread-safe on .NET 8
+// Good - thread-safe
 var roll = Random.Shared.Next(1, sides + 1);
 
 // Risky - private instance may be called from multiple threads

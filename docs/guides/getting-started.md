@@ -12,7 +12,7 @@ Install the **Verso Notebook** extension (`datafication.verso-notebook`) from th
 
 ### Command line
 
-Verso is also a .NET global tool. It needs the .NET 8.0 SDK or later:
+Verso is also a .NET global tool. It needs the .NET 10 SDK or later:
 
 ```bash
 dotnet tool install -g Verso.Cli

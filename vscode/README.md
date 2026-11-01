@@ -27,7 +27,7 @@ C#, F#, SQL, HTTP, Markdown, HTML, Mermaid, and JavaScript work immediately. Pyt
 
 | Requirement | Needed for | Notes |
 |-------------|-----------|-------|
-| **.NET runtime 8.0 or later** | Everything | .NET 8, 9, and 10 are all supported. If no compatible runtime is found, Verso offers to install one when you open a notebook, using the .NET Install Tool. To use a specific installation, set `verso.dotnetPath`. |
+| **.NET runtime 10.0 or later** | Everything | .NET 10 and later are supported. If no compatible runtime is found, Verso offers to install one when you open a notebook, using the .NET Install Tool. To use a specific installation, set `verso.dotnetPath`. |
 | **Python 3.8 or newer** | Python cells | Including 3.13 and 3.14. Cells run in that interpreter as a separate process, so an active virtual environment or conda environment is picked up automatically and its packages are simply there. Run `#!python --list` in a cell to see what was found. |
 | **Node.js 18 or later** | TypeScript cells, npm packages, full Node APIs | Optional. Without it, JavaScript runs on the bundled Jint interpreter, a pure .NET ES2024 engine, and TypeScript is unavailable. Auto-detected on PATH and at Homebrew, nvm, Volta, and fnm locations. |
 | **A ligature-capable font** | Font ligatures | Optional. Verso respects `editor.fontLigatures` and prepends Cascadia Code and Fira Code to your font stack, so installing [either](https://github.com/microsoft/cascadia-code) [font](https://github.com/tonsky/FiraCode) is all that is needed. |

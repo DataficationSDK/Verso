@@ -9,7 +9,7 @@ The Verso extension template generates a `.csproj` that is already configured fo
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
@@ -195,7 +195,7 @@ Once your package is on NuGet.org (or any feed in a user's NuGet configuration),
 - macOS and Linux: `~/.verso/extensions/<package-id>/<version>/<target-framework>/`
 - Windows: `%APPDATA%\verso\extensions\<package-id>\<version>\<target-framework>\`
 
-The `<target-framework>` segment records the runtime the assemblies were installed for, so hosts running on different .NET versions each keep a compatible copy side by side. A package that multi-targets (for example `net8.0` and `net10.0`) lets each host pick the newest lib group its runtime can load; a single `net8.0` target also works on newer runtimes.
+The `<target-framework>` segment records the runtime the assemblies were installed for, so hosts running on different .NET versions each keep a compatible copy side by side. Extensions that reference Verso.Abstractions 1.3.0 or later target `net10.0`. Packages built earlier for `net8.0` still load, because a newer runtime runs older assets.
 
 Because an extension is executable code, Verso asks the user to approve a package the first time it loads, and remembers that approval per version. A new version prompts again. Keep this in mind when you publish updates: bumping the version is a deliberate re-consent point for your users, not a silent upgrade.
 

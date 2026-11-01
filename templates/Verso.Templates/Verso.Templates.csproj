@@ -5,7 +5,7 @@
     <PackageId>Verso.Templates</PackageId>
     <Title>Verso Templates</Title>
     <Description>Project templates for building Verso extensions.</Description>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <ContentTargetFolders>content</ContentTargetFolders>
