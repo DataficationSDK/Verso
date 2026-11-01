@@ -45,6 +45,21 @@ public class ExecutedCellsTests
     }
 
     [TestMethod]
+    public async Task RunCell_CheckedAgain_KeepsItsSemanticTokens()
+    {
+        var code = "type Shape = Circle of float\nlet shape = Circle 1.0";
+        await _kernel.ExecuteAsync(code, _context);
+
+        var tokens = await _kernel.GetSemanticTokensAsync(code);
+
+        Assert.IsNotNull(tokens);
+        Assert.IsTrue(tokens.Any(t => t.Line == 0 && t.StartColumn == 5 && t.Type == SemanticTokenTypes.Type),
+            "the type's own declaration");
+        Assert.IsTrue(tokens.Any(t => t.Line == 1 && t.StartColumn == 12 && t.Type == SemanticTokenTypes.EnumMember),
+            "the union case");
+    }
+
+    [TestMethod]
     public async Task RunCell_RedefinedByAnotherCell_TheLaterDefinitionWins()
     {
         await _kernel.ExecuteAsync("let value = 1", _context);

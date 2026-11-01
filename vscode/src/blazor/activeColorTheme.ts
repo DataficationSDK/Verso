@@ -2,10 +2,13 @@ import * as vscode from "vscode";
 import { log } from "../log";
 import {
   MonacoTokenRule,
+  SemanticTokenStyle,
   TextMateRule,
   buildMonacoRules,
+  buildSemanticRules,
   customizationRules,
   parseJsonc,
+  semanticCustomization,
 } from "./themeTokenRules";
 
 export type MonacoBaseTheme = "vs" | "vs-dark" | "hc-black" | "hc-light";
@@ -14,6 +17,15 @@ export type MonacoBaseTheme = "vs" | "vs-dark" | "hc-black" | "hc-light";
 export interface MonacoTokenTheme {
   base: MonacoBaseTheme;
   rules: MonacoTokenRule[];
+  /** Whether VS Code would show semantic tokens with this theme, so the notebook does too. */
+  semanticHighlighting: boolean;
+}
+
+/** What a theme file and the files it includes say about syntax colors. */
+interface ThemeSyntax {
+  tokenColors: TextMateRule[];
+  semanticTokenColors: Record<string, SemanticTokenStyle>;
+  semanticHighlighting?: boolean;
 }
 
 interface ThemeContribution {
@@ -88,31 +100,56 @@ function locateTheme(base: MonacoBaseTheme): LocatedTheme | undefined {
   return fallback;
 }
 
-async function readTokenColors(file: vscode.Uri, depth: number): Promise<TextMateRule[]> {
+async function readThemeSyntax(file: vscode.Uri, depth: number): Promise<ThemeSyntax> {
+  const syntax: ThemeSyntax = { tokenColors: [], semanticTokenColors: {} };
   if (depth > MAX_INCLUDE_DEPTH || !file.path.toLowerCase().endsWith(".json")) {
     // The other format a theme may use is a TextMate property list, which is rare now
     // and not worth a parser; such a theme keeps the stock syntax colors.
-    return [];
+    return syntax;
   }
 
   const bytes = await vscode.workspace.fs.readFile(file);
   const theme = parseJsonc(new TextDecoder("utf-8").decode(bytes)) as {
     include?: string;
     tokenColors?: TextMateRule[] | string;
+    semanticTokenColors?: Record<string, SemanticTokenStyle>;
+    semanticHighlighting?: boolean;
   } | null;
-  if (!theme || typeof theme !== "object") return [];
+  if (!theme || typeof theme !== "object") return syntax;
 
+  // An included theme comes first, and what this file says is laid over it.
   const dir = vscode.Uri.joinPath(file, "..");
-  const rules: TextMateRule[] = [];
+  const merge = (other: ThemeSyntax): void => {
+    syntax.tokenColors.push(...other.tokenColors);
+    Object.assign(syntax.semanticTokenColors, other.semanticTokenColors);
+    if (other.semanticHighlighting !== undefined) syntax.semanticHighlighting = other.semanticHighlighting;
+  };
   if (typeof theme.include === "string") {
-    rules.push(...(await readTokenColors(vscode.Uri.joinPath(dir, theme.include), depth + 1)));
+    merge(await readThemeSyntax(vscode.Uri.joinPath(dir, theme.include), depth + 1));
   }
   if (typeof theme.tokenColors === "string") {
-    rules.push(...(await readTokenColors(vscode.Uri.joinPath(dir, theme.tokenColors), depth + 1)));
+    merge(await readThemeSyntax(vscode.Uri.joinPath(dir, theme.tokenColors), depth + 1));
   } else if (Array.isArray(theme.tokenColors)) {
-    rules.push(...theme.tokenColors);
+    syntax.tokenColors.push(...theme.tokenColors);
   }
-  return rules;
+  if (theme.semanticTokenColors && typeof theme.semanticTokenColors === "object") {
+    Object.assign(syntax.semanticTokenColors, theme.semanticTokenColors);
+  }
+  if (typeof theme.semanticHighlighting === "boolean") {
+    syntax.semanticHighlighting = theme.semanticHighlighting;
+  }
+  return syntax;
+}
+
+/**
+ * Whether VS Code shows semantic tokens: "editor.semanticHighlighting.enabled" decides
+ * when it is a boolean, and otherwise ("configuredByTheme") the user's semantic token
+ * customizations or the theme do.
+ */
+function semanticHighlightingEnabled(fromCustomizations: boolean | undefined, fromTheme: boolean | undefined): boolean {
+  const setting = vscode.workspace.getConfiguration("editor").get<unknown>("semanticHighlighting.enabled");
+  if (typeof setting === "boolean") return setting;
+  return fromCustomizations ?? fromTheme ?? false;
 }
 
 /**
@@ -126,22 +163,33 @@ async function readTokenColors(file: vscode.Uri, depth: number): Promise<TextMat
  */
 export async function loadActiveTokenTheme(): Promise<MonacoTokenTheme> {
   const base = activeBaseTheme();
+  // Without the theme's file nothing says what VS Code would do, and the stock theme the
+  // editor then keeps colors semantic tokens by its own rules.
+  const unread: MonacoTokenTheme = { base, rules: [], semanticHighlighting: semanticHighlightingEnabled(undefined, true) };
   try {
     const located = locateTheme(base);
-    if (!located) return { base, rules: [] };
+    if (!located) return unread;
 
-    const tokenColors = await readTokenColors(located.file, 0);
-    if (tokenColors.length === 0) return { base, rules: [] };
+    const syntax = await readThemeSyntax(located.file, 0);
+    if (syntax.tokenColors.length === 0) return unread;
 
-    const custom = vscode.workspace
-      .getConfiguration("editor")
-      .get<unknown>("tokenColorCustomizations");
+    const editor = vscode.workspace.getConfiguration("editor");
+    const tokenColors = [
+      ...syntax.tokenColors,
+      ...customizationRules(editor.get<unknown>("tokenColorCustomizations"), located.name),
+    ];
+    const semantic = semanticCustomization(
+      editor.get<unknown>("semanticTokenColorCustomizations"), located.name);
     return {
       base,
-      rules: buildMonacoRules([...tokenColors, ...customizationRules(custom, located.name)]),
+      rules: [
+        ...buildMonacoRules(tokenColors),
+        ...buildSemanticRules(tokenColors, { ...syntax.semanticTokenColors, ...semantic.rules }),
+      ],
+      semanticHighlighting: semanticHighlightingEnabled(semantic.enabled, syntax.semanticHighlighting),
     };
   } catch (err) {
     log.warn(`Could not read the active color theme's syntax colors: ${err}`);
-    return { base, rules: [] };
+    return unread;
   }
 }

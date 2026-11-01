@@ -2,9 +2,11 @@ import * as assert from "assert";
 import {
   TextMateRule,
   buildMonacoRules,
+  buildSemanticRules,
   customizationRules,
   parseJsonc,
   resolveScope,
+  semanticCustomization,
 } from "../../src/blazor/themeTokenRules";
 
 suite("Theme token rules", () => {
@@ -110,5 +112,70 @@ suite("Theme token rules", () => {
   test("customizations that are missing or malformed yield nothing", () => {
     assert.deepStrictEqual(customizationRules(undefined, "Any"), []);
     assert.deepStrictEqual(customizationRules("nonsense", "Any"), []);
+  });
+  // A slice of Dark 2026 and the themes it includes.
+  const dark2026: TextMateRule[] = [
+    { scope: "entity.name.type", settings: { foreground: "#4EC9B0" } },
+    { scope: "entity.name", settings: { foreground: "#FFA657" } },
+    { scope: "entity.name.function", settings: { foreground: "#D2A8FF" } },
+    { scope: "variable.other", settings: { foreground: "#C9D1D9" } },
+    { scope: ["variable.other.enummember", "variable.other.constant"], settings: { foreground: "#79C0FF" } },
+    { scope: "variable.parameter", settings: { foreground: "#9CDCFE" } },
+  ];
+
+  test("semantic tokens take the scope VS Code falls back to", () => {
+    const rules = buildSemanticRules(dark2026, {});
+
+    // entity.name.type.struct and .class fall to entity.name.type, the most specific match.
+    assert.strictEqual(ruleFor(rules, "struct")?.foreground, "#4EC9B0");
+    assert.strictEqual(ruleFor(rules, "class")?.foreground, "#4EC9B0");
+    assert.strictEqual(ruleFor(rules, "enumMember")?.foreground, "#79C0FF");
+    assert.strictEqual(ruleFor(rules, "method")?.foreground, "#D2A8FF");
+    assert.strictEqual(ruleFor(rules, "property")?.foreground, "#C9D1D9");
+    assert.strictEqual(ruleFor(rules, "parameter")?.foreground, "#9CDCFE");
+  });
+
+  test("semantic types the Monaco tokenizers share keep the lexical rule", () => {
+    const rules = buildSemanticRules(dark2026, {});
+
+    for (const token of ["variable", "function", "type", "namespace", "keyword", "operator"]) {
+      assert.strictEqual(ruleFor(rules, token), undefined, token);
+    }
+  });
+
+  test("semanticTokenColors win over the fallback scope, and name modifiers", () => {
+    const rules = buildSemanticRules(dark2026, {
+      enumMember: "#FF0000",
+      variable: { foreground: "#00FF00", italic: true },
+      "variable.mutable": { underline: true },
+      "*.static": { bold: true },
+      "class:fsharp": "#123456",
+    });
+
+    assert.strictEqual(ruleFor(rules, "enumMember")?.foreground, "#FF0000");
+    assert.deepStrictEqual(ruleFor(rules, "variable"), { token: "variable", foreground: "#00FF00", fontStyle: "italic" });
+    assert.deepStrictEqual(ruleFor(rules, "variable.mutable"), { token: "variable.mutable", fontStyle: "underline" });
+    assert.strictEqual(ruleFor(rules, "method.static")?.fontStyle, "bold");
+    assert.strictEqual(ruleFor(rules, "class")?.foreground, "#4EC9B0", "a language-scoped selector is passed over");
+  });
+
+  test("a semantic token the theme says nothing about gets no rule", () => {
+    assert.deepStrictEqual(buildSemanticRules([], {}), []);
+  });
+
+  test("semantic token customizations apply generally and for the active theme", () => {
+    const custom = semanticCustomization(
+      {
+        enabled: false,
+        rules: { variable: "#111111" },
+        "[Dark 2026]": { enabled: true, rules: { property: "#222222" } },
+        "[Light 2026]": { rules: { variable: "#333333" } },
+      },
+      "Dark 2026"
+    );
+
+    assert.strictEqual(custom.enabled, true);
+    assert.deepStrictEqual(custom.rules, { variable: "#111111", property: "#222222" });
+    assert.deepStrictEqual(semanticCustomization(undefined, "Any"), { rules: {} });
   });
 });

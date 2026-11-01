@@ -272,6 +272,20 @@ public sealed record DiagnosticItemDto(
     int EndColumn,
     string? Code);
 
+/// <summary>The kernel's classification of one cell's source.</summary>
+public sealed record SemanticTokensResultDto(IReadOnlyList<SemanticTokenItemDto> Items);
+
+/// <summary>
+/// A single classified span. Positions are 0-based and relative to the cell's source; the type and
+/// modifiers are names from <c>SemanticTokenTypes</c> and <c>SemanticTokenModifiers</c>.
+/// </summary>
+public sealed record SemanticTokenItemDto(
+    int Line,
+    int StartColumn,
+    int Length,
+    string Type,
+    IReadOnlyList<string>? Modifiers);
+
 /// <summary>Result of a cell execution.</summary>
 public sealed record ExecutionResultDto(
     Guid CellId,

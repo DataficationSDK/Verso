@@ -110,6 +110,45 @@ public static class KernelHandler
         };
     }
 
+    public static async Task<SemanticTokensResult?> HandleGetSemanticTokensAsync(NotebookSession ns, JsonElement? @params)
+    {
+        var p = @params?.Deserialize<SemanticTokensParams>(JsonRpcMessage.SerializerOptions)
+            ?? throw new JsonException("Missing params for kernel/getSemanticTokens");
+
+        // A kernel that does not classify leaves the editor's own coloring. It is not started for
+        // a request it cannot answer.
+        if (ResolveKernelForCell(ns, p.CellId) is not ISemanticTokenProvider provider)
+            return new SemanticTokensResult();
+
+        // Advisory, as diagnostics are: a kernel that cannot start or fails mid-analysis answers
+        // null, and the editor keeps the colors it already shows.
+        IReadOnlyList<SemanticToken>? tokens;
+        try
+        {
+            await ns.Scaffold.WarmUpKernelAsync(((ILanguageKernel)provider).LanguageId);
+            tokens = await provider.GetSemanticTokensAsync(p.Code);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+
+        if (tokens is null)
+            return null;
+
+        return new SemanticTokensResult
+        {
+            Items = tokens.Select(t => new SemanticTokenDto
+            {
+                Line = t.Line,
+                StartColumn = t.StartColumn,
+                Length = t.Length,
+                Type = t.Type,
+                Modifiers = t.Modifiers is { Count: > 0 } m ? m.ToList() : null
+            }).ToList()
+        };
+    }
+
     private static ILanguageKernel? ResolveKernelForCell(NotebookSession ns, string cellId)
     {
         return ns.Scaffold.ResolveKernelForCell(Guid.Parse(cellId));

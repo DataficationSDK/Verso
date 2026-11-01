@@ -996,6 +996,38 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
                 d.StartLine, d.StartColumn, d.EndLine, d.EndColumn, d.Code)).ToList());
     }
 
+    public async Task<SemanticTokensResultDto?> GetSemanticTokensAsync(Guid cellId, string code)
+    {
+        if (_scaffold is null) return null;
+
+        if (_scaffold.GetCell(cellId) is null) return null;
+
+        // A kernel that does not classify leaves the editor's own coloring, and is not started
+        // for a request it cannot answer.
+        if (_scaffold.ResolveKernelForCell(cellId) is not ISemanticTokenProvider provider)
+            return new SemanticTokensResultDto(Array.Empty<SemanticTokenItemDto>());
+
+        // Advisory, as diagnostics are: a failure answers null, and the editor keeps its colors.
+        IReadOnlyList<SemanticToken>? tokens;
+        try
+        {
+            await _scaffold.WarmUpKernelAsync(((ILanguageKernel)provider).LanguageId);
+
+            // The same semantic pass as diagnostics; kept off the circuit's dispatcher.
+            tokens = await Task.Run(() => provider.GetSemanticTokensAsync(code));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+
+        if (tokens is null) return null;
+
+        return new SemanticTokensResultDto(
+            tokens.Select(t => new SemanticTokenItemDto(
+                t.Line, t.StartColumn, t.Length, t.Type, t.Modifiers)).ToList());
+    }
+
     // ── Layout & theme switching ───────────────────────────────────────
 
     public async Task<string?> RenderActiveLayoutAsync()

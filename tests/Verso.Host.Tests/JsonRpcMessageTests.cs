@@ -114,6 +114,7 @@ public class JsonRpcMessageTests
         Assert.AreEqual("kernel/getCompletions", MethodNames.KernelGetCompletions);
         Assert.AreEqual("kernel/getDiagnostics", MethodNames.KernelGetDiagnostics);
         Assert.AreEqual("kernel/getHoverInfo", MethodNames.KernelGetHoverInfo);
+        Assert.AreEqual("kernel/getSemanticTokens", MethodNames.KernelGetSemanticTokens);
         Assert.AreEqual("output/clearAll", MethodNames.OutputClearAll);
     }
 }

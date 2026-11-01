@@ -129,6 +129,7 @@ public sealed class VersoDarkTheme : ITheme
         map.Set("preprocessor", "#C586C0");
         map.Set("attribute", "#4EC9B0");
         map.Set("namespace", "#4EC9B0");
+        map.Set("enumMember", "#4FC1FF");
         return map;
     }
 }
