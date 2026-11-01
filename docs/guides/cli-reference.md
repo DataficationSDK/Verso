@@ -14,7 +14,7 @@ dotnet tool install -g Verso.Cli
 dotnet tool update -g Verso.Cli
 ```
 
-It requires the .NET 8.0 SDK or later. After installing, `verso --help` lists the commands, and every command has its own `--help`.
+It requires the .NET 10 SDK or later. After installing, `verso --help` lists the commands, and every command has its own `--help`.
 
 ## Global options
 

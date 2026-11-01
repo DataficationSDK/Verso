@@ -15,7 +15,7 @@ dotnet tool install Verso.Cli
 dotnet tool update -g Verso.Cli
 ```
 
-Requires .NET 8.0 SDK or later.
+Requires the .NET 10 SDK or later.
 
 ## Global Options
 
@@ -199,7 +199,7 @@ Displays version, runtime, and extension information.
 ```
 $ verso info
 Verso CLI 1.0.0
-Runtime:    .NET 8.0.11
+Runtime:    .NET 10.0.3
 Engine:     Verso 1.0.0
 Extensions:
   verso.kernel.csharp          C# Kernel              1.0.0

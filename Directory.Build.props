@@ -17,7 +17,7 @@
       published by newer releases.
     -->
     <Version>1.3.0</Version>
-    <VersoLibTargetFrameworks>net8.0;net10.0</VersoLibTargetFrameworks>
+    <VersoLibTargetFrameworks>net10.0</VersoLibTargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

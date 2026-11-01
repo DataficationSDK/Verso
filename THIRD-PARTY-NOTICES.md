@@ -7,10 +7,10 @@ The original copyright notices and license texts are provided for each component
 
 | Component | Version | License | Project |
 |---|---|---|---|
-| Microsoft.CodeAnalysis (Roslyn) | 4.12.0 | MIT | [dotnet/roslyn](https://github.com/dotnet/roslyn) |
+| Microsoft.CodeAnalysis (Roslyn) | 5.0.0 | MIT | [dotnet/roslyn](https://github.com/dotnet/roslyn) |
 | NuGet.Protocol | 6.9.1 | Apache-2.0 | [NuGet/NuGet.Client](https://github.com/NuGet/NuGet.Client) |
-| Microsoft.AspNetCore.Components | 8.0.0 | MIT | [dotnet/aspnetcore](https://github.com/dotnet/aspnetcore) |
-| Microsoft.PowerShell.SDK | 7.4.7 | MIT | [PowerShell/PowerShell](https://github.com/PowerShell/PowerShell) |
+| Microsoft.AspNetCore.Components | 10.0.14 | MIT | [dotnet/aspnetcore](https://github.com/dotnet/aspnetcore) |
+| Microsoft.PowerShell.SDK | 7.6.9 | MIT | [PowerShell/PowerShell](https://github.com/PowerShell/PowerShell) |
 | FSharp.Compiler.Service | 43.12.202 | MIT | [dotnet/fsharp](https://github.com/dotnet/fsharp) |
 | Jint | 4.12.0 | BSD-2-Clause | [sebastienros/jint](https://github.com/sebastienros/jint) |
 | Markdig | 0.37.0 | BSD-2-Clause | [lunet-io/markdig](https://github.com/lunet-io/markdig) |

@@ -80,7 +80,7 @@ public sealed class FSharpKernel : ILanguageKernel, IExtensionSettings
         new SettingDefinition("langVersion", Strings.Setting_LangVersion_Label,
             Strings.Setting_LangVersion_Description,
             SettingType.StringChoice, "preview", "Compiler",
-            new SettingConstraints(Choices: new[] { "default", "latest", "latestmajor", "preview", "5.0", "6.0", "7.0", "8.0", "9.0" })),
+            new SettingConstraints(Choices: new[] { "default", "latest", "latestmajor", "preview", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0" })),
         new SettingDefinition("publishPrivateBindings", Strings.Setting_PublishPrivateBindings_Label,
             Strings.Setting_PublishPrivateBindings_Description,
             SettingType.Boolean, false, "Variables"),

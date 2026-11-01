@@ -45,7 +45,7 @@ dotnet build samples/showcase/grid-studio/src/Verso.Showcase.GridStudio
 Load the result into a notebook with a `#!extension` line naming the built assembly, then switch layouts. The path resolves relative to the notebook's folder:
 
 ```
-#!extension ./src/Verso.Showcase.GridStudio/bin/Debug/net8.0/Verso.Showcase.GridStudio.dll
+#!extension ./src/Verso.Showcase.GridStudio/bin/Debug/net10.0/Verso.Showcase.GridStudio.dll
 ```
 
 This is the loop to work in if you are reading a sample in order to write your own layout: edit, build, reopen, look.

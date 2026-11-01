@@ -66,6 +66,7 @@ public sealed class SettingsTests
         Assert.IsNotNull(def.Constraints?.Choices);
         CollectionAssert.Contains(def.Constraints!.Choices!.ToList(), "preview");
         CollectionAssert.Contains(def.Constraints.Choices!.ToList(), "default");
+        CollectionAssert.Contains(def.Constraints.Choices!.ToList(), "10.0");
     }
 
     [TestMethod]

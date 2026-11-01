@@ -34,9 +34,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: "10.0.x"
 
       # The Python kernel launches a real interpreter, and a large part of its suite treats a
       # missing one as a failure on a build server rather than a skip. Pinned here for the same
@@ -50,31 +48,6 @@ jobs:
 
       - name: Install Python test dependencies
         run: python -m pip install --upgrade pip jedi
-
-      - name: Bundle blazor.web.js for CLI
-        run: |
-          # blazor.web.js is embedded in Components.Endpoints.dll in .NET 8/9
-          # but not in .NET 10+. Extract it so verso serve works when the tool
-          # rolls forward to a runtime that no longer bundles the script.
-          DIR="src/Verso.Cli/bin/Release/net8.0/wwwroot/_framework"
-          mkdir -p "$DIR"
-          DLL=$(find "$DOTNET_ROOT/shared/Microsoft.AspNetCore.App" \
-                -path "*/8.*/Microsoft.AspNetCore.Components.Endpoints.dll" | head -1)
-          if [ -z "$DLL" ]; then
-            echo "::warning::Could not find .NET 8 Components.Endpoints.dll"
-            exit 0
-          fi
-          dotnet new console -o /tmp/_ebjs --no-restore -f net8.0
-          cat > /tmp/_ebjs/Program.cs << 'EOF'
-          var asm = System.Reflection.Assembly.LoadFrom(args[0]);
-          using var s = asm.GetManifestResourceStream("_framework/blazor.web.js");
-          if (s == null) { Console.Error.WriteLine("Resource not found"); return; }
-          Directory.CreateDirectory(Path.GetDirectoryName(args[1])!);
-          using var f = File.Create(args[1]);
-          s.CopyTo(f);
-          Console.WriteLine($"Extracted blazor.web.js ({f.Length} bytes)");
-          EOF
-          dotnet run --project /tmp/_ebjs -- "$DLL" "$DIR/blazor.web.js"
 
       - name: Build
         run: dotnet build Verso.sln -c Release -p:Version=${{ steps.version.outputs.version }}
@@ -107,6 +80,9 @@ jobs:
           dotnet pack samples/showcase/slide-studio/src/Verso.Showcase.SlideStudio/Verso.Showcase.SlideStudio.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
           dotnet pack samples/showcase/dag-notebook/src/Verso.Showcase.DagNotebook/Verso.Showcase.DagNotebook.csproj -c Release -p:Version=${{ steps.version.outputs.version }} -p:GeneratePackageOnBuild=false -o packages
 
+      - name: Check the CLI tool carries blazor.web.js
+        run: unzip -l packages/Verso.Cli.*.nupkg | grep -q "tools/net10.0/any/wwwroot/_framework/blazor.web.js"
+
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
         with:
@@ -129,9 +105,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: "10.0.x"
 
       - name: Set version
         run: npm version ${{ needs.build-and-test.outputs.version }} --no-git-tag-version

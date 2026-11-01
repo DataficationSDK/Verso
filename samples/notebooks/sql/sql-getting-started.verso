@@ -23,7 +23,7 @@
       "id": "00000002-0001-0001-0001-000000000030",
       "type": "code",
       "language": "csharp",
-      "source": "#r \u0022nuget: Microsoft.Data.Sqlite, 8.0.8\u0022"
+      "source": "#r \u0022nuget: Microsoft.Data.Sqlite, 10.0.14\u0022"
     },
     {
       "id": "00000002-0001-0001-0001-000000000003",

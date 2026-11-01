@@ -4,7 +4,7 @@ This guide walks you through creating your first Verso extension, from setting u
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
 - A code editor (Visual Studio, VS Code, or Rider)
 - Familiarity with C# and async/await
 
@@ -12,7 +12,7 @@ Verify your SDK installation:
 
 ```bash
 dotnet --version
-# Should output 8.0.x or higher
+# Should output 10.0.x or higher
 ```
 
 ## Installing the Verso Extension Template
@@ -89,7 +89,7 @@ The generated `.csproj` references the `Verso.Abstractions` NuGet package and en
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -145,7 +145,7 @@ dotnet build MyDashboard/
 dotnet build MyDashboard/MyDashboard.Tests/
 ```
 
-The build output (DLL) will be in `bin/Debug/net8.0/`. Because `GeneratePackageOnBuild` is set, a `.nupkg` is also produced on each build.
+The build output (DLL) will be in `bin/Debug/net10.0/`. Because `GeneratePackageOnBuild` is set, a `.nupkg` is also produced on each build.
 
 ## Running Tests
 
@@ -164,7 +164,7 @@ During development you can load your extension straight from its build output, w
 **From a notebook**, use the `#!extension` magic command with the path to your compiled assembly:
 
 ```
-#!extension ./MyDashboard/bin/Debug/net8.0/MyDashboard.dll
+#!extension ./MyDashboard/bin/Debug/net10.0/MyDashboard.dll
 ```
 
 The path is resolved relative to the notebook's directory, and local assemblies load without a consent prompt.
@@ -172,7 +172,7 @@ The path is resolved relative to the notebook's directory, and local assemblies 
 **From the CLI**, point any command at a directory of extension assemblies with `--extensions`:
 
 ```bash
-verso serve notebook.verso --extensions ./MyDashboard/bin/Debug/net8.0/
+verso serve notebook.verso --extensions ./MyDashboard/bin/Debug/net10.0/
 ```
 
 Verso scans that directory for extension DLLs and loads them alongside the built-ins. The `--extensions` flag works on `serve`, `run`, `repl`, `convert`, and `export`. In VS Code, set the `verso.extensionsPath` setting instead.

@@ -65,7 +65,7 @@ opens straight into the layout. You can also install it yourself from the **Exte
 (search `Verso.Showcase`) and switch to **DAG Notebook** from the layout picker.
 
 To run against a local build instead, load the freshly built assembly with
-`#!extension ./src/Verso.Showcase.DagNotebook/bin/Debug/net8.0/Verso.Showcase.DagNotebook.dll`
+`#!extension ./src/Verso.Showcase.DagNotebook/bin/Debug/net10.0/Verso.Showcase.DagNotebook.dll`
 (the path resolves relative to the notebook's folder), then switch to **DAG Notebook**.
 
 The demo notebook seeds a small pricing model: base inputs feed revenue, revenue feeds profit,

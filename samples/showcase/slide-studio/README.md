@@ -91,7 +91,7 @@ opens straight into the layout. You can also install it yourself from the **Exte
 (search `Verso.Showcase`) and switch to **Slide Studio** from the layout picker.
 
 To run against a local build instead, load the freshly built assembly with
-`#!extension ./src/Verso.Showcase.SlideStudio/bin/Debug/net8.0/Verso.Showcase.SlideStudio.dll`
+`#!extension ./src/Verso.Showcase.SlideStudio/bin/Debug/net10.0/Verso.Showcase.SlideStudio.dll`
 (the path resolves relative to the notebook's folder), then switch to **Slide Studio**.
 
 The demo notebook is a small quarterly review deck: a title slide, a results table, a chart, a

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>10</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -24,19 +24,23 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-  <!-- blazor.web.js is placed into $(OutputPath)wwwroot/_framework/ before
-       build by CI (see .github/workflows) or by the NuGet-cache copy below.
-       The pack target then bundles it into the tool package. -->
+  <!--
+    blazor.web.js ships in the ASP.NET Core framework assets package rather than inside the
+    shared framework, so the installed tool has no copy of its own. Asking for that package
+    restores the copy that matches the SDK's ASP.NET Core version, and the target below puts it
+    where the pack target and BlazorHostBuilder look for it.
+  -->
+  <PropertyGroup>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+
   <Target Name="_CopyBlazorFrameworkJs" AfterTargets="Build">
-    <ItemGroup>
-      <_BlazorWebJsFromNuGet Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/*/_framework/blazor.web.js" />
-    </ItemGroup>
-    <Copy SourceFiles="@(_BlazorWebJsFromNuGet)"
+    <Copy SourceFiles="$(BlazorFrameworkStaticWebAssetRoot)/blazor.web.js"
           DestinationFolder="$(OutputPath)wwwroot/_framework/"
           SkipUnchangedFiles="true"
-          Condition="'@(_BlazorWebJsFromNuGet)' != ''" />
-    <Warning Text="blazor.web.js not found in NuGet cache or $(OutputPath)wwwroot/_framework/. Run the extract-blazor-js CI step or copy the file manually."
-             Condition="'@(_BlazorWebJsFromNuGet)' == '' AND !Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
+          Condition="'$(BlazorFrameworkStaticWebAssetRoot)' != '' AND Exists('$(BlazorFrameworkStaticWebAssetRoot)/blazor.web.js')" />
+    <Error Text="blazor.web.js was not found in the ASP.NET Core framework assets package, so verso serve would load without its Blazor script."
+           Condition="!Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')" />
   </Target>
 
   <!-- Bundle static web assets so the Blazor Server app works when installed
@@ -55,7 +59,7 @@
       <!-- Verso.Blazor.Shared wwwroot (served from /_content/Verso.Blazor.Shared/) -->
       <TfmSpecificPackageFile Include="..\Verso.Blazor.Shared\wwwroot\**\*"
                               PackagePath="tools/$(TargetFramework)/any/wwwroot/_content/Verso.Blazor.Shared/" />
-      <!-- Blazor framework JS (extracted during build) -->
+      <!-- Blazor framework JS (copied by _CopyBlazorFrameworkJs) -->
       <TfmSpecificPackageFile Include="$(OutputPath)wwwroot/_framework/blazor.web.js"
                               Condition="Exists('$(OutputPath)wwwroot/_framework/blazor.web.js')"
                               PackagePath="tools/$(TargetFramework)/any/wwwroot/_framework/blazor.web.js" />

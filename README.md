@@ -8,7 +8,7 @@
 
 <p>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://dotnet.microsoft.com/download/dotnet/10.0"><img src="https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-purple.svg" alt=".NET 8 | 10" /></a>
+  <a href="https://dotnet.microsoft.com/download/dotnet/10.0"><img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10" /></a>
   <a href="https://github.com/DataficationSDK/Verso/actions/workflows/verso-ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/DataficationSDK/Verso/verso-ci.yml?branch=main&label=CI" alt="CI" /></a>
   <a href="https://www.nuget.org/packages/Verso"><img src="https://img.shields.io/nuget/v/Verso?label=NuGet" alt="NuGet" /></a>
   <a href="https://github.com/DataficationSDK/Verso/releases"><img src="https://img.shields.io/github/v/release/DataficationSDK/Verso?label=Release" alt="GitHub Release" /></a>
@@ -46,7 +46,7 @@ dotnet tool install -g Verso.Cli
 verso serve
 ```
 
-Requirements: the VS Code extension needs the [.NET runtime, version 8.0 or later](https://dotnet.microsoft.com/download/dotnet) and offers to install it for you if it is missing; the `verso` CLI needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for `dotnet tool install`. [Node.js 18+](https://nodejs.org/) and [Python 3.8 or newer](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
+Requirements: the VS Code extension needs the [.NET runtime, version 10.0 or later](https://dotnet.microsoft.com/download/dotnet/10.0) and offers to install it for you if it is missing; the `verso` CLI needs the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for `dotnet tool install`. [Node.js 18+](https://nodejs.org/) and [Python 3.8 or newer](https://www.python.org/downloads/) are optional; they enable the JavaScript/TypeScript and Python kernels (JavaScript falls back to the pure .NET Jint interpreter when Node.js is absent).
 
 ## Why Verso
 
