@@ -166,6 +166,9 @@
   <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
     <value>笔记本所需的扩展</value>
   </data>
+  <data name="Debug_CSharp_CellNotPausable" xml:space="preserve">
+    <value>无法为此单元格做好调试准备，因此它在运行时没有在断点处停止。</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>不支持导出为 Polyglot Notebook 的 .dib 格式。请使用 Verso 原生格式。</value>
   </data>

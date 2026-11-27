@@ -35,6 +35,13 @@ internal static class HostProtocol
     public const string InputRequest = "input_request";
     public const string InputReply = "input_reply";
 
+    // Message types: debugging. The first is an event a stopped cell raises and then waits on;
+    // the other two are sent to the host while a cell runs and are read off its socket thread,
+    // since the thread running the cell is the one that is waiting.
+    public const string DebugStopped = "debug_stopped";
+    public const string DebugResume = "debug_resume";
+    public const string DebugBreakpoints = "debug_breakpoints";
+
     // Message types: editor assistance.
     public const string Complete = "complete";
     public const string CompleteReply = "complete_reply";
@@ -109,6 +116,24 @@ internal static class HostProtocol
     /// the same interpreter answers a notebook being edited and a file being baked.
     /// </summary>
     public const string LiveWidgetsField = "live_widgets";
+
+    /// <summary>
+    /// The notebook cell an <c>execute</c> request runs, as an opaque token. Sent on every run so
+    /// that a stop inside a function can name the cell that defined it, whichever run that was.
+    /// </summary>
+    public const string CellField = "cell";
+
+    /// <summary>
+    /// Present on an <c>execute</c> request when the cell is to stop at breakpoints. Its value
+    /// is an object carrying <see cref="BreakpointsField"/>.
+    /// </summary>
+    public const string DebugField = "debug";
+
+    /// <summary>Breakpoint lines by cell token, each counting from 1 in that cell's code.</summary>
+    public const string BreakpointsField = "breakpoints";
+
+    public const string FramesField = "frames";
+    public const string ActionField = "action";
 
     /// <summary>
     /// Names the widget a display payload was made from, carried only when that widget asked to
@@ -350,7 +375,7 @@ internal static class HostProtocol
     /// here has to be answered there, and a type answered there but missing here reaches neither.
     /// </summary>
     public static bool IsExecutionScoped(string? messageType)
-        => messageType is Stream or Display or InputRequest;
+        => messageType is Stream or Display or InputRequest or DebugStopped;
 
     /// <summary>Read a string property without throwing when it is absent or not a string.</summary>
     public static string? TryGetString(JsonObject obj, string name)

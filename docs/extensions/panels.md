@@ -78,7 +78,7 @@ The host calls it when it builds the panel list: on notebook load, and whenever 
 
 `IconName` names an icon rather than supplying one, so hosts that do not draw SVG can still show something. Hosts are expected to recognize:
 
-`document` · `list` · `puzzle` · `braces` · `gear` · `search` · `layout` · `compare` · `info` · `warning` · `flag` · `check` · `clock` · `tag` · `chart` · `table` · `folder` · `link`
+`document` · `list` · `puzzle` · `braces` · `gear` · `search` · `layout` · `compare` · `info` · `warning` · `flag` · `check` · `clock` · `tag` · `chart` · `table` · `folder` · `bug` · `link`
 
 Resolution order is `IconName`, then `IconMarkup`, then the first letter of `DisplayName`. A name a host does not recognize falls back rather than failing, so naming an icon is always safe.
 

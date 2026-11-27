@@ -66,6 +66,10 @@ public static class PanelIcons
 
         ["folder"] = $"<svg {Attrs}><path d=\"M1.8 4.2h4.4l1.4 1.8h6.6v7.2H1.8z\"/></svg>",
 
+        ["bug"] = $"<svg {Attrs}><rect x=\"5\" y=\"5\" width=\"6\" height=\"8.4\" rx=\"3\"/>"
+            + "<path d=\"M6.2 5.2a1.8 1.8 0 0 1 3.6 0\"/><line x1=\"5\" y1=\"9\" x2=\"11\" y2=\"9\"/>"
+            + "<path d=\"M5 7.2 2.6 5.8M11 7.2l2.4-1.4M5 9H2.2M11 9h2.8M5 11l-2.4 1.6M11 11l2.4 1.6\"/></svg>",
+
         ["link"] = $"<svg {Attrs}><path d=\"M6.6 9.4a2.8 2.8 0 0 0 4 0l2-2a2.8 2.8 0 1 0-4-4l-1 1\"/>"
             + "<path d=\"M9.4 6.6a2.8 2.8 0 0 0-4 0l-2 2a2.8 2.8 0 1 0 4 4l1-1\"/></svg>",
     };

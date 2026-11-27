@@ -85,6 +85,9 @@ public sealed class LanguageDto
     public string Id { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public bool SupportsCancellation { get; set; } = true;
+
+    /// <summary>Whether the language's kernel can pause a running cell.</summary>
+    public bool SupportsDebugging { get; set; }
 }
 
 public sealed class ToolbarActionsResult

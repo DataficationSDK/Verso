@@ -244,6 +244,40 @@ public interface INotebookService
     /// <summary>Restart the active kernel.</summary>
     Task RestartKernelAsync();
 
+    // ── Debugging ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Whether debugging is on, where the breakpoints are, and where a cell is stopped. A service
+    /// that cannot debug reports <see cref="DebugSnapshot.Off"/> and never changes it.
+    /// </summary>
+    DebugSnapshot DebugState => DebugSnapshot.Off;
+
+    /// <summary>
+    /// Raised when <see cref="DebugState"/> changes: debugging is turned on or off, a breakpoint
+    /// is set or cleared, or a cell stops or carries on. May be raised on any thread.
+    /// </summary>
+    event Action? OnDebugStateChanged
+    {
+        add { }
+        remove { }
+    }
+
+    /// <summary>
+    /// Turns debugging on or off for the notebook. While it is on, cells whose language reports
+    /// <see cref="KernelLanguageInfo.SupportsDebugging"/> stop at their breakpoints. Turning it
+    /// off lets a stopped cell run on to its end.
+    /// </summary>
+    Task SetDebuggingAsync(bool enabled) => Task.CompletedTask;
+
+    /// <summary>
+    /// Replaces the breakpoints of one cell. Lines count from 1 in the cell's own text, and an
+    /// empty list clears the cell.
+    /// </summary>
+    Task SetBreakpointsAsync(Guid cellId, IReadOnlyList<int> lines) => Task.CompletedTask;
+
+    /// <summary>Lets a stopped cell carry on. Does nothing when no cell is stopped.</summary>
+    Task ResumeDebugAsync(DebugResumeAction action) => Task.CompletedTask;
+
     // ── Toolbar actions ────────────────────────────────────────────────
 
     /// <summary>Get toolbar actions for the specified placement.</summary>

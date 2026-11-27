@@ -388,6 +388,99 @@
   <data name="Consent_WarningPackage" xml:space="preserve">
     <value>Pakete führen Code auf Ihrem Rechner aus. Installieren Sie nur Pakete, denen Sie vertrauen.</value>
   </data>
+  <data name="Debug_Breakpoints" xml:space="preserve">
+    <value>Haltepunkte</value>
+  </data>
+  <data name="Debug_Breakpoints_Empty" xml:space="preserve">
+    <value>Noch keine Haltepunkte.</value>
+  </data>
+  <data name="Debug_Breakpoints_Remove" xml:space="preserve">
+    <value>Haltepunkt entfernen</value>
+  </data>
+  <data name="Debug_Breakpoints_RemoveAll" xml:space="preserve">
+    <value>Alle entfernen</value>
+  </data>
+  <data name="Debug_CallStack" xml:space="preserve">
+    <value>Aufrufliste</value>
+  </data>
+  <data name="Debug_Cell" xml:space="preserve">
+    <value>Zelle {0}</value>
+  </data>
+  <data name="Debug_Continue" xml:space="preserve">
+    <value>Weiter</value>
+  </data>
+  <data name="Debug_Continue_Description" xml:space="preserve">
+    <value>Bis zum nächsten Haltepunkt weiterlaufen.</value>
+  </data>
+  <data name="Debug_Controls" xml:space="preserve">
+    <value>Debugsteuerung</value>
+  </data>
+  <data name="Debug_Frame_Unnamed" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Debug_Hint_SetBreakpoint" xml:space="preserve">
+    <value>Klicken Sie neben eine Zeilennummer, um einen Haltepunkt zu setzen, und führen Sie dann die Zelle aus.</value>
+  </data>
+  <data name="Debug_Line" xml:space="preserve">
+    <value>Zeile {0}</value>
+  </data>
+  <data name="Debug_Location_CellLine" xml:space="preserve">
+    <value>Zelle {0}, Zeile {1}</value>
+  </data>
+  <data name="Debug_Off_Body" xml:space="preserve">
+    <value>Schalten Sie das Debuggen ein, um eine laufende Zelle an einer Zeile Ihrer Wahl anzuhalten, ihre Variablen anzusehen und sie Zeile für Zeile durchzugehen.</value>
+  </data>
+  <data name="Debug_Off_Languages" xml:space="preserve">
+    <value>Funktioniert in Zellen, die in {0} geschrieben sind.</value>
+  </data>
+  <data name="Debug_Off_Title" xml:space="preserve">
+    <value>Debuggen ist ausgeschaltet</value>
+  </data>
+  <data name="Debug_On" xml:space="preserve">
+    <value>Debuggen ist eingeschaltet.</value>
+  </data>
+  <data name="Debug_Status_AfterStep" xml:space="preserve">
+    <value>Nach einem Schritt angehalten</value>
+  </data>
+  <data name="Debug_Status_AtBreakpoint" xml:space="preserve">
+    <value>An einem Haltepunkt angehalten</value>
+  </data>
+  <data name="Debug_Status_Waiting" xml:space="preserve">
+    <value>Warten auf einen Haltepunkt</value>
+  </data>
+  <data name="Debug_StepInto" xml:space="preserve">
+    <value>Einzelschritt</value>
+  </data>
+  <data name="Debug_StepInto_Description" xml:space="preserve">
+    <value>In die Funktion gehen, die diese Zeile aufruft.</value>
+  </data>
+  <data name="Debug_StepOut" xml:space="preserve">
+    <value>Rücksprung</value>
+  </data>
+  <data name="Debug_StepOut_Description" xml:space="preserve">
+    <value>Bis zum Ende dieser Funktion ausführen.</value>
+  </data>
+  <data name="Debug_StepOver" xml:space="preserve">
+    <value>Prozedurschritt</value>
+  </data>
+  <data name="Debug_StepOver_Description" xml:space="preserve">
+    <value>Diese Zeile ausführen, einschließlich allem, was sie aufruft.</value>
+  </data>
+  <data name="Debug_Stop_Description" xml:space="preserve">
+    <value>Die Zelle an dieser Stelle beenden.</value>
+  </data>
+  <data name="Debug_TurnOff" xml:space="preserve">
+    <value>Debuggen ausschalten</value>
+  </data>
+  <data name="Debug_TurnOn" xml:space="preserve">
+    <value>Debuggen einschalten</value>
+  </data>
+  <data name="Debug_Variables" xml:space="preserve">
+    <value>Variablen</value>
+  </data>
+  <data name="Debug_Variables_Empty" xml:space="preserve">
+    <value>Für diesen Aufruf gibt es keine Variablen anzuzeigen.</value>
+  </data>
   <data name="DiffPicker_Compare" xml:space="preserve">
     <value>Vergleichen</value>
   </data>
@@ -708,6 +801,12 @@
   </data>
   <data name="Panel_Compare_Description" xml:space="preserve">
     <value>Dieses Notebook mit einer gespeicherten Basis abgleichen.</value>
+  </data>
+  <data name="Panel_Debug" xml:space="preserve">
+    <value>Debuggen</value>
+  </data>
+  <data name="Panel_Debug_Description" xml:space="preserve">
+    <value>Eine Zelle an einer Zeile anhalten und schrittweise durchlaufen.</value>
   </data>
   <data name="Panel_Extensions" xml:space="preserve">
     <value>Erweiterungen</value>

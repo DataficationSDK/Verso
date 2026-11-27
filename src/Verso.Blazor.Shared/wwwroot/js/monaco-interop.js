@@ -714,6 +714,295 @@ window.versoMonaco = (function () {
         }
     }
 
+    // ── Breakpoints and the stopped line ─────────────────────────────────────────────
+    //
+    // .NET owns which lines carry a breakpoint and where a cell is stopped; this draws them
+    // and reports back when the reader changes a breakpoint, by clicking beside a line number
+    // or by editing the text around one. What .NET last asked for is kept apart from the
+    // editor, because the request can arrive before Monaco has loaded and the editor exists.
+    const debugStates = {};   // elementId → see debugStateFor
+
+    function debugStateFor(elementId) {
+        return debugStates[elementId] || (debugStates[elementId] = {
+            wanted: { enabled: false, breakpoints: [], stoppedLine: 0, callerLines: [] },
+            shown: false,        // whether the editor currently has its glyph margin
+            breakpoints: null,   // decorations: one mark per breakpoint, which Monaco moves with the text
+            marks: null,         // decorations: the stopped line and the calls waiting on it
+            hint: null,          // decorations: the faint dot under the pointer
+            hintLine: 0,
+            revealedLine: 0,     // the stopped line last scrolled to, so a redraw does not scroll again
+            enabledKey: null,    // context key the keyboard toggle is gated on
+            reported: null,      // lines told to .NET that it has not yet said back
+            reportedAt: 0,
+            heldBack: null,      // what .NET asked for while an answer to a newer report was due
+            heldBackTimer: 0,
+            dotnetRef: null
+        });
+    }
+
+    function cleanLines(lines, lineCount) {
+        const seen = {};
+        const result = [];
+        (lines || []).forEach(function (line) {
+            line = Math.floor(Number(line));
+            if (!(line >= 1) || line > lineCount || seen[line]) return;
+            seen[line] = true;
+            result.push(line);
+        });
+        return result.sort(function (a, b) { return a - b; });
+    }
+
+    function sameLines(a, b) {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+        return true;
+    }
+
+    function forgetReport(state) {
+        state.reported = null;
+        state.heldBack = null;
+        if (state.heldBackTimer) {
+            clearTimeout(state.heldBackTimer);
+            state.heldBackTimer = 0;
+        }
+    }
+
+    // Where the breakpoint marks are now, which after an edit is not where they were put.
+    function breakpointLines(state, lineCount) {
+        if (!state.breakpoints) return [];
+        return cleanLines(state.breakpoints.getRanges().map(function (range) {
+            return range.startLineNumber;
+        }), lineCount);
+    }
+
+    // Anchored to the first character of the line's code rather than to the line, so a line
+    // break typed in front of that code carries the breakpoint down with it.
+    function breakpointDecoration(model, line) {
+        const column = model.getLineFirstNonWhitespaceColumn(line);
+        return {
+            range: column > 0
+                ? new monaco.Range(line, column, line, column + 1)
+                : new monaco.Range(line, 1, line, 1),
+            options: {
+                description: 'verso-breakpoint',
+                glyphMarginClassName: 'verso-debug-breakpoint',
+                stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
+            }
+        };
+    }
+
+    function wholeLineDecoration(line, lineClass, glyphClass) {
+        return {
+            range: new monaco.Range(line, 1, line, 1),
+            options: {
+                description: lineClass,
+                isWholeLine: true,
+                className: lineClass,
+                glyphMarginClassName: glyphClass
+            }
+        };
+    }
+
+    function setBreakpointHint(state, line) {
+        if (!state.hint || state.hintLine === line) return;
+        state.hintLine = line;
+        state.hint.set(line ? [{
+            range: new monaco.Range(line, 1, line, 1),
+            options: { description: 'verso-breakpoint-hint', glyphMarginClassName: 'verso-debug-breakpoint-hint' }
+        }] : []);
+    }
+
+    // The nearest ancestor that scrolls, or null when the page itself does.
+    function scrollParentOf(element) {
+        for (let el = element.parentElement; el && el !== document.body; el = el.parentElement) {
+            const overflow = getComputedStyle(el).overflowY;
+            if ((overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+        }
+        return null;
+    }
+
+    // Brings the line a cell stopped at to where it can be read. The editor scrolls inside
+    // itself only past the cell line limit, so it is usually the notebook that has to move.
+    function revealStoppedLine(elementId, line) {
+        const editor = editors[elementId];
+        const container = document.getElementById(elementId);
+        if (!editor || !container || !container.offsetParent) return;
+
+        editor.revealLineInCenterIfOutsideViewport(line);
+        requestAnimationFrame(function () {
+            if (editors[elementId] !== editor) return;
+            const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight) || 18;
+            const top = container.getBoundingClientRect().top
+                + editor.getTopForLineNumber(line) - editor.getScrollTop();
+            const scroller = scrollParentOf(container);
+            const bounds = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+            const viewTop = Math.max(bounds.top, 0);
+            const viewBottom = Math.min(bounds.bottom, window.innerHeight);
+            // Already readable, with a line to spare above and below.
+            if (top >= viewTop + lineHeight && top + 2 * lineHeight <= viewBottom) return;
+            const delta = top - (viewTop + (viewBottom - viewTop) / 2);
+            (scroller || window).scrollBy({ top: delta, behavior: 'smooth' });
+        });
+    }
+
+    function applyDebugState(elementId) {
+        const editor = editors[elementId];
+        const state = debugStates[elementId];
+        const model = editor && editor.getModel();
+        if (!model || !state || !state.breakpoints) return;
+
+        const wanted = state.wanted;
+        const lineCount = model.getLineCount();
+
+        if (state.shown !== wanted.enabled) {
+            state.shown = wanted.enabled;
+            editor.updateOptions({ glyphMargin: wanted.enabled });
+            if (state.enabledKey) state.enabledKey.set(wanted.enabled);
+            if (!wanted.enabled) setBreakpointHint(state, 0);
+        }
+
+        // Left alone when they already stand where they are wanted, so marks that have moved
+        // with an edit are not reset to the lines they were first put on.
+        const lines = wanted.enabled ? cleanLines(wanted.breakpoints, lineCount) : [];
+        if (!sameLines(lines, breakpointLines(state, lineCount))
+            || state.breakpoints.length !== lines.length) {
+            state.breakpoints.set(lines.map(function (line) { return breakpointDecoration(model, line); }));
+        }
+
+        const stopped = wanted.enabled ? cleanLines([wanted.stoppedLine], lineCount)[0] || 0 : 0;
+        const marks = [];
+        if (wanted.enabled) {
+            cleanLines(wanted.callerLines, lineCount).forEach(function (line) {
+                if (line !== stopped) {
+                    marks.push(wholeLineDecoration(line, 'verso-debug-caller-line', 'verso-debug-caller-glyph'));
+                }
+            });
+        }
+        if (stopped) marks.push(wholeLineDecoration(stopped, 'verso-debug-stopped-line', 'verso-debug-stopped-glyph'));
+        state.marks.set(marks);
+
+        if (stopped && stopped !== state.revealedLine) revealStoppedLine(elementId, stopped);
+        state.revealedLine = stopped;
+    }
+
+    // How long an answer to a report can reasonably still be on its way back.
+    const reportAnswerWindowMs = 2000;
+
+    function reportBreakpoints(state, lines) {
+        state.wanted.breakpoints = lines;
+        state.reported = lines.slice();
+        state.reportedAt = Date.now();
+        if (state.dotnetRef) {
+            state.dotnetRef.invokeMethodAsync('OnBreakpointsEdited', lines)
+                .catch(function () { /* component disposed */ });
+        }
+    }
+
+    // Runs once the answer to a report is overdue. A newer report since then starts the wait
+    // again, since it is that one's answer the held-back lines would now be older than.
+    function drawHeldBack(elementId, state) {
+        state.heldBackTimer = 0;
+        const wait = reportAnswerWindowMs - (Date.now() - state.reportedAt);
+        if (state.reported && wait > 0) {
+            state.heldBackTimer = setTimeout(function () { drawHeldBack(elementId, state); }, wait);
+            return;
+        }
+
+        const held = state.heldBack;
+        forgetReport(state);
+        if (held && debugStates[elementId] === state) {
+            state.wanted = held;
+            applyDebugState(elementId);
+        }
+    }
+
+    function toggleBreakpoint(elementId, line) {
+        const editor = editors[elementId];
+        const state = debugStates[elementId];
+        const model = editor && editor.getModel();
+        if (!model || !state || !state.wanted.enabled) return;
+
+        const lineCount = model.getLineCount();
+        if (!(line >= 1) || line > lineCount) return;
+
+        const lines = breakpointLines(state, lineCount);
+        const at = lines.indexOf(line);
+        if (at >= 0) lines.splice(at, 1); else lines.push(line);
+        lines.sort(function (a, b) { return a - b; });
+
+        // Drawn at once rather than when .NET answers, so the click feels like a click.
+        state.breakpoints.set(lines.map(function (l) { return breakpointDecoration(model, l); }));
+        reportBreakpoints(state, lines);
+    }
+
+    // An edit above a breakpoint moves its mark with the code. .NET is still holding the old
+    // line numbers, and the kernel is given those, so it has to be told.
+    function reportMovedBreakpoints(elementId, replacedWholeText) {
+        const editor = editors[elementId];
+        const state = debugStates[elementId];
+        const model = editor && editor.getModel();
+        if (!model || !state || !state.breakpoints || !state.wanted.enabled) return;
+
+        const lineCount = model.getLineCount();
+
+        // Replacing the whole text (a reload, a tool rewriting the cell) throws every mark away
+        // with it, which is not the reader removing their breakpoints. They go back on the
+        // lines they were on, since nothing says where their code went, and only those past
+        // the new end are given up.
+        if (replacedWholeText) applyDebugState(elementId);
+
+        const lines = breakpointLines(state, lineCount);
+
+        // Two marks land on one line when the line between them is deleted.
+        if (state.breakpoints.length !== lines.length) {
+            state.breakpoints.set(lines.map(function (line) { return breakpointDecoration(model, line); }));
+        }
+
+        if (!sameLines(lines, cleanLines(state.wanted.breakpoints, Infinity))) {
+            reportBreakpoints(state, lines);
+        }
+    }
+
+    function wireDebugGutter(elementId, editor, dotnetRef) {
+        const state = debugStateFor(elementId);
+        state.dotnetRef = dotnetRef;
+        state.breakpoints = editor.createDecorationsCollection();
+        state.marks = editor.createDecorationsCollection();
+        state.hint = editor.createDecorationsCollection();
+        state.shown = false;
+
+        const glyphMargin = monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN;
+        function gutterLine(e) {
+            if (!state.wanted.enabled || !e.target || e.target.type !== glyphMargin) return 0;
+            if (e.target.detail && e.target.detail.isAfterLines) return 0;
+            return (e.target.position && e.target.position.lineNumber) || 0;
+        }
+
+        editor.onMouseDown(function (e) {
+            const line = gutterLine(e);
+            if (!line || !e.event.leftButton) return;
+            toggleBreakpoint(elementId, line);
+        });
+        editor.onMouseMove(function (e) { setBreakpointHint(state, gutterLine(e)); });
+        editor.onMouseLeave(function () { setBreakpointHint(state, 0); });
+
+        // The gutter is a pointer target only, so the same toggle is on a key for whoever is
+        // not using one. Gated on this editor's own focus for the reason the run chords are.
+        const focusKeyName = 'versoEditorFocused_' + elementId.replace(/[^a-zA-Z0-9]/g, '_');
+        const enabledKeyName = 'versoDebugGutter_' + elementId.replace(/[^a-zA-Z0-9]/g, '_');
+        state.enabledKey = editor.createContextKey(enabledKeyName, false);
+        editor.addCommand(
+            monaco.KeyCode.F9,
+            function () {
+                const position = editor.getPosition();
+                if (position) toggleBreakpoint(elementId, position.lineNumber);
+            },
+            focusKeyName + ' && ' + enabledKeyName
+        );
+
+        applyDebugState(elementId);
+    }
+
     // Whether every editor inside a cell has been given its content height. create()
     // sets that height inline once Monaco can measure a line; until then the host is
     // zero-high and the cell measures far shorter than it will end up. A cell with no
@@ -748,6 +1037,7 @@ window.versoMonaco = (function () {
             // Set up before Monaco loads, so a suspension .NET sends in the meantime is kept.
             if (dotnetRef) {
                 diagnosticsStateFor(elementId).suspended = !!options.diagnosticsSuspended;
+                if (options.debug) debugStateFor(elementId).wanted = options.debug;
             }
 
             ensureMonaco(function () {
@@ -839,7 +1129,7 @@ window.versoMonaco = (function () {
                     if (e.contentHeightChanged) updateHeight();
                 });
 
-                editor.onDidChangeModelContent(function () {
+                editor.onDidChangeModelContent(function (e) {
                     if (dotnetRef) {
                         const value = editor.getValue();
                         dotnetRef.invokeMethodAsync('OnContentChanged', value);
@@ -850,6 +1140,7 @@ window.versoMonaco = (function () {
                         if (!state || !state.applyingValue || editor.hasTextFocus()) {
                             scheduleDiagnostics(elementId);
                         }
+                        reportMovedBreakpoints(elementId, !!(e && e.isFlush));
                     }
                 });
 
@@ -937,6 +1228,7 @@ window.versoMonaco = (function () {
                 }
 
                 editors[elementId] = editor;
+                if (dotnetRef) wireDebugGutter(elementId, editor, dotnetRef);
 
                 // Store dotnetRef keyed by model URI for hover/completion routing
                 const modelUri = editor.getModel().uri.toString();
@@ -951,6 +1243,8 @@ window.versoMonaco = (function () {
         dispose: function (elementId) {
             clearDiagnostics(elementId);
             delete diagnosticsState[elementId];
+            if (debugStates[elementId]) forgetReport(debugStates[elementId]);
+            delete debugStates[elementId];
             refreshAfterRunQueue.delete(elementId);
             const editor = editors[elementId];
             if (editor) {
@@ -1186,6 +1480,37 @@ window.versoMonaco = (function () {
                 defineCustomTheme();
                 monaco.editor.setTheme(CUSTOM_THEME);
             }
+        },
+
+        // Shows or hides the breakpoint gutter, and draws the breakpoints, the line a cell is
+        // stopped at and the lines waiting on it. Kept until the editor exists when it does not yet.
+        setDebugState: function (elementId, wanted) {
+            const state = debugStateFor(elementId);
+            wanted = wanted || { enabled: false, breakpoints: [], stoppedLine: 0, callerLines: [] };
+
+            // .NET says back every set of lines it is told. When several are reported in quick
+            // succession, as when lines are typed above a breakpoint, the earlier ones come back
+            // after the marks have moved on, and drawing them would pull a mark off its code. So
+            // while the answer to the latest report is still due, lines that differ from it are
+            // held back, and everything else in the request (the mode, the stopped line) is
+            // taken. If that answer never comes, what was held back is drawn after all, because
+            // it was a change made somewhere else.
+            if (state.reported) {
+                if (sameLines(cleanLines(wanted.breakpoints, Infinity), state.reported)) {
+                    forgetReport(state);
+                } else if (Date.now() - state.reportedAt < reportAnswerWindowMs) {
+                    state.heldBack = wanted;
+                    if (!state.heldBackTimer) {
+                        state.heldBackTimer = setTimeout(function () { drawHeldBack(elementId, state); }, reportAnswerWindowMs);
+                    }
+                    wanted = Object.assign({}, wanted, { breakpoints: state.reported });
+                } else {
+                    forgetReport(state);
+                }
+            }
+
+            state.wanted = wanted;
+            applyDebugState(elementId);
         },
 
         focus: function (elementId) {

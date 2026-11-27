@@ -248,6 +248,38 @@ public sealed class FakeNotebookService : INotebookService
         return Task.CompletedTask;
     }
 
+    // ── Debugging ──────────────────────────────────────────────────────
+    //
+    // The calls below only record what was asked for. A test that wants to see the result sets
+    // DebugState itself and calls RaiseDebugStateChanged, the way a real service reports back.
+
+    public DebugSnapshot DebugState { get; set; } = DebugSnapshot.Off;
+    public event Action? OnDebugStateChanged;
+
+    public List<bool> SetDebuggingCalls { get; } = new();
+    public List<(Guid CellId, IReadOnlyList<int> Lines)> SetBreakpointsCalls { get; } = new();
+    public List<DebugResumeAction> ResumeDebugCalls { get; } = new();
+
+    public Task SetDebuggingAsync(bool enabled)
+    {
+        SetDebuggingCalls.Add(enabled);
+        return Task.CompletedTask;
+    }
+
+    public Task SetBreakpointsAsync(Guid cellId, IReadOnlyList<int> lines)
+    {
+        SetBreakpointsCalls.Add((cellId, lines.ToArray()));
+        return Task.CompletedTask;
+    }
+
+    public Task ResumeDebugAsync(DebugResumeAction action)
+    {
+        ResumeDebugCalls.Add(action);
+        return Task.CompletedTask;
+    }
+
+    public void RaiseDebugStateChanged() => OnDebugStateChanged?.Invoke();
+
     // ── Toolbar actions ────────────────────────────────────────────────
 
     public IReadOnlyList<ToolbarActionInfo> GetToolbarActions(ToolbarPlacement placement)

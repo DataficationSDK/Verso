@@ -145,7 +145,12 @@ internal sealed class PythonHostSession : IAsyncDisposable
         await StartProcessAsync(executable, directory, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+    /// <summary>
+    /// Runs a cell. When <paramref name="debug"/> is given, the cell stops at the breakpoints it
+    /// reports and waits there for it to say how to carry on.
+    /// </summary>
+    public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(
+        string code, IExecutionContext context, IDebugSession? debug = null)
     {
         ThrowIfDisposed();
 
@@ -196,7 +201,22 @@ internal sealed class PythonHostSession : IAsyncDisposable
             // anyway would open channels nothing ever mounts, and the queue behind each of them
             // would fill and then fail while a file was being baked with no browser in sight.
             [HostProtocol.LiveWidgetsField] = JsonValue.Create(context.OutputChannels is not null),
+
+            // Named on every run, debugged or not, so a function this cell defines can later be
+            // stopped in and traced back to it.
+            [HostProtocol.CellField] = context.CellId.ToString(),
         };
+
+        lock (_debugCells) _debugCells.Add(context.CellId);
+        if (debug is not null)
+        {
+            request[HostProtocol.DebugField] = new JsonObject
+            {
+                [HostProtocol.BreakpointsField] = BuildBreakpoints(debug),
+            };
+        }
+
+        void OnBreakpointsChanged() => _ = SendBreakpointsAsync(connection, debug!);
 
         var events = Channel.CreateUnbounded<JsonObject>(
             new UnboundedChannelOptions { SingleReader = true });
@@ -222,6 +242,13 @@ internal sealed class PythonHostSession : IAsyncDisposable
         _executionAttached = true;
         connection.EventReceived += OnEvent;
 
+        // Not disposed: the consumer below can outlive this method when the process dies under
+        // it, and it reads this to learn that the run it belonged to is over.
+        var runEnded = new CancellationTokenSource();
+        var debugRun = debug is null ? null : new DebugRun(debug, connection, runEnded.Token);
+        if (debug is not null)
+            debug.BreakpointsChanged += OnBreakpointsChanged;
+
         // Editor requests are answered as empty while this is set: they read the same namespace
         // the cell is changing, and an answer that waited out a long cell would arrive against a
         // cursor the user has left.
@@ -232,7 +259,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
             // Not cancelled through the token: interrupt escalation below decides when to give up
             // on a reply, and a cancelled registration would lose the result the host still sends.
             var reply = connection.SendRequestAsync(request, CancellationToken.None);
-            var consumer = ConsumeEventsAsync(events.Reader, context, outputs);
+            var consumer = ConsumeEventsAsync(events.Reader, context, outputs, debugRun);
 
             var completedNormally = await AwaitReplyAsync(reply, process, context, outputs).ConfigureAwait(false);
 
@@ -273,11 +300,167 @@ internal sealed class PythonHostSession : IAsyncDisposable
         finally
         {
             _executing = false;
+            if (debug is not null)
+                debug.BreakpointsChanged -= OnBreakpointsChanged;
+
+            // Ends a wait at a stop that nothing else will: when the process died with its cell
+            // stopped, the cell was not cancelled and no answer is coming.
+            runEnded.Cancel();
             connection.EventReceived -= OnEvent;
             _executionAttached = false;
         }
 
         return outputs;
+    }
+
+    // --- debugging ---
+
+    /// <summary>
+    /// One debugged run: the conversation it reports stops to, the process it is running in, and
+    /// a token cancelled when the run is over however it ended. Held by the run rather than by
+    /// the session, so that what is left of a run whose process died cannot answer into the
+    /// process that replaced it.
+    /// </summary>
+    private sealed record DebugRun(IDebugSession Session, PythonHostConnection Connection, CancellationToken Ended);
+
+    // Every cell this session has run. A breakpoint can be hit in any of them, in a function
+    // one defined and another called, so each run is told about the breakpoints of all of them.
+    private readonly HashSet<Guid> _debugCells = new();
+
+    private JsonObject BuildBreakpoints(IDebugSession debug)
+    {
+        Guid[] cells;
+        lock (_debugCells) cells = _debugCells.ToArray();
+
+        var breakpoints = new JsonObject();
+        foreach (var cell in cells)
+        {
+            var lines = debug.GetBreakpoints(cell);
+            if (lines.Count == 0) continue;
+
+            var array = new JsonArray();
+            foreach (var line in lines)
+                array.Add(JsonValue.Create(line));
+            breakpoints[cell.ToString()] = array;
+        }
+        return breakpoints;
+    }
+
+    private async Task SendBreakpointsAsync(PythonHostConnection connection, IDebugSession debug)
+    {
+        var message = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.DebugBreakpoints,
+            [HostProtocol.BreakpointsField] = BuildBreakpoints(debug),
+        };
+
+        try { await connection.SendAsync(message, CancellationToken.None).ConfigureAwait(false); }
+        catch { /* the process is gone; the pending execute reports it */ }
+    }
+
+    /// <summary>
+    /// The cell has stopped and is waiting. Reports where to the debugging conversation, waits
+    /// for the answer, and passes it on.
+    /// </summary>
+    private async Task AnswerStopAsync(JsonObject message, IExecutionContext context, DebugRun? run)
+    {
+        var action = DebugResumeAction.Continue;
+
+        if (run is not null)
+        {
+            if (run.Ended.IsCancellationRequested) return;
+
+            if (ReadStop(message) is { } stop)
+            {
+                // The wait ends with the run as well as with a cancel. A process that dies while
+                // its cell is stopped leaves nobody to carry on, and a wait left behind would go
+                // on holding the notebook's one stop, so that the next cell to reach a
+                // breakpoint could never report it.
+                using var waiting = CancellationTokenSource.CreateLinkedTokenSource(
+                    context.CancellationToken, run.Ended);
+                try
+                {
+                    action = await run.Session.StopAsync(stop, waiting.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (waiting.IsCancellationRequested)
+                {
+                    // Cancelled, in which case the interrupt that goes with a cancel is what ends
+                    // the wait on the other side and telling it to carry on as well would let the
+                    // cell run a little further first; or over, in which case there is no other
+                    // side left to tell.
+                    return;
+                }
+                catch
+                {
+                    // Nothing to ask. The cell must not be left waiting for an answer that will
+                    // never come, so it carries on.
+                }
+            }
+
+            if (run.Ended.IsCancellationRequested) return;
+        }
+
+        // A stop from a run that was not being debugged has no conversation to go to, and is
+        // simply told to carry on.
+        var connection = run?.Connection ?? _process?.Connection;
+        if (connection is null) return;
+
+        var reply = new JsonObject
+        {
+            [HostProtocol.TypeField] = HostProtocol.DebugResume,
+            [HostProtocol.ActionField] = action switch
+            {
+                DebugResumeAction.StepOver => "step_over",
+                DebugResumeAction.StepInto => "step_into",
+                DebugResumeAction.StepOut => "step_out",
+                _ => "continue",
+            },
+        };
+
+        try { await connection.SendAsync(reply, CancellationToken.None).ConfigureAwait(false); }
+        catch { /* the process is gone; the pending execute reports it */ }
+    }
+
+    /// <summary>Reads a <c>debug_stopped</c> event, or null when it names no frame.</summary>
+    internal static DebugStop? ReadStop(JsonObject message)
+    {
+        if (message[HostProtocol.FramesField] is not JsonArray reported)
+            return null;
+
+        var frames = new List<DebugFrame>();
+        foreach (var node in reported)
+        {
+            if (node is not JsonObject frame) continue;
+
+            var variables = new List<DebugVariable>();
+            if (frame[HostProtocol.VariablesField] is JsonArray entries)
+            {
+                foreach (var entry in entries)
+                {
+                    if (entry is not JsonObject variable) continue;
+                    if (HostProtocol.TryGetString(variable, HostProtocol.NameField) is not { Length: > 0 } name) continue;
+
+                    variables.Add(new DebugVariable(
+                        name,
+                        HostProtocol.TryGetString(variable, HostProtocol.TypeField) ?? "",
+                        HostProtocol.TryGetString(variable, HostProtocol.ValueField) ?? ""));
+                }
+            }
+
+            frames.Add(new DebugFrame(
+                HostProtocol.TryGetString(frame, HostProtocol.NameField) ?? "",
+                Guid.TryParse(HostProtocol.TryGetString(frame, HostProtocol.CellField), out var cell) ? cell : null,
+                HostProtocol.TryGetInt(frame, HostProtocol.LineField) ?? 0,
+                variables));
+        }
+
+        if (frames.Count == 0)
+            return null;
+
+        var reason = HostProtocol.TryGetString(message, HostProtocol.ReasonField) == "breakpoint"
+            ? DebugStopReason.Breakpoint
+            : DebugStopReason.Step;
+        return new DebugStop(reason, frames);
     }
 
     // --- package management ---
@@ -952,7 +1135,7 @@ internal sealed class PythonHostSession : IAsyncDisposable
     }
 
     private async Task ConsumeEventsAsync(
-        ChannelReader<JsonObject> reader, IExecutionContext context, List<CellOutput> outputs)
+        ChannelReader<JsonObject> reader, IExecutionContext context, List<CellOutput> outputs, DebugRun? debugRun)
     {
         // Events are handled one at a time and in arrival order, so interleaved stdout, stderr, and
         // display output reaches the notebook in the order the cell produced it.
@@ -960,13 +1143,14 @@ internal sealed class PythonHostSession : IAsyncDisposable
         {
             while (reader.TryRead(out var message))
             {
-                try { await HandleEventAsync(message, context, outputs).ConfigureAwait(false); }
+                try { await HandleEventAsync(message, context, outputs, debugRun).ConfigureAwait(false); }
                 catch { /* one malformed event must not abandon the rest of the cell's output */ }
             }
         }
     }
 
-    private async Task HandleEventAsync(JsonObject message, IExecutionContext context, List<CellOutput> outputs)
+    private async Task HandleEventAsync(
+        JsonObject message, IExecutionContext context, List<CellOutput> outputs, DebugRun? debugRun)
     {
         var messageType = HostProtocol.GetMessageType(message);
 
@@ -1022,6 +1206,12 @@ internal sealed class PythonHostSession : IAsyncDisposable
             case HostProtocol.InputRequest:
             {
                 await AnswerInputAsync(message, context).ConfigureAwait(false);
+                return;
+            }
+
+            case HostProtocol.DebugStopped:
+            {
+                await AnswerStopAsync(message, context, debugRun).ConfigureAwait(false);
                 return;
             }
         }

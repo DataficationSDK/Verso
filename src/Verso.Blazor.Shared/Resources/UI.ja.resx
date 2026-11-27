@@ -388,6 +388,99 @@
   <data name="Consent_WarningPackage" xml:space="preserve">
     <value>パッケージはお使いのマシンでコードを実行します。信頼できるパッケージだけをインストールしてください。</value>
   </data>
+  <data name="Debug_Breakpoints" xml:space="preserve">
+    <value>ブレークポイント</value>
+  </data>
+  <data name="Debug_Breakpoints_Empty" xml:space="preserve">
+    <value>ブレークポイントはまだありません。</value>
+  </data>
+  <data name="Debug_Breakpoints_Remove" xml:space="preserve">
+    <value>ブレークポイントを削除</value>
+  </data>
+  <data name="Debug_Breakpoints_RemoveAll" xml:space="preserve">
+    <value>すべて削除</value>
+  </data>
+  <data name="Debug_CallStack" xml:space="preserve">
+    <value>コール スタック</value>
+  </data>
+  <data name="Debug_Cell" xml:space="preserve">
+    <value>セル {0}</value>
+  </data>
+  <data name="Debug_Continue" xml:space="preserve">
+    <value>続行</value>
+  </data>
+  <data name="Debug_Continue_Description" xml:space="preserve">
+    <value>次のブレークポイントまで実行します。</value>
+  </data>
+  <data name="Debug_Controls" xml:space="preserve">
+    <value>デバッグの操作</value>
+  </data>
+  <data name="Debug_Frame_Unnamed" xml:space="preserve">
+    <value>コード</value>
+  </data>
+  <data name="Debug_Hint_SetBreakpoint" xml:space="preserve">
+    <value>行番号の横をクリックしてブレークポイントを設定し、セルを実行します。</value>
+  </data>
+  <data name="Debug_Line" xml:space="preserve">
+    <value>{0} 行目</value>
+  </data>
+  <data name="Debug_Location_CellLine" xml:space="preserve">
+    <value>セル {0}、{1} 行目</value>
+  </data>
+  <data name="Debug_Off_Body" xml:space="preserve">
+    <value>デバッグをオンにすると、実行中のセルを指定した行で停止し、変数を確認しながら 1 行ずつ実行できます。</value>
+  </data>
+  <data name="Debug_Off_Languages" xml:space="preserve">
+    <value>{0} で書かれたセルで使えます。</value>
+  </data>
+  <data name="Debug_Off_Title" xml:space="preserve">
+    <value>デバッグはオフです</value>
+  </data>
+  <data name="Debug_On" xml:space="preserve">
+    <value>デバッグはオンです。</value>
+  </data>
+  <data name="Debug_Status_AfterStep" xml:space="preserve">
+    <value>ステップ実行後に停止</value>
+  </data>
+  <data name="Debug_Status_AtBreakpoint" xml:space="preserve">
+    <value>ブレークポイントで停止</value>
+  </data>
+  <data name="Debug_Status_Waiting" xml:space="preserve">
+    <value>ブレークポイントを待機中</value>
+  </data>
+  <data name="Debug_StepInto" xml:space="preserve">
+    <value>ステップ イン</value>
+  </data>
+  <data name="Debug_StepInto_Description" xml:space="preserve">
+    <value>この行が呼び出す関数の中に入ります。</value>
+  </data>
+  <data name="Debug_StepOut" xml:space="preserve">
+    <value>ステップ アウト</value>
+  </data>
+  <data name="Debug_StepOut_Description" xml:space="preserve">
+    <value>この関数の終わりまで実行します。</value>
+  </data>
+  <data name="Debug_StepOver" xml:space="preserve">
+    <value>ステップ オーバー</value>
+  </data>
+  <data name="Debug_StepOver_Description" xml:space="preserve">
+    <value>呼び出し先も含めて、この行を実行します。</value>
+  </data>
+  <data name="Debug_Stop_Description" xml:space="preserve">
+    <value>セルをこの位置で終了します。</value>
+  </data>
+  <data name="Debug_TurnOff" xml:space="preserve">
+    <value>デバッグをオフにする</value>
+  </data>
+  <data name="Debug_TurnOn" xml:space="preserve">
+    <value>デバッグをオンにする</value>
+  </data>
+  <data name="Debug_Variables" xml:space="preserve">
+    <value>変数</value>
+  </data>
+  <data name="Debug_Variables_Empty" xml:space="preserve">
+    <value>この呼び出しには表示できる変数がありません。</value>
+  </data>
   <data name="DiffPicker_Compare" xml:space="preserve">
     <value>比較</value>
   </data>
@@ -708,6 +801,12 @@
   </data>
   <data name="Panel_Compare_Description" xml:space="preserve">
     <value>保存したベースラインとこのノートブックを比べます。</value>
+  </data>
+  <data name="Panel_Debug" xml:space="preserve">
+    <value>デバッグ</value>
+  </data>
+  <data name="Panel_Debug_Description" xml:space="preserve">
+    <value>セルを指定した行で停止し、1 行ずつ実行します。</value>
   </data>
   <data name="Panel_Extensions" xml:space="preserve">
     <value>拡張機能</value>

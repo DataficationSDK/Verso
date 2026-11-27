@@ -120,6 +120,10 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     /// host's <c>kernel/faulted</c> notification).</summary>
     public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
 
+    /// <summary>Raised when the host reports that debugging was turned on or off, a breakpoint
+    /// changed, or a cell stopped or carried on.</summary>
+    public event Action? OnDebugStateChanged;
+
     /// <summary>Raised when the extension asks the UI to open the notebook diff view
     /// (command palette or editor-title button), via the <c>diff/requested</c> notification.</summary>
     public event Action<string?>? OnDiffRequested;
@@ -647,6 +651,171 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     public async Task RestartKernelAsync()
     {
         await _bridge.RequestVoidAsync("kernel/restart", null);
+    }
+
+    // ── Debugging ───────────────────────────────────────────────────────
+
+    // What the host last said. Never changed on the strength of a request's own answer: an answer
+    // can be older than a notification that reached here before it, and taking it would undo
+    // the newer one. The notifications arrive in the order the host read its state.
+    private DebugSnapshot _debug = DebugSnapshot.Off;
+
+    // Set while debugging is being put back after a restart, when the host is told one thing at
+    // a time and each of its reports along the way is only part of the picture.
+    private bool _restoringDebug;
+    private DebugSnapshot? _debugWhileRestoring;
+
+    public DebugSnapshot DebugState => _debug;
+
+    public Task SetDebuggingAsync(bool enabled)
+        => _bridge.RequestVoidAsync("debug/setEnabled", new { enabled });
+
+    public Task SetBreakpointsAsync(Guid cellId, IReadOnlyList<int> lines)
+        => _bridge.RequestVoidAsync("debug/setBreakpoints", new { cellId = cellId.ToString(), lines });
+
+    public Task ResumeDebugAsync(DebugResumeAction action)
+        => _bridge.RequestVoidAsync("debug/resume", new { action = DebugActionName(action) });
+
+    private static string DebugActionName(DebugResumeAction action) => action switch
+    {
+        DebugResumeAction.StepOver => "stepOver",
+        DebugResumeAction.StepInto => "stepInto",
+        DebugResumeAction.StepOut => "stepOut",
+        _ => "continue",
+    };
+
+    private void HandleDebugStateChanged(string? paramsJson)
+    {
+        if (string.IsNullOrWhiteSpace(paramsJson)) return;
+
+        DebugStateResponse? state;
+        try
+        {
+            state = JsonSerializer.Deserialize<DebugStateResponse>(
+                paramsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (state is null) return;
+
+        var snapshot = MapDebugState(state);
+        if (_restoringDebug)
+        {
+            _debugWhileRestoring = snapshot;
+            return;
+        }
+
+        SetDebugState(snapshot);
+    }
+
+    private void SetDebugState(DebugSnapshot snapshot)
+    {
+        // The host describes its whole state every time, so a breakpoint set while a cell is
+        // stopped brings the same stop back as a new object. Keeping the one already held lets
+        // whatever is following that stop, such as the frame the reader picked in the call
+        // stack, see that the cell has not moved.
+        if (snapshot.Stop is { } reported && _debug.Stop is { } held && IsSameStop(held, reported))
+            snapshot = snapshot with { Stop = held };
+
+        _debug = snapshot;
+        OnDebugStateChanged?.Invoke();
+    }
+
+    private static bool IsSameStop(DebugStop a, DebugStop b)
+    {
+        if (a.Reason != b.Reason || a.Frames.Count != b.Frames.Count)
+            return false;
+
+        for (var i = 0; i < a.Frames.Count; i++)
+        {
+            var (x, y) = (a.Frames[i], b.Frames[i]);
+            if (x.Name != y.Name || x.CellId != y.CellId || x.Line != y.Line
+                || !x.Variables.SequenceEqual(y.Variables))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Forgets a stop the host can no longer be holding, because the process that was holding it
+    /// is going away or has gone. The mode and the breakpoints stay as they were, so they can be
+    /// put back once there is a host to give them to.
+    /// </summary>
+    private void DropDebugStop()
+    {
+        if (_debug.Stop is not null)
+            SetDebugState(_debug with { Stop = null });
+    }
+
+    /// <summary>
+    /// Gives a freshly started host the mode and breakpoints the last one had. Restarting the
+    /// kernel replaces the host process, and debugging state lives in that process, so without
+    /// this a restart would quietly turn debugging off and lose every breakpoint.
+    /// </summary>
+    private async Task RestoreDebugStateAsync()
+    {
+        var wanted = _debug;
+        if (!wanted.Enabled && wanted.Breakpoints.Count == 0)
+            return;
+
+        var cellIds = _cells.Select(c => c.Id).ToHashSet();
+        _restoringDebug = true;
+        _debugWhileRestoring = null;
+        try
+        {
+            foreach (var (cellId, lines) in wanted.Breakpoints)
+            {
+                // A cell the reopened notebook no longer has keeps nothing.
+                if (cellIds.Contains(cellId))
+                    await SetBreakpointsAsync(cellId, lines);
+            }
+
+            if (wanted.Enabled)
+                await SetDebuggingAsync(true);
+        }
+        finally
+        {
+            _restoringDebug = false;
+        }
+
+        // Whatever the host ended up with is the truth, including when a request above failed.
+        SetDebugState(_debugWhileRestoring ?? DebugSnapshot.Off);
+        _debugWhileRestoring = null;
+    }
+
+    private static DebugSnapshot MapDebugState(DebugStateResponse state)
+    {
+        var breakpoints = new Dictionary<Guid, IReadOnlyList<int>>();
+        foreach (var entry in state.Breakpoints ?? new List<DebugCellBreakpointsItem>())
+        {
+            if (Guid.TryParse(entry.CellId, out var cellId) && entry.Lines is { Count: > 0 })
+                breakpoints[cellId] = entry.Lines.OrderBy(line => line).ToArray();
+        }
+
+        DebugStop? stop = null;
+        if (state.Stop is { Frames.Count: > 0 } reported)
+        {
+            stop = new DebugStop(
+                string.Equals(reported.Reason, "breakpoint", StringComparison.OrdinalIgnoreCase)
+                    ? DebugStopReason.Breakpoint
+                    : DebugStopReason.Step,
+                reported.Frames.Select(frame => new DebugFrame(
+                    frame.Name ?? "",
+                    Guid.TryParse(frame.CellId, out var frameCellId) ? frameCellId : null,
+                    frame.Line,
+                    (frame.Variables ?? new List<DebugVariableItem>())
+                        .Select(v => new DebugVariable(v.Name ?? "", v.TypeName ?? "", v.Value ?? ""))
+                        .ToArray())).ToArray());
+        }
+
+        return new DebugSnapshot(state.Enabled, breakpoints, stop);
     }
 
     // ── Toolbar actions ─────────────────────────────────────────────────
@@ -1316,7 +1485,8 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         var panels = new List<NotebookPanelInfo>(
             HostPanels.Available(
                 ActiveLayoutSupportsPropertiesPanel,
-                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded)));
+                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded),
+                canDebug: HostPanels.CanDebug(_registeredLanguages)));
 
         try
         {
@@ -1467,6 +1637,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
             case "panel/updated":
                 HandlePanelUpdated(paramsJson);
                 break;
+            case "debug/stateChanged":
+                HandleDebugStateChanged(paramsJson);
+                break;
             case "layout/activeChanged":
                 HandleActiveLayoutChanged(paramsJson);
                 break;
@@ -1507,6 +1680,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private void HandleHostExited(string? paramsJson)
     {
         var detail = TryReadStringProperty(paramsJson, "detail");
+
+        // The cell that was stopped went with the process.
+        DropDebugStop();
         OnKernelHealthChanged?.Invoke(new KernelHealthChangedEventArgs(
             KernelHealth.Disconnected,
             detail ?? UI.Kernel_HostExited));
@@ -1638,6 +1814,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
     private void HandleKernelRestarting(string? paramsJson)
     {
         var kernelId = TryReadStringProperty(paramsJson, "kernelId");
+
+        // The host is about to be replaced, and a cell stopped in it will never carry on.
+        DropDebugStop();
         OnKernelRestarting?.Invoke(kernelId);
     }
 
@@ -1653,6 +1832,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         try { await RefreshExtensionDataAsync(); } catch { /* same */ }
         try { await RefreshThemeDataAsync(); } catch { /* same */ }
         try { await RefreshVariablesAsync(); } catch { /* same */ }
+        try { await RestoreDebugStateAsync(); } catch { /* same */ }
 
         OnNotebookChanged?.Invoke();
         OnVariablesChanged?.Invoke();
@@ -1973,6 +2153,9 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         _cells = result.Cells?.Select(MapCellFromDto).ToList() ?? new();
         _isLoaded = true;
 
+        // A notebook the host has only just opened has debugging off and no breakpoints.
+        _debug = DebugSnapshot.Off;
+
         // Drop any prior notebook's load failures so they don't flag rows in this one; the new
         // notebook's required-extension load reports its own via extension/unavailable.
         _unavailableExtensionReasons.Clear();
@@ -2029,7 +2212,7 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
 
         // Languages
         var langsResult = await _bridge.RequestAsync<LanguagesResponse>("notebook/getLanguages", null);
-        _registeredLanguages = langsResult.Languages?.Select(l => new KernelLanguageInfo(l.Id, l.DisplayName, l.SupportsCancellation)).ToList() ?? new();
+        _registeredLanguages = langsResult.Languages?.Select(l => new KernelLanguageInfo(l.Id, l.DisplayName, l.SupportsCancellation, l.SupportsDebugging)).ToList() ?? new();
 
         // Layouts
         var layoutsResult = await _bridge.RequestAsync<LayoutsResponse>("layout/getLayouts", null);
@@ -2542,6 +2725,41 @@ public sealed class RemoteNotebookService : IIsolatedLayoutHost, IAsyncDisposabl
         public string Id { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public bool SupportsCancellation { get; set; } = true;
+        public bool SupportsDebugging { get; set; }
+    }
+
+    private sealed class DebugStateResponse
+    {
+        public bool Enabled { get; set; }
+        public List<DebugCellBreakpointsItem>? Breakpoints { get; set; }
+        public DebugStopItem? Stop { get; set; }
+    }
+
+    private sealed class DebugCellBreakpointsItem
+    {
+        public string CellId { get; set; } = "";
+        public List<int>? Lines { get; set; }
+    }
+
+    private sealed class DebugStopItem
+    {
+        public string? Reason { get; set; }
+        public List<DebugFrameItem>? Frames { get; set; }
+    }
+
+    private sealed class DebugFrameItem
+    {
+        public string? Name { get; set; }
+        public string? CellId { get; set; }
+        public int Line { get; set; }
+        public List<DebugVariableItem>? Variables { get; set; }
+    }
+
+    private sealed class DebugVariableItem
+    {
+        public string? Name { get; set; }
+        public string? TypeName { get; set; }
+        public string? Value { get; set; }
     }
 
     private sealed class LayoutsResponse

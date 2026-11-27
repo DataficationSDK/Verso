@@ -437,6 +437,22 @@ export class BlazorEditorProvider
     bridge.beginRestart();
     bridge.notifyRestarting(kernelId);
 
+    // The snapshot below waits its turn behind whatever cell is running, and a cell stopped
+    // at a breakpoint would keep it waiting for good: from here on the webview's own requests
+    // are held for the new host, so nothing could move that cell on. The restart is about to
+    // end the run anyway, so end it now. The host answers a cancel while a cell is running.
+    try {
+      await oldHost.sendRequest("execution/cancel", {
+        notebookId: bridge.getNotebookId(),
+      });
+    } catch (err) {
+      log.warn(
+        `Could not cancel the running cell before restart: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
+
     let snapshot = "";
     try {
       const saveResult = await oldHost.sendRequest<NotebookSaveResult>(

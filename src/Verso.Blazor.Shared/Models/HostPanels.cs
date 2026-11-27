@@ -23,6 +23,9 @@ public static class HostPanels
     /// <summary>Panel id of the compare panel.</summary>
     public const string Compare = "compare";
 
+    /// <summary>Panel id of the debug panel, which is offered only when some cell could be debugged.</summary>
+    public const string Debug = "debug";
+
     /// <summary>
     /// The built-in panels in display order. Orders leave room between entries so a
     /// panel can be placed among them rather than only after them.
@@ -46,6 +49,8 @@ public static class HostPanels
             Description: UI.Panel_Extensions_Description),
         new("variables",  "", UI.Panel_Variables,  "braces",   null, 300, IsHostPanel: true,
             Description: UI.Panel_Variables_Description),
+        new(Debug,        "", UI.Panel_Debug,      "bug",      null, 350, IsHostPanel: true,
+            Description: UI.Panel_Debug_Description),
         new("settings",   "", UI.Panel_Settings,   "gear",     null, 400, IsHostPanel: true,
             Description: UI.Panel_Settings_Description),
         new(Properties,   "", UI.Panel_Properties, "list",     null, 500, IsHostPanel: true,
@@ -60,12 +65,22 @@ public static class HostPanels
     /// The built-in panels available in the current state. A panel omitted here is the
     /// host-panel equivalent of an extension panel reporting itself unavailable: the
     /// properties panel when the active layout has no cell properties, the view panel
-    /// when there is only one way to view the notebook.
+    /// when there is only one way to view the notebook, the debug panel when no kernel
+    /// in the notebook can pause a running cell.
     /// </summary>
-    public static IEnumerable<NotebookPanelInfo> Available(bool supportsPropertiesPanel, bool hasViewChoices)
+    public static IEnumerable<NotebookPanelInfo> Available(
+        bool supportsPropertiesPanel, bool hasViewChoices, bool canDebug = false)
         => All.Where(p =>
             (supportsPropertiesPanel || p.PanelId != Properties)
-            && (hasViewChoices || p.PanelId != View));
+            && (hasViewChoices || p.PanelId != View)
+            && (canDebug || p.PanelId != Debug));
+
+    /// <summary>
+    /// Whether the debug panel has anything to offer, which it does once any registered
+    /// language's kernel can pause a running cell.
+    /// </summary>
+    public static bool CanDebug(IEnumerable<KernelLanguageInfo> languages)
+        => languages.Any(language => language.SupportsDebugging);
 
     /// <summary>
     /// Whether the view panel has anything to offer. Themes come from the host in the

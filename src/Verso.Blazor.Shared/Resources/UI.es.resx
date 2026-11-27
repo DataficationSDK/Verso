@@ -388,6 +388,99 @@
   <data name="Consent_WarningPackage" xml:space="preserve">
     <value>Los paquetes ejecutan código en su equipo. Instale solo paquetes en los que confíe.</value>
   </data>
+  <data name="Debug_Breakpoints" xml:space="preserve">
+    <value>Puntos de interrupción</value>
+  </data>
+  <data name="Debug_Breakpoints_Empty" xml:space="preserve">
+    <value>Aún no hay puntos de interrupción.</value>
+  </data>
+  <data name="Debug_Breakpoints_Remove" xml:space="preserve">
+    <value>Quitar punto de interrupción</value>
+  </data>
+  <data name="Debug_Breakpoints_RemoveAll" xml:space="preserve">
+    <value>Quitar todos</value>
+  </data>
+  <data name="Debug_CallStack" xml:space="preserve">
+    <value>Pila de llamadas</value>
+  </data>
+  <data name="Debug_Cell" xml:space="preserve">
+    <value>Celda {0}</value>
+  </data>
+  <data name="Debug_Continue" xml:space="preserve">
+    <value>Continuar</value>
+  </data>
+  <data name="Debug_Continue_Description" xml:space="preserve">
+    <value>Sigue hasta el siguiente punto de interrupción.</value>
+  </data>
+  <data name="Debug_Controls" xml:space="preserve">
+    <value>Controles de depuración</value>
+  </data>
+  <data name="Debug_Frame_Unnamed" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="Debug_Hint_SetBreakpoint" xml:space="preserve">
+    <value>Haga clic junto a un número de línea para establecer un punto de interrupción y, después, ejecute la celda.</value>
+  </data>
+  <data name="Debug_Line" xml:space="preserve">
+    <value>Línea {0}</value>
+  </data>
+  <data name="Debug_Location_CellLine" xml:space="preserve">
+    <value>Celda {0}, línea {1}</value>
+  </data>
+  <data name="Debug_Off_Body" xml:space="preserve">
+    <value>Active la depuración para detener una celda en ejecución en la línea que elija, examinar sus variables y recorrerla línea a línea.</value>
+  </data>
+  <data name="Debug_Off_Languages" xml:space="preserve">
+    <value>Funciona en celdas escritas en {0}.</value>
+  </data>
+  <data name="Debug_Off_Title" xml:space="preserve">
+    <value>La depuración está desactivada</value>
+  </data>
+  <data name="Debug_On" xml:space="preserve">
+    <value>La depuración está activada.</value>
+  </data>
+  <data name="Debug_Status_AfterStep" xml:space="preserve">
+    <value>Detenida después de un paso</value>
+  </data>
+  <data name="Debug_Status_AtBreakpoint" xml:space="preserve">
+    <value>Detenida en un punto de interrupción</value>
+  </data>
+  <data name="Debug_Status_Waiting" xml:space="preserve">
+    <value>Esperando un punto de interrupción</value>
+  </data>
+  <data name="Debug_StepInto" xml:space="preserve">
+    <value>Paso a paso por instrucciones</value>
+  </data>
+  <data name="Debug_StepInto_Description" xml:space="preserve">
+    <value>Entra en la función que llama esta línea.</value>
+  </data>
+  <data name="Debug_StepOut" xml:space="preserve">
+    <value>Paso a paso para salir</value>
+  </data>
+  <data name="Debug_StepOut_Description" xml:space="preserve">
+    <value>Ejecuta hasta el final de esta función.</value>
+  </data>
+  <data name="Debug_StepOver" xml:space="preserve">
+    <value>Paso a paso por procedimientos</value>
+  </data>
+  <data name="Debug_StepOver_Description" xml:space="preserve">
+    <value>Ejecuta esta línea, incluido todo lo que llama.</value>
+  </data>
+  <data name="Debug_Stop_Description" xml:space="preserve">
+    <value>Detiene la celda donde está.</value>
+  </data>
+  <data name="Debug_TurnOff" xml:space="preserve">
+    <value>Desactivar la depuración</value>
+  </data>
+  <data name="Debug_TurnOn" xml:space="preserve">
+    <value>Activar la depuración</value>
+  </data>
+  <data name="Debug_Variables" xml:space="preserve">
+    <value>Variables</value>
+  </data>
+  <data name="Debug_Variables_Empty" xml:space="preserve">
+    <value>No hay variables que mostrar para esta llamada.</value>
+  </data>
   <data name="DiffPicker_Compare" xml:space="preserve">
     <value>Comparar</value>
   </data>
@@ -708,6 +801,12 @@
   </data>
   <data name="Panel_Compare_Description" xml:space="preserve">
     <value>Mide este cuaderno respecto a una línea base guardada.</value>
+  </data>
+  <data name="Panel_Debug" xml:space="preserve">
+    <value>Depurar</value>
+  </data>
+  <data name="Panel_Debug_Description" xml:space="preserve">
+    <value>Detiene una celda en una línea y la recorre paso a paso.</value>
   </data>
   <data name="Panel_Extensions" xml:space="preserve">
     <value>Extensiones</value>

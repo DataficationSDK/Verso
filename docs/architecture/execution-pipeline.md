@@ -108,6 +108,8 @@ The kernel's `ExecuteAsync(code, context)` is called. The kernel can:
 - **Request interactive input** during execution via `context.RequestInputAsync(...)`
 - **Return outputs** from the method, which are appended after execution (skipping any already streamed)
 
+When debugging is turned on for the notebook and the kernel implements `IDebuggableKernel`, the pipeline calls `DebugAsync(code, context, session)` instead. The session is the run's view of the notebook's `NotebookDebugger`: the kernel asks it for breakpoints and reports a stop through `StopAsync`, which completes when the user chooses how to carry on. Breakpoints are kept in the cell's own line numbers, and the session speaks in lines of the code the kernel was given, so a magic command above the code does not shift a breakpoint. Only a run the user starts with `Scaffold.ExecuteCellAsync` is debugged. Code run on the notebook's behalf by a layout, a toolbar action or `INotebookOperations` goes to `ExecuteAsync`, since nobody is there to answer a stop.
+
 ### 7. Post-Processing
 
 If the `#!time` magic command was used, a wall-time output (`"Wall time: X.Xms"`) is appended. The method returns `ExecutionResult.Success` with the cell ID, execution count, and elapsed time.

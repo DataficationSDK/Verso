@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Verso.Abstractions;
+using Verso.Debugging;
 using Verso.Contexts;
 using Verso.Execution;
 using Verso.Extensions;
@@ -246,8 +247,11 @@ public sealed class Scaffold : IAsyncDisposable
 
             // The view went with the cell, so there is nothing to tell and nothing left to route to.
             _outputChannels.CloseForCell(cellId, "the cell was deleted");
-            return true;
         }
+
+        // Outside the cell lock: forgetting a breakpoint raises an event a front end answers.
+        Debugger.ForgetCell(cellId);
+        return true;
     }
 
     public void MoveCell(int fromIndex, int toIndex)
@@ -409,6 +413,19 @@ public sealed class Scaffold : IAsyncDisposable
         return string.IsNullOrEmpty(defaultLanguageId) ? null : ResolveKernel(defaultLanguageId);
     }
 
+    /// <summary>
+    /// This notebook's debugging state: whether debugging is on, its breakpoints, and where a
+    /// cell is stopped. Cells run through <see cref="IDebuggableKernel.DebugAsync"/> while it is
+    /// enabled and their kernel supports that.
+    /// </summary>
+    public NotebookDebugger Debugger { get; } = new();
+
+    /// <summary>
+    /// Whether the kernel that would run the given cell can pause it, which is what decides
+    /// whether a front end offers breakpoints on that cell.
+    /// </summary>
+    public bool CanDebugCell(Guid cellId) => ResolveKernelForCell(cellId) is IDebuggableKernel;
+
     public IReadOnlyList<string> RegisteredLanguages
     {
         get
@@ -448,6 +465,9 @@ public sealed class Scaffold : IAsyncDisposable
     /// </summary>
     public async Task RestartKernelAsync(string? kernelId = null)
     {
+        // A cell stopped at a breakpoint is holding its kernel. Let it go before the kernel does.
+        Debugger.Resume(DebugResumeAction.Continue);
+
         if (HostRestartHandler is { } handler)
         {
             // Told before the supervisor takes the process down. The surface holding the views
@@ -722,7 +742,7 @@ public sealed class Scaffold : IAsyncDisposable
         // kernel work may run synchronously enough to starve the dispatcher.
         await Task.Yield();
 
-        var pipeline = BuildPipeline();
+        var pipeline = BuildPipeline(debuggable: true);
         var result = await pipeline.ExecuteAsync(cell, ct).ConfigureAwait(false);
 
         cell.ExecutionCount = result.ExecutionCount;
@@ -986,6 +1006,9 @@ public sealed class Scaffold : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
+        // Nobody is left to answer a stopped cell, so it runs on to its end.
+        Debugger.Enabled = false;
+
         // Stop collecting first: a fault raised from here on has no cell of this notebook's left
         // to be reported against.
         _backgroundFaultRegistration.Dispose();
@@ -1110,7 +1133,12 @@ public sealed class Scaffold : IAsyncDisposable
             .FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
-    private ExecutionPipeline BuildPipeline()
+    /// <param name="debuggable">
+    /// Whether this pipeline runs cells the user started, which are the runs that stop at
+    /// breakpoints. Code run on the notebook's behalf (a layout refreshing a value, a magic
+    /// command importing a file) is never stopped: nothing on screen would say what was waiting.
+    /// </param>
+    private ExecutionPipeline BuildPipeline(bool debuggable = false)
     {
         return new ExecutionPipeline(
             _variables,
@@ -1127,6 +1155,7 @@ public sealed class Scaffold : IAsyncDisposable
             id => OnCellOutputUpdated?.Invoke(id),
             InputRequester,
             _backgroundFaults,
-            _outputChannels);
+            _outputChannels,
+            debuggable ? Debugger : null);
     }
 }

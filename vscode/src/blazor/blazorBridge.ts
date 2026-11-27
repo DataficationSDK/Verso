@@ -38,6 +38,8 @@ export class BlazorBridge implements vscode.Disposable {
     "layout/frameMessage",
     "notebook/cellsChanged",
     "panel/updated",
+    // Debugging was turned on or off, a breakpoint changed, or a cell stopped or carried on.
+    "debug/stateChanged",
     // A live output talking to the view drawing it. Both directions of that conversation are
     // requests except these two, which the host raises on its own behalf. A host notification
     // missing from this array is dropped without a warning anywhere.

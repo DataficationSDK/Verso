@@ -166,6 +166,9 @@
   <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
     <value>ノートブックが必要とする拡張機能</value>
   </data>
+  <data name="Debug_CSharp_CellNotPausable" xml:space="preserve">
+    <value>このセルはデバッグ用に準備できなかったため、ブレークポイントで停止せずに実行されました。</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>Polyglot Notebook の .dib へのエクスポートはサポートされていません。Verso のネイティブ形式を使ってください。</value>
   </data>

@@ -124,6 +124,43 @@ public sealed class ToolbarTests : BunitTestContext
         Assert.IsFalse(cut.Markup.Contains("verso-modal"));
     }
 
+    // A cell held at a breakpoint is still running, and where requests take turns behind a
+    // running cell the restart would wait for as long as the cell stayed stopped.
+    [TestMethod]
+    public void RestartKernel_WhileACellIsStopped_EndsTheCellFirst()
+    {
+        AddRestartAction();
+        var cellId = Guid.NewGuid();
+        _service.DebugState = new DebugSnapshot(
+            true,
+            new Dictionary<Guid, IReadOnlyList<int>>(),
+            new DebugStop(DebugStopReason.Breakpoint, new[]
+            {
+                new DebugFrame("", cellId, 2, Array.Empty<DebugVariable>()),
+            }));
+
+        var cut = RenderToolbar();
+        cut.Find("button[data-verso-tip='Restart Kernel']").Click();
+        cut.Find(".verso-modal-footer .verso-modal-btn--primary").Click();
+
+        Assert.AreEqual(1, _service.CancelledCellIds.Count, "The stopped cell should be ended before the restart is asked for.");
+        CollectionAssert.Contains(_service.ExecutedActionIds, "verso.action.restart-kernel");
+    }
+
+    [TestMethod]
+    public void RestartKernel_WithNothingStopped_CancelsNothing()
+    {
+        AddRestartAction();
+        _service.DebugState = new DebugSnapshot(true, new Dictionary<Guid, IReadOnlyList<int>>(), null);
+
+        var cut = RenderToolbar();
+        cut.Find("button[data-verso-tip='Restart Kernel']").Click();
+        cut.Find(".verso-modal-footer .verso-modal-btn--primary").Click();
+
+        Assert.AreEqual(0, _service.CancelledCellIds.Count);
+        CollectionAssert.Contains(_service.ExecutedActionIds, "verso.action.restart-kernel");
+    }
+
     [TestMethod]
     public void ConfirmationDialog_Cancel_DoesNotExecute()
     {

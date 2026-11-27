@@ -39,6 +39,15 @@ public static class MethodNames
     public const string ExecutionCancel = "execution/cancel";
     public const string CellExecutionState = "cell/executionState";
 
+    // Debugging. The three requests are answered while a cell is running, because a stopped cell
+    // is a running cell and these are what move it on.
+    public const string DebugSetEnabled = "debug/setEnabled";
+    public const string DebugSetBreakpoints = "debug/setBreakpoints";
+    public const string DebugResume = "debug/resume";
+    // Notification (host → client): debugging was turned on or off, a breakpoint changed, or a
+    // cell stopped or carried on. Carries the whole state rather than what changed.
+    public const string DebugStateChanged = "debug/stateChanged";
+
     // Kernel
     public const string KernelRestart = "kernel/restart";
     public const string KernelRestartRequested = "kernel/restartRequested";

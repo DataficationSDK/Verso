@@ -34,10 +34,64 @@ public class HostPanelsTests
     [TestMethod]
     public void Available_WithoutPropertiesSupport_OmitsPropertiesPanel()
     {
-        var available = HostPanels.Available(supportsPropertiesPanel: false, hasViewChoices: true).ToList();
+        var available = HostPanels.Available(supportsPropertiesPanel: false, hasViewChoices: true, canDebug: true).ToList();
 
         Assert.IsFalse(available.Any(p => p.PanelId == HostPanels.Properties));
         Assert.AreEqual(HostPanels.All.Count - 1, available.Count);
+    }
+
+    [TestMethod]
+    public void Available_WithoutDebugging_OmitsDebugPanel()
+    {
+        // A panel whose only control could never take effect would be a promise the notebook
+        // cannot keep, so it is left off the rail until some language can pause a cell.
+        var available = HostPanels.Available(supportsPropertiesPanel: true, hasViewChoices: true, canDebug: false).ToList();
+
+        Assert.IsFalse(available.Any(p => p.PanelId == HostPanels.Debug));
+        Assert.AreEqual(HostPanels.All.Count - 1, available.Count);
+    }
+
+    [TestMethod]
+    public void Available_DebuggingDefaultsToOff()
+    {
+        // Callers written before debugging existed pass two arguments and must not grow a panel.
+        var available = HostPanels.Available(supportsPropertiesPanel: true, hasViewChoices: true).ToList();
+
+        Assert.IsFalse(available.Any(p => p.PanelId == HostPanels.Debug));
+    }
+
+    [TestMethod]
+    public void Available_WithDebugging_OffersDebugPanel()
+    {
+        var available = HostPanels.Available(supportsPropertiesPanel: false, hasViewChoices: false, canDebug: true).ToList();
+
+        Assert.IsTrue(available.Any(p => p.PanelId == HostPanels.Debug));
+    }
+
+    [TestMethod]
+    public void DebugPanel_SitsBetweenVariablesAndSettings()
+    {
+        var debug = HostPanels.Find(HostPanels.Debug)!;
+
+        Assert.AreEqual("bug", debug.IconName);
+        Assert.IsTrue(HostPanels.Find("variables")!.Order < debug.Order);
+        Assert.IsTrue(debug.Order < HostPanels.Find("settings")!.Order);
+    }
+
+    [TestMethod]
+    public void CanDebug_NeedsALanguageThatSupportsIt()
+    {
+        Assert.IsFalse(HostPanels.CanDebug(Array.Empty<KernelLanguageInfo>()));
+        Assert.IsFalse(HostPanels.CanDebug(new[]
+        {
+            new KernelLanguageInfo("fsharp", "F#"),
+            new KernelLanguageInfo("powershell", "PowerShell")
+        }));
+        Assert.IsTrue(HostPanels.CanDebug(new[]
+        {
+            new KernelLanguageInfo("fsharp", "F#"),
+            new KernelLanguageInfo("python", "Python", SupportsDebugging: true)
+        }));
     }
 
     [TestMethod]
@@ -55,11 +109,12 @@ public class HostPanelsTests
     [TestMethod]
     public void Available_WithEverything_IncludesEverything()
     {
-        var available = HostPanels.Available(supportsPropertiesPanel: true, hasViewChoices: true).ToList();
+        var available = HostPanels.Available(supportsPropertiesPanel: true, hasViewChoices: true, canDebug: true).ToList();
 
         Assert.AreEqual(HostPanels.All.Count, available.Count);
         Assert.IsTrue(available.Any(p => p.PanelId == HostPanels.Properties));
         Assert.IsTrue(available.Any(p => p.PanelId == HostPanels.View));
+        Assert.IsTrue(available.Any(p => p.PanelId == HostPanels.Debug));
     }
 
     [TestMethod]

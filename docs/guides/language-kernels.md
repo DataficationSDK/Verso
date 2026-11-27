@@ -191,3 +191,4 @@ Kernels initialize lazily the first time you run a cell in that language. If a k
 - [Cell Types](cell-types.md) and [Markdown Notebooks](markdown-notebooks.md)
 - [HTTP Requests](http-requests.md) and [Database Connectivity](database-connectivity.md)
 - [Notebook Parameters](notebook-parameters.md)
+- [Debugging Cells](debugging-cells.md), for breakpoints and stepping in C# and Python cells

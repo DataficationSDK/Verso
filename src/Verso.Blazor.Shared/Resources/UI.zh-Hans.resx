@@ -388,6 +388,99 @@
   <data name="Consent_WarningPackage" xml:space="preserve">
     <value>包会在你的计算机上运行代码。请只安装你信任的包。</value>
   </data>
+  <data name="Debug_Breakpoints" xml:space="preserve">
+    <value>断点</value>
+  </data>
+  <data name="Debug_Breakpoints_Empty" xml:space="preserve">
+    <value>尚未设置断点。</value>
+  </data>
+  <data name="Debug_Breakpoints_Remove" xml:space="preserve">
+    <value>删除断点</value>
+  </data>
+  <data name="Debug_Breakpoints_RemoveAll" xml:space="preserve">
+    <value>全部删除</value>
+  </data>
+  <data name="Debug_CallStack" xml:space="preserve">
+    <value>调用堆栈</value>
+  </data>
+  <data name="Debug_Cell" xml:space="preserve">
+    <value>单元格 {0}</value>
+  </data>
+  <data name="Debug_Continue" xml:space="preserve">
+    <value>继续</value>
+  </data>
+  <data name="Debug_Continue_Description" xml:space="preserve">
+    <value>继续运行到下一个断点。</value>
+  </data>
+  <data name="Debug_Controls" xml:space="preserve">
+    <value>调试控件</value>
+  </data>
+  <data name="Debug_Frame_Unnamed" xml:space="preserve">
+    <value>代码</value>
+  </data>
+  <data name="Debug_Hint_SetBreakpoint" xml:space="preserve">
+    <value>单击行号旁边以设置断点，然后运行单元格。</value>
+  </data>
+  <data name="Debug_Line" xml:space="preserve">
+    <value>第 {0} 行</value>
+  </data>
+  <data name="Debug_Location_CellLine" xml:space="preserve">
+    <value>单元格 {0}，第 {1} 行</value>
+  </data>
+  <data name="Debug_Off_Body" xml:space="preserve">
+    <value>开启调试后，可以让正在运行的单元格停在选定的行，查看其变量，并逐行执行。</value>
+  </data>
+  <data name="Debug_Off_Languages" xml:space="preserve">
+    <value>适用于用 {0} 编写的单元格。</value>
+  </data>
+  <data name="Debug_Off_Title" xml:space="preserve">
+    <value>调试已关闭</value>
+  </data>
+  <data name="Debug_On" xml:space="preserve">
+    <value>调试已开启。</value>
+  </data>
+  <data name="Debug_Status_AfterStep" xml:space="preserve">
+    <value>单步执行后已停止</value>
+  </data>
+  <data name="Debug_Status_AtBreakpoint" xml:space="preserve">
+    <value>已在断点处停止</value>
+  </data>
+  <data name="Debug_Status_Waiting" xml:space="preserve">
+    <value>正在等待断点</value>
+  </data>
+  <data name="Debug_StepInto" xml:space="preserve">
+    <value>单步进入</value>
+  </data>
+  <data name="Debug_StepInto_Description" xml:space="preserve">
+    <value>进入这一行调用的函数。</value>
+  </data>
+  <data name="Debug_StepOut" xml:space="preserve">
+    <value>单步跳出</value>
+  </data>
+  <data name="Debug_StepOut_Description" xml:space="preserve">
+    <value>运行到此函数结束。</value>
+  </data>
+  <data name="Debug_StepOver" xml:space="preserve">
+    <value>单步跳过</value>
+  </data>
+  <data name="Debug_StepOver_Description" xml:space="preserve">
+    <value>运行这一行，包括它调用的所有内容。</value>
+  </data>
+  <data name="Debug_Stop_Description" xml:space="preserve">
+    <value>让单元格在当前位置结束。</value>
+  </data>
+  <data name="Debug_TurnOff" xml:space="preserve">
+    <value>关闭调试</value>
+  </data>
+  <data name="Debug_TurnOn" xml:space="preserve">
+    <value>开启调试</value>
+  </data>
+  <data name="Debug_Variables" xml:space="preserve">
+    <value>变量</value>
+  </data>
+  <data name="Debug_Variables_Empty" xml:space="preserve">
+    <value>此调用没有可显示的变量。</value>
+  </data>
   <data name="DiffPicker_Compare" xml:space="preserve">
     <value>比较</value>
   </data>
@@ -708,6 +801,12 @@
   </data>
   <data name="Panel_Compare_Description" xml:space="preserve">
     <value>将此笔记本与保存的基线进行比较。</value>
+  </data>
+  <data name="Panel_Debug" xml:space="preserve">
+    <value>调试</value>
+  </data>
+  <data name="Panel_Debug_Description" xml:space="preserve">
+    <value>让单元格停在某一行并逐行执行。</value>
   </data>
   <data name="Panel_Extensions" xml:space="preserve">
     <value>扩展</value>

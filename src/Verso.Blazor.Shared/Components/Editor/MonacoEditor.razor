@@ -27,12 +27,34 @@
     /// </summary>
     [Parameter] public EventCallback<(bool Clipped, int LineCount, int MaxLines)> OnLineLimitChanged { get; set; }
 
+    /// <summary>
+    /// Whether the editor shows a margin beside its line numbers where a click sets or clears a
+    /// breakpoint. While it is off, none of the three parameters below is drawn.
+    /// </summary>
+    [Parameter] public bool DebugGutter { get; set; }
+
+    /// <summary>The lines that carry a breakpoint, counting from 1.</summary>
+    [Parameter] public IReadOnlyList<int> Breakpoints { get; set; } = Array.Empty<int>();
+
+    /// <summary>The line a run is stopped at, which the editor highlights and scrolls to, or null.</summary>
+    [Parameter] public int? StoppedLine { get; set; }
+
+    /// <summary>The lines waiting on a call that led to the stop, which are marked more quietly.</summary>
+    [Parameter] public IReadOnlyList<int> CallerLines { get; set; } = Array.Empty<int>();
+
+    /// <summary>
+    /// Raised with the full set of breakpoint lines when the reader changes it, by clicking in
+    /// the margin or by editing the text so that a breakpoint moves to another line.
+    /// </summary>
+    [Parameter] public EventCallback<IReadOnlyList<int>> OnBreakpointsChanged { get; set; }
+
     private readonly string _elementId = $"monaco-{Guid.NewGuid():N}";
     private DotNetObjectReference<MonacoEditor>? _dotnetRef;
     private bool _initialized;
     private string? _lastSetValue;
     private string? _lastSetLanguage;
     private bool _lastSetDiagnosticsSuspended;
+    private string? _lastSetDebug;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -44,12 +66,14 @@
                 value = Value,
                 language = Language,
                 readOnly = ReadOnly,
-                diagnosticsSuspended = DiagnosticsSuspended
+                diagnosticsSuspended = DiagnosticsSuspended,
+                debug = DebugState()
             }, _dotnetRef);
             _initialized = true;
             _lastSetValue = Value;
             _lastSetLanguage = Language;
             _lastSetDiagnosticsSuspended = DiagnosticsSuspended;
+            _lastSetDebug = DebugSignature();
         }
     }
 
@@ -79,7 +103,29 @@
             _lastSetDiagnosticsSuspended = DiagnosticsSuspended;
             await JS.InvokeVoidAsync("versoMonaco.setDiagnosticsSuspended", _elementId, DiagnosticsSuspended);
         }
+
+        // Guarded for the same reason, and compared by content: the lists are rebuilt whenever
+        // any cell's breakpoints change, and most editors are handed the same lines again.
+        var debug = DebugSignature();
+        if (debug != _lastSetDebug)
+        {
+            _lastSetDebug = debug;
+            await JS.InvokeVoidAsync("versoMonaco.setDebugState", _elementId, DebugState());
+        }
     }
+
+    private object DebugState() => new
+    {
+        enabled = DebugGutter,
+        breakpoints = Breakpoints,
+        stoppedLine = StoppedLine ?? 0,
+        callerLines = CallerLines
+    };
+
+    private string DebugSignature()
+        => DebugGutter
+            ? $"{string.Join(',', Breakpoints)}|{StoppedLine ?? 0}|{string.Join(',', CallerLines)}"
+            : "";
 
     /// <summary>Ask the kernel for fresh diagnostics and replace the editor's markers.</summary>
     public async Task RefreshDiagnosticsAsync()
@@ -129,6 +175,10 @@
     [JSInvokable("OnLineLimitChanged")]
     public Task ReportLineLimit(bool clipped, int lineCount, int maxLines)
         => OnLineLimitChanged.InvokeAsync((clipped, lineCount, maxLines));
+
+    [JSInvokable]
+    public Task OnBreakpointsEdited(int[] lines)
+        => OnBreakpointsChanged.InvokeAsync(lines);
 
     [JSInvokable]
     public async Task OnEditorActionShortcut(string action)

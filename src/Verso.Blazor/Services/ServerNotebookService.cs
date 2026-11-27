@@ -179,7 +179,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
                 return new KernelLanguageInfo(
                     langId,
                     kernel?.DisplayName ?? langId,
-                    LanguageSupportsCancellation(langId));
+                    LanguageSupportsCancellation(langId),
+                    SupportsDebugging: kernel is IDebuggableKernel);
             }).ToList();
         }
     }
@@ -359,6 +360,7 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
     public event Action<IReadOnlyList<UnavailableExtensionInfo>>? OnRequiredExtensionsUnavailable;
     public event Action? OnDirtyStateChanged;
     public event Action<KernelHealthChangedEventArgs>? OnKernelHealthChanged;
+    public event Action? OnDebugStateChanged;
 
     // Declared for interface parity: the server host has no external command surface that
     // requests a diff, so this event is never raised here. The pragma silences the unused
@@ -734,6 +736,63 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         _executionCts?.Dispose();
         _executionCts = new CancellationTokenSource();
         return _executionCts.Token;
+    }
+
+    // ── Debugging ──────────────────────────────────────────────────────
+
+    // Read by every cell on every render, so it is built once per change rather than once per
+    // read. Cleared before the change is announced, and whenever the notebook is replaced. Built
+    // and cleared under one lock, so a snapshot read just before a change cannot be stored just
+    // after the clear that change made and then outlive it.
+    private readonly object _debugSnapshotLock = new();
+    private DebugSnapshot? _debugSnapshot;
+
+    public DebugSnapshot DebugState
+    {
+        get
+        {
+            lock (_debugSnapshotLock)
+            {
+                if (_debugSnapshot is { } cached)
+                    return cached;
+
+                if (_scaffold?.Debugger is not { } debugger)
+                    return DebugSnapshot.Off;
+
+                return _debugSnapshot = new DebugSnapshot(
+                    debugger.Enabled, debugger.GetAllBreakpoints(), debugger.CurrentStop);
+            }
+        }
+    }
+
+    private void ForgetDebugSnapshot()
+    {
+        lock (_debugSnapshotLock) _debugSnapshot = null;
+    }
+
+    public Task SetDebuggingAsync(bool enabled)
+    {
+        if (_scaffold is not null)
+            _scaffold.Debugger.Enabled = enabled;
+        return Task.CompletedTask;
+    }
+
+    public Task SetBreakpointsAsync(Guid cellId, IReadOnlyList<int> lines)
+    {
+        _scaffold?.Debugger.SetBreakpoints(cellId, lines);
+        return Task.CompletedTask;
+    }
+
+    public Task ResumeDebugAsync(DebugResumeAction action)
+    {
+        _scaffold?.Debugger.Resume(action);
+        return Task.CompletedTask;
+    }
+
+    private void HandleDebuggerChanged()
+    {
+        ForgetDebugSnapshot();
+        OnDebugStateChanged?.Invoke();
     }
 
     // ── Toolbar actions ────────────────────────────────────────────────
@@ -1430,7 +1489,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
         var panels = new List<NotebookPanelInfo>(
             HostPanels.Available(
                 ActiveLayoutSupportsPropertiesPanel,
-                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded)));
+                HostPanels.HasViewChoices(AvailableLayouts.Count, AvailableThemes.Count, IsEmbedded),
+                canDebug: HostPanels.CanDebug(RegisteredLanguages)));
 
         if (_scaffold is not null && _extensionHost is not null)
         {
@@ -1638,6 +1698,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.OnKernelRestarting += HandleScaffoldKernelRestarting;
             _scaffold.OnKernelRestarted += HandleScaffoldKernelRestarted;
             _scaffold.OnKernelRestartFailed += HandleScaffoldKernelRestartFailed;
+            _scaffold.Debugger.Changed += HandleDebuggerChanged;
+            ForgetDebugSnapshot();
             _scaffold.InputRequester = RequestInputFromUIAsync;
 
             // Attaching this is what tells kernels that live output is worth producing at all: a
@@ -1666,6 +1728,8 @@ public sealed partial class ServerNotebookService : IIsolatedLayoutHost, IAsyncD
             _scaffold.OnKernelRestarting -= HandleScaffoldKernelRestarting;
             _scaffold.OnKernelRestarted -= HandleScaffoldKernelRestarted;
             _scaffold.OnKernelRestartFailed -= HandleScaffoldKernelRestartFailed;
+            _scaffold.Debugger.Changed -= HandleDebuggerChanged;
+            ForgetDebugSnapshot();
             _scaffold.InputRequester = null;
             _scaffold.OutputChannels.Transport = null;
         }
