@@ -38,8 +38,9 @@ SendLine(JsonRpcMessage.Notification(MethodNames.HostReady, new { version = "1.0
 var requests = Channel.CreateUnbounded<(object id, string method, JsonElement? @params)>();
 
 // Background task: continuously read stdin.
-// Consent and input responses are resolved immediately (they just complete a TCS)
-// to prevent deadlocks when a handler is blocked waiting for user approval/input.
+// The requests a running cell is itself waiting on (an answer to a prompt, a cancel, anything
+// that drives a stopped cell) are answered here, so they cannot queue behind the run they belong
+// to. HostSession.IsAnsweredWhileRunning names them.
 // All other requests are forwarded to the main loop via the channel.
 _ = Task.Run(async () =>
 {
@@ -57,20 +58,10 @@ _ = Task.Run(async () =>
                 if (id is null || method is null)
                     continue;
 
-                if (method == MethodNames.ExtensionConsentResponse ||
-                    method == MethodNames.InputResponse)
+                if (HostSession.IsAnsweredWhileRunning(method))
                 {
-                    // Handle inline — resolves a TCS, no heavy work.
-                    var response = await session.DispatchAsync(id, method, @params);
-                    SendLine(response, stdoutWriter, stdoutLock);
-                    continue;
-                }
-
-                if (method == MethodNames.ExecutionCancel)
-                {
-                    // Handle inline so cancel does not queue behind the running execution
-                    // it is trying to interrupt. The dispatch just signals the session CTS,
-                    // which the kernel observes through IExecutionContext.CancellationToken.
+                    // Handled inline: each of these completes something already pending or
+                    // signals the run, with no heavy work of its own.
                     var response = await session.DispatchAsync(id, method, @params);
                     SendLine(response, stdoutWriter, stdoutLock);
                     continue;
@@ -87,6 +78,10 @@ _ = Task.Run(async () =>
     finally
     {
         requests.Writer.Complete();
+
+        // Standard input has closed, so nobody is left to answer a prompt or move a stopped
+        // cell on. Without this the main loop would stay inside that cell's run for good.
+        session.AbandonRunningCells();
     }
 });
 

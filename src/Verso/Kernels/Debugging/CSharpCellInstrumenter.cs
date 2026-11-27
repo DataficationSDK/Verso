@@ -38,6 +38,7 @@ internal static class CSharpCellInstrumenter
     /// <param name="compilation">The cell compiled as a script submission, earlier cells included.</param>
     /// <param name="code">The cell's text, used to pick its tree out of the compilation.</param>
     /// <param name="captureVariables">Whether stops should report the variables in scope.</param>
+    /// <param name="cancellationToken">Ends the analysis early when the run it is for is cancelled.</param>
     public static Plan? Analyze(
         Compilation compilation, string code, bool captureVariables, CancellationToken cancellationToken)
     {

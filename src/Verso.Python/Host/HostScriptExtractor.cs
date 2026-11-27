@@ -21,6 +21,7 @@ internal static class HostScriptExtractor
         ScriptFileName,
         "_versohost_bind.py",
         "_versohost_comm.py",
+        "_versohost_debug.py",
         "_versohost_display.py",
         "_versohost_intel.py",
         "_versohost_scan.py",

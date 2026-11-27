@@ -71,7 +71,7 @@ public class PanelIconsTests
         {
             "document", "list", "puzzle", "braces", "gear", "search", "layout",
             "compare", "info", "warning", "flag", "check", "clock", "tag",
-            "chart", "table", "folder", "link"
+            "chart", "table", "folder", "bug", "link"
         };
 
         foreach (var name in documented)

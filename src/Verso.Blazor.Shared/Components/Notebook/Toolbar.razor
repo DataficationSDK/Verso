@@ -178,11 +178,19 @@
                     var p = panel;
                     var isActive = ActivePanel == p.Key;
                     var icon = PanelIcons.Resolve(p.IconName, p.IconMarkup);
-                    <button class="verso-toolbar-toggle @(isActive ? "verso-toolbar-toggle--active" : "")"
+                    @* Debugging is a mode that outlives its panel being open, so its toggle says
+                       whether the mode is on, and whether a cell is waiting on the reader. *@
+                    var debug = p.IsHostPanel && p.PanelId == HostPanels.Debug ? Service.DebugState : null;
+                    var debugOn = debug is { Enabled: true };
+                    <button class="verso-toolbar-toggle @(isActive ? "verso-toolbar-toggle--active" : "") @(debugOn ? "verso-toolbar-toggle--on" : "") @(debug is { IsStopped: true } ? "verso-toolbar-toggle--waiting" : "")"
                             @key="p.Key"
                             @onclick="() => OnTogglePanel.InvokeAsync(p.Key)"
                             aria-pressed="@(isActive ? "true" : "false")" aria-label="@p.DisplayName"
-                            data-verso-tip="@p.DisplayName" data-verso-tip-desc="@p.Description">
+                            data-verso-tip="@p.DisplayName" data-verso-tip-desc="@(debugOn ? UI.Debug_On : p.Description)">
+                        @if (debugOn)
+                        {
+                            <span class="verso-toolbar-toggle-dot" aria-hidden="true"></span>
+                        }
                         @if (icon is not null)
                         {
                             @((MarkupString)icon)
@@ -643,10 +651,19 @@
         else if (e.Key == "Escape") CancelPendingAction();
     }
 
+    private const string RestartKernelActionId = "verso.action.restart-kernel";
+
     private async Task ExecuteActionAsync(ToolbarActionInfo action)
     {
         try
         {
+            // A cell held at a breakpoint is still running as far as its kernel is concerned,
+            // and where requests take turns behind a running cell a restart would wait for as
+            // long as the cell stayed stopped. The restart is about to end that cell anyway, so
+            // it is ended first. Cancelling names no cell: it ends whichever one is running.
+            if (action.ActionId == RestartKernelActionId && Service.DebugState.IsStopped)
+                await Service.CancelCellAsync(Guid.Empty);
+
             // Let the parent handle the action when an interceptor is provided
             if (OnInterceptAction is not null && await OnInterceptAction(action.ActionId))
             {

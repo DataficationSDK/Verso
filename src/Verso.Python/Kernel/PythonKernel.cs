@@ -11,7 +11,7 @@ namespace Verso.Python.Kernel;
 /// notebook.
 /// </summary>
 [VersoExtension]
-public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
+public sealed class PythonKernel : ILanguageKernel, IDebuggableKernel, IExtensionSettings
 {
     /// <summary>
     /// Selects the install policy: <c>off</c>, <c>prompt</c>, or <c>auto</c>. Delivered through the
@@ -322,7 +322,18 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
         }
     }
 
-    public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+    public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+        => RunAsync(code, context, debug: null);
+
+    /// <summary>
+    /// Runs a cell that stops at its breakpoints. The interpreter reports each line of cell code
+    /// as it reaches it and the cell pauses itself, so nothing attaches to the process and
+    /// library code runs at full speed.
+    /// </summary>
+    public Task<IReadOnlyList<CellOutput>> DebugAsync(string code, IExecutionContext context, IDebugSession session)
+        => RunAsync(code, context, session ?? throw new ArgumentNullException(nameof(session)));
+
+    private async Task<IReadOnlyList<CellOutput>> RunAsync(string code, IExecutionContext context, IDebugSession? debug)
     {
         ThrowIfDisposed();
         EnsureInitialized();
@@ -333,7 +344,7 @@ public sealed class PythonKernel : ILanguageKernel, IExtensionSettings
         await _executionLock.WaitAsync(context.CancellationToken).ConfigureAwait(false);
         try
         {
-            return await _session!.ExecuteAsync(code, context).ConfigureAwait(false);
+            return await _session!.ExecuteAsync(code, context, debug).ConfigureAwait(false);
         }
         finally
         {

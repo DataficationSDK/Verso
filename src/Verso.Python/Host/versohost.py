@@ -34,6 +34,7 @@ from collections import deque
 # joins sys.path so a file in the notebook's folder cannot stand in for either.
 import _versohost_bind as bind_support
 import _versohost_comm as comm_support
+import _versohost_debug as debug_support
 import _versohost_display as display_support
 import _versohost_intel as intel_support
 import _versohost_scan as scan_support
@@ -158,6 +159,7 @@ class OutputRouter:
     def __init__(self, channel):
         self._channel = channel
         self._lock = threading.Lock()
+        self._flush_lock = threading.Lock()
         self._segments = []
         self._pending = 0
         self._request_id = UNSOLICITED_REQUEST_ID
@@ -193,28 +195,33 @@ class OutputRouter:
             self.flush()
 
     def flush(self):
-        with self._lock:
-            if not self._segments:
-                return
-            segments = self._segments
-            request_id = self._request_id
-            self._segments = []
-            self._pending = 0
-
-        # Emitted outside the lock: a send can block, and user code writing from another
-        # thread must not be held up behind it.
-        for name, text in segments:
-            for piece in _split_stream_text(text):
-                try:
-                    self._channel.write({
-                        "type": "stream",
-                        "req_id": request_id,
-                        "name": name,
-                        "text": piece,
-                    })
-                except (OSError, ProtocolError, ValueError):
-                    # The connection is gone; there is nowhere left to report output.
+        # One flush at a time, from taking the text to having sent it. A caller that found the
+        # buffer already taken would otherwise return while that text was still on its way out,
+        # and whatever it sent next, such as word that the cell has stopped at a breakpoint,
+        # would arrive ahead of output written before it.
+        with self._flush_lock:
+            with self._lock:
+                if not self._segments:
                     return
+                segments = self._segments
+                request_id = self._request_id
+                self._segments = []
+                self._pending = 0
+
+            # Emitted outside the buffer's lock: a send can block, and user code writing from
+            # another thread must not be held up behind it.
+            for name, text in segments:
+                for piece in _split_stream_text(text):
+                    try:
+                        self._channel.write({
+                            "type": "stream",
+                            "req_id": request_id,
+                            "name": name,
+                            "text": piece,
+                        })
+                    except (OSError, ProtocolError, ValueError):
+                        # The connection is gone; there is nowhere left to report output.
+                        return
 
     def write_error(self, name, text, error_name):
         """
@@ -531,6 +538,10 @@ class HostSession:
         self.executing = False
         self.history = deque(maxlen=CELL_HISTORY_LIMIT)
 
+        # Stops a running cell at a line and holds it there. Idle unless a cell is run with
+        # debugging asked for, so an ordinary run pays nothing for it.
+        self.debugger = debug_support.CellDebugger(self._report_stop, self.router.flush)
+
         # Created up front and installed as this thread's loop, so a cell that schedules work
         # without awaiting it (asyncio.ensure_future, get_event_loop) uses the same loop a later
         # cell awaits on. Creating it lazily would strand those tasks on a loop that never runs.
@@ -697,6 +708,8 @@ class HostSession:
         filename = cell_filename(request_id)
         register_source(filename, source)
 
+        debug = message.get("debug")
+
         self.executing = True
         try:
             try:
@@ -705,11 +718,24 @@ class HostSession:
                 status = "error"
                 error = syntax_error_payload(exc)
             else:
+                # Recorded for every run, debugged or not: a function this cell defines can be
+                # stopped in later, from a cell that is being debugged, and the stop has to say
+                # which cell the function's code belongs to.
+                self.debugger.note_run(filename, message.get("cell"), (statements, expression))
+
                 try:
-                    if statements is not None:
-                        self._run(statements)
+                    if isinstance(debug, dict):
+                        self.debugger.begin(debug.get("breakpoints"))
+                    try:
+                        if statements is not None:
+                            self._run(statements)
+                        if expression is not None:
+                            value = self._run(expression)
+                    finally:
+                        # Before the result is rendered: turning a value into something to
+                        # show runs code of the value's own, and none of that is the cell's.
+                        self.debugger.end()
                     if expression is not None:
-                        value = self._run(expression)
                         if not suppresses_result(source):
                             result = display_support.render_value(value)
                 except KeyboardInterrupt:
@@ -758,6 +784,14 @@ class HostSession:
             "error": error,
             "variables": variables,
             "oversized": oversized,
+        })
+
+    def _report_stop(self, frames, reason):
+        self.channel.write({
+            "type": "debug_stopped",
+            "req_id": self.request_id,
+            "reason": reason,
+            "frames": frames,
         })
 
     def _run(self, code):
@@ -1088,6 +1122,15 @@ def _run(channel, session):
                     _thread.interrupt_main()
                     continue
 
+                # Here for the same reason: a cell stopped at a breakpoint is waiting on
+                # exactly these, and it is the main thread that is doing the waiting.
+                if kind == "debug_resume":
+                    session.debugger.resume(message.get("action"))
+                    continue
+                if kind == "debug_breakpoints":
+                    session.debugger.set_breakpoints(message.get("breakpoints"))
+                    continue
+
                 # Editor requests go to a thread of their own for the same reason, and not to
                 # this one, because producing an answer takes long enough to hold up the next
                 # interrupt if it ran here.
@@ -1100,6 +1143,7 @@ def _run(channel, session):
             pass
         finally:
             session.input_bridge.abandon()
+            session.debugger.abandon()
             intel_inbox.put(None)  # sentinel: stream ended
             inbox.put(None)
 

@@ -164,6 +164,27 @@ html, body {
     background: color-mix(in srgb, var(--verso-accent-primary, #0078D4) 12%, transparent);
 }
 
+/* A mode that is on behind a closed panel. Debugging stays on when its panel is shut,
+   and the toggle is the only place left to say so. The dot turns to the warning color
+   while a cell is stopped and waiting to be told what to do next. */
+.verso-toolbar-toggle--on {
+    position: relative;
+}
+
+.verso-toolbar-toggle-dot {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--verso-accent-primary, #0078D4);
+}
+
+.verso-toolbar-toggle--waiting .verso-toolbar-toggle-dot {
+    background: var(--verso-status-warning, #D29922);
+}
+
 /* Stands in for a panel that resolved to no icon, so its toggle is still a target
    of the same size rather than a bare word. */
 .verso-toolbar-toggle-initial {
@@ -2349,6 +2370,196 @@ html, body {
     flex-wrap: wrap;
     gap: 6px;
     margin-left: auto;
+}
+
+/* === Debug panel === */
+
+.verso-debug-text {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--verso-fg-default, #1E1E1E);
+}
+
+.verso-debug-text.verso-panel-secondary {
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+.verso-debug-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.verso-debug-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--verso-fg-default, #1E1E1E);
+}
+
+.verso-debug-controls {
+    display: flex;
+    gap: 4px;
+}
+
+/* Square and icon-only, because these are pressed over and over while stepping and a
+   reader finds them by position long before reading them. */
+.verso-debug-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--verso-border-default, #E0E0E0);
+    border-radius: var(--verso-button-border-radius, 6px);
+    background: var(--verso-bg-default, #FFFFFF);
+    color: var(--verso-accent-primary, #0078D4);
+    cursor: pointer;
+}
+
+.verso-debug-control:hover:not(:disabled) {
+    background: var(--verso-toolbar-button-hover, #E0E0E0);
+}
+
+.verso-debug-control:disabled {
+    color: var(--verso-fg-subtle, #A0A0A0);
+    cursor: default;
+    opacity: 0.6;
+}
+
+.verso-debug-control--stop:not(:disabled) {
+    color: var(--verso-status-error, #D13438);
+}
+
+.verso-debug-frame-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11.5px;
+}
+
+.verso-debug-breakpoint-row {
+    align-items: center;
+}
+
+.verso-debug-breakpoint-row .verso-debug-frame-name {
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.verso-debug-breakpoint-dot {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--verso-status-error, #D13438);
+}
+
+.verso-debug-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* A value can be far longer than the panel is wide. The name and type keep to their
+   content and the value takes what is left, wrapping rather than being cut off, since
+   the value is what the reader came to see. */
+.verso-debug-variables td {
+    max-width: none;
+    vertical-align: top;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.verso-debug-variables td:first-child {
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+
+.verso-debug-variables td:nth-child(2) {
+    color: var(--verso-fg-muted, #6E6E6E);
+}
+
+.verso-debug-variables .verso-variable-preview {
+    font-family: var(--verso-font-family-mono, monospace);
+    font-size: 11.5px;
+}
+
+/* === Breakpoints and the stopped line, drawn inside the cell editor ===
+
+   Monaco gives each glyph in the margin an element the height of a line, and these fill
+   it with a mark. The colors are the status colors, so a theme that changes what an
+   error or a warning looks like changes these with it. */
+
+.verso-monaco-editor .verso-debug-breakpoint,
+.verso-monaco-editor .verso-debug-breakpoint-hint,
+.verso-monaco-editor .verso-debug-stopped-glyph,
+.verso-monaco-editor .verso-debug-caller-glyph {
+    cursor: pointer;
+}
+
+.verso-monaco-editor .verso-debug-breakpoint::before,
+.verso-monaco-editor .verso-debug-breakpoint-hint::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: var(--verso-status-error, #D13438);
+}
+
+/* Where a click would put a breakpoint, shown under the pointer so the margin reads as
+   something that can be clicked before anyone has been told it can. */
+.verso-monaco-editor .verso-debug-breakpoint-hint::before {
+    opacity: 0.35;
+}
+
+.verso-monaco-editor .verso-debug-breakpoint.verso-debug-breakpoint-hint::before {
+    opacity: 1;
+}
+
+/* An arrow pointing at the line, drawn over the breakpoint dot when the line has both. */
+.verso-monaco-editor .verso-debug-stopped-glyph::after,
+.verso-monaco-editor .verso-debug-caller-glyph::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    background: var(--verso-status-warning, #D29922);
+    clip-path: polygon(0 28%, 52% 28%, 52% 0, 100% 50%, 52% 100%, 52% 72%, 0 72%);
+    z-index: 1;
+}
+
+.verso-monaco-editor .verso-debug-caller-glyph::after {
+    background: var(--verso-fg-subtle, #A0A0A0);
+}
+
+.verso-monaco-editor .verso-debug-stopped-line {
+    background: color-mix(in srgb, var(--verso-status-warning, #D29922) 28%, transparent);
+}
+
+.verso-monaco-editor .verso-debug-caller-line {
+    background: color-mix(in srgb, var(--verso-fg-subtle, #A0A0A0) 22%, transparent);
+}
+
+/* The cell a run is stopped in, marked on its edge so it can be found while scrolling. */
+.verso-cell--stopped {
+    box-shadow: inset 3px 0 0 var(--verso-status-warning, #D29922);
 }
 
 /* === Extension Panel ===

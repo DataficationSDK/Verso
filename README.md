@@ -86,7 +86,7 @@ Layouts are an extension point like everything else. Custom layout engines plug 
 
 ### Panels
 
-A sidebar of panels sits beside the notebook, each opened from a pill in the toolbar: Metadata, Extensions, Variables, Settings, Properties, View, and Compare. Only the open panel shows its label, so the row stays out of the way.
+A sidebar of panels sits beside the notebook, each opened from a pill in the toolbar: Metadata, Extensions, Variables, Debug, Settings, Properties, View, and Compare. Only the open panel shows its label, so the row stays out of the way.
 
 Panels are an extension point too. An extension implements `INotebookPanel` and contributes its own panel next to the built-ins, with the same vocabulary and the same styling as everything that ships.
 
@@ -101,6 +101,14 @@ Compare the open notebook, unsaved edits included, against the last saved file, 
 ![The full diff view showing one modified cell, with its source change and its old and new output tables side by side](docs/images/comparing-notebooks.png)
 
 Comparison runs from the Compare panel and stays on while you keep working, so changed cells stay marked in the notebook after the panel is closed. See the [comparing notebooks guide](docs/guides/comparing-notebooks.md).
+
+### Cell Debugging
+
+Turn debugging on from the Debug panel and C# and Python cells gain a breakpoint margin. Run a cell and it stops at the line you marked, with the call stack and the variables in scope beside it; from there you continue, step over a line, step into a function defined in another cell, or step out again.
+
+![A C# cell stopped at a breakpoint, with the Debug panel showing the call stack and the variables in scope](docs/guides/debugging-cells.png)
+
+Nothing attaches to the process: each kernel pauses its own cell, so debugging works the same in VS Code and in `verso serve` and needs nothing installed beyond Verso. It is an extension point like the rest, and a kernel from an extension gains all of it by implementing `IDebuggableKernel`. See the [debugging guide](docs/guides/debugging-cells.md).
 
 ### Notebook Parameters
 
@@ -273,7 +281,7 @@ Verso includes a `dotnet new` template, a testing library (`Verso.Testing`), and
 | **Cell Types** | Code, Markdown, HTML, Mermaid, Parameters, SQL, HTTP |
 | **Themes** | Light, Dark, High Contrast (WCAG 2.1 AA) |
 | **Layouts** | Notebook (linear), Dashboard (12-column CSS grid), Presentation (read-only flow) |
-| **Panels** | Metadata, Extensions, Variables, Settings, Properties, View, Compare |
+| **Panels** | Metadata, Extensions, Variables, Debug, Settings, Properties, View, Compare |
 | **Magic Commands** | `#!time`, `#!nuget`, `#!pip`, `#!npm`, `#!python`, `#!extension`, `#!restart`, `#!about`, `#!import`, `#!sql-connect`, `#!sql-disconnect`, `#!sql-schema`, `#!sql-scaffold`, `#!http-set-base`, `#!http-set-header`, `#!http-set-timeout` |
 | **Toolbar Actions** | Run Cell, Run All, Clear Cell Output, Clear Outputs, Restart Kernel, Switch Layout, Switch Theme, Export HTML, Export Markdown, Export CSV, Export JSON, Export Verso |
 | **Data Formatters** | Primitives, Collections (HTML tables), Objects (expandable graph, bounded so framework internals cannot exhaust the output budget), HTML, Images, SVG, Exceptions, DataFrame tables, F# types, SQL result sets |

@@ -46,6 +46,7 @@ public sealed class NotebookSession : IAsyncDisposable
         ExtensionHost.OnExtensionStatusChanged += HandleExtensionStatusChanged;
         Scaffold.OnCellOutputUpdated += HandleCellOutputUpdated;
         Scaffold.OnKernelRestartFailed += HandleKernelRestartFailed;
+        Scaffold.Debugger.Changed += HandleDebuggerChanged;
         Scaffold.InputRequester = RequestInputAsync;
 
         // Attaching this is what tells kernels that live output is worth producing: a session whose
@@ -100,6 +101,23 @@ public sealed class NotebookSession : IAsyncDisposable
             }
             catch { /* the client has gone; the session tears down on its own */ }
         });
+    }
+
+    private readonly object _debugNotifyGate = new();
+
+    /// <summary>
+    /// Raised by the debugger on whichever thread changed it, which for a stop is the cell's own.
+    /// The state is read and written out under one lock so that two changes close together reach
+    /// the client in the order they were read, and the last thing it hears is how things stand.
+    /// </summary>
+    private void HandleDebuggerChanged()
+    {
+        lock (_debugNotifyGate)
+        {
+            SendNotification(
+                Protocol.MethodNames.DebugStateChanged,
+                Handlers.DebugHandler.Snapshot(Scaffold.Debugger));
+        }
     }
 
     private void HandleKernelRestartFailed(string? kernelId, Exception ex)
@@ -269,6 +287,10 @@ public sealed class NotebookSession : IAsyncDisposable
         ExtensionHost.OnExtensionStatusChanged -= HandleExtensionStatusChanged;
         Scaffold.OnCellOutputUpdated -= HandleCellOutputUpdated;
         Scaffold.OnKernelRestartFailed -= HandleKernelRestartFailed;
+
+        // Before the scaffold goes, which turns debugging off on its way out and would otherwise
+        // announce that to a client that has already let go of the session.
+        Scaffold.Debugger.Changed -= HandleDebuggerChanged;
         Scaffold.InputRequester = null;
         Scaffold.Variables.OnVariablesChanged -= HandleVariablesChanged;
 
@@ -334,6 +356,25 @@ public sealed class HostSession : IAsyncDisposable
         _sessions[id] = ns;
         return id;
     }
+
+    /// <summary>
+    /// Whether a request is answered straight away, on the thread that read it, rather than
+    /// waiting its turn behind whatever is already being handled.
+    /// </summary>
+    /// <remarks>
+    /// Requests are otherwise handled one at a time, and running a cell is one of them, so anything
+    /// queued behind a run waits for the cell to finish. These are the requests a running cell is
+    /// itself waiting on: an answer to a consent or input prompt, a cancel, and everything that
+    /// drives a stopped cell. Queue any of them and the cell and the request wait on each other.
+    /// Each one only completes something already pending or changes state that guards itself.
+    /// </remarks>
+    public static bool IsAnsweredWhileRunning(string method) => method is
+        MethodNames.ExtensionConsentResponse
+        or MethodNames.InputResponse
+        or MethodNames.ExecutionCancel
+        or MethodNames.DebugSetEnabled
+        or MethodNames.DebugSetBreakpoints
+        or MethodNames.DebugResume;
 
     public NotebookSession GetSession(string notebookId)
     {
@@ -412,6 +453,9 @@ public sealed class HostSession : IAsyncDisposable
             MethodNames.ExecutionRun => await ExecutionHandler.HandleRunAsync(ns, @params),
             MethodNames.ExecutionRunAll => await ExecutionHandler.HandleRunAllAsync(ns),
             MethodNames.ExecutionCancel => ExecutionHandler.HandleCancel(ns),
+            MethodNames.DebugSetEnabled => DebugHandler.HandleSetEnabled(ns, @params),
+            MethodNames.DebugSetBreakpoints => DebugHandler.HandleSetBreakpoints(ns, @params),
+            MethodNames.DebugResume => DebugHandler.HandleResume(ns, @params),
             MethodNames.KernelRestart => await KernelHandler.HandleRestartAsync(ns, @params),
             MethodNames.KernelGetCompletions => await KernelHandler.HandleGetCompletionsAsync(ns, @params),
             MethodNames.KernelGetDiagnostics => await KernelHandler.HandleGetDiagnosticsAsync(ns, @params),
@@ -502,6 +546,28 @@ public sealed class HostSession : IAsyncDisposable
             Environment.Exit(0);
         });
         return null;
+    }
+
+    /// <summary>
+    /// Ends whatever is still running once the client has gone. A cell stopped at a breakpoint
+    /// waits for an answer only the client can give, so a host left holding one would never
+    /// finish the run it is in and never exit. Debugging is turned off as well as the run being
+    /// cancelled, so that a run still queued behind this one cannot stop in its turn.
+    /// </summary>
+    public void AbandonRunningCells()
+    {
+        foreach (var ns in _sessions.Values)
+        {
+            try
+            {
+                ns.Scaffold.Debugger.Enabled = false;
+                ns.CancelExecution();
+            }
+            catch (Exception)
+            {
+                // One notebook failing to let go must not keep the others waiting.
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()

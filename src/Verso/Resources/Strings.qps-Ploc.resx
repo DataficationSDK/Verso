@@ -166,6 +166,9 @@
   <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
     <value>[!!ñòtébòòk réqùïréd éxtéñšïòñš···!!]</value>
   </data>
+  <data name="Debug_CSharp_CellNotPausable" xml:space="preserve">
+    <value>[!!Thïš çéll çòùld ñòt bé prépàréd fòr débùggïñg, šò ït ràñ wïthòùt štòppïñg àt ïtš bréàkpòïñtš.···!!]</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>[!!Pòlÿglòt Ñòtébòòk .dïb éxpòrt ïš ñòt šùppòrtéd. Ùšé thé Véršò ñàtïvé fòrmàt.···!!]</value>
   </data>

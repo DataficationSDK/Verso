@@ -1,0 +1,316 @@
+@implements IDisposable
+
+@* Where debugging is turned on and off, and where a stopped cell is driven from.
+
+   The switch lives here rather than on the toolbar because the mode needs a sentence of
+   explanation the first time and a set of controls every time after, and a panel has room
+   for both. The toolbar shows only whether it is on. *@
+
+<div class="verso-sidebar-panel verso-debug-panel">
+    <div class="verso-panel-content-root">
+
+        @if (!_state.Enabled)
+        {
+            <div class="verso-panel-section">
+                <div class="verso-panel-section-title">@UI.Debug_Off_Title</div>
+                <p class="verso-debug-text">@UI.Debug_Off_Body</p>
+                @if (DebuggableLanguages is { Length: > 0 } languages)
+                {
+                    <p class="verso-debug-text verso-panel-secondary">@string.Format(UI.Debug_Off_Languages, languages)</p>
+                }
+                <div class="verso-debug-actions">
+                    <button class="verso-panel-action verso-panel-action--primary" @onclick="() => SetEnabledAsync(true)">@UI.Debug_TurnOn</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="verso-panel-section">
+                @* Announced, because a cell stopping is something that happens to the reader
+                   rather than something they did, and it may happen off screen. *@
+                <div class="verso-debug-status" role="status" aria-live="polite">
+                    @if (_state.Stop is { } stopped)
+                    {
+                        <span class="verso-panel-chip verso-panel-chip--warning">@(stopped.Reason == DebugStopReason.Breakpoint ? UI.Debug_Status_AtBreakpoint : UI.Debug_Status_AfterStep)</span>
+                        <span class="verso-debug-status-where">@Describe(stopped.Frames[0])</span>
+                    }
+                    else
+                    {
+                        <span class="verso-panel-chip">@UI.Debug_Status_Waiting</span>
+                    }
+                </div>
+
+                <div class="verso-debug-controls" role="toolbar" aria-label="@UI.Debug_Controls">
+                    <button class="verso-debug-control" disabled="@(!_state.IsStopped)"
+                            @onclick="() => ResumeAsync(DebugResumeAction.Continue)"
+                            aria-label="@UI.Debug_Continue"
+                            data-verso-tip="@UI.Debug_Continue" data-verso-tip-desc="@UI.Debug_Continue_Description">
+                        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 2.5h1.6v11H3zM6.4 2.6 13.4 8l-7 5.4z"/></svg>
+                    </button>
+                    <button class="verso-debug-control" disabled="@(!_state.IsStopped)"
+                            @onclick="() => ResumeAsync(DebugResumeAction.StepOver)"
+                            aria-label="@UI.Debug_StepOver"
+                            data-verso-tip="@UI.Debug_StepOver" data-verso-tip-desc="@UI.Debug_StepOver_Description">
+                        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5a5.5 5.5 0 0 1 10.6-2"/><path d="M13.4 3v3.6H9.8"/><circle cx="8" cy="12.2" r="1.5" fill="currentColor" stroke="none"/></svg>
+                    </button>
+                    <button class="verso-debug-control" disabled="@(!_state.IsStopped)"
+                            @onclick="() => ResumeAsync(DebugResumeAction.StepInto)"
+                            aria-label="@UI.Debug_StepInto"
+                            data-verso-tip="@UI.Debug_StepInto" data-verso-tip-desc="@UI.Debug_StepInto_Description">
+                        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8v7.4"/><path d="M5 6.4l3 3 3-3"/><circle cx="8" cy="12.6" r="1.5" fill="currentColor" stroke="none"/></svg>
+                    </button>
+                    <button class="verso-debug-control" disabled="@(!_state.IsStopped)"
+                            @onclick="() => ResumeAsync(DebugResumeAction.StepOut)"
+                            aria-label="@UI.Debug_StepOut"
+                            data-verso-tip="@UI.Debug_StepOut" data-verso-tip-desc="@UI.Debug_StepOut_Description">
+                        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9.4V2"/><path d="M5 4.8l3-3 3 3"/><circle cx="8" cy="12.6" r="1.5" fill="currentColor" stroke="none"/></svg>
+                    </button>
+                    <button class="verso-debug-control verso-debug-control--stop" disabled="@(!_state.IsStopped)"
+                            @onclick="StopAsync"
+                            aria-label="@UI.Common_Stop"
+                            data-verso-tip="@UI.Common_Stop" data-verso-tip-desc="@UI.Debug_Stop_Description">
+                        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="1.2"/></svg>
+                    </button>
+                </div>
+
+                @if (!_state.IsStopped)
+                {
+                    <p class="verso-debug-text verso-panel-secondary">@UI.Debug_Hint_SetBreakpoint</p>
+                }
+            </div>
+
+            @if (_state.Stop is { } stop)
+            {
+                <div class="verso-panel-section">
+                    <div class="verso-panel-section-title">@UI.Debug_CallStack</div>
+                    @for (var i = 0; i < stop.Frames.Count; i++)
+                    {
+                        var index = i;
+                        var frame = stop.Frames[i];
+                        var isActive = index == SelectedFrameIndex;
+                        <div class="verso-panel-row verso-panel-row--interactive @(isActive ? "verso-panel-row--active" : "")"
+                             role="button" tabindex="0"
+                             aria-pressed="@(isActive ? "true" : "false")"
+                             @key="index"
+                             @onclick="() => SelectFrameAsync(index)"
+                             @onkeydown="e => ActivateOnKeyAsync(e, () => SelectFrameAsync(index))">
+                            <span class="verso-debug-frame-name">@FrameName(frame)</span>
+                            <span class="verso-panel-secondary">@FrameLocation(frame)</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="verso-panel-section">
+                    <div class="verso-panel-section-title">@UI.Debug_Variables</div>
+                    @if (stop.Frames[SelectedFrameIndex].Variables is { Count: > 0 } variables)
+                    {
+                        <table class="verso-variable-table verso-debug-variables">
+                            <thead>
+                                <tr>
+                                    <th>@UI.Variables_ColumnName</th>
+                                    <th>@UI.Variables_ColumnType</th>
+                                    <th>@UI.Variables_ColumnValue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var variable in variables)
+                                {
+                                    <tr class="verso-debug-variable" @key="variable.Name">
+                                        <td>@variable.Name</td>
+                                        <td>@variable.TypeName</td>
+                                        <td class="verso-variable-preview">@variable.Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="verso-debug-text verso-panel-secondary">@UI.Debug_Variables_Empty</p>
+                    }
+                </div>
+            }
+
+            <div class="verso-panel-section">
+                <div class="verso-debug-section-head">
+                    <div class="verso-panel-section-title">@UI.Debug_Breakpoints</div>
+                    @if (_breakpoints.Count > 1)
+                    {
+                        <button class="verso-panel-action" @onclick="RemoveAllBreakpointsAsync">@UI.Debug_Breakpoints_RemoveAll</button>
+                    }
+                </div>
+                @if (_breakpoints.Count == 0)
+                {
+                    <p class="verso-debug-text verso-panel-secondary">@UI.Debug_Breakpoints_Empty</p>
+                }
+                @foreach (var breakpoint in _breakpoints)
+                {
+                    var b = breakpoint;
+                    <div class="verso-panel-row verso-panel-row--interactive verso-debug-breakpoint-row"
+                         role="button" tabindex="0"
+                         @key="@($"{b.CellId:N}:{b.Line}")"
+                         @onclick="() => OnNavigate.InvokeAsync(b.CellId)"
+                         @onkeydown="e => ActivateOnKeyAsync(e, () => OnNavigate.InvokeAsync(b.CellId))">
+                        <span class="verso-debug-breakpoint-dot" aria-hidden="true"></span>
+                        <span class="verso-debug-frame-name">@string.Format(UI.Debug_Location_CellLine, b.CellNumber, b.Line)</span>
+                        <button class="verso-cell-btn verso-debug-breakpoint-remove"
+                                @onclick="() => RemoveBreakpointAsync(b.CellId, b.Line)"
+                                @onclick:stopPropagation="true"
+                                @onkeydown:stopPropagation="true"
+                                aria-label="@UI.Debug_Breakpoints_Remove" data-verso-tip="@UI.Debug_Breakpoints_Remove">&#x2715;</button>
+                    </div>
+                }
+            </div>
+
+            <div class="verso-debug-actions">
+                <button class="verso-panel-action" @onclick="() => SetEnabledAsync(false)">@UI.Debug_TurnOff</button>
+            </div>
+        }
+
+    </div>
+</div>
+
+@code {
+    [Parameter] public INotebookService Service { get; set; } = default!;
+
+    /// <summary>
+    /// Raised with a cell id when the reader picks a frame or a breakpoint, so the page can
+    /// bring that cell into view.
+    /// </summary>
+    [Parameter] public EventCallback<Guid> OnNavigate { get; set; }
+
+    private DebugSnapshot _state = DebugSnapshot.Off;
+    private IReadOnlyList<BreakpointRow> _breakpoints = Array.Empty<BreakpointRow>();
+
+    // Which frame's variables are shown. Follows the stop back to the innermost frame each
+    // time the cell stops somewhere new, since that is where the reader's attention is.
+    private int _selectedFrame;
+    private DebugStop? _selectedFrameStop;
+
+    private sealed record BreakpointRow(Guid CellId, int CellNumber, int Line);
+
+    private int SelectedFrameIndex
+        => _state.Stop is { } stop && ReferenceEquals(stop, _selectedFrameStop) && _selectedFrame < stop.Frames.Count
+            ? _selectedFrame
+            : 0;
+
+    private string DebuggableLanguages => string.Join(", ",
+        Service.RegisteredLanguages.Where(l => l.SupportsDebugging).Select(l => l.DisplayName));
+
+    protected override void OnInitialized()
+    {
+        Service.OnDebugStateChanged += HandleDebugStateChanged;
+        Service.OnNotebookChanged += HandleDebugStateChanged;
+    }
+
+    protected override void OnParametersSet() => ReadState();
+
+    public void Dispose()
+    {
+        Service.OnDebugStateChanged -= HandleDebugStateChanged;
+        Service.OnNotebookChanged -= HandleDebugStateChanged;
+    }
+
+    // Raised on whichever thread changed the state, which for a stop is the cell's own.
+    private void HandleDebugStateChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            ReadState();
+            StateHasChanged();
+        });
+    }
+
+    private void ReadState()
+    {
+        _state = Service.DebugState;
+
+        // Listed in the order the cells appear rather than the order the breakpoints were set,
+        // which is the order the reader will meet them in.
+        var cells = Service.Cells;
+        var rows = new List<BreakpointRow>();
+        for (var i = 0; i < cells.Count; i++)
+        {
+            foreach (var line in _state.BreakpointsIn(cells[i].Id))
+                rows.Add(new BreakpointRow(cells[i].Id, i + 1, line));
+        }
+        _breakpoints = rows;
+    }
+
+    private int? CellNumber(Guid? cellId)
+    {
+        if (cellId is not { } id) return null;
+
+        var cells = Service.Cells;
+        for (var i = 0; i < cells.Count; i++)
+        {
+            if (cells[i].Id == id) return i + 1;
+        }
+        return null;
+    }
+
+    // A frame with no name is code that sits outside any function, which is the cell itself.
+    private string FrameName(DebugFrame frame)
+        => frame.Name.Length > 0
+            ? frame.Name
+            : CellNumber(frame.CellId) is { } number
+                ? string.Format(UI.Debug_Cell, number)
+                : UI.Debug_Frame_Unnamed;
+
+    private string FrameLocation(DebugFrame frame)
+    {
+        if (frame.Line < 1) return "";
+
+        return frame.Name.Length > 0 && CellNumber(frame.CellId) is { } number
+            ? string.Format(UI.Debug_Location_CellLine, number, frame.Line)
+            : string.Format(UI.Debug_Line, frame.Line);
+    }
+
+    private string Describe(DebugFrame frame)
+    {
+        if (CellNumber(frame.CellId) is not { } number)
+            return frame.Name.Length > 0 ? frame.Name : UI.Debug_Frame_Unnamed;
+
+        return frame.Line >= 1
+            ? string.Format(UI.Debug_Location_CellLine, number, frame.Line)
+            : string.Format(UI.Debug_Cell, number);
+    }
+
+    private Task SetEnabledAsync(bool enabled) => Service.SetDebuggingAsync(enabled);
+
+    private Task ResumeAsync(DebugResumeAction action) => Service.ResumeDebugAsync(action);
+
+    // Stopping is cancelling the run, the same thing the cell's own stop button does. The cell
+    // named is the one being run; when the stop is somewhere with no cell, any id will do.
+    private Task StopAsync()
+    {
+        var cellId = _state.Stop?.Frames.LastOrDefault(f => f.CellId is not null)?.CellId ?? Guid.Empty;
+        return Service.CancelCellAsync(cellId);
+    }
+
+    private async Task SelectFrameAsync(int index)
+    {
+        if (_state.Stop is not { } stop || index >= stop.Frames.Count) return;
+
+        _selectedFrame = index;
+        _selectedFrameStop = stop;
+
+        if (stop.Frames[index].CellId is { } cellId)
+            await OnNavigate.InvokeAsync(cellId);
+    }
+
+    private Task RemoveBreakpointAsync(Guid cellId, int line)
+        => Service.SetBreakpointsAsync(cellId, _state.BreakpointsIn(cellId).Where(l => l != line).ToArray());
+
+    private async Task RemoveAllBreakpointsAsync()
+    {
+        foreach (var cellId in _state.Breakpoints.Keys.ToArray())
+            await Service.SetBreakpointsAsync(cellId, Array.Empty<int>());
+    }
+
+    private static async Task ActivateOnKeyAsync(KeyboardEventArgs e, Func<Task> action)
+    {
+        if (e.Key is "Enter" or " ")
+            await action();
+    }
+}

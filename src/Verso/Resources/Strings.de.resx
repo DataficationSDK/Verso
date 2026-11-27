@@ -166,6 +166,9 @@
   <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
     <value>vom Notebook benötigte Erweiterungen</value>
   </data>
+  <data name="Debug_CSharp_CellNotPausable" xml:space="preserve">
+    <value>Diese Zelle konnte nicht für das Debuggen vorbereitet werden und wurde daher ausgeführt, ohne an ihren Haltepunkten anzuhalten.</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>Der Export als Polyglot-Notebook (.dib) wird nicht unterstützt. Verwenden Sie das native Verso-Format.</value>
   </data>

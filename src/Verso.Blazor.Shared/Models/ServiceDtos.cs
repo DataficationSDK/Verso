@@ -7,7 +7,18 @@ namespace Verso.Blazor.Shared.Models;
 public sealed record CellTypeInfo(string Id, string DisplayName, bool IsEditable = true);
 
 /// <summary>Describes a kernel language available for code cells.</summary>
-public sealed record KernelLanguageInfo(string Id, string DisplayName, bool SupportsCancellation = true);
+/// <param name="Id">The language id cells name.</param>
+/// <param name="DisplayName">The name shown for the language.</param>
+/// <param name="SupportsCancellation">Whether a running cell of this language can be stopped.</param>
+/// <param name="SupportsDebugging">
+/// Whether the language's kernel can pause a running cell, which is what makes breakpoints and
+/// stepping available for its cells.
+/// </param>
+public sealed record KernelLanguageInfo(
+    string Id,
+    string DisplayName,
+    bool SupportsCancellation = true,
+    bool SupportsDebugging = false);
 
 /// <summary>Describes a toolbar action with its metadata.</summary>
 public sealed record ToolbarActionInfo(

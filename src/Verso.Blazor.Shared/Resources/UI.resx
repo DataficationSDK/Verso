@@ -498,6 +498,130 @@
     <value>Packages run code on your machine. Only install packages you trust.</value>
     <comment>Warning above the buttons of the package consent dialog.</comment>
   </data>
+  <data name="Debug_Breakpoints" xml:space="preserve">
+    <value>Breakpoints</value>
+    <comment>Heading of the list of every breakpoint set in the notebook.</comment>
+  </data>
+  <data name="Debug_Breakpoints_Empty" xml:space="preserve">
+    <value>No breakpoints yet.</value>
+    <comment>Shown under the Breakpoints heading when none are set.</comment>
+  </data>
+  <data name="Debug_Breakpoints_Remove" xml:space="preserve">
+    <value>Remove breakpoint</value>
+    <comment>Tooltip and accessible name of the button that removes one breakpoint from the list.</comment>
+  </data>
+  <data name="Debug_Breakpoints_RemoveAll" xml:space="preserve">
+    <value>Remove all</value>
+    <comment>Button that removes every breakpoint in the notebook. Shown beside the Breakpoints heading.</comment>
+  </data>
+  <data name="Debug_CallStack" xml:space="preserve">
+    <value>Call stack</value>
+    <comment>Heading of the list of function calls that led to where the cell is stopped.</comment>
+  </data>
+  <data name="Debug_Cell" xml:space="preserve">
+    <value>Cell {0}</value>
+    <comment>Names a cell by its position in the notebook. {0} is the cell's number, counting from 1.</comment>
+  </data>
+  <data name="Debug_Continue" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Button that lets a stopped cell run on. Shown as an icon with this as its tooltip.</comment>
+  </data>
+  <data name="Debug_Continue_Description" xml:space="preserve">
+    <value>Run on to the next breakpoint.</value>
+    <comment>Second tooltip line of the Continue button.</comment>
+  </data>
+  <data name="Debug_Controls" xml:space="preserve">
+    <value>Debugging controls</value>
+    <comment>Accessible name of the row of buttons that drive a stopped cell: continue, step over, step into, step out, stop.</comment>
+  </data>
+  <data name="Debug_Frame_Unnamed" xml:space="preserve">
+    <value>Code</value>
+    <comment>Stands in for the name of a call in the call stack when the code has no function name and belongs to no cell.</comment>
+  </data>
+  <data name="Debug_Hint_SetBreakpoint" xml:space="preserve">
+    <value>Click beside a line number to set a breakpoint, then run the cell.</value>
+    <comment>Hint in the Debug panel while no cell is stopped. A breakpoint is a mark on a line where the cell will stop.</comment>
+  </data>
+  <data name="Debug_Line" xml:space="preserve">
+    <value>Line {0}</value>
+    <comment>Names a line of code. {0} is the line number, counting from 1.</comment>
+  </data>
+  <data name="Debug_Location_CellLine" xml:space="preserve">
+    <value>Cell {0}, line {1}</value>
+    <comment>Names a place in the notebook. {0} is the cell's number and {1} is the line number within that cell, both counting from 1.</comment>
+  </data>
+  <data name="Debug_Off_Body" xml:space="preserve">
+    <value>Turn debugging on to stop a running cell at a line you choose, look at its variables, and step through it one line at a time.</value>
+    <comment>Explains what debugging does, under the 'Debugging is off' heading in the Debug panel.</comment>
+  </data>
+  <data name="Debug_Off_Languages" xml:space="preserve">
+    <value>Works in cells written in {0}.</value>
+    <comment>Says which cell languages can be debugged. {0} is a comma-separated list of language names such as 'C#, Python'.</comment>
+  </data>
+  <data name="Debug_Off_Title" xml:space="preserve">
+    <value>Debugging is off</value>
+    <comment>Heading shown in the Debug panel before debugging has been turned on.</comment>
+  </data>
+  <data name="Debug_On" xml:space="preserve">
+    <value>Debugging is on.</value>
+    <comment>Second line of the Debug toggle's tooltip while debugging is turned on, in place of the description of the panel.</comment>
+  </data>
+  <data name="Debug_Status_AfterStep" xml:space="preserve">
+    <value>Stopped after a step</value>
+    <comment>Status chip in the Debug panel when a running cell has stopped because the reader stepped to the next line.</comment>
+  </data>
+  <data name="Debug_Status_AtBreakpoint" xml:space="preserve">
+    <value>Stopped at a breakpoint</value>
+    <comment>Status chip in the Debug panel when a running cell has stopped on a line that carries a breakpoint.</comment>
+  </data>
+  <data name="Debug_Status_Waiting" xml:space="preserve">
+    <value>Waiting for a breakpoint</value>
+    <comment>Status chip in the Debug panel while debugging is on and no cell is stopped.</comment>
+  </data>
+  <data name="Debug_StepInto" xml:space="preserve">
+    <value>Step into</value>
+    <comment>Button that goes into the function the current line calls. Shown as an icon with this as its tooltip.</comment>
+  </data>
+  <data name="Debug_StepInto_Description" xml:space="preserve">
+    <value>Go into the function this line calls.</value>
+    <comment>Second tooltip line of the Step into button.</comment>
+  </data>
+  <data name="Debug_StepOut" xml:space="preserve">
+    <value>Step out</value>
+    <comment>Button that runs to the end of the current function and stops in its caller. Shown as an icon with this as its tooltip.</comment>
+  </data>
+  <data name="Debug_StepOut_Description" xml:space="preserve">
+    <value>Run to the end of this function.</value>
+    <comment>Second tooltip line of the Step out button.</comment>
+  </data>
+  <data name="Debug_StepOver" xml:space="preserve">
+    <value>Step over</value>
+    <comment>Button that runs the current line and stops at the next one. Shown as an icon with this as its tooltip.</comment>
+  </data>
+  <data name="Debug_StepOver_Description" xml:space="preserve">
+    <value>Run this line, including anything it calls.</value>
+    <comment>Second tooltip line of the Step over button.</comment>
+  </data>
+  <data name="Debug_Stop_Description" xml:space="preserve">
+    <value>Stop the cell where it is.</value>
+    <comment>Second tooltip line of the Stop button in the Debug panel, which cancels the stopped cell's run.</comment>
+  </data>
+  <data name="Debug_TurnOff" xml:space="preserve">
+    <value>Turn off debugging</value>
+    <comment>Button in the Debug panel that turns debugging off for the notebook.</comment>
+  </data>
+  <data name="Debug_TurnOn" xml:space="preserve">
+    <value>Turn on debugging</value>
+    <comment>Button in the Debug panel that turns debugging on for the notebook.</comment>
+  </data>
+  <data name="Debug_Variables" xml:space="preserve">
+    <value>Variables</value>
+    <comment>Heading of the table of variables in scope where the cell is stopped.</comment>
+  </data>
+  <data name="Debug_Variables_Empty" xml:space="preserve">
+    <value>No variables to show for this call.</value>
+    <comment>Shown in place of the variables table when the selected call has no variables to show, either because none are in scope there or because the language does not report them for that call.</comment>
+  </data>
   <data name="DiffPicker_Compare" xml:space="preserve">
     <value>Compare</value>
     <comment>The confirming button in both comparison dialogs. Keep it to one word if the language allows.</comment>
@@ -925,6 +1049,14 @@
   <data name="Panel_Compare_Description" xml:space="preserve">
     <value>Measure this notebook against a saved baseline.</value>
     <comment>Second line of the Compare toggle's tooltip, saying what the panel holds.</comment>
+  </data>
+  <data name="Panel_Debug" xml:space="preserve">
+    <value>Debug</value>
+    <comment>Toggle and heading of the panel for stopping a running cell at a line and stepping through it.</comment>
+  </data>
+  <data name="Panel_Debug_Description" xml:space="preserve">
+    <value>Stop a cell at a line and step through it.</value>
+    <comment>Second line of the Debug toggle's tooltip, saying what the panel holds.</comment>
   </data>
   <data name="Panel_Extensions" xml:space="preserve">
     <value>Extensions</value>

@@ -674,7 +674,7 @@ Interaction types in the `verso/` namespace are reserved by the host and are int
 
 ## Augmentation Interfaces
 
-These interfaces are not standalone extension capabilities. They are implemented **alongside** a primary capability interface (e.g., `ILanguageKernel + IExtensionSettings`, `ILanguageKernel + ISemanticTokenProvider` or `IDataFormatter + ICellInteractionHandler`). They do not extend `IExtension` and cannot be the sole interface on a `[VersoExtension]` class.
+These interfaces are not standalone extension capabilities. They are implemented **alongside** a primary capability interface (e.g., `ILanguageKernel + IExtensionSettings`, `ILanguageKernel + ISemanticTokenProvider`, `ILanguageKernel + IDebuggableKernel` or `IDataFormatter + ICellInteractionHandler`). They do not extend `IExtension` and cannot be the sole interface on a `[VersoExtension]` class.
 
 ### IExtensionSettings
 
@@ -772,6 +772,56 @@ Report what the lexer cannot know and leave out what it already colors. A keywor
 The editor asks when a cell is first shown, after the user pauses typing, and after a run, for the cell that ran and every cell below it that shows kernel markers; it asks again on focus when another cell has run since the last answer. It does not ask while any cell in the notebook is running, and the colors already shown stay until the next answer. A request goes out from one editor at a time. Like diagnostics, the request is advisory: `null`, an exception or a kernel that cannot start keeps the colors shown, and an empty list clears them. Leading `#!` magic lines are blanked before the code reaches the kernel.
 
 A classification usually falls out of the same type check as `GetDiagnosticsAsync`, and the editor asks for both after an edit. A kernel that implements both should answer them from one check of the same text, so a pause in typing compiles once; the C# and F# kernels do.
+
+### IDebuggableKernel
+
+Lets a kernel stop a running cell at a line and wait to be told how to carry on. Implemented alongside `ILanguageKernel`; the C# and Python kernels implement it. A kernel that does gains the breakpoint margin in its cells, the Debug panel, and stepping, in every front end, with no UI of its own. See the [debugging guide](../guides/debugging-cells.md) for what the user sees.
+
+| Member | Type | Description |
+|---|---|---|
+| `DebugAsync(string, IExecutionContext, IDebugSession)` | `Task<IReadOnlyList<CellOutput>>` | Runs the cell as `ExecuteAsync` would, stopping where the session says to. |
+
+The host calls `DebugAsync` in place of `ExecuteAsync` while debugging is turned on for the notebook, and `ExecuteAsync` otherwise, so a kernel pays for debugging only when it is asked for. Only cells the user runs are debugged. Code a layout, a toolbar action, or another extension runs on the notebook's behalf goes through `ExecuteAsync`.
+
+The kernel does the stopping itself. Nothing attaches to the process, which is what lets one notebook host debug a kernel that runs in process, one that runs in a child process, and one that runs somewhere else entirely. How a kernel notices that it has reached a line is its own business: the C# kernel rewrites the cell so each statement checks first, and the Python kernel asks the interpreter to report lines.
+
+#### IDebugSession
+
+The debugging conversation for one run of a cell, handed to `DebugAsync`.
+
+| Member | Type | Description |
+|---|---|---|
+| `GetBreakpoints(Guid)` | `IReadOnlyCollection<int>` | The breakpoint lines of a cell, counting from 1 in the code the kernel was given for that cell. Empty when the cell has none. |
+| `BreakpointsChanged` | `event Action?` | Raised when any breakpoint changes during the run, on whichever thread changed it. Read the lines again. |
+| `StopAsync(DebugStop, CancellationToken)` | `Task<DebugResumeAction>` | Reports that the cell has stopped and waits for the user. Completes with what they chose, and is cancelled when the run is. |
+
+A stop is `DebugStop(Reason, Frames)`. `Reason` is `DebugStopReason.Breakpoint` or `DebugStopReason.Step`. `Frames` is the chain of calls that led to the stop, innermost first, and is never empty. Each `DebugFrame` is `(Name, CellId, Line, Variables)`:
+
+- `Name` is the function's name as the user would recognize it, and empty for code that sits outside any function, which the host presents as the cell itself.
+- `CellId` is the cell the frame's code belongs to, which need not be the cell that is running: a function defined in one cell and called from another reports the cell that defined it. `null` when the code is in no cell.
+- `Line` counts from 1 in the code the kernel was given for that cell, or is 0 when unknown.
+- `Variables` is what is in scope, as `DebugVariable(Name, TypeName, Value)` with the value already reduced to short text. A kernel that can only inspect the innermost frame leaves the others empty.
+
+`StopAsync` answers with a `DebugResumeAction`:
+
+| Value | What the kernel does |
+|---|---|
+| `Continue` | Runs on to the next breakpoint, or to the end. |
+| `StepOver` | Stops at the next line in the same function, or in its caller once it returns. |
+| `StepInto` | Stops at the next line anywhere, including inside a function the current line calls. |
+| `StepOut` | Stops at the next line after the current function returns. |
+
+#### Things to get right
+
+- **Lines are in the kernel's own code.** Magic command lines above the code are removed before the kernel sees it, so line 1 is the first line of the code passed to `DebugAsync`. The host moves breakpoints and reported lines between that numbering and the one the editor shows.
+- **A breakpoint in another cell counts.** Ask for the breakpoints of every cell whose code may run, not only the one being run, or a breakpoint inside a function from an earlier cell is never hit.
+- **Stop before the line runs,** and report variables as they stand at that moment.
+- **Describing a value must not change it.** Do not enumerate a lazy sequence or call anything that could have an effect in order to show it, and do not stop inside code that runs while values are being described.
+- **Wait where a cancel can reach you.** `StopAsync` is cancelled when the run is. A kernel that waits on something else as well, such as a reply from a child process, has to end that wait too.
+- **Never block a thread the host needs.** A stop lasts as long as the user takes. Run the cell on a thread of its own if the caller's thread might be one the host uses for anything else.
+- **Fall back rather than fail.** A cell the kernel cannot prepare for stopping should say so and run normally.
+
+`Verso.Testing` ships `FakeDebugSession`, which holds breakpoints, records every stop, and answers each from a list of actions, so a kernel's stepping can be tested without a host (see [Testing Extensions](testing-extensions.md)).
 
 ### ICellInteractionHandler
 

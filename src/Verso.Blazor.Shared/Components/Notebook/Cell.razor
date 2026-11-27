@@ -6,7 +6,7 @@
 @inject INotebookService Service
 @inject IJSRuntime JS
 
-<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "") @DiffMarkClass">
+<div class="verso-cell @(IsSelected ? "verso-cell--selected" : "") @(IsExecuting ? "verso-cell--executing" : "") @(IsInPreviewMode ? "verso-cell--preview" : "") @(IsStoppedHere ? "verso-cell--stopped" : "") @DiffMarkClass">
     <div class="verso-cell-gutter">
         <div class="verso-cell-gutter-actions">
             @if (IsEditable)
@@ -173,17 +173,19 @@
                 </div>
             }
         }
-        else if (SupportsInputCollapse && IsInputCollapsed)
+        else if (SupportsInputCollapse && IsInputCollapsed && !IsStoppedHere)
         {
             <div class="verso-cell-source-preview" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
                 <pre>@CollapsedSourcePreview</pre>
             </div>
         }
-        else if (!IsInPreviewMode && Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellEdit))
+        else if ((!IsInPreviewMode || IsStoppedHere) && Service.LayoutCapabilities.HasFlag(LayoutCapabilities.CellEdit))
         {
             @* The editor is only mounted for layouts that support editing. Read-only display
                layouts (Presentation, Dashboard) hide the editor with CSS anyway, so skipping it
-               here avoids instantiating a hidden Monaco instance per code cell in those layouts. *@
+               here avoids instantiating a hidden Monaco instance per code cell in those layouts.
+               A cell stopped at a breakpoint shows its editor even when its code is collapsed or
+               swapped for its output, because the line it stopped at is what there is to see. *@
             <div class="verso-cell-editor" @onclick="() => OnSelect.InvokeAsync(CellData.Id)">
                 <MonacoEditor @ref="_editor"
                               Value="@CellData.Source"
@@ -195,7 +197,12 @@
                               OnGetDiagnostics="HandleGetDiagnostics"
                               OnGetSemanticTokens="HandleGetSemanticTokens"
                               DiagnosticsSuspended="IsNotebookExecuting"
-                              OnLineLimitChanged="HandleLineLimitChanged" />
+                              OnLineLimitChanged="HandleLineLimitChanged"
+                              DebugGutter="_debugGutter"
+                              Breakpoints="_breakpoints"
+                              StoppedLine="_stoppedLine"
+                              CallerLines="_callerLines"
+                              OnBreakpointsChanged="HandleBreakpointsChanged" />
                 @if (_lineLimit is { Clipped: true } limit)
                 {
                     @* Said once the content outgrows the limit, so the lines scrolled out of view
@@ -382,6 +389,55 @@
     // re-entrancy; without this latch the cell would repeatedly re-run and spin the UI.
     private bool _autoExecuteRequested;
 
+    // What this cell shows of the notebook's debugging state, read into fields so a change
+    // somewhere else in the notebook can be told apart from one that touches this cell.
+    private bool _debugGutter;
+    private IReadOnlyList<int> _breakpoints = Array.Empty<int>();
+    private int? _stoppedLine;
+    private IReadOnlyList<int> _callerLines = Array.Empty<int>();
+    private string _debugSignature = "";
+
+    private bool IsStoppedHere => _stoppedLine is not null;
+
+    /// <summary>
+    /// Reads this cell's share of the debugging state. Returns whether anything it shows changed.
+    /// </summary>
+    private bool ReadDebugState()
+    {
+        var state = Service.DebugState;
+        var gutter = state.Enabled && SupportsDebugging;
+
+        _debugGutter = gutter;
+        _breakpoints = gutter ? state.BreakpointsIn(CellData.Id) : Array.Empty<int>();
+        _stoppedLine = gutter ? state.StoppedLineIn(CellData.Id) : null;
+        _callerLines = gutter ? state.CallerLinesIn(CellData.Id) : Array.Empty<int>();
+
+        var signature = gutter
+            ? $"{string.Join(',', _breakpoints)}|{_stoppedLine}|{string.Join(',', _callerLines)}"
+            : "";
+        if (signature == _debugSignature) return false;
+        _debugSignature = signature;
+        return true;
+    }
+
+    private bool SupportsDebugging => CellData.Language is not null
+        && (Service.RegisteredLanguages
+            .FirstOrDefault(l => string.Equals(l.Id, CellData.Language, StringComparison.OrdinalIgnoreCase))
+            ?.SupportsDebugging ?? false);
+
+    // Raised on whichever thread changed the state, which for a stop is the cell's own.
+    private void HandleDebugStateChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            if (ReadDebugState())
+                StateHasChanged();
+        });
+    }
+
+    private Task HandleBreakpointsChanged(IReadOnlyList<int> lines)
+        => Service.SetBreakpointsAsync(CellData.Id, lines);
+
     private bool SupportsInputCollapse => IsEditable && string.Equals(CellData.Type, "code", StringComparison.OrdinalIgnoreCase);
 
     private bool IsInputCollapsed => ReadMetadataBool(CellViewStateMetadata.InputCollapsedKey);
@@ -460,10 +516,14 @@
         Service.OnExtensionStatusChanged += HandleEnablementStateChanged;
         Service.OnKernelRestarted += HandleEnablementStateChangedForKernel;
         Service.OnKernelRestarted += HandleKernelRestartedForDiagnostics;
+        Service.OnDebugStateChanged += HandleDebugStateChanged;
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        // Before the first await, so the render it lets through already has this cell's lines.
+        ReadDebugState();
+
         await RefreshEnabledCellActionsAsync();
 
         // A run that produced output the boundary could not render leaves it faulted, and the next
@@ -578,6 +638,7 @@
         Service.OnExtensionStatusChanged -= HandleEnablementStateChanged;
         Service.OnKernelRestarted -= HandleEnablementStateChangedForKernel;
         Service.OnKernelRestarted -= HandleKernelRestartedForDiagnostics;
+        Service.OnDebugStateChanged -= HandleDebugStateChanged;
     }
 
     // A restart discards the state the markers were computed against, so code that was valid may

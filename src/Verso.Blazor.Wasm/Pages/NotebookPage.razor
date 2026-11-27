@@ -117,6 +117,10 @@
                                 {
                                     <ViewPanel Service="Service" OnActionExecuted="HandleActionExecuted" />
                                 }
+                                else if (host.PanelId == HostPanels.Debug)
+                                {
+                                    <DebugPanel Service="Service" OnNavigate="RevealCellAsync" />
+                                }
                                 else if (host.PanelId == HostPanels.Compare)
                                 {
                                     <ComparePanel Comparison="_comparison"
@@ -237,6 +241,7 @@
         Service.OnSettingsChanged += HandleSettingsChanged;
         Service.OnOutputUpdated += HandleOutputUpdated;
         Service.OnDiffRequested += HandleDiffRequested;
+        Service.OnDebugStateChanged += HandleDebugStateChanged;
 
         if (Service is RemoteNotebookService remoteService)
         {
@@ -526,6 +531,34 @@
         {
             _restoringPrefs = false;
         }
+    }
+
+    // Where the notebook was last seen stopped, so that being told again about the same stop
+    // (a breakpoint set while stopped redraws it) does not reopen a panel the reader closed.
+    private string? _lastDebugStop;
+
+    // Raised on whichever thread changed the state, which for a stop is the cell's own.
+    private void HandleDebugStateChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            var stop = Service.DebugState.Stop;
+            var where = stop is null ? null : $"{stop.Frames[0].CellId}:{stop.Frames[0].Line}:{stop.Frames.Count}";
+
+            if (where is not null && where != _lastDebugStop)
+            {
+                // A cell stopping happens to the reader rather than being something they did, so
+                // the controls come to them. Selecting the cell is what puts its editor on screen
+                // when its code is collapsed behind its output; the editor scrolls to the line.
+                if (_panels.Any(p => p.Key == HostPanels.Debug))
+                    _activePanel = HostPanels.Debug;
+                if (stop!.Frames[0].CellId is { } cellId)
+                    _selectedCellId = cellId;
+            }
+
+            _lastDebugStop = where;
+            StateHasChanged();
+        });
     }
 
     private void TogglePanel(string panelKey)
@@ -1166,6 +1199,7 @@
         Service.OnSettingsChanged -= HandleSettingsChanged;
         Service.OnOutputUpdated -= HandleOutputUpdated;
         Service.OnDiffRequested -= HandleDiffRequested;
+        Service.OnDebugStateChanged -= HandleDebugStateChanged;
 
         if (Service is RemoteNotebookService remoteService)
         {

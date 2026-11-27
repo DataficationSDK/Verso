@@ -166,6 +166,9 @@
   <data name="Consent_Source_RequiredExtensions" xml:space="preserve">
     <value>extensiones que el cuaderno necesita</value>
   </data>
+  <data name="Debug_CSharp_CellNotPausable" xml:space="preserve">
+    <value>No se pudo preparar esta celda para la depuración, así que se ejecutó sin detenerse en sus puntos de interrupción.</value>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>No se admite la exportación a .dib de Polyglot Notebook. Use el formato nativo de Verso.</value>
   </data>

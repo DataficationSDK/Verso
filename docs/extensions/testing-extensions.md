@@ -83,6 +83,7 @@ Fakes implement extension interfaces with configurable behavior, useful for test
 | `FakeIsolatedLayoutEngine` | `IExtension + ILayoutEngine` | Minimal isolated (iframe) layout for testing renderer-package and isolation paths. |
 | `FakeLayoutInteractionHandler` | `IExtension + ILayoutEngine + ILayoutInteractionHandler` | Layout plus interaction handler for testing event routing. |
 | `FakeFrameChannel` | `ILayoutFrameChannel` | In-memory frame channel for testing isolated-layout message passing. |
+| `FakeDebugSession` | `IDebugSession` | Holds breakpoints, records each stop a kernel reports in `Stops`, and answers them from a list of `DebugResumeAction` values, for testing an `IDebuggableKernel`. `OnStop` runs while the cell is stopped. |
 
 ---
 

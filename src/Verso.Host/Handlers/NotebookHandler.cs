@@ -357,7 +357,8 @@ public static class NotebookHandler
             {
                 Id = langId,
                 DisplayName = kernel?.DisplayName ?? langId,
-                SupportsCancellation = LanguageSupportsCancellation(langId)
+                SupportsCancellation = LanguageSupportsCancellation(langId),
+                SupportsDebugging = kernel is Abstractions.IDebuggableKernel
             });
         }
 
