@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Verso.Abstractions;
+using Verso.Debugging;
 using Verso.Contexts;
 using Verso.Display;
 using Verso.MagicCommands;
@@ -31,6 +32,7 @@ internal sealed class ExecutionPipeline
     private readonly Func<Guid, string, bool, CancellationToken, Task<string?>>? _requestInput;
     private readonly BackgroundFaultSink? _backgroundFaults;
     private readonly OutputChannelHost? _outputChannels;
+    private readonly NotebookDebugger? _debugger;
 
     public ExecutionPipeline(
         IVariableStore variables,
@@ -47,7 +49,8 @@ internal sealed class ExecutionPipeline
         Action<Guid>? notifyOutputUpdated = null,
         Func<Guid, string, bool, CancellationToken, Task<string?>>? requestInput = null,
         BackgroundFaultSink? backgroundFaults = null,
-        OutputChannelHost? outputChannels = null)
+        OutputChannelHost? outputChannels = null,
+        NotebookDebugger? debugger = null)
     {
         _variables = variables;
         _theme = theme;
@@ -64,6 +67,7 @@ internal sealed class ExecutionPipeline
         _requestInput = requestInput;
         _backgroundFaults = backgroundFaults;
         _outputChannels = outputChannels;
+        _debugger = debugger;
     }
 
     /// <summary>
@@ -377,7 +381,15 @@ internal sealed class ExecutionPipeline
         IReadOnlyList<CellOutput> returnedOutputs;
         using (_backgroundFaults?.BeginExecution())
         {
-            returnedOutputs = await kernel.ExecuteAsync(codeToExecute, context).ConfigureAwait(false);
+            if (_debugger is { Enabled: true } debugger && kernel is IDebuggableKernel debuggable)
+            {
+                using var session = debugger.BeginRun(cell.Id, LinesBefore(cell.Source, codeToExecute), ct);
+                returnedOutputs = await debuggable.DebugAsync(codeToExecute, context, session).ConfigureAwait(false);
+            }
+            else
+            {
+                returnedOutputs = await kernel.ExecuteAsync(codeToExecute, context).ConfigureAwait(false);
+            }
         }
 
         if (returnedOutputs is { Count: > 0 })
@@ -433,6 +445,26 @@ internal sealed class ExecutionPipeline
             return ExecutionResult.Cancelled(cell.Id, executionCount, stopwatch.Elapsed);
 
         return ExecutionResult.Success(cell.Id, executionCount, stopwatch.Elapsed);
+    }
+
+    /// <summary>
+    /// How many lines of the cell come before the code its kernel is given. Magic command lines
+    /// are consumed from the top, so what is left is always the tail of the cell.
+    /// </summary>
+    internal static int LinesBefore(string? cellSource, string code)
+    {
+        if (string.IsNullOrEmpty(cellSource) || cellSource.Length <= code.Length
+            || !cellSource.EndsWith(code, StringComparison.Ordinal))
+            return 0;
+
+        var consumed = cellSource.AsSpan(0, cellSource.Length - code.Length);
+        var lines = 0;
+        for (var i = 0; i < consumed.Length; i++)
+        {
+            if (consumed[i] == '\n' || (consumed[i] == '\r' && (i + 1 >= consumed.Length || consumed[i + 1] != '\n')))
+                lines++;
+        }
+        return lines;
     }
 
     private async Task<ExecutionResult> RenderCellAsync(

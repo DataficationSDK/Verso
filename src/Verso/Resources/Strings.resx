@@ -202,6 +202,10 @@
     <value>notebook required extensions</value>
     <comment>Why the consent dialog is asking: the notebook declares this package as one it needs. Appears beside the package name, in brackets.</comment>
   </data>
+  <data name="Debug_CSharp_CellNotPausable" xml:space="preserve">
+    <value>This cell could not be prepared for debugging, so it ran without stopping at its breakpoints.</value>
+    <comment>Shown as a line of cell output when debugging is on and a C# cell uses a construct the debugger cannot add its stopping points to. The cell still ran normally.</comment>
+  </data>
   <data name="Error_DibExportUnsupported" xml:space="preserve">
     <value>Polyglot Notebook .dib export is not supported. Use the Verso native format.</value>
     <comment>Saving to .dib is not offered. The file extensions stay as written.</comment>

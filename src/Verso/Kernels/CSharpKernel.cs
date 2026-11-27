@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using Verso.Abstractions;
+using Verso.Kernels.Debugging;
 using Verso.MagicCommands;
 
 using VersoDiagnostic = Verso.Abstractions.Diagnostic;
@@ -14,7 +15,7 @@ namespace Verso.Kernels;
 /// with chained state, code completions, diagnostics, and hover information.
 /// </summary>
 [VersoExtension]
-public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
+public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider, IDebuggableKernel
 {
     private static readonly Regex NuGetReferenceRegex = new(
         @"^#r\s+""nuget:\s*([^""]+)""",
@@ -34,6 +35,7 @@ public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
     private RoslynWorkspaceManager? _workspaceManager;
     private ScriptGlobals? _globals;
     private NuGetPackageResolver? _resolver;
+    private CSharpDebugController? _debug;
     private bool _initialized;
     private bool _parametersInjected;
     private bool _disposed;
@@ -111,7 +113,22 @@ public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
         return Task.CompletedTask;
     }
 
-    public async Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+    public Task<IReadOnlyList<CellOutput>> ExecuteAsync(string code, IExecutionContext context)
+        => ExecuteCoreAsync(code, context, session: null);
+
+    /// <summary>
+    /// Runs a cell so that it stops at breakpoints and can be stepped. The cell is compiled with a
+    /// check ahead of each statement, and is otherwise run exactly as <see cref="ExecuteAsync"/>
+    /// runs it. A function can be stepped into when the cell that defined it was run this way too.
+    /// </summary>
+    public Task<IReadOnlyList<CellOutput>> DebugAsync(string code, IExecutionContext context, IDebugSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return ExecuteCoreAsync(code, context, session);
+    }
+
+    private async Task<IReadOnlyList<CellOutput>> ExecuteCoreAsync(
+        string code, IExecutionContext context, IDebugSession? session)
     {
         ThrowIfDisposed();
         EnsureInitialized();
@@ -235,8 +252,18 @@ public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
                 }
             }
 
-            var scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)
-                .ConfigureAwait(false);
+            ScriptState<object> scriptState;
+            if (session is not null)
+            {
+                scriptState = await RunPausableAsync(code, cleanedCode, context, session).ConfigureAwait(false);
+            }
+            else
+            {
+                // Functions an earlier cell defined while debugging was on still carry their checks.
+                _debug?.ClearBreakpoints();
+                scriptState = await _stateManager!.RunAsync(cleanedCode, _globals, context.CancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             var outputs = new List<CellOutput>();
 
@@ -357,6 +384,103 @@ public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
         }
     }
 
+    /// <summary>
+    /// Runs a cell with a check ahead of each statement, so it can stop there. When the cell
+    /// cannot be given checks it runs as it would with debugging off, and breakpoints in functions
+    /// earlier cells defined still apply.
+    /// </summary>
+    private async Task<ScriptState<object>> RunPausableAsync(
+        string code, string cleanedCode, IExecutionContext context, IDebugSession session)
+    {
+        var ct = context.CancellationToken;
+        if (_debug is null)
+        {
+            _debug = new CSharpDebugController();
+
+            // The checks call into this assembly, which a cell does not otherwise reference.
+            _stateManager!.AddReference(typeof(CellProbes).Assembly);
+        }
+
+        // The ordinary path drops package directives from the text, which moves every line below
+        // them up. Blanking them keeps each statement on the line the user sees it on.
+        var pausableCode = NuGetReferenceRegex.Replace(
+            NuGetSourceRegex.Replace(code, BlankKeepingLineBreaks), BlankKeepingLineBreaks);
+
+        var prepared = PreparePausable(pausableCode, context.CellId, ct, out var compiles);
+        if (prepared is null && compiles)
+        {
+            await context.WriteOutputAsync(new CellOutput("text/plain", Strings.Debug_CSharp_CellNotPausable))
+                .ConfigureAwait(false);
+        }
+
+        _debug.BeginRun(session, context);
+        try
+        {
+            if (prepared is null)
+                return await _stateManager!.RunAsync(cleanedCode, _globals, ct).ConfigureAwait(false);
+
+            var (script, unit) = prepared.Value;
+            _debug.Adopt(unit);
+
+            // A stopped cell holds its thread until the user lets it carry on. The cell is given a
+            // thread of its own for that, because the caller's may be the one the user's answer
+            // has to arrive on.
+            return await Task.Run(
+                () =>
+                {
+                    // The frame for the cell's own statements is the caller of whatever they call.
+                    // Setting it here reaches the cell because the cell runs inside this call.
+                    CellProbes.SetCurrent(unit.Root);
+                    return _stateManager!.RunScriptAsync(script, _globals, ct);
+                },
+                ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _debug.EndRun();
+        }
+    }
+
+    /// <summary>
+    /// Compiles a cell with checks added. Returns <c>null</c> when the cell has nothing to stop at,
+    /// does not compile as written (<paramref name="compiles"/> is false and the ordinary run
+    /// reports why), or stops compiling once the checks are in.
+    /// </summary>
+    private (Script<object> Script, DebugUnit Unit)? PreparePausable(
+        string code, Guid cellId, CancellationToken ct, out bool compiles)
+    {
+        compiles = false;
+        try
+        {
+            var original = _stateManager!.CreateScript(code, _globals?.GetType());
+            var compilation = original.GetCompilation();
+            if (compilation.GetDiagnostics(ct).Any(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error))
+                return null;
+
+            compiles = true;
+
+            // Reading a variable to show it can be what breaks the build, in a corner the analysis
+            // did not foresee. Stopping without variables is still worth having.
+            foreach (var captureVariables in new[] { true, false })
+            {
+                var plan = CSharpCellInstrumenter.Analyze(compilation, code, captureVariables, ct);
+                if (plan is null)
+                    return null;
+
+                var unit = _debug!.CreateUnit(cellId, plan.Probes, plan.Methods, out var handle);
+                var script = _stateManager.CreateScript(plan.Emit(handle), _globals?.GetType());
+                if (!script.Compile(ct).Any(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error))
+                    return (script, unit);
+            }
+
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
     public async Task<IReadOnlyList<Completion>> GetCompletionsAsync(string code, int cursorPosition)
     {
         ThrowIfDisposed();
@@ -427,6 +551,8 @@ public sealed class CSharpKernel : ILanguageKernel, ISemanticTokenProvider
         _workspaceManager = null;
         _resolver = null;
         _globals = null;
+        _debug?.Release();
+        _debug = null;
         _executionLock.Dispose();
     }
 

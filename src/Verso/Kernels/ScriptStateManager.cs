@@ -46,6 +46,34 @@ internal sealed class ScriptStateManager : IAsyncDisposable
     }
 
     /// <summary>
+    /// Builds the script that <see cref="RunAsync"/> would run for this code, without running it,
+    /// so the code can be examined against everything earlier cells declared.
+    /// </summary>
+    /// <param name="code">The code to compile as the next submission.</param>
+    /// <param name="globalsType">The type of the globals object, used when nothing has run yet.</param>
+    public Script<object> CreateScript(string code, Type? globalsType)
+    {
+        return _lastState is null
+            ? CSharpScript.Create<object>(code, _baseOptions, globalsType)
+            : _lastState.Script.ContinueWith<object>(code, _baseOptions);
+    }
+
+    /// <summary>
+    /// Runs a script built by <see cref="CreateScript"/> as the next submission. Running the
+    /// script that was examined, rather than its text again, saves compiling it a second time.
+    /// </summary>
+    public async Task<ScriptState<object>> RunScriptAsync(
+        Script<object> script, object? globals = null, CancellationToken cancellationToken = default)
+    {
+        var state = _lastState is null
+            ? await script.RunAsync(globals, cancellationToken).ConfigureAwait(false)
+            : await script.RunFromAsync(_lastState, cancellationToken).ConfigureAwait(false);
+
+        _lastState = state;
+        return state;
+    }
+
+    /// <summary>
     /// Returns the most recent set of script variables, grouped by name with the last value winning.
     /// </summary>
     public IReadOnlyDictionary<string, object?> GetVariables()
@@ -82,6 +110,14 @@ internal sealed class ScriptStateManager : IAsyncDisposable
 
         if (refs.Length > 0)
             _baseOptions = _baseOptions.AddReferences(refs);
+    }
+
+    /// <summary>
+    /// Adds a loaded assembly as a reference, so that subsequent executions can use its types.
+    /// </summary>
+    public void AddReference(System.Reflection.Assembly assembly)
+    {
+        _baseOptions = _baseOptions.AddReferences(assembly);
     }
 
     public ValueTask DisposeAsync()
